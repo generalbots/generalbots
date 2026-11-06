@@ -1,0 +1,301 @@
+/* =============================================================================
+   SENTIENT THEME - Dark Mode with Neon Green Accents
+   A futuristic, intelligent automation interface
+   ============================================================================= */
+
+:root {
+    /* Primary Colors */
+    --sentient-bg-primary: #0a0a0a;
+    --sentient-bg-secondary: #111111;
+    --sentient-bg-tertiary: #1a1a1a;
+    --sentient-bg-card: #141414;
+    --sentient-bg-hover: #1f1f1f;
+    
+    /* Accent Colors */
+    --sentient-accent: #c5f82a;
+    --sentient-accent-dim: rgba(197, 248, 42, 0.15);
+    --sentient-accent-glow: rgba(197, 248, 42, 0.3);
+    
+    /* Status Colors */
+    --sentient-success: #22c55e;
+    --sentient-warning: #f59e0b;
+    --sentient-error: #ef4444;
+    --sentient-info: #3b82f6;
+    --sentient-paused: #8b5cf6;
+    
+    /* Text Colors */
+    --sentient-text-primary: #ffffff;
+    --sentient-text-secondary: #a1a1a1;
+    --sentient-text-muted: #6b6b6b;
+    --sentient-text-accent: #c5f82a;
+    
+    /* Border Colors */
+    --sentient-border: #2a2a2a;
+    --sentient-border-hover: #3a3a3a;
+    --sentient-border-accent: rgba(197, 248, 42, 0.3);
+    
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --sentient-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --sentient-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --sentient-shadow-glow: 0 0 20px rgba(197, 248, 42, 0.2);
+    
+    /* Spacing */
+    --sentient-radius-sm: 6px;
+    --sentient-radius-md: 10px;
+    --sentient-radius-lg: 16px;
+    --sentient-radius-xl: 24px;
+    
+    /* Typography */
+    --sentient-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --sentient-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+.sentient-theme {
+    background: var(--sentient-bg-primary);
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font-family);
+    min-height: 100vh;
+}
+
+.sentient-theme * {
+    box-sizing: border-box;
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.sentient-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--sentient-radius-md);
+    font-family: var(--sentient-font-family);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sentient-btn-primary {
+    background: var(--sentient-accent);
+    color: #000000;
+}
+
+.sentient-btn-primary:hover {
+    background: #d4ff4a;
+    box-shadow: var(--sentient-shadow-glow);
+}
+
+.sentient-btn-secondary {
+    background: var(--sentient-bg-tertiary);
+    color: var(--sentient-text-primary);
+    border: 1px solid var(--sentient-border);
+}
+
+.sentient-btn-secondary:hover {
+    background: var(--sentient-bg-hover);
+    border-color: var(--sentient-border-hover);
+}
+
+.sentient-btn-ghost {
+    background: transparent;
+    color: var(--sentient-text-secondary);
+}
+
+.sentient-btn-ghost:hover {
+    background: var(--sentient-bg-tertiary);
+    color: var(--sentient-text-primary);
+}
+
+.sentient-btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: var(--sentient-radius-sm);
+}
+
+/* =============================================================================
+   INPUTS
+   ============================================================================= */
+
+.sentient-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--sentient-bg-secondary);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-md);
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font-family);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.sentient-input::placeholder {
+    color: var(--sentient-text-muted);
+}
+
+.sentient-input:focus {
+    outline: none;
+    border-color: var(--sentient-accent);
+    box-shadow: 0 0 0 3px var(--sentient-accent-dim);
+}
+
+.sentient-search {
+    position: relative;
+}
+
+.sentient-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--sentient-text-muted);
+    font-size: 16px;
+}
+
+.sentient-search .sentient-input {
+    padding-left: 44px;
+}
+
+/* =============================================================================
+   CARDS
+   ============================================================================= */
+
+.sentient-card {
+    background: var(--sentient-bg-card);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-lg);
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+.sentient-card:hover {
+    border-color: var(--sentient-border-hover);
+}
+
+.sentient-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sentient-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--sentient-text-primary);
+}
+
+/* =============================================================================
+   BADGES & PILLS
+   ============================================================================= */
+
+.sentient-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sentient-badge-accent {
+    background: var(--sentient-accent-dim);
+    color: var(--sentient-accent);
+}
+
+.sentient-badge-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--sentient-success);
+}
+
+.sentient-badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--sentient-warning);
+}
+
+.sentient-badge-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--sentient-error);
+}
+
+.sentient-badge-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--sentient-info);
+}
+
+.sentient-badge-muted {
+    background: var(--sentient-bg-tertiary);
+    color: var(--sentient-text-secondary);
+}
+
+/* =============================================================================
+   PROGRESS BARS
+   ============================================================================= */
+
+.sentient-progress {
+    height: 8px;
+    background: var(--sentient-bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.sentient-progress-fill {
+    height: 100%;
+    background: var(--sentient-accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.sentient-progress-success .sentient-progress-fill {
+    background: var(--sentient-success);
+}
+
+.sentient-progress-warning .sentient-progress-fill {
+    background: var(--sentient-warning);
+}
+
+/* =============================================================================
+   NAVIGATION TABS
+   ============================================================================= */
+
+.sentient-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--sentient-bg-secondary);
+    border-radius: var(--sentient-radius-md);
+}
+
+.sentient-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-radius: var(--sentient-radius-sm);
+    color: var(--sentient-text-secondary);
+    font-family: var(--sentient-font-family);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sentient-tab:hover {
+    color: var(--sentient-text-primary);
+}
+
+.sentient-tab.active {
+    background: var(--sentient-bg-tertiary);
+    color: var(--sentient-text-primary);
+}
+

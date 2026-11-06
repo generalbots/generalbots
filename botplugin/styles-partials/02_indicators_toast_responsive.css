@@ -1,0 +1,291 @@
+/* ============================================
+   Auto Mode Indicator
+   ============================================ */
+.gb-auto-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--gb-success);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: var(--gb-shadow);
+    z-index: 99999;
+    animation: gb-pulse 2s infinite;
+}
+
+@keyframes gb-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.gb-auto-dot {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: gb-blink 1s infinite;
+}
+
+@keyframes gb-blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* ============================================
+   Contact Controls
+   ============================================ */
+.gb-contact-controls {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-right: 16px;
+}
+
+.gb-contact-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--gb-transition);
+}
+
+.gb-contact-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.gb-contact-btn.active {
+    background: var(--gb-success);
+    border-color: var(--gb-success);
+    color: white;
+}
+
+.gb-contact-btn .gb-icon {
+    font-size: 14px;
+}
+
+/* ============================================
+   Processing Indicator
+   ============================================ */
+.gb-processing-indicator {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius) var(--gb-radius) 0 0;
+    color: var(--gb-text-light);
+    font-size: 13px;
+    z-index: 100;
+}
+
+.gb-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--gb-border);
+    border-top-color: var(--gb-primary);
+    border-radius: 50%;
+    animation: gb-spin 0.8s linear infinite;
+}
+
+@keyframes gb-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   Processed Message Indicator
+   ============================================ */
+.gb-processed-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--gb-success);
+    margin-top: 4px;
+    padding: 2px 6px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 4px;
+}
+
+.gb-processed-message {
+    position: relative;
+}
+
+.gb-processed-message::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--gb-success);
+    border-radius: 2px;
+}
+
+/* ============================================
+   Monitored Input Indicator
+   ============================================ */
+.gb-monitored-input {
+    position: relative;
+}
+
+.gb-monitored-input::after {
+    content: "✨";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================
+   Tooltip
+   ============================================ */
+.gb-tooltip {
+    position: absolute;
+    background: var(--gb-bg-dark);
+    color: var(--gb-text-light);
+    padding: 8px 12px;
+    border-radius: var(--gb-radius);
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100000;
+    box-shadow: var(--gb-shadow);
+    pointer-events: none;
+    animation: gb-fade-in 0.2s ease;
+}
+
+.gb-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--gb-bg-dark);
+}
+
+/* ============================================
+   Notification Toast
+   ============================================ */
+.gb-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--gb-bg-dark);
+    border-radius: var(--gb-radius);
+    box-shadow: var(--gb-shadow-lg);
+    color: var(--gb-text-light);
+    font-size: 14px;
+    z-index: 999999;
+    animation: gb-slide-in 0.3s ease;
+    border-left: 4px solid var(--gb-primary);
+}
+
+.gb-toast.success {
+    border-left-color: var(--gb-success);
+}
+
+.gb-toast.error {
+    border-left-color: var(--gb-error);
+}
+
+.gb-toast.warning {
+    border-left-color: var(--gb-warning);
+}
+
+@keyframes gb-slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.gb-toast-close {
+    background: none;
+    border: none;
+    color: var(--gb-secondary);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.gb-toast-close:hover {
+    color: var(--gb-text-light);
+}
+
+/* ============================================
+   Dark Mode Overrides for WhatsApp
+   ============================================ */
+[data-theme="dark"] #gb-control-panel,
+.dark #gb-control-panel {
+    background: #0b141a;
+    border-color: #222d34;
+}
+
+[data-theme="dark"] .gb-panel-body,
+.dark .gb-panel-body {
+    background: #0b141a;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    #gb-control-panel {
+        width: 260px;
+        right: 10px;
+        top: 70px;
+    }
+
+    .gb-correction-content {
+        width: 95%;
+        margin: 10px;
+    }
+
+    .gb-auto-indicator {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+}
