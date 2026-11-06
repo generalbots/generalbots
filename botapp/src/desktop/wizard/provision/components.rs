@@ -1,17 +1,11 @@
-//! Stack provisioning driven by the wizard.
-//!
-//! The wizard does not know how to start PostgreSQL, Vault or MinIO. It spawns
-//! `botserver --provision-stack`, which owns the component order and the
-//! offline/checksum rules, and forwards each `GBWIZARD:` progress line to the
-//! window. When the components are ready the sidecar starts and the wizard waits
-//! for `/api/product` before handing over.
+//! Provisioning child process: spawn, progress forwarding and assistant start.
 
-use super::{
-    installers_path, log_path, progress_path, stack_path, workspace_path, FinishRequest,
-    ProgressEvent, ProvisionRequest, WizardState,
+use super::super::{
+    installers_path, log_path, stack_path, workspace_path, ProgressEvent, ProvisionRequest,
+    WizardState,
 };
-use super::write_progress;
-use log::{error, info, warn};
+use super::super::{write_progress, ProgressMarker};
+use log::{info, warn};
 use std::io::Write;
 use std::process::Stdio;
 use std::sync::atomic::Ordering;
@@ -19,10 +13,9 @@ use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use super::super::sidecar::Sidecar;
+use crate::desktop::sidecar::Sidecar;
 
 const API_PRODUCT: &str = "http://127.0.0.1:8080/api/product";
-const API_BOTS: &str = "http://127.0.0.1:8080/api/bots/list";
 
 fn emit(app: &tauri::AppHandle, state: &WizardState, event: ProgressEvent) {
     if let Ok(mut progress) = state.progress.lock() {
@@ -42,7 +35,7 @@ fn emit(app: &tauri::AppHandle, state: &WizardState, event: ProgressEvent) {
     }
 }
 
-fn progress(
+pub(super) fn progress(
     app: &tauri::AppHandle,
     state: &WizardState,
     id: &str,
@@ -62,40 +55,9 @@ fn progress(
     );
 }
 
-fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
-    let services: std::collections::HashMap<&str, serde_json::Value> = request
-        .services
-        .iter()
-        .filter(|(_, service)| !service.client_id.trim().is_empty())
-        .map(|(provider, service)| {
-            (
-                provider.as_str(),
-                serde_json::json!({ "client_id": service.client_id, "client_secret": "" }),
-            )
-        })
-        .collect();
-    let draft = serde_json::json!({
-        "model": {
-            "mode": request.model.mode,
-            "provider": request.model.provider,
-            "endpoint": request.model.endpoint,
-            "model": request.model.model,
-        },
-        "workspace": request.workspace,
-        "telemetry": request.telemetry,
-        "display_name": request.display_name,
-        "services": services,
-    });
-    let raw = serde_json::to_string_pretty(&draft)
-        .map_err(|e| std::io::Error::other(format!("serialize draft: {e}")))?;
-    let stack = stack_path();
-    std::fs::create_dir_all(&stack)?;
-    std::fs::write(super::draft_path(), raw)
-}
-
 /// Runs the provisioning child and forwards its progress. Returns the failure
 /// reason, if any, without leaking environment or credentials.
-async fn run_components(
+pub(super) async fn run_components(
     app: &tauri::AppHandle,
     state: &WizardState,
     request: &ProvisionRequest,
@@ -202,7 +164,7 @@ async fn run_components(
             };
             if event.state == "ready" {
                 completed.push(event.id.clone());
-                let _ = write_progress(&super::ProgressMarker {
+                let _ = write_progress(&ProgressMarker {
                     completed: completed.clone(),
                     step: 5,
                 });
@@ -250,7 +212,7 @@ async fn run_components(
     Ok(())
 }
 
-async fn start_assistant(
+pub(super) async fn start_assistant(
     app: &tauri::AppHandle,
     state: &WizardState,
     sidecar: &Sidecar,
@@ -342,168 +304,4 @@ async fn start_assistant(
         progress(app, state, "botserver", "failed", reason, 0);
         Err(reason.to_string())
     }
-}
-
-/// Stores the OAuth client ids/secrets the user entered, through the running
-/// API, once. Secrets never touch a config file and are never logged.
-async fn apply_integrations(request: &ProvisionRequest) {
-    if request.services.is_empty() {
-        return;
-    }
-    let client = match reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-    {
-        Ok(client) => client,
-        Err(e) => {
-            warn!("wizard: could not create the integration client: {e}");
-            return;
-        }
-    };
-    let bot_id = match client.get(API_BOTS).send().await {
-        Ok(response) if response.status().is_success() => {
-            let bots: serde_json::Value = response.json().await.unwrap_or_default();
-            bots.as_array()
-                .and_then(|list| list.first())
-                .and_then(|bot| bot.get("id"))
-                .and_then(|id| id.as_str())
-                .map(|id| id.to_string())
-        }
-        Ok(response) => {
-            warn!(
-                "wizard: could not list bots ({}) to apply integrations",
-                response.status()
-            );
-            None
-        }
-        Err(e) => {
-            warn!("wizard: could not list bots to apply integrations: {e}");
-            None
-        }
-    };
-    let Some(bot_id) = bot_id else {
-        return;
-    };
-    for (provider, service) in &request.services {
-        if service.client_id.trim().is_empty() {
-            continue;
-        }
-        let url = format!(
-            "http://127.0.0.1:8080/api/bots/{bot_id}/integrations/oauth/{provider}/client"
-        );
-        let body = serde_json::json!({
-            "client_id": service.client_id,
-            "client_secret": if service.client_secret.is_empty() {
-                None
-            } else {
-                Some(&service.client_secret)
-            },
-        });
-        match client.post(&url).json(&body).send().await {
-            Ok(response) if response.status().is_success() => {
-                info!("wizard: stored the OAuth client for {provider}");
-            }
-            Ok(response) => {
-                warn!(
-                    "wizard: the API rejected the OAuth client for {provider} ({})",
-                    response.status()
-                );
-            }
-            Err(e) => {
-                warn!("wizard: could not store the OAuth client for {provider}: {e}");
-            }
-        }
-    }
-}
-
-pub async fn provision(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, WizardState>,
-    sidecar: tauri::State<'_, Sidecar>,
-    request: ProvisionRequest,
-) -> Result<(), String> {
-    if state.provisioning.swap(true, Ordering::SeqCst) {
-        return Err("Setup is already running.".to_string());
-    }
-    state.cancelled.store(false, Ordering::SeqCst);
-    if let Ok(mut progress) = state.progress.lock() {
-        progress.clear();
-    }
-    if let Ok(mut failed) = state.failed.lock() {
-        *failed = None;
-    }
-    let result = provision_inner(&app, &state, &sidecar, request).await;
-    state.provisioning.store(false, Ordering::SeqCst);
-    state.cancelled.store(false, Ordering::SeqCst);
-    if let Err(ref e) = result {
-        error!("wizard: setup failed: {e}");
-    }
-    result
-}
-
-async fn provision_inner(
-    app: &tauri::AppHandle,
-    state: &WizardState,
-    sidecar: &Sidecar,
-    request: ProvisionRequest,
-) -> Result<(), String> {
-    save_draft(&request).map_err(|e| format!("could not save the setup choices: {e}"))?;
-    let _ = write_progress(&super::ProgressMarker {
-        completed: Vec::new(),
-        step: 5,
-    });
-
-    run_components(app, state, &request).await?;
-    start_assistant(app, state, sidecar).await?;
-    apply_integrations(&request).await;
-
-    progress(app, state, "__done__", "ready", "Stack is ready", 0);
-    let _ = std::fs::remove_file(progress_path());
-    Ok(())
-}
-
-pub async fn finish(app: tauri::AppHandle, request: FinishRequest) -> Result<(), String> {
-    super::handoff(&app, &request)
-}
-
-pub fn status(state: &WizardState) -> super::ProvisionStatus {
-    let components = match state.progress.lock() {
-        Ok(progress) => progress.clone(),
-        Err(_) => Vec::new(),
-    };
-    let ready = components.iter().any(|event| event.id == "__done__");
-    let failed = match state.failed.lock() {
-        Ok(failed) => failed.clone(),
-        Err(_) => None,
-    };
-    super::ProvisionStatus {
-        running: state.provisioning.load(Ordering::SeqCst),
-        ready,
-        failed,
-        components,
-    }
-}
-
-pub fn cancel(state: &WizardState) -> Result<(), String> {    state.cancelled.store(true, Ordering::SeqCst);
-    let pid = *state.pid.lock().map_err(|_| "state lock poisoned")?;
-    if let Some(pid) = pid {
-        terminate(pid);
-    }
-    Ok(())
-}
-
-#[cfg(unix)]
-fn terminate(pid: u32) {
-    // SAFETY: sending SIGTERM to a known child pid; failure is reported by the
-    // caller through the process exit status.
-    unsafe {
-        libc::kill(pid as i32, libc::SIGTERM);
-    }
-}
-
-#[cfg(windows)]
-fn terminate(pid: u32) {
-    let _ = botlib::security::command_guard::SafeCommand::new("taskkill")
-        .and_then(|command| command.args(&["/PID", &pid.to_string(), "/T", "/F"]))
-        .and_then(|command| command.execute());
 }

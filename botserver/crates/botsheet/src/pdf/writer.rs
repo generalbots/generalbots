@@ -1,13 +1,11 @@
-//! Minimal PDF 1.4 exporter (#788).
-//!
-//! Produces a dependency-free PDF: one A4 page set per worksheet, each grid
-//! rendered as a table of Helvetica text with a repeated header row. TrueType
-//! embedding, colors and vector graphics are intentionally out of scope; the
-//! goal is a faithful, printable snapshot of the data — not a designer layout.
+//! PDF object and page writer.
 
 use std::collections::HashMap;
 
-use crate::types::{CellData, Spreadsheet};
+use botsheet_core::types::CellData;
+
+use super::options::PdfOptions;
+use super::text::{cell_to_text, column_letter, parse_key, text_cmd};
 
 /// A4 page size in PostScript points (1 pt = 1/72 inch).
 const PAGE_WIDTH: f32 = 595.0;
@@ -28,43 +26,10 @@ const COL_WIDTH: f32 = 96.0;
 /// Rows per page; the remaining cells flow onto continuation pages.
 const ROWS_PER_PAGE: usize = 48;
 
-/// Longest cell text rendered; longer values are truncated with an ellipsis.
-const MAX_CELL_CHARS: usize = 16;
-
 const FONT_SIZE: f32 = 8.5;
 
 /// Object numbers of the three structural objects emitted before the pages.
 const HEADER_OBJECTS: u32 = 3;
-
-/// Print layout selected in the sheet print dialog.
-#[derive(Debug, Clone, Copy)]
-pub struct PdfOptions {
-    pub landscape: bool,
-    /// 0.5–2.0; scales the grid metrics, never the page.
-    pub scale: f32,
-}
-
-impl Default for PdfOptions {
-    fn default() -> Self {
-        Self { landscape: false, scale: 1.0 }
-    }
-}
-
-/// Renders every worksheet of the spreadsheet as paginated PDF bytes.
-pub fn export_pdf(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
-    export_pdf_with(sheet, PdfOptions::default())
-}
-
-pub fn export_pdf_with(sheet: &Spreadsheet, options: PdfOptions) -> Result<Vec<u8>, String> {
-    let mut writer = PdfWriter::new(options);
-    for worksheet in &sheet.worksheets {
-        writer.add_worksheet(worksheet.name.as_str(), &worksheet.data)?;
-    }
-    if writer.page_count() == 0 {
-        writer.add_blank_page(sheet.name.as_str());
-    }
-    Ok(writer.finish())
-}
 
 /// A cell extracted for rendering, sorted into row-major order.
 struct GridCell {
@@ -75,7 +40,7 @@ struct GridCell {
 
 /// Accumulates PDF objects and emits the final byte stream with a valid
 /// xref table and trailer.
-struct PdfWriter {
+pub(super) struct PdfWriter {
     objects: Vec<Vec<u8>>,
     page_refs: Vec<u32>,
     page_w: f32,
@@ -87,7 +52,7 @@ struct PdfWriter {
 }
 
 impl PdfWriter {
-    fn new(options: PdfOptions) -> Self {
+    pub(super) fn new(options: PdfOptions) -> Self {
         let (page_w, page_h) = if options.landscape {
             (PAGE_HEIGHT, PAGE_WIDTH)
         } else {
@@ -113,7 +78,7 @@ impl PdfWriter {
         }
     }
 
-    fn page_count(&self) -> usize {
+    pub(super) fn page_count(&self) -> usize {
         self.page_refs.len()
     }
 
@@ -125,7 +90,7 @@ impl PdfWriter {
 
     /// Renders one worksheet onto as many pages as its grid needs. Rows with
     /// no data are skipped, so a sparse sheet prints compactly.
-    fn add_worksheet(
+    pub(super) fn add_worksheet(
         &mut self,
         name: &str,
         data: &HashMap<String, CellData>,
@@ -227,7 +192,7 @@ impl PdfWriter {
         Ok(())
     }
 
-    fn add_blank_page(&mut self, sheet_name: &str) {
+    pub(super) fn add_blank_page(&mut self, sheet_name: &str) {
         let stream = format!(
             "BT\n/F1 {} Tf\n{} ET",
             self.font_size,
@@ -240,7 +205,7 @@ impl PdfWriter {
 
     /// Serializes the object list with the catalog, pages tree, font object,
     /// xref table and trailer.
-    fn finish(self) -> Vec<u8> {
+    pub(super) fn finish(self) -> Vec<u8> {
         let mut out: Vec<u8> = Vec::with_capacity(4096);
         out.extend_from_slice(b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
         let mut offsets: Vec<usize> = Vec::with_capacity(self.objects.len() + HEADER_OBJECTS as usize);
@@ -289,165 +254,5 @@ impl PdfWriter {
             .as_bytes(),
         );
         out
-    }
-}
-
-/// One positioned text run: `x y Tm (escaped) Tj`.
-fn text_cmd(x: f32, y: f32, text: &str) -> String {
-    format!("1 0 0 1 {x:.1} {y:.1} Tm ({}) Tj\n", escape_text(text))
-}
-
-/// Escapes PDF string specials and replaces characters outside WinAnsi.
-fn escape_text(text: &str) -> String {
-    let mut out = String::with_capacity(text.len() + 8);
-    for ch in text.chars() {
-        match ch {
-            '(' => out.push_str("\\("),
-            ')' => out.push_str("\\)"),
-            '\\' => out.push_str("\\\\"),
-            ch if (' '..='~').contains(&ch) => out.push(ch),
-            _ => out.push('?'),
-        }
-    }
-    out
-}
-
-/// Zero-based column index to spreadsheet letters (`0 -> A`, `27 -> AB`).
-fn column_letter(col: u32) -> String {
-    if col > 16_383 {
-        return "?".to_string();
-    }
-    let mut name = String::new();
-    let mut n = col + 1;
-    while n > 0 {
-        let rem = (n - 1) % 26;
-        name.insert(0, (b'A' + rem as u8) as char);
-        n = (n - 1) / 26;
-    }
-    name
-}
-
-/// Truncates long values to keep a page legible.
-fn cell_to_text(value: &str) -> String {
-    if value.chars().count() <= MAX_CELL_CHARS {
-        return value.to_string();
-    }
-    let truncated: String = value.chars().take(MAX_CELL_CHARS - 1).collect();
-    format!("{truncated}…")
-}
-
-fn parse_key(key: &str) -> Option<(u32, u32)> {
-    let (row, col) = key.split_once(',')?;
-    Some((row.parse().ok()?, col.parse().ok()?))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-fn ws() -> Spreadsheet {
-    let mut data = HashMap::new();
-    data.insert(
-        "0,0".to_string(),
-        CellData {
-            value: Some("Name".to_string()),
-            typed: None,
-            formula: None,
-            style: None,
-            format: None,
-            note: None,
-            locked: None,
-            has_comment: None,
-            array_formula_id: None,
-        },
-    );
-    data.insert(
-        "1,0".to_string(),
-        CellData {
-            value: Some("Alice".to_string()),
-            typed: None,
-            formula: None,
-            style: None,
-            format: None,
-            note: None,
-            locked: None,
-            has_comment: None,
-            array_formula_id: None,
-        },
-    );
-    data.insert(
-        "1,1".to_string(),
-        CellData {
-            value: Some("42".to_string()),
-            typed: None,
-            formula: None,
-            style: None,
-            format: None,
-            note: None,
-            locked: None,
-            has_comment: None,
-            array_formula_id: None,
-        },
-    );
-    data.insert(
-        "5,2".to_string(),
-        CellData {
-            value: Some("Deep (parens) value\\with\\slashes".to_string()),
-            typed: None,
-            formula: None,
-            style: None,
-            format: None,
-            note: None,
-            locked: None,
-            has_comment: None,
-            array_formula_id: None,
-        },
-    );
-    sheet_with(data, "Report", "Sheet1")
-}
-
-fn sheet_with(data: HashMap<String, CellData>, name: &str, ws_name: &str) -> Spreadsheet {
-    Spreadsheet {
-        id: "s".to_string(),
-        name: name.to_string(),
-        owner_id: "o".to_string(),
-        worksheets: vec![crate::types::Worksheet {
-            name: ws_name.to_string(),
-            data,
-            ..crate::types::Worksheet::default()
-        }],
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
-        named_ranges: None,
-        external_links: None,
-        source_bucket: None,
-        source_path: None,
-        source_bytes: None,
-        acl: HashMap::new(),
-    }
-}
-
-    #[test]
-    fn produces_well_formed_pdf() {
-        let pdf = export_pdf(&ws()).expect("pdf export should succeed");
-        let header = &pdf[..8];
-        assert_eq!(header, b"%PDF-1.4");
-        let text = String::from_utf8_lossy(&pdf);
-        assert!(text.contains("endobj"));
-        assert!(text.contains("startxref"));
-        assert!(text.contains("%%EOF"));
-        assert!(text.contains("/Helvetica"));
-        assert!(text.contains("(Alice)"));
-        // The parens and backslashes must be escaped in the content stream.
-        assert!(text.contains("\\("));
-        assert!(text.contains("\\"));
-    }
-
-    #[test]
-    fn empty_spreadsheet_still_renders() {
-        let empty = sheet_with(HashMap::new(), "Blank", "Sheet1");
-        let pdf = export_pdf(&empty).expect("blank export should succeed");
-        assert!(pdf.starts_with(b"%PDF-1.4"));
-        assert!(String::from_utf8_lossy(&pdf).contains("%%EOF"));
     }
 }
