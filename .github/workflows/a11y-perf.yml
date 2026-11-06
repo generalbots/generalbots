@@ -1,0 +1,43 @@
+name: Accessibility and performance gate
+
+# #1680 — the suite shell must keep an automated accessibility/perf check.
+# The job serves the static UI (no botserver) and audits the desktop page.
+on:
+  push:
+    paths:
+      - "botui/ui/suite/**"
+      - ".github/scripts/a11y_perf_gate.mjs"
+      - ".github/workflows/a11y-perf.yml"
+  pull_request:
+    paths:
+      - "botui/ui/suite/**"
+      - ".github/scripts/a11y_perf_gate.mjs"
+      - ".github/workflows/a11y-perf.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse a11y + perf
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Serve and audit the desktop page
+        run: |
+          python3 -m http.server 3000 --directory botui/ui >/tmp/suite-http.log 2>&1 &
+          SERVER=$!
+          trap "kill $SERVER" EXIT
+          for _ in $(seq 1 20); do
+            curl -sf http://127.0.0.1:3000/suite/desktop.html >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:3000/suite/desktop.html >/dev/null || {
+            echo "suite did not start"; tail -20 /tmp/suite-http.log; exit 1;
+          }
+          node .github/scripts/a11y_perf_gate.mjs http://127.0.0.1:3000/suite/desktop.html
