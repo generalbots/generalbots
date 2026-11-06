@@ -1,0 +1,71 @@
+{
+  "issue": "#1735",
+  "generated": "2026-11-06",
+  "contract": "Ceilings, not snapshots: a count may stay equal or fall, never rise. Lower a number in the change that removes the deviation.",
+  "rules": {
+    "allow_attributes": {
+      "count": 0,
+      "owner": null
+    },
+    "table_outside_botschema": {
+      "count": 0,
+      "owner": "#1520"
+    },
+    "rust_unwrap": {
+      "count": 0,
+      "owner": null
+    },
+    "rust_expect": {
+      "count": 0,
+      "owner": null
+    },
+    "rust_panic": {
+      "count": 0,
+      "owner": null
+    },
+    "rust_todo": {
+      "count": 0,
+      "owner": null
+    },
+    "raw_command_new": {
+      "count": 29,
+      "owner": "unassigned"
+    },
+    "backup_files": {
+      "count": 0,
+      "owner": "#1734"
+    },
+    "cdn_refs": {
+      "count": 0,
+      "owner": "#1733"
+    },
+    "part_suffixed_rust": {
+      "count": 41,
+      "owner": "#1728"
+    },
+    "part_suffixed_css": {
+      "count": 108,
+      "owner": "#1729"
+    },
+    "oversize_rs": {
+      "count": 38,
+      "owner": "#1730"
+    },
+    "oversize_js": {
+      "count": 58,
+      "owner": "#1731"
+    },
+    "oversize_html": {
+      "count": 41,
+      "owner": "#1731"
+    },
+    "oversize_css": {
+      "count": 40,
+      "owner": "#1731"
+    },
+    "commented_code": {
+      "count": 0,
+      "owner": "#1734"
+    }
+  }
+}

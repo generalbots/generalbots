@@ -1,0 +1,59 @@
+name: Adequacy guard
+
+# #1735 — structural rules from AGENTS.md are executable, not folklore.
+# `scripts/adequacy_guard.py` counts `#[allow]`, `table!` outside botschema,
+# production unwrap/expect/panic, raw Command::new, backups, CDN assets,
+# part-suffixed modules/styles, files over 450 lines and commented-out code.
+# The checked-in baseline is a ceiling: a count may fall, never rise. Pure
+# file scanning (no cargo, no network), so it finishes in seconds.
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Structural adequacy baseline
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The strict step needs the pull request's base commit.
+          fetch-depth: 0
+      - name: Check the baseline
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 scripts/adequacy_guard.py --baseline issues/adequacy/baseline.json
+      # A PR that touches a directory with a known deviation must fix that
+      # directory instead of adding to the repo-wide backlog. Only source files
+      # select the directories, so a Cargo.toml edit does not flag its parent.
+      - name: Check changed directories strictly
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          dirs=$(git diff --name-only "$BASE_SHA"...HEAD -- \
+            '*.rs' '*.js' '*.html' '*.css' | xargs -r -n1 dirname | sort -u)
+          args=()
+          for dir in $dirs; do
+            case "$dir" in
+              .|scripts|issues|.github) continue ;;
+            esac
+            args+=(--strict "$dir")
+          done
+          if [ ${#args[@]} -eq 0 ]; then
+            echo "no changed source directories"
+            exit 0
+          fi
+          echo "strict directories: ${args[*]}"
+          python3 scripts/adequacy_guard.py \
+            --baseline issues/adequacy/baseline.json "${args[@]}"
