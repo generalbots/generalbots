@@ -9,6 +9,7 @@ pub use i18n::{Lang, t, tf};
 use axum::{routing::{get, post}, Router};
 use botsheet_core::types::{Spreadsheet, SpreadsheetMetadata};
 use serde::Deserialize;
+use std::sync::Arc;
 
 use panels::{
     handle_named_ranges_panel, handle_charts_panel, handle_validations_panel,
@@ -84,7 +85,7 @@ pub struct SheetIdQuery {
     pub id: Option<String>,
 }
 
-pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
+pub fn configure() -> Router<Arc<crate::state::SheetState>> {
     Router::new()
         .route("/suite/sheet/fragments/sheet-list", get(handle_sheet_list_sidebar))
         .route("/suite/sheet/fragments/search", get(handle_search_sidebar))
