@@ -41,7 +41,9 @@ session_id: ChatState.currentSessionId,
 channel: "web",
 content: actionData.tool,
 message_type: 6,
-active_switchers: Array.from(ChatState.activeSwitchers),
+active_switchers: typeof activeSwitcherIds === "function"
+  ? activeSwitcherIds()
+  : Array.from(ChatState.activeSwitchers || []),
 timestamp: new Date().toISOString(),
 };
 console.log("[SUGGESTION] Sending via WS:", msg);
@@ -54,9 +56,13 @@ window.sendMessage(sugg.text);
 }
 return;
 } else if (actionData.type === "switch_context" && actionData.switcher) {
-if (!ChatState.activeSwitchers.has(actionData.switcher)) {
-ChatState.activeSwitchers.add(actionData.switcher);
-renderSwitcherChips();
+// #1753 — mutate THIS tab's switcher set (stock tab keeps ChatState's).
+var switcherSet = typeof activeSwitcherSet === "function"
+  ? activeSwitcherSet()
+  : ChatState.activeSwitchers;
+if (!switcherSet.has(actionData.switcher)) {
+switcherSet.add(actionData.switcher);
+if (typeof renderSwitcherChips === "function") renderSwitcherChips();
 }
 window.sendMessage(sugg.text);
 } else if (actionData.type === "send_message") {

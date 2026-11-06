@@ -92,6 +92,11 @@ function sendMessage(messageContent, extra) {
 
   var modelPicker = document.getElementById("modelPicker");
   var selectedModel = modelPicker ? modelPicker.value : "auto";
+  // #1753 — the switcher set follows the active conversation. Parallel tabs
+  // resolve to their own set; the stock tab keeps ChatState.activeSwitchers.
+  var outgoingSwitchers = typeof activeSwitcherIds === "function"
+    ? activeSwitcherIds()
+    : Array.from(ChatState.activeSwitchers || []);
 
   var isAnonymous = !!(window.__BOT_IS_PUBLIC__ && !(window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()));
 
@@ -102,7 +107,7 @@ function sendMessage(messageContent, extra) {
     channel: "web",
     content: content,
     message_type: MessageType.USER,
-    active_switchers: Array.from(ChatState.activeSwitchers),
+    active_switchers: outgoingSwitchers,
     drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? { source: "user_drive", untrusted: true, files: driveFiles.slice(0, 20) } : undefined,
     // #1545: Drive is part of the prompt context by default; the setting is
     // stored as a string so a future Settings toggle can flip it.

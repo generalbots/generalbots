@@ -397,7 +397,18 @@ function vmToggleInlinePreview(card, url, path, convId) {
   } else {
     var other = document.createElement("div");
     other.className = "gb-attachment-inline-note";
-    other.textContent = "This file type has no inline preview.";
+    other.textContent =
+      "This file type has no inline preview. Open the window preview to view it.";
+    // #1753 — same fallback affordance as the office branch: unknown types
+    // still open through the signed window preview instead of being a dead end.
+    var openOther = document.createElement("button");
+    openOther.type = "button";
+    openOther.className = "gb-attachment-btn";
+    openOther.textContent = "Open window preview";
+    openOther.addEventListener("click", function () {
+      vmShowPreviewUrl(url, path);
+    });
+    other.appendChild(openOther);
     body.appendChild(other);
   }
   box.appendChild(body);

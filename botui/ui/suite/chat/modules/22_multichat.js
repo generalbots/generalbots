@@ -139,8 +139,21 @@
     var sugg = document.createElement("div");
     sugg.className = "suggestions-container";
     sugg.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;";
+    // #1753 — each pane owns its response-format switchers. The container is
+    // parked with the pane; only the mounted tab carries the canonical ids.
+    var switchers = document.createElement("div");
+    switchers.className = "switchers-container";
+    switchers.style.cssText = "display:none;";
+    var switchersLabel = document.createElement("div");
+    switchersLabel.className = "switchers-label";
+    switchersLabel.textContent = "Format:";
+    var switcherChips = document.createElement("div");
+    switcherChips.className = "switchers-chips";
+    switchers.appendChild(switchersLabel);
+    switchers.appendChild(switcherChips);
     pane.appendChild(msgs);
     pane.appendChild(sugg);
+    pane.appendChild(switchers);
     return pane;
   }
 
@@ -226,6 +239,10 @@
       streamingContent: "",
       unread: 0,
       needsHistoryReplay: false,
+      // #1753 — per-tab response-format switchers (the stock tab keeps
+      // ChatState.activeSwitchers / ChatState.switcherDefinitions).
+      switchers: new Set(),
+      switcherDefinitions: [],
     };
     return t;
   }
@@ -258,6 +275,10 @@
         if (paneMsgs) paneMsgs.removeAttribute("id");
         var paneSugg = mountedPane.querySelector(".suggestions-container");
         if (paneSugg) paneSugg.removeAttribute("id");
+        var paneSwitchers = mountedPane.querySelector(".switchers-container");
+        if (paneSwitchers) paneSwitchers.removeAttribute("id");
+        var paneSwitcherChips = mountedPane.querySelector(".switchers-chips");
+        if (paneSwitcherChips) paneSwitcherChips.removeAttribute("id");
         mountedPane.parentElement && mountedPane.parentElement.removeChild(mountedPane);
         var owner = MC.tabs[mountedPane.__mcTabId];
         if (owner) owner.pane = mountedPane;
@@ -320,6 +341,18 @@
         stockSugg.removeAttribute("data-mc-stock");
         stockSugg.style.display = "";
       }
+      // Restore the STOCK tab's own switcher strip (parked while a parallel
+      // pane owned the canonical ids).
+      var stockSwitchers = wrap.querySelector("footer .switchers-container[data-mc-stock]") ||
+        wrap.querySelector("footer .switchers-container");
+      if (stockSwitchers) {
+        stockSwitchers.id = "switchers";
+        stockSwitchers.removeAttribute("data-mc-stock");
+        var stockSwitcherChips = stockSwitchers.querySelector(".switchers-chips");
+        if (stockSwitcherChips) stockSwitcherChips.id = "switcherChips";
+        stockSwitchers.style.display =
+          stockSwitcherChips && stockSwitcherChips.childElementCount ? "" : "none";
+      }
       MC.activeId = t.id;
       return;
     }
@@ -339,6 +372,16 @@
         // visible below the parallel pane's own suggestions.
         oldFooterSugg.style.display = "none";
       }
+      // Same for the stock response-format strip: it belongs to the stock
+      // conversation, not the pane we are about to mount.
+      var oldFooterSwitchers = wrap.querySelector("footer .switchers-container");
+      if (oldFooterSwitchers) {
+        var oldFooterChips = oldFooterSwitchers.querySelector(".switchers-chips");
+        if (oldFooterChips) oldFooterChips.removeAttribute("id");
+        oldFooterSwitchers.removeAttribute("id");
+        oldFooterSwitchers.setAttribute("data-mc-stock", "1");
+        oldFooterSwitchers.style.display = "none";
+      }
     } else if (oldPane && oldPane.__mcTabId !== t.id) {
       // Detach the previous active pane (keep its canonical-id removal).
       var prev = MC.tabs[oldPane.__mcTabId];
@@ -346,6 +389,10 @@
       if (prevMsgs) prevMsgs.removeAttribute("id");
       var prevSugg = oldPane.querySelector(".suggestions-container");
       if (prevSugg) prevSugg.removeAttribute("id");
+      var prevSwitchers = oldPane.querySelector(".switchers-container");
+      if (prevSwitchers) prevSwitchers.removeAttribute("id");
+      var prevSwitcherChips = oldPane.querySelector(".switchers-chips");
+      if (prevSwitcherChips) prevSwitcherChips.removeAttribute("id");
       oldPane.parentElement && oldPane.parentElement.removeChild(oldPane);
       if (prev) prev.pane = oldPane;
     }
@@ -357,6 +404,12 @@
     if (msgs) msgs.id = "messages";
     var sugg = pane.querySelector(".suggestions-container");
     if (sugg) sugg.id = "suggestions";
+    // Hand the canonical switcher ids to THIS pane so stock-style lookups
+    // (and the legacy #switchers rule) resolve inside the active tab.
+    var paneSwitchers = pane.querySelector(".switchers-container");
+    if (paneSwitchers) paneSwitchers.id = "switchers";
+    var paneSwitcherChips = pane.querySelector(".switchers-chips");
+    if (paneSwitcherChips) paneSwitcherChips.id = "switcherChips";
     // Insert right after the connection status (before footer).
     var footer = wrap.querySelector("footer");
     if (footer) wrap.insertBefore(pane, footer);
@@ -372,6 +425,13 @@
           appendToContainer(pane, m.sender === "user" ? "user" : "bot", m.content);
         });
       }
+    }
+    // Switchers received while the tab was parked were recorded but could
+    // not be painted (no mounted container); paint them now.
+    if (t.switcherDefinitions && t.switcherDefinitions.length &&
+        typeof renderSwitcherChips === "function") {
+      renderSwitcherChips(t.id);
+      if (paneSwitchers) paneSwitchers.style.display = "";
     }
     MC.activeId = t.id;
   }
@@ -636,6 +696,11 @@
           data.suggestions.length && typeof renderSuggestions === "function") {
         renderSuggestions(data.suggestions, tabSugg);
       }
+      // #1753 — switcher chips belong to the tab that received the frame.
+      if (data.switchers && Array.isArray(data.switchers) &&
+          data.switchers.length && typeof renderBotSwitchers === "function") {
+        renderBotSwitchers(data.switchers, t.id);
+      }
       bumpUnread(t);
       schedulePersist();
     } else if ((data.content && data.content.trim()) || data.reasoning) {
@@ -755,6 +820,10 @@
       channel: "web",
       content: text,
       message_type: 1,
+      // #1753 — this tab's formats, never the global/other-tab set.
+      active_switchers: Array.from(
+        t.switchers instanceof Set ? t.switchers : []
+      ),
       timestamp: new Date().toISOString(),
       client_capabilities: window.gbClientCapabilities
         ? window.gbClientCapabilities()

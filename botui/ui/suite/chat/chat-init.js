@@ -326,6 +326,25 @@ hideMention();
 }
 
 function initChat() {
+  // #1753 — deleting the open conversation reinitializes through here.
+  // Duplicate delete events (or a re-injected module binding again) must not
+  // run two /api/auth rounds and two sockets. The guard is released when the
+  // minted session lands, or after a 12 s safety timeout.
+  if (window.__gbInitChatBusy) return;
+  window.__gbInitChatBusy = true;
+  if (!window.__gbInitChatRelease) {
+    window.__gbInitChatRelease = function () {
+      window.__gbInitChatBusy = false;
+      if (window.__gbInitChatTimer) {
+        clearTimeout(window.__gbInitChatTimer);
+        window.__gbInitChatTimer = null;
+      }
+    };
+    window.addEventListener("gb-chat-session-changed", window.__gbInitChatRelease);
+    window.addEventListener("gb-chat-connected", window.__gbInitChatRelease);
+  }
+  if (window.__gbInitChatTimer) clearTimeout(window.__gbInitChatTimer);
+  window.__gbInitChatTimer = setTimeout(window.__gbInitChatRelease, 12000);
   if (window.GBAppLifecycle) GBAppLifecycle.begin("chat");
   if (typeof loadBotConfig === 'function') {
     loadBotConfig();

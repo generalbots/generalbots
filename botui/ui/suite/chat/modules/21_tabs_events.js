@@ -328,6 +328,32 @@
 
   // ── Boot ──
 
+  // #1753 — deleting the open conversation re-mints its session by calling
+  // initChat(). Duplicate delete events (hover button + context menu, or a
+  // re-injected module binding this listener twice) used to run two /api/auth
+  // rounds and leave two sockets fighting. Hold a browser-wide guard until the
+  // new session arrives (or a timeout) so a deletion reinitializes once.
+  function reinitializeAfterDelete(sid) {
+    if (window.__gbChatReinit) return;
+    var release = function () {
+      if (!window.__gbChatReinit) return;
+      window.__gbChatReinit = null;
+      if (window.__gbChatReinitTimer) {
+        clearTimeout(window.__gbChatReinitTimer);
+        window.__gbChatReinitTimer = null;
+      }
+    };
+    if (typeof window.initChat !== "function") return;
+    window.__gbChatReinit = { sessionId: sid, at: Date.now() };
+    window.addEventListener("gb-chat-session-changed", release, { once: true });
+    window.__gbChatReinitTimer = setTimeout(release, 15000);
+    try {
+      window.initChat();
+    } catch (err) {
+      release();
+    }
+  }
+
   function init() {
     // BBSIA: deleting a conversation from the rail closes any tab bound to
     // that session so the UI cannot keep talking to a deleted history row.
@@ -351,10 +377,21 @@
         // closeTab refuses to remove the last tab; clear its binding instead
         // so the deleted session is not kept as the active conversation.
         if (GBTabs.state.tabs.length <= 1) {
+          // The last tab cannot close; unbind it fully instead so neither the
+          // strip nor the persisted store keeps pointing at the deleted row.
           t.sessionId = null;
           t.title = "Chat";
-          if (window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[t.id]) {
-            GBMultiChat.tabs[t.id].sessionId = null;
+          t.kind = "chat";
+          t.fresh = Date.now();
+          try { delete GBTabs.unread[t.id]; } catch (err) { /* no badge */ }
+          var rec = window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[t.id];
+          if (rec) {
+            rec.sessionId = null;
+            rec.title = "Chat";
+            rec.scrollback = [];
+            rec.needsHistoryReplay = false;
+            var recMsgs = rec.pane && rec.pane.querySelector(".chat-pane-messages");
+            if (recMsgs) recMsgs.innerHTML = "";
           }
           try { GBTabs.renderStrip(); } catch (err) { /* not rendered */ }
           if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
@@ -370,10 +407,9 @@
           window.dispatchEvent(new CustomEvent("gb-chat-session-deleted", { detail: { sessionId: sid } }));
         } catch (err) { /* CustomEvent unavailable */ }
         // Mint a fresh session and reconnect; staying on the deleted id made
-        // the next message fail server-side.
-        if (typeof window.initChat === "function") {
-          try { window.initChat(); } catch (err) { /* boot retries itself */ }
-        }
+        // the next message fail server-side. The guard keeps a duplicate
+        // event from running a second initChat/socket pair.
+        reinitializeAfterDelete(sid);
       }
     });
 

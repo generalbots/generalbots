@@ -820,7 +820,9 @@ function processMessage(data) {
       renderSuggestions(data.suggestions);
     }
     if (data.switchers && Array.isArray(data.switchers) && data.switchers.length > 0) {
-      renderBotSwitchers(data.switchers);
+      // The stock socket speaks for the default conversation even while a
+      // parallel pane is mounted — render into the stock strip, not the pane.
+      renderBotSwitchers(data.switchers, "tab-default");
     }
   } else if ((data.content && data.content.trim() !== "") || (data.reasoning && data.reasoning.trim() !== "")) {
     if (!ChatState.isStreaming) {
