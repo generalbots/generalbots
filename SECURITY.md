@@ -282,6 +282,50 @@ documented above.
   - Every dismissal is visible in the repository's Security tab with its
     reason; re-open one if the surrounding code changes.
 
+### Production verification (2026-11-06)
+
+Authorized read-only audit of both hosts plus the high-impact fixes below.
+No internal addresses or credentials are recorded here; the detailed matrices
+are in `/tmp/opencode/pentest/host/hardening.md` and
+`/tmp/opencode/pentest/services/matrix.md`.
+
+Fixed and verified:
+
+- **Vault was sealed**, so botserver crash-looped (10,532 restarts) and
+  `/api/health` returned 502. Unsealed with the 3-of-5 keys; botserver `/health`
+  and public `/api/health` now return 200.
+- **Six IMP-09 headers were missing.** Added CSP/XFO to the Caddy
+  `tls_config` snippet and imported it in the vhosts that lacked it; all six
+  are present on the public origin.
+- **Public INPUT rules exposed 5432/8443/5858/5859** on srv1. Removed; all
+  four are blocked from the admin workstation while SSH and 443 still work.
+- **Every container could reach the host Incus socket proxy (8591) and
+  Chromium CDP proxy (9223).** Restricted to the `bot` and `desktop1`
+  containers respectively; other containers are blocked.
+- **Vault unseal keys were mode 0644.** Changed to 0600.
+- **PostgreSQL trusted `0.0.0.0/0`.** Narrowed to the Incus subnets; external
+  5432 is blocked.
+- **Valkey had no password.** `requirepass` enabled via a systemd drop-in and
+  botserver's cache URL updated; unauthenticated `PING` is rejected.
+- **srv2 was on an ACCEPT firewall policy** with 6080/5901/8443 exposed.
+  Explicit DROPs plus a DROP policy with the required allows; SSH still works.
+
+Residual production risks (documented, not fixed here):
+
+- `botserver`/`botui`/`node` run as root in the `bot` container, which can
+  reach the full Incus API because Vibe needs it. The proxy is now limited to
+  that container.
+- Qdrant has no API key; the in-tree client has no API-key support, so
+  enabling auth would break indexing. It is not externally exposed.
+- PostgreSQL still uses `trust` within the Incus subnets; moving to
+  `scram-sha-256` needs every service password confirmed.
+- SSH keeps `PermitRootLogin yes` and password auth because the operator
+  access pattern depends on it; fail2ban is active and all authorized keys are
+  known.
+- noVNC and the MinIO console are internet-facing but password-protected;
+  restrict them to the admin source or a VPN.
+- srv1 disk is at 89% and srv2 at 85%; monitor.
+
 ---
 
 ## Coverage Gaps
