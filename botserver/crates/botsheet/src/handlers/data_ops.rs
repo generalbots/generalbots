@@ -391,11 +391,36 @@ pub async fn handle_conditional_format(
         req.end_col,
     );
     // The toolbar posts a comparison `value` and a fill colour instead of the
-    // API's `condition` and `style.background`; merge both shapes here.
+    // API's `condition` and `style.background`; merge both shapes here. The
+    // renderer parses conditions as `>100`, `between:a:b`, `text:contains:x`
+    // or the literal `duplicates`, so map the preset to that grammar.
     let condition = if req.condition.trim().is_empty() {
-        req.value.clone().unwrap_or_default()
+        let value = req.value.clone().unwrap_or_default();
+        match req.rule_type.as_str() {
+            "greater_than" => format!(">{value}"),
+            "less_than" => format!("<{value}"),
+            "equal_to" => format!("={value}"),
+            "greater_equal" | "greater_or_equal" => format!(">={value}"),
+            "less_equal" | "less_or_equal" => format!("<={value}"),
+            "not_equal" => format!("<>{value}"),
+            "between" => {
+                if value.contains(':') {
+                    format!("between:{value}")
+                } else {
+                    format!("between:{value}:{value}")
+                }
+            }
+            "text_contains" => format!("text:contains:{value}"),
+            "duplicate" | "duplicates" => "duplicates".to_string(),
+            _ => value,
+        }
     } else {
         req.condition.clone()
+    };
+    let rule_type = if req.rule_type == "duplicate" {
+        "duplicates".to_string()
+    } else {
+        req.rule_type.clone()
     };
     let mut style = req.style.clone();
     if style.background.is_none() {
@@ -407,7 +432,7 @@ pub async fn handle_conditional_format(
         start_col,
         end_row,
         end_col,
-        rule_type: req.rule_type,
+        rule_type,
         condition,
         style,
         priority: 1,
