@@ -20,7 +20,13 @@ function vmSaveToDrive(conversationId, files) {
     headers: headers,
     body: JSON.stringify({ conversation_id: conversationId, files: files || [] }),
   }).then(function (res) {
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (!res.ok) {
+      throw new Error(
+        res.status === 404
+          ? "this file is no longer in the conversation output"
+          : "HTTP " + res.status
+      );
+    }
     return res.json();
   });
 }
