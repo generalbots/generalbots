@@ -86,6 +86,10 @@
     menu.appendChild(item("CSV", function () { exportFormat("csv", "csv", "text/csv"); }));
     menu.appendChild(item("XLSX", function () { exportFormat("xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); }));
     menu.appendChild(item("Markdown", function () { exportFormat("markdown", "md", "text/markdown"); }));
+    // The API already streams real ODF and PDF bytes; the menu offered only
+    // CSV/XLSX/Markdown, so those two formats were unreachable from the UI.
+    menu.appendChild(item("ODS", function () { exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); }));
+    menu.appendChild(item("PDF", function () { exportFormat("pdf", "pdf", "application/pdf"); }));
     document.body.appendChild(menu);
     const rect = anchor.getBoundingClientRect();
     let left = rect.left;
@@ -135,6 +139,8 @@
     csv: function () { return exportFormat("csv", "csv", "text/csv"); },
     xlsx: function () { return exportFormat("xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); },
     markdown: function () { return exportFormat("markdown", "md", "text/markdown"); },
+    ods: function () { return exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); },
+    pdf: function () { return exportFormat("pdf", "pdf", "application/pdf"); },
   };
 
   setTimeout(wire, 0);
