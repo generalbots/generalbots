@@ -301,9 +301,12 @@ Stated explicitly so nobody assumes completeness:
   empty `sha256` and must be filled before those installers ship.
 - **No DAST in CI.** Active scanning of production is manual and monthly by
   design (noise and cost); it is tracked in the report issue #1727.
-- **`cargo check` of the refreshed lockfile was not run on the authoring host**
-  (OOM, tracked in #1755). The lockfile is valid TOML and `cargo-deny` resolves
-  it, but the next CI build is the first full compile verification.
+- **Local `cargo check` is not possible on the authoring host** (OOM, tracked
+  in #1755). The refreshed `Cargo.lock` was compile-verified by the
+  `ALM release binaries` CI run at commit `e57d1eb13` (full debug build,
+  14m40s, success); the later failure at `e0ac1e87e` was a missing
+  `anyhow::Result` import from a concurrent refactor, fixed in `2bb520190`,
+  not a lockfile problem.
 - **Secret rotation is operator work.** The register above is complete, but the
   rotations themselves need provider/Vault access and are not automatable from
   CI.
