@@ -279,7 +279,7 @@
     position: static;
     inset: auto;
     /* #1280-gap2 — must be a flex column so .vibe-np-dialog's flex:1
-       (vibe.p2.css) engages: the dialog then stretches to the window height,
+       (vibe-deploy.css) engages: the dialog then stretches to the window height,
        .vibe-np-body scrolls internally and the footer (Create button) stays
        inside the window instead of overflowing under the taskbar. */
     display: flex;

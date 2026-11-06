@@ -1,4 +1,4 @@
-/* chat.p7.css — chat window rework (v1)
+/* chat-window.css — chat window rework (v1)
  * One place for the three complaints: broken/jumpy scrolling, the loud
  * connection/empty cards, and raw file/console output. Scoped to #chat-app so
  * the desktop, drive and monitor apps are untouched.

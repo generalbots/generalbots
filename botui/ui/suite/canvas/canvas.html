@@ -2,13 +2,13 @@
      CANVAS APP - Collaborative Whiteboard & Drawing
      Respects Theme Manager - No hardcoded theme
      ============================================================================= -->
-<link rel="stylesheet" href="/suite/canvas/canvas.p1.css?v=3" />
-<link rel="stylesheet" href="/suite/canvas/canvas.p2.css?v=3" />
+<link rel="stylesheet" href="/suite/canvas/canvas-toolbar.css?v=3" />
+<link rel="stylesheet" href="/suite/canvas/canvas-layers.css?v=3" />
 <!-- The .canvas-app class makes this root the flex-row layout container.
      Partials 02/03/05/06 are swapped in as direct children: toolbar (left),
      main (center), properties (right). Modals are position:fixed and take no
      flex space. #canvas-app-root.canvas-app { flex-direction: row } in
-     canvas.p2.css overrides the .gb-app column direction. -->
+     canvas-layers.css overrides the .gb-app column direction. -->
 <div class="gb-app canvas-app canvas-root" id="canvas-app-root" data-gb-app="canvas">
     <div hx-get="/suite/canvas/partials/02_toolbar.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>
     <div hx-get="/suite/canvas/partials/03_header.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>

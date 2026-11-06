@@ -150,7 +150,7 @@ check(/any\(feature = "research", feature = "web-search"\)/.test(pipelineExec), 
 check(/pane\.setAttribute\("role", "region"\)/.test(read("botui/ui/suite/js/widget-registry.js")),
   "widget pane has a region role for its aria-label");
 const tabsJs = read("botui/ui/suite/chat/modules/20_tabs.js");
-const tabCss = read("botui/ui/suite/chat/chat.p6.css");
+const tabCss = read("botui/ui/suite/chat/chat-workspace-tabs.css");
 check(tabsJs.indexOf('role="tablist"') !== -1, "tabs render inside a tablist");
 check(!/strip\.setAttribute\("role", "tablist"\)/.test(tabsJs),
   "the strip itself is not the tablist (buttons would be illegal children)");
