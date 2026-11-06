@@ -14,4 +14,5 @@ pub use extraction::{
 };
 pub use tokens::{basic_password_as_token, is_jwt_format, validate_session_sync};
 
+#[cfg(test)]
 pub(crate) use tokens::validate_bearer_token_sync;

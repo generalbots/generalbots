@@ -187,7 +187,7 @@ pub(super) async fn stop(
 }
 
 #[derive(Debug, Deserialize)]
-struct ListQuery {
+pub(super) struct ListQuery {
     objective_id: String,
 }
 

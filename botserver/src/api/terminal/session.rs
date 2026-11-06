@@ -5,7 +5,6 @@ use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
-use uuid::Uuid;
 
 use super::TERMINAL_BUFFER_LINES;
 

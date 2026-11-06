@@ -1,4 +1,4 @@
-#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
+#[cfg(any(feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 use super::*;
 
 #[cfg(feature = "saas")]

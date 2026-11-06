@@ -34,7 +34,6 @@ pub(super) async fn run(
         messages,
         user_text,
     } = *turn;
-    let bot_uuid_s = bot_uuid.to_string();
     let session_id_s = session_id.to_string();
     let bot_name_clone = bot_name.to_string();
 
