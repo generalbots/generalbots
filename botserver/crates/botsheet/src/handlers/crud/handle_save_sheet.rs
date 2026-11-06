@@ -150,8 +150,19 @@ pub async fn handle_delete_sheet(
     Json(req): Json<LoadQuery>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
+    let id = req
+        .id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "id is required" })),
+            )
+        })?;
 
-    if let Err(e) = delete_sheet_from_drive(&state, &user_id, &req.id).await {
+    if let Err(e) = delete_sheet_from_drive(&state, &user_id, id).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(
@@ -159,12 +170,10 @@ pub async fn handle_delete_sheet(
             ),
         ));
     }
-    if let Some(id) = req.id.as_ref() {
-        state.sessions.close(&state, id).await;
-    }
+    state.sessions.close(&state, id).await;
 
     Ok(Json(SaveResponse {
-        id: req.id.unwrap_or_default(),
+        id: id.to_string(),
         success: true,
         message: Some("Sheet deleted".to_string()),
     }))

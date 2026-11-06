@@ -208,9 +208,20 @@ pub async fn handle_delete_presentation<D: DriveOps>(
     Json(req): Json<LoadQuery>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = get_current_user_id();
+    let id = req
+        .id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "id is required" })),
+            )
+        })?;
 
     if let Some(drive) = &state.drive {
-        if let Err(e) = delete_presentation_from_drive(drive, &user_id, &req.id).await {
+        if let Err(e) = delete_presentation_from_drive(drive, &user_id, id).await {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
@@ -219,7 +230,7 @@ pub async fn handle_delete_presentation<D: DriveOps>(
     }
 
     Ok(Json(SaveResponse {
-        id: req.id.unwrap_or_default(),
+        id: id.to_string(),
         success: true,
         message: Some("Presentation deleted".to_string()),
     }))
