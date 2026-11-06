@@ -53,7 +53,7 @@ fn is_web_channel(sink: &dyn ChannelSink) -> bool {
     sink.channel_type() == "web"
 }
 
-const LLM_RETRY_MAX: u32 = 3;
+const LLM_RETRY_MAX: usize = 3;
 const LLM_RETRY_DELAY: u64 = 3;
 
 fn llm_empty_message() -> String {

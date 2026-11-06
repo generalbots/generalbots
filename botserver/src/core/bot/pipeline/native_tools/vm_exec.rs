@@ -26,7 +26,7 @@ fn workspace_failure_message(reason: &str) -> String {
     )
 }
 
-async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
+pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let parsed: serde_json::Value = match super::super::native_args::parse_args(args) {
         Ok(value) => value,
         Err(e) => {
