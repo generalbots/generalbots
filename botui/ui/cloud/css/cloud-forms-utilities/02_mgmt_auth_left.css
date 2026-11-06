@@ -1,0 +1,395 @@
+.mgmt-auth-left {
+  flex: 1;
+  position: relative;
+  background: #08080a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow: hidden;
+}
+
+/* Cyan glow — top right */
+.mgmt-auth-left::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 199, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Violet glow — bottom left */
+.mgmt-auth-left::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  left: -10%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(191, 90, 242, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.mgmt-auth-right {
+  flex: 1;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+}
+
+.mgmt-auth-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.mgmt-auth-card h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.mgmt-auth-card p {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.mgmt-auth-card .form-group:last-of-type {
+  margin-bottom: 24px;
+}
+
+/* OAuth / Social buttons in auth */
+.auth-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-social-btn:hover {
+  border-color: var(--border-hover);
+  background: var(--bg2);
+}
+
+.auth-social-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Alt link */
+.auth-alt {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.auth-alt a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.auth-alt a:hover {
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------
+   6. PRISM SCENE — Dark Side of the Moon
+   ---------------------------------------------------------- */
+
+.prism-scene {
+  position: relative;
+  width: 320px;
+  height: 180px;
+  margin: 2rem auto;
+}
+
+.prism-beam-in {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 35%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateY(-50%);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.prism-triangle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 70px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.3));
+}
+
+.prism-spectrum {
+  position: absolute;
+  right: 5%;
+  top: 15%;
+  width: 35%;
+  height: 70%;
+  background: linear-gradient(
+    180deg,
+    #ff2d55 0%,
+    #ff9500 16%,
+    #ffd60a 32%,
+    #30d158 48%,
+    #00c7ff 64%,
+    #5856d6 80%,
+    #bf5af2 100%
+  );
+  opacity: 0.5;
+  filter: blur(8px);
+  mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 30%, black 70%, transparent);
+  animation: prismPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes prismPulse {
+  from {
+    opacity: 0.35;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 0.6;
+    filter: blur(6px);
+  }
+}
+
+/* ----------------------------------------------------------
+   7. THEME TOGGLE
+   ---------------------------------------------------------- */
+
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 16px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+}
+
+.theme-toggle button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.theme-toggle button:hover {
+  color: var(--text);
+}
+
+.theme-toggle button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ----------------------------------------------------------
+   8. UTILITIES
+   ---------------------------------------------------------- */
+
+.mgmt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+
+.mgmt-empty-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--muted);
+  opacity: 0.4;
+  margin-bottom: 14px;
+}
+
+.mgmt-empty-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mgmt-empty-body {
+  font-size: 0.9rem;
+  color: var(--muted);
+  max-width: 340px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+/* Loading dots */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Category pills */
+.cat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cat-pill:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.cat-pill.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ----------------------------------------------------------
+   9. PROFILE SECTIONS
+   ---------------------------------------------------------- */
+
+.mgmt-profile-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 18px;
+}
+
+.mgmt-profile-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mgmt-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.mgmt-profile-row + .mgmt-profile-row {
+  border-top: 1px solid var(--border);
+}
+
+.mgmt-profile-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+

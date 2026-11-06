@@ -1,0 +1,399 @@
+.mgmt-store-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.mgmt-store-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mgmt-store-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.mgmt-store-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mgmt-store-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mgmt-store-card-tag {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.mgmt-store-card-body {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.mgmt-store-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.mgmt-store-card-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ----------------------------------------------------------
+   7. SERVICES LIST
+   ---------------------------------------------------------- */
+
+.mgmt-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mgmt-service-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-service-item:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-service-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.mgmt-service-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mgmt-service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-service-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mgmt-service-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.mgmt-service-status {
+  flex-shrink: 0;
+}
+
+/* ── Services page: plan summary + purchased services ── */
+.service-plan-card {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--card) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.service-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.service-plan-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.service-plan-price {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: .15rem;
+}
+
+.service-plan-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.service-plan-item {
+  font-size: .72rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .25rem .7rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.service-plan-cta {
+  white-space: nowrap;
+}
+
+.service-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: .75rem;
+}
+
+.service-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.service-header h3 {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.service-badge {
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .2rem .6rem;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.service-badge.active {
+  background: rgba(0, 212, 170, .12);
+  color: var(--accent2);
+}
+
+.service-badge.trialing {
+  background: rgba(255, 180, 0, .12);
+  color: #ffb400;
+}
+
+.service-body p {
+  font-size: .8rem;
+  color: var(--muted);
+  margin: .6rem 0;
+}
+
+.service-meta {
+  font-size: .72rem;
+  color: var(--muted);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.service-actions {
+  margin-top: .9rem;
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: .78rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------
+   8. STATUS BADGES
+   ---------------------------------------------------------- */
+
+.mgmt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.mgmt-status-badge--active,
+.mgmt-status-badge--online,
+.mgmt-status-badge--paid {
+  background: rgba(48, 209, 88, 0.1);
+  color: #30d158;
+}
+
+.mgmt-status-badge--warning,
+.mgmt-status-badge--pending {
+  background: rgba(255, 149, 0, 0.1);
+  color: #ff9500;
+}
+
+.mgmt-status-badge--error,
+.mgmt-status-badge--offline,
+.mgmt-status-badge--overdue {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+.mgmt-status-badge--neutral,
+.mgmt-status-badge--inactive {
+  background: var(--accent-dim);
+  color: var(--muted);
+}
+
+.mgmt-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ----------------------------------------------------------
+   9. INVOICE TABLE
+   ---------------------------------------------------------- */
+
+.mgmt-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.mgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.mgmt-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.mgmt-table td {
+  padding: 12px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.mgmt-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mgmt-table tr:hover td {
+  background: var(--accent-dim);
+}
+
+.mgmt-table-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------
+   10. PAYMENT CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-payment-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-payment-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-payment-card-icon {
+  width: 44px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.mgmt-payment-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-payment-card-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mgmt-payment-card-detail {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+

@@ -1,0 +1,398 @@
+/* General Bots Suite - Sentient Theme */
+/* Dark background with neon lime/green accents */
+/* Inspired by modern AI dashboard aesthetics */
+
+[data-theme="sentient"] {
+    /* Core Colors */
+    --accent: #d4f505;
+    --accent-hover: #bfdd04;
+    --accent-light: rgba(212, 245, 5, 0.15);
+    --accent-glow: rgba(212, 245, 5, 0.3);
+    --accent-rgb: 212, 245, 5;
+
+    /* Background Hierarchy */
+    --bg: #0a0a0a;
+    --bg-secondary: #111111;
+    --surface: #161616;
+    --surface-hover: #1e1e1e;
+    --surface-active: #252525;
+    --surface-elevated: #1a1a1a;
+
+    /* Border Colors */
+    --border: #2a2a2a;
+    --border-light: #222222;
+    --border-accent: rgba(212, 245, 5, 0.3);
+
+    /* Window Borders */
+    --win-border-width: 1.5px;
+    --win-border-color: rgba(42, 42, 42, 0.5);
+    --win-border-active: #d4f505;
+
+    /* Text Colors */
+    --text: #ffffff;
+    --text-secondary: #888888;
+    --text-tertiary: #666666;
+    --text-muted: #444444;
+    --text-accent: #d4f505;
+
+    /* Status Colors */
+    --success: #22c55e;
+    --success-bg: rgba(34, 197, 94, 0.15);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.15);
+    --error: #ef4444;
+    --error-bg: rgba(239, 68, 68, 0.15);
+    --info: #3b82f6;
+    --info-bg: rgba(59, 130, 246, 0.15);
+
+    /* Component Specific */
+    --header-bg: rgba(10, 10, 10, 0.95);
+    --header-border: #1e1e1e;
+    --sidebar-bg: #0f0f0f;
+    --sidebar-border: #1e1e1e;
+    --card-bg: #161616;
+    --card-border: #2a2a2a;
+    --card-hover-border: rgba(212, 245, 5, 0.4);
+    --input-bg: #1a1a1a;
+    --input-border: #2a2a2a;
+    --input-focus-border: #d4f505;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 0 20px rgba(212, 245, 5, 0.2);
+    --shadow-glow: 0 0 30px rgba(212, 245, 5, 0.15);
+
+    /* Generic App Variable Aliases (theme-agnostic names for app CSS) */
+    --bg-primary: var(--bg);
+    --bg-secondary: var(--bg-secondary);
+    --bg-tertiary: #1a1a1a;
+    --bg-card: var(--surface);
+    --bg-hover: var(--surface-hover);
+    --border-color: var(--border);
+    --text-primary: var(--text);
+    --text-muted: #444444;
+    --danger: var(--error);
+    --shadow: var(--shadow-md);
+    --radius: 0.5rem;
+    --transition: all 0.2s ease;
+
+    /* HSL Bridge Variables for compatibility */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 67 96% 49%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 53%;
+    --accent-hsl: 67 96% 49%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border-hsl: 0 0% 17%;
+    --input-hsl: 0 0% 17%;
+    --ring: 67 96% 49%;
+
+    /* ============================================ */
+    /* SENTIENT BRIDGE VARIABLES                   */
+    /* For Sheet, Docs, Slides theme support       */
+    /* ============================================ */
+
+    /* Backgrounds */
+    --sentient-bg-primary: #0a0a0a;
+    --sentient-bg-secondary: #111111;
+    --sentient-bg-tertiary: #1a1a1a;
+    --sentient-bg-hover: rgba(212, 245, 5, 0.08);
+    --sentient-bg-active: rgba(212, 245, 5, 0.15);
+
+    /* Text */
+    --sentient-text-primary: #ffffff;
+    --sentient-text-secondary: #888888;
+    --sentient-text-tertiary: #666666;
+    --sentient-text-muted: #444444;
+
+    /* Accent Colors */
+    --sentient-accent: #d4f505;
+    --sentient-accent-hover: #bfdd04;
+    --sentient-accent-light: rgba(212, 245, 5, 0.15);
+    --sentient-accent-dark: #9ab504;
+
+    /* Borders */
+    --sentient-border: #2a2a2a;
+    --sentient-border-light: #222222;
+    --sentient-border-accent: rgba(212, 245, 5, 0.3);
+
+    /* Surfaces */
+    --sentient-surface: #161616;
+    --sentient-surface-hover: #1e1e1e;
+    --sentient-surface-active: #252525;
+    --sentient-surface-elevated: #1a1a1a;
+
+    /* Inputs */
+    --sentient-input-bg: #1a1a1a;
+    --sentient-input-border: #2a2a2a;
+    --sentient-input-focus: #d4f505;
+
+    /* Status Colors */
+    --sentient-success: #22c55e;
+    --sentient-success-bg: rgba(34, 197, 94, 0.15);
+    --sentient-warning: #f59e0b;
+    --sentient-warning-bg: rgba(245, 158, 11, 0.15);
+    --sentient-error: #ef4444;
+    --sentient-error-bg: rgba(239, 68, 68, 0.15);
+
+    /* Typography */
+    --sentient-font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sentient-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --sentient-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+    /* Border Radius */
+    --sentient-radius: 0.5rem;
+    --sentient-radius-sm: 0.25rem;
+    --sentient-radius-md: 0.5rem;
+    --sentient-radius-lg: 0.75rem;
+    --sentient-radius-xl: 1rem;
+}
+
+/* ============================================ */
+/* SENTIENT THEME - GLOBAL OVERRIDES           */
+/* ============================================ */
+
+[data-theme="sentient"] body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Header Styling */
+[data-theme="sentient"] .float-header {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    backdrop-filter: blur(12px);
+}
+
+[data-theme="sentient"] .header-app-tabs .app-tab {
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .header-app-tabs .app-tab:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+[data-theme="sentient"] .header-app-tabs .app-tab.active {
+    color: #000000;
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+[data-theme="sentient"] .header-app-tabs .app-tab.active svg {
+    stroke: #000000;
+}
+
+/* Search Bar */
+[data-theme="sentient"] .header-search {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+[data-theme="sentient"] .header-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-accent);
+}
+
+[data-theme="sentient"] .search-shortcut {
+    background: var(--surface-hover);
+    color: var(--text-tertiary);
+    border: 1px solid var(--border);
+}
+
+/* Icon Buttons */
+[data-theme="sentient"] .icon-button {
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .icon-button:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+    border-color: var(--border);
+}
+
+[data-theme="sentient"] .icon-button.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: var(--accent);
+}
+
+/* Notification Badge */
+[data-theme="sentient"] .notification-badge {
+    background: var(--accent);
+    color: #000000;
+    font-weight: 700;
+}
+
+/* User Avatar */
+[data-theme="sentient"] .user-avatar {
+    border: 2px solid var(--border);
+}
+
+[data-theme="sentient"] .user-avatar:hover {
+    border-color: var(--accent);
+}
+
+/* ============================================ */
+/* CARDS & PANELS                              */
+/* ============================================ */
+
+[data-theme="sentient"] .card,
+[data-theme="sentient"] .panel,
+[data-theme="sentient"] .intent-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+}
+
+[data-theme="sentient"] .card:hover,
+[data-theme="sentient"] .panel:hover,
+[data-theme="sentient"] .intent-card:hover {
+    border-color: var(--card-hover-border);
+}
+
+/* ============================================ */
+/* BUTTONS                                     */
+/* ============================================ */
+
+[data-theme="sentient"] .btn-primary,
+[data-theme="sentient"] .button-primary {
+    background: var(--accent);
+    color: #000000;
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .btn-primary:hover,
+[data-theme="sentient"] .button-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-accent);
+}
+
+[data-theme="sentient"] .btn-secondary,
+[data-theme="sentient"] .button-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+[data-theme="sentient"] .btn-secondary:hover,
+[data-theme="sentient"] .button-secondary:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+}
+
+[data-theme="sentient"] .btn-ghost:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+/* ============================================ */
+/* STATUS FILTERS / TABS                       */
+/* ============================================ */
+
+[data-theme="sentient"] .status-filter,
+[data-theme="sentient"] .filter-tab,
+[data-theme="sentient"] .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .status-filter:hover,
+[data-theme="sentient"] .filter-tab:hover,
+[data-theme="sentient"] .filter-pill:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--border-accent);
+}
+
+[data-theme="sentient"] .status-filter.active,
+[data-theme="sentient"] .filter-tab.active,
+[data-theme="sentient"] .filter-pill.active {
+    background: var(--surface-active);
+    color: var(--text);
+    border-color: var(--accent);
+    font-weight: 500;
+}
+
+/* Base count badge */
+[data-theme="sentient"] .status-filter .count,
+[data-theme="sentient"] .filter-tab .count,
+[data-theme="sentient"] .filter-pill .pill-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    background: var(--surface-hover);
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+/* Complete - Green */
+[data-theme="sentient"] .filter-pill[data-filter="complete"] .pill-count {
+    background: var(--success);
+    color: #000;
+}
+
+/* Active Intents - Lime/Accent */
+[data-theme="sentient"] .filter-pill[data-filter="active"] .pill-count,
+[data-theme="sentient"] .filter-pill[data-filter="all"] .pill-count {
+    background: var(--accent);
+    color: #000;
+}
+
+/* Awaiting Decision - Yellow/Warning */
+[data-theme="sentient"] .filter-pill[data-filter="awaiting"] .pill-count {
+    background: var(--warning);
+    color: #000;
+}
+

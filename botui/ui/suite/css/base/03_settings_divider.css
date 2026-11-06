@@ -1,0 +1,398 @@
+.settings-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.75rem 0;
+}
+
+/* ============================================ */
+/* THEME SELECTOR DROPDOWN                      */
+/* ============================================ */
+
+.theme-dropdown {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface, #161616);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    color: var(--text, #ffffff);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.theme-dropdown:hover {
+    border-color: var(--text-secondary, #888888);
+}
+
+.theme-dropdown:focus {
+    outline: none;
+    border-color: var(--primary, #d4f505);
+    box-shadow: 0 0 0 3px rgba(212, 245, 5, 0.15);
+}
+
+.theme-dropdown option {
+    background: var(--surface, #161616);
+    color: var(--text, #ffffff);
+    padding: 8px;
+}
+
+.theme-dropdown optgroup {
+    background: var(--bg, #0a0a0a);
+    color: var(--text-secondary, #888888);
+    font-weight: 600;
+    font-style: normal;
+}
+
+/* Legacy theme-grid support (if needed) */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+.theme-option {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    overflow: hidden;
+    padding: 0;
+    background: none;
+}
+
+.theme-option:hover {
+    transform: scale(1.05);
+}
+
+.theme-option.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.theme-option-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.theme-option-header {
+    height: 30%;
+    display: flex;
+    align-items: center;
+    padding: 0.25rem;
+}
+
+.theme-option-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    margin-right: 2px;
+}
+
+.theme-option-body {
+    flex: 1;
+    padding: 0.25rem;
+}
+
+.theme-option-line {
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 3px;
+}
+
+.theme-option-name {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    font-size: 0.5rem;
+    text-align: center;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 2px;
+}
+
+/* Theme Preview Colors */
+.theme-dark .theme-option-inner {
+    background: #0f172a;
+    color: #f8fafc;
+}
+.theme-dark .theme-option-header {
+    background: #1e293b;
+}
+.theme-dark .theme-option-dot {
+    background: #3b82f6;
+}
+.theme-dark .theme-option-line {
+    background: #334155;
+}
+
+.theme-light .theme-option-inner {
+    background: #f8fafc;
+    color: #1e293b;
+}
+.theme-light .theme-option-header {
+    background: #ffffff;
+}
+.theme-light .theme-option-dot {
+    background: #3b82f6;
+}
+.theme-light .theme-option-line {
+    background: #e2e8f0;
+}
+
+.theme-blue .theme-option-inner {
+    background: #0c1929;
+    color: #f8fafc;
+}
+.theme-blue .theme-option-header {
+    background: #1a2f47;
+}
+.theme-blue .theme-option-dot {
+    background: #0ea5e9;
+}
+.theme-blue .theme-option-line {
+    background: #2d4a6f;
+}
+
+.theme-purple .theme-option-inner {
+    background: #1a0a2e;
+    color: #f8fafc;
+}
+.theme-purple .theme-option-header {
+    background: #2d1b4e;
+}
+.theme-purple .theme-option-dot {
+    background: #a855f7;
+}
+.theme-purple .theme-option-line {
+    background: #4c2f7e;
+}
+
+.theme-green .theme-option-inner {
+    background: #0a1f15;
+    color: #f8fafc;
+}
+.theme-green .theme-option-header {
+    background: #14332a;
+}
+.theme-green .theme-option-dot {
+    background: #22c55e;
+}
+.theme-green .theme-option-line {
+    background: #28604f;
+}
+
+.theme-orange .theme-option-inner {
+    background: #1a1008;
+    color: #f8fafc;
+}
+.theme-orange .theme-option-header {
+    background: #2d1c0f;
+}
+.theme-orange .theme-option-dot {
+    background: #f97316;
+}
+.theme-orange .theme-option-line {
+    background: #5c3a1e;
+}
+
+.theme-sentient .theme-option-inner {
+    background: #0a0a0a;
+    color: #ffffff;
+}
+.theme-sentient .theme-option-header {
+    background: #161616;
+}
+.theme-sentient .theme-option-dot {
+    background: #d4f505;
+}
+.theme-sentient .theme-option-line {
+    background: #2a2a2a;
+}
+
+/* Retro Theme Previews */
+.theme-cyberpunk .theme-option-inner {
+    background: #0d0221;
+    color: #00ffff;
+}
+.theme-cyberpunk .theme-option-header {
+    background: #1a0a3e;
+}
+.theme-cyberpunk .theme-option-dot {
+    background: #ff00ff;
+}
+.theme-cyberpunk .theme-option-line {
+    background: #ff00ff33;
+}
+
+.theme-retrowave .theme-option-inner {
+    background: #1a0a2e;
+    color: #ffeaa7;
+}
+.theme-retrowave .theme-option-header {
+    background: #2d1b4e;
+}
+.theme-retrowave .theme-option-dot {
+    background: #ff6b9d;
+}
+.theme-retrowave .theme-option-line {
+    background: #ff6b9d33;
+}
+
+.theme-vapordream .theme-option-inner {
+    background: #2d3436;
+    color: #ffeaa7;
+}
+.theme-vapordream .theme-option-header {
+    background: #636e72;
+}
+.theme-vapordream .theme-option-dot {
+    background: #a29bfe;
+}
+.theme-vapordream .theme-option-line {
+    background: #a29bfe33;
+}
+
+.theme-y2kglow .theme-option-inner {
+    background: #000033;
+    color: #ffffff;
+}
+.theme-y2kglow .theme-option-header {
+    background: #000066;
+}
+.theme-y2kglow .theme-option-dot {
+    background: #00ff00;
+}
+.theme-y2kglow .theme-option-line {
+    background: #00ff0033;
+}
+
+.theme-arcadeflash .theme-option-inner {
+    background: #000000;
+    color: #ff0000;
+}
+.theme-arcadeflash .theme-option-header {
+    background: #1a1a1a;
+}
+.theme-arcadeflash .theme-option-dot {
+    background: #ffff00;
+}
+.theme-arcadeflash .theme-option-line {
+    background: #ffff0033;
+}
+
+.theme-discofever .theme-option-inner {
+    background: #1a0a1a;
+    color: #ffd700;
+}
+.theme-discofever .theme-option-header {
+    background: #2d1a2d;
+}
+.theme-discofever .theme-option-dot {
+    background: #ff1493;
+}
+.theme-discofever .theme-option-line {
+    background: #ff149333;
+}
+
+.theme-grungeera .theme-option-inner {
+    background: #1a1a0a;
+    color: #daa520;
+}
+.theme-grungeera .theme-option-header {
+    background: #2d2d1a;
+}
+.theme-grungeera .theme-option-dot {
+    background: #8b4513;
+}
+.theme-grungeera .theme-option-line {
+    background: #8b451333;
+}
+
+/* Classic Theme Previews */
+.theme-jazzage .theme-option-inner {
+    background: #1a1a2e;
+    color: #eee8aa;
+}
+.theme-jazzage .theme-option-header {
+    background: #16213e;
+}
+.theme-jazzage .theme-option-dot {
+    background: #d4af37;
+}
+.theme-jazzage .theme-option-line {
+    background: #d4af3733;
+}
+
+.theme-mellowgold .theme-option-inner {
+    background: #2c2416;
+    color: #faebd7;
+}
+.theme-mellowgold .theme-option-header {
+    background: #3d3222;
+}
+.theme-mellowgold .theme-option-dot {
+    background: #daa520;
+}
+.theme-mellowgold .theme-option-line {
+    background: #daa52033;
+}
+
+.theme-midcenturymod .theme-option-inner {
+    background: #2d4a3e;
+    color: #f5f5dc;
+}
+.theme-midcenturymod .theme-option-header {
+    background: #3d5a4e;
+}
+.theme-midcenturymod .theme-option-dot {
+    background: #e07b39;
+}
+.theme-midcenturymod .theme-option-line {
+    background: #e07b3933;
+}
+
+.theme-polaroidmemories .theme-option-inner {
+    background: #f5f5dc;
+    color: #4a4a4a;
+}
+.theme-polaroidmemories .theme-option-header {
+    background: #fffaf0;
+}
+.theme-polaroidmemories .theme-option-dot {
+    background: #e6b89c;
+}
+.theme-polaroidmemories .theme-option-line {
+    background: #d2b48c;
+}
+
+.theme-saturdaycartoons .theme-option-inner {
+    background: #4169e1;
+    color: #ffff00;
+}
+.theme-saturdaycartoons .theme-option-header {
+    background: #5179f1;
+}
+.theme-saturdaycartoons .theme-option-dot {
+    background: #ff6347;
+}
+.theme-saturdaycartoons .theme-option-line {
+    background: #ff634733;
+}
+
+.theme-seasidepostcard .theme-option-inner {
+    background: #f0f8ff;
+    color: #2f4f4f;
+}

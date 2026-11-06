@@ -1,0 +1,395 @@
+.db-filter-input {
+  width: 130px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border, #2a3550);
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text, #f1f5f9);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.db-filter-input:focus {
+  border-color: var(--primary, #3b82f6);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
+}
+
+/* ─── Data grid ───────────────────────────────────────────────────────────── */
+.db-grid-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  outline: none;
+  scrollbar-gutter: stable;
+}
+
+.db-grid-wrap {
+  min-width: 100%;
+  display: inline-block;
+}
+
+.db-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.db-grid thead th,
+.db-grid tbody td {
+  box-sizing: border-box;
+}
+
+.db-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(var(--surface, #1a2438), var(--surface, #161f31));
+  color: var(--text-secondary, #8b98b5);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  padding: 0;
+  height: 38px;
+  border-bottom: 1px solid var(--border, #2a3550);
+  border-right: 1px solid var(--border, #263351);
+  white-space: nowrap;
+  user-select: none;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.db-th-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px 0 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.db-th-inner:hover {
+  color: var(--text, #f1f5f9);
+}
+
+.db-th-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-th-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.db-sort-arrow {
+  font-size: 8px;
+  color: var(--primary, #3b82f6);
+  flex-shrink: 0;
+}
+
+.db-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.db-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.db-resize-handle:hover::after {
+  background: var(--primary, #3b82f6);
+}
+
+.db-corner,
+.db-th-check {
+  position: sticky;
+  left: 0;
+  z-index: 12;
+  background: var(--surface, #1a2438);
+  border-bottom: 1px solid var(--border, #2a3550);
+  border-right: 1px solid var(--border, #2a3550);
+  text-align: center !important;
+}
+
+.db-corner {
+  width: 46px;
+  min-width: 46px;
+  z-index: 14;
+}
+
+.db-th-check {
+  width: 36px;
+  min-width: 36px;
+}
+
+.db-th-actions {
+  width: 74px;
+  min-width: 74px;
+  text-align: center !important;
+}
+
+.db-th .db-th-check input,
+.db-corner input,
+.db-th-check input {
+  accent-color: var(--primary, #3b82f6);
+  cursor: pointer;
+}
+
+.db-grid tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border, #1e2943);
+  border-right: 1px solid var(--border, #1e2943);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.db-grid tbody tr {
+  transition: background 0.08s;
+}
+
+.db-grid tbody tr:hover td {
+  background: var(--surface-hover, #182239);
+}
+
+.db-grid tbody tr.db-selected td {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 12%, var(--surface, #0f172a));
+}
+
+.db-grid tbody tr.db-selected:hover td {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 16%, var(--surface, #0f172a));
+}
+
+.db-rownum {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  width: 46px;
+  min-width: 46px;
+  text-align: center;
+  color: var(--text-muted, #5b6780);
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  font-size: 11px;
+  background: var(--surface, #101a2e);
+  border-right: 1px solid var(--border, #263351) !important;
+  cursor: pointer;
+}
+
+.db-grid tbody tr:hover .db-rownum {
+  color: var(--text-secondary, #8b98b5);
+  background: var(--surface-hover, #182239);
+}
+
+.db-td-check {
+  position: sticky;
+  left: 46px;
+  z-index: 4;
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  background: var(--surface, #101a2e);
+  border-right: 1px solid var(--border, #263351) !important;
+}
+
+.db-td-check input,
+.db-th-check input {
+  accent-color: var(--primary, #3b82f6);
+  cursor: pointer;
+}
+
+.db-td-actions {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.db-row-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.db-tr:hover .db-icon-btn {
+  opacity: 1;
+}
+
+.db-td.active-cell {
+  box-shadow: inset 0 0 0 2px var(--primary, #3b82f6);
+  position: relative;
+  z-index: 3;
+}
+
+.db-td.db-editing {
+  padding: 2px;
+}
+
+.db-inline-edit {
+  width: 100%;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 4px 8px;
+  border: 2px solid var(--primary, #3b82f6);
+  border-radius: 6px;
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text, #f1f5f9);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.db-inline-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #3b82f6);
+  margin: 4px;
+  cursor: pointer;
+}
+
+/* ─── Cell value styles ───────────────────────────────────────────────────── */
+.db-null {
+  color: var(--text-muted, #5b6780);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.db-num {
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  color: #7dd3fc;
+  font-variant-numeric: tabular-nums;
+}
+
+.db-dt {
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  color: var(--text-secondary, #8b98b5);
+}
+
+.db-bool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.db-bool-on {
+  background: color-mix(in srgb, #22c55e 16%, transparent);
+  color: #22c55e;
+}
+
+.db-bool-off {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+.db-link {
+  color: var(--primary, #3b82f6);
+  text-decoration: none;
+}
+
+.db-link:hover {
+  text-decoration: underline;
+}
+
+.db-json {
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  color: #c4b5fd;
+  font-size: 11.5px;
+}
+
+.db-str {
+  color: var(--text, #f1f5f9);
+}
+
+/* ─── Type badges / PK ────────────────────────────────────────────────────── */
+.db-type-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  color: #fff;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.db-type-uuid    { background: #8b5cf6; }
+.db-type-number  { background: #3b82f6; }
+.db-type-decimal { background: #06b6d4; }
+.db-type-bool    { background: #22c55e; }
+.db-type-datetime{ background: #f59e0b; }
+.db-type-date    { background: #ec4899; }
+.db-type-json    { background: #64748b; }
+.db-type-text    { background: #10b981; }
+.db-type-any     { background: #94a3b8; }
+
+.db-pk-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #fbbf24;
+  background: color-mix(in srgb, #fbbf24 14%, transparent);
+  flex-shrink: 0;
+}
+
+.db-fk-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #38bdf8;
+  background: color-mix(in srgb, #38bdf8 14%, transparent);
+  flex-shrink: 0;
+}
+
+/* ─── Empty state / empty rows ────────────────────────────────────────────── */
+.db-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 280px;
+  color: var(--text-secondary, #8b98b5);
+  gap: 12px;
+}
+
+.db-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+

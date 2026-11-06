@@ -1,0 +1,296 @@
+
+.window-dot::after {
+  content: "";
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transition: opacity 120ms var(--win-open-timing);
+}
+
+.window-dot-close          { background: #ff5f57; }
+.window-dot-close:hover    { background: #ff3b30; }
+.window-dot-close::after   { content: "✕"; color: #4a0000; font-size: 8px; font-weight: 700; line-height: 1; }
+
+.window-dot-minimize       { background: #febc2e; }
+.window-dot-minimize:hover { background: #f5a623; }
+.window-dot-minimize::after{ content: "–"; color: #6b4000; font-size: 10px; font-weight: 700; line-height: 1; }
+
+.window-dot-maximize       { background: #28c840; }
+.window-dot-maximize:hover { background: #1da830; }
+.window-dot-maximize::after{ content: "▢"; color: #003a00; font-size: 8px; font-weight: 700; line-height: 1; }
+
+.window-header-glass:hover .window-dot::after,
+.window-header-glass:hover .window-dot::after {
+  opacity: 1;
+}
+
+/* ── Legacy window header (kept for non-glass fallback) ── */
+
+.window-header {
+  height: 40px;
+  background: var(--win-titlebar-bg);
+  border-bottom: 1px solid var(--win-titlebar-sep);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+  cursor: move;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Window body ── */
+
+.window-body-glass {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
+  padding: 0;
+  position: relative;
+}
+
+.window-body {
+  position: relative;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  background: var(--bg, #fafdfa);
+  padding: 16px;
+}
+
+/* ── App loading gate: spinner shown until the fragment's stylesheets
+   have applied, so windows never flash unstyled markup (FOUC).
+   window-manager.js flips .gb-window-ready once CSS is in place. ── */
+
+.window-body-glass,
+.window-body {
+  position: relative;
+}
+
+.gb-window-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
+  transition: opacity 200ms var(--win-open-timing);
+}
+
+.window-body-glass.gb-window-ready .gb-window-loading,
+.window-body.gb-window-ready .gb-window-loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gb-window-loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--shell-border, rgba(128, 128, 140, 0.25));
+  border-top-color: var(--accent-color, var(--gb-accent, #84d669));
+  animation: gbWindowSpin 800ms linear infinite;
+}
+
+@keyframes gbWindowSpin {
+  to { transform: rotate(360deg); }
+}
+
+.gb-window-content {
+  opacity: 0;
+  transition: opacity 220ms var(--win-open-timing);
+}
+
+.window-body-glass.gb-window-ready .gb-window-content,
+.window-body.gb-window-ready .gb-window-content {
+  opacity: 1;
+  height: 100%;
+}
+
+/* ── Maximized overrides (existing rules preserved) ── */
+
+body.window-maximized .window-element-glass.window-maximized-target,
+body.window-maximized .window-element.window-maximized-target {
+  top: 0 !important;
+  height: calc(100vh - var(--taskbar-h, 30px)) !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* ── Resize grip (bottom-right affordance) ── */
+
+.window-element-glass::after,
+.window-element::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  opacity: 0.25;
+  background:
+    linear-gradient(135deg, transparent 30%, var(--win-border-color) 30%, var(--win-border-color) 40%, transparent 40%),
+    linear-gradient(135deg, transparent 48%, var(--win-border-color) 48%, var(--win-border-color) 58%, transparent 58%),
+    linear-gradient(135deg, transparent 66%, var(--win-border-color) 66%, var(--win-border-color) 76%, transparent 76%);
+}
+
+@media (max-width: 640px) {
+  .window-element-glass,
+  .window-element {
+    top: 8px !important;
+    left: 8px !important;
+    width: calc(100vw - 16px);
+    height: calc(100vh - 80px);
+    height: calc(100dvh - 80px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
+    border-radius: min(var(--win-radius), 12px);
+  }
+
+  .window-header-glass,
+  .window-header {
+    padding-inline: 10px;
+  }
+
+  .window-body {
+    padding: 12px;
+  }
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .window-element-glass,
+  .window-element,
+  .window-dot,
+  .gb-window-loading-spinner,
+  .gb-window-loading,
+  .gb-window-content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* ── App-window status bar: 3D bevel relief + tooltips (issue #725) ── */
+.window-statusbar,
+.window-status-bar,
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 28px;
+  padding: 0 0.8rem;
+  font-size: 11.5px;
+  color: var(--win-titlebar-text, var(--text-secondary, #999));
+  background: linear-gradient(180deg, var(--glass-bg, #14141a), var(--win-titlebar-bg, #18181e));
+  border-top: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.35),
+    0 -1px 0 rgba(0,0,0,0.45);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.window-statusbar .status-item,
+.window-status-bar .status-item,
+.window-statusbar > * {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3);
+  cursor: default;
+}
+
+/* Beveled LED indicator dot present on status items that carry a state. */
+.statusbar-item[data-state]::before,
+.status-item[data-state]::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-color, var(--gb-accent, #d4f505));
+  box-shadow: 0 0 4px var(--accent-color, var(--gb-accent, #d4f505));
+}
+
+.statusbar-item[data-state="warn"]::before,
+.status-item[data-state="warn"]::before {
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 4px var(--warning, #f59e0b);
+}
+
+.statusbar-item[data-state="error"]::before,
+.status-item[data-state="error"]::before {
+  background: var(--error-color, #ef4444);
+  box-shadow: 0 0 4px var(--error-color, #ef4444);
+}
+
+/* Tooltips: any element carrying the data-tooltip attribute inside an app
+   window gets a clean beveled bubble on hover (no third-party lib).
+   data-tooltip is preferred; the native title provides an accessible fallback. */
+.window-element *[data-tooltip] {
+  position: relative;
+}
+
+.window-element *[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 200;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text, #fff);
+  background: rgba(10,10,14,0.95);
+  border: 1px solid var(--win-titlebar-sep, rgba(255,255,255,0.12));
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  pointer-events: none;
+}
+
+.statusbar-item,
+.window-status-bar .status-item {
+  cursor: help;
+}
+
+/* Floating confirm/prompt tool windows (VB6-style, no native modals). */
+.gb-confirm-floating { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; min-width: 300px; }
+.gb-confirm-floating p { margin: 0 0 0.85rem; font-size: 0.85rem; line-height: 1.5; }
+.gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
+.gb-confirm-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; background: var(--gb-surface, #fff); color: inherit; cursor: pointer; font-size: 0.8rem; }
+.gb-confirm-btn.primary { background: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); color: #fff; }
+
+/* Workspace tabs (#1168): browser-style persistent tab bar. */
+.gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, #eef1f5); border-bottom: 1px solid var(--gb-border, #d5dbe3); min-height: 34px; }
+.gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, #cbd5e1); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, #f8fafc); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
+.gb-ws-tab.active { background: var(--gb-surface, #fff); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
+.gb-ws-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-ws-tab-x { color: var(--gb-text-dim, #94a3b8); font-weight: 700; padding: 0 2px; }
+.gb-ws-tab-x:hover { color: #dc2626; }
+.gb-ws-tab-add { border: 1px dashed var(--gb-border, #cbd5e1); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, #64748b); }
+.gb-ws-tab-add:hover { color: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); }
+
+/* #1304 — Settings/Admin open as a fixed-size modal dialog: no resize grip,
+   no maximize, no window-level scrollbars (the app scrolls its own panes). */
+.window-element-glass.window-settings-modal,
+.window-element.window-settings-modal {
+  resize: none !important;
+  overflow: hidden;
+}
+.window-settings-modal .window-dot-maximize {
+  display: none;
+}

@@ -1,0 +1,206 @@
+.mgmt-profile-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mgmt-profile-avatar-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--prism-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+/* ----------------------------------------------------------
+   10. TOAST
+   ---------------------------------------------------------- */
+
+.mgmt-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  transform: translateY(16px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.mgmt-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mgmt-toast.success {
+  border-left: 3px solid #30d158;
+}
+
+.mgmt-toast.error {
+  border-left: 3px solid #ff3b30;
+}
+
+.mgmt-toast.info {
+  border-left: 3px solid var(--accent);
+}
+
+/* ----------------------------------------------------------
+   11. BREADCRUMB
+   ---------------------------------------------------------- */
+
+.mgmt-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.mgmt-breadcrumb a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.mgmt-breadcrumb a:hover {
+  color: var(--accent);
+}
+
+.mgmt-breadcrumb-sep {
+  font-size: 0.75rem;
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.mgmt-breadcrumb-current {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------
+   12. TEXT UTILITIES
+   ---------------------------------------------------------- */
+
+.text-accent  { color: var(--accent); }
+.text-accent2 { color: var(--accent2); }
+.text-accent3 { color: var(--accent3); }
+.text-muted   { color: var(--muted); }
+.text-sm      { font-size: 0.85rem; }
+.text-xs      { font-size: 0.75rem; }
+.text-center  { text-align: center; }
+.text-right   { text-align: right; }
+.fw-500       { font-weight: 500; }
+.fw-600       { font-weight: 600; }
+.fw-700       { font-weight: 700; }
+.fw-800       { font-weight: 800; }
+
+.mt-0  { margin-top: 0; }
+.mt-1  { margin-top: 8px; }
+.mt-2  { margin-top: 16px; }
+.mt-3  { margin-top: 24px; }
+.mt-4  { margin-top: 32px; }
+.mb-0  { margin-bottom: 0; }
+.mb-1  { margin-bottom: 8px; }
+.mb-2  { margin-bottom: 16px; }
+.mb-3  { margin-bottom: 24px; }
+
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 14px; }
+.gap-3 { gap: 20px; }
+
+.d-flex      { display: flex; }
+.d-grid      { display: grid; }
+.flex-col    { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.flex-1      { flex: 1; }
+.flex-wrap   { flex-wrap: wrap; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hidden { display: none !important; }
+.visible { visibility: visible; }
+.invisible { visibility: hidden; }
+
+/* ----------------------------------------------------------
+   13. RESPONSIVE — AUTH & FORMS
+   ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .mgmt-auth-left {
+    display: none;
+  }
+
+  .theme-toggle {
+    top: 8px;
+    right: 8px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .mgmt-auth-right {
+    padding: 24px 16px;
+  }
+
+  .mgmt-auth-card h2 {
+    font-size: 1.4rem;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mgmt-modal-box {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .mgmt-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .prism-scene {
+    width: 260px;
+    height: 150px;
+  }
+}

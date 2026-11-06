@@ -1,0 +1,198 @@
+.db-root ::-webkit-scrollbar-thumb {
+  background: var(--border-light, #33415f);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.db-root ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #4a5a7a);
+  background-clip: content-box;
+}
+
+.db-root ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ─── Startup landing (no table selected) ─────────────────────────────────── */
+.db-startup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  overflow-y: auto;
+  padding: 48px 24px 32px;
+  background:
+    radial-gradient(800px 300px at 50% -10%, color-mix(in srgb, var(--primary, #3b82f6) 10%, transparent), transparent),
+    var(--surface, #0f172a);
+}
+
+.db-startup-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+}
+
+.db-startup-logo {
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary, #3b82f6) 22%, transparent), color-mix(in srgb, var(--primary, #3b82f6) 8%, transparent));
+  border: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 35%, transparent);
+  color: var(--primary, #3b82f6);
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--primary, #3b82f6) 25%, transparent);
+}
+
+.db-startup-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text, #f1f5f9);
+  letter-spacing: -0.01em;
+}
+
+.db-startup-sub {
+  margin: 0 0 22px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary, #8b98b5);
+}
+
+.db-startup-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.db-startup-stats {
+  display: flex;
+  gap: 10px;
+  margin: 34px 0 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.db-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 120px;
+  padding: 14px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #2a3550);
+  background: var(--surface, #161f31);
+}
+
+.db-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary, #3b82f6);
+  font-variant-numeric: tabular-nums;
+}
+
+.db-stat-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #5b6780);
+}
+
+.db-startup-recent {
+  width: 100%;
+  max-width: 720px;
+}
+
+.db-startup-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #8b98b5);
+}
+
+.db-startup-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.db-startup-table-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #2a3550);
+  background: var(--surface, #161f31);
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.1s;
+}
+
+.db-startup-table-card:hover {
+  border-color: var(--border-light, #3a4a6b);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.db-startup-table-card .db-table-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+
+.db-startup-table-info {
+  min-width: 0;
+}
+
+.db-startup-table-name {
+  display: block;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text, #f1f5f9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-startup-table-meta {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted, #5b6780);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── No-rows state inside grid ───────────────────────────────────────────── */
+.db-add-first-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text, #f1f5f9);
+}
+
+.db-add-first-sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary, #8b98b5);
+}
+
+.db-empty-icon-sm {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+}

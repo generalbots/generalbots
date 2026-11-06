@@ -1,0 +1,398 @@
+/* Tech Themes */
+[data-theme="3dbevel"] {
+    --primary: #0000ff;
+    --primary-hover: #0000cc;
+    --primary-light: rgba(0, 0, 255, 0.15);
+    --bg: #c0c0c0;
+    --surface: #d4d4d4;
+    --surface-hover: #e8e8e8;
+    --border: #808080;
+        --win-border-width: 2px;
+        --win-border-color: rgba(128,128,128,0.4);
+        --win-border-active: #0000ff;
+    --text: #000000;
+    --text-secondary: #404040;
+}
+
+[data-theme="xeroxui"] {
+    --primary: #4a86cf;
+    --primary-hover: #3a76bf;
+    --primary-light: rgba(74, 134, 207, 0.15);
+    --bg: #e8e8e8;
+    --surface: #ffffff;
+    --surface-hover: #f0f0f0;
+    --border: #a0a0a0;
+        --win-border-width: 1.5px;
+        --win-border-color: rgba(160,160,160,0.3);
+        --win-border-active: #4a86cf;
+    --text: #000000;
+    --text-secondary: #606060;
+}
+
+[data-theme="xtreegold"] {
+    --primary: #ffff00;
+    --primary-hover: #cccc00;
+    --primary-light: rgba(255, 255, 0, 0.15);
+    --bg: #000080;
+    --surface: #0000a0;
+    --surface-hover: #0000c0;
+    --border: #ffff0033;
+        --win-border-width: 2px;
+        --win-border-color: rgba(255,255,0,0.3);
+        --win-border-active: #ffff00;
+    --text: #ffff00;
+    --text-secondary: #00ffff;
+}
+
+/* ============================================ */
+/* BASE RESETS                                  */
+/* ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Compact Mode - reduces spacing throughout the app */
+body.compact-mode {
+    --spacing-xs: 2px;
+    --spacing-sm: 4px;
+    --spacing-md: 8px;
+    --spacing-lg: 12px;
+    --spacing-xl: 16px;
+}
+
+body.compact-mode .app-header {
+    height: 48px;
+    padding: 0 0.5rem;
+}
+
+body.compact-mode .settings-panel,
+body.compact-mode .apps-dropdown {
+    padding: 0.5rem;
+}
+
+body.compact-mode .app-item {
+    padding: 0.5rem;
+    gap: 0.25rem;
+}
+
+body.compact-mode .setting-card,
+body.compact-mode .settings-section {
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+/* No Animations - disables all transitions and animations */
+body.no-animations,
+body.no-animations * {
+    animation: none !important;
+    transition: none !important;
+}
+
+body.no-animations .htmx-indicator {
+    animation: none !important;
+}
+
+body.no-animations .spinner {
+    animation: none !important;
+}
+
+/* ============================================ */
+/* APP HEADER                                   */
+/* ============================================ */
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 64px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ============================================ */
+/* LOGO                                         */
+/* ============================================ */
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* ============================================ */
+/* HEADER BUTTONS                               */
+/* ============================================ */
+
+.header-btn {
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+/* ============================================ */
+/* USER AVATAR                                  */
+/* ============================================ */
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+}
+
+/* ============================================ */
+/* APPS MENU & DROPDOWNS                        */
+/* ============================================ */
+
+.apps-menu,
+.settings-menu {
+    position: relative;
+}
+
+.apps-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: none;
+    z-index: 1001;
+}
+
+.settings-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    min-width: 320px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: none;
+    z-index: 1001;
+}
+
+.apps-dropdown.show,
+.settings-panel.show {
+    display: block;
+}
+
+.apps-dropdown-title {
+    display: none;
+}
+
+.settings-panel-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+/* ============================================ */
+/* APPS GRID                                    */
+/* ============================================ */
+
+.apps-grid,
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+}
+
+.app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 6px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.1s;
+    min-width: 56px;
+}
+
+/* Hide items visible in header tabs */
+.app-item[data-section="chat"],
+.app-item[data-section="paper"],
+.app-item[data-section="mail"],
+.app-item[data-section="drive"],
+.app-item[data-section="calendar"],
+.app-item[data-section="tasks"] {
+    display: none;
+}
+
+.app-item:hover {
+    background: var(--surface-hover);
+}
+
+.app-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.app-icon {
+    font-size: 18px;
+}
+
+.app-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.app-item span {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Show items in dropdown as header tabs hide */
+@media (max-width: 1200px) {
+    .app-tab[data-section="tasks"] {
+        display: none;
+    }
+    .app-item[data-section="tasks"] {
+        display: flex;
+    }
+}
+@media (max-width: 1100px) {
+    .app-tab[data-section="calendar"] {
+        display: none;
+    }
+    .app-item[data-section="calendar"] {
+        display: flex;
+    }
+}
+@media (max-width: 1000px) {
+    .app-tab[data-section="drive"] {
+        display: none;
+    }
+    .app-item[data-section="drive"] {
+        display: flex;
+    }
+}
+@media (max-width: 900px) {
+    .app-tab[data-section="mail"] {
+        display: none;
+    }
+    .app-item[data-section="mail"] {
+        display: flex;
+    }
+}
+@media (max-width: 800px) {
+    .app-tab[data-section="paper"] {
+        display: none;
+    }
+    .app-item[data-section="paper"] {
+        display: flex;
+    }
+}
+@media (max-width: 700px) {
+    .app-tab[data-section="chat"] {
+        display: none;
+    }
+    .app-item[data-section="chat"] {
+        display: flex;
+    }
+}
+
+/* ============================================ */
+/* SETTINGS PANEL                               */
+/* ============================================ */
+
+.settings-panel {
+    width: 320px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.settings-section {
+    margin-bottom: 1.25rem;
+}
+
+.settings-section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    padding: 0 0.25rem;
+}
+

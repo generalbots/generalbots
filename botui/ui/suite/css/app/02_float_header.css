@@ -1,0 +1,396 @@
+/* ============================================ */
+/* FLOATING HEADER                              */
+/* ============================================ */
+.float-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: var(--bg, var(--surface, #0a0a0a));
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-md);
+    z-index: var(--z-sticky);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-smooth);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    max-width: 400px;
+    margin: 0 var(--space-lg);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* ============================================ */
+/* HEADER APP TABS                             */
+/* ============================================ */
+.header-app-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-left: var(--space-md);
+}
+
+.app-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary, #888888);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    border: 1px solid transparent;
+}
+
+.app-tab:hover {
+    background: var(--surface-hover, var(--bg-hover, rgba(255, 255, 255, 0.1)));
+    color: var(--text, var(--text-primary, #ffffff));
+}
+
+.app-tab.active {
+    background: var(--primary-light, rgba(212, 245, 5, 0.15));
+    color: var(--primary, var(--accent-color, #d4f505));
+    border-color: var(--primary, var(--accent-color, #d4f505));
+}
+
+.app-tab svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+.app-tab.active svg {
+    opacity: 1;
+}
+
+/* Hide header tabs progressively as screen shrinks */
+/* Header tabs: chat, mail, calendar, drive, tasks, crm, docs, sheet, slides, social */
+
+@media (max-width: 1400px) {
+    .app-tab[data-section="social"] {
+        display: none;
+    }
+}
+
+@media (max-width: 1350px) {
+    .app-tab[data-section="crm"] {
+        display: none;
+    }
+}
+
+@media (max-width: 1300px) {
+    .app-tab[data-section="slides"] {
+        display: none;
+    }
+}
+
+@media (max-width: 1200px) {
+    .app-tab[data-section="sheet"],
+    .app-tab[data-section="tasks"] {
+        display: none;
+    }
+}
+
+@media (max-width: 1100px) {
+    .app-tab[data-section="docs"],
+    .app-tab[data-section="calendar"] {
+        display: none;
+    }
+}
+
+@media (max-width: 1000px) {
+    .app-tab[data-section="drive"] {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .app-tab[data-section="mail"] {
+        display: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .app-tab[data-section="chat"] {
+        display: none;
+    }
+}
+
+/* ============================================ */
+/* OMNIBOX (Search + Chat)                     */
+/* ============================================ */
+.header-center {
+    position: relative;
+    flex: 1;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.omnibox {
+    position: relative;
+    width: 100%;
+}
+
+.omnibox-input-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    height: 36px;
+    background: var(--surface, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 18px;
+    transition: all 0.2s ease;
+}
+
+.omnibox.active .omnibox-input-area {
+    border-color: var(--primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-radius: 12px 12px 0 0;
+}
+
+.omnibox-icon {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.omnibox.chat-mode .search-icon {
+    display: none;
+}
+
+.omnibox.chat-mode .bot-icon {
+    display: block !important;
+    color: var(--primary, #3b82f6);
+}
+
+.omnibox-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text, #f8fafc);
+    font-size: 13px;
+    outline: none;
+    min-width: 0;
+}
+
+.omnibox-input::placeholder {
+    color: var(--text-muted, #64748b);
+}
+
+.omnibox-hints {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.omnibox-shortcut {
+    padding: 2px 6px;
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--border, #334155);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: inherit;
+}
+
+.omnibox-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.omnibox-mode-toggle:hover {
+    background: var(--surface-hover);
+    color: var(--primary, #3b82f6);
+}
+
+.omnibox.chat-mode .omnibox-mode-toggle {
+    color: var(--primary, #3b82f6);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Omnibox Panel */
+.omnibox-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface, #1e293b);
+    border: 1px solid var(--border, #334155);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-height: 400px;
+    overflow: hidden;
+    z-index: 1002;
+}
+
+.omnibox.active .omnibox-panel {
+    display: block;
+}
+
+/* Omnibox Backdrop */
+.omnibox-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.omnibox.active ~ .omnibox-backdrop {
+    display: block;
+}
+
+/* Omnibox Results */
+.omnibox-results {
+    padding: 8px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.omnibox-section {
+    margin-bottom: 12px;
+}
+
+.omnibox-section:last-child {
+    margin-bottom: 0;
+}
+
+.omnibox-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #64748b);
+    padding: 4px 8px;
+    margin-bottom: 4px;
+}
+
+.omnibox-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.omnibox-action,
+.omnibox-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text, #f8fafc);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+}
+
+.omnibox-action:hover,
+.omnibox-action.selected,
+.omnibox-result:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+.omnibox-action.selected {
+    background: var(--primary-light, rgba(59, 130, 246, 0.15));
+}
+
+.action-icon,
+.result-icon {
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+}
+
+.action-text {
+    flex: 1;
+    font-size: 13px;
+}
+
+.omnibox-action kbd {
+    padding: 2px 6px;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.result-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.result-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.result-desc {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.no-results {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Omnibox Chat */
+.omnibox-chat {
+    display: flex;
+    flex-direction: column;
+    height: 350px;
+}
+
+.omnibox-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+

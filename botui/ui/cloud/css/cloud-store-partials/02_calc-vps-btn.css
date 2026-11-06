@@ -1,0 +1,402 @@
+
+.calc-vps-btn:hover {
+  border-color: var(--accent);
+}
+
+.calc-vps-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.calc-vps-btn.recommended {
+  border-color: var(--accent2, #00d4aa);
+  box-shadow: 0 0 0 1px var(--accent2, #00d4aa);
+}
+
+.calc-rec-badge {
+  display: inline-block;
+  margin-top: .35rem;
+  padding: .12rem .5rem;
+  border-radius: 99px;
+  background: var(--accent2, #00d4aa);
+  color: #04241c;
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.calc-vps-btn strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: .25rem;
+}
+
+.calc-vps-btn .calc-vps-spec {
+  display: block;
+  font-size: .65rem;
+  opacity: .65;
+  line-height: 1.3;
+  margin-bottom: .4rem;
+}
+
+.calc-vps-btn em {
+  font-style: normal;
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.calc-vps-btn em small {
+  font-weight: 400;
+  font-size: .65rem;
+  opacity: .6;
+}
+
+/* Side-by-side addon rows */
+.calc-row-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .85rem;
+  margin-bottom: .85rem;
+}
+
+@media (max-width: 640px) {
+  .calc-row-group { grid-template-columns: 1fr; }
+}
+
+.calc-step-compact {
+  padding: 1rem 1.15rem;
+}
+
+.calc-step-compact .calc-step-header {
+  margin-bottom: .6rem;
+}
+
+/* Addon buttons (storage, gpu, phone, domain) */
+.calc-storage-options,
+.calc-gpu-options,
+.calc-phone-options,
+.calc-domain-options {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+
+.calc-addon-btn {
+  flex: 1;
+  min-width: 65px;
+  padding: .45rem .5rem;
+  font-size: .72rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all .15s;
+}
+
+.calc-addon-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.calc-addon-btn.selected {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.calc-addon-btn small {
+  display: block;
+  font-size: .6rem;
+  font-weight: 400;
+  opacity: .65;
+  margin-top: 1px;
+}
+
+.calc-addon-btn.selected small {
+  opacity: .8;
+}
+
+/* Comparison box */
+.calc-compare {
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: .9rem 1.15rem;
+  margin-bottom: .75rem;
+}
+
+.calc-compare-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .3rem 0;
+}
+
+.calc-compare-row + .calc-compare-row {
+  border-top: 1px solid var(--border);
+}
+
+.calc-compare-label {
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.calc-compare-old {
+  font-size: .85rem;
+  color: var(--muted);
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
+.calc-compare-new {
+  font-size: .85rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.calc-compare-save {
+  font-size: .8rem;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.calc-compare-save strong {
+  font-weight: 800;
+}
+
+/* WhatsApp bonus */
+.calc-bonus {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  color: var(--accent);
+  font-weight: 600;
+  padding: .5rem .75rem;
+  background: rgba(255,0,128,.08);
+  border: 1px solid rgba(255,0,128,.2);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* ── LLM API Token Packages ── */
+
+.calc-llm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .6rem;
+}
+
+.calc-llm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .85rem .65rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  position: relative;
+}
+
+.calc-llm-card:hover {
+  border-color: var(--accent);
+}
+
+.calc-llm-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.calc-llm-head {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: .15rem;
+}
+
+.calc-llm-sub {
+  font-size: .64rem;
+  color: var(--muted);
+  line-height: 1.25;
+  margin-bottom: .45rem;
+  min-height: 1.6em;
+}
+
+.calc-llm-price {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: .3rem;
+}
+
+.calc-llm-price span {
+  font-weight: 400;
+  font-size: .65rem;
+  opacity: .6;
+}
+
+.calc-llm-pkgs {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  margin-top: .35rem;
+}
+
+.calc-pkg-btn {
+  display: block;
+  width: 100%;
+  padding: .35rem .3rem;
+  font-size: .68rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg3);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all .15s;
+}
+
+.calc-pkg-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--card);
+}
+
+.calc-pkg-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.calc-pkg-btn span {
+  display: inline-block;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.calc-llm-selected-badge {
+  display: none;
+  position: absolute;
+  top: .35rem; right: .35rem;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: .6rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.calc-llm-card.selected .calc-llm-selected-badge {
+  display: flex;
+}
+
+/* Footer */
+.calc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.calc-price {
+  display: flex;
+  align-items: baseline;
+  gap: .25rem;
+}
+
+.calc-price-amount {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+
+.calc-price-period {
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.calc-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .65rem 1.4rem;
+  font-size: .85rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s;
+}
+
+.calc-cta:hover {
+  opacity: .85;
+}
+
+.calc-trust {
+  display: flex;
+  justify-content: center;
+  gap: .65rem;
+  font-size: .7rem;
+  color: var(--muted);
+  margin-top: .85rem;
+}
+
+.store-landing {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  padding: 2rem;
+}
+.store-landing-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.5rem;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.store-landing-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-accent);
+}
+.store-landing-icon { font-size: 2.5rem; line-height: 1; }
+.store-landing-name { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.store-landing-desc { font-size: .82rem; color: var(--muted); line-height: 1.55; flex: 1; }
+.store-landing-action {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--accent);
+  transition: gap .15s;
+}
+.store-landing-card:hover .store-landing-action { gap: .6rem; }
+.store-landing-action::after {
+  content: '→';
+  font-size: 1rem;
+  transition: transform .15s;
+}
+.store-landing-card:hover .store-landing-action::after { transform: translateX(3px); }

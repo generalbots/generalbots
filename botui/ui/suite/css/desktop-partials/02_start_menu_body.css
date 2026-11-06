@@ -1,0 +1,398 @@
+.start-menu-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+}
+
+.start-menu-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary, #777);
+    padding: 8px 8px 6px;
+}
+
+.start-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.start-menu-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.start-menu-app:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.start-menu-app:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.start-menu-app-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.start-menu-app:hover .start-menu-app-icon {
+    transform: scale(1.08);
+}
+
+.start-menu-app-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+}
+
+.start-menu-app-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text, #ddd);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 76px;
+}
+
+.start-menu-recent {
+    border-top: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+    padding: 4px 8px 8px;
+}
+
+.start-menu-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--glass-border-color, rgba(255, 255, 255, 0.06));
+}
+
+.start-menu-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.start-menu-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary, #88ccff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #000;
+}
+
+.start-menu-user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text, #ddd);
+}
+
+.start-menu-power {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary, #888);
+}
+
+.start-menu-power:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.start-menu-filter-empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-secondary, #777);
+    font-size: 14px;
+}
+
+/* ============================================ */
+/* PHASE 2b — Start Button in Taskbar           */
+/* ============================================ */
+
+#startBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid transparent;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+#startBtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+#startBtn svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text, #eee);
+    transition: stroke 0.2s;
+}
+
+#startBtn:hover svg {
+    stroke: var(--primary, #88ccff);
+}
+
+.start-menu-open #startBtn {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--primary, #88ccff);
+}
+
+.start-menu-open #startBtn svg {
+    stroke: var(--primary, #88ccff);
+}
+
+/* ============================================ */
+/* PHASE 3 — CHAT SIDEBAR                       */
+/* ============================================ */
+
+.chat-sidebar {
+    width: 300px;
+    height: 100%;
+    background: var(--glass-bg, rgba(20, 22, 35, 0.6));
+    backdrop-filter: var(--glass-backdrop, blur(16px) saturate(150%));
+    -webkit-backdrop-filter: var(--glass-backdrop, blur(16px) saturate(150%));
+    border-right: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.12));
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.chat-sidebar.collapsed {
+    width: 51px;
+}
+
+/* #1433 — Settings' "show sidebar" toggle adds .sidebar-hidden to <body>.
+   Fully hides the rail (unlike .collapsed, which keeps the 51px strip) and
+   pairs with a body-level rule so the workspace reflows. */
+body.sidebar-hidden .chat-sidebar {
+    display: none !important;
+}
+
+.chat-sidebar-toggle {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
+    flex-shrink: 0;
+}
+
+.chat-sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.chat-sidebar-toggle svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--text-secondary, #888);
+    transition: all 0.3s;
+}
+
+.chat-sidebar-toggle:hover svg {
+    stroke: var(--primary, #88ccff);
+}
+
+.chat-sidebar.collapsed .chat-sidebar-toggle {
+    justify-content: center;
+}
+
+.chat-sidebar-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-sidebar.collapsed .chat-sidebar-content {
+    display: none;
+}
+
+.chat-sidebar-header {
+    padding: 14px 16px 10px;
+    border-bottom: 2px solid var(--glass-border-color, rgba(255, 255, 255, 0.10));
+}
+
+.chat-sidebar-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text, #eee);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-sidebar-title .glow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary, #88ccff);
+    box-shadow: 0 0 8px var(--primary, #88ccff);
+    animation: chatDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes chatDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.chat-sidebar-conversations {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.chat-sidebar-conv-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+}
+
+.chat-sidebar-conv-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.chat-sidebar-conv-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-sidebar-conv-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--primary, #88ccff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.chat-sidebar-conv-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: #111;
+}
+
+.chat-sidebar-conv-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-sidebar-conv-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text, #eee);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-sidebar-conv-preview {
+    font-size: 11px;
+    color: var(--text-secondary, #777);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.chat-sidebar-conv-time {
+    font-size: 10px;
+    color: var(--text-secondary, #666);
+    flex-shrink: 0;
+}
+
+.chat-sidebar-new-chat {
+    margin: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-secondary, #888);
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.chat-sidebar-new-chat:hover {
+    border-color: var(--primary, #88ccff);
+    color: var(--primary, #88ccff);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.chat-sidebar-collapsed-icons {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    gap: 4px;
+}
+
+.chat-sidebar.collapsed .chat-sidebar-collapsed-icons {
+    display: flex;
+}
+
+.chat-sidebar-collapsed-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    color: var(--text-secondary, #888);
+}
+

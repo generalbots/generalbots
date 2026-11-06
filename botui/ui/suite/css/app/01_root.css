@@ -1,0 +1,387 @@
+/* General Bots Desktop - Unified Theme System with HSL Bridge */
+/* This file bridges shadcn-style HSL theme variables with working CSS properties */
+
+/* Inter font loaded via local theme files */
+
+/* ============================================ */
+/* DEFAULT THEME (Light Mode Base)             */
+/* Uses shadcn/ui HSL format for theme files   */
+/* ============================================ */
+:root {
+    /* Shadcn-style HSL theme variables (can be overridden by theme files) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 32% 91%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 47 96% 53%;
+    --chart-4: 280 83% 57%;
+    --chart-5: 27 87% 67%;
+
+    /* Bridge: Convert HSL to working CSS variables */
+    --primary-bg: hsl(var(--background));
+    --primary-fg: hsl(var(--foreground));
+    --secondary-bg: hsl(var(--card));
+    --secondary-fg: hsl(var(--muted-foreground));
+
+    /* ============================================ */
+    /* SENTIENT BRIDGE VARIABLES                   */
+    /* Used by Sheet, Docs, Slides for theming     */
+    /* These map theme variables to app-specific   */
+    /* naming used across office suite apps        */
+    /* ============================================ */
+
+    /* Backgrounds */
+    --sentient-bg-primary: hsl(var(--background));
+    --sentient-bg-secondary: hsl(var(--card));
+    --sentient-bg-tertiary: hsl(var(--muted));
+    --sentient-bg-hover: hsla(var(--primary) / 0.08);
+    --sentient-bg-active: hsla(var(--primary) / 0.15);
+
+    /* Text */
+    --sentient-text-primary: hsl(var(--foreground));
+    --sentient-text-secondary: hsl(var(--muted-foreground));
+    --sentient-text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --sentient-text-muted: hsla(var(--muted-foreground) / 0.5);
+
+    /* Accent Colors */
+    --sentient-accent: hsl(var(--primary));
+    --sentient-accent-hover: hsl(var(--primary) / 0.85);
+    --sentient-accent-light: hsla(var(--primary) / 0.1);
+    --sentient-accent-dark: hsl(var(--primary) / 0.7);
+
+    /* Borders */
+    --sentient-border: hsl(var(--border));
+    --sentient-border-light: hsla(var(--border) / 0.5);
+    --sentient-border-accent: hsla(var(--primary) / 0.3);
+
+    /* Surfaces */
+    --sentient-surface: hsl(var(--card));
+    --sentient-surface-hover: hsla(var(--primary) / 0.08);
+    --sentient-surface-active: hsla(var(--primary) / 0.15);
+    --sentient-surface-elevated: hsl(var(--popover));
+
+    /* Inputs */
+    --sentient-input-bg: hsl(var(--input));
+    --sentient-input-border: hsl(var(--border));
+    --sentient-input-focus: hsl(var(--ring));
+
+    /* Status Colors */
+    --sentient-success: hsl(142 76% 36%);
+    --sentient-success-bg: hsla(142 76% 36% / 0.15);
+    --sentient-warning: hsl(38 92% 50%);
+    --sentient-warning-bg: hsla(38 92% 50% / 0.15);
+    --sentient-error: hsl(var(--destructive));
+    --sentient-error-bg: hsla(var(--destructive) / 0.15);
+
+    /* Typography */
+    --sentient-font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+
+    /* Shadows */
+    --sentient-shadow-sm: 0 1px 2px 0 hsla(var(--foreground) / 0.05);
+    --sentient-shadow-md:
+        0 4px 6px -1px hsla(var(--foreground) / 0.1),
+        0 2px 4px -1px hsla(var(--foreground) / 0.06);
+    --sentient-shadow-lg:
+        0 10px 15px -3px hsla(var(--foreground) / 0.1),
+        0 4px 6px -2px hsla(var(--foreground) / 0.05);
+
+    /* Border Radius */
+    --sentient-radius: var(--radius);
+    --sentient-radius-sm: calc(var(--radius) * 0.5);
+    --sentient-radius-md: var(--radius);
+    --sentient-radius-lg: calc(var(--radius) * 1.5);
+    --sentient-radius-xl: calc(var(--radius) * 2);
+
+    /* Glass Morphism */
+    --glass-bg: hsla(var(--background) / 0.7);
+    --glass-border: hsla(var(--border) / 0.8);
+    --glass-shadow: hsla(var(--foreground) / 0.05);
+
+    /* Text Colors */
+    --text-primary: hsl(var(--foreground));
+    --text-secondary: hsl(var(--muted-foreground));
+    --text-tertiary: hsla(var(--muted-foreground) / 0.7);
+    --text-muted: hsla(var(--muted-foreground) / 0.5);
+
+    /* Accent Colors */
+    --accent-color: hsl(var(--primary));
+    --accent-hover: hsl(var(--primary) / 0.9);
+    --accent-light: hsla(var(--primary) / 0.1);
+    --accent-gradient: linear-gradient(
+        135deg,
+        hsl(var(--primary)) 0%,
+        hsl(var(--accent)) 100%
+    );
+
+    /* Border Colors */
+    --border-color: hsl(var(--border));
+    --border-light: hsla(var(--border) / 0.5);
+    --border-dark: hsl(var(--muted-foreground));
+
+    /* Background States */
+    --bg-hover: hsla(var(--primary) / 0.08);
+    --bg-active: hsla(var(--primary) / 0.15);
+    --bg-disabled: hsl(var(--muted));
+
+    /* Message Bubbles */
+    --user-message-bg: hsl(var(--primary));
+    --user-message-fg: hsl(var(--primary-foreground));
+    --bot-message-bg: hsl(var(--card));
+    --bot-message-fg: hsl(var(--card-foreground));
+
+    /* Sidebar */
+    --sidebar-bg: hsla(var(--card) / 0.95);
+    --sidebar-border: hsl(var(--border));
+    --sidebar-item-hover: hsla(var(--primary) / 0.1);
+    --sidebar-item-active: hsl(var(--primary));
+
+    /* Status Colors */
+    --success-color: hsl(142 76% 36%);
+    --warning-color: hsl(38 92% 50%);
+    --error-color: hsl(var(--destructive));
+    --info-color: hsl(var(--primary));
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsla(var(--foreground) / 0.05);
+    --shadow-md:
+        0 4px 6px -1px hsla(var(--foreground) / 0.1),
+        0 2px 4px -1px hsla(var(--foreground) / 0.06);
+    --shadow-lg:
+        0 10px 15px -3px hsla(var(--foreground) / 0.1),
+        0 4px 6px -2px hsla(var(--foreground) / 0.05);
+    --shadow-xl:
+        0 20px 25px -5px hsla(var(--foreground) / 0.1),
+        0 10px 10px -5px hsla(var(--foreground) / 0.04);
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* Border Radius (use theme radius or fallback) */
+    --radius-sm: calc(var(--radius) * 0.5);
+    --radius-md: var(--radius);
+    --radius-lg: calc(var(--radius) * 1.5);
+    --radius-xl: calc(var(--radius) * 2);
+    --radius-2xl: calc(var(--radius) * 3);
+    --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Header */
+    --header-bg: hsla(var(--background) / 0.8);
+    --header-border: hsla(var(--border) / 0.8);
+    --header-height: 40px;
+
+    /* Input Fields */
+    --input-bg: hsl(var(--input));
+    --input-border: hsl(var(--border));
+    --input-focus-border: hsl(var(--ring));
+    --input-placeholder: hsl(var(--muted-foreground));
+
+    /* Scrollbar */
+    --scrollbar-track: hsl(var(--muted));
+    --scrollbar-thumb: hsla(var(--muted-foreground) / 0.3);
+    --scrollbar-thumb-hover: hsla(var(--muted-foreground) / 0.5);
+
+    /* Z-Index Layers */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+}
+
+/* ============================================ */
+/* DARK MODE DETECTION                          */
+/* Auto-apply dark theme if system prefers dark */
+/* (Can be overridden by theme files)          */
+/* ============================================ */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --background: 222 47% 11%;
+        --foreground: 213 31% 91%;
+        --card: 217 33% 17%;
+        --card-foreground: 213 31% 91%;
+        --popover: 222 47% 11%;
+        --popover-foreground: 213 31% 91%;
+        --primary: 217 91% 60%;
+        --primary-foreground: 222 47% 11%;
+        --secondary: 217 33% 17%;
+        --secondary-foreground: 213 31% 91%;
+        --muted: 223 47% 11%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 217 33% 17%;
+        --accent-foreground: 213 31% 91%;
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 213 31% 91%;
+        --border: 217 33% 17%;
+        --input: 217 33% 17%;
+        --ring: 224 76% 48%;
+    }
+}
+
+/* ============================================ */
+/* SENTIENT THEME VARIABLES                     */
+/* Dark background with neon lime/green accents */
+/* ============================================ */
+:root {
+    /* Sentient Core Colors - used by tasks, attendant, and other apps */
+    --sentient-accent: #d4f505;
+    --sentient-accent-hover: #bfdd04;
+    --sentient-accent-light: rgba(212, 245, 5, 0.15);
+    --sentient-accent-glow: rgba(212, 245, 5, 0.3);
+
+    /* Sentient Background Hierarchy */
+    --sentient-bg-primary: #0a0a0a;
+    --sentient-bg-secondary: #111111;
+    --sentient-bg-tertiary: #161616;
+    --sentient-bg-elevated: #1a1a1a;
+    --sentient-bg-hover: #1e1e1e;
+    --sentient-bg-active: #252525;
+
+    /* Sentient Borders */
+    --sentient-border: #2a2a2a;
+    --sentient-border-light: #222222;
+    --sentient-border-accent: rgba(212, 245, 5, 0.3);
+
+    /* Sentient Text Colors */
+    --sentient-text-primary: #ffffff;
+    --sentient-text-secondary: #888888;
+    --sentient-text-tertiary: #666666;
+    --sentient-text-muted: #444444;
+    --sentient-text-accent: #d4f505;
+
+    /* Sentient Status Colors */
+    --sentient-success: #22c55e;
+    --sentient-success-bg: rgba(34, 197, 94, 0.15);
+    --sentient-warning: #f59e0b;
+    --sentient-warning-bg: rgba(245, 158, 11, 0.15);
+    --sentient-error: #ef4444;
+    --sentient-error-bg: rgba(239, 68, 68, 0.15);
+    --sentient-info: #3b82f6;
+    --sentient-info-bg: rgba(59, 130, 246, 0.15);
+
+    /* Sentient Shadows */
+    --sentient-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sentient-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --sentient-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --sentient-shadow-accent: 0 0 20px rgba(212, 245, 5, 0.2);
+    --sentient-shadow-glow: 0 0 30px rgba(212, 245, 5, 0.15);
+
+    /* Sentient Typography */
+    --sentient-font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+
+    /* Sentient Border Radius */
+    --sentient-radius-sm: 6px;
+    --sentient-radius-md: 8px;
+    --sentient-radius-lg: 12px;
+    --sentient-radius-xl: 16px;
+    --sentient-radius-full: 9999px;
+}
+
+/* Apply sentient variables when theme is active */
+[data-theme="sentient"] {
+    --primary-bg: var(--sentient-bg-primary);
+    --primary-fg: var(--sentient-text-primary);
+    --secondary-bg: var(--sentient-bg-secondary);
+    --secondary-fg: var(--sentient-text-secondary);
+    --accent-color: var(--sentient-accent);
+    --accent-hover: var(--sentient-accent-hover);
+    --accent-light: var(--sentient-accent-light);
+    --border-color: var(--sentient-border);
+    --text-primary: var(--sentient-text-primary);
+    --text-secondary: var(--sentient-text-secondary);
+    --text-tertiary: var(--sentient-text-tertiary);
+    --success-color: var(--sentient-success);
+    --warning-color: var(--sentient-warning);
+    --error-color: var(--sentient-error);
+    --info-color: var(--sentient-info);
+}
+
+/* ============================================ */
+/* GLOBAL RESETS                                */
+/* ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family:
+        "Inter",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        sans-serif;
+    background: var(--primary-bg);
+    color: var(--primary-fg);
+    height: 100vh;
+    overflow: hidden;
+    transition:
+        background var(--transition-smooth),
+        color var(--transition-smooth);
+}
+
+/* ============================================ */
+/* LAYOUT STRUCTURE                             */
+/* ============================================ */
+#main-content {
+    height: calc(100vh - var(--header-height));
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    margin-top: var(--header-height);
+}
+
+.section {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: none;
+}
+
+.section.active {
+    display: flex;
+}
+

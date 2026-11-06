@@ -1,0 +1,392 @@
+/* General Bots Suite - Extended App Styles */
+/* Dashboard layout, intents, cards, filters, and progress elements */
+/* Designed for the Sentient theme (dark with neon lime accents) */
+
+/* ============================================ */
+/* LAYOUT SYSTEM                               */
+/* ============================================ */
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+    padding: 24px;
+    min-height: calc(100vh - 64px);
+    background: var(--bg, #0a0a0a);
+}
+
+.dashboard-layout.full-width {
+    grid-template-columns: 1fr;
+}
+
+.dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+/* ============================================ */
+/* DASHBOARD HEADER                            */
+/* ============================================ */
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.dashboard-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text, #ffffff);
+    margin: 0;
+}
+
+.dashboard-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* New Intent Button */
+.btn-new-intent {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent, #d4f505);
+    color: #000000;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-new-intent:hover {
+    background: var(--accent-hover, #bfdd04);
+    box-shadow: 0 0 20px rgba(212, 245, 5, 0.3);
+}
+
+.btn-new-intent svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================ */
+/* STATUS FILTERS                              */
+/* ============================================ */
+
+.status-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.status-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 20px;
+    color: var(--text-secondary, #888888);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-filter:hover {
+    background: var(--surface-hover, #1e1e1e);
+    color: var(--text, #ffffff);
+    border-color: var(--text-secondary, #888888);
+}
+
+.status-filter.active {
+    background: var(--accent, #d4f505);
+    color: #000000;
+    border-color: var(--accent, #d4f505);
+}
+
+.status-filter .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+}
+
+.status-filter .count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: var(--surface-hover, #1e1e1e);
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-filter.active .count {
+    background: rgba(0, 0, 0, 0.2);
+    color: #000000;
+}
+
+/* Time saved indicator */
+.time-saved-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(212, 245, 5, 0.1);
+    border-radius: 20px;
+    color: var(--accent, #d4f505);
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.time-saved-indicator .icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================ */
+/* INTENT CARDS                                */
+/* ============================================ */
+
+.intents-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.intent-card {
+    background: var(--surface, #161616);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.intent-card:hover {
+    border-color: rgba(212, 245, 5, 0.4);
+}
+
+.intent-card.selected {
+    border-color: var(--accent, #d4f505);
+    box-shadow: 0 0 20px rgba(212, 245, 5, 0.15);
+}
+
+/* Intent Card Header */
+.intent-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.intent-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #ffffff);
+    margin: 0;
+}
+
+.intent-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.intent-title a:hover {
+    text-decoration: underline;
+}
+
+/* Intent Progress */
+.intent-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-hover, #1e1e1e);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent, #d4f505);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-fill.warning {
+    background: var(--warning, #f59e0b);
+}
+
+.progress-bar-fill.danger {
+    background: var(--error, #ef4444);
+}
+
+.progress-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent, #d4f505);
+    white-space: nowrap;
+}
+
+.progress-text.warning {
+    color: var(--warning, #f59e0b);
+}
+
+.progress-text.danger {
+    color: var(--error, #ef4444);
+}
+
+/* Intent Status Line */
+.intent-status-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.intent-status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #888888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.intent-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.intent-status-badge.active {
+    background: rgba(212, 245, 5, 0.15);
+    color: var(--accent, #d4f505);
+}
+
+.intent-status-badge.awaiting {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning, #f59e0b);
+}
+
+.intent-status-badge.paused {
+    background: var(--surface-hover, #1e1e1e);
+    color: var(--text-secondary, #888888);
+}
+
+.intent-status-badge.complete {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success, #22c55e);
+}
+
+.intent-status-badge.blocked {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error, #ef4444);
+}
+
+/* Intent Description */
+.intent-description {
+    font-size: 14px;
+    color: var(--text-secondary, #888888);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.intent-description.pending {
+    color: var(--text-tertiary, #666666);
+    font-style: italic;
+}
+
+/* Intent Meta Tags */
+.intent-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.intent-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--surface-hover, #1e1e1e);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary, #888888);
+}
+
+.intent-meta-tag.highlight {
+    background: rgba(212, 245, 5, 0.1);
+    color: var(--accent, #d4f505);
+}
+
+.intent-meta-tag .icon {
+    margin-right: 6px;
+}
+
+/* Intent Health */
+.intent-health {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.intent-health.good {
+    background: rgba(212, 245, 5, 0.1);
+    color: var(--accent, #d4f505);
+}
+
+.intent-health.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning, #f59e0b);
+}
+
+.intent-health.bad {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error, #ef4444);
+}
+

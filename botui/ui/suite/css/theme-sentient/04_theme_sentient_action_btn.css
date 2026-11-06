@@ -1,0 +1,396 @@
+[data-theme="sentient"] .action-btn.pause {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+[data-theme="sentient"] .action-btn.pause:hover {
+}
+
+/* ============================================ */
+/* RICH TASK DETAIL PANEL - SENTIENT THEME     */
+/* ============================================ */
+
+[data-theme="sentient"] .task-detail-rich {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+[data-theme="sentient"] .detail-header-rich {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+[data-theme="sentient"] .detail-title-rich {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+[data-theme="sentient"] .status-badge-rich {
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="sentient"] .status-badge-rich.status-running,
+[data-theme="sentient"] .status-badge-rich.status-pending {
+    background: var(--accent);
+    color: #000;
+}
+
+[data-theme="sentient"] .status-badge-rich.status-completed {
+    background: var(--success);
+    color: #fff;
+}
+
+[data-theme="sentient"] .status-badge-rich.status-error,
+[data-theme="sentient"] .status-badge-rich.status-failed {
+    background: var(--error);
+    color: #fff;
+}
+
+[data-theme="sentient"] .status-badge-rich.status-paused {
+    background: var(--warning);
+    color: #000;
+}
+
+/* Section Boxes */
+[data-theme="sentient"] .detail-section-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+[data-theme="sentient"] .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Status Section */
+[data-theme="sentient"] .status-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+[data-theme="sentient"] .status-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+[data-theme="sentient"] .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+}
+
+[data-theme="sentient"] .status-dot.status-running {
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+[data-theme="sentient"] .status-dot.status-completed {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+[data-theme="sentient"] .status-dot.status-error {
+    background: var(--error);
+    box-shadow: 0 0 8px var(--error);
+}
+
+@keyframes pulse-dot {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+[data-theme="sentient"] .status-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+[data-theme="sentient"] .status-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .status-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-theme="sentient"] .error-alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--error-bg);
+    border: 1px solid var(--error);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+[data-theme="sentient"] .error-icon {
+    color: var(--error);
+    font-size: 1.1rem;
+}
+
+[data-theme="sentient"] .error-text {
+    color: var(--error);
+    font-size: 0.85rem;
+}
+
+[data-theme="sentient"] .status-details {
+    border-top: 1px solid var(--border-light);
+    padding-top: 12px;
+}
+
+[data-theme="sentient"] .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+[data-theme="sentient"] .status-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+[data-theme="sentient"] .status-indicator.active {
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+[data-theme="sentient"] .status-step-name {
+    color: var(--text);
+}
+
+[data-theme="sentient"] .status-step-note {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+/* Progress Bar Rich */
+[data-theme="sentient"] .detail-progress-rich {
+    padding: 0 4px;
+}
+
+[data-theme="sentient"] .progress-bar-rich {
+    height: 8px;
+    background: var(--surface);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+[data-theme="sentient"] .progress-fill-rich {
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        var(--accent) 0%,
+        var(--accent-hover) 100%
+    );
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-theme="sentient"] .progress-info-rich {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+[data-theme="sentient"] .progress-label-rich {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Progress Log Section */
+[data-theme="sentient"] .progress-log-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+[data-theme="sentient"] .log-group {
+    margin-bottom: 12px;
+}
+
+[data-theme="sentient"] .log-group:last-child {
+    margin-bottom: 0;
+}
+
+[data-theme="sentient"] .log-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-hover);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+[data-theme="sentient"] .log-group-header:hover {
+    background: var(--surface-active);
+}
+
+[data-theme="sentient"] .log-group-name {
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+}
+
+[data-theme="sentient"] .log-group-toggle {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+[data-theme="sentient"] .log-step-badge {
+    padding: 3px 10px;
+    background: var(--accent);
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+[data-theme="sentient"] .log-status-badge {
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 4px;
+    background: var(--surface-active);
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .log-status-badge.completed {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+[data-theme="sentient"] .log-group-items {
+    padding: 8px 0 0 20px;
+    border-left: 2px solid var(--border);
+    margin-left: 12px;
+    margin-top: 8px;
+}
+
+[data-theme="sentient"] .log-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+[data-theme="sentient"] .log-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+[data-theme="sentient"] .log-dot.completed {
+    background: var(--success);
+}
+
+[data-theme="sentient"] .log-dot.active {
+    background: var(--accent);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+[data-theme="sentient"] .log-item-name {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+[data-theme="sentient"] .log-item-badge {
+    padding: 2px 8px;
+    background: var(--surface-active);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    border-radius: 4px;
+}
+
+[data-theme="sentient"] .log-item-status {
+    font-size: 0.75rem;
+    color: var(--success);
+}
+
+[data-theme="sentient"] .log-subitem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 28px;
+    font-size: 0.8rem;
+}
+
+[data-theme="sentient"] .log-subdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+[data-theme="sentient"] .log-subdot.completed {
+    background: var(--accent);
+}
+
+[data-theme="sentient"] .log-subitem-name {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .log-duration {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+/* Terminal Section Rich */
+[data-theme="sentient"] .terminal-section-rich {
+    background: #0d0d0d;
+    border-color: var(--border);
+}
+

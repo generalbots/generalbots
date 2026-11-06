@@ -1,0 +1,397 @@
+/* ============================================================
+   General Bots Cloud · Components
+   Design: "Prism" — monochrome + rainbow spectrum accents
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. SPLIT LAYOUT (Login / Signup)
+   ---------------------------------------------------------- */
+
+.mgmt-split {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  min-height: 100vh;
+}
+
+.mgmt-split-left {
+  position: relative;
+  background: #08080a;
+  color: #ededf0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 40px;
+  overflow: hidden;
+}
+
+/* Subtle dot-grid pattern */
+.mgmt-split-left::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.mgmt-split-right {
+  background: var(--bg);
+  padding: 48px 40px;
+}
+
+/* --- Pitch content --- */
+
+.split-pitch-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #08080a;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  z-index: 1;
+}
+
+.split-pitch-tag::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--prism-gradient);
+  z-index: -1;
+}
+
+.split-pitch-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.2;
+  margin-top: 20px;
+  letter-spacing: -0.02em;
+}
+
+.split-pitch-title span {
+  color: var(--prism-gradient);
+}
+
+.split-pitch-body {
+  color: #a0a0aa;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-top: 16px;
+  max-width: 340px;
+}
+
+.split-pitch-bullets {
+  list-style: none;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.split-pitch-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+  color: #c8c8d0;
+  position: relative;
+  padding-left: 20px;
+}
+
+.split-pitch-bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--prism-gradient);
+}
+
+/* --- Trust bar --- */
+
+.split-trust {
+  display: flex;
+  gap: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 32px;
+  padding-top: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.split-trust-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.split-trust-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--prism-gradient);
+}
+
+.split-trust-label {
+  font-size: 0.75rem;
+  color: #7e7e8a;
+  letter-spacing: 0.02em;
+}
+
+/* ----------------------------------------------------------
+   2. SECTION HEADERS
+   ---------------------------------------------------------- */
+
+.mgmt-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.mgmt-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.mgmt-section-subtitle {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.mgmt-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ----------------------------------------------------------
+   3. GUIDE CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.mgmt-guide-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 20px 20px 28px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-guide-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--prism-gradient);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.mgmt-guide-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.mgmt-guide-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mgmt-guide-card-body {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.mgmt-guide-card-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+/* ----------------------------------------------------------
+   4. TABS
+   ---------------------------------------------------------- */
+
+.mgmt-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.mgmt-tab {
+  position: relative;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: color 0.15s ease;
+}
+
+.mgmt-tab:hover {
+  color: var(--text);
+}
+
+.mgmt-tab.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mgmt-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.mgmt-tab-content {
+  display: none;
+}
+
+.mgmt-tab-content.active {
+  display: block;
+}
+
+/* ----------------------------------------------------------
+   5. PLAN CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-plan-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.mgmt-plan-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.mgmt-plan-card.featured {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-accent);
+}
+
+.mgmt-plan-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mgmt-plan-price {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text);
+  margin-top: 8px;
+  letter-spacing: -0.03em;
+}
+
+.mgmt-plan-price span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.mgmt-plan-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.mgmt-plan-features {
+  list-style: none;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.mgmt-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.mgmt-plan-features li::before {
+  content: '✓';
+  color: var(--accent2);
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.mgmt-plan-action {
+  margin-top: 24px;
+}
+
+/* ----------------------------------------------------------
+   6. STORE / BOT CARDS
+   ---------------------------------------------------------- */
+
+.mgmt-store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.mgmt-store-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+

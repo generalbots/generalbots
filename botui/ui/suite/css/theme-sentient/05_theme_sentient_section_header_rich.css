@@ -1,0 +1,395 @@
+[data-theme="sentient"] .section-header-rich {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+[data-theme="sentient"] .terminal-dot-rich {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    display: inline-block;
+}
+
+[data-theme="sentient"] .terminal-dot-rich.active {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+[data-theme="sentient"] .terminal-stats-rich {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+[data-theme="sentient"] .terminal-stats-rich strong {
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .terminal-output-rich {
+    background: #000;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid var(--border-light);
+}
+
+[data-theme="sentient"] .terminal-line {
+    color: var(--text-tertiary);
+    padding: 2px 0;
+}
+
+[data-theme="sentient"] .terminal-line.current {
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .terminal-line.error {
+    color: var(--error);
+}
+
+[data-theme="sentient"] .terminal-line.success {
+    color: var(--success);
+}
+
+[data-theme="sentient"] .terminal-footer-rich {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-align: right;
+}
+
+[data-theme="sentient"] .terminal-footer-rich strong {
+    color: var(--accent);
+}
+
+/* Intent Section */
+[data-theme="sentient"] .intent-text-rich {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Action Buttons */
+[data-theme="sentient"] .detail-actions-rich {
+    display: flex;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+}
+
+[data-theme="sentient"] .btn-action-rich {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .btn-action-rich:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-pause {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-pause:hover {
+    background: var(--warning-bg);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-cancel {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-cancel:hover {
+    background: var(--error-bg);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-detailed {
+    margin-left: auto;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .btn-action-rich.btn-detailed:hover {
+    background: var(--accent-light);
+}
+
+/* Sentient Scrollbar for task detail */
+[data-theme="sentient"] .task-detail-rich::-webkit-scrollbar {
+    width: 6px;
+}
+
+[data-theme="sentient"] .task-detail-rich::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+[data-theme="sentient"] .task-detail-rich::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
+
+[data-theme="sentient"] .task-detail-rich::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+}
+
+[data-theme="sentient"] .progress-log-content::-webkit-scrollbar,
+[data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar {
+    width: 4px;
+}
+
+[data-theme="sentient"] .progress-log-content::-webkit-scrollbar-track,
+[data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[data-theme="sentient"] .progress-log-content::-webkit-scrollbar-thumb,
+[data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+[data-theme="sentient"] .progress-log-content::-webkit-scrollbar-thumb:hover,
+[data-theme="sentient"] .terminal-output-rich::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* Task Card Sentient Enhancements */
+[data-theme="sentient"] .task-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+[data-theme="sentient"] .task-card:hover {
+    border-color: var(--card-hover-border);
+    box-shadow: var(--shadow-glow);
+}
+
+[data-theme="sentient"] .task-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(212, 245, 5, 0.15);
+}
+
+[data-theme="sentient"] .task-card::before {
+    background: var(--accent);
+}
+
+[data-theme="sentient"] .task-card.status-complete::before {
+    background: var(--success);
+}
+
+[data-theme="sentient"] .task-card.status-error::before,
+[data-theme="sentient"] .task-card.status-failed::before {
+    background: var(--error);
+}
+
+/* ============================================ */
+/* TASKMD PROGRESS TREE - PIXEL PERFECT        */
+/* ============================================ */
+
+/* Main tree container */
+[data-theme="sentient"] .taskmd-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Tree Section (Level 0) - Main sections like "Database & Models" */
+[data-theme="sentient"] .tree-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 8px 16px;
+    overflow: hidden;
+}
+
+[data-theme="sentient"] .tree-section:last-child {
+    margin-bottom: 16px;
+}
+
+/* Section row */
+[data-theme="sentient"] .tree-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+[data-theme="sentient"] .tree-row:hover {
+    background: var(--surface-hover);
+}
+
+[data-theme="sentient"] .tree-level-0 {
+    padding-left: 20px;
+}
+
+[data-theme="sentient"] .tree-level-1 {
+    padding-left: 40px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+}
+
+/* Section/Child name */
+[data-theme="sentient"] .tree-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+[data-theme="sentient"] .tree-level-1 .tree-name {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Section dot indicator on right side */
+[data-theme="sentient"] .tree-section-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-muted);
+}
+
+[data-theme="sentient"] .tree-section-dot.completed {
+    background: var(--accent);
+}
+
+[data-theme="sentient"] .tree-section-dot.running {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+    animation: sentient-dot-pulse 1.5s ease-in-out infinite;
+}
+
+[data-theme="sentient"] .tree-section-dot.pending {
+    background: var(--text-muted);
+}
+
+[data-theme="sentient"] .tree-section-dot.failed {
+    background: var(--error);
+}
+
+/* Step badge - green pill */
+[data-theme="sentient"] .tree-step-badge {
+    padding: 4px 12px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: auto;
+    margin-right: 12px;
+    white-space: nowrap;
+}
+
+[data-theme="sentient"] .tree-section.pending .tree-step-badge,
+[data-theme="sentient"] .tree-child.pending .tree-step-badge {
+    background: var(--surface-active);
+    color: var(--text-tertiary);
+}
+
+/* Status text */
+[data-theme="sentient"] .tree-status {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    min-width: 70px;
+    text-align: right;
+    margin-right: 12px;
+}
+
+[data-theme="sentient"] .tree-status.completed {
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .tree-status.running {
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .tree-status.failed {
+    color: var(--error);
+}
+
+/* Tree children container */
+[data-theme="sentient"] .tree-children {
+    display: none;
+    background: var(--bg);
+}
+
+[data-theme="sentient"] .tree-section.expanded .tree-children {
+    display: block;
+}
+
+/* Tree child row */
+[data-theme="sentient"] .tree-child {
+    border-bottom: 1px solid var(--border-light);
+}
+
+[data-theme="sentient"] .tree-child:last-child {
+    border-bottom: none;
+}
+
+/* Child row with dot */
+[data-theme="sentient"] .tree-level-1 .tree-item-dot {
+    margin-right: 12px;
+}
+
+[data-theme="sentient"] .tree-level-1 .tree-name {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Tree items container */
+[data-theme="sentient"] .tree-items {
+    display: none;
+    padding: 12px 0 16px 0;
+    padding-left: 24px;
+    background: var(--bg);
+}
+
+[data-theme="sentient"] .tree-child.expanded .tree-items {
+    display: block;
+}
+
+/* Section-level items */
+[data-theme="sentient"] .tree-children > .tree-item {
+    padding-left: 40px;
+}
+
+/* Individual item row */
+[data-theme="sentient"] .tree-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px 8px 24px;
+    min-height: 32px;
+}
+
+[data-theme="sentient"] .tree-item.running {
+    background: rgba(var(--accent-rgb), 0.03);
+}
+

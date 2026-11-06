@@ -1,0 +1,368 @@
+
+/* Toggle (expandable nav items) */
+
+.mgmt-nav-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.mgmt-nav-toggle:hover {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+.mgmt-nav-toggle-arrow {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.mgmt-nav-toggle[aria-expanded="true"] .mgmt-nav-toggle-arrow {
+  transform: rotate(90deg);
+}
+
+/* Sub-navigation */
+
+.mgmt-nav-sub {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+  padding-left: 14px;
+}
+
+.mgmt-nav-sub.open {
+  max-height: 500px;
+}
+
+.mgmt-nav-sub-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 18px;
+  margin: 1px 0;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.mgmt-nav-sub-link:hover {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+.mgmt-nav-sub-link.active {
+  color: var(--accent);
+}
+
+/* Badge */
+
+.mgmt-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--accent-dim);
+  margin-left: auto;
+  line-height: 1;
+}
+
+/* --- SVG Icon Sizing --- */
+
+.mgmt-nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.mgmt-nav-link.active .mgmt-nav-icon {
+  opacity: 1;
+}
+
+.mgmt-nav-sub-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* --- Sidebar Footer --- */
+
+.mgmt-sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.mgmt-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.mgmt-user-chip:hover {
+  background: var(--accent-dim);
+}
+
+.mgmt-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.mgmt-user-email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.mgmt-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mgmt-logout:hover {
+  color: var(--accent3);
+  background: rgba(217, 48, 62, 0.08);
+}
+
+.mgmt-logout svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ----------------------------------------------------------
+   8. MAIN CONTENT
+   ---------------------------------------------------------- */
+
+.mgmt-main {
+  margin-left: var(--nav-w);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+/* ----------------------------------------------------------
+   9. TOPBAR
+   ---------------------------------------------------------- */
+
+.mgmt-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 28px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Prism signature line — the rainbow whisper */
+.mgmt-topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--prism-gradient);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.mgmt-page-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.mgmt-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ----------------------------------------------------------
+   10. ALPHA BADGE
+   ---------------------------------------------------------- */
+
+.mgmt-alpha-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--prism-gradient);
+  color: #fff;
+  line-height: 1.6;
+}
+
+/* ----------------------------------------------------------
+   11. ANONYMOUS CTA BANNER
+   ---------------------------------------------------------- */
+
+.anon-cta-banner {
+  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: .65rem 1.5rem;
+  flex-shrink: 0;
+}
+.anon-cta-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: .82rem;
+  color: var(--text);
+  flex-wrap: wrap;
+}
+.anon-cta-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 700;
+  font-size: .78rem;
+  padding: .45rem 1.1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all .2s;
+  letter-spacing: -.01em;
+}
+.anon-cta-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* ----------------------------------------------------------
+   12. RESPONSIVE
+   ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .mgmt-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .mgmt-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mgmt-main {
+    margin-left: 0;
+  }
+}
+
+/* Floating menu button (mobile only) */
+.mgmt-menu-fab {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1200;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-menu-fab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+}
+
+.mgmt-menu-fab svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Mobile sidebar backdrop */
+.mgmt-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mgmt-menu-fab {
+    display: flex;
+  }
+
+  .mgmt-sidebar-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .mgmt-sidebar.open + .mgmt-sidebar-backdrop.open {
+    display: block;
+  }
+}

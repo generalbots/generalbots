@@ -1,0 +1,394 @@
+/* Paused - Gray */
+[data-theme="sentient"] .filter-pill[data-filter="paused"] .pill-count {
+    background: var(--text-tertiary);
+    color: #000;
+}
+
+/* Blocked/Issues - Red */
+[data-theme="sentient"] .filter-pill[data-filter="blocked"] .pill-count {
+    background: var(--error);
+    color: #fff;
+}
+
+/* Active pill state */
+[data-theme="sentient"] .status-filter.active .count,
+[data-theme="sentient"] .filter-tab.active .count,
+[data-theme="sentient"] .filter-pill.active .pill-count {
+    box-shadow: 0 0 8px currentColor;
+}
+
+/* Time Saved Badge */
+[data-theme="sentient"] .time-saved-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+[data-theme="sentient"] .time-saved-badge .time-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+[data-theme="sentient"] .time-saved-badge .time-value {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* ============================================ */
+/* PROGRESS BARS                               */
+/* ============================================ */
+
+[data-theme="sentient"] .progress-bar {
+    height: 8px;
+    background: var(--surface-hover);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+[data-theme="sentient"] .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+[data-theme="sentient"] .progress-percentage {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============================================ */
+/* BADGES & TAGS                               */
+/* ============================================ */
+
+[data-theme="sentient"] .badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+[data-theme="sentient"] .badge-primary,
+[data-theme="sentient"] .badge-active {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .badge-success,
+[data-theme="sentient"] .badge-complete {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+[data-theme="sentient"] .badge-warning,
+[data-theme="sentient"] .badge-pending {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+[data-theme="sentient"] .badge-danger,
+[data-theme="sentient"] .badge-blocked {
+    background: var(--error-bg);
+    color: var(--error);
+}
+
+[data-theme="sentient"] .badge-secondary,
+[data-theme="sentient"] .badge-paused {
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+}
+
+/* Tag pills */
+[data-theme="sentient"] .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* ============================================ */
+/* INTENT/TASK CARDS                           */
+/* ============================================ */
+
+[data-theme="sentient"] .intent-card {
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+[data-theme="sentient"] .intent-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+[data-theme="sentient"] .intent-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+[data-theme="sentient"] .intent-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+[data-theme="sentient"] .intent-status.active {
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .intent-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+[data-theme="sentient"] .intent-meta-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--surface-hover);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+[data-theme="sentient"] .intent-health {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent-light);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+[data-theme="sentient"] .intent-health-good {
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .intent-health-warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+[data-theme="sentient"] .intent-health-bad {
+    background: var(--error-bg);
+    color: var(--error);
+}
+
+/* ============================================ */
+/* DECISION REQUIRED PANEL                     */
+/* ============================================ */
+
+[data-theme="sentient"] .decision-panel {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-glow);
+}
+
+[data-theme="sentient"] .decision-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="sentient"] .decision-title {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+[data-theme="sentient"] .decision-context {
+    background: var(--surface-hover);
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+[data-theme="sentient"] .decision-actions {
+    display: flex;
+    gap: 12px;
+}
+
+[data-theme="sentient"] .decision-btn-primary,
+[data-theme="sentient"] .btn-primary,
+[data-theme="sentient"] .button-primary {
+    background: var(--accent);
+    color: #000000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .decision-btn-primary:hover,
+[data-theme="sentient"] .btn-primary:hover,
+[data-theme="sentient"] .button-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateY(-1px);
+}
+
+/* Create & Run Button - High Visibility */
+[data-theme="sentient"] .btn-create-run {
+    background: var(--accent);
+    color: #000000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="sentient"] .btn-create-run:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 25px var(--accent-glow);
+    transform: translateY(-1px);
+}
+
+[data-theme="sentient"] .btn-create-run .btn-text {
+    font-weight: 700;
+    color: #000000;
+}
+
+[data-theme="sentient"] .decision-btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+[data-theme="sentient"] .decision-btn-secondary:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-secondary);
+}
+
+/* ============================================ */
+/* PROGRESS LOG                                */
+/* ============================================ */
+
+[data-theme="sentient"] .progress-log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+[data-theme="sentient"] .progress-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="sentient"] .progress-log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+[data-theme="sentient"] .progress-log-item:last-child {
+    border-bottom: none;
+}
+
+[data-theme="sentient"] .progress-log-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+[data-theme="sentient"] .progress-log-icon.complete {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+[data-theme="sentient"] .progress-log-icon.pending {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+[data-theme="sentient"] .progress-log-icon.active {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+[data-theme="sentient"] .progress-log-content {
+    flex: 1;
+}
+
+[data-theme="sentient"] .progress-log-title {
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+[data-theme="sentient"] .progress-log-detail {
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+[data-theme="sentient"] .progress-log-step {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--accent);
+    color: #000000;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+[data-theme="sentient"] .progress-log-step.complete {
+    background: var(--success);
+}
+

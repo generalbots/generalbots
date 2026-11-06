@@ -1,0 +1,292 @@
+
+.window-element .window-header,
+.window-element-glass .window-header-glass {
+    border-bottom: 1px solid var(--gb-border-soft, #ececef);
+}
+
+.window-element .window-statusbar,
+.window-element-glass .window-statusbar {
+    border-top: 1px solid var(--gb-border-soft, #ececef);
+    box-shadow: none;
+    background: #fafafa;
+    color: #71717a;
+}
+
+
+/* ── Inline interactive artifacts (HTML apps in the chat surface) ───── */
+
+#chat-app .gb-inline-artifact {
+    margin: 10px 0 4px;
+    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--gb-surface, #fff);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+}
+
+#chat-app .gb-inline-artifact-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gb-border, rgba(24, 24, 27, 0.10));
+    background: var(--gb-surface, #fff);
+}
+
+#chat-app .gb-inline-artifact-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--gb-text, #18181b);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#chat-app .gb-inline-artifact-btn {
+    flex: 0 0 auto;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.14));
+    border-radius: 7px;
+    background: transparent;
+    color: var(--gb-muted, #71717a);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#chat-app .gb-inline-artifact-btn:hover {
+    color: var(--gb-accent, #16a34a);
+    border-color: var(--gb-accent, #16a34a);
+}
+
+#chat-app .gb-inline-artifact-frame {
+    display: block;
+    width: 100%;
+    height: 440px;
+    border: 0;
+    background: #fff;
+}
+
+#chat-app .gb-inline-artifact.expanded .gb-inline-artifact-frame {
+    height: min(78vh, 900px);
+}
+
+/* An interactive app is the message: give it the conversation width instead
+   of the prose bubble's 70% cap. */
+#chat-app .message.bot:has(.gb-inline-artifact) {
+    max-width: 100%;
+    width: 100%;
+}
+
+#chat-app .message.bot:has(.gb-inline-artifact) .message-content {
+    max-width: 100%;
+    width: 100%;
+}
+
+#chat-app .message.bot:has(.gb-inline-artifact) .gb-inline-artifact {
+    width: 100%;
+}
+
+/* Workspace run: collapsed evidence, not the reply. */
+#chat-app .gb-console > summary.gb-console-head {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+#chat-app .gb-console > summary.gb-console-head::-webkit-details-marker { display: none; }
+#chat-app .gb-console > summary.gb-console-head::after {
+    content: "Show log";
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: #a1a1aa;
+}
+#chat-app .gb-console[open] > summary.gb-console-head::after { content: "Hide log"; }
+#chat-app .gb-console:not([open]) > pre { display: none; }
+
+/* File names are content, not links: keep the neutral text colour even
+   though bot-message links use the green accent. */
+#chat-app .bot-message .gb-attachment-name {
+    color: var(--gb-text) !important;
+}
+#chat-app .bot-message .gb-attachment-name:hover {
+    color: var(--gb-accent) !important;
+}
+
+/* Accessibility: the chat animates messages, typing dots, status pulses and
+   voice rings. Readers who ask the OS for less motion get the same layout
+   without movement. */
+@media (prefers-reduced-motion: reduce) {
+    #chat-app *,
+    #chat-app *::before,
+    #chat-app *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Phones: the composer carried six controls and left the textarea 67 px
+   wide. Camera and duplex are secondary; keep attach, web, mic and send. */
+@media (max-width: 480px) {
+    #chat-app #cameraBtn,
+    #chat-app #voiceDuplexBtn {
+        display: none;
+    }
+    #chat-app .input-container {
+        gap: 4px;
+        padding: 7px 6px;
+    }
+}
+
+/* #1693 — live SVG/HTML preview while the model draws it. */
+.gb-live-artifact {
+    margin-top: 8px;
+    border: 1px solid rgba(24, 24, 27, 0.09);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    max-width: 560px;
+}
+.gb-live-artifact-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
+    background: #f7f7f8;
+}
+.gb-live-artifact-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #52525b;
+}
+.gb-live-artifact-body iframe {
+    display: block;
+    width: 100%;
+    height: 280px;
+    border: 0;
+    background: #fff;
+}
+.gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
+
+/* #1693 — Drive picker for the composer. */
+.gb-drive-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 95000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.38);
+}
+.gb-drive-picker {
+    width: min(540px, 92vw);
+    max-height: 76vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    font-family: inherit;
+}
+.gb-drive-picker-head {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+}
+.gb-drive-picker-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #18181b;
+}
+.gb-drive-picker-close {
+    border: 0;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1;
+    color: #71717a;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.gb-drive-picker-crumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #52525b;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.05);
+}
+.gb-drive-picker-crumb-btn {
+    border: 0;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 5px;
+    color: #4f46e5;
+    font: inherit;
+    cursor: pointer;
+}
+.gb-drive-picker-crumb-btn:hover { background: #eef2ff; }
+.gb-drive-picker-sep { color: #a1a1aa; }
+.gb-drive-picker-status {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #71717a;
+}
+.gb-drive-picker-list {
+    overflow: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.gb-drive-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    color: #18181b;
+    cursor: pointer;
+}
+.gb-drive-picker-row:hover { background: #f4f4f5; }
+.gb-drive-picker-icon { flex: none; font-size: 15px; }
+.gb-drive-picker-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+.gb-drive-picker-meta { flex: none; font-size: 11px; color: #a1a1aa; }
+.gb-drive-picker-attach {
+    flex: none;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#chat-app button.file-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
