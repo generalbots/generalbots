@@ -44,9 +44,51 @@ const COLD_LAUNCH_WAIT_SECS: u64 = 900;
 const POLL_INTERVAL_SECS: u64 = 3;
 const CONVERSATIONS_ROOT: &str = "/opt/vibe/conversations";
 
+/// Remediation returned when the host has no usable Incus daemon. The text is
+/// fixed and free of host paths/identities, so it is safe to send to API
+/// callers (the raw command output stays in the log).
+const INCUS_MISSING_MESSAGE: &str = "Incus is not available on this host: install the incus package (Debian/Ubuntu: apt install incus), run `incus admin init --minimal`, add the botserver user to the incus-admin group, then restart the botserver service";
+
+/// Remediation for the socket-permission failure: `/var/lib/incus/unix.socket`
+/// is `root:incus-admin 0660` and the daemon checks the peer credentials, so
+/// the group must be present in the running process, not only in `/etc/group`.
+const INCUS_PERMISSION_MESSAGE: &str = "The botserver service cannot access the Incus daemon: add the botserver user to the incus-admin group (sudo usermod -aG incus-admin botserver) and restart the botserver service";
+
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");
     (StatusCode::INTERNAL_SERVER_ERROR, "Agent VM operation failed".to_string())
+}
+
+/// Maps an Incus failure to an actionable capability error when it is caused
+/// by host setup (missing binary/daemon or socket permission). Returns `None`
+/// for everything else so callers keep the generic "Agent VM operation failed"
+/// message and its detail stays in the log.
+fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
+    let lower = detail.to_ascii_lowercase();
+    let permission_denied = lower.contains("permission denied")
+        || lower.contains("needed permissions")
+        || lower.contains("access denied")
+        || lower.contains("os error 13");
+    if permission_denied {
+        tracing::error!("incus socket permission denied: {detail}");
+        return Some((
+            StatusCode::SERVICE_UNAVAILABLE,
+            INCUS_PERMISSION_MESSAGE.to_string(),
+        ));
+    }
+    let daemon_missing = lower.contains("no such file or directory")
+        || lower.contains("os error 2")
+        || lower.contains("failed to connect to local daemon")
+        || lower.contains("daemon is not running")
+        || lower.contains("cannot connect to the incus daemon");
+    if daemon_missing {
+        tracing::error!("incus unavailable: {detail}");
+        return Some((
+            StatusCode::SERVICE_UNAVAILABLE,
+            INCUS_MISSING_MESSAGE.to_string(),
+        ));
+    }
+    None
 }
 
 fn bad_request(msg: &str) -> (StatusCode, String) {
@@ -167,10 +209,24 @@ async fn run_incus(state: &AgentService, args: Vec<String>) -> Result<std::proce
     for arg in &args {
         cmd = cmd.arg(arg).map_err(|e| internal(format!("incus arg guard: {e}")))?;
     }
-    tokio::task::spawn_blocking(move || cmd.execute())
+    let output = tokio::task::spawn_blocking(move || cmd.execute())
         .await
         .map_err(|e| internal(format!("incus join: {e}")))?
-        .map_err(|e| internal(format!("incus execution: {e}")))
+        .map_err(|e| match incus_setup_error(&e.to_string()) {
+            Some(err) => err,
+            None => internal(format!("incus execution: {e}")),
+        })?;
+    if !output.status.success() {
+        // `incus` exits non-zero for a missing daemon and for the socket
+        // permission check. Turn those two into capability errors; every
+        // other failure keeps its previous best-effort behavior (callers such
+        // as the NIC attachment intentionally ignore failures).
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if let Some(err) = incus_setup_error(&stderr) {
+            return Err(err);
+        }
+    }
+    Ok(output)
 }
 
 fn running_from_list(stdout: &str, vm_name: &str) -> bool {
@@ -650,6 +706,12 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
     )
     .await;
     if let Err(e) = launch {
+        // A host without Incus (or without socket permission) never recovers
+        // by retrying `incus start`; return the actionable setup error now
+        // instead of waiting out the cold-launch budget.
+        if e.0 == StatusCode::SERVICE_UNAVAILABLE {
+            return Err(e);
+        }
         // A previous attempt can leave the container created but stopped; the
         // launch then fails with "already exists" and the workspace stayed
         // permanently unavailable. Start the existing container instead.
@@ -1334,7 +1396,10 @@ pub async fn exec_in_vm_streaming(
     let started = Instant::now();
     let mut child = cmd
         .spawn()
-        .map_err(|error| internal(format!("incus spawn: {error}")))?;
+        .map_err(|error| match incus_setup_error(&error.to_string()) {
+            Some(err) => err,
+            None => internal(format!("incus spawn: {error}")),
+        })?;
 
     let stdout_pipe = child.stdout.take();
     let stderr_pipe = child.stderr.take();
@@ -1428,6 +1493,49 @@ mod tests {
         assert!(!is_anonymous_email("guest_reader@example.com"));
         assert!(!is_anonymous_email("someone@anonymous.local.example.com"));
         assert!(!is_anonymous_email(""));
+    }
+}
+
+#[cfg(test)]
+mod incus_error_tests {
+    use super::{incus_setup_error, INCUS_MISSING_MESSAGE, INCUS_PERMISSION_MESSAGE};
+    use axum::http::StatusCode;
+
+    #[test]
+    fn missing_binary_is_actionable() {
+        let (code, message) =
+            incus_setup_error("Command execution failed: No such file or directory (os error 2)")
+                .expect("missing binary must map to a setup error");
+        assert_eq!(code, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(message, INCUS_MISSING_MESSAGE);
+        assert!(message.contains("incus-admin"));
+    }
+
+    #[test]
+    fn socket_permission_is_actionable() {
+        let (code, message) = incus_setup_error(
+            "Error: You don't have the needed permissions to talk with the incus daemon",
+        )
+        .expect("socket permission must map to a setup error");
+        assert_eq!(code, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(message, INCUS_PERMISSION_MESSAGE);
+        assert!(message.contains("usermod -aG incus-admin"));
+    }
+
+    #[test]
+    fn unreachable_daemon_is_actionable() {
+        let (code, message) = incus_setup_error(
+            "Error: Failed to connect to local daemon: dial unix socket: no such file or directory",
+        )
+        .expect("missing daemon must map to a setup error");
+        assert_eq!(code, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(message, INCUS_MISSING_MESSAGE);
+    }
+
+    #[test]
+    fn unrelated_failures_keep_the_generic_error() {
+        assert!(incus_setup_error("Error: Instance ag-u1234 is not running").is_none());
+        assert!(incus_setup_error("Error: Image not found").is_none());
     }
 }
 

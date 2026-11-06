@@ -39,7 +39,24 @@ sudo apt install -y \
 # For container support (LXC)
 sudo snap install lxd
 sudo lxd init --auto
+
+# For the agent workspace (Incus)
+sudo apt install -y incus
+sudo incus admin init --minimal
 ```
+
+The Agent Workspace runs each session in an Incus container. The Incus socket
+is `root:incus-admin 0660` and the daemon checks the peer credentials, so the
+account that runs `botserver` must carry the `incus-admin` group in the
+**running** process — adding it to `/etc/group` alone is not enough:
+
+```bash
+sudo usermod -aG incus-admin botserver   # or the account that runs botserver
+sudo systemctl restart botserver         # a fresh login session also works
+```
+
+`DEPENDENCIES.sh` installs Incus where the distribution packages it and adds the
+service user to `incus-admin`, printing the re-login/restart reminder.
 
 ### Manual Install (Fedora/RHEL)
 
