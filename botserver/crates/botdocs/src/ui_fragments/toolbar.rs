@@ -126,11 +126,12 @@ pub async fn handle_track_changes_form(Json(payload): Json<serde_json::Value>) -
 pub async fn handle_compare_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/compare" hx-vals='{{"original_doc_id":"{id}"}}' hx-target="#compare-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" data-original-doc-id="{id}" onsubmit="return GBDocsCompare(event)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Documento para comparar (ID)
 <input type="text" name="modified_doc_id" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" placeholder="UUID do segundo documento" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Comparar Documentos</button>
+<div id="compare-result" style="margin-top:8px;color:#cbd5e1;font-size:13px;"></div>
 </form>"##,
         id = html_escape(id)
     ))

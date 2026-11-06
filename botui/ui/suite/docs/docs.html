@@ -396,6 +396,75 @@ function GBDocsCloseModal(element) {
 }
 window.GBDocsCloseModal = GBDocsCloseModal;
 
+/* Compare returns a DocumentComparison JSON; render a readable diff instead
+   of swapping the object into the dialog. */
+function gbDocsEscape(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+function GBDocsCompare(event) {
+    event.preventDefault();
+    var form = event.target;
+    var original = form.dataset ? form.dataset.originalDocId : "";
+    var input = form.querySelector('[name="modified_doc_id"]');
+    var modified = input ? input.value.trim() : "";
+    var output = form.querySelector("#compare-result");
+    if (!output) return false;
+    if (!original || !modified) {
+        output.textContent = "Both document ids are required.";
+        return false;
+    }
+    var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
+        window.localStorage.getItem("gb-access-token") ||
+        window.sessionStorage.getItem("gb-access-token") || "";
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    output.textContent = "Comparing…";
+    fetch("/api/docs/compare", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ original_doc_id: original, modified_doc_id: modified }),
+    })
+        .then(function (response) {
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            return response.json();
+        })
+        .then(function (data) {
+            var comparison = data.comparison || {};
+            var summary = comparison.summary || {};
+            var differences = comparison.differences || [];
+            var html = '<div style="padding:6px 0;color:#f8fafc;font-weight:600;">' +
+                (summary.total_changes || 0) + " change(s) · +" +
+                (summary.insertions || 0) + " / −" + (summary.deletions || 0) +
+                " / ~" + (summary.modifications || 0) + "</div>";
+            if (!differences.length) {
+                html += '<div style="padding:8px;color:#94a3b8;">No differences found.</div>';
+            } else {
+                html += '<div style="max-height:40vh;overflow:auto;">';
+                differences.slice(0, 200).forEach(function (diff) {
+                    var before = diff.original_text || "";
+                    var after = diff.modified_text || "";
+                    html += '<div style="padding:6px;border-bottom:1px solid #334155;">' +
+                        '<div style="color:#94a3b8;font-size:11px;">' +
+                        gbDocsEscape(diff.diff_type) + " @ " + (diff.position || 0) + "</div>" +
+                        (before ? '<div style="color:#fca5a5;text-decoration:line-through;">' + gbDocsEscape(before) + "</div>" : "") +
+                        (after ? '<div style="color:#86efac;">' + gbDocsEscape(after) + "</div>" : "") +
+                        "</div>";
+                });
+                html += "</div>";
+            }
+            output.innerHTML = html;
+        })
+        .catch(function (error) {
+            output.textContent = "Compare failed: " + error.message;
+        });
+    return false;
+}
+window.GBDocsCompare = GBDocsCompare;
+
 /* AI endpoints answer JSON, so htmx would leave the serialized object in the
    panel. Render the `response` field as text in the nearest #ai-result. */
 document.addEventListener("htmx:afterRequest", function (event) {
