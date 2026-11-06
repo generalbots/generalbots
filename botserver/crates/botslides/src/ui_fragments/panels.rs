@@ -111,7 +111,7 @@ pub async fn handle_transitions_panel(Json(payload): Json<serde_json::Value>) ->
         let bg = if is_current { "#1e3a8a" } else { "#0f172a" };
         let border = if is_current { "border:2px solid #3b82f6;" } else { "border:1px solid #334155;" };
         html.push_str(&format!(
-            r##"<button hx-post="/api/slides/transition" hx-vals='{{"presentation_id":"{pid}","slide_index":"{idx}","transition_type":"{ttype}","duration":"500"}}' hx-target="#transitions-panel" hx-swap="outerHTML" style="padding:12px;background:{bg};{border}border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;font-size:12px;">{tname}</button>"##,
+            r##"<button hx-post="/api/slides/transition" hx-vals='{{"presentation_id":"{pid}","slide_index":"{idx}","transition_type":"{ttype}","duration":"500"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:12px;background:{bg};{border}border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;font-size:12px;">{tname}</button>"##,
             pid = html_escape(pid),
             idx = slide_idx,
             ttype = ttype,
