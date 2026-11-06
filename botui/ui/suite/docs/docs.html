@@ -293,6 +293,26 @@ function GBDocsExport(format, id) {
         });
 }
 window.GBDocsExport = GBDocsExport;
+
+/* AI endpoints answer JSON, so htmx would leave the serialized object in the
+   panel. Render the `response` field as text in the nearest #ai-result. */
+document.addEventListener("htmx:afterRequest", function (event) {
+    var elt = event.detail && event.detail.elt;
+    var path = elt && (elt.getAttribute("hx-post") || "");
+    if (!path || path.indexOf("/api/docs/ai/") !== 0) return;
+    var xhr = event.detail && event.detail.xhr;
+    if (!xhr || xhr.status >= 400) return;
+    var output = "";
+    try {
+        var data = JSON.parse(xhr.responseText);
+        output = data.response || data.result || "";
+    } catch (error) {
+        output = xhr.responseText;
+    }
+    var scope = elt.closest ? (elt.closest("#modal-container") || document) : document;
+    var target = scope.querySelector("#ai-result");
+    if (target) target.textContent = output;
+});
 </script>
 
 <script src="/suite/docs/docs-editor-state.js?v=1"></script>

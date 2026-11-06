@@ -30,6 +30,7 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
 <label style="color:#f8fafc;font-size:13px;">Texto a processar
 <textarea name="selected_text" rows="6" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{text}</textarea>
 </label>
+<div id="ai-result" style="margin-top:8px;padding:8px;background:#0f172a;border-radius:4px;min-height:60px;color:#cbd5e1;font-size:13px;"></div>
 <button type="submit" style="background:#6366f1;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Executar {action}</button>
 </form>"##,
         id = html_escape(id),
