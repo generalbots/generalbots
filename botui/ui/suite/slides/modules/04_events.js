@@ -13,6 +13,22 @@ document.addEventListener("htmx:configRequest", function (event) {
   });
 });
 
+// Re-render the current slide after a toolbar insert. The element API answers
+// JSON, so those forms save with hx-swap="none" and ask for a fresh view
+// instead of replacing the canvas with the response body.
+window.refreshSlideView = function () {
+  var canvas = document.getElementById("slide-canvas");
+  var index = (canvas && canvas.dataset.slideId) || "0";
+  var deck = window.__SLIDES_PRESENTATION_ID || "current";
+  if (!window.htmx) return;
+  htmx.ajax(
+    "GET",
+    "/suite/slides/fragments/presentation-view?id=" + encodeURIComponent(deck) +
+      "&slide=" + encodeURIComponent(index),
+    { target: "#slides-content", swap: "innerHTML" }
+  );
+};
+
 document.addEventListener("click", function (e) {
   var tab = e.target.closest("[data-sidebar-tab]");
   if (tab) {

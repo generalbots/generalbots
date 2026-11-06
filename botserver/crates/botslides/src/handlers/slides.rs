@@ -238,13 +238,37 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
             .and_then(|value| value.as_str())
             .map(str::to_string)
     };
+    let element_type = text("element_type").unwrap_or_else(|| "shape".to_string());
+    // Toolbar modals send only text/colour, so a 0×0 element at (0,0) was
+    // saved and stayed invisible. Give the standard insert actions a visible
+    // default box.
+    let width = number("width");
+    let width = if width > 0.0 {
+        width
+    } else if element_type == "text" {
+        360.0
+    } else {
+        200.0
+    };
+    let height = number("height");
+    let height = if height > 0.0 {
+        height
+    } else if element_type == "text" {
+        80.0
+    } else {
+        120.0
+    };
+    let x = number("x");
+    let x = if x > 0.0 { x } else { 80.0 };
+    let y = number("y");
+    let y = if y > 0.0 { y } else { 80.0 };
     Some(SlideElement {
         id,
-        element_type: text("element_type").unwrap_or_else(|| "shape".to_string()),
-        x: number("x"),
-        y: number("y"),
-        width: number("width"),
-        height: number("height"),
+        element_type,
+        x,
+        y,
+        width,
+        height,
         rotation: number("rotation"),
         content: ElementContent {
             text: text("text"),
