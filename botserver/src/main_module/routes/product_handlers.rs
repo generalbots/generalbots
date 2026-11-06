@@ -6,7 +6,10 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
     // load (#1693 follow-up). The manifest is always returned.
     let mut value = crate::core::product::get_product_config_json();
     if let Some(object) = value.as_object_mut() {
-        #[cfg(any(feature = "consent", feature = "vibe"))]
+        // Advertise optional capabilities the suite probes at boot. `agent-vm`
+        // gates /api/agent/drive/*, which the chat attachment actions call;
+        // without it the client can hide Save/Open instead of eating a 404.
+        #[cfg(any(feature = "consent", feature = "vibe", feature = "agent-vm"))]
         {
             let entry = object
                 .entry("compiled_features")
@@ -16,6 +19,8 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
                 features.push(serde_json::json!("consent"));
                 #[cfg(feature = "vibe")]
                 features.push(serde_json::json!("vibe"));
+                #[cfg(feature = "agent-vm")]
+                features.push(serde_json::json!("agent-vm"));
             }
         }
         // #1747 — tell the desktop/wizard why terminal, browser and VM actions
