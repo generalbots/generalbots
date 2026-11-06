@@ -95,3 +95,24 @@ function openHeaderFooterModal() {
     host.innerHTML = "";
   };
 }
+
+// AI endpoints answer JSON ({response}); htmx used to swap the object into
+// the panel/modal as text. Render the answer field instead.
+if (!window.__gbDocsAiHook) {
+  window.__gbDocsAiHook = true;
+  document.addEventListener("htmx:afterRequest", function (event) {
+    var detail = event.detail || {};
+    var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
+    if (path.indexOf("/api/docs/ai/") !== 0 || !detail.successful) return;
+    var text = "";
+    try {
+      var data = JSON.parse(detail.xhr.responseText);
+      text = data.response || data.result || data.text || "";
+    } catch (error) {
+      text = detail.xhr.responseText;
+    }
+    var target = document.getElementById("ai-result-panel") ||
+      document.getElementById("ai-result-modal");
+    if (target) target.textContent = text;
+  });
+}
