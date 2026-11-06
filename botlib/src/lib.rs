@@ -1,6 +1,7 @@
 pub mod branding;
 pub mod db_driver;
 pub mod db_pool;
+pub mod re_cache;
 pub mod error;
 pub mod key_utils;
 #[cfg(feature = "http-client")]

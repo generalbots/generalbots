@@ -25,8 +25,10 @@ mod init_secrets_manager;
 mod json_value_to_dynamic;
 mod create_conn;
 mod convert_date_to_iso_format;
+mod db_pool;
 
 pub use init_secrets_manager::*;
 pub use json_value_to_dynamic::*;
 pub use create_conn::*;
 pub use convert_date_to_iso_format::*;
+pub use db_pool::*;

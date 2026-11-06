@@ -8,6 +8,7 @@ authors = ["General Bots"]
 repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
+botlib = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 regex = { workspace = true }
 aes-gcm = { workspace = true }

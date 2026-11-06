@@ -8,6 +8,7 @@ authors = ["General Bots"]
 repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
+botlib = { workspace = true }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
