@@ -552,12 +552,21 @@
 
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
-                const routeName = pathParts[1] === 'sources' ? 'integrations' : (pathParts[1] || '');
+                const pathName = pathParts[1] || '';
+                const routeName = pathName === 'sources' ? 'integrations' : pathName;
                 let routeApp = (window.APPS_REGISTRY || []).find(
                     (app) => app.id === routeName,
                 ) || null;
+                // The packaged desktop serves the shell at /suite/desktop.html;
+                // "suite" is a static segment, not a bot. Without this guard the
+                // Drive app took it as the bot name and probed suite.gborg /
+                // suite.gbai, so its tabs answered 'Access denied for this
+                // bucket' (#1709). Assign the result so every app reads the same
+                // identity (it used to be undefined here).
+                const staticShell = pathName === 'suite' || pathName === 'auth';
                 const botName = window.__INITIAL_BOT_NAME__ ||
-                    (routeApp ? 'default' : routeName) || 'default';
+                    (routeApp || staticShell ? 'default' : routeName) || 'default';
+                window.__INITIAL_BOT_NAME__ = botName;
 
                 // AUTH GATE: a private bot (public=false) must NEVER render
                 // the desktop for unauthenticated visitors — not even an empty
