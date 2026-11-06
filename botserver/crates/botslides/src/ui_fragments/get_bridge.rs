@@ -16,6 +16,7 @@ use axum::http::header;
 use axum::response::{Html, IntoResponse, Response};
 use axum::Json;
 
+use super::html_escape;
 use crate::storage::DriveOps;
 use crate::types::Presentation;
 use crate::SlidesState;
