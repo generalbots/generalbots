@@ -282,14 +282,12 @@ pub fn get_all_keywords() -> Vec<String> {
         "SECURITY STOP SERVICE".to_string(),
         "SECURITY INSTALL TOOL".to_string(),
         "SECURITY HARDENING SCORE".to_string(),
-        // Filesystem: only DELETE FILE used to be listed, so a script calling
-        // CREATE FILE / WRITE FILE was told by the "closed set" that it did not
-        // exist while the runtime registers all of them.
+        // Filesystem: the runtime registers READ / WRITE / LIST with a single
+        // argument, so the catalog used to advertise forms that could not
+        // compile (`READ FILE`, `WRITE FILE`, `LIST FILES`, `GET FILE`). Only
+        // the multiword keywords that really exist stay here.
         "CREATE FILE".to_string(),
-        "WRITE FILE".to_string(),
-        "READ FILE".to_string(),
-        "LIST FILES".to_string(),
-        "GET FILE".to_string(),
+        "READ TEXT".to_string(),
         // HTTP verbs: same gap as the file verbs.
         "GET HTTP".to_string(),
         "POST HTTP".to_string(),
@@ -301,14 +299,18 @@ pub fn get_all_keywords() -> Vec<String> {
         // Session memory.
         "REMEMBER".to_string(),
         "RECALL".to_string(),
-        // Perception / media, used by the shipped media-filing tools.
+        // Perception / media: enough to generate a classify-and-file tool from
+        // the catalog alone (no shipped implementation required). The bare
+        // `CLASSIFY` text form is deliberately absent: `CLASSIFY IMAGE` shares
+        // the same Rhai first-token key and shadows it at runtime, so only the
+        // forms that actually work are advertised.
         "DESCRIBE IMAGE".to_string(),
         "DESCRIBE VIDEO".to_string(),
         "SPEECH TO TEXT".to_string(),
-        "CLASSIFY".to_string(),
         // Declarative control.
         "ON EVENT".to_string(),
         "TRANSFER TO HUMAN".to_string(),
+        "RETURN".to_string(),
         // Registered engine functions, not multi-word keywords, but the scripts
         // use them as if they were keywords and the reference must teach the
         // exact form (`TODAY`/`NOW` are registered functions, so the call form
@@ -317,6 +319,8 @@ pub fn get_all_keywords() -> Vec<String> {
         "SPLIT".to_string(),
         "TRIM".to_string(),
         "UPPER".to_string(),
+        "LCASE".to_string(),
+        "UCASE".to_string(),
         "LEN".to_string(),
         "REPLACE".to_string(),
         "LEFT".to_string(),

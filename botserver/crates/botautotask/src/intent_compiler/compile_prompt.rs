@@ -31,8 +31,32 @@ in prose is worthless. Rules:
   `kind`, `caption` and `channel` in scope) and `message_received` (a text
   message, with `text` in scope). Omit the line when the automation is
   user-triggered.
+- Media automations (classify, file, archive or sort inbound photos, documents,
+  voice notes and videos): generate the tool yourself from the reference below.
+  No pre-built implementation exists to reuse and none may be assumed. Shape it
+  like this:
+  put `ON EVENT "media_uploaded"` first; read the kind from the extension with
+  `LCASE` + `INSTR` (.jpg/.jpeg/.png/.webp/.gif = image, .ogg/.oga/.opus/.mp3/
+  .m4a/.wav = audio, .mp4/.mov/.mkv/.webm = video, anything else = document);
+  perceive with `DESCRIBE IMAGE path`, `SPEECH TO TEXT path`,
+  `DESCRIBE VIDEO path` or `READ TEXT path`, each wrapped in
+  `ON ERROR RESUME NEXT` and repaired with `IF ERROR THEN CLEAR ERROR`, and use
+  `caption` when the perceived text is empty; decide the category with one
+  `answer = LLM prompt` call whose prompt lists a closed taxonomy written as a
+  literal in the program, normalize the reply with `LCASE` + `TRIM` and
+  `FIRST(SPLIT(answer, "."))`, accept it only when it matches an entry of
+  `SPLIT(taxonomy, ",")` inside a `FOR EACH … NEXT` loop, and keep
+  `category = "unsorted"` as the default; file it with `today = TODAY`,
+  `month = STR(today.month)` zero-padded when shorter than 2,
+  `leaf = LAST(SPLIT(path, "/"))`,
+  `destination = "media/" + STR(today.year) + "/" + month + "/" + category + "/" + leaf`,
+  then `MOVE path, destination` and `CREATE FILE destination + ".meta.txt" WITH …`
+  recording the category, the kind and the caption. A failed `MOVE` means a
+  parallel runner already filed the item: `TALK` that and `RETURN`. Never let a
+  category name a folder outside the taxonomy and never file outside `media/`.
 - Keep it under 40 lines and make it self-contained: the whole program goes
-  into `basic_program` as one string with real newlines (\n).
+  into `basic_program` as one string with real newlines (\n). Do not put
+  comments or blank lines inside `basic_program`: every line is budget.
 - The plan is bookkeeping, not the deliverable: at most 3 steps, each with a
   3-5 word name and a one-line description. Spend the budget on the program —
   a verbose plan gets the whole answer cut off.

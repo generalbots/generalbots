@@ -10,8 +10,9 @@
 //! the default behaviour.
 //!
 //! Three paths keep it from being lost:
-//! - [`write_config_files`] — a shipped template commits its channel prompts
-//!   together with the tool, so the behaviour ships as one unit.
+//! - [`write_config_files`] — a template deployment (or any automation that
+//!   ships a channel prompt) commits it together with the tool, so the
+//!   behaviour ships as one unit.
 //! - [`import_config_from_drive`] — recovery/import of `.gbot` objects that
 //!   still live in Drive, including the ones the archive pass already moved to
 //!   `{branch}.gbai/archive/{bot}-{stamp}/.gbot/`.

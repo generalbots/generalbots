@@ -53,6 +53,7 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"DESCRIBE\s+IMAGE"#, 1, 1, vec!["source"]),
         (r#"DESCRIBE\s+VIDEO"#, 1, 1, vec!["source"]),
         (r#"SPEECH\s+TO\s+TEXT"#, 1, 1, vec!["source"]),
+        (r#"READ\s+TEXT"#, 1, 1, vec!["source"]),
 
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
         (r#"SEND\s+TEAMS\s+MESSAGE"#, 2, 2, vec!["chat_id", "message"]),

@@ -31,6 +31,8 @@ const SIGNATURES: &[(&str, &str)] = &[
     ("SPLIT", r#"SPLIT("text", ",")"#),
     ("TRIM", r#"TRIM("text")"#),
     ("UPPER", r#"UPPER("text")"#),
+    ("LCASE", r#"LCASE("text")"#),
+    ("UCASE", r#"UCASE("text")"#),
     ("LEN", r#"LEN(text)"#),
     ("INSTR", r#"INSTR(text, "needle")"#),
     ("REPLACE", r#"REPLACE(text, "from", "to")"#),
@@ -40,14 +42,15 @@ const SIGNATURES: &[(&str, &str)] = &[
     ("NOW", "NOW"),
     ("WAIT", "WAIT seconds"),
     ("CREATE FILE", r#"CREATE FILE "path" WITH content"#),
-    ("WRITE FILE", r#"WRITE FILE "path" WITH content"#),
-    ("READ FILE", r#"content = READ FILE "path""#),
+    ("WRITE", r#"WRITE "path", content"#),
+    ("READ", r#"content = READ "path""#),
+    ("READ TEXT", r#"text = READ TEXT "inbox/report.pdf""#),
     ("DELETE FILE", r#"DELETE FILE "path""#),
     ("MOVE", r#"MOVE "old/path", "new/path""#),
     ("COPY", r#"COPY "from", "to""#),
-    ("LIST FILES", r#"LIST FILES "folder""#),
-    ("GET FILE", r#"GET FILE "path""#),
-    ("UPLOAD", r#"UPLOAD data TO "path""#),
+    ("LIST", r#"LIST "folder""#),
+    ("UPLOAD", r#"UPLOAD data, "path""#),
+    ("DOWNLOAD", r#"DOWNLOAD "url", "path""#),
     ("GET HTTP", r#"GET HTTP "url""#),
     ("POST HTTP", r#"POST HTTP "url" WITH data"#),
     ("PUT HTTP", r#"PUT HTTP "url" WITH data"#),
@@ -75,6 +78,7 @@ const SIGNATURES: &[(&str, &str)] = &[
     ("ON EVENT", r#"ON EVENT "media_uploaded""#),
     ("CREATE TASK", r#"CREATE TASK "title", "assignee", "due", project"#),
     ("TRANSFER TO HUMAN", "TRANSFER TO HUMAN"),
+    ("RETURN", "RETURN  (stops the tool; optional value: RETURN expression)"),
     ("SET SCHEDULE", r#"SET SCHEDULE "0 9 * * 1"  ' cron, set by the platform for scheduled intents"#),
 ];
 
@@ -96,8 +100,8 @@ pub fn basic_keyword_reference() -> String {
     }
     out.push_str(
         "\nAnything not written above is unavailable: do not invent a keyword, an \
-         argument name or an argument order. There is no `EXIT`, no `GET USER MEMORY`, \
-         no `SEND MAIL TO … SUBJECT …` form and no `ON CHANGE`. `ON EVENT` takes\n         only the event name — the tool being compiled is the tool that runs.\n",
+         argument name or an argument order. There is no `EXIT`, no \
+         `SEND MAIL TO … SUBJECT …` form and no `ON CHANGE`. `ON EVENT` takes\n         only the event name — the tool being compiled is the tool that runs.\n",
     );
     out.push_str("\n### Full keyword catalog (closed set)\n");
     // Sorted and deduplicated: the list reaches the model verbatim, so a
@@ -139,6 +143,27 @@ mod tests {
         assert!(reference.contains("CLASSIFY") || reference.contains("DESCRIBE"));
         // …and the anti-invention rule is stated.
         assert!(reference.contains("do not invent a keyword"));
+    }
+
+    #[test]
+    fn media_filing_keywords_carry_their_real_forms() {
+        let reference = basic_keyword_reference();
+        // The perception verbs a classify-and-file tool needs, in the form the
+        // runtime rewrites to a function call.
+        assert!(reference.contains("DESCRIBE IMAGE"));
+        assert!(reference.contains("SPEECH TO TEXT"));
+        assert!(reference.contains("DESCRIBE VIDEO"));
+        assert!(reference.contains("READ TEXT"));
+        // Closed-set decision, lowercase helper and early exit.
+        assert!(reference.contains("answer = LLM \"prompt\""));
+        assert!(reference.contains("LCASE(\"text\")"));
+        assert!(reference.contains("RETURN"));
+        // Phantom file forms stay out: the runtime registers READ, WRITE and
+        // LIST with a single argument, so telling the model the multi-word
+        // versions existed produced scripts that could not compile.
+        for phantom in ["READ FILE", "WRITE FILE", "LIST FILES", "GET FILE"] {
+            assert!(!reference.contains(phantom), "catalog lists {phantom}, which does not exist");
+        }
     }
 
     #[test]

@@ -6,7 +6,6 @@ pub(crate) use crate::api::{ AutoTaskApi, ClassifyIntentRequest, ClassifyIntentR
 pub(crate) use crate::execution::script_for;
 pub(crate) use crate::intent_classifier::{ClassifiedEntities, IntentClassifier, IntentType};
 pub(crate) use crate::intent_compiler::IntentCompiler;
-pub(crate) use crate::templates::match_shipped_template;
 pub(crate) use crate::intent_classifier::ClassifiedIntent;
 pub(crate) use crate::types::{BotInfo, DbPool};
 pub(crate) use axum::{ extract::{Path, Query, State}, response::IntoResponse, Json, };
@@ -78,11 +77,11 @@ struct AutoTaskRow {
 mod resolve_bot_info;
 mod classifier_for;
 mod load_plan;
-mod persist_shipped_template;
+mod create_response;
 mod into_json;
 
 pub(crate) use resolve_bot_info::*;
 pub use classifier_for::*;
 pub use load_plan::*;
-pub(crate) use persist_shipped_template::*;
+pub(crate) use create_response::*;
 pub use into_json::*;

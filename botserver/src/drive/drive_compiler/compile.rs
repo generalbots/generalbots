@@ -195,8 +195,8 @@ impl DriveCompiler {
         // A tool's MCP manifest in Drive is the source of truth for its
         // argument schema. compile_file() always regenerates a manifest from
         // the .bas (with an empty schema when the script declares no
-        // parameters), which clobbers the richer manifest persisted by
-        // AutoTask shipped templates; tool_exec relies on
+        // parameters), which clobbers the richer manifest persisted by a
+        // template deployment; tool_exec relies on
         // input_schema.properties to default arguments the LLM omitted
         // (otherwise optional params reach the script as undeclared
         // variables and abort it). Sync the Drive copy over the generated

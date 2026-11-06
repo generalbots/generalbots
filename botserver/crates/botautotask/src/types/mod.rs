@@ -248,9 +248,10 @@ pub trait BotSourceOps: Send + Sync {
 
     /// Write the bot's `.gbot` configuration — `PROMPT-{CHANNEL}.md`, styles,
     /// `config.csv` — into the repository, commit and push it. The runtime reads
-    /// these files from the work layout; without them the bot answers with the
-    /// generic fallback prompt and its tools (e.g. `classify_media`) are never
-    /// called, so a shipped template must deliver them with its tool.
+    /// these files from the work layout; without a channel prompt the bot answers
+    /// with the generic fallback prompt and the model never calls the tools the
+    /// automation ships, so a generated automation that relies on model-initiated
+    /// calls must deliver them alongside its tool.
     fn write_bot_config(
         &self,
         bot_id: Uuid,

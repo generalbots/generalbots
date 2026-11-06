@@ -119,13 +119,6 @@ pub async fn create_and_execute_for(
     let intent = intent.to_string();
     let req = CreateAndExecuteRequest { intent: intent.clone(), bot_id: None };
 
-    // Shipped-template fast path: intents that name an implementation the
-    // product already ships (e.g. media classification/filing) persist the
-    // vetted template verbatim — deterministic, no LLM, no compile stall.
-    if let Some(template) = match_shipped_template(&req.intent) {
-        return persist_shipped_template(api, bot_id, &req.intent, template).await.0;
-    }
-
     let classification = match classifier_for(api).classify_api(&req.intent, bot_id).await {
         Ok(c) => c,
         Err(e) => return error_create(&req.intent, &*e).0,

@@ -93,6 +93,7 @@ pub(super) fn register_describe_image_fn(
     });
 }
 pub(super) fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    register_read_text_fn(state.clone(), user.clone(), engine);
     if let Err(e) =
         engine.register_custom_syntax(["READ", "TEXT", "$expr$"], false, move |context, inputs| {
             let source = eval_string(context, &inputs[0])?;
@@ -112,6 +113,31 @@ pub(super) fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession
     {
         log::error!("READ TEXT registration failed: {e}");
     }
+}
+/// Function form `read_text(source)`, emitted by `convert_multiword_keywords`.
+/// The custom-syntax form above is shadowed at runtime: `READ` (file keyword)
+/// is registered by a later crate and Rhai keeps only one syntax per
+/// first-token key.
+pub(super) fn register_read_text_fn(
+    state: Arc<dyn BasicRuntime>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
+    engine.register_fn("read_text", move |source: &str| -> Result<rhai::Dynamic, Box<EvalAltResult>> {
+        let runtime = Arc::clone(&state);
+        let bot_id = user.bot_id;
+        let source = source.to_string();
+        spawn_multimodal("read-text", async move {
+            let client = build_client(runtime.as_ref(), bot_id);
+            if !client.is_enabled() {
+                return Err("BotModels is not enabled in bot configuration".into());
+            }
+            let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+            let outcome = client.describe_image(media.reference()).await;
+            media.cleanup();
+            outcome
+        })
+    });
 }
 pub(super) fn register_scan_barcode(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     if let Err(e) = engine.register_custom_syntax(

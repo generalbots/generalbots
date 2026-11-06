@@ -40,6 +40,17 @@ mod tests {
     }
 
     #[test]
+    fn read_text_becomes_the_read_text_function_call() {
+        // `READ` (file keyword) shares the Rhai first-token key and is
+        // registered by a later crate, so the `READ TEXT` custom syntax is
+        // shadowed at runtime. The rewrite targets `read_text(...)`, which the
+        // multimodal crate registers as a function.
+        let out = convert_multiword_keywords("text = READ TEXT \"inbox/report.pdf\"\n");
+        assert!(out.contains("read_text(\"inbox/report.pdf\");"), "got: {out}");
+        assert!(!out.to_uppercase().contains("READ TEXT"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
     fn create_file_expression_path_becomes_create_file_call() {
         // classify_media.bas shape: path is an expression, data is an expression.
         let out = convert_multiword_keywords(

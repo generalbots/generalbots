@@ -1,6 +1,5 @@
 pub mod schema;
 pub mod types;
-pub mod templates;
 pub mod execution;
 pub mod drive_ops;
 pub mod llm_adapter;

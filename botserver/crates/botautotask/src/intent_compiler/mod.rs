@@ -115,6 +115,29 @@ mod tests {
     }
 
     #[test]
+    fn compile_prompt_teaches_media_filing_from_the_catalog() {
+        let prompt = compile_prompt("classify and file inbound photos and voice notes", CATALOG);
+        // The generator must be able to produce a classify-and-file tool from
+        // the catalog alone — the shipped implementation is not a dependency.
+        for needle in [
+            "ON EVENT \"media_uploaded\"",
+            "DESCRIBE IMAGE path",
+            "SPEECH TO TEXT path",
+            "DESCRIBE VIDEO path",
+            "READ TEXT path",
+            "answer = LLM prompt",
+            "\"unsorted\"",
+            "media/",
+            ".meta.txt",
+            "MOVE path, destination",
+        ] {
+            assert!(prompt.contains(needle), "compile prompt does not teach {needle}");
+        }
+        assert!(prompt.contains("generate the tool yourself"));
+        assert!(!prompt.to_lowercase().contains("shipped template"));
+    }
+
+    #[test]
     fn compile_prompt_works_without_a_catalog() {
         let prompt = compile_prompt("x", DEGRADED_BASIC_REFERENCE);
         assert!(prompt.contains("\"basic_program\": \""));

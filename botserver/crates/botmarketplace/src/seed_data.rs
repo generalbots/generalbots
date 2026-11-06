@@ -249,14 +249,14 @@ pub fn starter_skills() -> Vec<StarterSkill> {
             scripts: &[
                 (
                     "clean_csv.bas",
-                    "rows = READ FILE \"data.csv\"\n\
+                    "rows = READ \"data.csv\"\n\
                      clean = LLM \"Remove empty and duplicated lines, keep header\"\n\
-                     WRITE FILE \"data_clean.csv\" WITH clean\n\
+                     WRITE \"data_clean.csv\", clean\n\
                      TALK \"Cleaned file saved as data_clean.csv.\"",
                 ),
                 (
                     "summary_clean.bas",
-                    "clean = READ FILE \"data_clean.csv\"\n\
+                    "clean = READ \"data_clean.csv\"\n\
                      TALK \"Result has {COUNT(clean)} lines.\"",
                 ),
             ],

@@ -1,8 +1,8 @@
 //! Reform #1501/#1505 — persist AutoTask-generated sources into the bot's git
 //! repository, the canonical `.gbdialog` of a git-owned bot.
 //!
-//! AutoTask (`create-and-execute`, the shipped-template fast path, tool
-//! generation) used to write generated tools straight to the Drive bucket
+//! AutoTask (`create-and-execute`, tool generation) used to write generated
+//! tools straight to the Drive bucket
 //! `{bot}.gbai/{bot}.gbdialog/`. Since #1501 the repository is the source of
 //! truth: on the next tick `git_bot_monitor` pulls `origin/main`, materializes
 //! the checkout over the work layout and compiles it — so a Drive-only write is
