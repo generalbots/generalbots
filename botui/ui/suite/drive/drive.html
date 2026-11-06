@@ -44,6 +44,21 @@
                 </svg>
                 <span data-i18n="drive-upload">Upload</span>
             </button>
+            <button class="btn-secondary-full" id="upload-folder-btn">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    <polyline points="12 15 12 8"></polyline>
+                    <polyline points="9 11 12 8 15 11"></polyline>
+                </svg>
+                <span data-i18n="drive-upload-folder">Upload folder</span>
+            </button>
             <button class="btn-secondary-full" id="new-folder-btn">
                 <svg
                     width="16"
@@ -428,13 +443,15 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            <p>Drop files here to upload</p>
+            <p>Drop files or folders here to upload</p>
         </div>
     </div>
 </div>
 
-<!-- Hidden file input for uploads -->
+<!-- Hidden file inputs for uploads. The folder input is separate so the
+     single/multi-file upload keeps its flat behaviour. -->
 <input type="file" id="file-input" multiple style="display: none" />
+<input type="file" id="folder-input" webkitdirectory multiple style="display: none" />
 
 <!-- Context Menu (dynamically populated by JS) -->
 <div id="context-menu" class="context-menu hidden"></div>
@@ -451,6 +468,7 @@
         '/suite/drive/modules/04_bots.js',
         '/suite/drive/modules/04_discover.js',
         '/suite/drive/modules/05_files.js',
+        '/suite/drive/modules/05_upload.js',
         '/suite/drive/modules/06_render.js',
         '/suite/drive/modules/07_events.js',
         '/suite/drive/modules/08_modals.js',

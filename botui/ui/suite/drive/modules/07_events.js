@@ -104,6 +104,13 @@ function bindUploadButton() {
         document.body.appendChild(fileInput);
     }
     fileInput.addEventListener("change", handleFileInputChange);
+
+    // #1751 — folder picker is a separate input (never webkitdirectory on
+    // #file-input) so flat file selection still uploads as before.
+    var folderBtn = document.getElementById("upload-folder-btn");
+    if (folderBtn) folderBtn.addEventListener("click", triggerFolderUpload);
+    var folderInput = document.getElementById("folder-input");
+    if (folderInput) folderInput.addEventListener("change", handleFolderInputChange);
 }
 
 function triggerUpload() {
@@ -139,8 +146,9 @@ function bindDragAndDrop() {
         container.classList.remove("drag-active");
         var overlay = document.getElementById("drop-overlay");
         if (overlay) overlay.classList.remove("visible");
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) uploadFiles(Array.from(files));
+        // #1751 — walk DataTransferItem entries so dropped directories keep
+        // their tree instead of arriving as an empty flat file list.
+        handleDroppedTransfer(e.dataTransfer);
     });
 }
 

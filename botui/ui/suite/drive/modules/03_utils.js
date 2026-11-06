@@ -133,8 +133,12 @@ function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-            const base64 = reader.result.split(",")[1] || reader.result;
-            resolve(base64);
+            // Slice at the first comma instead of using split()[1]: an empty
+            // file yields "" there, and the old `|| reader.result` fallback
+            // then sent the whole data: URL as the file content.
+            const result = String(reader.result || "");
+            const comma = result.indexOf(",");
+            resolve(comma === -1 ? result : result.slice(comma + 1));
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);

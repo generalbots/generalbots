@@ -20,6 +20,19 @@ async function deleteItem(path, bucket) {
     }
 }
 
+// #1751 — selection rows can come from another bucket (search, starred,
+// shared). Export accepts one bucket per request, so group by row bucket and
+// build one archive per bucket instead of sending the browse bucket for all.
+function groupPathsByBucket(paths) {
+    var groups = {};
+    (paths || []).forEach(function (path) {
+        var bucket = driveBucketForPath(path) || getEffectiveBucket() || "";
+        if (!groups[bucket]) groups[bucket] = [];
+        groups[bucket].push(path);
+    });
+    return groups;
+}
+
 async function downloadSelected() {
     if (selectedFiles.size === 0) return;
     var paths = [];
@@ -36,21 +49,33 @@ async function downloadSelected() {
     // #1639 — one archive instead of N separate downloads. A folder selection
     // exports recursively; mixed selections produce one archive per folder
     // plus one for the loose files.
-    try {
-        if (folders.length === 0) {
-            await exportPaths(paths, null);
-        } else {
-            for (var i = 0; i < folders.length; i++) {
-                await exportPaths([], folders[i]);
+    // #1751 — a mixed-bucket selection downloads one archive per bucket.
+    var folderGroups = groupPathsByBucket(folders);
+    var fileGroups = groupPathsByBucket(paths);
+    var buckets = Object.keys(folderGroups);
+    Object.keys(fileGroups).forEach(function (bucket) {
+        if (buckets.indexOf(bucket) === -1) buckets.push(bucket);
+    });
+    var failures = [];
+    for (var bi = 0; bi < buckets.length; bi++) {
+        var bucket = buckets[bi];
+        try {
+            var bucketFolders = folderGroups[bucket] || [];
+            for (var i = 0; i < bucketFolders.length; i++) {
+                await exportPaths([], bucketFolders[i], bucket);
             }
-            if (paths.length) await exportPaths(paths, null);
+            var bucketFiles = fileGroups[bucket] || [];
+            if (bucketFiles.length) await exportPaths(bucketFiles, null, bucket);
+        } catch (err) {
+            failures.push((bucket || "default bucket") + ": " + err.message);
         }
-    } catch (err) {
-        showNotification("Export failed: " + err.message, "error");
+    }
+    if (failures.length) {
+        showNotification("Export failed for " + failures.join("; "), "warning");
     }
 }
 
-async function exportPaths(paths, folder) {
+async function exportPaths(paths, folder, bucket) {
     showNotification("Building archive" + (folder ? " for " + folder : "") + "...", "info");
     var token = "";
     try {
@@ -67,7 +92,7 @@ async function exportPaths(paths, folder) {
             token ? { Authorization: "Bearer " + token } : {},
         ),
         body: JSON.stringify({
-            bucket: getEffectiveBucket(),
+            bucket: bucket || getEffectiveBucket(),
             scope: currentScope,
             paths: paths || [],
             folder: folder || null,
@@ -244,8 +269,9 @@ window.emptyTrash = emptyTrash;
 
 // ── Version history (server-backed, GB6-14) ──────────────────────────
 async function showVersionHistory(path) {
+    var bucket = driveBucketForPath(path);
     var fileName = path.split("/").pop() || "file";
-    var storageKey = "gb_file_versions_" + (getEffectiveBucket() || "") + "_" + path;
+    var storageKey = "gb_file_versions_" + (bucket || "") + "_" + path;
     var localVersions = [];
     try { localVersions = JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch (e) {}
 
@@ -268,7 +294,7 @@ async function showVersionHistory(path) {
             method: "POST",
             body: JSON.stringify({
                 path: path,
-                bucket: getEffectiveBucket(),
+                bucket: bucket,
                 scope: currentScope,
             }),
         });
@@ -285,14 +311,14 @@ async function showVersionHistory(path) {
             var date = version.stamp || "";
             body += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #334155;border-radius:8px;margin-bottom:8px;">'
                 + '<div><div style="color:#f8fafc;font-size:14px;">' + escapeHtml(date) + '</div><div style="color:#64748b;font-size:12px;">' + formatFileSize(version.size || 0) + ' &middot; stored in Drive</div></div>'
-                + '<button onclick="DriveModule.restoreServerVersion(\'' + escapeJs(path) + '\',\'' + escapeJs(version.version) + '\')" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
+                + '<button onclick="DriveModule.restoreServerVersion(\'' + escapeJs(path) + '\',\'' + escapeJs(version.version) + '\',\'' + escapeJs(bucket || '') + '\')" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
                 + '</div>';
         });
         localVersions.forEach(function(v, i) {
             var date = new Date(v.timestamp).toLocaleString();
             body += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px dashed #334155;border-radius:8px;margin-bottom:8px;">'
                 + '<div><div style="color:#f8fafc;font-size:14px;">' + escapeHtml(v.label || "Local version") + '</div><div style="color:#64748b;font-size:12px;">' + escapeHtml(date) + ' &middot; ' + formatFileSize(v.size || 0) + ' &middot; this device</div></div>'
-                + '<button onclick="DriveModule.restoreVersion(\'' + escapeJs(path) + '\',' + i + ')" style="background:#475569;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
+                + '<button onclick="DriveModule.restoreVersion(\'' + escapeJs(path) + '\',' + i + ',\'' + escapeJs(bucket || '') + '\')" style="background:#475569;border:none;border-radius:6px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Restore</button>'
                 + '</div>';
         });
     }
@@ -300,14 +326,15 @@ async function showVersionHistory(path) {
     container.innerHTML = header + body;
 }
 
-async function restoreServerVersion(path, version) {
+async function restoreServerVersion(path, version, bucket) {
+    var targetBucket = bucket || driveBucketForPath(path);
     try {
         await apiRequest("/versions/restore", {
             method: "POST",
             body: JSON.stringify({
                 path: path,
                 version: version,
-                bucket: getEffectiveBucket(),
+                bucket: targetBucket,
                 scope: currentScope,
             }),
         });
@@ -320,15 +347,16 @@ async function restoreServerVersion(path, version) {
     }
 }
 
-async function restoreVersion(path, index) {
-    var storageKey = "gb_file_versions_" + (getEffectiveBucket() || "") + "_" + path;
+async function restoreVersion(path, index, bucket) {
+    var targetBucket = bucket || driveBucketForPath(path);
+    var storageKey = "gb_file_versions_" + (targetBucket || "") + "_" + path;
     var versions = [];
     try { versions = JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch (e) {}
     if (!versions[index] || !versions[index].content) { showNotification("Version data not available", "error"); return; }
     try {
         await apiRequest("/write", {
             method: "POST",
-            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, content: versions[index].content, scope: currentScope }),
+            body: JSON.stringify({ bucket: targetBucket, path: path, content: versions[index].content, scope: currentScope }),
         });
         showNotification("Version restored", "success");
         var modal = document.getElementById("version-modal");
@@ -339,8 +367,9 @@ async function restoreVersion(path, index) {
     }
 }
 
-function saveFileVersion(path, content) {
-    var storageKey = "gb_file_versions_" + (getEffectiveBucket() || "") + "_" + path;
+function saveFileVersion(path, content, bucket) {
+    var versionBucket = bucket || driveBucketForPath(path);
+    var storageKey = "gb_file_versions_" + (versionBucket || "") + "_" + path;
     var versions = [];
     try { versions = JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch (e) {}
     versions.unshift({ timestamp: Date.now(), label: "Auto-save", size: content.length, content: content });
