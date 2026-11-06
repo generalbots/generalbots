@@ -220,14 +220,23 @@ impl DocxDocument {
             let italic_xml = if p.italic { r#"<w:i/>"# } else { "" };
             let sz_xml = p.font_size.map(|s| format!(r#"<w:sz w:val="{}"/>"#, s)).unwrap_or_default();
             let num_id_xml = p.num_id.map(|n| format!(r#"<w:numPr><w:ilvl w:val="0"/><w:numId w:val="{}"/></w:numPr>"#, n)).unwrap_or_default();
+            // A Word heading style keeps the outline/preview semantics; the
+            // bold+size runs alone made generated headings look like body text.
+            let style_xml = if p.style.starts_with("Heading ") {
+                let id = p.style.replace(' ', "");
+                format!(r#"<w:pStyle w:val="{id}"/>"#)
+            } else {
+                String::new()
+            };
             let escaped = p.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
             write!(zip, r#"<w:p>
-      <w:pPr>{align_xml}{num_id_xml}</w:pPr>
+      <w:pPr>{style_xml}{align_xml}{num_id_xml}</w:pPr>
       <w:r>
         <w:rPr>{bold_xml}{italic_xml}{sz_xml}</w:rPr>
         <w:t xml:space="preserve">{escaped}</w:t>
       </w:r>
     </w:p>"#,
+                style_xml = style_xml,
                 align_xml = align_xml,
                 num_id_xml = num_id_xml,
                 bold_xml = bold_xml,

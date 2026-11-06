@@ -4,6 +4,36 @@ use docx_rs::*;
 
 use crate::storage_core::{escape_html, parse_html_to_paragraphs};
 
+/// Renders one run's text with its emphasis and line-break children. Used by
+/// both paragraphs and hyperlinks because docx-rs nests runs inside links.
+fn run_html(run: &Run) -> String {
+    let mut run_text = String::new();
+    let is_bold = run.run_property.bold.is_some();
+    let is_italic = run.run_property.italic.is_some();
+    let is_underline = run.run_property.underline.is_some();
+    for child in &run.children {
+        match child {
+            RunChild::Text(text) => run_text.push_str(&escape_html(&text.text)),
+            RunChild::Break(_) => run_text.push_str("<br>"),
+            RunChild::Tab(_) => run_text.push_str("&nbsp;&nbsp;&nbsp;&nbsp;"),
+            _ => {}
+        }
+    }
+    if run_text.is_empty() {
+        return run_text;
+    }
+    if is_bold {
+        run_text = format!("<strong>{run_text}</strong>");
+    }
+    if is_italic {
+        run_text = format!("<em>{run_text}</em>");
+    }
+    if is_underline {
+        run_text = format!("<u>{run_text}</u>");
+    }
+    run_text
+}
+
 pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
     let docx = docx_rs::read_docx(bytes).map_err(|e| format!("Failed to parse DOCX: {e}"))?;
 
@@ -33,39 +63,18 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                 }
 
                 for content in &para.children {
-                    if let ParagraphChild::Run(run) = content {
-                        let mut run_text = String::new();
-                        let is_bold = run.run_property.bold.is_some();
-                        let is_italic = run.run_property.italic.is_some();
-                        let is_underline = run.run_property.underline.is_some();
-
-                        for child in &run.children {
-                            match child {
-                                RunChild::Text(text) => {
-                                    run_text.push_str(&escape_html(&text.text));
+                    match content {
+                        ParagraphChild::Run(run) => para_html.push_str(&run_html(run)),
+                        // Hyperlink labels are user text: dropping them deleted
+                        // link text from opened/imported documents.
+                        ParagraphChild::Hyperlink(link) => {
+                            for child in &link.children {
+                                if let ParagraphChild::Run(run) = child {
+                                    para_html.push_str(&run_html(run));
                                 }
-                                RunChild::Break(_) => {
-                                    run_text.push_str("<br>");
-                                }
-                                RunChild::Tab(_) => {
-                                    run_text.push_str("&nbsp;&nbsp;&nbsp;&nbsp;");
-                                }
-                                _ => {}
                             }
                         }
-
-                        if !run_text.is_empty() {
-                            if is_bold {
-                                run_text = format!("<strong>{run_text}</strong>");
-                            }
-                            if is_italic {
-                                run_text = format!("<em>{run_text}</em>");
-                            }
-                            if is_underline {
-                                run_text = format!("<u>{run_text}</u>");
-                            }
-                            para_html.push_str(&run_text);
-                        }
+                        _ => {}
                     }
                 }
 
@@ -90,12 +99,16 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                         for para in &tc.children {
                             if let TableCellContent::Paragraph(p) = para {
                                 for content in &p.children {
-                                    if let ParagraphChild::Run(run) = content {
-                                        for child in &run.children {
-                                            if let RunChild::Text(text) = child {
-                                                html.push_str(&escape_html(&text.text));
+                                    match content {
+                                        ParagraphChild::Run(run) => html.push_str(&run_html(run)),
+                                        ParagraphChild::Hyperlink(link) => {
+                                            for child in &link.children {
+                                                if let ParagraphChild::Run(run) = child {
+                                                    html.push_str(&run_html(run));
+                                                }
                                             }
                                         }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -105,6 +118,16 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                     html.push_str("</tr>");
                 }
                 html.push_str("</table>");
+            }
+            // A generated table of contents is plain text for the editor.
+            DocumentChild::TableOfContents(toc) => {
+                html.push_str("<div class=\"gb-docx-toc\">");
+                for item in &toc.items {
+                    if !item.text.trim().is_empty() {
+                        html.push_str(&format!("<p>{}</p>", escape_html(&item.text)));
+                    }
+                }
+                html.push_str("</div>");
             }
             _ => {}
         }

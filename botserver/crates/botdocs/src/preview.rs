@@ -172,16 +172,18 @@ fn media_gallery(bytes: &[u8], prefix: &str) -> String {
 /// calamine readers without a generic bound the compiler cannot infer.
 macro_rules! read_sheets {
     ($workbook:expr) => {{
-        let mut sheets: Vec<(String, Vec<Vec<String>>)> = Vec::new();
+        let mut sheets: Vec<(String, Vec<Vec<String>>, usize, usize)> = Vec::new();
         for name in $workbook.sheet_names().to_owned() {
             let Ok(range) = $workbook.worksheet_range(&name) else {
                 continue;
             };
+            let total_rows = range.height();
+            let total_cols = range.width();
             let mut rows: Vec<Vec<String>> = Vec::new();
             for row in range.rows().take(MAX_ROWS) {
                 rows.push(row.iter().take(MAX_COLUMNS).map(cell_text).collect());
             }
-            sheets.push((name, rows));
+            sheets.push((name, rows, total_rows, total_cols));
         }
         sheets
     }};
@@ -217,21 +219,30 @@ fn spreadsheet_html(extension: &str, bytes: &[u8]) -> Result<String, String> {
     }
 
     let mut html = String::new();
-    for (name, rows) in sheets {
+    for (name, rows, total_rows, total_cols) in sheets {
         html.push_str(&format!(
             r#"<div class="gb-sheet-name">{}</div><table>"#,
             crate::ui_fragments::html_escape(&name)
         ));
-        for row in rows {
+        for row in &rows {
             html.push_str("<tr>");
             for cell in row {
                 html.push_str("<td>");
-                html.push_str(&crate::ui_fragments::html_escape(&cell));
+                html.push_str(&crate::ui_fragments::html_escape(cell));
                 html.push_str("</td>");
             }
             html.push_str("</tr>");
         }
         html.push_str("</table>");
+        if total_rows > MAX_ROWS || total_cols > MAX_COLUMNS {
+            html.push_str(&format!(
+                r#"<p class="gb-preview-note">Showing first {} of {} rows and {} of {} columns.</p>"#,
+                rows.len().min(MAX_ROWS),
+                total_rows,
+                rows.first().map(Vec::len).unwrap_or(0).min(MAX_COLUMNS),
+                total_cols
+            ));
+        }
     }
     Ok(html)
 }
@@ -263,11 +274,20 @@ fn cell_text(cell: &Data) -> String {
     }
 }
 
+enum SlideItem {
+    Paragraph(String),
+    Table(Vec<Vec<String>>),
+}
+
 #[derive(Default)]
 struct SlidePreview {
     paragraphs: Vec<String>,
     tables: Vec<Vec<Vec<String>>>,
     notes: Vec<String>,
+    /// Paragraph/table order as authored. The separate vectors above stay for
+    /// the existing assertions, but rendering follows this sequence so a table
+    /// between two paragraphs is not moved to the bottom of the slide.
+    sequence: Vec<SlideItem>,
 }
 
 impl SlidePreview {
@@ -333,11 +353,15 @@ impl SlidePreview {
                     b"a:tbl" => {
                         in_table = in_table.saturating_sub(1);
                         if in_table == 0 {
-                            preview.tables.push(std::mem::take(&mut table));
+                            let finished = std::mem::take(&mut table);
+                            preview.sequence.push(SlideItem::Table(finished.clone()));
+                            preview.tables.push(finished);
                         }
                     }
                     b"a:p" if in_paragraph => {
-                        preview.paragraphs.push(std::mem::take(&mut paragraph));
+                        let finished = std::mem::take(&mut paragraph);
+                        preview.sequence.push(SlideItem::Paragraph(finished.clone()));
+                        preview.paragraphs.push(finished);
                         in_paragraph = false;
                     }
                     _ => {}
@@ -389,29 +413,33 @@ fn presentation_html(bytes: &[u8]) -> Result<String, String> {
         html.push_str(&format!(
             r#"<div class="gb-slide"><h3>Slide {number}</h3>"#
         ));
-        for paragraph in slide.paragraphs {
-            let text = paragraph.trim();
-            if !text.is_empty() {
-                html.push_str(&format!(
-                    "<p>{}</p>",
-                    crate::ui_fragments::html_escape(text)
-                ));
-            }
-        }
-        for table in slide.tables {
-            html.push_str("<table>");
-            for (row_index, row) in table.iter().enumerate() {
-                html.push_str("<tr>");
-                for cell in row {
-                    let tag = if row_index == 0 { "th" } else { "td" };
-                    html.push_str(&format!(
-                        "<{tag}>{}</{tag}>",
-                        crate::ui_fragments::html_escape(cell.trim())
-                    ));
+        for item in slide.sequence {
+            match item {
+                SlideItem::Paragraph(paragraph) => {
+                    let text = paragraph.trim();
+                    if !text.is_empty() {
+                        html.push_str(&format!(
+                            "<p>{}</p>",
+                            crate::ui_fragments::html_escape(text)
+                        ));
+                    }
                 }
-                html.push_str("</tr>");
+                SlideItem::Table(table) => {
+                    html.push_str("<table>");
+                    for (row_index, row) in table.iter().enumerate() {
+                        html.push_str("<tr>");
+                        for cell in row {
+                            let tag = if row_index == 0 { "th" } else { "td" };
+                            html.push_str(&format!(
+                                "<{tag}>{}</{tag}>",
+                                crate::ui_fragments::html_escape(cell.trim())
+                            ));
+                        }
+                        html.push_str("</tr>");
+                    }
+                    html.push_str("</table>");
+                }
             }
-            html.push_str("</table>");
         }
         if !slide.notes.is_empty() {
             html.push_str(r#"<div class="gb-slide-notes"><h4>Speaker notes</h4>"#);
