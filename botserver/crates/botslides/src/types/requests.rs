@@ -231,8 +231,18 @@ pub struct RemoveTransitionRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddMediaRequest {
     pub presentation_id: String,
+    #[serde(default)]
     pub slide_index: usize,
-    pub media: MediaElement,
+    #[serde(default)]
+    pub media: Option<MediaElement>,
+    /// The image modal offers an external URL; accept it as a flat field and
+    /// build the MediaElement server-side (file upload has no storage yet).
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub src: Option<String>,
+    #[serde(default)]
+    pub media_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

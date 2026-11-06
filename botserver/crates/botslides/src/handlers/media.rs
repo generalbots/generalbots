@@ -1,6 +1,6 @@
 use crate::storage::{get_current_user_id, load_presentation_by_id, DriveOps};
 use crate::types::{
-    AddMediaRequest, DeleteMediaRequest, ListMediaResponse, UpdateMediaRequest,
+    AddMediaRequest, DeleteMediaRequest, ListMediaResponse, MediaElement, UpdateMediaRequest,
 };
 use crate::SlidesState;
 use axum::{
@@ -41,10 +41,46 @@ pub async fn handle_add_media<D: DriveOps>(
         ));
     }
 
+    let media = match req.media.clone() {
+        Some(media) => media,
+        None => {
+            let src = req
+                .url
+                .clone()
+                .or_else(|| req.src.clone())
+                .unwrap_or_default();
+            if src.trim().is_empty() {
+                return Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(serde_json::json!({ "error": "image url required" })),
+                ));
+            }
+            MediaElement {
+                id: uuid::Uuid::new_v4().to_string(),
+                media_type: req
+                    .media_type
+                    .clone()
+                    .unwrap_or_else(|| "image".to_string()),
+                src,
+                poster: None,
+                autoplay: false,
+                loop_playback: false,
+                muted: false,
+                controls: false,
+                start_time: None,
+                end_time: None,
+                volume: None,
+                x: 80.0,
+                y: 80.0,
+                width: 480.0,
+                height: 320.0,
+            }
+        }
+    };
     let media_list = presentation.slides[req.slide_index]
         .media
         .get_or_insert_with(Vec::new);
-    media_list.push(req.media.clone());
+    media_list.push(media.clone());
     presentation.updated_at = Utc::now();
 
     if let Err(e) = crate::storage::save_presentation_to_drive(drive, &user_id, &presentation)
@@ -56,7 +92,7 @@ pub async fn handle_add_media<D: DriveOps>(
         ));
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "media": req.media })))
+    Ok(Json(serde_json::json!({ "success": true, "media": media })))
 }
 
 pub async fn handle_update_media<D: DriveOps>(
