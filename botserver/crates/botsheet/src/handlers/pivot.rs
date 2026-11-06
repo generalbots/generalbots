@@ -40,7 +40,10 @@ fn parse_range(range: &str) -> Option<(u32, u32, u32, u32)> {
             return None;
         }
         let col = col_letter_to_index(&r[..p])?;
-        let row: u32 = r[p..].parse().ok()?;
+        // Spreadsheet refs are 1-based; the sheet cell map is 0-based. Without
+        // this conversion the header row was read as the first data row and
+        // every pivot was shifted by one.
+        let row: u32 = r[p..].parse::<u32>().ok()?.checked_sub(1)?;
         Some((row, col))
     };
     let (r1, c1) = split_ref(start_ref)?;
@@ -270,4 +273,23 @@ pub async fn handle_pivot(
     });
 
     Ok(Json(PivotResult { result }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_range;
+
+    #[test]
+    fn a1_ranges_are_zero_based_and_inclusive() {
+        assert_eq!(parse_range("A1:C3"), Some((0, 0, 2, 2)));
+        assert_eq!(parse_range("$B$2:$D$5"), Some((1, 1, 4, 3)));
+        assert_eq!(parse_range("C3:A1"), Some((0, 0, 2, 2)));
+    }
+
+    #[test]
+    fn invalid_ranges_are_rejected() {
+        assert_eq!(parse_range(""), None);
+        assert_eq!(parse_range("A"), None);
+        assert_eq!(parse_range("1:3"), None);
+    }
 }
