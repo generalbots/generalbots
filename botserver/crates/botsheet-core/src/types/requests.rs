@@ -45,13 +45,26 @@ pub struct CellUpdateRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FormatRequest {
+    #[serde(alias = "id")]
     pub sheet_id: String,
+    #[serde(default)]
     pub worksheet_index: usize,
+    #[serde(default)]
     pub start_row: u32,
+    #[serde(default)]
     pub start_col: u32,
+    #[serde(default)]
     pub end_row: u32,
+    #[serde(default)]
     pub end_col: u32,
+    #[serde(default)]
     pub style: CellStyle,
+    /// Toolbar shorthand: "A1:A100"; overrides the explicit bounds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<String>,
+    /// Custom number format ("0.00", "R$ #,##0.00"); written to CellData.format.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

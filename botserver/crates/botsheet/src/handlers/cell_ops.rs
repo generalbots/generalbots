@@ -197,9 +197,22 @@ pub async fn handle_format_cells(
     }
 
     let worksheet = &mut sheet.worksheets[req.worksheet_index];
+    let (start_row, start_col, end_row, end_col) = botsheet_core::types::bounds_from_request(
+        req.range.as_deref(),
+        req.start_row,
+        req.start_col,
+        req.end_row,
+        req.end_col,
+    );
+    // The custom-number-format form sends only `format`, with an empty style;
+    // overwriting the style with that default would wipe existing fills.
+    let has_style = serde_json::to_value(&req.style)
+        .ok()
+        .and_then(|value| value.as_object().map(|object| !object.is_empty()))
+        .unwrap_or(true);
 
-    for row in req.start_row..=req.end_row {
-        for col in req.start_col..=req.end_col {
+    for row in start_row..=end_row {
+        for col in start_col..=end_col {
             let key = format!("{},{}", row, col);
             let cell = worksheet.data.entry(key).or_insert_with(|| CellData {
                 value: None,
@@ -212,7 +225,12 @@ pub async fn handle_format_cells(
                 has_comment: None,
                 array_formula_id: None,
             });
-            cell.style = Some(req.style.clone());
+            if has_style {
+                cell.style = Some(req.style.clone());
+            }
+            if let Some(format) = &req.format {
+                cell.format = Some(format.clone());
+            }
         }
     }
 
@@ -226,10 +244,10 @@ pub async fn handle_format_cells(
         serde_json::json!({
             "sheet_id": req.sheet_id,
             "worksheet_index": req.worksheet_index,
-            "start_row": req.start_row,
-            "start_col": req.start_col,
-            "end_row": req.end_row,
-            "end_col": req.end_col,
+            "start_row": start_row,
+            "start_col": start_col,
+            "end_row": end_row,
+            "end_col": end_col,
         }),
     );
 
