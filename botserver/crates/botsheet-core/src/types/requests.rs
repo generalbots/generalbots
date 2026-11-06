@@ -448,8 +448,13 @@ pub struct UpdateNamedRangeRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteNamedRangeRequest {
+    #[serde(alias = "id")]
     pub sheet_id: String,
+    #[serde(default)]
     pub range_id: String,
+    /// The ranges panel knows the display name, not the generated id.
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

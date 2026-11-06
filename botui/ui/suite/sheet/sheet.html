@@ -255,6 +255,27 @@ document.addEventListener("htmx:afterRequest", function (event) {
     var live = getLiveSheetId();
     if (live && typeof loadSheet === "function") loadSheet(live);
 });
+function GBSheetRefreshNamedRanges(sheetId) {
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    fetch("/suite/sheet/fragments/named-ranges", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ id: sheetId }),
+    })
+        .then(function (response) { return response.text(); })
+        .then(function (html) {
+            var current = document.getElementById("named-ranges-panel");
+            if (!current) return;
+            var holder = document.createElement("div");
+            holder.innerHTML = html.trim();
+            var next = holder.firstElementChild;
+            if (next) current.replaceWith(next);
+        })
+        .catch(function () {});
+}
+window.GBSheetRefreshNamedRanges = GBSheetRefreshNamedRanges;
 function openSheetComments() {
     if (!window.GBCollabComments) return;
     var id = getLiveSheetId();

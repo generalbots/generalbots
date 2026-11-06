@@ -287,8 +287,20 @@ pub async fn handle_delete_named_range(
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
         return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
     }
-    if let Some(named_ranges) = &mut sheet.named_ranges {
-        named_ranges.retain(|r| r.id != req.range_id);
+    let target_id = if req.range_id.is_empty() {
+        req.name.as_deref().and_then(|name| {
+            sheet.named_ranges.as_ref().and_then(|ranges| {
+                ranges
+                    .iter()
+                    .find(|range| range.name == name)
+                    .map(|range| range.id.clone())
+            })
+        })
+    } else {
+        Some(req.range_id.clone())
+    };
+    if let (Some(id), Some(named_ranges)) = (target_id, &mut sheet.named_ranges) {
+        named_ranges.retain(|range| range.id != id);
     }
 
     sheet.updated_at = Utc::now();

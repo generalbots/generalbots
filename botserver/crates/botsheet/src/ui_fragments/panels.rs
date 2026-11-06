@@ -32,7 +32,7 @@ pub async fn handle_named_ranges_panel(
 <div class="ss-panel-body" style="padding:8px;">"##,
             );
             for r in ranges {
-                html.push_str(&render_named_range(r, lang));
+                html.push_str(&render_named_range(r, lang, &sheet.id));
             }
             html.push_str("</div></div>");
             Html(html)
@@ -41,7 +41,7 @@ pub async fn handle_named_ranges_panel(
     }
 }
 
-fn render_named_range(r: &NamedRange, lang: Lang) -> String {
+fn render_named_range(r: &NamedRange, lang: Lang, sheet_id: &str) -> String {
     let ws_label = r
         .worksheet_index
         .map(|i| tf(lang, "panel.sheet_n", &[("n", &(i + 1).to_string())]))
@@ -55,9 +55,10 @@ fn render_named_range(r: &NamedRange, lang: Lang) -> String {
 <div style="font-size:12px;color:#94a3b8;">{ws} • {range_ref}</div>
 {comment_html}
 </div>
-<button class="btn-icon" hx-post="/suite/sheet/forms/find-replace" hx-vals='{{"action":"delete_named","name":"{name}"}}' hx-target="#named-ranges-panel" hx-swap="outerHTML" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">×</button>
+<button class="btn-icon" hx-post="/api/sheet/named-range/delete" hx-vals='{{"id":"{sheet_id}","name":"{name}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBSheetRefreshNamedRanges('{sheet_id}')" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">×</button>
 </div>"##,
         name = html_escape(&r.name),
+        sheet_id = html_escape(sheet_id),
         ws = html_escape(&ws_label),
         range_ref = html_escape(&ref_str),
         comment_html = if comment.is_empty() { String::new() } else { format!(r##"<div style="font-size:11px;color:#64748b;margin-top:2px;font-style:italic;">{}</div>"##, html_escape(comment)) }
