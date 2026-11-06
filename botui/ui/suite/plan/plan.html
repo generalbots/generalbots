@@ -44,9 +44,14 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
-<script src="/suite/js/collab-comments.js"></script>
+<script src="/suite/js/collab-comments/01_helpers.js"></script>
+<script src="/suite/js/collab-comments/02_data.js"></script>
+<script src="/suite/js/collab-comments/99_panel.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
-<script src="/suite/plan/plan.js"></script>
+<script src="/suite/plan/modules/01_state_helpers.js"></script>
+<script src="/suite/plan/modules/02_render.js"></script>
+<script src="/suite/plan/modules/03_editor_actions.js"></script>
+<script src="/suite/plan/modules/04_boot.js"></script>
 <script>
 /* Plan collab comments — open threaded comments for the active board/plan. */
 function getPlanId() {

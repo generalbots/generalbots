@@ -10,7 +10,9 @@ var CACHE = "gb-desktop-shell-v41";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
-  "/suite/js/security-bootstrap.js?v=6",
+  "/suite/js/security-bootstrap/01_tokens.js?v=6",
+  "/suite/js/security-bootstrap/02_interceptors.js?v=6",
+  "/suite/js/security-bootstrap/99_init.js?v=6",
   "/suite/js/window-manager.js?v=131",
   "/suite/js/widget-registry.js?v=2",
   "/suite/js/widget-renderer.js?v=2",
