@@ -89,7 +89,7 @@ fn to_json(mut params: Params) -> Json<serde_json::Value> {
 
 /// The deck an empty session starts from: the rest of the app addresses it
 /// as `current` (saves and canvas operations use that literal id).
-fn blank_presentation() -> Presentation {
+pub(crate) fn blank_presentation() -> Presentation {
     let theme = crate::utils::create_default_theme();
     Presentation {
         id: "current".to_string(),

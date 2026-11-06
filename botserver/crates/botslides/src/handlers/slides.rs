@@ -21,10 +21,17 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 macro_rules! load_pres {
-    ($state:expr, $user_id:expr, $pres_id:expr) => {
+    ($state:expr, $user_id:expr, $pres_id:expr) => {{
+        let requested_id = $pres_id.to_string();
         match $state.drive.as_ref() {
-            Some(drive) => match load_presentation_by_id(drive, $user_id, $pres_id).await {
+            Some(drive) => match load_presentation_by_id(drive, $user_id, &requested_id).await {
                 Ok(p) => p,
+                // The blank deck rendered as `current` is not persisted until
+                // the first mutation; without this fallback every element,
+                // slide and notes call on a fresh deck returned 404.
+                Err(_) if requested_id == "current" => {
+                    crate::ui_fragments::get_bridge::blank_presentation()
+                }
                 Err(e) => {
                     return Err((
                         StatusCode::NOT_FOUND,
@@ -39,7 +46,7 @@ macro_rules! load_pres {
                 ))
             }
         }
-    };
+    }};
 }
 
 macro_rules! save_pres {
@@ -468,6 +475,57 @@ pub async fn handle_update_element<D: DriveOps>(
         ));
     }
 
+    // The animation form posts action=add_animation without an element_type;
+    // it used to fall through to wire_element and append an invisible 0×0
+    // element while the animation was never stored.
+    if payload.get("action").and_then(|value| value.as_str()) == Some("add_animation") {
+        let element_id = payload
+            .get("element_id")
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        if element_id.is_empty() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "element_id is required for an animation" })),
+            ));
+        }
+        let animation = crate::types::Animation {
+            animation_type: payload
+                .get("animation_type")
+                .and_then(|value| value.as_str())
+                .unwrap_or("fade_in")
+                .to_string(),
+            trigger: payload
+                .get("trigger")
+                .and_then(|value| value.as_str())
+                .unwrap_or("on_click")
+                .to_string(),
+            duration: payload.get("duration").and_then(|value| value.as_f64()).unwrap_or(0.5),
+            delay: payload.get("delay").and_then(|value| value.as_f64()).unwrap_or(0.0),
+            direction: payload
+                .get("direction")
+                .and_then(|value| value.as_str())
+                .map(str::to_string),
+        };
+        let slide = &mut presentation.slides[slide_index];
+        match slide.elements.iter_mut().find(|item| item.id == element_id) {
+            Some(existing) => existing.animations.push(animation),
+            None => {
+                return Err((
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({ "error": "Element not found" })),
+                ))
+            }
+        }
+        presentation.updated_at = Utc::now();
+        save_pres!(state, &user_id, &presentation);
+        return Ok(Json(SaveResponse {
+            id: presentation_id.clone(),
+            success: true,
+            message: Some("Animation added".to_string()),
+        }));
+    }
+
     // Canvas drag/resize and inline text edits target an existing element
     // with a partial payload; merge those fields so the element type and
     // table/chart content survive instead of being rebuilt as a 0×0 shape.
@@ -567,6 +625,22 @@ pub async fn handle_apply_theme<D: DriveOps>(
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = get_current_user_id();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
+
+    // The master picker posts to the same route; it changes each slide's
+    // layout and must leave the current theme untouched.
+    if req.action.as_deref() == Some("set_master") {
+        let master = req.master_id.unwrap_or_else(|| "default".to_string());
+        for slide in &mut presentation.slides {
+            slide.layout = master.clone();
+        }
+        presentation.updated_at = Utc::now();
+        save_pres!(state, &user_id, &presentation);
+        return Ok(Json(SaveResponse {
+            id: req.presentation_id,
+            success: true,
+            message: Some("Master applied".to_string()),
+        }));
+    }
 
     let theme = match req.theme {
         Some(theme) => theme,

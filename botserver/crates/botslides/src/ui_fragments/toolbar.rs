@@ -278,8 +278,20 @@ pub async fn handle_transition_form(Json(payload): Json<serde_json::Value>) -> H
 pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let atype = payload.get("type").and_then(|v| v.as_str()).unwrap_or("fade_in");
+    let element_id = payload
+        .get("element_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let idx = payload
+        .get("slide_index")
+        .and_then(|value| {
+            value
+                .as_u64()
+                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+        })
+        .unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/element/update" hx-vals='{{"presentation_id":"{id}","action":"add_animation","animation_type":"{atype}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/element/update" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_id":"{eid}","action":"add_animation","animation_type":"{atype}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <label style="color:#f8fafc;font-size:13px;">Duração (s)
 <input type="number" name="duration" value="0.5" min="0.1" max="10" step="0.1" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
@@ -299,7 +311,9 @@ pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Ht
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Aplicar Animação</button>
 </form>"##,
         id = html_escape(id),
-        atype = html_escape(atype)
+        atype = html_escape(atype),
+        eid = html_escape(element_id),
+        idx = idx
     ))
 }
 

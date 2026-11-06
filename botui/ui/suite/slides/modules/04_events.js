@@ -238,6 +238,24 @@ function getSlidesPresentationId() {
 }
 window.getSlidesPresentationId = getSlidesPresentationId;
 
+// Every toolbar form used to post presentation_id "current" and
+// slide_index "current" literally, so acting on an imported/saved deck wrote
+// to the blank deck (or 404'd). htmx re-evaluates `js:` values per request.
+function gbSlidesParams() {
+  var canvas = document.getElementById("slide-canvas");
+  var slide = canvas ? parseInt(canvas.dataset.slideId, 10) || 0 : 0;
+  var selected = window.SlideCanvas && window.SlideCanvas.selectedId
+    ? window.SlideCanvas.selectedId
+    : "";
+  return {
+    presentation_id: getSlidesPresentationId(),
+    slide_index: slide,
+    current_slide: slide,
+    element_id: selected || "",
+  };
+}
+window.gbSlidesParams = gbSlidesParams;
+
 function initCollab() {
   if (!window.GBCollab) return;
   var connStatus = document.getElementById("gb-conn-status");

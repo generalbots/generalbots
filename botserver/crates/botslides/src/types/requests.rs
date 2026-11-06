@@ -119,6 +119,13 @@ pub struct ApplyThemeRequest {
     /// theme rather than rejecting the payload.
     #[serde(default)]
     pub theme_name: Option<String>,
+    /// The master form posts action=set_master; applying a master must not
+    /// reset the deck theme (unknown fields used to fall through to the
+    /// default theme).
+    #[serde(default)]
+    pub action: Option<String>,
+    #[serde(default)]
+    pub master_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
