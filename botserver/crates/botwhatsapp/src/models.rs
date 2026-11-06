@@ -58,6 +58,10 @@ pub struct UserSession {
     pub session_id: Option<String>,
     pub data: Option<serde_json::Value>,
     pub expires_at: Option<DateTime<Utc>>,
+    // #1682 — locked conversations. Columns added by 6.8.7-chat-lock; every
+    // user_sessions reader must carry them to stay aligned with botschema.
+    pub locked: bool,
+    pub lock_pin_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
