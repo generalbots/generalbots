@@ -206,6 +206,11 @@ fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
         if !(upper.starts_with("ADD_SUGGESTION") || upper.starts_with("ADD SUGGESTION")) {
             continue;
         }
+        // Skip ADD_SUGGESTION_TOOL/_TEXT: those are context/tool actions and
+        // their first quoted value is a tool name, not a display label.
+        if !upper[14..].trim_start().starts_with('"') {
+            continue;
+        }
         let Some(open) = trimmed.find('"') else { continue };
         let rest = &trimmed[open + 1..];
         let Some(close) = rest.find('"') else { continue };
