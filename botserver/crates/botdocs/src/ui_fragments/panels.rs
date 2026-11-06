@@ -1,9 +1,42 @@
 use super::{empty_fragment, html_escape};
 use axum::{response::Html, Json};
-use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TrackChange};
+use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry, TrackChange};
 
 pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let toc: Option<TableOfContents> = serde_json::from_value(payload.get("toc").cloned().unwrap_or(serde_json::Value::Null)).ok();
+    // The toolbar/sidebar buttons post only the live editor HTML, not a
+    // persisted TOC: derive one from the headings so the panel has content.
+    let toc = match toc {
+        Some(toc) if !toc.entries.is_empty() => Some(toc),
+        _ => {
+            let items = payload
+                .get("content")
+                .and_then(|value| value.as_str())
+                .map(heading_items)
+                .unwrap_or_default();
+            if items.is_empty() {
+                None
+            } else {
+                Some(TableOfContents {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    title: "Sumário".to_string(),
+                    entries: items
+                        .iter()
+                        .map(|item| TocEntry {
+                            id: item.id.clone(),
+                            text: item.text.clone(),
+                            level: item.level,
+                            page_number: None,
+                            position: item.position,
+                        })
+                        .collect(),
+                    max_level: 6,
+                    show_page_numbers: false,
+                    use_hyperlinks: false,
+                })
+            }
+        }
+    };
     match toc {
         Some(t) if !t.entries.is_empty() => {
             let mut html = String::from(
@@ -207,7 +240,14 @@ pub async fn handle_styles_panel(Json(payload): Json<serde_json::Value>) -> Html
 }
 
 pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let outline: Vec<OutlineItem> = serde_json::from_value(payload.get("outline").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    let mut outline: Vec<OutlineItem> = serde_json::from_value(payload.get("outline").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    if outline.is_empty() {
+        outline = payload
+            .get("content")
+            .and_then(|value| value.as_str())
+            .map(heading_items)
+            .unwrap_or_default();
+    }
     if outline.is_empty() {
         return Html(empty_fragment("Nenhum item de estrutura detectado. Use títulos (H1, H2, H3) para criar uma estrutura hierárquica."));
     }
@@ -262,4 +302,49 @@ pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<Str
         },
         prompt = html_escape(prompt)
     ))
+}
+
+/// Extracts H1–H6 headings from editor HTML (attributes allowed). The stored
+/// outline API only matches exact `<hN>` tags and cannot see unsaved edits.
+fn heading_items(content: &str) -> Vec<OutlineItem> {
+    let mut items = Vec::new();
+    for level in 1..=6u32 {
+        let open = format!("<h{level}");
+        let close = format!("</h{level}>");
+        let mut position = 0usize;
+        while let Some(start) = content[position..].find(&open) {
+            let absolute = position + start;
+            let Some(tag_end) = content[absolute..].find('>') else { break };
+            let text_start = absolute + tag_end + 1;
+            let Some(text_end) = content[text_start..].find(&close) else { break };
+            let text = plain_text(&content[text_start..text_start + text_end]);
+            if !text.is_empty() {
+                items.push(OutlineItem {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    text,
+                    level,
+                    position: absolute,
+                    length: text_end,
+                    style_name: format!("Heading {level}"),
+                });
+            }
+            position = text_start + text_end + close.len();
+        }
+    }
+    items.sort_by_key(|item| item.position);
+    items
+}
+
+fn plain_text(html: &str) -> String {
+    let mut output = String::with_capacity(html.len());
+    let mut inside_tag = false;
+    for character in html.chars() {
+        match character {
+            '<' => inside_tag = true,
+            '>' => inside_tag = false,
+            other if !inside_tag => output.push(other),
+            _ => {}
+        }
+    }
+    output.trim().to_string()
 }

@@ -17,7 +17,7 @@
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="tocBtn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" title="Table of Contents">
+                <button class="btn-icon" id="tocBtn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" title="Table of Contents">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 </button>
                 <button class="btn-icon" id="commentsBtn" onclick="openDocComments()" title="Comments" aria-label="Comments">
@@ -26,7 +26,7 @@
                 <button class="btn-icon" id="presentBtn" type="button" title="Present" aria-label="Present" onclick="window.DocsPresent && DocsPresent.toggle()">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 </button>
-                <button class="btn-icon" id="trackChangesBtn" hx-post="/suite/docs/fragments/track-changes" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" title="Track Changes">
+                <button class="btn-icon" id="trackChangesBtn" hx-post="/suite/docs/fragments/track-changes" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" title="Track Changes">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                 </button>
             </div>
@@ -104,12 +104,13 @@
             </div>
             <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" style="flex:1;overflow-y:auto;"></div>
             <div class="sidebar-content" id="sidebar-panels" data-sidebar-content="panels" style="display:none;flex-direction:column;padding:8px;gap:6px;">
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/outline" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📑 Outline</button>
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/styles" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Estilos</button>
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/footnotes" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">¹ Notas de Rodapé</button>
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/endnotes" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">ⁿ Notas Finais</button>
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🗂 Sumário</button>
-                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/ai" hx-vals='{"id":"current"}' hx-target="#docs-content" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🤖 Painel IA</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/outline" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">📑 Outline</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/styles" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🎨 Estilos</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/footnotes" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">¹ Notas de Rodapé</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/endnotes" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">ⁿ Notas Finais</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🗂 Sumário</button>
+                <button class="sidebar-panel-btn" hx-post="/suite/docs/fragments/ai" hx-vals='{"id":"current"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="padding:8px;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;cursor:pointer;text-align:left;font-size:12px;">🤖 Painel IA</button>
+                <div id="docs-panel-body" style="margin-top:8px;"></div>
             </div>
         </aside>
 
@@ -240,6 +241,12 @@ document.addEventListener("htmx:afterSwap", function (e) {
         setTimeout(bindDocsBadge, 0);
         setTimeout(function () { if (typeof checkDocDraftOnLoad === "function") checkDocDraftOnLoad(); }, 0);
         setTimeout(startDocConflictWatch, 0);
+    }
+    if (e.target.id === "docs-panel-body") {
+        // Toolbar buttons (TOC, track changes) render into the sidebar panel
+        // host; reveal the Painéis tab so the result is visible.
+        var panelsTab = document.querySelector('[data-sidebar-tab="panels"]');
+        if (panelsTab) panelsTab.click();
     }
 });
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); setTimeout(startDocConflictWatch, 50); });

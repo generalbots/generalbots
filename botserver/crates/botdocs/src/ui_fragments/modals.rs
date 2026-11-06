@@ -2,7 +2,6 @@ use super::html_escape;
 use axum::{response::Html, Json};
 
 pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Documento");
     Html(format!(
         r##"<div class="dc-modal" id="share-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
@@ -11,10 +10,11 @@ pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<
 <h3 style="margin:0;color:#f8fafc;">Compartilhar "{title}"</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-post="/suite/docs/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+<p style="margin:0;color:#cbd5e1;font-size:13px;">Share "{title}" with your team and choose who can view, comment or edit.</p>
+<button type="button" onclick="this.closest('.dc-modal').remove(); if(window.openDocShare) openDocShare();" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Abrir compartilhamento</button>
 </div>
 </div>"##,
-        id = html_escape(id),
         title = html_escape(title)
     ))
 }

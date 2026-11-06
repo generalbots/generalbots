@@ -132,6 +132,16 @@ var DocumentAIDriver = {
 // document the user is editing instead of a literal "current".
 document.addEventListener("htmx:configRequest", function (event) {
   var parameters = (event.detail && event.detail.parameters) || {};
+  // Sidebar panel fragments compute outline/TOC from the live editor HTML;
+  // the stored copy lags behind the autosave debounce and a Drive-opened
+  // document may not be stored yet.
+  var elt = event.detail && event.detail.elt;
+  var path = (elt && elt.getAttribute && elt.getAttribute("hx-post")) || "";
+  if (path.indexOf("/suite/docs/fragments/") === 0) {
+    var scope = elt && elt.closest ? (elt.closest("[id^=window-body-docs]") || document) : document;
+    var article = scope.querySelector("#doc-content");
+    if (article) parameters.content = article.innerHTML;
+  }
   var keys = ["id", "doc_id", "document_id"];
   var needsRewrite = keys.some(function (key) { return parameters[key] === "current"; });
   if (!needsRewrite) return;
