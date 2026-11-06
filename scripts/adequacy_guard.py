@@ -238,6 +238,12 @@ def scan_tree() -> tuple[dict[str, list[Violation]], int]:
                 continue
 
             lines = count_lines(text)
+            # Generated bundles are not first-party sources: the Tailwind CLI
+            # writes output.css (header identifies the generator), and splitting
+            # it by hand would be overwritten on the next build. Vendored trees
+            # are already skipped by SKIP_DIRS.
+            if ext == ".css" and "tailwindcss v" in text[:200].lower():
+                continue
             if lines > HARD_LIMIT:
                 found["oversize_" + ext[1:]].append((rel, 0, f"{lines} lines"))
             if ext == ".css" and is_part_suffixed_css(rel):
