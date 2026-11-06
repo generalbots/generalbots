@@ -99,6 +99,10 @@ const SURFACE_TOOLS: &[SurfaceToolEntry] = &[
                 "csp",
                 "{\"connectDomains\": [], \"resourceDomains\": []} — empty by default",
             ),
+            (
+                "permissions",
+                "[\"camera\", \"microphone\"] — optional browser permissions for the sandbox",
+            ),
         ],
         read_only: false,
         destructive: false,
@@ -192,7 +196,7 @@ pub fn manifests() -> Value {
                     if !description.is_empty() {
                         properties.insert(
                             (*name).to_string(),
-                            json!({ "type": "string", "description": description }),
+                            argument_schema(argument_type(entry.name, name), description),
                         );
                     }
                 }
@@ -214,6 +218,71 @@ pub fn manifests() -> Value {
             })
             .collect(),
     )
+}
+
+/// The same native tools in the OpenAI function-calling shape the provider
+/// expects. Without this they were advertised in the prompt but absent from
+/// the tool list, so a model could only trigger them by printing a raw
+/// `__tool_call__` JSON blob (#1711).
+#[must_use]
+pub fn llm_tools() -> Vec<Value> {
+    SURFACE_TOOLS
+        .iter()
+        .map(|entry| {
+            let mut properties = serde_json::Map::new();
+            for (name, description) in entry.args {
+                properties.insert(
+                    (*name).to_string(),
+                    argument_schema(argument_type(entry.name, name), description),
+                );
+            }
+            json!({
+                "type": "function",
+                "function": {
+                    "name": entry.name,
+                    "description": entry.summary,
+                    "parameters": {
+                        "type": "object",
+                        "properties": properties,
+                    },
+                },
+            })
+        })
+        .collect()
+}
+
+/// JSON type of one tool argument. Structured fields must be declared as
+/// arrays/objects: the renderers reject a JSON string where they expect a
+/// list, and models follow the schema they are given.
+fn argument_type(tool: &str, arg: &str) -> &'static str {
+    match (tool, arg) {
+        ("ask_user", "fields") => "array",
+        ("ask_user", "blocking") => "boolean",
+        ("propose_plan", "steps") => "array",
+        ("propose_plan", "questions") => "array",
+        ("show_surface", "components") => "array",
+        ("show_app", "csp") => "object",
+        ("show_app", "permissions") => "array-string",
+        _ => "string",
+    }
+}
+
+fn argument_schema(kind: &str, description: &str) -> Value {
+    match kind {
+        "array" => json!({
+            "type": "array",
+            "items": { "type": "object" },
+            "description": description,
+        }),
+        "array-string" => json!({
+            "type": "array",
+            "items": { "type": "string" },
+            "description": description,
+        }),
+        "object" => json!({ "type": "object", "description": description }),
+        "boolean" => json!({ "type": "boolean", "description": description }),
+        _ => json!({ "type": "string", "description": description }),
+    }
 }
 
 #[cfg(test)]
@@ -253,8 +322,29 @@ mod tests {
                 annotations.get("destructiveHint"),
                 Some(&json!(entry.destructive))
             );
-            let schema = manifest.get("inputSchema").expect("inputSchema");
-            assert_eq!(schema.get("type"), Some(&json!("object")));
-        }
+    #[test]
+    fn llm_tools_declare_structured_arguments() {
+        let tools = llm_tools();
+        assert_eq!(tools.len(), SURFACE_TOOLS.len());
+        let ask = tools
+            .iter()
+            .find(|tool| tool["function"]["name"] == json!("ask_user"))
+            .expect("ask_user tool");
+        assert_eq!(
+            ask["function"]["parameters"]["properties"]["fields"]["type"],
+            json!("array")
+        );
+        assert_eq!(
+            ask["function"]["parameters"]["properties"]["blocking"]["type"],
+            json!("boolean")
+        );
+        let surface = tools
+            .iter()
+            .find(|tool| tool["function"]["name"] == json!("show_surface"))
+            .expect("show_surface tool");
+        assert_eq!(
+            surface["function"]["parameters"]["properties"]["components"]["type"],
+            json!("array")
+        );
     }
 }

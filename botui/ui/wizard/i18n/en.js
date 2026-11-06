@@ -20,7 +20,6 @@ window.GBWizardLocales["en"] = {
   "step.services": "Connect services",
   "step.privacy": "Privacy",
   "step.install": "Install",
-  "step.accounts": "AI accounts",
   "step.finish": "Finish",
 
   "heading.welcome": "Welcome",
@@ -29,7 +28,6 @@ window.GBWizardLocales["en"] = {
   "heading.services": "Connect services",
   "heading.privacy": "What leaves this machine",
   "heading.install": "Setting up this machine",
-  "heading.accounts": "Connect your AI accounts",
   "heading.finish": "Ready to open the assistant",
 
   "welcome.lead": "Runs on this machine; nothing leaves it unless you connect a service.",
@@ -153,7 +151,6 @@ window.GBWizardLocales["en"] = {
   "install.stack-ready": "Stack is ready",
   "install.retry": "Retry",
 
-  "accounts.lead": "Connect a Claude or ChatGPT subscription, or skip this step. The assistant works without one, and you can connect later in Settings.",
   "accounts.unlinked": "Not connected",
   "accounts.checking": "Checking…",
   "accounts.linked": "Connected",
@@ -165,7 +162,6 @@ window.GBWizardLocales["en"] = {
   "accounts.code-placeholder": "Authorization code",
   "accounts.submit": "Submit code",
   "accounts.starting": "Starting the sign-in helper…",
-  "accounts.later": "You can connect or disconnect these accounts at any time in Settings → AI accounts.",
   "finish.lead": "Review what this machine will do. Save the administrator account, then open the assistant.",
   "finish.connect-title": "Connect {name}",
   "finish.connect-note": "Sign in once to let the assistant use your {name} subscription. You can skip this and connect later in Settings → AI accounts.",

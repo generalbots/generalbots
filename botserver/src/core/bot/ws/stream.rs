@@ -220,6 +220,15 @@ pub async fn process_llm_response(
                     }
                 }
             };
+            // #1711 — the native structured tools must be callable through the
+            // provider's tool API. This path serves the web socket only, which
+            // is where the renderers exist.
+            let mut session_tools = session_tools;
+            if crate::core::bot::pipeline::event_sink::enabled() {
+                session_tools.extend(
+                    crate::core::bot::pipeline::surface_catalog::llm_tools(),
+                );
+            }
 
             let steer_llm = llm.clone();
             let steer_key = llm_key_clone.clone();

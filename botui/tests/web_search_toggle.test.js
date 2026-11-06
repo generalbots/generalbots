@@ -123,35 +123,37 @@ function loadModule(options) {
   return { api: window.ChatWebSearch, button: button, storage: storage, window: window };
 }
 
-// 1. Default is on, with the visible state matching.
+// 1. Default is off, with the visible state matching. The desktop assistant
+// answers from the model and the knowledge base unless the user asks for live
+// sources (the module comment documents the deliberate flip).
 let loaded = loadModule();
-assertEqual(loaded.api.isEnabled(), true, "default is on");
-assertEqual(loaded.button.getAttribute("aria-pressed"), "true", "aria-pressed is true by default");
-assertEqual(loaded.button.title.indexOf("Web search: on"), 0, "tooltip says on");
-assertEqual(loaded.button.classList.contains("is-off"), false, "not muted by default");
-
-// 2. Turning it off persists and paints the off state.
-loaded.api.setEnabled(false);
-assertEqual(loaded.api.isEnabled(), false, "setEnabled(false) flips the state");
-assertEqual(loaded.button.getAttribute("aria-pressed"), "false", "aria-pressed follows the state");
+assertEqual(loaded.api.isEnabled(), false, "default is off");
+assertEqual(loaded.button.getAttribute("aria-pressed"), "false", "aria-pressed is false by default");
 assertEqual(loaded.button.title.indexOf("Web search: off"), 0, "tooltip says off");
-assertEqual(loaded.button.classList.contains("is-off"), true, "off state is muted");
-assertEqual(label.textContent, "Web off", "visible label says off");
-assertEqual(loaded.storage.getItem(loaded.api.storageKey()), "false", "choice is persisted");
+assertEqual(loaded.button.classList.contains("is-off"), true, "muted by default");
 
-// 3. A reload for the same bot+user starts off.
+// 2. Turning it on persists and paints the on state.
+loaded.api.setEnabled(true);
+assertEqual(loaded.api.isEnabled(), true, "setEnabled(true) flips the state");
+assertEqual(loaded.button.getAttribute("aria-pressed"), "true", "aria-pressed follows the state");
+assertEqual(loaded.button.title.indexOf("Web search: on"), 0, "tooltip says on");
+assertEqual(loaded.button.classList.contains("is-off"), false, "on state is not muted");
+assertEqual(label.textContent, "Web on", "visible label says on");
+assertEqual(loaded.storage.getItem(loaded.api.storageKey()), "true", "choice is persisted");
+
+// 3. A reload for the same bot+user starts on.
 loaded = loadModule({ storage: loaded.storage });
-assertEqual(loaded.api.isEnabled(), false, "reload keeps the persisted off state");
-assertEqual(loaded.button.getAttribute("aria-pressed"), "false", "reload paints off");
+assertEqual(loaded.api.isEnabled(), true, "reload keeps the persisted on state");
+assertEqual(loaded.button.getAttribute("aria-pressed"), "true", "reload paints on");
 
 // 4. Clicking the button toggles (keyboard Enter/Space reach the same handler).
 loaded.button.click();
-assertEqual(loaded.api.isEnabled(), true, "click turns search back on");
-assertEqual(loaded.button.getAttribute("aria-pressed"), "true", "click repaints aria-pressed");
+assertEqual(loaded.api.isEnabled(), false, "click turns search back off");
+assertEqual(loaded.button.getAttribute("aria-pressed"), "false", "click repaints aria-pressed");
 
 // 5. Per-bot/user key: another user starts at the default.
 const other = loadModule({ storage: loaded.storage, user: "user-2" });
-assertEqual(other.api.isEnabled(), true, "a different user keeps the default on");
+assertEqual(other.api.isEnabled(), false, "a different user keeps the default off");
 assertEqual(
   loaded.api.storageKey() !== other.api.storageKey(),
   true,

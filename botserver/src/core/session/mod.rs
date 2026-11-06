@@ -57,6 +57,9 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
     fn save_message(&mut self, session_id: uuid::Uuid, user_id: uuid::Uuid, role: i32, content: &str, message_type: i32) -> Result<(), String> {
         self.0.save_message(session_id, user_id, role, content, message_type).map_err(|e| e.to_string())
     }
+    fn record_message_model(&mut self, session_id: uuid::Uuid, model: &str) -> Result<(), String> {
+        self.0.record_message_model(session_id, model).map_err(|e| e.to_string())
+    }
     fn get_conversation_history(&mut self, session_id: uuid::Uuid, user_id: uuid::Uuid, limit: Option<i64>) -> Result<Vec<(String, String)>, String> {
         self.0.get_conversation_history(session_id, user_id, limit).map_err(|e| e.to_string())
     }

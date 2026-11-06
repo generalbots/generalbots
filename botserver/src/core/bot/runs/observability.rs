@@ -13,6 +13,7 @@ use std::sync::{Mutex, OnceLock};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use diesel::prelude::*;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 struct OpenSpan {
@@ -83,6 +84,48 @@ fn unix_nanos() -> u128 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_nanos())
         .unwrap_or(0)
+}
+
+/// Creates the `agent_runs` row for a chat turn. `agent_spans.run_id` has a
+/// foreign key to this table, so without the row every span insert failed
+/// silently and the observability/cost surfaces stayed empty (#1679).
+pub fn begin_run_row(
+    pool: &botlib::db_pool::DbPool,
+    run_id: &str,
+    bot_id: Option<Uuid>,
+    agent: &str,
+) {
+    let (Ok(run_uuid), Some(bot_id)) = (Uuid::parse_str(run_id), bot_id) else {
+        return;
+    };
+    let Ok(mut conn) = pool.get() else {
+        return;
+    };
+    let plan = serde_json::json!({ "agent": agent });
+    let _ = diesel::sql_query(
+        "INSERT INTO agent_runs (id, bot_id, trigger_kind, status, plan, started_at) \
+         VALUES ($1, $2, 'chat', 'running', $3, NOW()) ON CONFLICT (id) DO NOTHING",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(run_uuid)
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Jsonb, _>(plan)
+    .execute(&mut conn);
+}
+
+/// Closes the `agent_runs` row created by [`begin_run_row`].
+pub fn finish_run_row(pool: &botlib::db_pool::DbPool, run_id: &str, status: &str) {
+    let Ok(run_uuid) = Uuid::parse_str(run_id) else {
+        return;
+    };
+    let Ok(mut conn) = pool.get() else {
+        return;
+    };
+    let _ = diesel::sql_query(
+        "UPDATE agent_runs SET status = $2, finished_at = NOW() WHERE id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(run_uuid)
+    .bind::<diesel::sql_types::Text, _>(status)
+    .execute(&mut conn);
 }
 
 pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {

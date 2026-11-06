@@ -61,6 +61,28 @@ pub fn request_body(model: &str, prompt: &str, messages: &Value) -> Value {
     })
 }
 
+/// Turns a ChatGPT backend rejection into an actionable message. The plan
+/// endpoints use two documented error codes; without naming them the user only
+/// saw a generic 429/403 (#1651).
+#[must_use]
+pub fn actionable_error(status: u16, code: &str, message: &str) -> String {
+    match (status, code) {
+        (429, "subscription_sharing_usage_limit_exceeded") => format!(
+            "Your ChatGPT plan usage limit was reached. Wait for it to reset or pick another model. ({message})"
+        ),
+        (403, "subscription_sharing_user_not_eligible") => format!(
+            "This ChatGPT account is not eligible for plan usage in third-party apps. Check the plan in Settings → AI accounts. ({message})"
+        ),
+        (429, _) => format!(
+            "ChatGPT is rate limiting requests. Retry shortly or pick another model. ({message})"
+        ),
+        (403, _) => format!(
+            "ChatGPT refused access. Reconnect the account in Settings → AI accounts. ({message})"
+        ),
+        _ => format!("ChatGPT plan error ({status}): {message}"),
+    }
+}
+
 /// Sends one non-streaming turn to the ChatGPT backend.
 pub async fn generate(
     client: &reqwest::Client,
@@ -95,12 +117,16 @@ pub async fn generate(
         .await
         .map_err(|error| format!("ChatGPT plan response was not JSON: {error}"))?;
     if !status.is_success() {
-        let message = body
-            .get("error")
+        let error = body.get("error");
+        let message = error
             .and_then(|value| value.get("message"))
             .and_then(Value::as_str)
             .unwrap_or("ChatGPT plan rejected the request");
-        return Err(format!("ChatGPT plan error ({status}): {message}"));
+        let code = error
+            .and_then(|value| value.get("code"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        return Err(actionable_error(status.as_u16(), code, message));
     }
     extract_output_text(&body)
         .ok_or_else(|| "ChatGPT plan returned no assistant text".to_string())
@@ -136,6 +162,26 @@ mod tests {
     fn stream_delta_reads_the_delta_field() {
         let event = serde_json::json!({ "type": "response.output_text.delta", "delta": "hi" });
         assert_eq!(extract_stream_delta(&event).as_deref(), Some("hi"));
+    }
+
+    #[test]
+    fn plan_usage_limits_are_named() {
+        assert!(super::actionable_error(
+            429,
+            "subscription_sharing_usage_limit_exceeded",
+            "limit"
+        )
+        .contains("usage limit"));
+        assert!(super::actionable_error(
+            403,
+            "subscription_sharing_user_not_eligible",
+            "nope"
+        )
+        .contains("not eligible"));
+        assert_eq!(
+            super::actionable_error(500, "", "boom"),
+            "ChatGPT plan error (500): boom"
+        );
     }
 
     #[test]

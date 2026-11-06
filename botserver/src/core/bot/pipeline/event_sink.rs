@@ -84,10 +84,15 @@ pub fn observe_persisted_seq(thread_id: &str, seq: u64) {
 pub fn enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
     *ENABLED.get_or_init(|| {
-        matches!(
-            std::env::var("GB_RUN_EVENTS").as_deref(),
-            Ok("1") | Ok("true") | Ok("yes")
-        )
+        // The desktop edition ships the conversation workspace: run cards,
+        // structured tools and generative UI are product features there, not
+        // an opt-in. Server deployments keep the opt-in default so an upgrade
+        // does not change their traffic shape (#1662).
+        match std::env::var("GB_RUN_EVENTS").ok().as_deref() {
+            Some("1") | Some("true") | Some("yes") => true,
+            Some("0") | Some("false") | Some("no") => false,
+            _ => cfg!(feature = "desktop-local"),
+        }
     })
 }
 
@@ -284,6 +289,9 @@ pub async fn emit_custom(
 
 pub async fn run_started(sink: &dyn ChannelSink, context: &RunContext, title: Option<&str>) {
     crate::core::bot::runs::bus::bus().thread(&context.thread_id).set_state(RunState::Running);
+    if let Some(state) = context.state.as_ref() {
+        observability::begin_run_row(&state.conn, &context.run_id, context.bot_id, &context.agent);
+    }
     observability::start_run(&context.thread_id, &context.run_id, Some(&context.agent));
     let data = serde_json::json!({
         "agent": context.agent,
@@ -300,6 +308,9 @@ pub async fn run_finished(
     exit_code: Option<i32>,
 ) {
     crate::core::bot::runs::bus::bus().finish(&context.thread_id, state);
+    if let Some(app) = context.state.as_ref() {
+        observability::finish_run_row(&app.conn, &context.run_id, &state.to_string());
+    }
     observability::finish_run(
         &context.run_id,
         &state.to_string(),
@@ -320,6 +331,9 @@ pub async fn run_error(
     code: Option<&str>,
 ) {
     crate::core::bot::runs::bus::bus().finish(&context.thread_id, RunState::Failed);
+    if let Some(app) = context.state.as_ref() {
+        observability::finish_run_row(&app.conn, &context.run_id, "failed");
+    }
     observability::finish_run(
         &context.run_id,
         "failed",

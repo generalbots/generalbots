@@ -161,7 +161,10 @@ async fn spawn_listener(pool: DbPool, state: String) -> Result<(), (StatusCode, 
         .map_err(|error| {
             bad(
                 StatusCode::CONFLICT,
-                &format!("Cannot listen on {address} for the ChatGPT callback: {error}"),
+                &format!(
+                    "Another ChatGPT sign-in is already in progress ({address} is busy). \
+                     Finish that sign-in or wait up to 15 minutes, then retry. ({error})"
+                ),
             )
         })?;
     let router = Router::new()
@@ -169,8 +172,17 @@ async fn spawn_listener(pool: DbPool, state: String) -> Result<(), (StatusCode, 
         .with_state((pool, state));
     tokio::spawn(async move {
         let server = axum::serve(listener, router);
-        if let Err(error) = server.await {
-            log::warn!("chatgpt oauth listener stopped: {error}");
+        // An abandoned sign-in used to hold the fixed loopback port forever,
+        // so nobody could start a new one (#1651).
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(900),
+            async { server.await },
+        )
+        .await
+        {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => log::warn!("chatgpt oauth listener stopped: {error}"),
+            Err(_) => log::info!("chatgpt oauth listener expired after 15 minutes"),
         }
     });
     Ok(())

@@ -41,6 +41,7 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/consent/**", "GET", ""),
         RoutePermission::new("/api/consent/**", "POST", ""),
         RoutePermission::new("/api/consent/**", "DELETE", ""),
+        RoutePermission::new("/api/ui/consent/**", "GET", ""),
         // Conversation autotasks (#1613): per-user cron/systemd jobs owned by
         // the caller's conversation. Missing from the catalogue, so every
         // GET/POST answered 403 and the chat indicator was permanently dark.

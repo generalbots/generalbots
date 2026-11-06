@@ -322,9 +322,23 @@ pub async fn terminal_exec(
     #[cfg(not(feature = "agent-vm"))]
     let container: Option<String> = None;
     let container = container.ok_or_else(|| {
+        audit_terminal(
+            &state.conn,
+            TerminalAuditRow {
+                user_id,
+                session_id: body.session_id.as_deref().unwrap_or(""),
+                action_id: Some(action_id),
+                command,
+                cwd: body.cwd.as_deref().unwrap_or(""),
+                container: "",
+                decision: "denied",
+                exit_code: None,
+                output: "workspace container is not running",
+            },
+        );
         api_error(
-            StatusCode::FORBIDDEN,
-            "no workspace container: send a message in chat first",
+            StatusCode::CONFLICT,
+            "The agent workspace is not running. Finish provisioning (or restart the desktop app), then retry.",
         )
     })?;
 

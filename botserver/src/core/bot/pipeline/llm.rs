@@ -133,8 +133,14 @@ async fn stream_llm_response_inner(
 
             let style_css = crate::core::bot::ws::message::load_bot_styles_css(&bot_name_clone);
 
-            let session_tools =
+            let mut session_tools =
                 get_session_tools_with_timeout(&state_clone, &bot_name_clone, &session_id_s).await;
+            // #1711 — the native structured tools must be callable through the
+            // provider's tool API, not only through a raw `__tool_call__`
+            // marker printed in prose.
+            if is_web_channel(sink) && super::event_sink::enabled() {
+                session_tools.extend(super::surface_catalog::llm_tools());
+            }
 
             let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
 
@@ -355,6 +361,7 @@ async fn stream_llm_response_inner(
                     {
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                        let _ = sm.record_message_model(session_id, llm_model);
                     }
                     break;
                 }
@@ -410,6 +417,7 @@ async fn stream_llm_response_inner(
                     {
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                        let _ = sm.record_message_model(session_id, llm_model);
                     }
                     return Ok(());
                 }
@@ -585,6 +593,7 @@ async fn stream_llm_response_inner(
                 {
                     let mut sm = state.session_manager.lock().await;
                     let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                    let _ = sm.record_message_model(session_id, llm_model);
                 }
                 #[cfg(feature = "memory-os")]
                 crate::core::bot::memory_hook::extract_from_turn(

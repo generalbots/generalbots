@@ -73,6 +73,13 @@ function bindFileEvents() {
         var hitBucket = item.dataset.bucket || "";
         if (hitBucket && hitBucket !== getEffectiveBucket()) {
             currentBucket = hitBucket;
+            // The org-layout pointer is what getEffectiveBucket() prefers;
+            // leaving it on the previous org bucket made previews read the
+            // wrong bucket for a hit from another bucket (#1710).
+            currentGborgBucket = hitBucket.indexOf(".gborg") > 0 ? hitBucket : null;
+            currentGborgBranch = currentGborgBucket
+                ? hitBucket.replace(".gborg", "")
+                : null;
             updateBucketSelector();
         }
         if (type === "folder") loadFiles(path, hitBucket || getEffectiveBucket());
@@ -81,7 +88,7 @@ function bindFileEvents() {
         // it to the player/viewer instead. `openFile` is left untouched so the
         // context-menu "Open" still reaches the real editors (photo editor,
         // sheets, designer) per #1306.
-        else if (isPreviewable(path)) previewFile(path);
+        else if (isPreviewable(path)) previewFile(path, hitBucket || getEffectiveBucket());
         else openFile(path);
     });
 }

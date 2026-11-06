@@ -162,6 +162,9 @@
       pane = document.createElement("div");
       pane.id = "gb-widget-pane";
       pane.className = "gb-widget-pane";
+      // aria-label is only valid on elements with a role; a bare div has none
+      // (axe: aria-prohibited-attr, #1680).
+      pane.setAttribute("role", "region");
       pane.setAttribute("aria-label", "Desktop widgets");
       var host = workspaceEl || document.getElementById("desktop-content");
       if (host) host.appendChild(pane);

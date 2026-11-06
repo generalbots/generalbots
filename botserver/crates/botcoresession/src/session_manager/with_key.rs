@@ -246,6 +246,11 @@ impl SessionManager {
         let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
         let encrypted_content = encrypt_field(content, &key_bytes)
             .map_err(|e| format!("Encryption failed: {e}"))?;
+        // Usage and cost reports aggregate `message_history.token_count`.
+        // Nothing populated it, so every deployment reported zero tokens
+        // (#1712). A character-based estimate is the only measure available
+        // here; it is close enough for budgeting and never invents a model.
+        let token_count = i32::try_from(content.chars().count().div_ceil(4)).unwrap_or(i32::MAX);
 
         diesel::insert_into(message_history::table)
             .values((
@@ -256,6 +261,7 @@ impl SessionManager {
                 message_history::content_encrypted.eq(encrypted_content),
                 message_history::message_type.eq(msg_type),
                 message_history::message_index.eq(next_index),
+                message_history::token_count.eq(token_count),
                 message_history::created_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;
@@ -266,6 +272,31 @@ impl SessionManager {
             .set(user_sessions::updated_at.eq(chrono::Utc::now()))
             .execute(&mut conn)?;
         botlog::safe_trace!("Message saved for session {} with index {}", sess_id, next_index);
+        Ok(())
+    }
+
+    /// Records the model that produced the latest assistant message so the
+    /// usage endpoint can price the tokens it just counted (#1712). The row is
+    /// located by the highest message index, which is the reply that was saved
+    /// immediately before this call.
+    pub fn record_message_model(
+        &mut self,
+        sess_id: Uuid,
+        model: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        if model.trim().is_empty() {
+            return Ok(());
+        }
+        let mut conn = self.pool.get()?;
+        diesel::sql_query(
+            "UPDATE message_history SET llm_model = $2 \
+             WHERE id = (SELECT id FROM message_history \
+                         WHERE session_id = $1 AND role = 2 \
+                         ORDER BY message_index DESC LIMIT 1)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(sess_id)
+        .bind::<diesel::sql_types::Text, _>(model.trim())
+        .execute(&mut conn)?;
         Ok(())
     }
 

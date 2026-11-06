@@ -85,6 +85,13 @@ pub trait SessionManagerService: Send + Debug {
         message_type: i32,
     ) -> Result<(), String>;
 
+    /// Records which model produced the latest assistant message. Used by the
+    /// usage report to price counted tokens; implementations without usage
+    /// accounting may keep the no-op default (#1712).
+    fn record_message_model(&mut self, _session_id: uuid::Uuid, _model: &str) -> Result<(), String> {
+        Ok(())
+    }
+
     fn get_conversation_history(
         &mut self,
         session_id: uuid::Uuid,

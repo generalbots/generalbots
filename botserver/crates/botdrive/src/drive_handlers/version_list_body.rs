@@ -34,9 +34,18 @@ pub struct VersionRestoreBody {
     pub user_id: Option<String>,
 }
 
-fn versions_prefix(scope: &FileScope, uid: &str, key: &str) -> String {
-    // `resolve_scope_prefix` already ends with `/` for user scope and is empty
-    // for bot scope; concatenating keeps a single separator either way.
+fn versions_prefix(_scope: &FileScope, _uid: &str, key: &str) -> String {
+    // `key` already carries the caller's scope prefix (`users/{id}/…` for user
+    // scope, relative for bot scope) — every caller builds it with
+    // `resolve_scope_prefix`. Prepending the scope again produced
+    // `.versions/users/u/users/u/…`, so a restore listed a path that did not
+    // match the next snapshot (#1714).
+    format!("{VERSIONS_ROOT}/{key}/")
+}
+
+/// Revisions written before #1714 carry the scope prefix twice. They stay
+/// readable and restorable; new snapshots use the corrected single prefix.
+fn legacy_versions_prefix(scope: &FileScope, uid: &str, key: &str) -> String {
     format!("{VERSIONS_ROOT}/{}{key}/", resolve_scope_prefix(scope, uid))
 }
 
@@ -117,23 +126,29 @@ pub async fn list_versions(
         normalize_path(&req.path)
     );
     let prefix = versions_prefix(&scope, &uid, &key);
-    let objects = drive
-        .list_objects_with_metadata(&bucket, Some(&prefix))
-        .await
-        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
-    let mut versions: Vec<serde_json::Value> = objects
+    let legacy = legacy_versions_prefix(&scope, &uid, &key);
+    let mut by_key: std::collections::BTreeMap<String, u64> = std::collections::BTreeMap::new();
+    for candidate in [prefix, legacy] {
+        let objects = drive
+            .list_objects_with_metadata(&bucket, Some(&candidate))
+            .await
+            .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
+        for object in objects {
+            by_key.insert(object.key, object.size);
+        }
+    }
+    let mut versions: Vec<serde_json::Value> = by_key
         .into_iter()
-        .map(|object| {
-            let stamp = object
-                .key
+        .map(|(key, size)| {
+            let stamp = key
                 .rsplit('/')
                 .next()
                 .unwrap_or_default()
                 .to_string();
             serde_json::json!({
-                "version": object.key,
+                "version": key,
                 "stamp": stamp,
-                "size": object.size,
+                "size": size,
             })
         })
         .collect();
@@ -167,9 +182,16 @@ pub async fn restore_version(
         normalize_path(&req.path)
     );
     // The version must live under this file's own history: a caller cannot ask
-    // the endpoint to copy an arbitrary object over a target.
-    let allowed_prefix = versions_prefix(&scope, &uid, &key);
-    if !version_belongs_to_file(&allowed_prefix, &req.version) {
+    // the endpoint to copy an arbitrary object over a target. Revisions from
+    // before #1714 carry the doubled scope prefix and stay restorable.
+    let allowed_prefixes = [
+        versions_prefix(&scope, &uid, &key),
+        legacy_versions_prefix(&scope, &uid, &key),
+    ];
+    if !allowed_prefixes
+        .iter()
+        .any(|prefix| version_belongs_to_file(prefix, &req.version))
+    {
         return Err(err(StatusCode::BAD_REQUEST, "version does not belong to this file"));
     }
     // Keep the revision we are about to replace.
@@ -192,14 +214,14 @@ mod tests {
     fn history_prefix_is_scoped_to_user_and_file() {
         assert_eq!(
             versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt"),
-            ".versions/users/u-1/users/u-1/docs/a.txt/"
+            ".versions/users/u-1/docs/a.txt/"
         );
         assert_eq!(
             versions_prefix(&FileScope::Bot, "", "docs/a.txt"),
             ".versions/docs/a.txt/"
         );
-        assert!(!versions_prefix(&FileScope::User, "u-1", "docs/a.txt")
-            .contains(".versions//"));
+        assert!(!versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt")
+            .contains("users/u-1/users/u-1"));
     }
 
     #[test]
@@ -210,11 +232,11 @@ mod tests {
             &format!("{prefix}20261101T120000000Z")
         ));
         assert!(
-            !version_belongs_to_file(&prefix, ".versions/users/u-1/users/u-1/docs/b.txt/20261101T120000000Z"),
+            !version_belongs_to_file(&prefix, ".versions/users/u-1/docs/b.txt/20261101T120000000Z"),
             "another file's history must be refused"
         );
         assert!(
-            !version_belongs_to_file(&prefix, ".versions/users/u-2/users/u-2/docs/a.txt/20261101T120000000Z"),
+            !version_belongs_to_file(&prefix, ".versions/users/u-2/docs/a.txt/20261101T120000000Z"),
             "another user's history must be refused"
         );
         assert!(!version_belongs_to_file(&prefix, &prefix), "the directory itself is not a revision");

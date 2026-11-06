@@ -237,7 +237,9 @@ function tabText(key, fallback) {
       strip = document.createElement("div");
       strip.id = "gbTabStrip";
       strip.className = "gb-tab-strip";
-      strip.setAttribute("role", "tablist");
+      // The tablist role belongs to the element whose children are the tabs.
+      // New-tab and overflow controls are buttons, which a tablist may not
+      // contain, so they live beside the inner list (#1680).
       strip.setAttribute("aria-label", tabText("tab-strip", "Conversations"));
       // Tabs were pointer-only <div>s: keyboard and screen-reader users could
       // not reach them. Arrow keys move, Enter/Space activates, Delete closes.
@@ -272,7 +274,8 @@ function tabText(key, fallback) {
       wrapper.insertBefore(strip, wrapper.firstChild);
     }
     var visible = visibleTabs();
-    var html = "";
+    var html = '<div class="gb-tab-list" role="tablist" aria-label="' +
+      escapeHtml(tabText("tab-strip", "Conversations")) + '">';
     visible.forEach(function (tab) {
       var idx = GBTabs.state.tabs.indexOf(tab);
       var glyph = tab.faviconGlyph ||
@@ -291,6 +294,7 @@ function tabText(key, fallback) {
         '<button type="button" class="gb-tab-close" title="' + escapeHtml(tabText("tab-close", "Close tab")) + '">\u00D7</button>' +
         "</div>";
     });
+    html += "</div>";
     var hidden = GBTabs.state.tabs.length - visible.length;
     if (hidden > 0) {
       html += '<button type="button" class="gb-tab-overflow" id="gbTabOverflow" title="' +

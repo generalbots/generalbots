@@ -145,7 +145,10 @@ async fn create(
             )
         })
     });
-    let Some((llm, model, key)) = provider else {
+    // `resolve_bot_llm_provider` returns `(provider, key, model)`; reading the
+    // last two in the other order sent the API key as the model name, so every
+    // sub-agent failed with `404 model_not_found` (#1709).
+    let Some((llm, key, model)) = provider else {
         return Err(api_error(
             StatusCode::SERVICE_UNAVAILABLE,
             "no LLM provider is configured for sub-agents",

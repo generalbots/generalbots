@@ -15,6 +15,13 @@
     scrollbar-width: thin;
 }
 
+/* The tablist is an inner element so the new-tab/overflow buttons are not
+   illegal children of role=tablist. display:contents keeps the strip layout
+   identical while the group keeps its accessibility semantics (#1680). */
+.gb-tab-list {
+    display: contents;
+}
+
 .gb-tab {
     display: inline-flex;
     align-items: center;
@@ -109,6 +116,12 @@
     line-height: 1;
     padding: 0 2px;
     opacity: 0.5;
+    /* WCAG 2.5.8 target size: the close glyph used to be 12x14 px (#1680). */
+    min-width: 24px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .gb-tab-close:hover {

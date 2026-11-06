@@ -126,10 +126,14 @@ function isPreviewable(path) {
     return PREVIEWABLE_EXT.indexOf(getFileExt(path)) !== -1;
 }
 
-async function previewFile(path) {
+async function previewFile(path, bucket) {
     try {
         var fileName = path.split("/").pop() || "preview";
         var ext = getFileExt(path);
+        // A search hit may live in a bucket other than the current one; the
+        // caller passes the row's own bucket so the preview never reads the
+        // wrong store (#1710).
+        var previewBucket = bucket || getEffectiveBucket();
         showNotification("Loading preview...", "info");
         // Fetch the raw bytes instead of the base64 JSON envelope: the
         // base64 route inflated the payload by a third and decoded it
@@ -139,7 +143,7 @@ async function previewFile(path) {
         if (token) headers["Authorization"] = "Bearer " + token;
         if (OFFICE_PREVIEW_EXT.indexOf(ext) !== -1) {
             const office = await fetch(
-                "/api/files/office-preview?bucket=" + encodeURIComponent(getEffectiveBucket()) +
+                "/api/files/office-preview?bucket=" + encodeURIComponent(previewBucket) +
                 "&path=" + encodeURIComponent(path),
                 { headers: token ? { "Authorization": "Bearer " + token } : {} }
             );
@@ -150,7 +154,7 @@ async function previewFile(path) {
         const response = await fetch(API_BASE + "/download-inline", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+            body: JSON.stringify({ bucket: previewBucket, path: path, scope: currentScope }),
         });
         if (!response.ok) throw new Error("HTTP " + response.status);
         const blob = await response.blob();

@@ -16,6 +16,7 @@
     var samples = [];
     var reconnectStarted = null;
     var firstCardAt = null;
+    var sentAt = null;
     var resuming = false;
 
     function now() {
@@ -34,10 +35,23 @@
         return sorted[index];
     }
 
+    // The send is the only anchor that measures the promise "first paint
+    // under 150 ms" from the user's action. The mounted event's startedAt is
+    // the mount time when the server has not sent an epoch yet, which made
+    // every sample 0 (#1680).
+    window.addEventListener("gb-chat-message-sent", function () {
+        sentAt = now();
+    });
+
     window.addEventListener("gb-run-card-mounted", function (event) {
         var started = event.detail && event.detail.startedAt;
-        if (!started) return;
         firstCardAt = now();
+        if (sentAt !== null) {
+            push("first_paint", Math.max(0, firstCardAt - sentAt));
+            sentAt = null;
+            return;
+        }
+        if (!started) return;
         push("first_paint", Math.max(0, firstCardAt - started));
     });
 

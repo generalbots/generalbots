@@ -161,7 +161,7 @@ function bindContextMenu() {
     });
 }
 
-function showContextMenu(x, y, path, type) {
+function showContextMenu(x, y, path, type, bucket) {
     var menu = document.getElementById("context-menu");
     if (!menu) {
         menu = document.createElement("div");
@@ -171,6 +171,7 @@ function showContextMenu(x, y, path, type) {
     }
     var isFolder = type === "folder";
     var ep = escapeJs(path);
+    var eb = escapeJs(bucket || "");
     var icons = {
         open: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>',
         download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
@@ -190,7 +191,7 @@ function showContextMenu(x, y, path, type) {
     html += isFolder
         ? '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.loadFiles(\'' + ep + '\', \'' + currentBucket + '\')">' + icons.open + '<span>Open</span></div>'
         : '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.openFile(\'' + ep + '\')">' + icons.open + '<span>Open</span></div>'
-        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.previewFile(\'' + ep + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Preview</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.previewFile(\'' + ep + '\', \'' + eb + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Preview</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.downloadFile(\'' + ep + '\')">' + icons.download + '<span>Download</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.shareFile(\'' + ep + '\')">' + icons.link + '<span>Share link</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyLink(\'' + ep + '\')">' + icons.link + '<span>Copy link</span></div>'
@@ -222,7 +223,8 @@ function showContextMenu(x, y, path, type) {
 function showContextMenuFor(event, path) {
     var el = document.querySelector('[data-path="' + CSS.escape(path) + '"]');
     var type = el ? el.dataset.type : "file";
-    showContextMenu(event.clientX, event.clientY, path, type);
+    var bucket = el ? (el.dataset.bucket || "") : "";
+    showContextMenu(event.clientX, event.clientY, path, type, bucket);
 }
 
 function bindKeyboardShortcuts() {

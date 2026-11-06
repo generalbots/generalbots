@@ -40,8 +40,18 @@ const composerCss = read("botui/ui/suite/chat/chat-composer.css");
 const windowManager = read("botui/ui/suite/js/window-manager.js");
 const sidebarSections = read("botui/ui/suite/js/sidebar-sections.js");
 
-// #1614/#1615 — the profile ships chat+drive and hides the out-of-scope apps.
-check(/^apps=chat,drive\s*$/m.test(product), "desktop profile ships only chat,drive");
+// #1614/#1615 — the profile ships chat+drive plus the everyday tools the
+// desktop edition deliberately keeps (clock, player, sheet, docs, …). Out of
+// scope domains must never be advertised.
+const productApps = ((product.match(/^apps=(.*)$/m) || [])[1] || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+check(productApps.indexOf("chat") !== -1 && productApps.indexOf("drive") !== -1,
+  "desktop profile ships chat and drive");
+check(["mail", "calendar", "people", "tickets", "billing", "meet", "social", "marketing", "hr", "integrations"]
+  .every((app) => productApps.indexOf(app) === -1),
+  "desktop profile ships no out-of-scope domain app");
 check(/^hidden_apps=integrations,automations,research,sources\s*$/m.test(product),
   "desktop profile hides integrations, automations, research and sources");
 check(baseJs.indexOf("function isAppHidden") !== -1, "hidden_apps has a client helper");
@@ -56,12 +66,12 @@ check(/window\.isAppHidden\(id\)/.test(windowManager),
 check(/This application is not part of this edition/.test(windowManager),
   "hidden app shows a clear not-available message");
 
-// #1596 — quick actions declare the app they launch and are filtered.
-check(/app:\s*"vibe"/.test(sidebarSections), "Vibe quick action declares its app");
-check(/isAppEnabled\(action\.app\)/.test(sidebarSections),
-  "quick actions are filtered by the product app set");
+// #1596 — quick actions declare the app they launch and are filtered. The
+// unconditional Vibe quick action is gone from the desktop sidebar entirely.
 check(!/label:\s*"Vibe",\s*\n\s*run:/.test(sidebarSections),
   "no unconditional Vibe quick action remains");
+check(/label:\s*tr\("chat-new-conversation"/.test(sidebarSections),
+  "the sidebar keeps its chat quick action");
 
 // #1619 — search placeholder and the disabled-search removal.
 check(/placeholder="Search\.\.\."/.test(desktop), "search placeholder reads 'Search...'");
@@ -111,9 +121,12 @@ check(/categoryOrder = \[[\s\S]*?"llm"/.test(read("botui/ui/suite/integrations/m
   "integrations renders the LLM category first");
 
 // #1628 — settings hides sections the chat+drive edition cannot serve.
+// #1675 keeps Integrations visible on purpose: it hosts MCP server management.
 check(/function applyEditionVisibility/.test(settingsJs), "settings has an edition visibility filter");
-check(/\["billing", "vibe", "integrations"\]\.forEach\(hideSettingsSection\)/.test(settingsJs),
-  "billing, vibe and integrations are hidden in the slim edition");
+check(/\["billing", "vibe"\]\.forEach\(hideSettingsSection\)/.test(settingsJs),
+  "billing and vibe are hidden in the slim edition");
+check(!/\["billing", "vibe", "integrations"\]\.forEach/.test(settingsJs),
+  "integrations stays visible for MCP management (#1675)");
 check(/data-admin-only/.test(settingsJs), "administration entries are hidden in the slim edition");
 
 // #1628 — navigation targets exist and the remaining switches are wired.
@@ -130,6 +143,19 @@ check(/function bindToggles/.test(settingsJs) && /function loadSavedSettings/.te
 check(/web-search = \[[^\]]*dep:botresearch/.test(cargoToml), "web-search feature compiles botresearch");
 check(/desktop-local = \[[\s\S]*?"web-search"/.test(cargoToml), "desktop-local enables web-search");
 check(/any\(feature = "research", feature = "web-search"\)/.test(pipelineExec), "pipeline honours web-search without the Research app");
+
+// #1680 — accessibility contracts that the Lighthouse gate checks. The widget
+// pane needs a role for its aria-label, the tablist must contain only tabs,
+// and the close control must meet the 24 px target size.
+check(/pane\.setAttribute\("role", "region"\)/.test(read("botui/ui/suite/js/widget-registry.js")),
+  "widget pane has a region role for its aria-label");
+const tabsJs = read("botui/ui/suite/chat/modules/20_tabs.js");
+const tabCss = read("botui/ui/suite/chat/chat.p6.css");
+check(tabsJs.indexOf('role="tablist"') !== -1, "tabs render inside a tablist");
+check(!/strip\.setAttribute\("role", "tablist"\)/.test(tabsJs),
+  "the strip itself is not the tablist (buttons would be illegal children)");
+check(/\.gb-tab-close\s*\{[^}]*min-width:\s*24px[^}]*min-height:\s*24px/s.test(tabCss),
+  "tab close target is at least 24x24 px");
 
 console.log(`desktop_surfaces: ${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
