@@ -1,16 +1,139 @@
 /* GB Screensaver (#1151) */
 #gb-screensaver {
+  --gbss-accent: var(--accent, #d4f505);
+  --gbss-cyan: #5ad8ff;
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: #02060c;
+  background: #02040b;
   cursor: none;
+  overflow: hidden;
 }
+
+#gb-screensaver::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.62) 100%);
+}
+
 #gb-screensaver-canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
+
+/* ---------- Stage / emblem ---------- */
+
+.gb-ss-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 3vh;
+  pointer-events: none;
+}
+
+.gb-ss-emblem {
+  width: min(58vmin, 470px);
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 0 22px rgba(90, 216, 255, 0.16));
+}
+
+.gb-ss-halo {
+  animation: gbssHalo 7s ease-in-out infinite;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+.gb-ss-orbit {
+  animation: gbssSpin 120s linear infinite;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+.gb-ss-orbit--inner { animation: gbssSpinRev 90s linear infinite; }
+
+.gb-ss-gear {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+.gb-ss-gear path {
+  animation: gbssDraw 2.4s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.gb-ss-gear--outer { animation: gbssSpin 48s linear infinite; }
+.gb-ss-gear--inner { animation: gbssSpinRev 26s linear infinite; }
+.gb-ss-gear--inner path { animation-delay: 0.2s; }
+
+.gb-ss-sat {
+  transform-box: view-box;
+  animation: gbssSpinRev 18s linear infinite;
+}
+
+.gb-ss-sat path {
+  animation: gbssDraw 2s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+/* ---------- Robot head assembly ---------- */
+
+.gb-ss-part {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gbssAssemble 0.95s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+.gb-ss-bulb {
+  animation: gbssPulse 1.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.gb-ss-eye {
+  animation: gbssBlink 6.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.gb-ss-scanbar {
+  animation: gbssScan 2.6s ease-in-out infinite alternate;
+}
+
+/* ---------- Typography ---------- */
+
+.gb-screensaver-wordmark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 15%;
+  text-align: center;
+  pointer-events: none;
+  animation: gbssFadeUp 1.8s 0.9s ease-out both;
+}
+
+.gb-screensaver-wordmark span {
+  display: block;
+  font-size: clamp(13px, 1.7vmin, 21px);
+  font-weight: 500;
+  letter-spacing: 0.44em;
+  text-transform: uppercase;
+  color: rgba(234, 246, 255, 0.88);
+  text-shadow: 0 0 18px rgba(90, 216, 255, 0.32);
+}
+
+.gb-screensaver-wordmark small {
+  display: block;
+  margin-top: 10px;
+  font-size: 10px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: rgba(212, 245, 5, 0.62);
+}
+
 .gb-screensaver-hint {
   position: absolute;
   bottom: 26px;
@@ -20,7 +143,61 @@
   font-size: 12px;
   letter-spacing: 0.08em;
   color: rgba(232, 244, 255, 0.45);
+  pointer-events: none;
+  animation: gbssFadeIn 2.4s 2.6s ease-out both;
 }
-@media (prefers-reduced-motion: reduce) {
-  /* Blank scene only: engine respects by never animating when set to blank. */
+
+/* ---------- Keyframes ---------- */
+
+@keyframes gbssSpin { to { transform: rotate(360deg); } }
+@keyframes gbssSpinRev { to { transform: rotate(-360deg); } }
+
+@keyframes gbssDraw {
+  from { stroke-dashoffset: var(--gbss-len, 1400); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes gbssAssemble {
+  from { opacity: 0; transform: translateY(26px) scale(0.55) rotate(-14deg); }
+  to { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes gbssBlink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  93%, 96% { transform: scaleY(0.1); }
+}
+
+@keyframes gbssScan {
+  from { transform: translateX(-14px); opacity: 0.45; }
+  to { transform: translateX(14px); opacity: 1; }
+}
+
+@keyframes gbssPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+@keyframes gbssHalo {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes gbssFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gbssFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 0.95; transform: translateY(0); }
+}
+
+/* ---------- Reduced motion: keep the composition, drop the motion ---------- */
+
+.gb-ss-static * {
+  animation: none !important;
+}
+
+.gb-ss-static .gb-ss-part {
+  opacity: 1;
 }

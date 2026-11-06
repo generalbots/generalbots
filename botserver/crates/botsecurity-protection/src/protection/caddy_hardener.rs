@@ -25,7 +25,7 @@ const SECURITY_HEADERS_SNIPPET: &str = r#"
         X-Frame-Options "DENY"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
-        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Permissions-Policy "geolocation=(), microphone=(self), camera=(self)"
         -Server
     }
 }
@@ -67,6 +67,16 @@ impl CaddyHardener {
 
     fn patch_config(original: &str) -> String {
         let mut result = original.to_string();
+
+        // Older installs shipped a Policy that blocked the microphone and the
+        // camera outright. The web chat records voice notes and photos from
+        // the same origin, so upgrade that line when it is present.
+        if result.contains(r#"Permissions-Policy "geolocation=(), microphone=(), camera=()""#) {
+            result = result.replace(
+                r#"Permissions-Policy "geolocation=(), microphone=(), camera=()""#,
+                r#"Permissions-Policy "geolocation=(), microphone=(self), camera=(self)""#,
+            );
+        }
 
         // Add snippets after the global block (first `}`) if not already present
         if !result.contains("(security_headers)") {

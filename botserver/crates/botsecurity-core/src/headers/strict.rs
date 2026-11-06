@@ -20,13 +20,18 @@ impl Default for SecurityHeadersConfig {
             x_xss_protection: Some("1; mode=block".to_string()),
             strict_transport_security: Some("max-age=31536000; includeSubDomains; preload".to_string()),
             referrer_policy: Some("strict-origin-when-cross-origin".to_string()),
+            // Chat voice input and the camera capture button call
+            // getUserMedia from the same origin, so those two features must be
+            // delegated to self. Every other sensor stays disabled: a
+            // `microphone=()` here silently blocks the browser prompt and the
+            // mic button appears dead (#1691 follow-up).
             permissions_policy: Some(
                 "accelerometer=(), \
-                 camera=(), \
+                 camera=(self), \
                  geolocation=(), \
                  gyroscope=(), \
                  magnetometer=(), \
-                 microphone=(), \
+                 microphone=(self), \
                  payment=(), \
                  usb=()"
                     .to_string(),

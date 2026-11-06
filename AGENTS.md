@@ -1,5 +1,4 @@
-# General Bots AI Agent Guidelines
-
+GOAL: Process all github issues off-line first codeing, let github ci do the work and download release here to test and fix code, loop, until no more issues openened. And parallel off-line code, do not depend on response to continue coding. Commenting issues and webtesting before clsogin issues, respect those rules of agents.md here. Letting botbook updated if changed.
 <p align="center"><img src="logo.svg" alt="General Bots" width="200"></p>
 
 ## Non-Negotiable Rules
@@ -9,16 +8,13 @@
 | **Language** | 🌐 ALWAYS respond in English regardless of the user's language — answer directly and concisely |
 | **Temp files** | Stop saving `.png`/files on repo root — use `/tmp/`. NEVER create new files on root |
 | **Backups** | NEVER create `.bak`/`.old`/backup dirs in the repo — use `/tmp/` only; never commit them |
-| **ALM push** | NEVER push to alm without asking first — it is production! |
 | **Boteval cost** | ✅ Boteval runs on **CI only** (`boteval.yml` / `boteval-run`). ❌ NEVER run `boteval` / `boteval-run` locally or in dev — every task spends paid model calls. Results live in the CI run report only — do not re-run locally for verification, and do not store e2e run history in the repo. |
-| **Deploy** | ❌ NEVER deploy to production manually (no `scp`, no direct SSH binary copy, no manual transfers). ✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically. Never compile directly for production — ALWAYS push + CI/CD |
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
 | **Todos** | 📋 Update the todo list REGULARLY — after every completed step, when starting a new phase, and whenever priorities change. Long stretches without todo updates are forbidden |
 | **CDP control** | 🖥️ Browser automation MUST be fragmented: one short script = ONE action, print state, STOP. NEVER generate long all-in-one CDP scripts that batch many steps silently |
-| **Env status** | I AM IN DEV ENV, but sometimes pasting from PROD — do not treat my env as prod! Just fix, push to CI, so I can test in PROD for a while |
-| **License** | The project is **MIT** (relicensed from AGPL-3.0 in `4ef5f58fc`, 2026-09-12) and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
+| **License** | The project is **MIT** and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 | **Diesel schema** | 🗄️ `table!`/`joinable!` live ONLY in the `botschema` crate (#1497). NEVER copy a table into a feature crate — re-export `pub use botschema::<table>;`. Change schema via a migration → `diesel migration run` → `diesel print-schema` → update `botschema` → commit. CI guard: `scripts/schema_guard.py` fails on any new non-canonical `table!`. |
 
 ### Ports (quick reference)
@@ -29,7 +25,7 @@
 
 ### Mandatory Browser Testing
 - 🚨 **ALL bot tests MUST be done via browser (Chrome CDP port 9222).** ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) — only the browser reflects the real state of chat, suggestions, buttons, network errors.
-- 🚨 EVERY web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. **One tab per use case, NEVER close the browser** — tabs are living trace evidence.
+- 🚨 EVERY web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. **One tab per use case, NEVER close the browser** - recycle tabs.
 - Tool trouble? Go to the official website for proper install/instructions.
 
 ### Secrets & IPs
@@ -46,28 +42,6 @@
 - ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
 - 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
 - The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
-
-### Test Identifiers (prod beiner media-filing E2E)
-Reusable ids so the next session does not rediscover them — no secrets, no IPs:
-
-| What | Value |
-|------|-------|
-| Bot name / display name | `beiner` / "AABB-bot" (Telegram chat handle `aabb_test_bot`) |
-| Bot UUID | `f25671b3-61cd-4970-9626-bd99d9fb398a` |
-| Web Telegram chat | `https://web.telegram.org/k/#@aabb_test_bot` (tab kept open in the Chrome CDP profile, never closed) |
-| Telegram chat id | `6676512312` (user "Rodrigo") |
-| Telegram session id | `5f1d25c6-43a0-41c3-bb4a-c61c8c6be42` |
-| Bot repo | ALM org `a2125c56`, repo `beiner` — checkout at `/opt/gbo/data/vibe-workspaces/beiner` in the `bot` container |
-| Drive buckets | `beiner.gbai` (layout 1, `beiner.gbdrive/…`) and `beiner.gborg` (org layout, `beiner.gbai/…`) |
-| E2E result shape | media lands at `beiner.gbdrive/media/{YYYY}/{MM}/{category}/{uuid}.{ext}` + sibling `.meta.txt` (`category=`, `kind=`, `path=`, `caption=`, `perception=`) |
-| Prod services | botserver runs via `systemctl` in the `bot` container (logs: `journalctl -u botserver`, health on the container's own port) |
-
-**Send a photo through Telegram Web (fastest reliable path):** Telegram K keeps one hidden `input[type=file]`; setting it directly skips the attach menu. The staged photo opens a `.popup-send-photo` whose own `btn-primary` button must be clicked (`.btn-send` in the composer is covered by the popup):
-```python
-await page.locator("input[type=file]").first.set_input_files(IMG)   # then wait for .popup-send-photo
-await page.locator(".popup-send-photo .btn-primary").first.click()   # send
-```
-
 
 ---
 
@@ -229,16 +203,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 
 ### Drive Bucket Hierarchy — Two Layouts
 
-**Layout 1 — Standalone bot (no org):** bucket `{bot}.gbai` at the top level (e.g. `default.gbai`):
-```
-{bucket} default.gbai/
-├── default.gbdialog/   # scripts: start.bas, {tool}.bas, tables.bas
-├── default.gbkb/       # knowledge base docs
-├── default.gbot/       # bot config (LLM settings → Vault)
-└── default.gbdrive/    # files/reports (optional)
-```
-
-**Layout 2 — Org workspace (SaaS):** bucket `{org}.gborg` contains one or more workspace prefixes `{workspace}.gbai/`, each holding **several bots** — every bot is a set of sibling `{bot}.gbot`, `{bot}.gbdialog`, `{bot}.gbkb`, `{bot}.gbdrive` directories (there is NO per-bot bucket):
+**Layout  — Org workspace (SaaS):** bucket `{org}.gborg` contains one or more workspace prefixes `{workspace}.gbai/`, each holding **several bots** — every bot is a set of sibling `{bot}.gbot`, `{bot}.gbdialog`, `{bot}.gbkb`, `{bot}.gbdrive` directories (there is NO per-bot bucket):
 ```
 {bucket} cristo.gborg/                 # org (tenant)
 └── cristo.gbai/                       # workspace = branch container
@@ -382,118 +347,6 @@ Conventions:
 
 ---
 
-## BASIC Keywords Reference
-
-### Language Guidelines
-Use formal language in comments and documentation — no slang, neologisms, or informal expressions; maintain professional tone.
-
-### Data Operations
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `GET` | `GET FROM {table} WHERE {condition}` | Query database records |
-| `SET` | `SET {variable} = {value}` | Set variable value |
-| `SAVE` | `SAVE {data} TO {table}` | Insert/update database record |
-| `FIND` | `FIND {value} IN {table}` | Search for specific value |
-| `FIRST`/`LAST` | `FIRST({array})` / `LAST({array})` | Get first/last element |
-| `COUNT` | `COUNT({array})` | Count elements |
-| `FORMAT` | `FORMAT "{template}", var1, var2` | Format string with variables |
-
-### Communication
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `TALK` | `TALK "{message}"` | Respond to user (`TALK "Line 1\nLine 2"` multi-line; supports `+` concat) |
-| `HEAR` | `HEAR "{phrase}" AS {variable}` | Listen for user input (used in voice/chat triggered tools) |
-| `SEND MAIL` | `SEND MAIL TO "{email}" WITH subject, body` | Send email |
-| `SEND TEMPLATE` | `SEND TEMPLATE "{name}" TO "{email}"` | Send email template |
-| `SEND SMS` | `SEND SMS TO "{phone}" MESSAGE "{text}"` | Send SMS |
-
-### File Operations
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `CREATE FILE` | `CREATE FILE "{path}" WITH {content}` | Create file in .gbdrive |
-| `READ FILE` | `READ FILE "{path}"` | Read file content |
-| `WRITE FILE` | `WRITE FILE "{path}" WITH {content}` | Write to file |
-| `DELETE FILE` / `COPY FILE` / `MOVE FILE` / `LIST FILES` | `DELETE|COPY|MOVE FILE ...` / `LIST FILES "{path}"` | File management |
-| `UPLOAD` / `DOWNLOAD` | `UPLOAD {data} TO "{path}"` / `DOWNLOAD "{url}" TO "{path}"` | Upload to MinIO / download |
-
-### HTTP Operations
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `GET HTTP` / `POST HTTP` / `PUT HTTP` / `DELETE HTTP` | `GET HTTP "{url}"` etc. | HTTP requests |
-| `WEBHOOK` | `WEBHOOK "{url}" WITH {data}` | Send webhook |
-
-### AI/LLM Operations
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `LLM` | `LLM "{prompt}"` | Call LLM with prompt |
-| `USE KB` | `USE KB "{knowledge_base}"` | Use knowledge base for context |
-| `CLEAR KB` | `CLEAR KB` | Clear KB context |
-| `USE TOOL` / `CLEAR TOOLS` | `USE TOOL "{tool}"` / `CLEAR TOOLS` | Enable/disable external tools |
-| `USE WEBSITE` | `USE WEBSITE "{url}"` | Scrape website for context |
-
-**USE KB flow:** `USE KB "manual"` → bot searches `.gbkb/` → chunks text, creates embeddings → queries Qdrant for relevant chunks → injects into LLM prompt as context → user question answered with KB context.
-
-### Task & Scheduling
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `CREATE_TASK` | `CREATE_TASK "{title}", "{assignee}", "{due}", {project}` | Create task |
-| `WAIT` | `WAIT {seconds}` | Pause execution |
-| `ON` / `ON EMAIL` / `ON CHANGE` | `ON "{event}" DO {action}` etc. | Event handlers (`ON EMAIL FROM "@company.com" DO CALL "process_email"`) |
-
-### Bot & Memory
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `SET BOT MEMORY` / `GET BOT MEMORY` | `SET BOT MEMORY "{key}" = {value}` | Bot-level memory (persists across sessions) |
-| `REMEMBER` / `RECALL` | `REMEMBER "{key}" = {value}` | Session-level memory |
-| `SET CONTEXT` | `SET CONTEXT "{key}" = {value}` | Conversation context |
-| `ADD_SUGGESTION` | `ADD_SUGGESTION "{text}"` | Add quick-reply button (in start.bas). Deduped via Redis SADD, key `suggestions:{bot_id}:{session_id}`, read with SMEMBERS |
-| `CLEAR SUGGESTIONS` | `CLEAR SUGGESTIONS` | Clear suggestions |
-
-### User & Session
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `SET USER` | `SET USER "{property}" = {value}` | Update user property |
-| `TRANSFER TO HUMAN` | `TRANSFER TO HUMAN` | Escalate to human agent |
-| `ADD_MEMBER` | `ADD_MEMBER "{group}", "{email}", "{role}"` | Add user to group |
-
-### Documents & Content
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `CREATE DRAFT` | `CREATE DRAFT "{title}" WITH {content}` | Create document draft |
-| `CREATE SITE` | `CREATE SITE "{name}" WITH {config}` | Create website |
-| `SAVE FROM UNSTRUCTURED` | `SAVE FROM UNSTRUCTURED {data} TO {table}` | Parse and save data |
-
-### Multi-Bot Operations
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `ADD BOT` / `REMOVE BOT` / `LIST BOTS` | `ADD BOT "{name}" WITH TRIGGER "{phrase}"` | Sub-bot management |
-| `DELEGATE TO` | `DELEGATE TO "{bot}"` | Delegate to another bot |
-| `SEND TO BOT` | `SEND TO BOT "{name}" MESSAGE "{msg}"` | Inter-bot message |
-| `BROADCAST MESSAGE` | `BROADCAST MESSAGE "{msg}"` | Broadcast to all bots |
-
-### Social Media
-| Keyword | Syntax | Description |
-|---------|--------|-------------|
-| `POST TO SOCIAL` | `POST TO SOCIAL "{platform}" MESSAGE "{text}"` | Social media post |
-| `GET SOCIAL FEED` | `GET SOCIAL FEED "{platform}"` | Get social feed |
-
-### Control Flow
-```basic
-IF condition THEN ... ELSE ... END IF
-FOR EACH item IN collection ... NEXT
-SWITCH var CASE val ... DEFAULT ... END SWITCH
-PRINT {value}     ' Debug output
-```
-
-### Built-in Variables
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `TODAY` | Current date | `IF created_at == TODAY THEN` |
-| `NOW` | Current datetime | `SET last_seen = NOW` |
-| `USER` | Current user object | `USER.email`, `USER.id` |
-| `SESSION` | Current session object | `SESSION.id` |
-| `BOT` | Current bot object | `BOT.name`, `BOT.id` |
-
 ### AutoTask System
 AI-driven task execution: 1) Analyze user intent ("Send email to all customers") → 2) Plan execution steps → 3) Generate BASIC scripts from available keywords → 4) Execute immediately or schedule.
 
@@ -556,13 +409,6 @@ rm -rf botserver-stack/ botserver/botserver-stack/ .env botserver/.env botserver
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info \
   nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 ```
-
-### Staging Environment (STAGE-GBO)
-- `chat.stage.pragmatismo.com.br` uses `10.0.3.x` subnet for container IPs (e.g. `10.0.3.10` system container)
-- Route testing via host gateway `10.0.0.1` or hit container IPs directly inside the staging host
-- Do NOT confuse staging IP ranges (`10.0.3.x`) with production ranges
-
----
 
 ## Security Directives — MANDATORY
 
@@ -931,127 +777,6 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 > **Important:** Products are seeded by `branch_id`. Global catalog (SAAS) uses `branch_id = nil`. On signup a new branch is created and products seeded for it — each organization sees its own product set.
 
 ---
-
-## Domain Management — Platform Subdomains + Custom DNS → Bot Mapping
-
-**Managed in cloud manager UI** (`/domains` on port 4000, admin-only via super admin check). Associates hostnames (e.g. `chat.pragmatismo.com.br`) with specific bots.
-
-### Subdomain Mode (SaaS publishing default — parameterized)
-Every published bot is reachable at `{botname}.{GB_PLATFORM_DOMAIN}` (default `generalbots.org`) — no `bot_domains` row, no custom domain purchase needed. Same bot as the URL-path mode `/botname`.
-
-- **Resolution (botui, local — no API call):** `suite.rs` extracts the subdomain for any `*.{GB_PLATFORM_DOMAIN}` host; apex + reserved hosts (`chat.`, `www.`, `api.`, `docs.`, `store.`, …) serve the **default** bot.
-- **Resolution (botserver API):** `GET /api/domains/resolve` matches exact `bot_domains` row → platform subdomain (`match_type: "platform_subdomain"`) → wildcard `*.domain` row.
-- **Parameterized:** set `GB_PLATFORM_DOMAIN` (botserver **and** botui env) when self-hosting under a different platform domain. Default `generalbots.org`.
-- **DNS:** wildcard record `*.{platform} → server IP` (CoreDNS zone) + Caddy site block per exposed host (or wildcard cert via DNS-01). New bot = **zero** infra change.
-
-### Custom Domain Mode
-Users with their own domain add a `bot_domains` row (Domain Manager UI) + point DNS at the server.
-
-### How It Works
-User visits a chat host (proxied to port 3000): botui reads `Host` header → platform subdomain resolved locally; otherwise calls `GET /api/domains/resolve?host=...` (anonymous — UI server resolves before any user auth) → botserver looks up `bot_domains` table → if found returns `{ found: true, bot_name, bot_id, org_id, branch_id }` → botui injects into `window.__INITIAL_BOT_NAME__` (same as URL path resolution) → fallback to URL path extraction.
-
-### Database
-**Table:** `bot_domains` (migration `6.5.18-bot-domains`)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID PK | Unique identifier |
-| `domain` | VARCHAR(255) UNIQUE | The hostname (e.g. `chat.pragmatismo.com.br`) |
-| `bot_id` | UUID FK → bots | Which bot this domain routes to |
-| `org_id` | UUID FK → organizations (optional) | Org scope for multi-tenant |
-| `branch_id` | UUID FK → branches (optional) | Branch scope for multi-tenant |
-| `created_at` / `updated_at` | TIMESTAMPTZ | Timestamps |
-
-### API Endpoints (port 8080)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/api/cloud/domains` | JWT + super admin | List all mappings |
-| `POST` | `/api/cloud/domains` | JWT + super admin | Create mapping |
-| `PUT` | `/api/cloud/domains/{id}` | JWT + super admin | Update mapping |
-| `DELETE` | `/api/cloud/domains/{id}` | JWT + super admin | Delete mapping |
-| `GET` | `/api/domains/resolve?host=` | Anonymous | Resolve hostname → bot name (exact → platform subdomain → wildcard) |
-
-### Files Changed
-| File | Change |
-|------|--------|
-| `botserver/migrations/6.5.18-bot-domains/up.sql` | Migration for `bot_domains` |
-| `botserver/crates/botcloud/src/schema_ext.rs` | Diesel table definition |
-| `botserver/crates/botcloud/src/domains.rs` | **New** — CRUD handlers + resolve |
-| `botserver/crates/botcloud/src/lib.rs` | `pub mod domains` |
-| `botserver/crates/botcloud/src/api.rs` | Routes + public access in JWT middleware |
-| `botui/src/ui_server/suite.rs` | `resolve_bot_from_host()` + Host header check in `index()` |
-| `botui/ui/cloud/domains.html` | **New** — Cloud UI page |
-
-**Cloud UI page:** Domain Manager at `/domains` (port 4000, super-admin only, same gating as Vouchers). Create (domain + bot ID + optional org/branch), list, delete. It's the existing "Domains" nav link in the sidebar at `/store/apps` — now live.
-
-**Add a mapping:**
-```bash
-curl -X POST http://localhost:8080/api/cloud/domains \
-  -H "Authorization: Bearer <jwt-token>" -H "Content-Type: application/json" \
-  -d '{"domain": "chat.generalbots.org", "bot_id": "<bot-uuid>", "org_id": null, "branch_id": null}'
-```
-
-**Test resolution:**
-```bash
-curl -s "http://localhost:8080/api/domains/resolve?host=chat.generalbots.org"
-# mapped: {"found":true,"bot_id":"...","bot_name":"gbwebsite","org_id":null,"branch_id":null}
-# unmapped: {"found":false}
-```
-
-**Architecture flow:**
-```
-Browser GET http://chat.generalbots.org/ (Host header) → Caddy/Proxy (80/443 → 3000)
-→ botui suite.rs index(): 1. extract Host → 2. GET /api/domains/resolve → 3. bot_name="gbwebsite"
-→ 4. inject window.__INITIAL_BOT_NAME__="gbwebsite" → 5. serve desktop.html → chat for gbwebsite
-```
-
----
-
-## Cloud Management Testing
-
-### Ports
-| Service | Port | Description |
-|---------|------|-------------|
-| Cloud UI (botui) | **4000** | Dashboard, store, offers, plans (**without** login/signup) |
-| Cloud API (botserver) | **8080** | `/api/cloud/auth/signup`, `/api/cloud/auth/login`, etc. |
-| Login UI (botui) | **5000** | `/login`, `/signup` — **only** service with auth |
-
-### Plan Testing Flow (Free, Shared, Private Cloud)
-Playwright via CDP to existing Chrome on 9222. Signup exclusively on port 5000, which redirects forms to the cloud API (8080):
-```python
-from playwright.async_api import async_playwright
-
-async def test_cloud_plans():
-    async with async_playwright() as p:
-        browser = await p.chromium.connect_over_cdp("http://localhost:9222")
-        ctx = browser.contexts[0]
-        plans = [
-            ('free', 'http://localhost:5000/signup'),
-            ('shared', 'http://localhost:5000/signup?plan=shared'),
-            ('private-cloud', 'http://localhost:5000/signup?plan=private-cloud'),
-        ]
-        for plan_id, url in plans:
-            page = await ctx.new_page()
-            await page.goto(url, wait_until='networkidle')
-            await page.fill('#signup-name', 'Test User')
-            await page.fill('#signup-botname', f'Bot{suffix}')
-            await page.fill('#signup-email', f'{plan_id}-{suffix}@example.com')
-            await page.fill('#signup-password', 'Test1234!')
-            await page.click('#signup-btn')
-            # DO NOT close the page — keep it open for inspection
-```
-
-### Expected behavior per plan
-| Plan | Redirect | Created subscription |
-|------|----------|----------------------|
-| **free** | `/cloud/dashboard` | `billing_recurring` status=`active`, amount=`0.0` |
-| **shared** | `/cloud/dashboard` | `billing_recurring` status=`trialing`, trial=14 days |
-| **private-cloud** | `/cloud/store` | None (Custom/upon request) |
-
-### Known bug (fixed)
-**Symptom:** Signup with `free`/`shared` → error `"Insert ... subscription: insert or update on table 'billing_recurring' violates foreign key constraint 'billing_recurring_org_id_fkey'"`.
-**Cause:** Migration `9.16-branch-id-isolation` changed the FK from `billing_recurring.org_id` to reference `branches(id)`, but `handle_signup` in `botserver/crates/botcloud/src/api.rs` still passed `org_id` instead of `branch_id`.
-**Fix:** Replace `org_id` with `branch_id` in `create_free_subscription` and `create_trial_subscription` calls in `handle_signup`.
 
 ---
 
@@ -1484,157 +1209,6 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 
 ---
 
-## Common Bug Fixes
-
-### IF/THEN/ELSE Panic (`dag.rs`)
-- **Symptom:** `IF/THEN/ELSE syntax: ParseError(BadInput(ImproperSymbol("$stmt$")))` during Rhai engine registration
-- **Cause:** Rhai 1.25.x doesn't support `$stmt$` in `register_custom_syntax`; replaced by `$block$`
-- **Fix in `botserver/crates/botbasic_core/src/keywords/dag.rs`:** `$stmt$` → `$block$` (3 occurrences: IF/THEN/ELSE, PARALLEL/AND, ON ERROR); `.expect("...")` → `if let Err(e) = ... { log::error!("...") }` (no panic in production); requires `rt-multi-thread` feature from tokio in `botbasic_core/Cargo.toml`
-
-### Embedding URL Hardcoded to Empty
-- **Symptom:** `Embedding server connection failed for : builder error` with empty URL
-- **Cause:** `botqdrant/src/embedding.rs:14` hardcoded `let embedding_url = "".to_string()` instead of `self.llm_endpoint`
-- **Fix:** `let embedding_url = &self.llm_endpoint;`
-
-### Bot Access Denied (WebSocket)
-- **Symptom:** `WS access denied for bot <name>: Access denied` or WebSocket closes with code 1006
-- **Cause:** `bots.is_public = false` in the database
-- **Fix:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`
-
-### Mail TLS Cert Expired (Stalwart/prod email container)
-- **Symptom:** Clients get certificate-expired warnings on 993/465/587/995 for `mail.{domain}` (443/webmail via Caddy stay fine). Fixed on SRV1 2026-09-28: Stalwart 0.12.4 serves the cert **embedded inline** in `email:/opt/gbo/conf/config.toml` (`certificate.default.*`) and had no ACME section, so it never renewed; `%{file:...}%` references did NOT work on 0.12.4 (server served no cert). Caddy (proxy container) auto-renews the same hostname via TLS-ALPN on 443; its live storage is the **default** `/root/.local/share/caddy/certificates/` inside the proxy container (NOT `/opt/gbo/data/caddy`).
-- **Fix (permanent):** `/usr/local/sbin/sync-stalwart-cert.sh` on the prod host runs daily (`/etc/cron.d/sync-stalwart-cert`, 04:17 UTC) — copies Caddy's renewed cert+key into the inline `certificate.default.*` blocks (key normalized SEC1→PKCS8), validates PEMs, backs up config with datetime suffix, deploys and restarts `email` **only when the cert changed** (log: `/var/log/sync-stalwart-cert.log`, rollback on failed restart). Manual run: `ssh <SRV1> '/usr/local/sbin/sync-stalwart-cert.sh'`.
-- **Gotcha:** Stalwart has built-in fail2ban-style **in-memory throttling** — repeated `openssl s_client` probes (esp. hairpin NAT from the same public IP) get the source IP banned with `errno=104` / `no peer certificate available`. Bans decay on their own; verify TLS from another vantage point (e.g. the secondary host) before assuming the cert is broken. Backups: `email:/opt/gbo/conf/config.toml.bak-*` and `/tmp/stalwart-config-*.toml` on the host.
-
----
-
-## BASIC Compile/Run Failure Playbook (media-filing saga, 2026-09)
-
-The `classify_media` E2E surfaced five stacked bugs. Symptoms look identical
-(`Expecting ';'`, tool aborts) but live in different layers — always pull the
-runtime dumps before touching code:
-
-### Runtime debug dumps are the FIRST step, not the last
-`ScriptService::run` (botserver/src/basic/mod.rs:91) writes inside the bot
-container: `/tmp/run_preprocessed.txt` (the transformed source — maps a Rhai
-error line straight back to the offending statement), `/tmp/compile_error.txt`,
-`/tmp/run_ast_input.txt`, `/tmp/run_result.txt`. Pull them via
-`incus file pull bot:/tmp/run_preprocessed.txt` and read the exact line from the
-error position before guessing.
-
-### 1. Stale AST caches survive binary fixes
-- **Symptom:** fixed a compiler transform, but the same Rhai error persists after deploy
-- **Cause:** the work-dir `.ast` was compiled by the OLD binary; mangled statements
-  are baked into the cached AST. Runtime self-heal (`ScriptService::run` re-applies
-  only `convert_multiword_keywords`) cannot reverse an already-mangled statement.
-- **Fix:** recompile with the new binary — commit the `.bas` in the bot's ALM repo (git sync →
-  new ETag → drive_compiler recompiles) or hot-patch the work-dir `.ast` back to the keyword
-  form so self-heal rewrites it. Never assume a deploy alone recompiles tools.
-
-### 2. CREATE FILE rewrite read wrong regex groups
-- **Symptom:** `let destination + ".meta.txt"create_file(...)` in run_preprocessed.txt
-- **Cause:** `convert_multiword_keywords` read `get(2)/get(3)/get(4)` but the pattern
-  has three groups (#1460)
-- **Fix:** groups 1/2/3 = prefix/path/data; path may be a full expression.
-
-### 3. Assignment heuristic let-prefixes calls containing '=' inside strings
-- **Symptom:** `let create_file(p, "category=" + c)` — invalid Rhai
-- **Cause:** `convert_if_then_syntax`'s `is_var_assignment` checked the RAW line;
-  the `=` inside a string literal made a function call look like an assignment
-- **Fix:** blank string literals first (`strip_string_literals`) before operator
-  checks. Rule: any line-level heuristic must run on string-stripped code.
-
-### 4. ON ERROR RESUME NEXT yielded UNIT, poisoning string pipelines
-- **Symptom:** `Function not found: TRIM (())` after a trapped keyword failure (#1461)
-- **Cause:** all 11 RESUME-NEXT error/timeout branches returned `Dynamic::UNIT` (Rhai
-  `()`), so `x = DESCRIBE VIDEO path` assigned `()`; `LEN(TRIM(x))` then died. The
-  script's `IF ERROR` handling was correct — the runtime value was not.
-- **Fix:** RESUME-NEXT branches return an **empty string**, never UNIT. Contract:
-  a trapped keyword yields `""` and sets the error flag.
-
-### 5. Compiler regenerates an empty MCP manifest over the shipped one
-- **Symptom:** `Variable not found: caption` when the LLM omits an optional arg (#1462)
-- **Cause:** `compile_file()` always rewrites `{tool}.mcp.json` from the `.bas` (empty
-  schema when the script has no PARAM headers), clobbering the rich manifest persisted
-  by AutoTask shipped templates. `tool_exec` defaults omitted args from
-  `input_schema.properties` — empty manifest → missing args become undeclared
-  variables → abort. Note: RESUME NEXT does NOT trap undeclared-variable reads.
-- **Fix:** drive_compiler syncs the Drive-side `{tool}.mcp.json` (source of truth)
-  over the generated one after compiling; shipped templates persist the manifest
-  BOTH at `tools/{tool}.mcp.json` and root `{tool}.mcp.json`.
-
-### TODAY/NOW are functions, not variables (Rhai reality)
-- **Symptom:** `Variable not found: TODAY`
-- **Cause:** runtime registers `TODAY`/`NOW` as `register_fn` (call form); BASIC
-  scripts write `TODAY` bare — Rhai reads a bare identifier as a variable.
-- **Fix:** rewrite bare `TODAY`/`NOW` tokens to `TODAY()`/`NOW()` in the compile
-  pipeline AND in the runtime self-heal so old ASTs heal on load.
-- **⚠️ Rewrites must be IDEMPOTENT:** the self-heal runs on every load, including
-  ASTs that already contain `TODAY()`. A lookahead-free pattern with an optional
-  `\(\)` group and trailing `\b` backtracks (`TODAY()` → bare match) and produces
-  the invalid `TODAY()()`. Normalize manually: after each match, consume an
-  existing `()` pair when present, else append one. Test both forms.
-
-### Channel adapters pass bot UUID where the pipeline expects a name
-- **Symptom:** tool never runs on Telegram/WhatsApp; log:
-  `get_session_tools error … Failed to get bot_id for bot 'f25671b3-…': Record not found`
-- **Cause:** the Telegram webhook fills `UserMessage.bot_id` with the bot UUID, but
-  `run_pipeline_for_channel` propagated it as the bot NAME; `get_session_tools`
-  queried `bots.name = '<uuid>'` → zero tools for the session. Web chat passed the
-  real name, hiding the bug.
-- **Fix:** `channel_entry.rs` normalizes `bot_id` to the name (reverse UUID lookup)
-  before resolving the UUID — one fix at the single channel entry point. When a
-  channel feature works on web but not on a channel adapter, diff what each puts
-  in `msg.bot_id` FIRST.
-
-### E2E loop discipline for bot tools
-Every fix → build → deploy → **force recompile** (commit the `.bas` in the bot's repo; git sync
-recompiles) → re-test via
-Chrome CDP browser upload (never WebSocket scripts) → verify Drive objects via
-boto3 (`{bot}.gbdrive/media/...`). One error at a time; the dumps tell the layer.
-
----
-
-## Reference: SaaS Product Listing Test Results (2026-06-28)
-
-### Ports After Fix
-| Port | Service | Cloud Access? | Suite Access? |
-|------|---------|---------------|---------------|
-| **3000** | Suite (botui) | ❌ 404 | ✅ Yes |
-| **4000** | Cloud (botui) | ✅ Yes | ❌ N/A |
-| **5000** | Login (botui) | ✅ Login | ✅ Login |
-| **8080** | API (botserver) | ✅ API | ✅ API proxy |
-
-**Fix:** `botui/src/ui_server/suite.rs` — added `/cloud/` blocking in the `index` handler (port 3000 fallback). Cloud pages now return 404 on port 3000.
-
-### Populated Products (17 via automatic seed)
-| Category | Items | SKUs |
-|----------|-------|------|
-| `plan` | 3 | free ($0), shared ($3.99), private-cloud (custom) |
-| `infrastructure` | 8 | vps-small/medium/large, gpu-basic/advanced, storage-50/200/1000 |
-| `communication` | 4 | number-local, number-tollfree, domain-com, domain-org |
-| `llm-tokens` | 2 | llm-tokens-1m ($9.99), llm-tokens-10m ($79.99) |
-
-### API Endpoints Verified
-| Endpoint | Format | Status |
-|----------|--------|--------|
-| `GET /api/products/items` | JSON (17 items) | ✅ 200 |
-| `GET /api/catalog/prices.json` | JSON-LD Schema.org (17 items) | ✅ 200 |
-| `GET /api/products/categories` | JSON (7 categories) | ✅ 200 |
-
-### Cloud Pages Verified (port 4000)
-| Page | URL | Screenshot |
-|------|-----|-----------|
-| Plans | `/cloud/plans` | `/tmp/saas_admin_plans.png` |
-| Store | `/cloud/store` | `/tmp/saas_admin_store.png` |
-| Signup | `/cloud/signup` | `/tmp/saas_admin_signup.png` |
-| Dashboard | `/cloud/dashboard` | `/tmp/saas_admin_dashboard.png` |
-| Offers | `/cloud/offers` | `/tmp/saas_admin_offers.png` |
-
-**Evidence slideshow:** `python3 -m http.server 9090 --directory /tmp` → open `http://localhost:9090/slideshow.html`
-
----
-
 ## Desktop-Local Edition (Chat + Drive)
 
 A stripped-down desktop build of General Bots containing **only Chat and Drive**, distributed as a native installer for a government program. Branch: `release/desktop-chat-drive`, now merged to `main`.
@@ -1696,21 +1270,6 @@ Build: `cargo build -p botserver --no-default-features --features desktop-local`
 **Binary resolution:** `BOTSERVER_BIN` env var → or same directory as botapp executable.
 **Stack path:** `BOTSERVER_STACK_PATH` env var → or `%LOCALAPPDATA%/generalbots/stack` (Windows) / `~/.local/share/generalbots/stack` (Linux).
 
-### Bootstrap (desktop-local vs full)
-
-| Component | Full build | desktop-local |
-|-----------|-----------|---------------|
-| vault | ✅ | ✅ |
-| tables (PostgreSQL) | ✅ | ✅ |
-| cache (Valkey) | ✅ | ✅ |
-| drive (MinIO) | ✅ | ✅ |
-| llm (llama.cpp) | ✅ | ✅ |
-| vector_db (Qdrant) | ✅ | ✅ |
-| directory (Zitadel) | ✅ | ✅ |
-| alm (Forgejo) | ✅ | ❌ |
-| alm-ci (Runner) | ✅ | ❌ |
-
-**Code:** `botcore/src/bootstrap/bootstrap_manager/install.rs` (component list) and `lifecycle.rs` (service startup). Directory OAuth and ALM post-startup are gated with `!cfg!(feature = "desktop-local")`.
 
 ### Offline Installation (`package_manager/facade/part6.rs`, `part2.rs`)
 
@@ -1792,48 +1351,3 @@ cargo run -p botapp --features desktop-local
 curl -s http://localhost:8080/api/product | python -m json.tool
 # Expected: apps=[chat,drive], no_security=true, suite_default_app=chat
 ```
-
-**Known dev issues:**
-- botserver takes ~65s to start (DriveConfig retries when Vault lacks MinIO credentials — continues without Drive after 10 retries).
-- `cargo test -p botcore` fails with `STATUS_DLL_NOT_FOUND` (missing `libpq.dll` at runtime — pre-existing environment issue, not desktop-local specific).
-- `is_running()` in sidecar.rs triggers `dead_code` warning (reserved for future health checks).
-
-### Environment Notes (This Machine)
-
-| Item | Path / Value |
-|------|-------------|
-| OS | Windows 11 Home, CUDA 13.x GPU |
-| Repo | `C:\Users\thipa\gbstandalone` |
-| PostgreSQL libs | `C:\pgsql\pgsql\bin\libpq.dll` (needs `PQ_LIB_DIR=C:\pgsql\pgsql\lib`) |
-| Stack path | `%LOCALAPPDATA%\generalbots\stack` |
-| Remote | `https://github.com/generalbots/generalbots.git` |
-
-### Open Decisions (Not Yet Implemented)
-
-| Decision | Options | Notes |
-|----------|---------|-------|
-| **Secrets** | Vault (current) vs OS keyring | Vault works but requires bootstrap. OS keyring would be simpler for single-user. |
-| **LLM** | Local model (llama.cpp, bundled) vs external provider (configurable URL) | llama.cpp is already in the component list. GPU detected (CUDA 13.x). |
-
-Login decision was resolved: **`no-security`** mode, no Zitadel, no login screen.
-
-### Commit History (branch `release/desktop-chat-drive`)
-
-| Hash | Meta | Summary |
-|------|------|---------|
-| `5adc2d3` | — | Fix 3 Windows compilation errors on main |
-| `957fe11` | 1 | Feature bundle `desktop-local` + 140 missing cfg gates |
-| `a5962f7` | 2 | Slim bootstrap to tables, cache, drive, llm, vector_db |
-| `8cb76bf` | 3 | Offline installation + checksum verification |
-| `faea19c` | 4 | Sidecar lifecycle (start/poll/stop) in botapp |
-| `7fec45e` | 5 | `suite_default_app` + `.product.desktop-local` |
-| `2c4cb6d` | 6 | Tauri installers, no-security auth bypass, build script |
-
-### Files Modified (by meta)
-
-**Meta 1 — Feature bundle:** `botserver/Cargo.toml`, 17 source files with `#[cfg(feature)]` gates.
-**Meta 2 — Bootstrap:** `botcore/Cargo.toml`, `install.rs`, `lifecycle.rs`.
-**Meta 3 — Offline:** `part6.rs`, `part2.rs`, `scripts/compute-desktop-checksums.sh`.
-**Meta 4 — Sidecar:** `botapp/Cargo.toml`, `sidecar.rs`, `desktop/mod.rs`, `main.rs`, `tauri.conf.json`.
-**Meta 5 — Product:** `product/mod.rs`, `part1.rs`, `part2.rs`, `.product.desktop-local`, `desktop.html`.
-**Meta 6 — Installers:** `sidecar.rs`, `main.rs`, `tauri.conf.json`, `tauri.desktop-local.conf.json`, `.product.desktop-local`, `product/mod.rs`, `part1.rs`, `part2.rs`, `desktop.html`, `scripts/build-desktop-local.sh`.

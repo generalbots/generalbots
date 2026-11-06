@@ -35,7 +35,12 @@
     chip.title = list.map(function (f) { return f.name; }).join("\n");
   }
 
+  // The <label> wraps #messageFile, so the browser already forwards its click
+  // to the input. Calling click() again here re-entered this same handler from
+  // the input's bubbled event; Chrome suppressed that second request and the
+  // picker never opened, which made the attach button look dead (#1691).
   fileBtn.addEventListener("click", function (e) {
+    if (e.target === fileInput) return;
     e.preventDefault();
     fileInput.click();
   });

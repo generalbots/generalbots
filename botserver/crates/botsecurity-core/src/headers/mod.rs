@@ -79,6 +79,18 @@ mod tests {
     }
 
     #[test]
+    fn test_default_permissions_policy_allows_self_media_capture() {
+        // The chat composer records voice notes and camera shots through
+        // getUserMedia from the same origin. `microphone=()` / `camera=()`
+        // block the browser prompt entirely, so the buttons look dead.
+        let config = SecurityHeadersConfig::default();
+        let policy = config.permissions_policy.expect("default policy");
+        assert!(policy.contains("microphone=(self)"), "policy: {policy}");
+        assert!(policy.contains("camera=(self)"), "policy: {policy}");
+        assert!(policy.contains("geolocation=()"), "policy: {policy}");
+    }
+
+    #[test]
     fn test_strict_config() {
         let config = SecurityHeadersConfig::strict();
         assert!(config.content_security_policy.is_some());

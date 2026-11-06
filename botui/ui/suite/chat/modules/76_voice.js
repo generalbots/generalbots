@@ -28,6 +28,7 @@
     duplex: false,
     speechSeen: false,
     silenceTicks: 0,
+    monitoring: false,
     tickTimer: null,
     audioCtx: null,
     analyser: null,
@@ -139,12 +140,13 @@
       state.audioCtx = null;
     }
     state.analyser = null;
+    state.monitoring = false;
     state.recorder = null;
   }
 
   function monitorSilence(stream, recorder) {
     var Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
+    if (!Ctx) return false;
     try {
       state.audioCtx = new Ctx();
       var source = state.audioCtx.createMediaStreamSource(stream);
@@ -153,7 +155,10 @@
       source.connect(state.analyser);
     } catch (e) {
       state.analyser = null;
-      return;
+      return false;
+    }
+    if (state.audioCtx.state === "suspended" && typeof state.audioCtx.resume === "function") {
+      state.audioCtx.resume().catch(function () { /* autoplay policy */ });
     }
     var buffer = new Uint8Array(state.analyser.fftSize);
     var ticksPerSecond = 10;
@@ -178,6 +183,7 @@
         state.silenceTicks = 0;
       }
     }, 100);
+    return true;
   }
 
   function start() {
@@ -189,6 +195,7 @@
     state.starting = true;
     state.speechSeen = false;
     state.silenceTicks = 0;
+    state.monitoring = false;
     navigator.mediaDevices
       .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
       .then(function (stream) {
@@ -216,15 +223,19 @@
         state.starting = false;
         setPhase("listening");
         paint();
-        monitorSilence(stream, recorder);
+        state.monitoring = monitorSilence(stream, recorder);
         state.maxTimer = setTimeout(function () {
           if (state.recording) stop();
         }, MAX_RECORD_MS);
-        state.noSpeechTimer = setTimeout(function () {
-          if (state.recording && !state.speechSeen) {
-            stop(true);
-          }
-        }, NO_SPEECH_MS);
+        // Only the analyser can tell silence from speech; without it the
+        // timer would throw away a perfectly good recording.
+        if (state.monitoring) {
+          state.noSpeechTimer = setTimeout(function () {
+            if (state.recording && !state.speechSeen) {
+              stop(true);
+            }
+          }, NO_SPEECH_MS);
+        }
       })
       .catch(function (error) {
         state.starting = false;
@@ -256,7 +267,10 @@
   function finish() {
     var chunks = state.chunks;
     var mime = state.mime || "audio/webm";
-    var discard = state.discard === true || !state.speechSeen;
+    // A missing analyser means we could not observe the level; keep the
+    // utterance instead of discarding it as "no speech".
+    var sawSpeech = state.speechSeen || !state.monitoring;
+    var discard = state.discard === true || !sawSpeech;
     state.discard = false;
     state.recording = false;
     state.level = 0;
@@ -265,7 +279,7 @@
     if (state.phase === "listening") setPhase("idle");
     paint();
     if (discard) {
-      if (!state.duplex && !state.speechSeen) {
+      if (!state.duplex && !sawSpeech) {
         notify(tr("chat-voice-empty", "No speech was detected. Try again."), "warning");
       }
       if (state.duplex) scheduleNext();
