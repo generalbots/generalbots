@@ -40,7 +40,7 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
 pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/slide/add" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/slide/add" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Layout
 <select name="layout" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="title">Slide de Título</option>
@@ -75,7 +75,7 @@ pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Htm
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"text"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"text"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Texto
 <textarea name="text" rows="3" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;"></textarea>
 </label>
@@ -97,7 +97,7 @@ pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Htm
 pub async fn handle_add_image_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/media" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" enctype="multipart/form-data" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/media" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" enctype="multipart/form-data" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Arquivo de imagem
 <input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -114,7 +114,7 @@ pub async fn handle_add_shape_form(Json(payload): Json<serde_json::Value>) -> Ht
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"shape"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"shape"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Forma
 <select name="shape_type" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="rectangle">Retângulo</option>
@@ -139,7 +139,7 @@ pub async fn handle_add_chart_form(Json(payload): Json<serde_json::Value>) -> Ht
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"chart"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"chart"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Tipo
 <select name="chart_type" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="bar">Barras</option>
@@ -166,7 +166,7 @@ pub async fn handle_add_table_form(Json(payload): Json<serde_json::Value>) -> Ht
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"table"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/element/add" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}","element_type":"table"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <label style="color:#f8fafc;font-size:13px;">Linhas
 <input type="number" name="rows" value="3" min="1" max="20" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />

@@ -16,6 +16,13 @@ document.addEventListener("htmx:configRequest", function (event) {
 // Re-render the current slide after a toolbar insert. The element API answers
 // JSON, so those forms save with hx-swap="none" and ask for a fresh view
 // instead of replacing the canvas with the response body.
+// A successful insert saves and refreshes the slide; close its modal too.
+window.afterSlideInsert = function (element) {
+  var modal = element && element.closest ? element.closest(".sl-modal") : null;
+  if (modal) modal.remove();
+  if (window.refreshSlideView) window.refreshSlideView();
+};
+
 window.refreshSlideView = function () {
   var canvas = document.getElementById("slide-canvas");
   var index = (canvas && canvas.dataset.slideId) || "0";
