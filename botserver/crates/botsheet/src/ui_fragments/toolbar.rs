@@ -43,7 +43,7 @@ pub async fn handle_share_form(
         ));
     }
     Html(format!(
-        r##"<form class="ss-form" id="share-form" hx-post="/api/sheet/share" hx-vals='{{"id":"{id}","emails":""}}' hx-target="#share-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="share-form" hx-post="/api/sheet/share" hx-vals='{{"id":"{id}","emails":""}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{}
 <input type="email" name="email" placeholder="usuario@empresa.com" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -105,7 +105,7 @@ pub async fn handle_conditional_format_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="cf-form" hx-post="/api/sheet/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#conditional-format-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="cf-form" hx-post="/api/sheet/conditional-format" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{range_label}
 <input type="text" name="range" placeholder="A1:D10" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -152,7 +152,7 @@ pub async fn handle_data_validation_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="dv-form" hx-post="/api/sheet/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#data-validation-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="dv-form" hx-post="/api/sheet/data-validation" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{cell}
 <input type="text" name="range" placeholder="A1" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -198,7 +198,7 @@ pub async fn handle_custom_format_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="cf-custom-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"custom"}}' hx-target="#custom-format-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="cf-custom-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"custom"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{range}
 <input type="text" name="range" placeholder="A1:A100" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -295,7 +295,7 @@ pub async fn handle_chart_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="chart-form" hx-post="/api/sheet/chart" hx-vals='{{"id":"{id}"}}' hx-target="#chart-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="chart-form" hx-post="/api/sheet/chart" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{chart_type}
 <select name="chart_type" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="bar">{bar}</option>

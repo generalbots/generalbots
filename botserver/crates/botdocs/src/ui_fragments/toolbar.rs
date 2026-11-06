@@ -17,8 +17,7 @@ pub async fn handle_share_form(Json(payload): Json<serde_json::Value>) -> Html<S
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Compartilhar</button>
 </form>"##,
-        id = html_escape(id),
-        template = html_escape(template)
+        id = html_escape(id)
     ))
 }
 
@@ -155,6 +154,7 @@ pub async fn handle_template_form(Json(payload): Json<serde_json::Value>) -> Htm
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Aplicar Modelo</button>
 </form>"##,
-        id = html_escape(id)
+        id = html_escape(id),
+        template = html_escape(template)
     ))
 }
