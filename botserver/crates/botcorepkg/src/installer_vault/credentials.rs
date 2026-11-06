@@ -1,8 +1,6 @@
 //! Vault credential lookup from the `secret/gbo/*` KV paths.
 
-#[cfg(unix)]
 use botlib::security::SafeCommand;
-#[cfg(unix)]
 use log::{info, trace};
 use std::collections::HashMap;
 
