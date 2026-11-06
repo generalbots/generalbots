@@ -1,5 +1,8 @@
 use super::{empty_fragment, html_escape};
+use crate::state::DocState;
+use axum::extract::State;
 use axum::{response::Html, Json};
+use std::sync::Arc;
 use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry, TrackChange};
 
 pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
@@ -156,8 +159,16 @@ pub async fn handle_track_changes_panel(Json(payload): Json<serde_json::Value>) 
     Html(html)
 }
 
-pub async fn handle_footnotes_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let notes: Vec<Footnote> = serde_json::from_value(payload.get("footnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+pub async fn handle_footnotes_panel(
+    State(state): State<Arc<DocState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    let mut notes: Vec<Footnote> = serde_json::from_value(payload.get("footnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    if notes.is_empty() {
+        if let Some(doc) = panel_document(&state, &payload).await {
+            notes = doc.footnotes.unwrap_or_default();
+        }
+    }
     if notes.is_empty() {
         return Html(empty_fragment("Nenhuma nota de rodapé. Use Inserir > Nota de Rodapé para adicionar referências."));
     }
@@ -183,8 +194,16 @@ pub async fn handle_footnotes_panel(Json(payload): Json<serde_json::Value>) -> H
     Html(html)
 }
 
-pub async fn handle_endnotes_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let notes: Vec<Endnote> = serde_json::from_value(payload.get("endnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+pub async fn handle_endnotes_panel(
+    State(state): State<Arc<DocState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    let mut notes: Vec<Endnote> = serde_json::from_value(payload.get("endnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    if notes.is_empty() {
+        if let Some(doc) = panel_document(&state, &payload).await {
+            notes = doc.endnotes.unwrap_or_default();
+        }
+    }
     if notes.is_empty() {
         return Html(empty_fragment("Nenhuma nota final. Use Inserir > Nota Final para adicionar referências no fim do documento."));
     }
@@ -210,8 +229,16 @@ pub async fn handle_endnotes_panel(Json(payload): Json<serde_json::Value>) -> Ht
     Html(html)
 }
 
-pub async fn handle_styles_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let styles: Vec<DocumentStyle> = serde_json::from_value(payload.get("styles").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+pub async fn handle_styles_panel(
+    State(state): State<Arc<DocState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    let mut styles: Vec<DocumentStyle> = serde_json::from_value(payload.get("styles").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    if styles.is_empty() {
+        if let Some(doc) = panel_document(&state, &payload).await {
+            styles = doc.styles.unwrap_or_default();
+        }
+    }
     if styles.is_empty() {
         return Html(empty_fragment("Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação."));
     }
@@ -302,6 +329,26 @@ pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<Str
         },
         prompt = html_escape(prompt)
     ))
+}
+
+/// Loads the stored document for a panel. Drive-opened ids (`drive-…`) and
+/// the unsaved `current` session are not stored yet, so they stay empty.
+async fn panel_document(
+    state: &Arc<DocState>,
+    payload: &serde_json::Value,
+) -> Option<crate::types::Document> {
+    let id = payload
+        .get("id")
+        .or_else(|| payload.get("doc_id"))
+        .and_then(|value| value.as_str())?;
+    if id.is_empty() || id == "current" || id.starts_with("drive-") {
+        return None;
+    }
+    let user_id = crate::storage::get_current_user_id();
+    crate::storage::load_document_from_drive(state, &user_id, id)
+        .await
+        .ok()
+        .flatten()
 }
 
 /// Extracts H1–H6 headings from editor HTML (attributes allowed). The stored
