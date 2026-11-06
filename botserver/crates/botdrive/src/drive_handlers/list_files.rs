@@ -293,8 +293,11 @@ pub async fn copy_file(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
-    let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
-    let dest_bucket = req.dest_bucket.as_deref().unwrap_or(&state.bucket_name);
+    // Scope decides the bucket: a user-scope folder lives in the personal
+    // bucket, not in the workspace bucket the client sent (folder copies used
+    // to 404 because the listing ran against the wrong store).
+    let src_bucket = resolve_bucket(&state, req.source_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let dest_bucket = resolve_bucket(&state, req.dest_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let from_key = scoped_key(&prefix, &req.source_path);
     let to_key = scoped_key(&prefix, &req.dest_path);
 
