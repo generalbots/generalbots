@@ -86,6 +86,8 @@ pub struct UpdateSlideNotesRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportRequest {
+    // The toolbar posts `presentation_id`; JSON API callers use `id`.
+    #[serde(alias = "presentation_id")]
     pub id: String,
     pub format: String,
 }
@@ -100,6 +102,8 @@ pub struct SaveResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct SlidesAiRequest {
+    // The AI modal posts `prompt`; the compact API uses `command`.
+    #[serde(alias = "prompt")]
     pub command: String,
     #[serde(default)]
     pub slide_index: Option<usize>,
@@ -211,6 +215,9 @@ pub struct ListMediaResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartPresenterRequest {
     pub presentation_id: String,
+    // The "Apresentar" button posts only the presentation id; the viewer
+    // settings are optional defaults, not a requirement to start.
+    #[serde(default)]
     pub settings: PresenterViewSettings,
 }
 

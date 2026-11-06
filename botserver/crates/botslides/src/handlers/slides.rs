@@ -223,10 +223,13 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
             return Some(element);
         }
     }
+    // Toolbar modals add elements without an id; generate one instead of
+    // rejecting the request (the id only has to be unique inside the slide).
     let id = payload
         .get("element_id")
-        .and_then(|value| value.as_str())?
-        .to_string();
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("el_{}", Uuid::new_v4()));
     let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
     let number_opt = |key: &str| payload.get(key).and_then(|value| value.as_f64());
     let text = |key: &str| {

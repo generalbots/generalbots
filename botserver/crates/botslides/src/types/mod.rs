@@ -79,7 +79,7 @@ pub struct MediaElement {
     pub height: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PresenterViewSettings {
     pub show_notes: bool,
     pub show_next_slide: bool,
