@@ -1,4 +1,4 @@
-//! `proxy_sites::caddy_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `proxy_sites::caddy_config` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

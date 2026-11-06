@@ -1,4 +1,4 @@
-//! `vm_incus::windows_4` — split from `windows_3` per #1492 (AGENTS.md
+//! `vm_incus::run_health` — split from `run_deploy` per #1492 (AGENTS.md
 //! 450-line rule). Runtime bootstrap and health-probe helpers used by the
 //! Linux `run_dev_app` flow.
 

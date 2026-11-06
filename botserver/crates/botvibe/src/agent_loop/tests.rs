@@ -3,7 +3,7 @@
 use super::*;
 
     use uuid::Uuid;
-    use super::llm_5::project_scoped_arguments;
+    use super::llm_tool_calls::project_scoped_arguments;
     use crate::types::VibeRunConfig;
     use serde_json::json;
     use tokio::sync::RwLock;

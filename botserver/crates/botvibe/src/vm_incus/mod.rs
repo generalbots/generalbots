@@ -13,9 +13,9 @@ mod health;
 mod linux;
 mod web_entry;
 mod windows;
-mod windows_2;
-mod windows_3;
-mod windows_4;
+mod deploy_node;
+mod run_deploy;
+mod run_health;
 
 #[cfg(target_os = "windows")]
 use std::sync::OnceLock;

@@ -13,7 +13,7 @@
 
 mod manage;
 mod resolve;
-mod resolve_2;
+mod resolve_dns;
 #[cfg(test)]
 mod tests;
 
@@ -29,4 +29,4 @@ use crate::vm_lifecycle::VmLifecycle;
 pub use manage::{DNS_VERIFY_PREFIX, DomainResult, ProjectDomains};
 pub(crate) use manage::{ProjectRow, project_last_deploy_target};
 pub use resolve::{BindDomainRequest, DomainBind, PROJECT_DOMAINS_SCHEMA};
-pub(crate) use resolve_2::{DomainRow};
+pub(crate) use resolve_dns::{DomainRow};

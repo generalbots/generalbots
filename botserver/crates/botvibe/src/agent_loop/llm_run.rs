@@ -1,4 +1,4 @@
-//! `agent_loop::llm_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `agent_loop::llm_run` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

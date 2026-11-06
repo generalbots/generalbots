@@ -1,4 +1,4 @@
-//! `publish::site_3` — split from `site_2` per #1492 (AGENTS.md 450-line
+//! `publish::publish_flow` — split from `publish_entry` per #1492 (AGENTS.md 450-line
 //! rule). Website/Python publish path (#1288/#1290) and the production
 //! always-on helper (#1261/#1271).
 

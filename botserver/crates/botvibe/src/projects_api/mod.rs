@@ -8,9 +8,9 @@ mod branches;
 mod projects;
 mod serve;
 mod workspace;
-mod workspace_2;
-mod workspace_3;
-mod workspace_4;
+mod workspace_files;
+mod workspace_preview;
+mod workspace_serve;
 
 use std::sync::Arc;
 use diesel::{OptionalExtension, RunQueryDsl};
@@ -38,7 +38,7 @@ pub(crate) use projects::{ApiResult, CreatePrRequest, DEV_VM_PORT_MAX, DEV_VM_PO
 pub(crate) use serve::{ServeQuery, default_gateway_ip, serve_inject_token, serve_mime_for, urlencode_path};
 pub use workspace::{WorkspaceFileQuery, WorkspaceFilesResponse, WriteWorkspaceFileRequest, projects_router};
 pub(crate) use workspace::{workspace_key, ws_ok};
-pub use workspace_2::{RunProjectQuery};
-pub(crate) use workspace_2::{create_project_pr, export_project, list_project_files, read_project_file, run_project_app, ws_err, ws_forbidden};
-pub(crate) use workspace_3::{preview_vm_app, resolve_iframe_user, run_website_via_proxy};
-pub(crate) use workspace_4::{project_run_history, serve_project_file, write_project_file};
+pub use workspace_files::{RunProjectQuery};
+pub(crate) use workspace_files::{create_project_pr, export_project, list_project_files, read_project_file, run_project_app, ws_err, ws_forbidden};
+pub(crate) use workspace_preview::{preview_vm_app, resolve_iframe_user, run_website_via_proxy};
+pub(crate) use workspace_serve::{project_run_history, serve_project_file, write_project_file};

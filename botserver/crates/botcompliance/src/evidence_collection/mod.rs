@@ -399,6 +399,6 @@ pub struct EvidenceCollectionService {
 
 mod collection_error;
 mod evidence_collection_service;
-mod evidence_collection_service_2;
+mod evidence_collection_service_init;
 mod initialize_soc2_controls;
 mod get_evidence_by_framework;

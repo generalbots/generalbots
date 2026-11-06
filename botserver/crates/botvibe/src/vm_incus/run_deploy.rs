@@ -1,4 +1,4 @@
-//! `vm_incus::windows_3` — split per #1443 (AGENTS.md 450-line rule).
+//! `vm_incus::run_deploy` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

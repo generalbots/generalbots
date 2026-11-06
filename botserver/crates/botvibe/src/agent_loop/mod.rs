@@ -2,11 +2,11 @@
 
 mod core;
 mod llm;
-mod llm_2;
-mod llm_3;
-mod llm_4;
-mod llm_5;
-mod llm_6;
+mod llm_run;
+mod llm_request;
+mod llm_response;
+mod llm_tool_calls;
+mod llm_payload;
 mod parsing;
 mod run_loop;
 mod verification;
@@ -30,9 +30,9 @@ pub(crate) use core::{DEFAULT_TIMEOUT_SECS, MAX_TOOL_RESULT_CHARS, MAX_TOOL_RETR
 pub(crate) use core::{preferred_source_path};
 pub use llm::{AgentLoop};
 pub(crate) use llm::{LLM_REQUEST_TIMEOUT_SECS, LLM_RETRY_BACKOFF_SECS, LLM_USER_AGENT, MAX_LLM_RETRIES};
-pub(crate) use llm_5::{looks_like_tool_intent};
-pub use llm_6::{LlmUsage};
-pub(crate) use llm_6::{estimate_llm_cost, native_tool_calls_from_value, parse_sse, restore_tool_name_from_llm, sanitize_tool_name_for_llm, usage_from_payload};
+pub(crate) use llm_tool_calls::{looks_like_tool_intent};
+pub use llm_payload::{LlmUsage};
+pub(crate) use llm_payload::{estimate_llm_cost, native_tool_calls_from_value, parse_sse, restore_tool_name_from_llm, sanitize_tool_name_for_llm, usage_from_payload};
 pub(crate) use parsing::{ExtractedToolCall, MAX_EMPTY_PARSE_RETRIES, canonical_tool_calls_json, extract_json_array, extract_json_object};
 pub(crate) use run_loop::{DEFAULT_MAX_STEPS, truncate};
 pub(crate) use verification::{MAX_VERIFY_FAILURES, ToolStep};

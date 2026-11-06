@@ -34,9 +34,9 @@
 //! direct argv, never through a shell).
 
 mod caddy;
-mod caddy_2;
-mod caddy_3;
-mod caddy_4;
+mod caddy_config;
+mod caddy_deploy;
+mod caddy_lifecycle;
 mod release;
 mod sites;
 #[cfg(test)]
@@ -51,10 +51,10 @@ pub use caddy::{python_port, validate_slug};
 pub(crate) use caddy::{PROXY_CADDY_CONFIG, check_python_runtime, check_serveability, dir_is_vibe_owned, must_run, proxy_exec, python_port_for, rotate_release, stage_payload, tls_directive, tls_internal_from_env};
 #[cfg(test)]
 pub(crate) use caddy::{PROXY_SITES_ROOT, site_block_with_mode};
-pub(crate) use caddy_2::{remove_site_config, site_block_for_target, upsert_site_config};
-pub use caddy_3::{deploy_site_to_proxy_env};
-pub(crate) use caddy_3::{ensure_python_service_for, probe_python_service, verify_route_serving};
-pub use caddy_4::{looks_like_python, promote_site_test_to_prod, rollback_site, rollback_site_test, unpublish_site, unpublish_site_test};
+pub(crate) use caddy_config::{remove_site_config, site_block_for_target, upsert_site_config};
+pub use caddy_deploy::{deploy_site_to_proxy_env};
+pub(crate) use caddy_deploy::{ensure_python_service_for, probe_python_service, verify_route_serving};
+pub use caddy_lifecycle::{looks_like_python, promote_site_test_to_prod, rollback_site, rollback_site_test, unpublish_site, unpublish_site_test};
 pub(crate) use release::{MARKER_FILE, RELEASE_RETENTION, lock_publish};
 pub use sites::{site_slug};
 pub(crate) use sites::{MAX_FILES, MAX_SINGLE_FILE_BYTES, SECTION_BEGIN, SECTION_END, extract_section, payload_bytes, site_unit_name};

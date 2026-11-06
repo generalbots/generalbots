@@ -183,7 +183,7 @@ impl VmLifecycle {
     ///
     /// Only `apps`-kind projects reach this path — `website` projects return to
     /// the proxy container and `bot` projects take the two-env Run, both before
-    /// `create_project_vm` (`projects_api/workspace_2.rs:301,307`).
+    /// `create_project_vm` (`projects_api/workspace_files.rs:301,307`).
     ///
     /// A failure is a warning, never a create failure: the container is fully
     /// usable without the index, and the `code/*` tools already report a missing

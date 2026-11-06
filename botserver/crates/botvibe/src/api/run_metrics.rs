@@ -1,4 +1,4 @@
-//! `api::metrics_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `api::run_metrics` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

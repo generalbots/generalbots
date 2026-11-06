@@ -1,4 +1,4 @@
-//! `domains::resolve_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `domains::resolve_dns` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

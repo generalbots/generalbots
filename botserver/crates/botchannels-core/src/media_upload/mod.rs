@@ -215,7 +215,7 @@ pub enum MediaUploadError {
 
 mod from_str_name;
 mod media_upload_service;
-mod media_upload_service_2;
+mod media_upload_service_limits;
 mod get_platform_limits;
 mod upload_to_azure_blob;
 mod media_upload_error;

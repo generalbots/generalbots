@@ -9,8 +9,8 @@
 
 mod collect;
 mod site;
-mod site_2;
-mod site_3;
+mod publish_entry;
+mod publish_flow;
 #[cfg(test)]
 mod tests;
 
@@ -38,7 +38,7 @@ pub(crate) use collect::{PUBLISH_DEFAULT_ENV, publish_max_bytes_budget, walk_wor
 pub(crate) use collect::{api_base};
 pub use site::{PUBLISH_PRODUCTION_STAMP, publish_project_schema, publish_router, published_domain};
 pub(crate) use site::{collect_workspace_files, production_approved};
-pub(crate) use site_2::{do_publish};
+pub(crate) use publish_entry::{do_publish};
 #[cfg(not(target_os = "windows"))]
-pub(crate) use site_3::start_prod_app;
-pub(crate) use site_3::SitePublish;
+pub(crate) use publish_flow::start_prod_app;
+pub(crate) use publish_flow::SitePublish;

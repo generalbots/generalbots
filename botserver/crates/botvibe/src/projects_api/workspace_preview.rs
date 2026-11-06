@@ -1,4 +1,4 @@
-//! `projects_api::workspace_3` — split per #1443 (AGENTS.md 450-line rule).
+//! `projects_api::workspace_preview` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

@@ -1,4 +1,4 @@
-//! `api::tools_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `api::tool_capabilities` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

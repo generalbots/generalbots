@@ -1,4 +1,4 @@
-//! `publish::site_2` — split per #1443 (AGENTS.md 450-line rule).
+//! `publish::publish_entry` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
 

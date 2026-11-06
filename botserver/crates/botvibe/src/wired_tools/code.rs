@@ -25,7 +25,7 @@ const MAX_OUTPUT_CHARS: usize = 24_000;
 const DEFAULT_TIMEOUT_SECS: u64 = 120;
 
 /// Environment whose dev VM serves these calls. `Run` always provisions the
-/// development container (`projects_api/workspace_2.rs`, `env: "development"`)
+/// development container (`projects_api/workspace_files.rs`, `env: "development"`)
 /// and #1488 installs the CLI there, so the container name is derived from the
 /// same pair the provisioner uses.
 const VM_ENV: &str = "development";

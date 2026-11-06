@@ -4,11 +4,11 @@
 use crate::soc2::Soc2Control;
 
 mod controls;
-mod controls_2;
+mod trust_service_controls;
 
 /// The full default control catalog, both catalogue halves in order.
 pub(crate) fn get_default_controls() -> Vec<Soc2Control> {
     let mut controls = controls::controls();
-    controls.extend(controls_2::controls());
+    controls.extend(trust_service_controls::controls());
     controls
 }
