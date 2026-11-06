@@ -145,8 +145,27 @@ pub(super) fn add_slides_routes(r: Router, s: &Arc<AppState>) -> Router {
     let state = Arc::new(crate::slides::SlidesState {
         drive,
         conn: Arc::new(s.conn.clone()),
-        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| {
-            (uuid::Uuid::nil(), "default".to_string())
+        // Save-back resolves the bot drive bucket from this name; the old
+        // hardcoded "default" made every non-default bot skip its
+        // `.gbslides.pptx` sibling (#1710).
+        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+            use diesel::prelude::*;
+            use diesel::OptionalExtension;
+            #[derive(diesel::QueryableByName)]
+            struct Row {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                name: String,
+            }
+            let name = diesel::sql_query(
+                "SELECT name FROM bots WHERE is_default_for_branch = TRUE LIMIT 1",
+            )
+            .get_result::<Row>(conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|row| row.name)
+            .unwrap_or_else(|| "default".to_string());
+            (uuid::Uuid::nil(), name)
         }),
     });
     r.merge(crate::slides::routes::configure_slides_routes().with_state(state))
