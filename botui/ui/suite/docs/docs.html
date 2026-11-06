@@ -351,7 +351,7 @@ document.addEventListener("htmx:afterRequest", function (event) {
     var output = "";
     try {
         var data = JSON.parse(xhr.responseText);
-        output = data.response || data.result || "";
+        output = data.content || data.response || (data.result && data.result !== "success" ? data.result : "");
     } catch (error) {
         output = xhr.responseText;
     }

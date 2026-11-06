@@ -101,28 +101,28 @@ var DocumentAIDriver = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: id, action: "summarize" })
-    }).then(function (r) { return r.json(); }).then(function (j) { return j.result || j.content || j.response || ""; }).catch(function () { return ""; });
+    }).then(function (r) { return r.json(); }).then(function (j) { return j.content || j.response || (j.result && j.result !== "success" ? j.result : ""); }).catch(function () { return ""; });
   },
   expand: function (id, prompt) {
     return fetch("/api/docs/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: id, action: "expand", prompt: prompt })
-    }).then(function (r) { return r.json(); }).then(function (j) { return j.result || j.response || ""; }).catch(function () { return ""; });
+    }).then(function (r) { return r.json(); }).then(function (j) { return j.content || j.response || (j.result && j.result !== "success" ? j.result : ""); }).catch(function () { return ""; });
   },
   improve: function (id) {
     return fetch("/api/docs/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: id, action: "improve" })
-    }).then(function (r) { return r.json(); }).then(function (j) { return j.result || j.response || ""; }).catch(function () { return ""; });
+    }).then(function (r) { return r.json(); }).then(function (j) { return j.content || j.response || (j.result && j.result !== "success" ? j.result : ""); }).catch(function () { return ""; });
   },
   simplify: function (id) {
     return fetch("/api/docs/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: id, action: "simplify" })
-    }).then(function (r) { return r.json(); }).then(function (j) { return j.result || j.response || ""; }).catch(function () { return ""; });
+    }).then(function (r) { return r.json(); }).then(function (j) { return j.content || j.response || (j.result && j.result !== "success" ? j.result : ""); }).catch(function () { return ""; });
   }
 };
 
