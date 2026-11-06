@@ -90,9 +90,11 @@ pub async fn handle_export_sheet(
                     Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
                 )
             })?;
-            // Raw PDF bytes; the old base64 text with a PDF content type
-            // downloaded as a corrupt file.
-            Ok(([(axum::http::header::CONTENT_TYPE, "application/pdf")], pdf))
+            // The other export arms return base64 strings; keep the same
+            // shape for API callers. The print preview decodes `pdf` itself
+            // and embeds it as a data URL.
+            let encoded = base64::engine::general_purpose::STANDARD.encode(&pdf);
+            Ok(([(axum::http::header::CONTENT_TYPE, "application/pdf")], encoded))
         }
         _ => Err((
             StatusCode::BAD_REQUEST,
