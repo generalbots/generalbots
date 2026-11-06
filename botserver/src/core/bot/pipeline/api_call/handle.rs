@@ -1,167 +1,15 @@
-use super::types::{LlmTarget, SessionIdentity};
+//! Executes a command call and answers the user: composed text or a one-line
+//! description of the result.
 
-/// Collects every `app://...` deep-link string present anywhere in a command
-/// result so the final answer can surface the most relevant one even when the
-/// compose LLM call fails.
-fn extract_deep_links(value: &serde_json::Value) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut stack = vec![value.clone()];
-    while let Some(v) = stack.pop() {
-        match v {
-            serde_json::Value::String(s) => {
-                if s.starts_with("app://") {
-                    out.push(s);
-                }
-            }
-            serde_json::Value::Array(items) => {
-                for item in items {
-                    stack.push(item);
-                }
-            }
-            serde_json::Value::Object(map) => {
-                for (_, val) in map {
-                    stack.push(val);
-                }
-            }
-            _ => {}
-        }
-    }
-    out
-}
+use super::args::{extract_deep_links, inject_tax_value_from_user};
+use super::humanize::humanize_result;
+use super::parse::{extract_api_call_payload, strip_api_call_block};
+use super::super::types::{LlmTarget, SessionIdentity};
 
-/// Injects a `value` param for tax commands when the model omitted it but the
-/// user's message contains a monetary amount ("R$ 10.000", "10000 reais").
-fn inject_tax_value_from_user(params: &serde_json::Value, user_text: &str) -> serde_json::Value {
-    let has_value = params
-        .get("value")
-        .and_then(|v| v.as_str())
-        .is_some_and(|v| !v.trim().is_empty());
-    if has_value {
-        return params.clone();
-    }
-    let amount = extract_money_amount(user_text);
-    match amount {
-        Some(value) => {
-            let mut params = params.clone();
-            if let serde_json::Value::Object(map) = &mut params {
-                map.insert("value".to_string(), serde_json::Value::String(value));
-            }
-            params
-        }
-        None => params.clone(),
-    }
-}
-
-/// The BRL amount pattern, compiled once per process: this runs on every
-/// API-call fallback in the message pipeline (see #1493).
-const MONEY_AMOUNT_PATTERN: &str = r"(?i)R\$\s*([\d.,]+)|\b([\d.,]+)\s*reais";
-
-fn money_amount_re() -> Option<&'static regex::Regex> {
-    static RE: std::sync::OnceLock<Option<regex::Regex>> = std::sync::OnceLock::new();
-    RE.get_or_init(|| {
-        regex::Regex::new(MONEY_AMOUNT_PATTERN)
-            .inspect_err(|e| log::error!("money amount pattern failed to compile: {e}"))
-            .ok()
-    })
-    .as_ref()
-}
-
-
-/// Extracts a BRL amount from free text, e.g. "R$ 10.000,50" or "10.000 reais".
-/// Returns a normalized decimal string ("10000.50").
-fn extract_money_amount(text: &str) -> Option<String> {
-    let re = money_amount_re()?;
-    let caps = re.captures(text)?;
-    let raw = caps.get(1).or_else(|| caps.get(2))?.as_str();
-    let cleaned = raw.replace('.', "");
-    let normalized = if cleaned.contains(',') {
-        cleaned.replace(',', ".")
-    } else {
-        cleaned
-    };
-    if normalized.parse::<f64>().is_ok() {
-        Some(normalized)
-    } else {
-        None
-    }
-}
-
-/// Extracts the first `{"__api_call__": {...}}` object from a response,
-/// returning its payload (the object's `__api_call__` value, or the whole
-/// object when it is not nested).
-fn extract_api_call_payload(full_response: &str) -> Option<serde_json::Value> {
-    use crate::core::bot::api_catalog::find_api_call;
-    let pos = find_api_call(full_response)?;
-    let obj_start = full_response[..pos].rfind('{')?;
-    let bytes = full_response.as_bytes();
-    let mut depth = 0i32;
-    let mut in_string = false;
-    for (i, &b) in bytes[obj_start..].iter().enumerate() {
-        match b {
-            b'"' => in_string = !in_string,
-            b'{' if !in_string => depth += 1,
-            b'}' if !in_string => {
-                depth -= 1;
-                if depth == 0 {
-                    let end = obj_start + i + 1;
-                    let parsed: serde_json::Value = match serde_json::from_str(&full_response[obj_start..end]) {
-                        Ok(v) => v,
-                        Err(_) => return None,
-                    };
-                    let inner = parsed.get("__api_call__").or_else(|| parsed.get("api_call")).or_else(|| parsed.get("_api_call_")).cloned().unwrap_or(parsed);
-                    return Some(inner);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-/// Removes the `{"__api_call__": ...}` JSON block (the model's tool-call
-/// preamble) from a response, leaving just the user-facing prose before and
-/// after it. The block is matched with brace balancing so it is stripped in
-/// full no matter which key variant the model emitted.
-fn strip_api_call_block(text: &str) -> String {
-    use crate::core::bot::api_catalog::find_api_call;
-    let Some(pos) = find_api_call(text) else {
-        return text.to_string();
-    };
-    let Some(obj_start) = text[..pos].rfind('{') else {
-        return text.to_string();
-    };
-    let bytes = text.as_bytes();
-    let mut depth = 0i32;
-    let mut in_string = false;
-    let mut end = None;
-    for (i, &b) in bytes[obj_start..].iter().enumerate() {
-        match b {
-            b'"' => in_string = !in_string,
-            b'{' if !in_string => depth += 1,
-            b'}' if !in_string => {
-                depth -= 1;
-                if depth == 0 {
-                    end = Some(obj_start + i + 1);
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-    match end {
-        Some(e) => {
-            let mut out = String::with_capacity(text.len());
-            out.push_str(&text[..obj_start]);
-            out.push_str(&text[e..]);
-            out
-        }
-        None => text.to_string(),
-    }
-}
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
 /// in the LLM reply. Returns true when the call was handled (even on error),
 /// so the caller skips the regular rendering path.
-pub(super) async fn handle_api_call(
+pub(crate) async fn handle_api_call(
     identity: &SessionIdentity<'_>,
     target: &LlmTarget<'_>,
     full_response: &str,
@@ -206,7 +54,7 @@ pub(super) async fn handle_api_call(
         let synthetic = format!(
             "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
         );
-        let _ = super::tool_exec::run_llm_tool_call(identity, rx, &synthetic, user_text).await;
+        let _ = crate::core::bot::pipeline::tool_exec::run_llm_tool_call(identity, rx, &synthetic, user_text).await;
         return true;
     }
 
@@ -377,86 +225,5 @@ pub(super) async fn handle_api_call(
             let _ = sink.send_bot_response(&resp).await;
             true
         }
-    }
-}
-
-/// A one-line, human description of a command result. Used when the model
-/// asked for a lookup but did not ask for a composed answer, so the chat never
-/// shows the raw JSON envelope.
-fn humanize_result(name: &str, result: &serde_json::Value) -> String {
-    if let Some(message) = result
-        .get("message")
-        .and_then(|m| m.as_str())
-        .map(str::trim)
-        .filter(|m| !m.is_empty())
-    {
-        return message.to_string();
-    }
-    if let Some(items) = result.get("matches").and_then(|m| m.as_array()) {
-        let names: Vec<&str> = items
-            .iter()
-            .filter_map(|item| item.get("name").and_then(|n| n.as_str()))
-            .take(5)
-            .collect();
-        let listed = if names.is_empty() {
-            String::new()
-        } else {
-            format!(" The closest are: {}.", names.join(", "))
-        };
-        return format!(
-            "I found {} action{} that can do this.{listed} Tell me which one to run and I will \
-             execute it now.",
-            items.len(),
-            if items.len() == 1 { "" } else { "s" }
-        );
-    }
-    if let Some(count) = result.get("count").and_then(|c| c.as_u64()) {
-        return format!("Done — {count} item{}.", if count == 1 { "" } else { "s" });
-    }
-    format!("`{name}` finished. Ask me for the details you need and I will show them.")
-}
-
-#[cfg(test)]
-mod humanize_tests {
-    use super::humanize_result;
-
-    #[test]
-    fn catalog_results_are_described_not_dumped() {
-        let result = serde_json::json!({
-            "matches": [
-                {"name": "web.search"}, {"name": "research.discover"}, {"name": "drive.file"}
-            ]
-        });
-        let text = humanize_result("api.find", &result);
-        assert!(!text.contains('{'), "no JSON in the answer: {text}");
-        assert!(text.contains("3 actions"));
-        assert!(text.contains("web.search"));
-    }
-
-    #[test]
-    fn a_command_message_wins() {
-        let result = serde_json::json!({"message": "Saved 2 files to Drive", "count": 2});
-        assert_eq!(humanize_result("drive.save", &result), "Saved 2 files to Drive");
-    }
-}
-
-#[cfg(test)]
-mod money_tests {
-    use super::*;
-
-    /// The cached accessor must extract exactly what the per-call compile did.
-    #[test]
-    fn extracts_the_same_amounts_as_before() {
-        assert_eq!(extract_money_amount("custa R$ 10.000,50 hoje"), Some("10000.50".into()));
-        assert_eq!(extract_money_amount("pague 10.000 reais"), Some("10000".into()));
-        assert_eq!(extract_money_amount("R$ 250"), Some("250".into()));
-        assert_eq!(extract_money_amount("sem valor aqui"), None);
-    }
-
-    /// The pattern is compiled once and reused; a second call must not fail.
-    #[test]
-    fn the_cached_pattern_is_reusable() {
-        assert!(money_amount_re().is_some());
-        assert_eq!(extract_money_amount("R$ 1,50"), Some("1.50".into()));
     }
 }
