@@ -41,7 +41,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 |---|---|
 | Collaborators & follow | See who is in the document and follow their cursor |
 | Comments | Discussions attached to a position in the text |
-| Presence | Live indication of who is editing where |
+| Presence | Collaborator indicators when a realtime collaboration endpoint is configured; the shipped server exposes REST presence/comments and no `/ws/{app}` collaboration socket, so the editor reports offline instead of retrying a missing route |
 
 ### References and AI
 
