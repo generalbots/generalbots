@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::{AppPermissionRow, ConsentScope};
+use crate::models::ConsentScope;
 use crate::DbPool;
 
 /// How long a pending (or approved allow-once) request stays in memory.

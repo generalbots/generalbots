@@ -23,4 +23,3 @@ pub use service::{
 };
 
 pub(crate) use resolve::resolve_in_memory;
-pub(crate) use service::sweep_maps;

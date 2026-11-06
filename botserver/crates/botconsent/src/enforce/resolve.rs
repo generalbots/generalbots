@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -6,7 +7,7 @@ use uuid::Uuid;
 use crate::models::{ConsentScope, Decision};
 use crate::store;
 
-use super::service::{ttl, ConsentService, PendingMap, PendingRequest, ResolvedOutcome};
+use super::service::{sweep_maps, ttl, ConsentService, PendingMap, PendingRequest, ResolvedOutcome};
 
 /// Pure map-level transition shared by [`resolve`] and unit tests.
 pub(crate) fn resolve_in_memory(
