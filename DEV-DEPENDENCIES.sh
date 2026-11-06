@@ -2,7 +2,9 @@
 set -e
 [ "$EUID" -ne 0 ] && { echo "Run as root (use sudo)"; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-bash "$SCRIPT_DIR/DEPENDENCIES.sh"
+# Runtime set first; a missing runtime package (for example incus on a distro
+# that needs a third-party repository) must not abort the build toolchain.
+bash "$SCRIPT_DIR/DEPENDENCIES.sh" --install || echo "WARNING: runtime dependencies incomplete; verify with ./PROD-DEPENDENCIES.sh --check"
 OS=$(grep -oP '(?<=^ID=).+' /etc/os-release 2>/dev/null | tr -d '"' || echo "unknown")
 install_debian() { apt-get install -y -qq clang lld build-essential pkg-config libssl-dev libpq-dev cmake git libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev curl wget file unzip jq protobuf-compiler libprotobuf-dev libsqlite3-dev libfontconfig1-dev libfreetype6-dev libexpat1-dev libonig-dev; }
 install_fedora() { dnf install -y -q clang lld gcc gcc-c++ make pkg-config openssl-devel postgresql-devel cmake git glib2-devel gobject-introspection-devel gtk3-devel webkit2gtk3-devel javascriptcoregtk-devel libappindicator-gtk3-devel librsvg2-devel libsoup3-devel curl wget file unzip jq protobuf-compiler protobuf-devel sqlite-devel fontconfig-devel freetype-devel expat-devel oniguruma-devel; }

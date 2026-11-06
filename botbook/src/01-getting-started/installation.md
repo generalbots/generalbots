@@ -6,44 +6,61 @@ botserver installs itself automatically through the bootstrap process. Just run 
 
 Before running the botserver binary, you must install required system libraries on the **host system**.
 
-### Quick Install (Recommended)
+### Verify (recommended)
 
-Download and run the dependency installer:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/generalbots/generalbots/main/scripts/install-dependencies.sh | sudo bash
-```
-
-Or if you have the script locally:
+`--check` does not require root and does not install anything. It prints every
+missing command, shared library, group and package, then exits non-zero:
 
 ```bash
-sudo ./scripts/install-dependencies.sh
+./PROD-DEPENDENCIES.sh --check
 ```
 
-### Manual Install (Debian/Ubuntu)
+### Install
 
 ```bash
-sudo apt update
-sudo apt install -y \
-    libpq5 \
-    libssl3 \
-    liblzma5 \
-    zlib1g \
-    ca-certificates \
-    curl \
-    wget \
-    libabseil-dev \
-    libclang-dev \
-    pkg-config
-
-# For container support (LXC)
-sudo snap install lxd
-sudo lxd init --auto
-
-# For the agent workspace (Incus)
-sudo apt install -y incus
-sudo incus admin init --minimal
+sudo ./PROD-DEPENDENCIES.sh --install
 ```
+
+The install path is idempotent and resolves release-specific package renames
+(Debian/Ubuntu `libssl3t64`, `libgtk-3-0t64`, `libzbar0t64`, versioned
+`libclang1-NN`). `DEPENDENCIES.sh` holds the package matrix;
+`PROD-DEPENDENCIES.sh` is the supported entry point, and
+`DEV-DEPENDENCIES.sh` adds the build toolchain on top of the same runtime set.
+
+### Runtime matrix
+
+| Category | What is required | Required by |
+|----------|------------------|-------------|
+| PostgreSQL client | libpq (`libpq.so.5`) | database access |
+| TLS | OpenSSL (`libssl.so.3`) | HTTPS, JWT |
+| Compression | liblzma, zlib | archives, HTTP |
+| Clang runtime | libclang | native service components |
+| PDF | poppler (`pdftotext`, `libpoppler.so`) | document extraction |
+| Media | zbar (`libzbar.so.0`) | BotModels barcode/QR decoding |
+| Containers | `incus` and the `incus-admin` group | agent VMs, terminals, browser actions |
+| Desktop shell | GTK3, WebKitGTK 4.1, libsoup3, librsvg, appindicator | desktop/tauri bundle |
+| Fonts | fontconfig, DejaVu and Liberation fonts | UI rendering |
+| Base tools | `ca-certificates`, `curl`, `wget` | bootstrap downloads |
+
+The matrix is implemented for Debian/Ubuntu (apt), Fedora/RHEL (dnf), Arch
+(pacman) and Alpine (apk). Package names differ by release; `--check` prints
+the exact names for the host instead of duplicating a list here.
+
+### Windows and macOS
+
+The Linux matrix above does not apply to the desktop bundles:
+
+- **Windows:** `.\PROD-DEPENDENCIES.ps1 -Check` reports WebView2, the VC++
+  2015-2022 x64 runtime, `libpq.dll` and the WSL2/Incus agent backend, then
+  exits non-zero when the desktop shell or agent mode cannot run. `-Install`
+  prints the remediation commands and does not download or install anything.
+- **macOS:** `./PROD-DEPENDENCIES.sh --check` reports that no desktop bundle is
+  built for macOS (`desktop/macos/README.md`).
+
+See [First-Run Wizard](../07-user-interface/first-run-wizard.md) for the exit
+codes and the per-platform agent backend details.
+
+### Incus
 
 The Agent Workspace runs each session in an Incus container. The Incus socket
 is `root:incus-admin 0660` and the daemon checks the peer credentials, so the
@@ -55,22 +72,10 @@ sudo usermod -aG incus-admin botserver   # or the account that runs botserver
 sudo systemctl restart botserver         # a fresh login session also works
 ```
 
-`DEPENDENCIES.sh` installs Incus where the distribution packages it and adds the
-service user to `incus-admin`, printing the re-login/restart reminder.
-
-### Manual Install (Fedora/RHEL)
-
-```bash
-sudo dnf install -y \
-    libpq \
-    openssl-libs \
-    xz-libs \
-    zlib \
-    ca-certificates \
-    curl \
-    wget \
-    lxc
-```
+`DEPENDENCIES.sh` installs Incus where the distribution packages it, adds the
+service user to `incus-admin`, starts the daemon, runs `incus admin init
+--minimal` when no storage pool exists, and prints the re-login/restart
+reminder.
 
 > ⚠️ **Common Error**: If you see `error while loading shared libraries: libpq.so.5`, install `libpq5` (Debian/Ubuntu) or `libpq` (Fedora/RHEL).
 
