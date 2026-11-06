@@ -11,7 +11,7 @@ pub(crate) use crate::security::headers::{
 };
 pub(crate) use crate::security::panic_handler::PanicHandlerConfig;
 pub(crate) use crate::security::rate_limiter::{
-    create_rate_limit_layer, CombinedRateLimiter, HttpRateLimitConfig,
+    auth_rate_limit_middleware, create_rate_limit_layer, CombinedRateLimiter, HttpRateLimitConfig,
 };
 pub(crate) use crate::security::request_id::request_id_middleware;
 pub(crate) use botcore::shared::state::AppState;

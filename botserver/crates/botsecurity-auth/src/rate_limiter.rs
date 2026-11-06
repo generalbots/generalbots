@@ -11,7 +11,7 @@ use botlib::limits::{
 };
 use governor::{
     clock::DefaultClock,
-    state::{InMemoryState, NotKeyed},
+    state::{keyed::DefaultKeyedStateStore, InMemoryState, NotKeyed},
     Quota, RateLimiter as GovernorRateLimiter,
 };
 use serde_json::json;
@@ -22,6 +22,12 @@ use std::{
 };
 
 pub type GlobalRateLimiter = GovernorRateLimiter<NotKeyed, InMemoryState, DefaultClock>;
+
+/// Per-client limiter for the authentication endpoints. Keyed by the client
+/// address (the first `X-Forwarded-For` hop behind Caddy), so one client
+/// cannot exhaust the login endpoint for everyone.
+pub type AuthKeyedRateLimiter =
+    GovernorRateLimiter<String, DefaultKeyedStateStore<String>, DefaultClock>;
 
 #[derive(Debug, Clone)]
 pub struct HttpRateLimitConfig {
@@ -63,6 +69,7 @@ impl HttpRateLimitConfig {
 
 pub struct CombinedRateLimiter {
     http_limiter: Arc<GlobalRateLimiter>,
+    auth_limiter: Arc<AuthKeyedRateLimiter>,
     botlib_limiter: Arc<BotlibRateLimiter>,
 }
 
@@ -84,8 +91,22 @@ impl CombinedRateLimiter {
             NonZeroU32::new(http_config.burst_size).unwrap_or(DEFAULT_BURST),
         );
 
+        // Authentication endpoints get their own quota: 10 req/s with a burst
+        // of 20 per client. This is the IMP-07 auth limit; it stops online
+        // password guessing without throttling normal API traffic.
+        const AUTH_RPS: NonZeroU32 = match NonZeroU32::new(10) {
+            Some(v) => v,
+            None => DEFAULT_RPS,
+        };
+        const AUTH_BURST: NonZeroU32 = match NonZeroU32::new(20) {
+            Some(v) => v,
+            None => DEFAULT_BURST,
+        };
+        let auth_quota = Quota::per_second(AUTH_RPS).allow_burst(AUTH_BURST);
+
         Self {
             http_limiter: Arc::new(GovernorRateLimiter::direct(quota)),
+            auth_limiter: Arc::new(GovernorRateLimiter::keyed(auth_quota)),
             botlib_limiter: Arc::new(BotlibRateLimiter::new(system_limits)),
         }
     }
@@ -96,6 +117,12 @@ impl CombinedRateLimiter {
 
     pub fn check_http_limit(&self) -> bool {
         self.http_limiter.check().is_ok()
+    }
+
+    /// Enforce the stricter per-client quota used by the authentication
+    /// endpoints (login, refresh, bootstrap).
+    pub fn check_auth_limit(&self, key: &str) -> bool {
+        self.auth_limiter.check_key(&key.to_string()).is_ok()
     }
 
     pub async fn check_user_limit(&self, user_id: &str) -> Result<(), LimitExceeded> {
@@ -115,6 +142,7 @@ impl Clone for CombinedRateLimiter {
     fn clone(&self) -> Self {
         Self {
             http_limiter: Arc::clone(&self.http_limiter),
+            auth_limiter: Arc::clone(&self.auth_limiter),
             botlib_limiter: Arc::clone(&self.botlib_limiter),
         }
     }
@@ -150,6 +178,55 @@ pub async fn simple_rate_limit_middleware(
         return http_rate_limit_response(30);
     }
     next.run(request).await
+}
+
+/// Enforces the global HTTP quota and, for `/api/auth/*`, the stricter
+/// per-client auth quota. The client key is the first `X-Forwarded-For` hop
+/// (Caddy sets it) with `X-Real-IP` and the peer address as fallbacks.
+pub async fn auth_rate_limit_middleware(
+    addr: Option<ConnectInfo<SocketAddr>>,
+    axum::Extension(limiter): axum::Extension<Arc<CombinedRateLimiter>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    if !limiter.check_http_limit() {
+        return http_rate_limit_response(30);
+    }
+
+    if request.uri().path().starts_with("/api/auth/") {
+        let key = client_key(&request, addr.map(|info| info.0));
+        if !limiter.check_auth_limit(&key) {
+            return http_rate_limit_response(30);
+        }
+    }
+
+    next.run(request).await
+}
+
+fn client_key(request: &Request<Body>, addr: Option<SocketAddr>) -> String {
+    if let Some(first) = request
+        .headers()
+        .get("x-forwarded-for")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(',').next())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return first.to_string();
+    }
+
+    if let Some(real_ip) = request
+        .headers()
+        .get("x-real-ip")
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return real_ip.to_string();
+    }
+
+    addr.map(|socket| socket.ip().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn extract_user_id(request: &Request<Body>) -> Option<String> {
@@ -257,5 +334,30 @@ mod tests {
             .body(Body::empty())
             .expect("request builds");
         assert!(extract_user_id(&request).is_none());
+    }
+
+    #[test]
+    fn test_auth_rate_limit_rejects_a_burst_for_one_client() {
+        let limiter = CombinedRateLimiter::with_defaults();
+        let mut rejected = 0;
+        for _ in 0..40 {
+            if !limiter.check_auth_limit("198.51.100.7") {
+                rejected += 1;
+            }
+        }
+        assert!(rejected > 0, "a 40-request burst must be throttled");
+        assert!(
+            limiter.check_auth_limit("198.51.100.8"),
+            "a different client must keep its own budget"
+        );
+    }
+
+    #[test]
+    fn test_client_key_prefers_forwarded_for() {
+        let request = Request::builder()
+            .header("x-forwarded-for", "203.0.113.9, 10.0.0.1")
+            .body(Body::empty())
+            .expect("request builds");
+        assert_eq!(client_key(&request, None), "203.0.113.9");
     }
 }
