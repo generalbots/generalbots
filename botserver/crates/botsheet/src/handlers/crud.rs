@@ -122,10 +122,12 @@ pub async fn handle_load_from_drive(
         ext = "xlsx".to_string();
     }
     let file_name = req.path.rsplit('/').next().unwrap_or("Spreadsheet");
+    // `report.xlsx` -> "report"; `rsplit('.').next_back()` returned the
+    // extension ("xlsx"), which then became the workbook and CSV tab name.
     let sheet_name = file_name
-        .rsplit('.')
-        .next_back()
-        .unwrap_or("Spreadsheet")
+        .rsplit_once('.')
+        .map(|(stem, _)| stem)
+        .unwrap_or(file_name)
         .to_string();
 
     let worksheets = match ext.as_str() {

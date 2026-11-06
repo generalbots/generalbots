@@ -295,7 +295,10 @@ function saveSheet() {
     var name = nameInput ? nameInput.value : 'Untitled Spreadsheet';
     var id = getLiveSheetId();
     var payload = { name: name, action: 'save' };
-    if (id && id !== 'current') payload.id = id;
+    // "current" is a real live session: every cell edit was written to it.
+    // Dropping it here made the server create a fresh blank workbook, losing
+    // the edits the user had just made.
+    if (id) payload.id = id;
     fetch('/api/sheet/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
