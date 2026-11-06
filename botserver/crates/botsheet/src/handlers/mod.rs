@@ -9,6 +9,7 @@ pub mod grid_ops;
 pub mod paste_html;
 pub mod data_ops;
 pub mod export_import;
+pub mod find_replace;
 pub mod named_ranges_csv;
 pub mod pivot;
 pub mod validation;

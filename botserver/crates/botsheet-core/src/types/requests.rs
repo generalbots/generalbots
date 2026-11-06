@@ -225,6 +225,20 @@ pub struct DataValidationRequest {
     pub error_message: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FindReplaceRequest {
+    // The toolbar posts the workbook as `id`; the API calls it sheet_id.
+    #[serde(alias = "id")]
+    pub sheet_id: String,
+    #[serde(default)]
+    pub worksheet_index: usize,
+    pub find: String,
+    #[serde(default)]
+    pub replace: String,
+    #[serde(default)]
+    pub match_case: bool,
+}
+
 /// Resolves the toolbar `range` shorthand against explicit bounds.
 pub fn bounds_from_request(
     range: Option<&str>,

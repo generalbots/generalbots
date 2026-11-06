@@ -76,7 +76,7 @@ pub async fn handle_find_replace_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="find-replace-form" hx-post="/api/sheet/load" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="find-replace-form" hx-post="/api/sheet/find-replace" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">{find}
 <input type="text" name="find" placeholder="{find_ph}" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
