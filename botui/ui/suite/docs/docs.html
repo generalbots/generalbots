@@ -8,10 +8,10 @@
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
-                <button class="btn-icon" id="undoBtn" hx-get="/api/docs/load" hx-vals='{"id":"current","action":"undo"}' hx-swap="none" title="Undo">
+                <button class="btn-icon" id="undoBtn" onclick="document.execCommand('undo')" title="Undo">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                 </button>
-                <button class="btn-icon" id="redoBtn" hx-get="/api/docs/load" hx-vals='{"id":"current","action":"redo"}' hx-swap="none" title="Redo">
+                <button class="btn-icon" id="redoBtn" onclick="document.execCommand('redo')" title="Redo">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path></svg>
                 </button>
             </div>

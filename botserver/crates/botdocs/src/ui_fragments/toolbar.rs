@@ -83,7 +83,7 @@ pub async fn handle_footnote_form(Json(payload): Json<serde_json::Value>) -> Htm
     let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
     let position = payload.get("position").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/footnote" hx-vals='{{"doc_id":"{id}","position":"{pos}"}}' hx-target="#footnote-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" hx-post="/api/docs/footnote" hx-vals='{{"doc_id":"{id}","position":{pos}}}' hx-target="#footnote-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Conteúdo da nota
 <textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{content}</textarea>
 </label>
@@ -99,7 +99,7 @@ pub async fn handle_endnote_form(Json(payload): Json<serde_json::Value>) -> Html
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/endnote" hx-vals='{{"doc_id":"{id}","position":"0"}}' hx-target="#endnote-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" hx-post="/api/docs/endnote" hx-vals='{{"doc_id":"{id}","position":0}}' hx-target="#endnote-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Conteúdo da nota final
 <textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{content}</textarea>
 </label>
@@ -115,7 +115,7 @@ pub async fn handle_track_changes_form(Json(payload): Json<serde_json::Value>) -
     let enabled = payload.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
     let label = if enabled { "Desativar" } else { "Ativar" };
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/track-changes/enable" hx-vals='{{"id":"{id}","enabled":"{enabled}"}}' hx-target="#track-changes-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" hx-post="/api/docs/track-changes/enable" hx-vals='{{"doc_id":"{id}","enabled":{enabled}}}' hx-target="#track-changes-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <p style="color:#cbd5e1;font-size:13px;">{label} o controle de alterações para registrar todas as edições feitas no documento.</p>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{label} Controle</button>
 </form>"##,
@@ -128,9 +128,9 @@ pub async fn handle_track_changes_form(Json(payload): Json<serde_json::Value>) -
 pub async fn handle_compare_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/compare" hx-vals='{{"id":"{id}"}}' hx-target="#compare-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" hx-post="/api/docs/compare" hx-vals='{{"original_doc_id":"{id}"}}' hx-target="#compare-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Documento para comparar (ID)
-<input type="text" name="compare_id" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" placeholder="UUID do segundo documento" />
+<input type="text" name="modified_doc_id" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" placeholder="UUID do segundo documento" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Comparar Documentos</button>
 </form>"##,
