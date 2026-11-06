@@ -252,11 +252,10 @@ pub async fn handle_styles_panel(
     for s in &styles {
         let font_preview = format!("{} {}pt", s.font_family.as_deref().unwrap_or("Arial"), s.font_size.unwrap_or(12.0) as i32);
         html.push_str(&format!(
-            r##"<div class="dc-style-item" style="padding:8px;border-bottom:1px solid #334155;cursor:pointer;" hx-post="/api/docs/style/apply" hx-vals='{{"id":"{sid}","doc_id":"{{id}}"}}' hx-target="#doc-content" hx-swap="innerHTML">
+            r##"<div class="dc-style-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
 <div style="font-size:11px;color:#94a3b8;">Tipo: {kind} • Fonte: {font}</div>
 </div>"##,
-            sid = s.id,
             name = html_escape(&s.name),
             kind = html_escape(&s.style_type),
             font = html_escape(&font_preview)
