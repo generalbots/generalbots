@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+#[cfg(windows)]
+use botlib::security::SafeCommand;
+
 use crate::os_abstraction::{OsAbstraction, Platform};
 
 /// Windows-specific operating system abstraction.
@@ -13,10 +16,10 @@ impl OsAbstraction for WindowsAbstraction {
     fn is_admin(&self) -> bool {
         #[cfg(windows)]
         {
-            std::process::Command::new("whoami")
-                .args(["/groups"])
-                .output()
+            SafeCommand::new("whoami")
+                .and_then(|c| c.arg("/groups"))
                 .ok()
+                .and_then(|c| c.execute().ok())
                 .map(|o| {
                     let s = String::from_utf8_lossy(&o.stdout);
                     s.contains("S-1-16-12288")
@@ -49,9 +52,12 @@ impl OsAbstraction for WindowsAbstraction {
                 args[2] = "Everyone:F";
             }
 
-            let output = std::process::Command::new("icacls")
-                .args(&args)
-                .output()
+            let output = SafeCommand::new("icacls")
+                .and_then(|c| {
+                    args.iter()
+                        .try_fold(c, |cmd, arg| cmd.trusted_arg(arg))
+                })
+                .and_then(|c| c.execute())
                 .map_err(|e| format!("icacls execution failed: {e}"))?;
 
             if !output.status.success() {
@@ -61,9 +67,10 @@ impl OsAbstraction for WindowsAbstraction {
 
             match mode & 0o777 {
                 0o644 | 0o600 | 0o400 => {
-                    let inherit = std::process::Command::new("icacls")
-                        .args([path_str.as_ref(), "/inheritance:r"])
-                        .output();
+                    let inherit = SafeCommand::new("icacls")
+                        .and_then(|c| c.trusted_arg(path_str.as_ref()))
+                        .and_then(|c| c.arg("/inheritance:r"))
+                        .and_then(|c| c.execute());
                     if let Ok(o) = inherit {
                         if !o.status.success() {
                             let stderr = String::from_utf8_lossy(&o.stderr);
@@ -89,9 +96,11 @@ impl OsAbstraction for WindowsAbstraction {
         #[cfg(windows)]
         {
             let path_str = path.to_string_lossy();
-            let output = std::process::Command::new("icacls")
-                .args([path_str.as_ref(), "/grant", "Everyone:RX"])
-                .output()
+            let output = SafeCommand::new("icacls")
+                .and_then(|c| c.trusted_arg(path_str.as_ref()))
+                .and_then(|c| c.arg("/grant"))
+                .and_then(|c| c.arg("Everyone:RX"))
+                .and_then(|c| c.execute())
                 .map_err(|e| format!("icacls execution failed: {e}"))?;
 
             if output.status.success() {
@@ -112,9 +121,12 @@ impl OsAbstraction for WindowsAbstraction {
         #[cfg(windows)]
         {
             let path_str = path.to_string_lossy();
-            let disable_inherit = std::process::Command::new("icacls")
-                .args([path_str.as_ref(), "/inheritance:r", "/grant", "Administrator:F"])
-                .output()
+            let disable_inherit = SafeCommand::new("icacls")
+                .and_then(|c| c.trusted_arg(path_str.as_ref()))
+                .and_then(|c| c.arg("/inheritance:r"))
+                .and_then(|c| c.arg("/grant"))
+                .and_then(|c| c.arg("Administrator:F"))
+                .and_then(|c| c.execute())
                 .map_err(|e| format!("icacls execution failed: {e}"))?;
 
             if disable_inherit.status.success() {

@@ -145,9 +145,10 @@ pub fn get_container_ip(container_name: &str) -> Result<String> {
 }
 
 pub fn assign_static_ip(container_name: &str) -> Result<String> {
-    let bridge_info = std::process::Command::new("ip")
-        .args(["-4", "addr", "show", "lxdbr0"])
-        .output().ok()
+    let bridge_info = SafeCommand::new("ip")
+        .and_then(|c| c.args(&["-4", "addr", "show", "lxdbr0"]))
+        .ok()
+        .and_then(|c| c.execute().ok())
         .and_then(|o| {
             let out = String::from_utf8_lossy(&o.stdout).to_string();
             out.lines().find(|l| l.contains("inet "))

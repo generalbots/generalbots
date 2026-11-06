@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::SafeCommand;
 
 impl ForgejoClient {
     pub(crate) async fn push_workflow_preserving(
@@ -16,16 +17,25 @@ impl ForgejoClient {
 
         let auth_url = self.add_token_to_url(repo_url);
         let git = |args: &[&str]| -> Result<String, DeploymentError> {
-            let output = std::process::Command::new("git")
-                .current_dir(&temp_dir)
-                .args(args)
-                .output()
-                .map_err(|e| DeploymentError::GitError(format!("git {}: {e}", args[0])))?;
+            let label = args.first().copied().unwrap_or("git");
+            let mut command = SafeCommand::new("git")
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .allow_path(temp_dir.clone());
+            for arg in args {
+                command = command
+                    .trusted_arg(arg)
+                    .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+            }
+            let output = command
+                .working_dir(&temp_dir)
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .execute()
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 return Err(DeploymentError::GitError(format!(
                     "git {} failed: {}",
-                    args[0],
+                    label,
                     stderr.trim().lines().last().unwrap_or("unknown")
                 )));
             }
@@ -34,14 +44,17 @@ impl ForgejoClient {
 
         // Clone the existing repo (empty remotes clone cleanly; the working
         // tree is then populated by the file writes below).
-        let clone_output = std::process::Command::new("git")
-            .current_dir(
-                temp_dir
-                    .parent()
-                    .ok_or_else(|| DeploymentError::GitError("temp dir has no parent".to_string()))?,
-            )
-            .args(["clone", "--quiet", &auth_url, &temp_dir.to_string_lossy()])
-            .output()
+        let parent_dir = temp_dir
+            .parent()
+            .ok_or_else(|| DeploymentError::GitError("temp dir has no parent".to_string()))?;
+        let clone_target = temp_dir.to_string_lossy().to_string();
+        let clone_output = SafeCommand::new("git")
+            .map(|c| c.allow_path(parent_dir.to_path_buf()))
+            .and_then(|c| c.args(&["clone", "--quiet"]))
+            .and_then(|c| c.trusted_arg(&auth_url))
+            .and_then(|c| c.trusted_arg(&clone_target))
+            .and_then(|c| c.working_dir(parent_dir))
+            .and_then(|c| c.execute())
             .map_err(|e| DeploymentError::GitError(format!("git clone: {e}")))?;
         if !clone_output.status.success() {
             let stderr = String::from_utf8_lossy(&clone_output.stderr);
@@ -69,11 +82,21 @@ impl ForgejoClient {
         // The workflow may already exist and be identical (re-deploy after a
         // rebase brought it in): a "nothing to commit" is a no-op, not an
         // error — the push below then just confirms everything is in sync.
-        let commit_out = std::process::Command::new("git")
-            .current_dir(&temp_dir)
-            .args(["-c", "user.name=GB Deployer", "-c", "user.email=deployer@generalbots.com",
-                   "commit", "-m", &format!("Add CI/CD workflow: {}", app.description)])
-            .output()
+        let commit_message = format!("Add CI/CD workflow: {}", app.description);
+        let commit_out = SafeCommand::new("git")
+            .and_then(|c| {
+                c.args(&[
+                    "-c",
+                    "user.name=GB Deployer",
+                    "-c",
+                    "user.email=deployer@generalbots.com",
+                    "commit",
+                    "-m",
+                ])
+            })
+            .and_then(|c| c.trusted_arg(&commit_message))
+            .and_then(|c| c.working_dir(&temp_dir))
+            .and_then(|c| c.execute())
             .map_err(|e| DeploymentError::GitError(format!("git commit: {e}")))?;
         let commit_text = format!(
             "{} {}",

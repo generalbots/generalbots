@@ -88,17 +88,23 @@ pub fn run_commands_with_password(
             trace!("Executing command: {}", rendered_cmd);
             #[cfg(target_os = "windows")]
             let cmd_result = {
-                use std::os::windows::process::CommandExt;
                 let wrapped = format!("\"{rendered_cmd}\"");
-                let output = std::process::Command::new("cmd")
-                    .arg("/C")
-                    .raw_arg(&wrapped)
-                    .current_dir(&bin_path)
-                    .output()
+                let command = SafeCommand::new("cmd")
+                    .and_then(|c| c.arg("/C"))
+                    .and_then(|c| c.raw_shell_script_arg(&wrapped))
+                    .map_err(|e| {
+                        anyhow::anyhow!("Failed to build cmd command for '{}': {}", component, e)
+                    })?
+                    .allow_path(bin_path.clone());
+                command
+                    .working_dir(&bin_path)
+                    .map_err(|e| {
+                        anyhow::anyhow!("Failed to set working dir for '{}': {}", component, e)
+                    })?
+                    .execute()
                     .with_context(|| {
                         format!("Failed to execute command for '{}'", component)
-                    })?;
-                output
+                    })?
             };
             #[cfg(not(target_os = "windows"))]
             let cmd_result = {

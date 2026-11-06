@@ -8,7 +8,7 @@ use log::{error, info, trace, warn};
 use super::BootstrapProgress;
 use super::migrations::run_diesel_migrations;
 use std::path::Path;
-use std::process::Command;
+use botlib::security::SafeCommand;
 
 pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
 
@@ -353,9 +353,10 @@ async fn ensure_templates_repo() {
 
     if work_dir.exists() {
         // git pull — never rebase
-        let pull = Command::new("git")
-            .args(["-C", "work/templates", "pull", "--ff-only"])
-            .output();
+        let pull = SafeCommand::new("git")
+            .and_then(|c| c.args(&["-C", "work/templates", "pull", "--ff-only"]))
+            .map_err(|e| e.to_string())
+            .and_then(|c| c.execute().map_err(|e| e.to_string()));
         match pull {
             Ok(out) if out.status.success() => {
                 info!("Templates repo updated via git pull");
@@ -373,9 +374,12 @@ async fn ensure_templates_repo() {
         if let Some(parent) = work_dir.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let clone = Command::new("git")
-            .args(["clone", &repo_url, "work/templates"])
-            .output();
+        let clone = SafeCommand::new("git")
+            .and_then(|c| c.args(&["clone"]))
+            .and_then(|c| c.arg(&repo_url))
+            .and_then(|c| c.arg("work/templates"))
+            .map_err(|e| e.to_string())
+            .and_then(|c| c.execute().map_err(|e| e.to_string()));
         match clone {
             Ok(out) if out.status.success() => {
                 info!("Templates repo cloned to work/templates");

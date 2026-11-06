@@ -2053,6 +2053,7 @@ name = "botcoresecrets"
 version = "6.7.0"
 dependencies = [
  "anyhow",
+ "botlib",
  "botlog",
  "diesel",
  "log",
@@ -2191,6 +2192,7 @@ dependencies = [
  "base64 0.22.1",
  "botlib",
  "botsecurity-core",
+ "botuifragments",
  "calamine",
  "chrono",
  "diesel",
@@ -2581,6 +2583,7 @@ dependencies = [
  "dirs 5.0.1",
  "env_logger",
  "log",
+ "regex",
  "reqwest 0.12.28",
  "rusqlite",
  "rust-embed",
@@ -2790,6 +2793,7 @@ name = "botmonitoring"
 version = "6.7.0"
 dependencies = [
  "axum",
+ "botlib",
  "chrono",
  "hex",
  "log",
@@ -3201,6 +3205,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "base64 0.22.1",
+ "botlib",
  "botsecurity-core",
  "chrono",
  "hex",
@@ -3483,6 +3488,7 @@ dependencies = [
  "botlib",
  "botsecurity-core",
  "botsheet-core",
+ "botuifragments",
  "calamine",
  "chrono",
  "futures-util",
@@ -3509,6 +3515,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.22.1",
+ "botlib",
  "chrono",
  "log",
  "rand 0.9.4",
@@ -3529,6 +3536,7 @@ dependencies = [
  "botlib",
  "botsecurity-auth",
  "botsecurity-core",
+ "botuifragments",
  "chrono",
  "diesel",
  "futures-util",

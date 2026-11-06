@@ -27,6 +27,10 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "visudo", "id", "netsh", "llama-server", "ollama", "vault",
         "python", "python3", "python3.11", "python3.12",
         "tasklist", "tar.exe", "git",
+        // First-party call sites: filesystem/disk readout (`df`), host
+        // addressing (`ip`), Windows ACL/identity (`icacls`, `whoami`) and the
+        // PostgreSQL dump client that ships with the allowlisted `psql`.
+        "df", "ip", "icacls", "whoami", "pg_dump",
     ])
 });
 
@@ -101,7 +105,7 @@ impl SafeCommand {
     }
 
     pub fn shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = self.command == "bash" || self.command == "sh" || self.command == "incus";
+        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus" | "lxc");
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
@@ -160,7 +164,7 @@ impl SafeCommand {
         script: &str,
         trusted: bool,
     ) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = self.command == "bash" || self.command == "sh" || self.command == "incus";
+        let is_unix_shell = matches!(self.command.as_str(), "bash" | "sh" | "incus" | "lxc");
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(

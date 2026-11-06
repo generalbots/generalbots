@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::SafeCommand;
 
 impl ForgejoClient {
     pub fn new(base_url: String, token: String) -> Self {
@@ -202,16 +203,25 @@ impl ForgejoClient {
         // mixing git2 (which has ref-creation and HTTP auth issues) with
         // CLI. The proven flow: init → add → commit → push.
         let git = |args: &[&str]| -> Result<String, DeploymentError> {
-            let output = std::process::Command::new("git")
-                .current_dir(&temp_dir)
-                .args(args)
-                .output()
-                .map_err(|e| DeploymentError::GitError(format!("git {}: {e}", args[0])))?;
+            let label = args.first().copied().unwrap_or("git");
+            let mut command = SafeCommand::new("git")
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .allow_path(temp_dir.clone());
+            for arg in args {
+                command = command
+                    .trusted_arg(arg)
+                    .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
+            }
+            let output = command
+                .working_dir(&temp_dir)
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?
+                .execute()
+                .map_err(|e| DeploymentError::GitError(format!("git {label}: {e}")))?;
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 return Err(DeploymentError::GitError(format!(
                     "git {} failed: {}",
-                    args[0],
+                    label,
                     stderr.trim().lines().last().unwrap_or("unknown")
                 )));
             }
@@ -220,8 +230,17 @@ impl ForgejoClient {
 
         git(&["init", "-q"])?;
         git(&["add", "-A"])?;
+        // `git commit -m <text>` would run the user-written app description
+        // through SafeCommand's argument validation, which rejects shell
+        // metacharacters and ".."; a description containing "&" or "..." would
+        // otherwise fail the deploy. Pass the message as a file instead.
+        let message_path = temp_dir.join(".gb-commit-message");
+        std::fs::write(&message_path, format!("Initial commit: {}", app.description))
+            .map_err(|e| DeploymentError::GitError(format!("commit message: {e}")))?;
+        let message_arg = message_path.to_string_lossy().to_string();
         git(&["-c", "user.name=GB Deployer", "-c", "user.email=deployer@generalbots.com",
-             "commit", "-m", &format!("Initial commit: {}", app.description)])?;
+             "commit", "-F", &message_arg])?;
+        std::fs::remove_file(&message_path).ok();
         let commit_hash = git(&["rev-parse", "HEAD"])?;
         git(&["push", "--force", &auth_url, &format!("HEAD:{branch}")])?;
 

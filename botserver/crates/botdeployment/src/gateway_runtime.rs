@@ -10,6 +10,8 @@
 
 use std::time::Duration;
 
+use botlib::security::SafeCommand;
+
 use super::gateway_server::GatewayState;
 
 /// Bootstrap script executed inside the container via `incus exec bash -c`.
@@ -118,13 +120,15 @@ async fn run_incus_exec(
     {
         return Err(format!("invalid container name: {container_name}"));
     }
-    let mut cmd = tokio::process::Command::new("incus");
-    cmd.args(["exec", container_name, "--", "bash", "-c", script]);
-    cmd.env("INCUS_SOCKET", &state.incus_socket);
+    let command = SafeCommand::new("incus")
+        .and_then(|c| c.args(&["exec", container_name, "--", "bash", "-c"]))
+        .and_then(|c| c.trusted_shell_script_arg(script))
+        .and_then(|c| c.env("INCUS_SOCKET", &state.incus_socket))
+        .map_err(|e| format!("Failed to build incus exec: {e}"))?;
 
     for attempt in 0..5 {
-        let output = cmd
-            .output()
+        let output = command
+            .execute_async()
             .await
             .map_err(|e| format!("Failed to execute incus exec: {e}"))?;
         if output.status.success() {

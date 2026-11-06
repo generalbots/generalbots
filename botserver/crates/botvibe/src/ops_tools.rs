@@ -9,6 +9,8 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+use botlib::security::{CommandGuardError, SafeCommand};
+
 use crate::ops::VmOps;
 use crate::projects::ProjectRegistry;
 use crate::tool_executor::{ToolHandler, ToolSchema, ToolSchemaExt};
@@ -323,37 +325,43 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
                 std::fs::File::create(&dump_file).map_err(|e| format!("create temp dump: {e}"))?;
             }
         }
-        let dump = std::process::Command::new("pg_dump")
-            .arg("--dbname")
-            .arg(&prod_url)
-            .arg("--file")
-            .arg(&dump_file)
-            .arg("--no-owner")
-            .arg("--no-privileges")
-            .output()
-            .map_err(|e| match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                    "pg_dump not found on this host — install the PostgreSQL client tools".to_string()
+        let dump = SafeCommand::new("pg_dump")
+            .and_then(|c| c.arg("--dbname"))
+            .and_then(|c| c.trusted_arg(&prod_url))
+            .and_then(|c| c.arg("--file"))
+            .and_then(|c| c.allow_path(dump_file.clone()).path_arg(&dump_file))
+            .and_then(|c| c.arg("--no-owner"))
+            .and_then(|c| c.arg("--no-privileges"))
+            .and_then(|c| c.execute())
+            .map_err(|e| match e {
+                CommandGuardError::ExecutionFailed(message)
+                    if message.contains("No such file") || message.contains("not found") =>
+                {
+                    "pg_dump not found on this host — install the PostgreSQL client tools"
+                        .to_string()
                 }
-                _ => format!("pg_dump spawn: {e}"),
+                other => format!("pg_dump spawn: {other}"),
             })?;
         if !dump.status.success() {
             let _ = std::fs::remove_file(&dump_file);
             return Err(format!("pg_dump failed: {}", String::from_utf8_lossy(&dump.stderr)));
         }
-        let restore = std::process::Command::new("psql")
-            .arg("--dbname")
-            .arg(&dev_url)
-            .arg("--file")
-            .arg(&dump_file)
-            .arg("--set")
-            .arg("ON_ERROR_STOP=on")
-            .output()
-            .map_err(|e| match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                    "psql not found on this host — install the PostgreSQL client tools".to_string()
+        let restore = SafeCommand::new("psql")
+            .and_then(|c| c.arg("--dbname"))
+            .and_then(|c| c.trusted_arg(&dev_url))
+            .and_then(|c| c.arg("--file"))
+            .and_then(|c| c.allow_path(dump_file.clone()).path_arg(&dump_file))
+            .and_then(|c| c.arg("--set"))
+            .and_then(|c| c.arg("ON_ERROR_STOP=on"))
+            .and_then(|c| c.execute())
+            .map_err(|e| match e {
+                CommandGuardError::ExecutionFailed(message)
+                    if message.contains("No such file") || message.contains("not found") =>
+                {
+                    "psql not found on this host — install the PostgreSQL client tools"
+                        .to_string()
                 }
-                _ => format!("psql spawn: {e}"),
+                other => format!("psql spawn: {other}"),
             })?;
         let stderr = String::from_utf8_lossy(&restore.stderr).to_string();
         let _ = std::fs::remove_file(&dump_file);

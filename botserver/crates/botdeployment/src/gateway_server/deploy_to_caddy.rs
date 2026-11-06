@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::SafeCommand;
 
 pub(super) async fn deploy_to_caddy(
     state: &GatewayState,
@@ -50,9 +51,15 @@ pub(super) async fn deploy_to_caddy(
             return Err(format!("artifact is not a regular file: {}", canon_artifact.display()));
         }
         let artifact_path = canon_artifact.display().to_string();
-        let output = tokio::process::Command::new("tar")
-            .args(["-xzf", &artifact_path, "-C", &site_dir])
-            .output().await
+        let extraction = SafeCommand::new("tar")
+            .and_then(|c| c.arg("-xzf"))
+            .and_then(|c| c.trusted_arg(&artifact_path))
+            .and_then(|c| c.arg("-C"))
+            .and_then(|c| c.trusted_arg(&site_dir))
+            .map_err(|e| format!("Failed to build tar command: {e}"))?;
+        let output = extraction
+            .execute_async()
+            .await
             .map_err(|e| format!("Failed to extract artifact: {e}"))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -97,11 +104,12 @@ pub(super) async fn deploy_to_caddy(
     Ok(published_url)
 }
 pub(super) async fn run_incus_command(state: &GatewayState, args: &[&str]) -> Result<String, String> {
-    let mut cmd = tokio::process::Command::new("incus");
-    cmd.args(args);
-    cmd.env("INCUS_SOCKET", &state.incus_socket);
+    let command = SafeCommand::new("incus")
+        .and_then(|c| c.args(args))
+        .and_then(|c| c.env("INCUS_SOCKET", &state.incus_socket))
+        .map_err(|e| format!("Failed to build incus command: {e}"))?;
 
-    let output = cmd.output().await
+    let output = command.execute_async().await
         .map_err(|e| format!("Failed to execute incus: {e}"))?;
 
     if output.status.success() {

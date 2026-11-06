@@ -1,4 +1,5 @@
 use super::*;
+use botlib::security::SafeCommand;
 
 impl DriveConfig {
     /// Carrega credenciais exclusivamente do Vault.
@@ -26,10 +27,16 @@ impl DriveConfig {
         // empty stdout and the stack boots without Drive. Retry with backoff
         // for a few seconds before giving up (#1200).
         let mut last_err = "no attempt made".to_string();
+        let mut curl = SafeCommand::new("curl")
+            .map_err(|e| format!("Failed to build curl command for Vault: {}", e))?;
+        for arg in &curl_args {
+            curl = curl
+                .trusted_arg(*arg)
+                .map_err(|e| format!("Failed to build curl command for Vault: {}", e))?;
+        }
         for attempt in 0..10 {
-            let output = std::process::Command::new("curl")
-                .args(&curl_args)
-                .output()
+            let output = curl
+                .execute()
                 .map_err(|e| format!("Failed to execute curl to Vault: {}", e))?;
             match serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                 Ok(data) => {

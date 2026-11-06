@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+#[cfg(unix)]
+use botlib::security::SafeCommand;
+
 use crate::os_abstraction::{OsAbstraction, Platform};
 
 /// macOS-specific operating system abstraction.
@@ -13,10 +16,10 @@ impl OsAbstraction for MacOsAbstraction {
     fn is_admin(&self) -> bool {
         #[cfg(unix)]
         {
-            std::process::Command::new("id")
-                .arg("-u")
-                .output()
+            SafeCommand::new("id")
+                .and_then(|c| c.arg("-u"))
                 .ok()
+                .and_then(|c| c.execute().ok())
                 .and_then(|o| {
                     if o.status.success() {
                         String::from_utf8_lossy(&o.stdout)

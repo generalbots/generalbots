@@ -1,4 +1,6 @@
 use super::*;
+#[cfg(target_os = "linux")]
+use botlib::security::SafeCommand;
 
 impl MetricsCollector {
     pub async fn update_system_health(&self) {
@@ -126,9 +128,9 @@ impl MetricsCollector {
     async fn collect_disk_usage(&self) -> f64 {
         #[cfg(target_os = "linux")]
         {
-            if let Ok(output) = std::process::Command::new("df")
-                .args(["-h", "/"])
-                .output()
+            if let Ok(output) = SafeCommand::new("df")
+                .and_then(|c| c.args(&["-h", "/"]))
+                .and_then(|c| c.execute())
             {
                 if let Ok(stdout) = String::from_utf8(output.stdout) {
                     if let Some(line) = stdout.lines().nth(1) {
