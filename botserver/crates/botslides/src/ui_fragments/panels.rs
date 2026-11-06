@@ -189,8 +189,8 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
 <span style="color:#94a3b8;font-size:12px;">Slide {cur}/{total}</span>
 </div>
 <div style="display:flex;gap:8px;margin-bottom:12px;">
-<button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#10b981;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">▶ Iniciar</button>
-<button hx-post="/api/slides/presenter/end" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#dc2626;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">⏹ Encerrar</button>
+<button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#10b981;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;" hx-swap="none">▶ Iniciar</button>
+<button hx-post="/api/slides/presenter/end" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#dc2626;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;" hx-swap="none">⏹ Encerrar</button>
 </div>
 <div style="padding:8px;background:#1e293b;border-radius:4px;">
 <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Notas do apresentador</div>

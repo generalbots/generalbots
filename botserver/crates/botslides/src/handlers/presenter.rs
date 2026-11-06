@@ -58,8 +58,30 @@ pub async fn handle_update_presenter<D: DriveOps>(
     State(_state): State<Arc<SlidesState<D>>>,
     Json(req): Json<UpdatePresenterRequest>,
 ) -> Result<Json<PresenterSessionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let session_id = if req.session_id.is_empty() {
+        req.presentation_id.as_deref().and_then(|presentation_id| {
+            PRESENTER_SESSIONS
+                .read()
+                .ok()
+                .and_then(|sessions| {
+                    sessions
+                        .values()
+                        .filter(|session| session.presentation_id == presentation_id)
+                        .max_by_key(|session| session.started_at.timestamp_millis())
+                        .map(|session| session.id.clone())
+                })
+        })
+    } else {
+        Some(req.session_id.clone())
+    };
+    let Some(session_id) = session_id else {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Session not found" })),
+        ));
+    };
     let session = if let Ok(mut sessions) = PRESENTER_SESSIONS.write() {
-        if let Some(session) = sessions.get_mut(&req.session_id) {
+        if let Some(session) = sessions.get_mut(&session_id) {
             if let Some(current_slide) = req.current_slide {
                 session.current_slide = current_slide;
             }
@@ -90,8 +112,21 @@ pub async fn handle_end_presenter<D: DriveOps>(
     State(_state): State<Arc<SlidesState<D>>>,
     Json(req): Json<EndPresenterRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    if let Ok(mut sessions) = PRESENTER_SESSIONS.write() {
-        sessions.remove(&req.session_id);
+    let session_id = if req.session_id.is_empty() {
+        req.presentation_id.as_deref().and_then(|presentation_id| {
+            PRESENTER_SESSIONS.read().ok().and_then(|sessions| {
+                sessions
+                    .values()
+                    .filter(|session| session.presentation_id == presentation_id)
+                    .max_by_key(|session| session.started_at.timestamp_millis())
+                    .map(|session| session.id.clone())
+            })
+        })
+    } else {
+        Some(req.session_id.clone())
+    };
+    if let (Some(session_id), Ok(mut sessions)) = (session_id, PRESENTER_SESSIONS.write()) {
+        sessions.remove(&session_id);
     }
 
     Ok(Json(serde_json::json!({ "success": true })))

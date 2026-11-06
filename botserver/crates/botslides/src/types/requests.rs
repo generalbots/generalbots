@@ -287,8 +287,12 @@ pub struct StartPresenterRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdatePresenterRequest {
+    #[serde(default)]
     pub session_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// The shell panel knows the deck, not the ephemeral session id.
+    #[serde(default)]
+    pub presentation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_opt_usize")]
     pub current_slide: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_paused: Option<bool>,
@@ -298,7 +302,11 @@ pub struct UpdatePresenterRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndPresenterRequest {
+    #[serde(default)]
     pub session_id: String,
+    /// Fallback when the caller only knows the deck id.
+    #[serde(default)]
+    pub presentation_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
