@@ -1,2 +1,2 @@
 //! #1738 - shared regex cache; see `botlib::re_cache`.
-pub(crate) use botlib::re_cache::{cached_re, cached_re_owned, compile, dynamic};
+pub(crate) use botlib::re_cache::{cached_re_owned, dynamic};
