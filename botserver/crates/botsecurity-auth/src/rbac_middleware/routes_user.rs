@@ -168,6 +168,14 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sources/**", "POST", ""),
         RoutePermission::new("/api/sources/**", "PUT", ""),
         RoutePermission::new("/api/sources/**", "DELETE", ""),
+        // Connectors (#1703): without catalogue entries default-deny answered
+        // every /api/connectors call with "No matching route permission found"
+        // even for admins, leaving the feature the comparison page advertises
+        // (grants ledger) unusable while it is compiled in.
+        RoutePermission::new("/api/connectors/**", "GET", ""),
+        RoutePermission::new("/api/connectors/**", "POST", ""),
+        RoutePermission::new("/api/connectors/**", "PUT", ""),
+        RoutePermission::new("/api/connectors/**", "DELETE", ""),
 
         // Canvas
         RoutePermission::new("/api/canvas/**", "GET", ""),
