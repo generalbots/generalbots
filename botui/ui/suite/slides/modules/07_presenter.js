@@ -131,10 +131,14 @@
     if (laserFrame) return;
     laserFrame = window.requestAnimationFrame(function () {
       laserFrame = null;
+      // The protocol nests payload under `data` (the receiver, the Q&A store
+      // and the WS handler read msg.data); top-level fields were ignored.
       send("laser", {
-        slide_index: parseInt((cv.dataset.slideId) || "0", 10) || 0,
-        x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-        y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+        data: {
+          slide_index: parseInt((cv.dataset.slideId) || "0", 10) || 0,
+          x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+          y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+        }
       });
     });
   }
@@ -178,7 +182,7 @@
       var text = input.value.trim();
       if (!text) return;
       input.value = "";
-      send("question", { text: text });
+      send("question", { data: { text: text } });
       state.questions.unshift({
         id: "local-" + Date.now(), author_name: "You", text: text,
         upvotes: 0, answered: false
@@ -230,10 +234,10 @@
         var id = btn.dataset.q;
         var act = btn.dataset.act;
         if (act === "upvote") {
-          send("question_upvote", { question_id: id });
+          send("question_upvote", { data: { question_id: id } });
           state.questions.forEach(function (q) { if (q.id === id) q.upvotes = (q.upvotes || 0) + 1; });
         } else {
-          send("question_answered", { question_id: id });
+          send("question_answered", { data: { question_id: id } });
           state.questions.forEach(function (q) { if (q.id === id) q.answered = !q.answered; });
         }
         renderQuestions();
@@ -356,10 +360,10 @@
     isPresenter: function () { return state.isPresenter; },
     submitQuestion: function (text) {
       if (!text) return;
-      send("question", { text: text });
+      send("question", { data: { text: text } });
     },
-    upvote: function (id) { send("question_upvote", { question_id: id }); },
-    markAnswered: function (id) { send("question_answered", { question_id: id }); },
+    upvote: function (id) { send("question_upvote", { data: { question_id: id } }); },
+    markAnswered: function (id) { send("question_answered", { data: { question_id: id } }); },
     refreshQa: refreshQa,
     refreshPresenterStatus: refreshPresenterStatus
   };
