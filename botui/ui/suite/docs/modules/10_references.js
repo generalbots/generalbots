@@ -63,7 +63,7 @@
     sup.contentEditable = "false";
     sup.textContent = "[" + (index + 1) + "]";
     sup.title = "Reference " + (index + 1);
-    insertNodeAtCaret(sup);
+    if (window.DocsAuthoringCore) window.DocsAuthoringCore.insertNodeAtCaret(sup);
   }
 
   function readReferences() {
@@ -102,7 +102,7 @@
   }
 
   function ensurePanel() {
-    ensureCss();
+    if (window.DocsAuthoringCore) window.DocsAuthoringCore.ensureCss();
     if (panel && panel.parentNode) return panel;
     panel = document.createElement("div");
     panel.id = "gb-refs-panel";
@@ -234,7 +234,7 @@
     span.className = "docs-equation";
     span.contentEditable = "false";
     span.innerHTML = renderLatex(tex);
-    insertNodeAtCaret(span);
+    if (window.DocsAuthoringCore) window.DocsAuthoringCore.insertNodeAtCaret(span);
   }
 
   function openEquationModal() {

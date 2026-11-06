@@ -96,14 +96,16 @@ pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Htm
 
 pub async fn handle_add_image_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/media" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/media" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">URL da imagem
 <input type="url" name="url" placeholder="https://exemplo.com/imagem.jpg" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Inserir Imagem</button>
 </form>"##,
-        id = html_escape(id)
+        id = html_escape(id),
+        idx = idx
     ))
 }
 
@@ -280,14 +282,13 @@ pub async fn handle_animation_form(Json(payload): Json<serde_json::Value>) -> Ht
 pub async fn handle_export_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/export" hx-vals='{{"presentation_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" data-presentation-id="{id}" onsubmit="return GBSlidesExport(event)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Formato
 <select name="format" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="pptx">PPTX (PowerPoint)</option>
-<option value="pdf">PDF</option>
 <option value="html">HTML</option>
-<option value="odp">ODP (LibreOffice)</option>
-<option value="png">Imagens PNG (uma por slide)</option>
+<option value="svg">SVG (primeiro slide)</option>
+<option value="md">Markdown</option>
 </select>
 </label>
 <label style="color:#f8fafc;font-size:13px;">Qualidade
@@ -297,7 +298,7 @@ pub async fn handle_export_form(Json(payload): Json<serde_json::Value>) -> Html<
 <option value="print">Impressão (300 DPI)</option>
 </select>
 </label>
-<button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Exportar</button>
+<button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Baixar</button>
 </form>"##,
         id = html_escape(id)
     ))

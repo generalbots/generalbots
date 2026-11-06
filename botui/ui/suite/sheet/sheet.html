@@ -239,9 +239,13 @@ document.addEventListener("htmx:configRequest", function (event) {
         });
     }
     // Mutations must target the active worksheet tab, not always the first.
-    var tabs = document.getElementById("worksheet-tabs");
-    if (tabs && tabs.dataset.activeIndex !== undefined) {
-        parameters.worksheet_index = parseInt(tabs.dataset.activeIndex, 10) || 0;
+    if (window.SheetCore && typeof window.SheetCore.wsIndex === "function") {
+        parameters.worksheet_index = window.SheetCore.wsIndex();
+    } else {
+        var tabs = document.getElementById("worksheet-tabs");
+        if (tabs && tabs.dataset.activeIndex !== undefined) {
+            parameters.worksheet_index = parseInt(tabs.dataset.activeIndex, 10) || 0;
+        }
     }
 });
 // Re-render the grid after a successful htmx mutation (CF/DV/format/chart/

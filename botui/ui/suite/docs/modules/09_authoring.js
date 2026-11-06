@@ -222,5 +222,6 @@
 
   /* ---- Citations / references ---- */
 
-  window.DocsAuthoringCore = { insertTable: insertTable, openTableModal: openTableModal, insertImage: insertImage, openImageModal: openImageModal };
+  ensureCss();
+  window.DocsAuthoringCore = { ensureCss: ensureCss, insertNodeAtCaret: insertNodeAtCaret, insertTable: insertTable, openTableModal: openTableModal, insertImage: insertImage, openImageModal: openImageModal };
 })(window);

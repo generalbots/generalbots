@@ -26,6 +26,50 @@ document.addEventListener("htmx:configRequest", function (event) {
 // JSON, so those forms save with hx-swap="none" and ask for a fresh view
 // instead of replacing the canvas with the response body.
 // A successful insert saves and refreshes the slide; close its modal too.
+// Export is a JSON POST returning a file body; fetch it with the suite token
+// and save a blob, because htmx cannot stream a download.
+window.GBSlidesExport = function (event) {
+  event.preventDefault();
+  var form = event.target;
+  var formatSelect = form.querySelector('[name="format"]');
+  var format = formatSelect ? formatSelect.value : "pptx";
+  var deck = (form.dataset && form.dataset.presentationId) ||
+    window.__SLIDES_PRESENTATION_ID || "current";
+  var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
+    window.localStorage.getItem("gb-access-token") ||
+    window.sessionStorage.getItem("gb-access-token") || "";
+  var headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  fetch("/api/slides/export", {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ presentation_id: deck, format: format }),
+  })
+    .then(function (response) {
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      return response.blob();
+    })
+    .then(function (blob) {
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "presentation." + format;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
+      var modal = form.closest ? form.closest(".sl-modal") : null;
+      if (modal) modal.remove();
+      else {
+        var container = form.closest ? form.closest("#modal-container") : null;
+        if (container) container.innerHTML = "";
+      }
+    })
+    .catch(function (error) {
+      if (window.GBToasts && GBToasts.show) GBToasts.show("Export", error.message, "error");
+    });
+  return false;
+};
+
 window.afterSlideInsert = function (element) {
   var modal = element && element.closest ? element.closest(".sl-modal") : null;
   if (modal) {
