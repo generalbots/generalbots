@@ -155,9 +155,14 @@ pub async fn handle_save_presentation<D: DriveOps>(
         // The source bucket arrived in the import request, so it is not
         // trusted for a write: only the bot's own Drive bucket is accepted,
         // which blocks cross-tenant writes from a crafted import.
+        // The slides state's get_default_bot returns the bot NAME together
+        // with the id; the id can be the nil fallback. Resolve the drive
+        // location by name so an org-hosted default bot maps to {org}.gborg
+        // (resolving the nil id used to yield `.gbai` and skip every
+        // save-back) (#1710).
         let bot_bucket = state.conn.get().ok().map(|mut conn| {
-            let (bot_id, _) = (state.get_default_bot)(&mut conn);
-            botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id).bucket
+            let (_bot_id, bot_name) = (state.get_default_bot)(&mut conn);
+            botbasic_core::utils::bot_drive_location_for_name(&mut conn, &bot_name).bucket
         });
         if let (Some(bucket), Some(path)) = (
             presentation.source_bucket.as_deref(),
