@@ -196,13 +196,31 @@ fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
     let mut suggestions = Vec::new();
     for line in source.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with('\'') || !trimmed.to_ascii_uppercase().starts_with("ADD_SUGGESTION") {
+        if trimmed.starts_with('\'') {
+            continue;
+        }
+        // Shipped templates use both spellings ("ADD SUGGESTION" in 167 lines,
+        // "ADD_SUGGESTION" in 6); matching only the underscore form left a
+        // reopened conversation with no chips after Redis was flushed.
+        let upper = trimmed.to_ascii_uppercase();
+        if !(upper.starts_with("ADD_SUGGESTION") || upper.starts_with("ADD SUGGESTION")) {
             continue;
         }
         let Some(open) = trimmed.find('"') else { continue };
         let rest = &trimmed[open + 1..];
         let Some(close) = rest.find('"') else { continue };
-        let text = rest[..close].trim();
+        // `ADD SUGGESTION "scan" AS "Scan a QR Code"` labels the chip with the
+        // AS string; the first quoted value is only the command.
+        let after = &rest[close + 1..];
+        let after_upper = after.to_ascii_uppercase();
+        let label = after_upper.find("AS \"").and_then(|position| {
+            let label_rest = &after[position + 4..];
+            let end = label_rest.find('"')?;
+            Some(label_rest[..end].trim().to_string())
+        });
+        let text = label
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| rest[..close].trim().to_string());
         if !text.is_empty() && suggestions.len() < 12 {
             suggestions.push(botlib::models::Suggestion::new(text));
         }

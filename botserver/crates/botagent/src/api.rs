@@ -417,9 +417,18 @@ pub async fn vm_file(
     }
     let clean_cid = vm::sanitize_id(&conversation_id)?;
     let full_path = format!("/opt/vibe/conversations/{}/{}", clean_cid, rel_path);
+    // Pass the path as a positional argument: interpolating it into the shell
+    // command broke on any name with a quote (e.g. "Maria's report.pdf") and
+    // gave a 404 from a command that never ran.
     let (ok, stdout, stderr) = vm::exec_in_vm(
         &state, &vm_name,
-        &["sh".into(), "-c".into(), format!("base64 -w0 '{}'", full_path)],
+        &[
+            "sh".into(),
+            "-c".into(),
+            "base64 -w0 \"$1\"".into(),
+            "sh".into(),
+            full_path,
+        ],
     ).await?;
     if !ok {
         return Err((StatusCode::NOT_FOUND, format!("File not found: {}", stderr)));

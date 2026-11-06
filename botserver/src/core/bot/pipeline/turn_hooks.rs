@@ -314,7 +314,12 @@ async fn ingest_single_attachment(
         None
     };
     if stored {
-        user_text = format!("{user_text}\n\n📎 {fname}");
+        // The pipeline detects a staged upload by this marker and injects its
+        // inbox path into tool calls (classify_media). The bare "📎 name" line
+        // alone left every web upload without a path, so media tools never ran.
+        user_text = format!(
+            "{user_text}\n\n[User attached a file stored at inbox/{fname}; the upload was staged for the bot]\n📎 {fname}"
+        );
         attachment_note = Some(match excerpt {
             Some(text) => format!(
                 "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
