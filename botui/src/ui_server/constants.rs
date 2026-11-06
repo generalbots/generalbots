@@ -104,6 +104,12 @@ pub const SUITE_DIRS: &[&str] = &[
     "recycle", "snapshot", "clock", "notes", "store", "concierge", "fraud",
     // Desktop widget partials (widget-registry.js loads /suite/widgets/*)
     "widgets",
+    // Split assets introduced by #1731
+    "desktop-inline",
+    "editor",
+    "editor-partials",
+    "designer-partials",
+    "base-layout",
 ];
 
 pub const ROOT_FILES: &[&str] = &[
