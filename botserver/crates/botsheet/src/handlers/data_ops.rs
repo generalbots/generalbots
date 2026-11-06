@@ -275,11 +275,18 @@ pub async fn handle_create_chart(
         title: req.title.unwrap_or_else(|| "Chart".to_string()),
         data_range: req.data_range,
         label_range: req.label_range.unwrap_or_default(),
-        position: req.position.unwrap_or(ChartPosition {
-            row: 0,
-            col: 5,
-            width: 400,
-            height: 300,
+        position: req.position.unwrap_or_else(|| {
+            let (row, col) = req
+                .anchor
+                .as_deref()
+                .and_then(botsheet_core::formulas::refs::parse_cell_ref)
+                .unwrap_or((0, 5));
+            ChartPosition {
+                row,
+                col,
+                width: 400,
+                height: 300,
+            }
         }),
         options: ChartOptions::default(),
         datasets: vec![],

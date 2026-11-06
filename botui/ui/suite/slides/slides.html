@@ -9,7 +9,7 @@
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
-                <button class="btn-icon" id="newSlideBtn" hx-get="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="New Slide">
+                <button class="btn-icon" id="newSlideBtn" hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="New Slide">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"></rect><line x1="12" y1="6" x2="12" y2="18"></line><line x1="6" y1="12" x2="18" y2="12"></line></svg>
                 </button>
                 <button class="btn-icon" id="insertTextBtn" hx-post="/suite/slides/forms/add-text" hx-vals='{"presentation_id":"current","slide_index":"current"}' hx-target="#slides-modal-container" hx-swap="innerHTML" title="Add Text">
@@ -76,7 +76,7 @@
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="presenterBtn" hx-get="/suite/slides/fragments/presenter" hx-vals='{"presentation_id":"current"}' hx-target="#slides-content" hx-swap="innerHTML" title="Presenter View">
+                <button class="btn-icon" id="presenterBtn" hx-post="/suite/slides/fragments/presenter" hx-vals='{"presentation_id":"current"}' hx-target="#slides-content" hx-swap="innerHTML" title="Presenter View">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h20M2 21h20M5 3v18M19 3v18"></path><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
                 </button>
             </div>

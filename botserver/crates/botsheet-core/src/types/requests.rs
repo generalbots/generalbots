@@ -168,6 +168,10 @@ pub struct ChartRequest {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub position: Option<ChartPosition>,
+    /// Toolbar shorthand for the anchor cell ("B5"); ignored when `position`
+    /// is supplied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
