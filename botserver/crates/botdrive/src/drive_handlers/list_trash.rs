@@ -62,7 +62,7 @@ pub async fn trash_file(
         resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let relative = normalize_path(&req.path);
-    let key = format!("{prefix}{relative}");
+    let key = scoped_key(&prefix, &req.path);
     // #1640 — a distinct stamp per delete keeps repeated deletes of the same
     // path (and same-named files from different folders) from colliding.
     let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%S%3fZ").to_string();
@@ -83,7 +83,7 @@ pub async fn trash_file(
             .await
             .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Trash move failed: {e}")))?;
         let _ = drive.delete_object(&bucket, &key).await;
-        let _ = diesel::sql_query(
+        diesel::sql_query(
             "INSERT INTO drive_trash (user_id, bucket, path, original_path, is_dir, size) \
              VALUES ($1, $2, $3, $4, false, $5)",
         )
@@ -92,7 +92,11 @@ pub async fn trash_file(
         .bind::<Text, _>(&trash_key)
         .bind::<Text, _>(&key)
         .bind::<BigInt, _>(size)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .map_err(|e| {
+            botlog::safe_error!("drive trash insert failed: {e}");
+            err(StatusCode::INTERNAL_SERVER_ERROR, "Could not record the trashed file")
+        })?;
         botlog::safe_info!("File moved to trash: {key} -> {trash_key}");
         return Ok(Json(SuccessResponse { success: true }));
     }
@@ -123,7 +127,7 @@ pub async fn trash_file(
             let _ = drive.delete_object(&bucket, &child).await;
         }
     }
-    let _ = diesel::sql_query(
+    diesel::sql_query(
         "INSERT INTO drive_trash (user_id, bucket, path, original_path, is_dir, size) \
          VALUES ($1, $2, $3, $4, true, $5)",
     )
@@ -132,7 +136,11 @@ pub async fn trash_file(
     .bind::<Text, _>(&format!("{trash_base}/{relative}"))
     .bind::<Text, _>(&key)
     .bind::<BigInt, _>(total)
-    .execute(&mut conn);
+    .execute(&mut conn)
+    .map_err(|e| {
+        botlog::safe_error!("drive trash folder insert failed: {e}");
+        err(StatusCode::INTERNAL_SERVER_ERROR, "Could not record the trashed folder")
+    })?;
 
     botlog::safe_info!("Folder moved to trash: {key} -> {trash_base}/{relative}");
     Ok(Json(SuccessResponse { success: true }))

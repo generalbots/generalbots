@@ -221,25 +221,34 @@ pub async fn toggle_star(
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
 
-    if let Ok(mut conn) = state.conn.get() {
-        if req.starred {
-            let _ = diesel::sql_query(
-                "INSERT INTO drive_stars (user_id, bucket, path) VALUES ($1, $2, $3) ON CONFLICT (user_id, bucket, path) DO NOTHING"
-            )
-            .bind::<Text, _>(uid)
-            .bind::<Text, _>(bucket)
-            .bind::<Text, _>(path)
-            .execute(&mut conn);
-        } else {
-            let _ = diesel::sql_query(
-                "DELETE FROM drive_stars WHERE user_id = $1 AND bucket = $2 AND path = $3"
-            )
-            .bind::<Text, _>(uid)
-            .bind::<Text, _>(bucket)
-            .bind::<Text, _>(path)
-            .execute(&mut conn);
-        }
-    }
+    // A star only counts when the row was really written; the old handler
+    // swallowed pool/SQL errors and always answered success, so the Starred
+    // list stayed empty with no feedback.
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    let result = if req.starred {
+        diesel::sql_query(
+            "INSERT INTO drive_stars (user_id, bucket, path) VALUES ($1, $2, $3) ON CONFLICT (user_id, bucket, path) DO NOTHING"
+        )
+        .bind::<Text, _>(uid)
+        .bind::<Text, _>(bucket)
+        .bind::<Text, _>(path)
+        .execute(&mut conn)
+    } else {
+        diesel::sql_query(
+            "DELETE FROM drive_stars WHERE user_id = $1 AND bucket = $2 AND path = $3"
+        )
+        .bind::<Text, _>(uid)
+        .bind::<Text, _>(bucket)
+        .bind::<Text, _>(path)
+        .execute(&mut conn)
+    };
+    result.map_err(|e| {
+        botlog::safe_error!("drive star toggle failed: {e}");
+        err(StatusCode::INTERNAL_SERVER_ERROR, "Could not update the star")
+    })?;
 
     Ok(Json(SuccessResponse { success: true }))
 }
@@ -298,17 +307,23 @@ pub async fn share_folder(
     let recipient_id = &req.recipient_id;
     let permissions = req.permissions.as_deref().unwrap_or("read");
 
-    if let Ok(mut conn) = state.conn.get() {
-        let _ = diesel::sql_query(
-            "INSERT INTO drive_shares (owner_id, recipient_id, bucket, path, permissions) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (owner_id, recipient_id, bucket, path) DO UPDATE SET permissions = $5"
-        )
-        .bind::<Text, _>(owner_id)
-        .bind::<Text, _>(recipient_id)
-        .bind::<Text, _>(bucket)
-        .bind::<Text, _>(path)
-        .bind::<Text, _>(permissions)
-        .execute(&mut conn);
-    }
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    diesel::sql_query(
+        "INSERT INTO drive_shares (owner_id, recipient_id, bucket, path, permissions) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (owner_id, recipient_id, bucket, path) DO UPDATE SET permissions = $5"
+    )
+    .bind::<Text, _>(owner_id)
+    .bind::<Text, _>(recipient_id)
+    .bind::<Text, _>(bucket)
+    .bind::<Text, _>(path)
+    .bind::<Text, _>(permissions)
+    .execute(&mut conn)
+    .map_err(|e| {
+        botlog::safe_error!("drive share insert failed: {e}");
+        err(StatusCode::INTERNAL_SERVER_ERROR, "Could not share the folder")
+    })?;
 
     Ok(Json(SuccessResponse { success: true }))
 }
