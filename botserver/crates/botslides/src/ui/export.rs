@@ -405,3 +405,68 @@ pub fn export_to_markdown(presentation: &Presentation) -> String {
 
     md
 }
+
+
+/// ODP is an ODF package: a ZIP whose first entry is an uncompressed
+/// `mimetype`, plus `content.xml` and the manifest. Returning the bare
+/// content.xml (as the export endpoint used to) produced a 200 with a file no
+/// office suite could open.
+pub fn export_to_odp(presentation: &Presentation) -> Result<Vec<u8>, String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let content = export_to_odp_content(presentation);
+    let manifest = r#"<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
+<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.presentation"/>
+<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>
+"#;
+
+    let mut cursor = std::io::Cursor::new(Vec::new());
+    {
+        let mut zip = zip::ZipWriter::new(&mut cursor);
+        let stored = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+        let deflated = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file("mimetype", stored).map_err(|e| e.to_string())?;
+        zip.write_all(b"application/vnd.oasis.opendocument.presentation")
+            .map_err(|e| e.to_string())?;
+        zip.start_file("content.xml", deflated)
+            .map_err(|e| e.to_string())?;
+        zip.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        zip.start_file("META-INF/manifest.xml", deflated)
+            .map_err(|e| e.to_string())?;
+        zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;
+        zip.finish().map_err(|e| e.to_string())?;
+    }
+    Ok(cursor.into_inner())
+}
+
+#[cfg(test)]
+mod odp_tests {
+    use super::{export_to_odp, export_to_odp_content};
+    use crate::types::Presentation;
+
+    fn deck() -> Presentation {
+        crate::storage::create_new_presentation()
+    }
+
+    #[test]
+    fn odp_export_is_a_package_with_the_stored_mimetype() {
+        let presentation = deck();
+        assert!(export_to_odp_content(&presentation).contains("<office:presentation>"));
+        let bytes = export_to_odp(&presentation).expect("odp");
+        assert_eq!(&bytes[..2], b"PK");
+        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
+        {
+            let mut mime = zip.by_name("mimetype").expect("mimetype entry");
+            let mut text = String::new();
+            std::io::Read::read_to_string(&mut mime, &mut text).expect("read");
+            assert_eq!(text, "application/vnd.oasis.opendocument.presentation");
+        }
+        assert!(zip.by_name("content.xml").is_ok());
+        assert!(zip.by_name("META-INF/manifest.xml").is_ok());
+    }
+}
