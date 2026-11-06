@@ -184,6 +184,10 @@ function openSheetPanel(panel) {
 }
 function loadSheet(id) {
     window.__SHEET_INITIAL_ID = id;
+    // Each workbook starts on its first tab: the persisted index belonged to
+    // the previously open sheet and could point at a missing worksheet.
+    try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) {}
+    document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
     var host = document.getElementById('sheet-content');
     if (host) host.innerHTML = '<div style="padding:20px;color:#94a3b8;text-align:center;">' + _t('common.loading', 'Loading...') + '</div>';
     // Load the worksheet tabs HTML from server, then init VirtualGrid

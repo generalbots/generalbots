@@ -130,9 +130,14 @@
     if (!sheet || !sheet.worksheets || sheet.worksheets.length <= 1) return;
     if (!window.confirm(t("tabs.confirm_delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
     api().deleteWorksheet(i).then(function () {
-      reloadSheetAfterMutation().then(function () {
-        const idx = wsIndex();
-        if (idx >= sheet.worksheets.length) switchWorksheetClient(sheet.worksheets.length - 1);
+      reloadSheetAfterMutation().then(function (fresh) {
+        // The captured `sheet` still has the pre-delete length, so the bounds
+        // check never fired and sheet_active_index could point past the end.
+        const current = fresh || window.__LOADED_SHEET;
+        if (!current || !current.worksheets || !current.worksheets.length) return;
+        if (wsIndex() >= current.worksheets.length) {
+          switchWorksheetClient(current.worksheets.length - 1);
+        }
       });
     });
   }

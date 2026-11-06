@@ -307,12 +307,12 @@
       SheetAPI.getRange(range.start, cols.start, range.end - 1, cols.end - 1)
         .then(function (data) {
           if (seq !== VirtualGrid.requestSeq) return;
-          // Merge API cells without overwriting pre-loaded data (e.g. from Drive)
+          // Apply the server's recalculated cells: dependents of an edited
+          // cell are already cached locally, so skipping existing keys kept
+          // stale values on screen until a reload.
           if (data.cells) {
             for (var k in data.cells) {
-              if (!VirtualGrid.cells.has(k)) {
-                VirtualGrid.cells.set(k, data.cells[k]);
-              }
+              VirtualGrid.cells.set(k, data.cells[k]);
             }
           }
           if (data.total_rows) VirtualGrid.totalRows = Math.max(VirtualGrid.totalRows, data.total_rows);
@@ -458,6 +458,13 @@
         if (res && res.success) {
           VirtualGrid.lastRenderedRange = null;
           VirtualGrid.requestRange();
+          return;
+        }
+        // A rejected edit used to stay on screen as if saved. Restore the
+        // previous text and say so.
+        cell.textContent = origVal;
+        if (window.sheetNotify) {
+          window.sheetNotify("Cell not saved: " + (res && res.error ? res.error : "server rejected the edit"), true);
         }
       });
 
@@ -879,7 +886,19 @@
         VirtualGrid.init(host);
         var loaded = myData && myData.loadedSheet ? myData.loadedSheet : window.__LOADED_SHEET;
         if (loaded && loaded.worksheets && loaded.worksheets.length > 0) {
-          var ws = loaded.worksheets[0];
+          // Hydrate the worksheet the user was on; worksheet 0 was shown even
+          // when sheet_active_index pointed at another tab, so edits landed on
+          // a sheet the grid was not displaying.
+          var savedIndex = 0;
+          try {
+            savedIndex = parseInt(sessionStorage.getItem("sheet_active_index") || "0", 10) || 0;
+          } catch (_) {
+            savedIndex = 0;
+          }
+          if (savedIndex < 0 || savedIndex >= loaded.worksheets.length) savedIndex = 0;
+          WORKSHEET_INDEX = savedIndex;
+          try { sessionStorage.setItem("sheet_active_index", String(savedIndex)); } catch (_) {}
+          var ws = loaded.worksheets[savedIndex];
           if (ws.data) {
             for (var cellRef in ws.data) {
               VirtualGrid.cells.set(cellRef, ws.data[cellRef]);
