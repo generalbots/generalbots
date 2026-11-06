@@ -209,6 +209,13 @@
     z-index: 9999;
 }
 
+/* The host covers the viewport so clicks outside a dialog pass through, but
+   pointer-events is inherited: without this every injected dialog was
+   visible yet unclickable. */
+.modal-host > * {
+    pointer-events: auto;
+}
+
 .docs-title-input {
     background: transparent;
     border: none;

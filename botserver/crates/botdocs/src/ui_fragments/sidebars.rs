@@ -110,7 +110,7 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
 </div>
 <!-- content is the document body authored by this editor; the JSON load path
      already renders it as HTML, so escaping it here showed raw tags. -->
-<article class="dc-content" id="doc-content" data-doc-id="{id}" contenteditable="true" style="padding:48px 64px;line-height:1.8;color:#cbd5e1;font-size:15px;background:#0f172a;min-height:60vh;outline:none;font-family:Georgia,serif;">{content}</article>
+<article class="dc-content docs-doc-view" id="doc-content" data-doc-id="{id}" contenteditable="true" style="padding:48px 64px;line-height:1.8;color:#cbd5e1;font-size:15px;background:#0f172a;min-height:60vh;outline:none;font-family:Georgia,serif;">{content}</article>
 </div>"##,
         id = html_escape(id),
         title = html_escape(title),

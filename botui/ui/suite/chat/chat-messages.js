@@ -411,7 +411,11 @@ function addMessage(sender, content, msgId, reasoning) {
   var wasNearBottom = (messages.scrollHeight - messages.scrollTop - messages.clientHeight) < 140;
   // Do not re-persist messages that are being replayed from history: it
   // doubled the stored transcript on every reload (three identical greetings).
-  if (content && sender && !ChatState.suppressPersist) persistLocalMessage(sender, content);
+  // Streaming chunks are a live preview; the final answer is persisted once.
+  var isStreamingChunk = msgId && String(msgId).indexOf("streaming-") === 0;
+  if (content && sender && !ChatState.suppressPersist && !isStreamingChunk) {
+    persistLocalMessage(sender, content);
+  }
 
   var div = document.createElement("div");
   div.className = "message " + sender;

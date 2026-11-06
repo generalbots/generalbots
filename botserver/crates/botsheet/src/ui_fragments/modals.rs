@@ -251,8 +251,8 @@ pub async fn handle_ai_panel(
 <span style="font-size:24px;">✨</span>
 <h3 style="margin:0;color:#c7d2fe;font-size:16px;">{assistant}</h3>
 </div>
-<form hx-post="/api/sheet/ai" hx-vals='{{"id":"{id}","prompt":"{prompt}"}}' hx-target="#ai-response" hx-swap="innerHTML" style="display:flex;flex-direction:column;gap:8px;">
-<textarea name="question" placeholder="{placeholder}" rows="3" style="padding:8px;background:#0f172a;border:1px solid #4338ca;border-radius:4px;color:#f8fafc;font-family:inherit;resize:vertical;">{prompt}</textarea>
+<form hx-post="/api/sheet/ai" hx-vals='{{"id":"{id}"}}' hx-swap="none" style="display:flex;flex-direction:column;gap:8px;">
+<textarea name="command" placeholder="{placeholder}" rows="3" required style="padding:8px;background:#0f172a;border:1px solid #4338ca;border-radius:4px;color:#f8fafc;font-family:inherit;resize:vertical;">{prompt}</textarea>
 <button type="submit" style="background:#6366f1;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>
 <div id="ai-response" style="margin-top:12px;padding:8px;background:#0f172a;border-radius:4px;min-height:60px;color:#cbd5e1;font-size:13px;"></div>

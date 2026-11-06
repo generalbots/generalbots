@@ -254,6 +254,23 @@ document.addEventListener("htmx:configRequest", function (event) {
 });
 // Re-render the grid after a successful htmx mutation (CF/DV/format/chart/
 // share) so the change is visible without a reload. Cell edits use fetch.
+// Sheet AI answers are JSON; render the text in #ai-response instead of
+// swapping the object into the panel.
+document.addEventListener("htmx:afterRequest", function (event) {
+    var detail = event.detail || {};
+    var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
+    if (path !== "/api/sheet/ai" || !detail.successful) return;
+    var text = "";
+    try {
+        var data = JSON.parse(detail.xhr.responseText);
+        text = data.response || data.result || "";
+    } catch (error) {
+        text = detail.xhr.responseText;
+    }
+    var target = document.getElementById("ai-response");
+    if (target) target.textContent = text;
+});
+
 document.addEventListener("htmx:afterRequest", function (event) {
     var detail = event.detail || {};
     if (!detail.successful) return;

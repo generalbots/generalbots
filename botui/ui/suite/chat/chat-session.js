@@ -76,7 +76,12 @@
   }
 
   document.addEventListener("paste", function (e) {
-    if (e.target && (e.target.tagName === "TEXTAREA" || (e.target.tagName === "INPUT" && e.target.type === "text" && e.target.id !== "messageInput"))) return;
+    if (
+      e.target &&
+      e.target.id !== "messageInput" &&
+      (e.target.tagName === "TEXTAREA" ||
+        (e.target.tagName === "INPUT" && e.target.type === "text"))
+    ) return;
     var items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     var pasted = [];
