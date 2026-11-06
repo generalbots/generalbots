@@ -91,6 +91,16 @@
     redoStack = [];
   }
 
+  function persistQuietly(snap) {
+    const previous = window.__gbSuspendUndo;
+    window.__gbSuspendUndo = true;
+    try {
+      persistSnapshot(snap);
+    } finally {
+      window.__gbSuspendUndo = previous;
+    }
+  }
+
   window.SheetUndo = {
     beforeBulk: function (label, keys) {
       pendingBulk = { label: label, keys: keys, old: snapshot(keys) };
@@ -115,7 +125,7 @@
       if (!entry) return false;
       redoStack.push(entry);
       applySnapshot(entry.old);
-      persistSnapshot(entry.old);
+      persistQuietly(entry.old);
       updateButtons();
       return true;
     },
@@ -124,7 +134,7 @@
       if (!entry) return false;
       undoStack.push(entry);
       applySnapshot(entry.new);
-      persistSnapshot(entry.new);
+      persistQuietly(entry.new);
       updateButtons();
       return true;
     },
