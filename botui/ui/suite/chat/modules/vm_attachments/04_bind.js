@@ -5,6 +5,13 @@
 
 // #1584 — publish output/ to Drive under the conversation folder.
 function vmSaveToDrive(conversationId, files) {
+  if (!vmAgentDriveEnabled()) {
+    var unavailable = new Error(
+      "Saving to Drive needs the agent-vm feature, which this build does not include."
+    );
+    vmNotifyError(unavailable);
+    return Promise.reject(unavailable);
+  }
   var headers = { "Content-Type": "application/json" };
   var token = vmAttachmentsToken();
   if (token) headers.Authorization = "Bearer " + token;

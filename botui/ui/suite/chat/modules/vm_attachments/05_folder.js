@@ -160,7 +160,9 @@ function vmGroupAttachments(anchor) {
       '<span class="gb-folder-icon">\u{1F4C1}</span>' +
       '<span class="gb-folder-title">output</span>' +
       '<span class="gb-folder-count"></span>' +
-      '<button type="button" class="gb-folder-save gb-attachment-btn">Save to Drive</button>' +
+      (vmAgentDriveEnabled()
+        ? '<button type="button" class="gb-folder-save gb-attachment-btn">Save to Drive</button>'
+        : "") +
       "</div>" +
       '<div class="gb-folder-grid"></div>';
     var target = anchor.querySelector(".message-content") || anchor;

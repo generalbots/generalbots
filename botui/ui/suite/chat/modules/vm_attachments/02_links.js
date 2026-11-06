@@ -34,7 +34,9 @@ function renderVmFileLinks(html) {
         ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
         : "") +
       '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
-      '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>' +
+      (vmAgentDriveEnabled()
+        ? '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>'
+        : "") +
       "</span>"
     );
   });

@@ -183,3 +183,14 @@ function vmOpenInOfficeApp(path, savedPath) {
   }
   window.WindowManager.openDeepLink(app, { file: target.key, bucket: target.bucket });
 }
+
+/* The Save-to-Drive actions call /api/agent/drive/save, which botserver only
+   registers with the agent-vm feature. Without this guard the button rendered
+   in every build and failed with HTTP 404. */
+function vmAgentDriveEnabled() {
+  var cfg = window.productConfig;
+  if (!cfg || !Array.isArray(cfg.compiled_features)) return false;
+  return cfg.compiled_features.some(function (feature) {
+    return String(feature).toLowerCase() === "agent-vm";
+  });
+}
