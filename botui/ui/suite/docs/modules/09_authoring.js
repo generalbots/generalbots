@@ -223,5 +223,21 @@
   /* ---- Citations / references ---- */
 
   ensureCss();
-  window.DocsAuthoringCore = { ensureCss: ensureCss, insertNodeAtCaret: insertNodeAtCaret, insertTable: insertTable, openTableModal: openTableModal, insertImage: insertImage, openImageModal: openImageModal };
+  function insertLink() {
+    var a = article();
+    if (!a) return;
+    a.focus();
+    var url = window.prompt("Endereço do link (URL):", "https://");
+    if (!url || url === "https://") return;
+    var selection = window.getSelection ? String(window.getSelection()) : "";
+    if (selection.trim()) {
+      document.execCommand("createLink", false, url);
+    } else {
+      document.execCommand("insertHTML", false,
+        '<a href="' + esc(url) + '">' + esc(url) + "</a>");
+    }
+    save();
+  }
+
+  window.DocsAuthoringCore = { ensureCss: ensureCss, insertNodeAtCaret: insertNodeAtCaret, insertTable: insertTable, openTableModal: openTableModal, insertImage: insertImage, openImageModal: openImageModal, insertLink: insertLink };
 })(window);
