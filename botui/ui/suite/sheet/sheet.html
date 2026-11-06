@@ -284,6 +284,41 @@ function GBSheetRefreshNamedRanges(sheetId) {
         .catch(function () {});
 }
 window.GBSheetRefreshNamedRanges = GBSheetRefreshNamedRanges;
+function GBSheetCreateNamedRange(sheetId) {
+    var name = window.prompt("Nome do intervalo:", "");
+    if (!name || !name.trim()) return;
+    var sel = window.SheetAdvanced && window.SheetAdvanced.getSelection
+        ? window.SheetAdvanced.getSelection() : null;
+    if (!sel) {
+        sheetNotify("Selecione as células do intervalo primeiro.", true);
+        return;
+    }
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    fetch("/api/sheet/named-range", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+            sheet_id: sheetId,
+            name: name.trim(),
+            scope: "workbook",
+            worksheet_index: window.SheetCore ? window.SheetCore.wsIndex() : 0,
+            start_row: sel.startRow,
+            start_col: sel.startCol,
+            end_row: sel.endRow,
+            end_col: sel.endCol,
+        }),
+    })
+        .then(function (response) {
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            GBSheetRefreshNamedRanges(sheetId);
+        })
+        .catch(function (error) {
+            sheetNotify("Could not create the named range: " + error.message, true);
+        });
+}
+window.GBSheetCreateNamedRange = GBSheetCreateNamedRange;
 function openSheetComments() {
     if (!window.GBCollabComments) return;
     var id = getLiveSheetId();

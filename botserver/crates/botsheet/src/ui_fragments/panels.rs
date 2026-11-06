@@ -18,7 +18,7 @@ pub async fn handle_named_ranges_panel(
             html.push_str(&t(lang, "panel.ranges.title"));
             html.push_str(&format!(
                 r##"</h3>
-<button class="btn-icon" hx-post="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" title=""##,
+<button class="btn-icon" onclick="GBSheetCreateNamedRange('{id}')" title=""##,
                 id = html_escape(&sheet.id)
             ));
             html.push_str(&t(lang, "panel.ranges.add"));
@@ -37,7 +37,25 @@ pub async fn handle_named_ranges_panel(
             html.push_str("</div></div>");
             Html(html)
         }
-        _ => Html(empty_fragment(&t(lang, "panel.ranges.empty"))),
+        _ => {
+            // An empty list still needs the panel shell and its New action,
+            // otherwise there is no way to create the first named range.
+            let mut html = String::from(
+                r##"<div class="ss-panel" id="named-ranges-panel">
+<div class="ss-panel-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
+<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
+            );
+            html.push_str(&t(lang, "panel.ranges.title"));
+            html.push_str(&format!(
+                r##"</h3><button class="btn-icon" onclick="GBSheetCreateNamedRange('{id}')" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">"##,
+                id = html_escape(&sheet.id)
+            ));
+            html.push_str(&t(lang, "panel.ranges.new"));
+            html.push_str("</button></div><div class=\"ss-panel-body\" style=\"padding:8px;\">");
+            html.push_str(&empty_fragment(&t(lang, "panel.ranges.empty")));
+            html.push_str("</div></div>");
+            Html(html)
+        }
     }
 }
 
