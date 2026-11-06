@@ -70,7 +70,7 @@ pub async fn handle_print_form(Json(payload): Json<serde_json::Value>) -> Html<S
 <button type="button" onclick="GBDocsExport('html','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">HTML</button>
 <button type="button" onclick="GBDocsExport('txt','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">Texto</button>
 </div>
-<button type="button" onclick="var m=this.closest('.dc-modal'); if(m){m.remove();} else {var c=document.getElementById('modal-container'); if(c){c.innerHTML='';}}" style="background:#0f172a;color:#94a3b8;border:1px solid #334155;padding:8px;border-radius:4px;cursor:pointer;">Fechar</button>
+<button type="button" onclick="GBDocsCloseModal(this)" style="background:#0f172a;color:#94a3b8;border:1px solid #334155;padding:8px;border-radius:4px;cursor:pointer;">Fechar</button>
 </div>"##,
         id = html_escape(id)
     ))

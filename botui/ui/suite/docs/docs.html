@@ -384,6 +384,17 @@ function GBDocsFindReplace(event) {
     return false;
 }
 window.GBDocsFindReplace = GBDocsFindReplace;
+/* The print form is injected into #modal-container, not a .dc-modal. */
+function GBDocsCloseModal(element) {
+    var modal = element.closest ? element.closest(".dc-modal") : null;
+    if (modal) {
+        modal.remove();
+        return;
+    }
+    var container = document.getElementById("modal-container");
+    if (container) container.innerHTML = "";
+}
+window.GBDocsCloseModal = GBDocsCloseModal;
 
 /* AI endpoints answer JSON, so htmx would leave the serialized object in the
    panel. Render the `response` field as text in the nearest #ai-result. */
