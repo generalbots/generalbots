@@ -1,6 +1,18 @@
+/* Paper app — module 1/2: slash menu, editor commands and AI helpers (split from paper/paper-boot.js for #1731) */
+
 if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
 
-(function () {
+(function (app) {
+    // Shared editor elements, assigned by init() once the HTMX partial lands.
+    let editor = null;
+    let title = null;
+    let slashMenu = null;
+    let aiPanel = null;
+    let sidebar = null;
+
+    // Slash command handling
+    let slashPosition = null;
+
     // The editor markup arrives via HTMX partials (03_canvas.html), so the
     // element may not exist yet when this script runs. Poll briefly instead
     // of throwing on a null element.
@@ -9,14 +21,13 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
         if (!editor) { setTimeout(boot, 100); return; }
         init(editor);
     }
-    function init(editor) {
-        const title = document.getElementById("paper-title");
-        const slashMenu = document.getElementById("slash-menu");
-        const aiPanel = document.getElementById("ai-panel");
-        const sidebar = document.getElementById("paper-sidebar");
 
-        // Slash command handling
-        let slashPosition = null;
+    function init(editorArg) {
+        editor = editorArg;
+        title = document.getElementById("paper-title");
+        slashMenu = document.getElementById("slash-menu");
+        aiPanel = document.getElementById("ai-panel");
+        sidebar = document.getElementById("paper-sidebar");
 
         editor.addEventListener("input", function (e) {
             updateWordCount();
@@ -299,207 +310,21 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
             });
         }
 
-        // Toolbar commands
-        document.querySelectorAll("[data-cmd]").forEach((btn) => {
-            btn.addEventListener("click", function () {
-                const cmd = this.dataset.cmd;
-                switch (cmd) {
-                    case "bold":
-                        document.execCommand("bold");
-                        break;
-                    case "italic":
-                        document.execCommand("italic");
-                        break;
-                    case "underline":
-                        document.execCommand("underline");
-                        break;
-                    case "strikethrough":
-                        document.execCommand("strikeThrough");
-                        break;
-                    case "highlight":
-                        document.execCommand("hiliteColor", false, "#ffff00");
-                        break;
-                    case "alignLeft":
-                        document.execCommand("justifyLeft");
-                        break;
-                    case "alignCenter":
-                        document.execCommand("justifyCenter");
-                        break;
-                    case "alignRight":
-                        document.execCommand("justifyRight");
-                        break;
-                    case "bulletList":
-                        document.execCommand("insertUnorderedList");
-                        break;
-                    case "numberedList":
-                        document.execCommand("insertOrderedList");
-                        break;
-                    case "todoList":
-                        insertTodo();
-                        break;
-                    case "link":
-                        const url = prompt("Enter URL:");
-                        if (url) document.execCommand("createLink", false, url);
-                        break;
-                    case "image":
-                        insertImage();
-                        break;
-                    case "table":
-                        insertTable();
-                        break;
-                    case "code":
-                        document.execCommand("formatBlock", false, "pre");
-                        break;
-                    case "quote":
-                        document.execCommand(
-                            "formatBlock",
-                            false,
-                            "blockquote",
-                        );
-                        break;
-                    case "undo":
-                        document.execCommand("undo");
-                        break;
-                    case "redo":
-                        document.execCommand("redo");
-                        break;
-                }
-                editor.focus();
-            });
+        app.bindToolbar({
+            editor: editor,
+            sidebar: sidebar,
+            aiPanel: aiPanel,
+            slashMenu: slashMenu,
+            hideSlashMenu: hideSlashMenu,
+            executeSlashCommand: executeSlashCommand,
+            insertTodo: insertTodo,
+            insertTable: insertTable,
+            insertImage: insertImage,
         });
-
-        // Heading select
-        document
-            .getElementById("heading-select")
-            .addEventListener("change", function () {
-                const value = this.value;
-                if (value === "p") {
-                    document.execCommand("formatBlock", false, "p");
-                } else {
-                    document.execCommand("formatBlock", false, value);
-                }
-                editor.focus();
-            });
-
-        // Toggle sidebar
-        document
-            .getElementById("toggle-sidebar")
-            .addEventListener("click", function () {
-                sidebar.classList.toggle("collapsed");
-            });
-
-        // AI Panel
-        document
-            .getElementById("ai-assist-btn")
-            .addEventListener("click", function () {
-                const selectedText = window.getSelection().toString();
-                document.getElementById("selected-text-input").value =
-                    selectedText;
-                aiPanel.classList.toggle("hidden");
-            });
-
-        document
-            .getElementById("close-ai-panel")
-            .addEventListener("click", function () {
-                aiPanel.classList.add("hidden");
-            });
-
-        // Export modal
-        document
-            .getElementById("export-btn")
-            .addEventListener("click", function () {
-                document
-                    .getElementById("export-modal")
-                    .classList.remove("hidden");
-            });
-
-        document.querySelectorAll(".close-modal").forEach((btn) => {
-            btn.addEventListener("click", function () {
-                this.closest(".modal").classList.add("hidden");
-            });
-        });
-
-        // Click outside modal to close
-        document.querySelectorAll(".modal").forEach((modal) => {
-            modal.addEventListener("click", function (e) {
-                if (e.target === this) {
-                    this.classList.add("hidden");
-                }
-            });
-        });
-
-        // Click outside slash menu to close
-        document.addEventListener("click", function (e) {
-            if (!slashMenu.contains(e.target) && !editor.contains(e.target)) {
-                hideSlashMenu();
-            }
-        });
-
-        // Slash menu item click
-        slashMenu.querySelectorAll(".slash-item").forEach((item) => {
-            item.addEventListener("click", function () {
-                executeSlashCommand(this.dataset.cmd);
-            });
-        });
-
-        // Tone buttons
-        document.querySelectorAll(".tone-btn").forEach((btn) => {
-            btn.addEventListener("click", function () {
-                document
-                    .querySelectorAll(".tone-btn")
-                    .forEach((b) => b.classList.remove("active"));
-                this.classList.add("active");
-
-                const tone = this.dataset.tone;
-                const selectedText = document.getElementById(
-                    "selected-text-input",
-                ).value;
-
-                htmx.ajax("POST", "/api/ui/paper/ai/tone", {
-                    target: "#ai-response-content",
-                    values: {
-                        tone: tone,
-                        text: selectedText,
-                    },
-                }).then(() => {
-                    document
-                        .getElementById("ai-response")
-                        .classList.remove("hidden");
-                });
-            });
-        });
-
-        // AI response actions
-        document
-            .getElementById("copy-ai-response")
-            ?.addEventListener("click", function () {
-                const content = document.getElementById(
-                    "ai-response-content",
-                ).innerText;
-                navigator.clipboard.writeText(content);
-            });
-
-        document
-            .getElementById("insert-ai-response")
-            ?.addEventListener("click", function () {
-                const content = document.getElementById(
-                    "ai-response-content",
-                ).innerHTML;
-                editor.focus();
-                document.execCommand("insertHTML", false, content);
-            });
-
-        document
-            .getElementById("replace-ai-response")
-            ?.addEventListener("click", function () {
-                const content = document.getElementById(
-                    "ai-response-content",
-                ).innerHTML;
-                document.execCommand("insertHTML", false, content);
-            });
 
         // Initial word count
         updateWordCount();
     }
-    boot();
-})();
+
+    Object.assign(app, { boot: boot, init: init });
+})(window.__gbPaper = window.__gbPaper || {});
