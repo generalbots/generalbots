@@ -279,7 +279,12 @@ function GBDocsExport(format, id) {
             if (!response.ok) throw new Error("HTTP " + response.status);
             return response.blob();
         })
-        .then(function (blob) { gbDocsSaveBlob(blob, "document." + format); })
+        .then(function (blob) {
+            var title = (document.getElementById("docTitle") && document.getElementById("docTitle").value) ||
+                "document";
+            var slug = title.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "document";
+            gbDocsSaveBlob(blob, slug + "." + format);
+        })
         .catch(function () {
             var article = document.querySelector("[id^=window-body-docs] #doc-content") ||
                 document.querySelector("#doc-content");
