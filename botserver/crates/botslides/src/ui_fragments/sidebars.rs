@@ -203,5 +203,22 @@ pub(super) fn render_slide(slide: &Slide) -> String {
             text = html_escape(&text)
         ));
     }
+    // Media images are stored on the slide (not as elements); draw them so an
+    // inserted image is visible in the canvas and thumbnails.
+    if let Some(media) = &slide.media {
+        for item in media {
+            if item.media_type != "image" {
+                continue;
+            }
+            html.push_str(&format!(
+                r#"<img class="sl-media" src="{}" alt="" style="position:absolute;left:{}px;top:{}px;width:{}px;height:{}px;object-fit:contain;z-index:1;">"#,
+                html_escape(&item.src),
+                item.x as i32,
+                item.y as i32,
+                item.width as i32,
+                item.height as i32
+            ));
+        }
+    }
     html
 }
