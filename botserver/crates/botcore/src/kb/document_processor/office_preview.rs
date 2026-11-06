@@ -146,6 +146,7 @@ fn docx_flow_html(xml: &str) -> String {
     let mut in_cell = false;
     let mut in_paragraph = false;
     let mut in_text = false;
+    let mut paragraph_style: Option<String> = None;
     let mut paragraph = String::new();
     let mut cell = String::new();
     let mut row: Vec<String> = Vec::new();
@@ -170,7 +171,31 @@ fn docx_flow_html(xml: &str) -> String {
                 }
                 b"w:p" if in_table == 0 => {
                     in_paragraph = true;
+                    paragraph_style = None;
                     paragraph.clear();
+                }
+                b"w:pStyle" => {
+                    for attribute in event.attributes().flatten() {
+                        if attribute.key.as_ref() == b"w:val" {
+                            if let Ok(value) = attribute.unescape_value() {
+                                paragraph_style = Some(value.to_string());
+                            }
+                        }
+                    }
+                }
+                b"w:tab" => {
+                    if in_cell {
+                        cell.push(' ');
+                    } else if in_paragraph {
+                        paragraph.push(' ');
+                    }
+                }
+                b"w:br" => {
+                    if in_cell {
+                        cell.push(' ');
+                    } else if in_paragraph {
+                        paragraph.push(' ');
+                    }
                 }
                 b"w:t" => in_text = true,
                 _ => {}
@@ -215,11 +240,23 @@ fn docx_flow_html(xml: &str) -> String {
                 b"w:p" if in_paragraph => {
                     let text = paragraph.trim();
                     if !text.is_empty() {
-                        html.push_str(&format!(
-                            "<section>{}</section>",
-                            escape_html(text)
-                        ));
+                        let heading = paragraph_style
+                            .as_deref()
+                            .and_then(|style| style.strip_prefix("Heading"))
+                            .and_then(|level| level.parse::<u8>().ok())
+                            .filter(|level| (1..=6).contains(level));
+                        match heading {
+                            Some(level) => html.push_str(&format!(
+                                "<h{level}>{}</h{level}>",
+                                escape_html(text)
+                            )),
+                            None => html.push_str(&format!(
+                                "<section>{}</section>",
+                                escape_html(text)
+                            )),
+                        }
                     }
+                    paragraph_style = None;
                     in_paragraph = false;
                 }
                 _ => {}
@@ -765,6 +802,13 @@ mod tests {
             !html.contains("<section>Region</section>"),
             "table cells leaked as sections: {html}"
         );
+    }
+
+    #[test]
+    fn docx_heading_style_renders_a_heading() {
+        let xml = r#"<w:document xmlns:w="w"><w:body><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Quarterly Report</w:t></w:r></w:p></w:body></w:document>"#;
+        let html = docx_flow_html(xml);
+        assert!(html.contains("<h1>Quarterly Report</h1>"), "{html}");
     }
 
     #[test]
