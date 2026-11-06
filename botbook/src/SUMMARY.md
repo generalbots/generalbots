@@ -598,6 +598,7 @@
    - [Agent Mode & Snapshots](./13-ai-os/agent-mode.md)
    - [Workspace Tabs](./13-ai-os/workspace-tabs.md)
    - [Adaptive Automations](./13-ai-os/automations.md)
+   - [Goal Runs](./13-ai-os/goal-runs.md)
    - [Skills Marketplace](./13-ai-os/marketplace.md)
    - [Memory OS](./13-ai-os/memory-os.md)
    - [Consent System](./13-ai-os/consent.md)

@@ -45,6 +45,154 @@
     display: none;
 }
 
+/* Goal runs view (#1706) */
+.runs-toolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.runs-toolbar h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+}
+
+.runs-hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    max-width: 46rem;
+}
+
+.btn-runs {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-runs:hover {
+    background: var(--bg-hover);
+}
+
+.runs-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.75rem;
+}
+
+.run-card {
+    border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    background: var(--bg-secondary, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.run-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.run-objective {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.run-status {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: var(--bg-hover, rgba(128, 128, 128, 0.2));
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.run-status-running { background: rgba(52, 199, 89, 0.16); color: #2e9e4f; }
+.run-status-paused { background: rgba(255, 159, 10, 0.18); color: #b26b00; }
+.run-status-completed { background: rgba(88, 86, 214, 0.16); color: #4a48b5; }
+.run-status-stopped,
+.run-status-failed { background: rgba(255, 59, 48, 0.14); color: #c0392b; }
+
+.run-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.run-progress .progress-bar {
+    flex: 1;
+}
+
+.run-progress-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+.run-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.run-meta strong {
+    color: var(--text-primary);
+}
+
+.run-id {
+    font-family: ui-monospace, monospace;
+    color: var(--text-muted);
+}
+
+.run-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.btn-run {
+    padding: 0.3rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.btn-run:hover {
+    background: var(--bg-hover);
+}
+
+.btn-run-resume {
+    border-color: rgba(52, 199, 89, 0.5);
+}
+
+.btn-run-stop {
+    border-color: rgba(255, 59, 48, 0.45);
+    color: #c0392b;
+}
+
 @media (max-width: 1200px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);

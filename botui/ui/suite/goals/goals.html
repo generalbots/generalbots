@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="/suite/goals/goals-inline.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/goals/goals-inline.p2.css?v=2" />
 <!-- =============================================================================
      GOALS APP - OKR (Objectives & Key Results) Management
      Respects Theme Manager - No hardcoded theme
@@ -91,6 +93,9 @@
                     </button>
                     <button class="view-btn" data-view="list" onclick="switchGoalsView('list')">
                         <span>📋</span> List
+                    </button>
+                    <button class="view-btn" data-view="runs" onclick="switchGoalsView('runs')">
+                        <span>⚡</span> Runs
                     </button>
                 </div>
                 <button
@@ -186,6 +191,26 @@
                     >
                         <div class="loading-placeholder">Loading...</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Runs View: long-horizon checkpoint runs (#1706) -->
+            <div id="runs-view" class="view-container">
+                <div class="runs-toolbar">
+                    <div>
+                        <h2>Goal Runs</h2>
+                        <p class="runs-hint">
+                            Checkpoint runs executed by the goal runner. Pause freezes the
+                            checkpoint count; resume continues from the same value.
+                        </p>
+                    </div>
+                    <button class="btn-runs" id="runs-refresh-btn" type="button"
+                            onclick="loadGoalRuns()">
+                        ↻ Refresh
+                    </button>
+                </div>
+                <div id="goal-runs-list" class="runs-list">
+                    <div class="loading-placeholder">Loading goal runs...</div>
                 </div>
             </div>
         </div>

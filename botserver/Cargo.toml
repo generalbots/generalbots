@@ -184,6 +184,9 @@ desktop-local = [
     # The botcore features advertise them in /api/product and /api/apps/catalog;
     # without them the routes exist but the suite never offers the apps.
     "docs", "slides", "canvas", "botcore/docs", "botcore/slides", "botcore/canvas",
+    # #1706 — the Goals app surfaces long-horizon goal runs (pause/resume), so
+    # the analytics surfaces and the goals API ship in the desktop edition too.
+    "analytics", "goals",
     "botcore/desktop-local",
     # #1621 — the infrastructure features the remaining crates use. The domain
     # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)

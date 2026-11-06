@@ -8,7 +8,7 @@ name=General Bots
 # (Docs, Sheets, Slides) and Canvas ship so chat attachments can open in their
 # editor; everything else stays behind `preview_apps` (empty here, so the
 # profile shows exactly this list).
-apps=chat,drive,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather,docs,slides,canvas
+apps=chat,drive,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather,docs,slides,canvas,goals
 
 # #1614/#1615 — surfaces that stay compiled and routed but are never advertised
 # in this profile. Integrations owns the Data Sources tab, so hiding the app
