@@ -11,6 +11,15 @@ document.addEventListener("htmx:configRequest", function (event) {
   ["id", "presentation_id"].forEach(function (key) {
     if (parameters[key] === "current") parameters[key] = real;
   });
+  // Toolbar forms address the visible slide as "current"; send its 0-based
+  // index, since the handlers deserialize slide_index as a number.
+  var canvas = document.getElementById("slide-canvas");
+  var visibleSlide = canvas && canvas.dataset.slideId ? canvas.dataset.slideId : "0";
+  ["slide", "slide_index"].forEach(function (key) {
+    if (parameters[key] === "current") {
+      parameters[key] = parseInt(visibleSlide, 10) || 0;
+    }
+  });
 });
 
 // Re-render the current slide after a toolbar insert. The element API answers
@@ -19,7 +28,14 @@ document.addEventListener("htmx:configRequest", function (event) {
 // A successful insert saves and refreshes the slide; close its modal too.
 window.afterSlideInsert = function (element) {
   var modal = element && element.closest ? element.closest(".sl-modal") : null;
-  if (modal) modal.remove();
+  if (modal) {
+    modal.remove();
+  } else {
+    // Toolbar forms render as a bare form inside #modal-container.
+    var container = element && element.closest ? element.closest("#modal-container") : null;
+    if (container) container.innerHTML = "";
+    else if (element && element.remove) element.remove();
+  }
   if (window.refreshSlideView) window.refreshSlideView();
 };
 
