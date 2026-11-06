@@ -196,8 +196,10 @@ fn render_table_html(data: &crate::types::TableData) -> String {
     html
 }
 
-/// A compact bar chart from the first dataset; labels under the bars.
-fn render_chart_html(title: &str, data: &crate::types::ChartData) -> String {
+/// Chart renderer shared with the HTML export. Bars for bar/column, a
+/// conic-gradient disc for pie/doughnut and an SVG polyline for line/area;
+/// the first dataset supplies the values and the palette.
+pub(crate) fn render_chart_html(title: &str, data: &crate::types::ChartData) -> String {
     let mut html = format!(
         r#"<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:4px;padding:4px;box-sizing:border-box;"><div style="font-weight:600;font-size:13px;color:#0f172a;">{}</div>"#,
         html_escape(title)
@@ -205,21 +207,101 @@ fn render_chart_html(title: &str, data: &crate::types::ChartData) -> String {
     let dataset = data.datasets.first();
     let values = dataset.map(|item| item.data.as_slice()).unwrap_or(&[]);
     let color = dataset.map(|item| item.color.as_str()).unwrap_or("#3b82f6");
-    let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
-    html.push_str(
-        r#"<div style="flex:1;display:flex;align-items:flex-end;gap:6px;min-height:40px;">"#,
-    );
-    for (index, value) in values.iter().enumerate() {
-        let height = ((value / max) * 100.0).clamp(2.0, 100.0);
-        let label = data.labels.get(index).cloned().unwrap_or_default();
-        html.push_str(&format!(
-            r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
-            height = height,
-            color = html_escape(color),
-            label = html_escape(&label)
-        ));
+    let palette = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+    match data.chart_type.as_str() {
+        "pie" | "doughnut" => {
+            let total: f64 = values.iter().sum();
+            let mut stops = String::new();
+            let mut cursor = 0.0_f64;
+            for (index, value) in values.iter().enumerate() {
+                let share = if total > 0.0 { value / total * 100.0 } else { 0.0 };
+                let next = (cursor + share).min(100.0);
+                stops.push_str(&format!(
+                    "{color} {cursor:.2}% {next:.2}%,",
+                    color = palette[index % palette.len()],
+                    cursor = cursor,
+                    next = next
+                ));
+                cursor = next;
+            }
+            if stops.ends_with(',') {
+                stops.pop();
+            }
+            let hole = if data.chart_type == "doughnut" {
+                "radial-gradient(circle, #fff 0 45%, transparent 46%),"
+            } else {
+                ""
+            };
+            html.push_str(&format!(
+                r#"<div style="flex:1;display:flex;align-items:center;gap:10px;min-height:60px;"><div style="width:110px;height:110px;border-radius:50%;background:{hole}conic-gradient({stops});border:1px solid #cbd5e1;"></div><div style="display:flex;flex-direction:column;gap:2px;font-size:11px;color:#334155;">"#,
+                hole = hole,
+                stops = stops
+            ));
+            for (index, value) in values.iter().enumerate() {
+                let label = data.labels.get(index).cloned().unwrap_or_default();
+                html.push_str(&format!(
+                    r#"<span><b style="color:{color};">&#9632;</b> {label}: {value}</span>"#,
+                    color = palette[index % palette.len()],
+                    label = html_escape(&label),
+                    value = value
+                ));
+            }
+            html.push_str("</div></div>");
+        }
+        "line" | "area" => {
+            let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
+            let points: Vec<String> = values
+                .iter()
+                .enumerate()
+                .map(|(index, value)| {
+                    let x = if values.len() > 1 {
+                        index as f64 / (values.len() - 1) as f64 * 100.0
+                    } else {
+                        0.0
+                    };
+                    let y = 100.0 - (value / max * 90.0).clamp(0.0, 100.0);
+                    format!("{x:.1},{y:.1}")
+                })
+                .collect();
+            let area = if data.chart_type == "area" {
+                format!(
+                    r#"<polygon points="0,100 {points} 100,100" fill="{color}" fill-opacity="0.25"/>"#,
+                    points = points.join(" "),
+                    color = html_escape(color)
+                )
+            } else {
+                String::new()
+            };
+            html.push_str(&format!(
+                r#"<div style="flex:1;display:flex;flex-direction:column;min-height:60px;"><svg viewBox="0 0 100 100" preserveAspectRatio="none" style="flex:1;width:100%;">{area}<polyline points="{points}" fill="none" stroke="{color}" stroke-width="2"/></svg><div style="display:flex;justify-content:space-between;font-size:10px;color:#475569;">"#,
+                area = area,
+                points = points.join(" "),
+                color = html_escape(color)
+            ));
+            for label in &data.labels {
+                html.push_str(&format!("<span>{}</span>", html_escape(label)));
+            }
+            html.push_str("</div></div>");
+        }
+        _ => {
+            let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
+            html.push_str(
+                r#"<div style="flex:1;display:flex;align-items:flex-end;gap:6px;min-height:40px;">"#,
+            );
+            for (index, value) in values.iter().enumerate() {
+                let height = ((value / max) * 100.0).clamp(2.0, 100.0);
+                let label = data.labels.get(index).cloned().unwrap_or_default();
+                html.push_str(&format!(
+                    r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
+                    height = height,
+                    color = html_escape(color),
+                    label = html_escape(&label)
+                ));
+            }
+            html.push_str("</div>");
+        }
     }
-    html.push_str("</div></div>");
+    html.push_str("</div>");
     html
 }
 pub(super) fn render_slide(slide: &Slide) -> String {

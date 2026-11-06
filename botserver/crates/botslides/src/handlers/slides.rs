@@ -313,7 +313,7 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
             }
         });
         parsed.map(|value| {
-            let labels = value
+            let mut labels: Vec<String> = value
                 .get("labels")
                 .and_then(|items| items.as_array())
                 .map(|items| {
@@ -323,7 +323,7 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
                         .collect()
                 })
                 .unwrap_or_default();
-            let datasets = value
+            let mut datasets: Vec<ChartDataset> = value
                 .get("datasets")
                 .and_then(|items| items.as_array())
                 .map(|items| {
@@ -333,6 +333,18 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
                         .collect()
                 })
                 .unwrap_or_default();
+            // The form starts with `{}`; a demo series keeps the inserted
+            // chart visible instead of saving an empty box.
+            if datasets.is_empty() {
+                datasets.push(ChartDataset {
+                    label: "Series 1".to_string(),
+                    data: vec![1.0, 2.0, 3.0],
+                    color: "#3b82f6".to_string(),
+                });
+            }
+            if labels.is_empty() {
+                labels = vec!["A".to_string(), "B".to_string(), "C".to_string()];
+            }
             ChartData {
                 chart_type: text("chart_type").unwrap_or_else(|| "bar".to_string()),
                 labels,

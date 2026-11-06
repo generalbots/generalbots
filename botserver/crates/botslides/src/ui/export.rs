@@ -1,4 +1,4 @@
-use crate::types::{ChartData, Presentation, Slide, TableData};
+use crate::types::{Presentation, Slide, TableData};
 
 
 fn table_html(data: &TableData) -> String {
@@ -20,29 +20,6 @@ fn table_html(data: &TableData) -> String {
     html
 }
 
-fn chart_html(title: &str, data: &ChartData) -> String {
-    let mut html = format!(
-        r#"<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:4px;padding:4px;box-sizing:border-box;"><div style="font-weight:600;font-size:13px;color:#0f172a;">{}</div>"#,
-        xml_escape(title)
-    );
-    let dataset = data.datasets.first();
-    let values = dataset.map(|item| item.data.as_slice()).unwrap_or(&[]);
-    let color = dataset.map(|item| item.color.as_str()).unwrap_or("#3b82f6");
-    let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
-    html.push_str(r#"<div style="flex:1;display:flex;align-items:flex-end;gap:6px;min-height:40px;">"#);
-    for (index, value) in values.iter().enumerate() {
-        let height = ((value / max) * 100.0).clamp(2.0, 100.0);
-        let label = data.labels.get(index).cloned().unwrap_or_default();
-        html.push_str(&format!(
-            r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
-            height = height,
-            color = xml_escape(color),
-            label = xml_escape(&label)
-        ));
-    }
-    html.push_str("</div></div>");
-    html
-}
 pub fn export_to_html(presentation: &Presentation) -> String {
     let mut html = String::from(
         r#"<!DOCTYPE html>
@@ -101,7 +78,7 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                     .content
                     .chart_data
                     .as_ref()
-                    .map(|data| chart_html(element.content.text.as_deref().unwrap_or(""), data))
+                    .map(|data| crate::ui_fragments::sidebars::render_chart_html(element.content.text.as_deref().unwrap_or(""), data))
                     .or_else(|| element.content.html.clone())
                     .or_else(|| element.content.text.clone())
                     .unwrap_or_default(),
