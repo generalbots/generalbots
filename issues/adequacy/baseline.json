@@ -52,15 +52,15 @@
       "owner": "#1730"
     },
     "oversize_js": {
-      "count": 42,
+      "count": 0,
       "owner": "#1731"
     },
     "oversize_html": {
-      "count": 41,
+      "count": 0,
       "owner": "#1731"
     },
     "oversize_css": {
-      "count": 40,
+      "count": 0,
       "owner": "#1731"
     },
     "commented_code": {
