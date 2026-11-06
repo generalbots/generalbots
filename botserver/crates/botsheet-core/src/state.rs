@@ -295,12 +295,8 @@ fn metadata_shell(meta: &SpreadsheetMetadata) -> Spreadsheet {
 pub async fn delete_sheet_from_drive(
     state: &SheetState,
     user_id: &str,
-    sheet_id: &Option<String>,
+    sheet_id: &str,
 ) -> Result<(), String> {
-    let sheet_id = sheet_id
-        .as_ref()
-        .ok_or_else(|| "Sheet ID is required".to_string())?;
-
     let drive = state
         .drive
         .as_ref()
@@ -443,7 +439,7 @@ mod tests {
         };
         let sheet = sample_sheet("alice");
         save_sheet_to_drive(&state, "alice", &sheet).await.unwrap();
-        delete_sheet_from_drive(&state, "alice", &Some("s1".to_string()))
+        delete_sheet_from_drive(&state, "alice", "s1")
             .await
             .unwrap();
         let map = drive.0.lock().unwrap();

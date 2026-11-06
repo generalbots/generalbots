@@ -170,12 +170,8 @@ pub async fn list_presentations_from_drive<D: DriveOps>(
 pub async fn delete_presentation_from_drive<D: DriveOps>(
     drive: &D,
     user_id: &str,
-    presentation_id: &Option<String>,
+    presentation_id: &str,
 ) -> Result<(), String> {
-    let presentation_id = presentation_id
-        .as_ref()
-        .ok_or_else(|| "Presentation ID is required".to_string())?;
-
     let json_path = format!(
         "{}/{}.json",
         get_user_presentations_path(user_id),
