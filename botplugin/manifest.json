@@ -26,7 +26,13 @@
   "content_scripts": [
     {
       "matches": ["https://web.whatsapp.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "content/01_state.js",
+        "content/02_ui.js",
+        "content/03_messaging.js",
+        "content/04_contacts.js",
+        "content/05_boot.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_end"
     }

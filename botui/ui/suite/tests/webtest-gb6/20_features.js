@@ -1,0 +1,270 @@
+/**
+ * webtest_gb6 — feature files, content, BBSIA, artifacts, sharing, trash, memory, connectors
+ * Split from webtest_gb6.js for #1731; keeps the original test order.
+ */
+"use strict";
+
+const {
+  fs,
+  path,
+  SUITE_DIR,
+  test,
+  assert,
+  readFile,
+  fileExists,
+  featureFiles,
+} = require("./00_harness");
+
+// ═══════════════════════════════════════════════════════════════════
+// GB6 FEATURE FILES EXIST
+// ═══════════════════════════════════════════════════════════════════
+
+featureFiles.forEach(function (f) {
+  test("FILE: " + f + " exists", function () {
+    assert(fileExists(f), f + " not found");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// GB6 FEATURE CONTENT CHECKS
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-01: No-security mode flag reference", function () {
+  var src = readFile("chat/chat-init.js");
+  assert(src.indexOf("__BOT_IS_PUBLIC__") !== -1, "__BOT_IS_PUBLIC__ not found");
+});
+
+test("GB6-08: Citations renderer", function () {
+  var src = readFile("chat/modules/30_citations.js");
+  assert(src.indexOf("GBRenderCitations") !== -1, "GBRenderCitations not found");
+  assert(src.indexOf("source-chip") !== -1, "source-chip class not found");
+});
+
+test("GB6-14: Chat memory module", function () {
+  var src = readFile("chat/modules/50_memory.js");
+  assert(src.indexOf("ChatMemory") !== -1, "ChatMemory not found");
+  assert(src.indexOf("getMemorySummary") !== -1, "getMemorySummary not found");
+});
+
+test("GB6-19: Computer use with consent", function () {
+  var src = readFile("chat/modules/60_computer_use.js");
+  assert(src.indexOf("GBBrowserUse") !== -1, "GBBrowserUse not found");
+  assert(src.indexOf("needs_consent") !== -1, "needs_consent not found");
+  // #1644 — approval is recorded server-side and the page is read by the
+  // server (the cross-origin iframe cannot); the fake screenshot is gone.
+  assert(src.indexOf("/approve") !== -1, "server approval not requested");
+  assert(src.indexOf("/execute") !== -1, "server execution not requested");
+  assert(src.indexOf("case \"screenshot\"") === -1, "fake screenshot still present");
+});
+
+test("GB6-20: Terminal use with blocked patterns", function () {
+  var src = readFile("chat/modules/61_terminal_use.js");
+  assert(src.indexOf("BLOCKED_PATTERNS") !== -1, "BLOCKED_PATTERNS not found");
+  assert(src.indexOf("/api/terminal/exec") !== -1, "exec endpoint not found");
+  // #1645 — execution is bound to a server-side approval, and the durable
+  // audit trail is reachable from the tray.
+  assert(src.indexOf("/approve") !== -1, "approval record not requested");
+  assert(src.indexOf("action_id") !== -1, "action id not sent");
+  assert(src.indexOf("/api/terminal/audit") !== -1, "audit endpoint not used");
+  assert(src.indexOf("gbTerminalAuditBtn") !== -1, "audit entry point missing");
+});
+
+test("GB6-21: Sandbox approval queue", function () {
+  var src = readFile("chat/modules/62_sandbox.js");
+  assert(src.indexOf("GBSandbox") !== -1, "GBSandbox not found");
+  assert(src.indexOf("approveAll") !== -1, "approveAll not found");
+});
+
+test("GB6-22: Offline sync with IndexedDB", function () {
+  var src = readFile("drive/modules/12_offline_sync.js");
+  assert(src.indexOf("DriveOfflineSync") !== -1, "DriveOfflineSync not found");
+  assert(src.indexOf("gb_drive_offline") !== -1, "IndexedDB name not found");
+});
+
+test("GB6-23: Auto-update checks /api/product", function () {
+  var src = readFile("js/auto-update.js");
+  assert(src.indexOf("GBUpdate") !== -1, "GBUpdate not found");
+  assert(src.indexOf("/api/product") !== -1, "correct endpoint not found");
+  assert(src.indexOf("/api/product/version") === -1, "dead endpoint still referenced");
+});
+
+test("GB6-24: Data export backup/restore", function () {
+  var src = readFile("js/data-export.js");
+  assert(src.indexOf("GBDataExport") !== -1, "GBDataExport not found");
+  assert(src.indexOf("export_version") !== -1, "export_version not found");
+});
+
+test("GB6-25: Usage panel is reachable and reads the server", function () {
+  var usage = readFile("js/usage-stats.js");
+  assert(usage.indexOf("/api/user/usage/summary") !== -1, "server endpoint not used");
+  assert(usage.indexOf("pricing_available") !== -1, "pricing availability not read");
+  assert(usage.indexOf("data-usage-days") !== -1, "period selector missing");
+  var desktop = readFile("desktop.html");
+  assert(desktop.indexOf("GBUsageStats.showPanel") !== -1, "no UI entry point");
+});
+
+test("GB6-26: Privacy controls — all telemetry OFF by default", function () {
+  var src = readFile("js/privacy-controls.js");
+  assert(src.indexOf("GBPrivacy") !== -1, "GBPrivacy not found");
+  assert(src.indexOf("telemetry_enabled: false") !== -1, "telemetry not OFF by default");
+  assert(src.indexOf("/api/telemetry/event") === -1, "dead telemetry endpoint still referenced");
+});
+
+test("GB6-27: Accessibility — skip-nav, ARIA, keyboard shortcuts", function () {
+  var src = readFile("js/accessibility.js");
+  assert(src.indexOf("GBAccessibility") !== -1, "GBAccessibility not found");
+  assert(src.indexOf("gb-skip-nav") !== -1, "skip-nav not found");
+  assert(src.indexOf("aria-label") !== -1, "ARIA landmarks not found");
+  assert(src.indexOf("prefers-reduced-motion") !== -1, "reduced-motion not found");
+});
+
+test("GB6-18: Connector consent modal", function () {
+  var src = readFile("drive/modules/11_external.js");
+  assert(src.indexOf("showConnectorConsent") !== -1, "showConnectorConsent not found");
+  // #1643 — the modal now renders the server-declared scopes, not a static list.
+  assert(src.indexOf("requested_scopes") !== -1, "server scopes not used");
+});
+
+test("GB6-11: Drive preview (markdown/CSV/JSON)", function () {
+  var src = readFile("drive/modules/08_modals.js");
+  assert(src.indexOf("csv") !== -1, "CSV preview not found");
+  assert(src.indexOf("json") !== -1, "JSON preview not found");
+  assert(src.indexOf("marked") !== -1, "markdown preview not found");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BBSIA META 10 REVIEW FINDINGS
+// ═══════════════════════════════════════════════════════════════════
+
+test("BBSIA-01: drive/02_api.js — no admin self-assignment for public bot", function () {
+  var src = readFile("drive/modules/02_api.js");
+  assert(src.indexOf('roles: ["admin"]') === -1, "admin self-assignment still present in 02_api.js");
+  assert(src.indexOf('roles: ["user"]') !== -1, "user role not set for public bot");
+});
+
+test("BBSIA-02: gb-preview-changed event dispatched by GBPreviewMode.set()", function () {
+  var src = readFile("js/window-manager.js");
+  assert(src.indexOf("gb-preview-changed") !== -1, "gb-preview-changed event not found");
+  assert(src.indexOf('new CustomEvent("gb-preview-changed"') !== -1, "CustomEvent dispatch not found");
+});
+
+test("BBSIA-03: deep-link blocking for preview apps when preview OFF", function () {
+  var src = readFile("js/window-manager.js");
+  assert(src.indexOf("isPreviewId(appId)") !== -1, "preview check in openDeepLink not found");
+});
+
+test("BBSIA-04: settings preview mode toggle exists", function () {
+  var settingsHtml = fs.readFileSync(path.join(SUITE_DIR, "settings/index.html"), "utf8");
+  assert(settingsHtml.indexOf("settings-preview-toggle") !== -1, "preview toggle not in settings");
+  assert(settingsHtml.indexOf("togglePreviewMode") !== -1, "togglePreviewMode handler not in settings HTML");
+  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/settings-main.js"), "utf8");
+  assert(settingsJs.indexOf("togglePreviewMode") !== -1, "togglePreviewMode not in settings JS");
+  assert(settingsJs.indexOf("gb-preview-changed") !== -1, "gb-preview-changed listener not in settings JS");
+});
+
+test("BBSIA-05: drive_context framed as untrusted data", function () {
+  var src = readFile("chat/chat-send.js");
+  assert(src.indexOf("untrusted: true") !== -1, "untrusted flag not found in drive_context");
+  assert(src.indexOf("source: \"user_drive\"") !== -1, "source label not found in drive_context");
+});
+
+test("BBSIA-06: 99_init.js under 350 lines (file split)", function () {
+  var src = readFile("drive/modules/99_init.js");
+  var lineCount = src.split("\n").length;
+  assert(lineCount <= 350, "99_init.js has " + lineCount + " lines (max 350)");
+  assert(fileExists("drive/modules/98_actions.js"), "98_actions.js not found (extracted file actions)");
+});
+
+test("BBSIA-07: 98_actions.js loaded in drive.html", function () {
+  var driveHtml = fs.readFileSync(path.join(SUITE_DIR, "drive/drive.html"), "utf8");
+  assert(driveHtml.indexOf("98_actions.js") !== -1, "98_actions.js not referenced in drive.html");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// ARTIFACTS (GB6-09 / #1636)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-09: artifact detector covers prose and markdown, not only fenced code", function () {
+  var src = readFile("chat/chat-artifacts.js");
+  assert(src.indexOf("window.GBArtifacts") !== -1, "GBArtifacts helper not found");
+  assert(src.indexOf("words >= 250") !== -1, "prose length threshold not found");
+  assert(src.indexOf("headings > 0") !== -1, "markdown structure detection not found");
+  assert(src.indexOf("words >= 120") !== -1, "structured short-document path not found");
+});
+
+test("GB6-09: markdown artifacts render as documents and save under the title", function () {
+  var src = readFile("chat/chat-artifacts.js");
+  assert(src.indexOf("gb-artifact-doc") !== -1, "document container not found");
+  assert(src.indexOf("renderMarkdown") !== -1, "markdown renderer not wired");
+  assert(src.indexOf("gb-artifact-folder") !== -1, "folder selection not found");
+  assert(src.indexOf("window.GBArtifacts.slug(title)") !== -1, "title-derived filename not found");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// SHARE AND EXPORT (GB6-13 / #1639)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-13: share modal sends a visible expiry", function () {
+  var src = readFile("drive/modules/08_modals.js");
+  assert(src.indexOf("share-expiry") !== -1, "expiry selector not found");
+  assert(src.indexOf("expires_at") !== -1, "expires_at not sent to the API");
+  assert(src.indexOf("isExpired") !== -1, "expired links not detected in the modal");
+});
+
+test("GB6-13: recipient sharing and archive export are wired", function () {
+  var modals = readFile("drive/modules/08_modals.js");
+  assert(modals.indexOf("/share/recipients") !== -1, "recipient search not wired");
+  assert(modals.indexOf('"/share"') !== -1, "share call not wired");
+  var actions = readFile("drive/modules/98_actions.js");
+  assert(actions.indexOf("/export") !== -1, "archive export endpoint not used");
+  assert(actions.indexOf("exportPaths") !== -1, "export helper not found");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// TRASH AND VERSIONS (GB6-14 / #1640)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-14: user deletes move to Trash, not hard delete", function () {
+  var src = readFile("drive/modules/98_actions.js");
+  assert(src.indexOf("/trash/move") !== -1, "trash/move not called");
+  assert(src.indexOf('"/delete"') === -1, "hard delete still used by the UI");
+  assert(src.indexOf("30 days") !== -1, "retention copy not found");
+});
+
+test("GB6-14: Trash shows how long is left before purge", function () {
+  var src = readFile("drive/modules/05_files.js");
+  assert(src.indexOf("daysLeft") !== -1, "retention computation not found");
+  assert(src.indexOf("expires_at") !== -1, "expires_at not read");
+  assert(src.indexOf("purge due") !== -1, "expired state not shown");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// MEMORY (GB6-16 / #1642)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-16: Settings memory reads and writes the server API", function () {
+  var settings = readFile("settings/index.html");
+  assert(settings.indexOf("/api/user/memory") !== -1, "settings does not call the memory API");
+  assert(settings.indexOf("serverPut") !== -1, "settings does not persist edits");
+  assert(settings.indexOf("serverDelete") !== -1, "settings does not delete server-side");
+  var chat = readFile("chat/chat-init.js");
+  assert(chat.indexOf("user_memory:") === -1, "dead user_memory payload still sent");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// CONNECTOR CONSENT (GB6-18 / #1643)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-18: consent renders the server's requested scopes", function () {
+  var src = readFile("drive/modules/11_external.js");
+  assert(src.indexOf("requested_scopes") !== -1, "requested_scopes not read");
+  assert(src.indexOf("scope_descriptions") !== -1, "scope descriptions not read");
+  assert(src.indexOf("CONNECTOR_PERMISSIONS") === -1, "static permission copy still present");
+});
+
+test("GB6-18: connected card shows granted scopes and visibility", function () {
+  var src = readFile("drive/modules/11_external.js");
+  assert(src.indexOf("Granted scopes") !== -1, "granted scopes not rendered");
+  assert(src.indexOf("Visibility:") !== -1, "visibility not rendered");
+  assert(src.indexOf("consented_at") !== -1, "consent timestamp not rendered");
+});
