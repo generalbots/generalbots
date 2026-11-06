@@ -354,8 +354,8 @@ pub async fn create_app_state(
         #[cfg(feature = "llm")]
         llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
             llm_provider.clone(),
-            String::new(),
-            String::new(),
+            llm_model.clone(),
+            llm_key.clone(),
         )) as Arc<dyn botlib::traits::LLMProvider>),
         #[cfg(feature = "llm")]
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
