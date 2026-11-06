@@ -131,7 +131,6 @@ pub fn render_presentation_view(pres: &Presentation, requested: usize) -> String
 <div style="display:flex;gap:6px;">
 <button hx-post="/suite/slides/modals/insert-element" hx-vals='{{"presentation_id":"{id}","slide_index":"{cur0}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">+ Elemento</button>
 <button hx-post="/suite/slides/modals/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
-<button hx-post="/suite/slides/modals/share" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
 <button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{id}"}}' style="background:#f59e0b;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">▶ Apresentar</button>
 </div>
 </div>

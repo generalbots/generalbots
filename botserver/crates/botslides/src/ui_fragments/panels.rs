@@ -194,11 +194,12 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
 </div>
 <div style="padding:8px;background:#1e293b;border-radius:4px;">
 <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Notas do apresentador</div>
-<textarea hx-post="/api/slides/presenter/update" hx-trigger="blur changed" hx-vals='{{"presentation_id":"{pid}","slide_index":"{cur}"}}' hx-swap="none" style="width:100%;min-height:80px;padding:6px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;font-family:inherit;resize:vertical;">{notes}</textarea>
+<textarea name="notes" hx-post="/api/slides/slide/notes" hx-trigger="blur changed" hx-vals='{{"presentation_id":"{pid}","slide_index":"{cur0}"}}' hx-swap="none" style="width:100%;min-height:80px;padding:6px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;font-family:inherit;resize:vertical;">{notes}</textarea>
 </div>
 </div>"##,
         pid = html_escape(pid),
         cur = current + 1,
+        cur0 = current,
         total = total,
         notes = html_escape(notes)
     ))
