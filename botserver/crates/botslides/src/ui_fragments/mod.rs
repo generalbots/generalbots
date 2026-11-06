@@ -137,7 +137,7 @@ pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Route
         .route("/suite/slides/fragments/media", post(handle_media_panel))
         .route("/suite/slides/fragments/presenter", post(handle_presenter_panel))
         .route("/suite/slides/fragments/collaborators", post(handle_collaborators_panel))
-        .route("/suite/slides/fragments/sorter", post(handle_slide_sorter))
+        .route("/suite/slides/fragments/sorter", post(handle_slide_sorter::<D>))
         .route("/suite/slides/forms/share", post(handle_share_form))
         .route("/suite/slides/forms/ai", post(handle_ai_form))
         .route("/suite/slides/forms/new-slide", post(handle_new_slide_form))

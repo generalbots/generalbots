@@ -211,6 +211,9 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
             super::sidebars::handle_presentation_view(Json(blank_presentation())).await
         }
         "fragments/themes" => super::themes::handle_theme_picker(json).await,
+        "fragments/sorter" => {
+            super::panels::handle_slide_sorter::<D>(State(state.clone()), json).await
+        }
         "fragments/presenter" => super::panels::handle_presenter_panel(json).await,
         "modals/new-slide" => super::modals::handle_new_slide_modal(json).await,
         "forms/add-text" => super::toolbar::handle_add_text_form(json).await,

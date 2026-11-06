@@ -1,6 +1,8 @@
 use super::{empty_fragment, html_escape};
-use axum::{response::Html, Json};
+use axum::{extract::State, response::Html, Json};
+use std::sync::Arc;
 use crate::types::{MediaElement, Slide, TransitionConfig};
+use crate::SlidesState;
 
 pub async fn handle_slide_list_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let presentation_id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
@@ -240,15 +242,40 @@ pub async fn handle_collaborators_panel(Json(payload): Json<serde_json::Value>) 
     Html(html.replace("{count}", &collabs.len().to_string()))
 }
 
-pub async fn handle_slide_sorter(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let slides: Vec<Slide> = serde_json::from_value(payload.get("slides").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+/// Sorter panel (#1748). The toolbar sends only `{presentation_id}`; the
+/// typed `slides` array is still honoured for callers that already have the
+/// deck in memory, but a missing payload loads the deck by id so the panel is
+/// genuinely reachable. Reordering itself is client-side (05_sorter.js) and
+/// posts `{presentation_id, slide_order}` to /api/slides/slide/reorder.
+pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
+    State(state): State<Arc<SlidesState<D>>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    let pid = payload
+        .get("presentation_id")
+        .or_else(|| payload.get("id"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let mut slides: Vec<Slide> = serde_json::from_value(
+        payload.get("slides").cloned().unwrap_or(serde_json::Value::Null),
+    )
+    .unwrap_or_default();
+    if slides.is_empty() {
+        let pres = super::get_bridge::load_or_blank(&state, pid).await;
+        slides = pres.slides;
+    }
     if slides.is_empty() {
         return Html(empty_fragment("Nenhum slide para ordenar."));
     }
-    let mut html = r##"<div class="sl-panel" id="slide-sorter-panel" style="padding:16px;">
-<h3 style="margin:0 0 12px 0;color:#f8fafc;font-size:16px;">Organizar Slides</h3>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">"##.to_string();
+    let mut html = format!(
+        r##"<div class="sl-panel" id="slide-sorter-panel" data-presentation-id="{pid}" style="padding:16px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+<h3 style="margin:0;color:#f8fafc;font-size:16px;">Organizar Slides</h3>
+<button type="button" onclick="this.closest('#slides-modal-container').innerHTML=''" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;">×</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">"##,
+        pid = html_escape(pid)
+    );
     for (i, slide) in slides.iter().enumerate() {
         let bg = slide.background.color.clone().unwrap_or_else(|| "#0f172a".to_string());
         let text = slide.elements.iter()
@@ -258,9 +285,12 @@ pub async fn handle_slide_sorter(Json(payload): Json<serde_json::Value>) -> Html
         html.push_str(&format!(
             r##"<div class="sl-sorter-item" draggable="true" data-index="{i}" style="padding:8px;background:{bg};border:1px solid #334155;border-radius:6px;cursor:grab;">
 <div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;padding:6px;text-align:center;overflow:hidden;border-radius:4px;background:rgba(0,0,0,0.3);">{truncated}</div>
-<div style="font-size:11px;color:#cbd5e1;margin-top:4px;display:flex;justify-content:space-between;">
-<span>Slide {n}</span>
-<span>↕</span>
+<div style="font-size:11px;color:#cbd5e1;margin-top:4px;display:flex;justify-content:space-between;align-items:center;gap:4px;">
+<span>Slide <span class="sl-sorter-order">{n}</span></span>
+<span style="display:flex;gap:2px;">
+<button type="button" class="sl-sorter-up" title="Mover para cima" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:2px 5px;">↑</button>
+<button type="button" class="sl-sorter-down" title="Mover para baixo" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:2px 5px;">↓</button>
+</span>
 </div>
 </div>"##,
             i = i,
@@ -269,11 +299,13 @@ pub async fn handle_slide_sorter(Json(payload): Json<serde_json::Value>) -> Html
             n = i + 1
         ));
     }
-    html.push_str(&format!(
+    html.push_str(
         r##"</div>
-<button hx-post="/api/slides/slide/reorder" hx-vals='{{"presentation_id":"{pid}","order":"0,1,2,3"}}' hx-target="#slide-sorter-panel" hx-swap="outerHTML" style="margin-top:12px;background:#10b981;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:600;">Salvar Ordem</button>
+<div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+<button type="button" id="slide-sorter-save" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:600;">Salvar Ordem</button>
+<span id="slide-sorter-status" role="status" style="font-size:12px;color:#94a3b8;"></span>
+</div>
 </div>"##,
-        pid = html_escape(pid)
-    ));
+    );
     Html(html)
 }
