@@ -32,7 +32,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Present / stop presenting | Enter and leave presentation mode |
 | **Presenter View** | The presenter's own screen, showing what the audience does not see |
 | **Laser pointer** | Point at content without changing it |
-| Export | Produce the deck in a deliverable format |
+| Export | Toolbar Export menu: PPTX, ODP (complete ODF package), HTML, SVG (first slide), Markdown and JSON |
 
 ### Audience engagement
 
