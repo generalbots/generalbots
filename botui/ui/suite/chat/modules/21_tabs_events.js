@@ -347,16 +347,33 @@
       } catch (err) { /* storage unavailable */ }
       if (!window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
       GBTabs.state.tabs.slice().forEach(function (t) {
-        if (String(t.sessionId || "") === String(sid)) {
+        if (String(t.sessionId || "") !== String(sid)) return;
+        // closeTab refuses to remove the last tab; clear its binding instead
+        // so the deleted session is not kept as the active conversation.
+        if (GBTabs.state.tabs.length <= 1) {
+          t.sessionId = null;
+          t.title = "Chat";
+          if (window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[t.id]) {
+            GBMultiChat.tabs[t.id].sessionId = null;
+          }
+          try { GBTabs.renderStrip(); } catch (err) { /* not rendered */ }
+          if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
+        } else {
           try { GBTabs.closeTab(t.id); } catch (err) { /* already gone */ }
         }
       });
       if (window.ChatState && String(ChatState.currentSessionId || "") === String(sid)) {
         var box = document.getElementById("messages");
         if (box) box.innerHTML = "";
+        ChatState.currentSessionId = "";
         try {
           window.dispatchEvent(new CustomEvent("gb-chat-session-deleted", { detail: { sessionId: sid } }));
         } catch (err) { /* CustomEvent unavailable */ }
+        // Mint a fresh session and reconnect; staying on the deleted id made
+        // the next message fail server-side.
+        if (typeof window.initChat === "function") {
+          try { window.initChat(); } catch (err) { /* boot retries itself */ }
+        }
       }
     });
 

@@ -139,6 +139,16 @@ window.refreshSlideView = function () {
       "&slide=" + encodeURIComponent(index),
     { target: "#slides-content", swap: "innerHTML" }
   );
+  // The canvas and the thumbnail rail are separate containers; adding a
+  // slide refreshed only the canvas, leaving the rail one slide behind.
+  var thumbs = document.getElementById("sidebar-thumbs");
+  if (thumbs) {
+    htmx.ajax(
+      "GET",
+      "/suite/slides/fragments/slide-thumbnails?id=" + encodeURIComponent(deck),
+      { target: "#sidebar-thumbs", swap: "innerHTML" }
+    );
+  }
 };
 
 document.addEventListener("click", function (e) {
