@@ -30,6 +30,69 @@ fn map_chart_type(name: &[u8]) -> &'static str {
     }
 }
 
+fn stack_ends_with(stack: &[Vec<u8>], expected: &[&[u8]]) -> bool {
+    if stack.len() < expected.len() {
+        return false;
+    }
+    let start = stack.len() - expected.len();
+    expected
+        .iter()
+        .enumerate()
+        .all(|(i, exp)| stack[start + i].as_slice() == *exp)
+}
+
+fn series_index(stack: &[Vec<u8>]) -> usize {
+    stack.iter().filter(|s| s.as_slice() == b"ser").count()
+}
+
+/// Appends decoded text to the title or the series reference that owns the
+/// current element path.
+fn append_text(
+    chart: &mut ParsedChart,
+    stack: &[Vec<u8>],
+    in_title: bool,
+    title_text: &mut String,
+    text: &str,
+) {
+    let text = text.trim();
+    if text.is_empty() {
+        return;
+    }
+    if in_title
+        && !stack.iter().any(|s| s.as_slice() == b"plotArea")
+        && stack_ends_with(stack, &[b"title", b"tx", b"rich", b"p", b"r", b"t"])
+    {
+        title_text.push_str(text);
+        return;
+    }
+    if stack_ends_with(stack, &[b"ser", b"tx", b"strRef", b"f"])
+        || stack_ends_with(stack, &[b"ser", b"tx", b"v"])
+    {
+        let idx = series_index(stack).saturating_sub(1);
+        if let Some(s) = chart.series.get_mut(idx) {
+            s.name.push_str(text);
+        }
+    } else if stack_ends_with(stack, &[b"ser", b"cat", b"strRef", b"f"])
+        || stack_ends_with(stack, &[b"ser", b"cat", b"numRef", b"f"])
+        || stack_ends_with(stack, &[b"ser", b"cat", b"strLit", b"pt", b"v"])
+        || stack_ends_with(stack, &[b"ser", b"cat", b"numLit", b"pt", b"v"])
+    {
+        let idx = series_index(stack).saturating_sub(1);
+        if let Some(s) = chart.series.get_mut(idx) {
+            s.cat_ref.push_str(text);
+        }
+    } else if stack_ends_with(stack, &[b"ser", b"val", b"numRef", b"f"])
+        || stack_ends_with(stack, &[b"ser", b"val", b"strRef", b"f"])
+        || stack_ends_with(stack, &[b"ser", b"val", b"numLit", b"pt", b"v"])
+        || stack_ends_with(stack, &[b"ser", b"val", b"strLit", b"pt", b"v"])
+    {
+        let idx = series_index(stack).saturating_sub(1);
+        if let Some(s) = chart.series.get_mut(idx) {
+            s.val_ref.push_str(text);
+        }
+    }
+}
+
 /// Parses a chart part into type/title/legend/series references.
 pub(crate) fn parse_chart(xml: &[u8]) -> ParsedChart {
     let mut chart = ParsedChart {
@@ -45,21 +108,6 @@ pub(crate) fn parse_chart(xml: &[u8]) -> ParsedChart {
     let mut in_title = false;
     let mut plot_area_seen = false;
     let mut title_text = String::new();
-
-    let stack_ends_with = |stack: &Vec<Vec<u8>>, expected: &[&[u8]]| -> bool {
-        if stack.len() < expected.len() {
-            return false;
-        }
-        let start = stack.len() - expected.len();
-        expected
-            .iter()
-            .enumerate()
-            .all(|(i, exp)| stack[start + i].as_slice() == *exp)
-    };
-
-    let ser_index = |stack: &Vec<Vec<u8>>| -> usize {
-        stack.iter().filter(|s| s.as_slice() == b"ser").count()
-    };
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -101,45 +149,13 @@ pub(crate) fn parse_chart(xml: &[u8]) -> ParsedChart {
                 }
             }
             Ok(Event::Text(ref t)) => {
-                let Ok(text) = t.unescape() else {
-                    continue;
-                };
-                let text = text.trim();
-                if text.is_empty() {
-                    continue;
-                }
-                if in_title
-                    && !stack.iter().any(|s| s.as_slice() == b"plotArea")
-                    && stack_ends_with(&stack, &[b"title", b"tx", b"rich", b"p", b"r", b"t"])
-                {
-                    title_text.push_str(text);
-                    continue;
-                }
-                if stack_ends_with(&stack, &[b"ser", b"tx", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"tx", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.name.push_str(text);
-                    }
-                } else if stack_ends_with(&stack, &[b"ser", b"cat", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"numRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"strLit", b"pt", b"v"])
-                    || stack_ends_with(&stack, &[b"ser", b"cat", b"numLit", b"pt", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.cat_ref.push_str(text);
-                    }
-                } else if stack_ends_with(&stack, &[b"ser", b"val", b"numRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"strRef", b"f"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"numLit", b"pt", b"v"])
-                    || stack_ends_with(&stack, &[b"ser", b"val", b"strLit", b"pt", b"v"])
-                {
-                    let idx = ser_index(&stack).saturating_sub(1);
-                    if let Some(s) = chart.series.get_mut(idx) {
-                        s.val_ref.push_str(text);
-                    }
+                let text = t.xml10_content();
+                append_text(&mut chart, &stack, in_title, &mut title_text, &text);
+            }
+            Ok(Event::GeneralRef(ref reference)) => {
+                let raw = format!("&{};", reference.as_ref());
+                if let Ok(text) = quick_xml::escape::unescape(&raw) {
+                    append_text(&mut chart, &stack, in_title, &mut title_text, &text);
                 }
             }
             Ok(Event::End(ref e)) => {

@@ -64,7 +64,7 @@ pub async fn load_xlsx_from_drive(
     state: &SheetState,
     user_id: &str,
     file_path: &str,
-) -> Result<(Spreadsheet, umya_spreadsheet::Spreadsheet), String> {
+) -> Result<(Spreadsheet, umya_spreadsheet::Workbook), String> {
     let drive = state
         .drive
         .as_ref()
@@ -76,7 +76,7 @@ pub async fn load_xlsx_from_drive(
 }
 
 pub async fn update_xlsx_cell(
-    workbook: &mut umya_spreadsheet::Spreadsheet,
+    workbook: &mut umya_spreadsheet::Workbook,
     sheet_name: &str,
     row: u32,
     col: u32,
@@ -116,7 +116,7 @@ pub async fn save_workbook_to_drive(
     state: &SheetState,
     user_id: &str,
     sheet_id: &str,
-    workbook: &umya_spreadsheet::Spreadsheet,
+    workbook: &umya_spreadsheet::Workbook,
 ) -> Result<(), String> {
     let drive = state
         .drive

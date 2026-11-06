@@ -12,6 +12,7 @@ pub struct SlideInfo {
 
 pub fn load_pptx_preserving(bytes: &[u8]) -> Result<OoxmlPresentation, String> {
     use ooxmlsdk::parts::presentation_document::PresentationDocument;
+    use ooxmlsdk::sdk::SdkType;
 
     let reader = Cursor::new(bytes);
     let pptx = PresentationDocument::new(reader)
@@ -19,10 +20,17 @@ pub fn load_pptx_preserving(bytes: &[u8]) -> Result<OoxmlPresentation, String> {
 
     let mut slides = Vec::new();
 
-    for (idx, slide_part) in pptx.presentation_part.slide_parts.iter().enumerate() {
-        let xml_str = slide_part.root_element.to_xml().unwrap_or_default();
-        let texts = extract_texts_from_slide(&xml_str);
-        slides.push(SlideInfo { index: idx, texts });
+    let presentation = pptx.presentation_part();
+    if let Ok(presentation) = presentation {
+        for (idx, slide_part) in presentation.slide_parts(&pptx).enumerate() {
+            let xml_str = slide_part
+                .root_element(&pptx)
+                .ok()
+                .and_then(|root| root.to_xml().ok())
+                .unwrap_or_default();
+            let texts = extract_texts_from_slide(&xml_str);
+            slides.push(SlideInfo { index: idx, texts });
+        }
     }
 
     Ok(OoxmlPresentation {

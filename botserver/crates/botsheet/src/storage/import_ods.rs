@@ -45,26 +45,26 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => {
                 match e.name().as_ref() {
-                    b"table:table" => {
+                    "table:table" => {
                         in_table = true;
                         current_row = 0;
                         data = HashMap::new();
                         for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"table:name" {
-                                sheet_name = String::from_utf8_lossy(&attr.value).to_string();
+                            if attr.key.as_ref() == "table:name" {
+                                sheet_name = attr.value.to_string();
                             }
                         }
                         if sheet_name.is_empty() {
                             sheet_name = "Sheet1".to_string();
                         }
                     }
-                    b"table:table-row" if in_table => {
+                    "table:table-row" if in_table => {
                         current_col = 0;
                     }
-                    b"table:table-cell" if in_table => {
+                    "table:table-cell" if in_table => {
                         cell_value.clear();
                     }
-                    b"text:p" => {
+                    "text:p" => {
                         in_text_p = true;
                     }
                     _ => {}
@@ -72,7 +72,7 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
             }
             Ok(Event::End(ref e)) => {
                 match e.name().as_ref() {
-                    b"table:table" if in_table => {
+                    "table:table" if in_table => {
                         in_table = false;
                         worksheets.push(crate::types::Worksheet {
                             name: sheet_name.clone(),
@@ -103,10 +103,10 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
                             rich_text: None,
                         });
                     }
-                    b"table:table-row" if in_table => {
+                    "table:table-row" if in_table => {
                         current_row += 1;
                     }
-                    b"table:table-cell" if in_table => {
+                    "table:table-cell" if in_table => {
                         if !cell_value.is_empty() {
                             let key = format!("{current_row},{current_col}");
                             data.insert(
@@ -126,7 +126,7 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
                         }
                         current_col += 1;
                     }
-                    b"text:p" => {
+                    "text:p" => {
                         in_text_p = false;
                     }
                     _ => {}
@@ -134,7 +134,13 @@ fn parse_ods_xml(xml_content: &str) -> Result<Vec<crate::types::Worksheet>, Stri
             }
             Ok(Event::Text(ref e)) => {
                 if in_text_p {
-                    if let Ok(text) = e.unescape() {
+                    cell_value.push_str(&e.xml10_content());
+                }
+            }
+            Ok(Event::GeneralRef(ref reference)) => {
+                if in_text_p {
+                    let raw = format!("&{};", reference.as_ref());
+                    if let Ok(text) = quick_xml::escape::unescape(&raw) {
                         cell_value.push_str(&text);
                     }
                 }

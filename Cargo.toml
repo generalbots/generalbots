@@ -335,7 +335,7 @@ r2d2 = "0.8"
 redis = { version = "0.27", default-features = false }
 
 # ─── SECURITY / CRYPTO ───
-jsonwebtoken = { version = "10.3", features = ["rust_crypto", "use_pem"] }
+jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
 base64 = "0.22"
 aes-gcm = "0.10"
 argon2 = "0.5"
@@ -373,14 +373,14 @@ tar = "0.4"
 zstd = "0.14"
 
 # ─── DOCUMENT PROCESSING ───
-docx-rs = "0.4"
-ooxmlsdk = { version = "0.3", default-features = false }
-calamine = "0.26"
+docx-rs = "0.4.22"
+ooxmlsdk = { version = "0.15", default-features = false }
+calamine = "0.38"
 spreadsheet-ods = "1.0"
 pdf-extract = "0.12.1"
-quick-xml = { version = "0.37", features = ["serialize"] }
-rust_xlsxwriter = "0.77"
-umya-spreadsheet = "2.1"
+quick-xml = { version = "0.42", features = ["serialize"] }
+rust_xlsxwriter = "0.102"
+umya-spreadsheet = "3.1.1"
 
 # ─── IMAGE / MEDIA ───
 png = "0.18"
@@ -408,7 +408,7 @@ bigdecimal = { version = "0.4", features = ["serde"] }
 bytes = "1.8"
 
 # ─── OBJECT STORAGE (S3 compatible) ───
-rust-s3 = "0.37.1"
+rust-s3 = "0.38"
 
 # ─── SCRIPTING ───
 rhai = { version = "1.23", features = ["sync"] }
@@ -435,7 +435,7 @@ vaultrs = "0.7"
 
 # ─── CALENDAR / RSS ───
 icalendar = "0.17"
-rss = "2.0"
+rss = "2.1"
 
 # ─── WEB SCRAPING ───
 scraper = "0.25"

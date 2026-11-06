@@ -12,7 +12,8 @@
 
 use std::collections::BTreeMap;
 
-use quick_xml::events::Event;
+use quick_xml::escape::unescape;
+use quick_xml::events::{BytesRef, Event};
 use quick_xml::Reader;
 
 /// Maximum element nesting accepted while scanning a document.
@@ -23,11 +24,24 @@ const MAX_MATCHES: usize = 500;
 fn reader_from(xml: &str) -> Reader<&[u8]> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
+    // AWS answers occasionally contain a bare `&` in text; the old reader
+    // tolerated it and returned an empty match, so keep parsing instead of
+    // aborting the whole document.
+    reader.config_mut().allow_dangling_amp = true;
     reader
 }
 
-fn tag_name(raw: &[u8]) -> String {
-    String::from_utf8_lossy(raw).to_string()
+fn tag_name(raw: &str) -> String {
+    raw.to_string()
+}
+
+/// Appends one entity reference (`&amp;`, `&#38;`) that quick-xml 0.42 emits as
+/// a separate `GeneralRef` event instead of embedding it in the text event.
+fn push_reference(target: &mut String, reference: &BytesRef) {
+    let raw = format!("&{};", reference.as_ref());
+    if let Ok(value) = unescape(&raw) {
+        target.push_str(&value);
+    }
 }
 
 fn stack_matches(stack: &[String], path: &[&str]) -> bool {
@@ -53,7 +67,8 @@ pub(crate) fn first_text_by_path(xml: &str, path: &[&str]) -> Option<String> {
                 }
                 stack.push(tag_name(start.name().into_inner()));
                 if stack_matches(&stack, path) {
-                    return capture_immediate_text(&mut reader);
+                    return capture_immediate_text(&mut reader)
+                        .filter(|value| !value.is_empty());
                 }
             }
             Ok(Event::End(_)) => {
@@ -84,8 +99,12 @@ pub(crate) fn collect_leaf_texts(xml: &str, path: &[&str], max_matches: usize) -
                 stack.push(tag_name(start.name().into_inner()));
                 if stack_matches(&stack, path) {
                     match capture_immediate_text(&mut reader) {
-                        Some(text) => matches.push(text),
-                        None => matches.push(String::new()),
+                        Some(text) => {
+                            // The capture consumed this element's closing tag.
+                            stack.pop();
+                            matches.push(text);
+                        }
+                        None => return matches,
                     }
                 }
             }
@@ -98,15 +117,27 @@ pub(crate) fn collect_leaf_texts(xml: &str, path: &[&str], max_matches: usize) -
     }
 }
 
+/// Reads the text of the current element until its closing tag. Nested markup
+/// is skipped. Returns `None` on EOF or parse error; an empty element yields
+/// `Some("")`.
 fn capture_immediate_text(reader: &mut Reader<&[u8]>) -> Option<String> {
+    let mut text = String::new();
+    let mut depth = 0usize;
     loop {
         match reader.read_event() {
-            Ok(Event::Text(text)) => {
-                let decoded = text.unescape().ok()?;
-                return Some(decoded.to_string()).filter(|value| !value.is_empty());
+            Ok(Event::Text(chunk)) if depth == 0 => text.push_str(&chunk.xml10_content()),
+            Ok(Event::GeneralRef(reference)) if depth == 0 => {
+                push_reference(&mut text, &reference);
             }
-            Ok(Event::End(_)) | Ok(Event::Eof) | Err(_) => return None,
-            _ => {}
+            Ok(Event::Start(_)) => depth += 1,
+            Ok(Event::End(_)) => {
+                if depth == 0 {
+                    return Some(text);
+                }
+                depth -= 1;
+            }
+            Ok(Event::Eof) | Err(_) => return None,
+            Ok(_) => {}
         }
     }
 }
@@ -191,10 +222,12 @@ fn read_block_children(
             Ok(Event::Empty(_)) => {}
             Ok(Event::Text(text)) => {
                 if skipping_nested == 0 && current_child.is_some() {
-                    match text.unescape() {
-                        Ok(decoded) => buffer.push_str(&decoded),
-                        Err(_) => return None,
-                    }
+                    buffer.push_str(&text.xml10_content());
+                }
+            }
+            Ok(Event::GeneralRef(reference)) => {
+                if skipping_nested == 0 && current_child.is_some() {
+                    push_reference(&mut buffer, &reference);
                 }
             }
             Ok(Event::End(_)) => {

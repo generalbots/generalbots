@@ -76,12 +76,12 @@ pub fn parse(service: &str, body: &str) -> Result<Response, RegistrarError> {
 
         match event {
             Event::Start(e) => {
-                let name = String::from_utf8_lossy(e.name().as_ref()).into_owned();
+                let name = e.name().as_ref().to_string();
                 let start = reader.buffer_position() as usize;
                 stack.push((name, start));
             }
             Event::End(e) => {
-                let name = String::from_utf8_lossy(e.name().as_ref()).into_owned();
+                let name = e.name().as_ref().to_string();
                 let end = reader.buffer_position() as usize;
                 let Some((opened, start)) = stack.pop() else { continue };
                 if opened != name {

@@ -118,10 +118,7 @@ annually or when the parent crate ships a fixed release, whichever is first.
 
 | Advisory | Package | Why accepted | Review |
 |----------|---------|--------------|--------|
-| RUSTSEC-2026-0194 / -0195 | quick-xml 0.31–0.39 (transitive) | Quadratic start-tag parse and unbounded namespace allocation. Reached only through office-document import (`docx-rs`, `ooxmlsdk`, `calamine`, `umya-spreadsheet`) of authenticated uploads, behind size limits. Parents do not accept quick-xml 0.41 yet. | 2027-11-06 |
-| RUSTSEC-2026-0367 / -0368 / -0369 / -0429, GHSA-8hxf, GHSA-m665, GHSA-q7v9 | zip 0.6.6 / 2.4.2 / 4.6.1 (transitive) | First-party `zip` is 9.2.0 (patched). The transitive copies belong to `docx-rs`, `umya-spreadsheet`, `ooxmlsdk`, `calamine` and `rust_xlsxwriter`. Our code never calls `ZipArchive::extract()`; the only on-disk extraction loop (`botcorepkg/src/facade_download/archive.rs`) resolves every entry with `enclosed_name()` and rejects the rest. An extract-path panic is contained by the request task. | 2027-11-06 |
-| RUSTSEC-2026-0436 | calamine 0.26.1 | CFB/OLE2 unbounded allocation. Only the authenticated spreadsheet import reaches it, behind upload size limits. The 0.38 upgrade changes the public API and is tracked as a follow-up. | 2027-11-06 |
-| RUSTSEC-2023-0071, RUSTSEC-2026-0387 | rsa 0.9.10 / crypto-bigint 0.5.5 | Marvin timing and bigint timing. RSA is used for signing with our own keys, never as a decryption oracle on attacker-chosen ciphertext; timing is not remotely observable. Fix requires a major `rsa` chain upgrade. | 2027-11-06 |
+| RUSTSEC-2026-0367 / -0368 / -0369 / -0429, GHSA-8hxf, GHSA-m665, GHSA-q7v9, GHSA-9hj8, GHSA-hjqx | zip 8.6.0 (via `docx-rs` 0.4.22 and `umya-spreadsheet` 3.1.1) | First-party `zip` is 9.4.1, and `calamine`/`ooxmlsdk`/`rust_xlsxwriter` also resolve 9.x. The only pre-9 copy is 8.6.0 because both office crate releases pin `zip ^8.6`; no upstream release accepts 9 yet. We never call `ZipArchive::extract()` — `docx-rs`/`umya` only read named parts in memory, and the one on-disk extraction loop (`botcorepkg/src/facade_download/archive.rs`) resolves every entry with `enclosed_name()` and rejects the rest. An extract-path panic would be contained by the request task. | 2027-11-06 |
 | RUSTSEC-2024-0429, GHSA-wrw7 | glib 0.18.5 | Unsound iterator impls on the Tauri Linux desktop stack only; no server runtime exposure. Fixed by the GTK4 stack upgrade on the desktop track. | 2027-11-06 |
 | RUSTSEC-2026-0235 | rkyv 0.7.46 | **Lockfile-only**: present in `Cargo.lock` but never selected by any shipping feature graph (`cargo deny --all-features` does not see it). No exposure. | 2027-11-06 |
 | Unmaintained crates: RUSTSEC-2024-0370, -0436, -2025-0075/-0080/-0081/-0098/-0100, -2026-0192/-0249/-0370/-0371/-0372/-0441 | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, zbus_names, pin-utils | Build-time proc macros, Unicode tables, font metrics, office write path, or the Tauri D-Bus stack. No attacker-reachable runtime sink identified. | 2027-11-06 |
@@ -131,8 +128,24 @@ Fixed by the 2026-11-06 lockfile refresh (no acceptance needed):
 RUSTSEC-2026-0190, -0204, -0258, -0340, -0341, -0381, -0385, -0386, -0418
 and two yanked crates (`chacha20`, `spin`). **`git2` was removed entirely** —
 it was declared by `botdeployment`/`botserver` but no code used it, so
-RUSTSEC-2026-0183/-0184 left the graph without an API migration. The lockfile
-remains the record; `cargo-deny` re-checks it on every push.
+RUSTSEC-2026-0183/-0184 left the graph without an API migration.
+
+The office-stack pass on the same date (commits for #1757/#1763/#1764/#1765)
+removed four more advisory families:
+- **quick-xml 0.41/0.42 everywhere.** The workspace consumers moved to 0.42,
+  `docx-rs` 0.4.22/`ooxmlsdk` 0.15/`umya-spreadsheet` 3.1.1 to 0.41, and the
+  last stragglers were dropped by updating `rss` 2.1.2, `rust-s3` 0.38,
+  `aws-creds` 0.40 and `plist` 1.10 — RUSTSEC-2026-0194/-0195 are gone.
+- **calamine 0.38** removed RUSTSEC-2026-0436 (the `Result`-returning range API
+  was already handled at every call site).
+- **jsonwebtoken now uses the `aws_lc_rs` backend**, which was already in the
+  graph through rustls. `rsa 0.9` and `crypto-bigint 0.5` left the lock, so
+  RUSTSEC-2023-0071 and RUSTSEC-2026-0387 no longer apply.
+- **zip 0.6/2.4/4.6 are gone** (`docx-rs` 0.4.22 and `umya-spreadsheet` 3.1.1
+  moved to 8.6, `ooxmlsdk` 0.15 to 9.2); only one 8.6.0 copy remains and is
+  the single residual entry above.
+
+The lockfile remains the record; `cargo-deny` re-checks it on every push.
 
 ---
 
@@ -144,9 +157,7 @@ changes a public API and needs its own regression pass.
 
 | Cluster | Current | Target | Removes |
 |---------|---------|--------|---------|
-| office-document XML stack | quick-xml 0.31–0.39 via `docx-rs` 0.4.20, `ooxmlsdk` 0.3.0, `umya-spreadsheet` 2.3.3, `calamine` 0.26.1 | quick-xml 0.41 across the six first-party consumers + calamine 0.38 | RUSTSEC-2026-0194/-0195/-0436 |
-| zip in office crates | zip 0.6.6 / 2.4.2 / 4.6.1 | a parent release that accepts zip ≥ 9.0.5 | RUSTSEC-2026-0367/-0368/-0369/-0429, GHSA-8hxf/-m665/-q7v9 |
-| rsa / crypto-bigint | rsa 0.9.10, crypto-bigint 0.5.5 | rsa 0.10 (crypto-bigint 0.7.x) | RUSTSEC-2023-0071, RUSTSEC-2026-0387 |
+| zip in office crates | zip 8.6.0 via `docx-rs` 0.4.22 and `umya-spreadsheet` 3.1.1 | an upstream release that accepts zip ≥ 9.0.5 | RUSTSEC-2026-0367/-0368/-0369/-0429, GHSA-8hxf/-m665/-q7v9/-9hj8/-hjqx |
 | GTK / Tauri desktop stack | glib 0.18.5 | GTK4 track | RUSTSEC-2024-0429, GHSA-wrw7 |
 | Python model tooling | accelerate 1.1.1 | first release with the GHSA-4j2p fix | GHSA-4j2p, PYSEC-2026-3804 |
 

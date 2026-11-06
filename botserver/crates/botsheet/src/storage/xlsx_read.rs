@@ -17,7 +17,7 @@ pub fn load_xlsx_from_bytes(
     bytes: &[u8],
     user_id: &str,
     file_path: &str,
-) -> Result<(Spreadsheet, umya_spreadsheet::Spreadsheet), String> {
+) -> Result<(Spreadsheet, umya_spreadsheet::Workbook), String> {
     let cursor = Cursor::new(bytes);
     let workbook = umya_spreadsheet::reader::xlsx::read_reader(cursor, true)
         .map_err(|e| format!("Failed to parse xlsx: {e}"))?;
@@ -93,7 +93,7 @@ fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtec
 
 /// Maps workbook-scope defined names (e.g. `TaxRate = Sheet1!$B$2`) into the
 /// structured model so the round-trip keeps them (#788).
-fn extract_named_ranges(workbook: &umya_spreadsheet::Spreadsheet) -> Option<Vec<NamedRange>> {
+fn extract_named_ranges(workbook: &umya_spreadsheet::Workbook) -> Option<Vec<NamedRange>> {
     let mut named_ranges = Vec::new();
     for name in workbook.get_defined_names() {
         let Some((start_row, start_col, end_row, end_col)) = parse_a1_address(&name.get_address())

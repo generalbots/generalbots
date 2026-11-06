@@ -21,6 +21,7 @@ pub(super) fn word_html(file_name: &str, bytes: &[u8]) -> Result<String, String>
 fn docx_flow_html(xml: &str) -> String {
     use quick_xml::events::Event;
     let mut reader = quick_xml::Reader::from_str(xml);
+    reader.config_mut().allow_dangling_amp = true;
     let mut html = String::new();
     let mut in_table = 0usize;
     let mut in_row = false;
@@ -35,54 +36,65 @@ fn docx_flow_html(xml: &str) -> String {
     loop {
         match reader.read_event() {
             Ok(Event::Start(event)) => match event.name().as_ref() {
-                b"w:tbl" => {
+                "w:tbl" => {
                     if in_table == 0 {
                         html.push_str("<table>");
                     }
                     in_table += 1;
                     table_row = 0;
                 }
-                b"w:tr" if in_table > 0 => {
+                "w:tr" if in_table > 0 => {
                     in_row = true;
                     row.clear();
                 }
-                b"w:tc" if in_table > 0 => {
+                "w:tc" if in_table > 0 => {
                     in_cell = true;
                     cell.clear();
                 }
-                b"w:p" if in_table == 0 => {
+                "w:p" if in_table == 0 => {
                     in_paragraph = true;
                     paragraph_style = None;
                     paragraph.clear();
                 }
-                b"w:pStyle" => {
+                "w:pStyle" => {
                     for attribute in event.attributes().flatten() {
-                        if attribute.key.as_ref() == b"w:val" {
-                            if let Ok(value) = attribute.unescape_value() {
+                        if attribute.key.as_ref() == "w:val" {
+                            if let Ok(value) = attribute
+                                .normalized_value(quick_xml::XmlVersion::Implicit1_0)
+                            {
                                 paragraph_style = Some(value.to_string());
                             }
                         }
                     }
                 }
-                b"w:tab" => {
+                "w:tab" => {
                     if in_cell {
                         cell.push(' ');
                     } else if in_paragraph {
                         paragraph.push(' ');
                     }
                 }
-                b"w:br" => {
+                "w:br" => {
                     if in_cell {
                         cell.push(' ');
                     } else if in_paragraph {
                         paragraph.push(' ');
                     }
                 }
-                b"w:t" => in_text = true,
+                "w:t" => in_text = true,
                 _ => {}
             },
             Ok(Event::Text(text)) if in_text => {
-                if let Ok(decoded) = text.unescape() {
+                let decoded = text.xml10_content();
+                if in_cell {
+                    cell.push_str(&decoded);
+                } else if in_paragraph {
+                    paragraph.push_str(&decoded);
+                }
+            }
+            Ok(Event::GeneralRef(reference)) if in_text => {
+                let raw = format!("&{};", reference.as_ref());
+                if let Ok(decoded) = quick_xml::escape::unescape(&raw) {
                     if in_cell {
                         cell.push_str(&decoded);
                     } else if in_paragraph {
@@ -91,12 +103,12 @@ fn docx_flow_html(xml: &str) -> String {
                 }
             }
             Ok(Event::End(event)) => match event.name().as_ref() {
-                b"w:t" => in_text = false,
-                b"w:tc" if in_cell => {
+                "w:t" => in_text = false,
+                "w:tc" if in_cell => {
                     row.push(std::mem::take(&mut cell));
                     in_cell = false;
                 }
-                b"w:tr" if in_row => {
+                "w:tr" if in_row => {
                     if in_table == 1 {
                         html.push_str("<tr>");
                         for value in &row {
@@ -112,13 +124,13 @@ fn docx_flow_html(xml: &str) -> String {
                     row.clear();
                     in_row = false;
                 }
-                b"w:tbl" => {
+                "w:tbl" => {
                     in_table = in_table.saturating_sub(1);
                     if in_table == 0 {
                         html.push_str("</table>");
                     }
                 }
-                b"w:p" if in_paragraph => {
+                "w:p" if in_paragraph => {
                     let text = paragraph.trim();
                     if !text.is_empty() {
                         let heading = paragraph_style

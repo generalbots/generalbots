@@ -28,6 +28,7 @@ impl SlidePreview {
     fn parse(xml: &str) -> Self {
         use quick_xml::events::Event;
         let mut reader = quick_xml::Reader::from_str(xml);
+        reader.config_mut().allow_dangling_amp = true;
         let mut preview = Self::default();
         let mut in_table = 0usize;
         let mut in_row = false;
@@ -41,29 +42,38 @@ impl SlidePreview {
         loop {
             match reader.read_event() {
                 Ok(Event::Start(event)) => match event.name().as_ref() {
-                    b"a:tbl" => {
+                    "a:tbl" => {
                         in_table += 1;
                         if in_table == 1 {
                             table.clear();
                         }
                     }
-                    b"a:tr" if in_table > 0 => {
+                    "a:tr" if in_table > 0 => {
                         in_row = true;
                         row.clear();
                     }
-                    b"a:tc" if in_table > 0 => {
+                    "a:tc" if in_table > 0 => {
                         in_cell = true;
                         cell.clear();
                     }
-                    b"a:p" if in_table == 0 => {
+                    "a:p" if in_table == 0 => {
                         in_paragraph = true;
                         paragraph.clear();
                     }
-                    b"a:t" => in_text = true,
+                    "a:t" => in_text = true,
                     _ => {}
                 },
                 Ok(Event::Text(text)) if in_text => {
-                    if let Ok(decoded) = text.unescape() {
+                    let decoded = text.xml10_content();
+                    if in_cell {
+                        cell.push_str(&decoded);
+                    } else if in_paragraph {
+                        paragraph.push_str(&decoded);
+                    }
+                }
+                Ok(Event::GeneralRef(reference)) if in_text => {
+                    let raw = format!("&{};", reference.as_ref());
+                    if let Ok(decoded) = quick_xml::escape::unescape(&raw) {
                         if in_cell {
                             cell.push_str(&decoded);
                         } else if in_paragraph {
@@ -72,16 +82,16 @@ impl SlidePreview {
                     }
                 }
                 Ok(Event::End(event)) => match event.name().as_ref() {
-                    b"a:t" => in_text = false,
-                    b"a:tc" if in_cell => {
+                    "a:t" => in_text = false,
+                    "a:tc" if in_cell => {
                         row.push(std::mem::take(&mut cell));
                         in_cell = false;
                     }
-                    b"a:tr" if in_row => {
+                    "a:tr" if in_row => {
                         table.push(std::mem::take(&mut row));
                         in_row = false;
                     }
-                    b"a:tbl" => {
+                    "a:tbl" => {
                         in_table = in_table.saturating_sub(1);
                         if in_table == 0 {
                             let finished = std::mem::take(&mut table);
@@ -89,7 +99,7 @@ impl SlidePreview {
                             preview.tables.push(finished);
                         }
                     }
-                    b"a:p" if in_paragraph => {
+                    "a:p" if in_paragraph => {
                         let finished = std::mem::take(&mut paragraph);
                         preview.sequence.push(SlideItem::Paragraph(finished.clone()));
                         preview.paragraphs.push(finished);
@@ -253,6 +263,7 @@ fn rels_target_path(base_dir: &str, target: &str) -> String {
 fn notes_paragraphs(xml: &str) -> Vec<String> {
     use quick_xml::events::Event;
     let mut reader = quick_xml::Reader::from_str(xml);
+    reader.config_mut().allow_dangling_amp = true;
     let mut paragraphs = Vec::new();
     let mut current = String::new();
     let mut in_paragraph = false;
@@ -260,21 +271,25 @@ fn notes_paragraphs(xml: &str) -> Vec<String> {
     loop {
         match reader.read_event() {
             Ok(Event::Start(event)) => match event.name().as_ref() {
-                b"a:p" => {
+                "a:p" => {
                     in_paragraph = true;
                     current.clear();
                 }
-                b"a:t" => in_text = true,
+                "a:t" => in_text = true,
                 _ => {}
             },
             Ok(Event::Text(text)) if in_text => {
-                if let Ok(decoded) = text.unescape() {
+                current.push_str(&text.xml10_content());
+            }
+            Ok(Event::GeneralRef(reference)) if in_text => {
+                let raw = format!("&{};", reference.as_ref());
+                if let Ok(decoded) = quick_xml::escape::unescape(&raw) {
                     current.push_str(&decoded);
                 }
             }
             Ok(Event::End(event)) => match event.name().as_ref() {
-                b"a:t" => in_text = false,
-                b"a:p" => {
+                "a:t" => in_text = false,
+                "a:p" => {
                     in_text = false;
                     if in_paragraph {
                         let text = std::mem::take(&mut current);

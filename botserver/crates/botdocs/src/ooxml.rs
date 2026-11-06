@@ -12,15 +12,16 @@ pub struct ParagraphInfo {
 
 pub fn load_docx_preserving(bytes: &[u8]) -> Result<OoxmlDocument, String> {
     use ooxmlsdk::parts::wordprocessing_document::WordprocessingDocument;
+    use ooxmlsdk::sdk::SdkType;
 
     let reader = Cursor::new(bytes);
     let docx = WordprocessingDocument::new(reader)
         .map_err(|e| format!("Failed to parse DOCX: {e}"))?;
 
     let xml_str = docx
-        .main_document_part
-        .root_element
-        .to_xml()
+        .main_document_part()
+        .ok()
+        .and_then(|part| part.root_element(&docx).ok().and_then(|root| root.to_xml().ok()))
         .unwrap_or_default();
 
     let paragraphs = extract_paragraphs(&xml_str);

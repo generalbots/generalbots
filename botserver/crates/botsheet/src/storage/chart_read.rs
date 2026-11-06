@@ -159,14 +159,14 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
     Ok(files)
 }
 
-fn local_name(name: &[u8]) -> &[u8] {
-    name.rsplit(|&c| c == b':').next().unwrap_or(name)
+fn local_name(name: &str) -> &[u8] {
+    name.rsplit(':').next().unwrap_or(name).as_bytes()
 }
 
 fn attr_value(attr: &quick_xml::events::attributes::Attribute) -> String {
-    attr.unescape_value()
+    attr.normalized_value(quick_xml::XmlVersion::Implicit1_0)
         .map(|v| v.into_owned())
-        .unwrap_or_else(|_| String::from_utf8_lossy(&attr.value).into_owned())
+        .unwrap_or_else(|_| attr.value.to_string())
 }
 
 /// Parses an OOXML `.rels` document into a map of relationship id -> target.
@@ -313,19 +313,18 @@ fn parse_drawing(xml: &[u8], rels: &HashMap<String, String>) -> Vec<(String, Cha
             Ok(Event::Text(ref t)) => {
                 if let (Some(ref mut a), Some(is_from)) = (anchor.as_mut(), section) {
                     if in_coord {
-                        if let Ok(text) = t.unescape() {
-                            let value = text.trim().parse::<u32>().unwrap_or(0);
-                            if coord_is_col {
-                                if is_from {
-                                    a.from_col = value;
-                                } else {
-                                    a.to_col = Some(value);
-                                }
-                            } else if is_from {
-                                a.from_row = value;
+                        let text = t.xml10_content();
+                        let value = text.trim().parse::<u32>().unwrap_or(0);
+                        if coord_is_col {
+                            if is_from {
+                                a.from_col = value;
                             } else {
-                                a.to_row = Some(value);
+                                a.to_col = Some(value);
                             }
+                        } else if is_from {
+                            a.from_row = value;
+                        } else {
+                            a.to_row = Some(value);
                         }
                     }
                 }

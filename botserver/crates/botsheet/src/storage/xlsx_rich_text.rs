@@ -83,14 +83,20 @@ fn parse_shared_strings(xml: &[u8]) -> Vec<Option<Vec<RichTextRun>>> {
             Ok(Event::Empty(ref e)) => run_prop(local_name(e.name().as_ref()), e, in_r, &mut current),
             Ok(Event::Text(ref t)) => {
                 if in_t {
-                    if let Ok(text) = t.unescape() {
-                        text_buf.push_str(&text);
+                    text_buf.push_str(&t.xml10_content());
+                }
+            }
+            Ok(Event::GeneralRef(ref reference)) => {
+                if in_t {
+                    let raw = format!("&{};", reference.as_ref());
+                    if let Ok(decoded) = quick_xml::escape::unescape(&raw) {
+                        text_buf.push_str(&decoded);
                     }
                 }
             }
             Ok(Event::CData(ref t)) => {
                 if in_t {
-                    text_buf.push_str(&String::from_utf8_lossy(&t[..]));
+                    text_buf.push_str(&t.xml10_content());
                 }
             }
             Ok(Event::End(ref e)) => match local_name(e.name().as_ref()) {
@@ -157,9 +163,7 @@ fn map_sheet_rich_text(
                 let Some(cell_ref) = &current_ref else {
                     continue;
                 };
-                let Ok(text) = t.unescape() else {
-                    continue;
-                };
+                let text = t.xml10_content();
                 let Ok(idx) = text.trim().parse::<usize>() else {
                     continue;
                 };
@@ -283,14 +287,14 @@ fn read_zip_entries(bytes: &[u8]) -> Result<HashMap<String, Vec<u8>>, String> {
     Ok(files)
 }
 
-fn local_name(name: &[u8]) -> &[u8] {
-    name.rsplit(|&c| c == b':').next().unwrap_or(name)
+fn local_name(name: &str) -> &[u8] {
+    name.rsplit(':').next().unwrap_or(name).as_bytes()
 }
 
 fn attr_value(attr: &quick_xml::events::attributes::Attribute) -> String {
-    attr.unescape_value()
+    attr.normalized_value(quick_xml::XmlVersion::Implicit1_0)
         .map(|v| v.into_owned())
-        .unwrap_or_else(|_| String::from_utf8_lossy(&attr.value).into_owned())
+        .unwrap_or_else(|_| attr.value.to_string())
 }
 
 /// Returns the value of the first attribute whose local name matches `name`.

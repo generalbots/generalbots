@@ -13,7 +13,6 @@
 # Format: one advisory ID per line; everything after `#` is a comment.
 
 # --- RustSec IDs mirrored from deny.toml -----------------------------------
-RUSTSEC-2023-0071  # rsa 0.9.10 - Marvin; no 0.9.x fix, signing-only use
 RUSTSEC-2024-0370  # proc-macro-error - unmaintained, build time only
 RUSTSEC-2024-0429  # glib 0.18.5 - iterator unsoundness, Tauri Linux only
 RUSTSEC-2024-0436  # paste - unmaintained proc-macro, build time only
@@ -24,8 +23,6 @@ RUSTSEC-2025-0098  # unic-ucd-version - unmaintained unicode table
 RUSTSEC-2025-0100  # unic-ucd-ident - unmaintained unicode table
 RUSTSEC-2025-0134  # rustls-pemfile - unmaintained, folded into rustls
 RUSTSEC-2026-0192  # ttf-parser - unmaintained font metrics
-RUSTSEC-2026-0194  # quick-xml <0.41 - quadratic start-tag parse (office import)
-RUSTSEC-2026-0195  # quick-xml <0.41 - namespace allocation (office import)
 RUSTSEC-2026-0249  # smartstring - unmaintained, office write path
 RUSTSEC-2026-0367  # zip <9.0.0 - SUID bits on extract (transitive copies)
 RUSTSEC-2026-0368  # zip <9.0.0 - symlink target escape (transitive copies)
@@ -33,16 +30,16 @@ RUSTSEC-2026-0369  # zip <9.0.0 - permissions through symlink (transitive)
 RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0371  # zbus_names - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0372  # zvariant_derive - unmaintained D-Bus, Tauri Linux only
-RUSTSEC-2026-0387  # crypto-bigint 0.5.5 - timing, rsa 0.9 signing chain
 RUSTSEC-2026-0429  # zip <9.0.0 - symlink extract abort (transitive copies)
-RUSTSEC-2026-0436  # calamine 0.26.1 - CFB/OLE2 OOM, authenticated import
 RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
 
 # --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
 # GHSA equivalents published by OSV for the same zip advisories above.
-GHSA-8hxf-qr8p-62x4  # zip - extract path traversal (transitive copies)
-GHSA-m665-v7pm-7grj  # zip - extract symlink handling (transitive copies)
-GHSA-q7v9-x93c-xqv3  # zip - extract abort alias of RUSTSEC-2026-0429
+GHSA-8hxf-qr8p-62x4  # zip 8.6.0 - AES HMAC bypass on premature EOF (docx-rs/umya)
+GHSA-m665-v7pm-7grj  # zip 8.6.0 - parser differential (<9.0.5, docx-rs/umya)
+GHSA-9hj8-73fh-9963  # zip 8.6.0 - legacy decoder DoS via ZIP64 size (docx-rs/umya)
+GHSA-hjqx-j4rw-g7xv  # zip 8.6.0 - extract symlink target escape (docx-rs/umya)
+GHSA-q7v9-x93c-xqv3  # zip 8.6.0 - extract abort alias of RUSTSEC-2026-0429
 GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429
 # Lockfile-only: rkyv is present in Cargo.lock but never selected by any
 # shipping feature graph (`cargo deny --all-features` does not see it).

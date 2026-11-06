@@ -234,20 +234,26 @@ impl DocumentProcessor {
             use quick_xml::Reader;
 
             let mut reader = Reader::from_reader(bytes.as_slice());
+            reader.config_mut().allow_dangling_amp = true;
             let mut text = String::new();
             let mut buf = Vec::new();
 
             loop {
                 match reader.read_event_into(&mut buf) {
                     Ok(Event::Text(t)) => {
-                        if let Ok(s) = t.unescape() {
-                            let s = s.trim();
-                            if !s.is_empty() {
-                                if !text.is_empty() {
-                                    text.push(' ');
-                                }
-                                text.push_str(s);
+                        let s = t.xml10_content();
+                        let s = s.trim();
+                        if !s.is_empty() {
+                            if !text.is_empty() {
+                                text.push(' ');
                             }
+                            text.push_str(s);
+                        }
+                    }
+                    Ok(Event::GeneralRef(reference)) => {
+                        let raw = format!("&{};", reference.as_ref());
+                        if let Ok(decoded) = quick_xml::escape::unescape(&raw) {
+                            text.push_str(&decoded);
                         }
                     }
                     Ok(Event::Eof) => break,

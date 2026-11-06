@@ -151,7 +151,7 @@ pub fn extract_images(sheet: &umya_spreadsheet::Worksheet) -> Option<Vec<SheetIm
 /// worksheet index. The address is normalised from `'Sheet1'!$1:$3,'Sheet1'!$A:$B`
 /// to `rows = "1:3"`, `columns = "A:B"`.
 pub fn extract_print_titles(
-    workbook: &umya_spreadsheet::Spreadsheet,
+    workbook: &umya_spreadsheet::Workbook,
 ) -> HashMap<usize, PrintTitles> {
     let mut map: HashMap<usize, PrintTitles> = HashMap::new();
     for name in workbook.get_defined_names() {
@@ -180,7 +180,7 @@ pub fn extract_print_titles(
 /// worksheet index. The address is normalised from `Sheet1!$A$1:$D$10` to the
 /// bare A1 range `A1:D10`; comma-separated multi-areas are split.
 pub fn extract_print_areas(
-    workbook: &umya_spreadsheet::Spreadsheet,
+    workbook: &umya_spreadsheet::Workbook,
 ) -> HashMap<usize, Vec<String>> {
     let mut map: HashMap<usize, Vec<String>> = HashMap::new();
     for name in workbook.get_defined_names() {

@@ -15,14 +15,14 @@ pub fn extract_validations(
 ) -> Option<HashMap<String, ValidationRule>> {
     use umya_spreadsheet::structs::EnumTrait;
 
-    let data_validations = sheet.get_data_validations()?;
+    let data_validations = sheet.data_validations()?;
     let mut map: HashMap<String, ValidationRule> = HashMap::new();
 
-    for dv in data_validations.get_data_validation_list() {
-        let validation_type = dv.get_type().get_value_string().to_string();
-        let operator = dv.get_operator().get_value_string().to_string();
-        let formula1 = dv.get_formula1();
-        let formula2 = dv.get_formula2();
+    for dv in data_validations.data_validation_list() {
+        let validation_type = dv.get_type().value_string().to_string();
+        let operator = dv.operator().value_string().to_string();
+        let formula1 = dv.formula1();
+        let formula2 = dv.formula2();
 
         let rule = ValidationRule {
             validation_type: validation_type.clone(),
@@ -34,14 +34,14 @@ pub fn extract_validations(
             value1: non_empty(formula1),
             value2: non_empty(formula2),
             allowed_values: list_values(&validation_type, formula1),
-            error_title: non_empty(dv.get_error_title()),
-            error_message: non_empty(dv.get_error_message()),
-            input_title: non_empty(dv.get_prompt_title()),
-            input_message: non_empty(dv.get_prompt()),
+            error_title: non_empty(dv.error_title()),
+            error_message: non_empty(dv.error_message()),
+            input_title: non_empty(dv.prompt_title()),
+            input_message: non_empty(dv.prompt()),
         };
 
-        for range in dv.get_sequence_of_references().get_range_collection() {
-            if let Some((sr, sc, er, ec)) = parse_a1_range(&range.get_range()) {
+        for range in dv.sequence_of_references().range_collection() {
+            if let Some((sr, sc, er, ec)) = parse_a1_range(&range.range()) {
                 for row in sr..=er {
                     for col in sc..=ec {
                         map.insert(format!("{row},{col}"), rule.clone());
@@ -68,18 +68,18 @@ pub fn extract_conditional_formats(
     use umya_spreadsheet::structs::EnumTrait;
 
     let mut rules = Vec::new();
-    for cf in sheet.get_conditional_formatting_collection() {
+    for cf in sheet.conditional_formatting_collection() {
         let ranges: Vec<(u32, u32, u32, u32)> = cf
-            .get_sequence_of_references()
-            .get_range_collection()
+            .sequence_of_references()
+            .range_collection()
             .iter()
-            .filter_map(|r| parse_a1_range(&r.get_range()))
+            .filter_map(|r| parse_a1_range(&r.range()))
             .collect();
 
-        for rule in cf.get_conditional_collection() {
-            let rule_type = rule.get_type().get_value_string().to_string();
-            let operator = rule.get_operator().get_value_string().to_string();
-            let text = rule.get_text();
+        for rule in cf.conditional_collection() {
+            let rule_type = rule.get_type().value_string().to_string();
+            let operator = rule.operator().value_string().to_string();
+            let text = rule.text();
             // cellIs/top10/duplicate/unique: the operator is the condition.
             // Text rules: the text is the condition. Both empty (expression):
             // fall back to the rule type itself.
@@ -90,8 +90,8 @@ pub fn extract_conditional_formats(
             } else {
                 rule_type.clone()
             };
-            let style = dxf_style(rule.get_style());
-            let priority = (*rule.get_priority()).max(1) as u32;
+            let style = dxf_style(rule.style());
+            let priority = (rule.priority()).max(1) as u32;
 
             for (sr, sc, er, ec) in &ranges {
                 rules.push(ConditionalFormatRule {
@@ -124,27 +124,27 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         return CellStyle::default();
     };
     let background = style
-        .get_fill()
-        .and_then(|f| f.get_pattern_fill())
-        .and_then(|pf| pf.get_foreground_color())
-        .map(|c| argb_to_hex(c.get_argb()))
+        .fill()
+        .and_then(|f| f.pattern_fill())
+        .and_then(|pf| pf.foreground_color())
+        .map(|c| argb_to_hex(c.argb_str()))
         .filter(|c| c != "#FFFFFF");
 
-    let font = style.get_font();
+    let font = style.font();
     let color = font
-        .map(|f| argb_to_hex(f.get_color().get_argb()))
+        .map(|f| argb_to_hex(f.color().argb_str()))
         .filter(|c| c != "#000000");
-    let font_family = font.map(|f| f.get_name().to_string());
-    let font_size = font.map(|f| f.get_size().round() as u32);
-    let font_weight = font.and_then(|f| if *f.get_bold() { Some("bold".to_string()) } else { None });
-    let font_style = font.and_then(|f| if *f.get_italic() { Some("italic".to_string()) } else { None });
+    let font_family = font.map(|f| f.name().to_string());
+    let font_size = font.map(|f| f.size().round() as u32);
+    let font_weight = font.and_then(|f| if f.bold() { Some("bold".to_string()) } else { None });
+    let font_style = font.and_then(|f| if f.italic() { Some("italic".to_string()) } else { None });
     let text_decoration = font.and_then(|f| {
         let mut dec = Vec::new();
-        let underline = f.get_underline();
+        let underline = f.underline();
         if underline != "none" && !underline.is_empty() {
             dec.push("underline");
         }
-        if *f.get_strikethrough() {
+        if f.strikethrough() {
             dec.push("line-through");
         }
         if dec.is_empty() {
@@ -154,8 +154,8 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
         }
     });
 
-    let border = style.get_borders().and_then(|b| {
-        super::xlsx_write::extract_border([b.get_top(), b.get_left(), b.get_bottom(), b.get_right()])
+    let border = style.borders().and_then(|b| {
+        super::xlsx_write::extract_border([b.top(), b.left(), b.bottom(), b.right()])
     });
 
     CellStyle {
