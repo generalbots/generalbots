@@ -1,4 +1,3 @@
-use base64::Engine;
 use botsheet_core::engine::value::CellValue;
 use botsheet_core::types::{CellData, CellStyle, Spreadsheet};
 
@@ -13,7 +12,7 @@ fn cell_number(cell: &CellData) -> Option<f64> {
     }
 }
 
-pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
+pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
     let mut workbook = rust_xlsxwriter::Workbook::new();
 
     for ws in &sheet.worksheets {
@@ -78,8 +77,7 @@ pub fn export_to_xlsx(sheet: &Spreadsheet) -> Result<String, String> {
         }
     }
 
-    let buffer = workbook.save_to_buffer().map_err(|e| e.to_string())?;
-    Ok(base64::engine::general_purpose::STANDARD.encode(&buffer))
+    workbook.save_to_buffer().map_err(|e| e.to_string())
 }
 
 fn apply_style_to_format(
@@ -278,7 +276,7 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-pub fn export_to_ods(sheet: &Spreadsheet) -> Result<String, String> {
+fn build_ods_content(sheet: &Spreadsheet) -> String {
     let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
 xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
@@ -343,7 +341,44 @@ office:version="1.2">
     }
 
     xml.push_str("</office:spreadsheet>\n</office:body>\n</office:document-content>");
-    Ok(xml)
+    xml
+}
+
+/// ODS is an ODF package: a ZIP whose first entry is an uncompressed
+/// `mimetype`, plus `content.xml` and the manifest. Returning the bare
+/// content.xml (as this function used to) produced a 200 with a file no
+/// office suite could open.
+pub fn export_to_ods(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let content = build_ods_content(sheet);
+    let manifest = r#"<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
+<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>
+<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>
+"#;
+
+    let mut cursor = std::io::Cursor::new(Vec::new());
+    {
+        let mut zip = zip::ZipWriter::new(&mut cursor);
+        let stored = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+        let deflated = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        zip.start_file("mimetype", stored).map_err(|e| e.to_string())?;
+        zip.write_all(b"application/vnd.oasis.opendocument.spreadsheet")
+            .map_err(|e| e.to_string())?;
+        zip.start_file("content.xml", deflated)
+            .map_err(|e| e.to_string())?;
+        zip.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        zip.start_file("META-INF/manifest.xml", deflated)
+            .map_err(|e| e.to_string())?;
+        zip.write_all(manifest.as_bytes()).map_err(|e| e.to_string())?;
+        zip.finish().map_err(|e| e.to_string())?;
+    }
+    Ok(cursor.into_inner())
 }
 
 pub fn export_to_pdf_data(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
@@ -416,4 +451,62 @@ pub fn export_to_markdown(sheet: &Spreadsheet) -> String {
     }
 
     md
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn sample_sheet() -> Spreadsheet {
+        let mut worksheet = Worksheet::default();
+        worksheet.name = "Sheet1".to_string();
+        worksheet.data.insert(
+            "0,0".to_string(),
+            CellData {
+                value: Some("hello".to_string()),
+                typed: None,
+                formula: None,
+                style: None,
+                format: None,
+                note: None,
+                locked: None,
+                has_comment: None,
+                array_formula_id: None,
+            },
+        );
+        Spreadsheet {
+            id: "test".to_string(),
+            name: "Test".to_string(),
+            owner_id: "owner".to_string(),
+            worksheets: vec![worksheet],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            named_ranges: None,
+            external_links: None,
+            source_bucket: None,
+            source_path: None,
+            source_bytes: None,
+            acl: Default::default(),
+        }
+    }
+
+    #[test]
+    fn xlsx_export_is_a_zip_package() {
+        let bytes = export_to_xlsx(&sample_sheet()).expect("xlsx export");
+        assert_eq!(&bytes[..2], b"PK");
+    }
+
+    #[test]
+    fn ods_export_is_an_odf_package() {
+        let bytes = export_to_ods(&sample_sheet()).expect("ods export");
+        assert_eq!(&bytes[..2], b"PK");
+        let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
+        let mut mime = zip.by_name("mimetype").expect("mimetype entry");
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut mime, &mut text).expect("read mimetype");
+        assert_eq!(text, "application/vnd.oasis.opendocument.spreadsheet");
+        assert!(zip.by_name("content.xml").is_ok());
+        assert!(zip.by_name("META-INF/manifest.xml").is_ok());
+    }
 }
