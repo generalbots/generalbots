@@ -26,7 +26,7 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let prompt = payload.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="sl-form" hx-post="/api/slides/ai" hx-vals='{{"presentation_id":"{id}","prompt":"{prompt}"}}' hx-target="#ai-result" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="sl-form" hx-post="/api/slides/ai" hx-vals='{{"presentation_id":"{id}","prompt":"{prompt}"}}' hx-swap="none" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">O que você quer que a IA crie?
 <textarea name="prompt" rows="4" placeholder="Ex: Crie 3 slides sobre os benefícios de IA em empresas" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #4338ca;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{prompt}</textarea>
 </label>
@@ -60,15 +60,39 @@ pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Ht
     ))
 }
 
-pub async fn handle_insert_element_form(Json(_payload): Json<serde_json::Value>) -> Html<String> {
-    Html(r##"<div class="sl-form" style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<button hx-post="/suite/slides/modals/add-text" hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📝 Texto</button>
-<button hx-post="/suite/slides/modals/add-image" hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🖼️ Imagem</button>
-<button hx-post="/suite/slides/modals/add-shape" hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🔷 Forma</button>
-<button hx-post="/suite/slides/modals/add-chart" hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📊 Gráfico</button>
-<button hx-post="/suite/slides/modals/add-table" hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📋 Tabela</button>
-<button onclick="alert('Use a opção Vídeo do menu Inserir')" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🎬 Vídeo</button>
-</div>"##.to_string())
+pub async fn handle_insert_element_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
+    let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
+    // Each choice button must carry the deck and slide, otherwise the next
+    // form has an empty presentation_id and the insert lands on the default
+    // deck (or 404s when several decks exist).
+    let idx = payload
+        .get("slide_index")
+        .and_then(|value| {
+            value
+                .as_u64()
+                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+        })
+        .unwrap_or(0);
+    let mut html = String::from(
+        r##"<div class="sl-form" style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">"##,
+    );
+    for (path, label) in [
+        ("add-text", "📝 Texto"),
+        ("add-image", "🖼️ Imagem"),
+        ("add-shape", "🔷 Forma"),
+        ("add-chart", "📊 Gráfico"),
+        ("add-table", "📋 Tabela"),
+    ] {
+        html.push_str(&format!(
+            r##"<button hx-post="/suite/slides/modals/{path}" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}"}}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">{label}</button>"##,
+            id = html_escape(id),
+            idx = idx
+        ));
+    }
+    html.push_str(
+        r##"<button onclick="alert('Use a opção Vídeo do menu Inserir')" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🎬 Vídeo</button></div>"##,
+    );
+    Html(html)
 }
 
 pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Html<String> {

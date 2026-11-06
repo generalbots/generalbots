@@ -26,6 +26,24 @@ document.addEventListener("htmx:configRequest", function (event) {
 // JSON, so those forms save with hx-swap="none" and ask for a fresh view
 // instead of replacing the canvas with the response body.
 // A successful insert saves and refreshes the slide; close its modal too.
+// AI answers are JSON ({response}); render the text in the modal's result box
+// instead of swapping the object into the DOM.
+document.addEventListener("htmx:afterRequest", function (event) {
+  var detail = event.detail || {};
+  var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
+  if (path !== "/api/slides/ai" || !detail.successful) return;
+  var text = "";
+  try {
+    var data = JSON.parse(detail.xhr.responseText);
+    text = data.response || data.result || "";
+  } catch (error) {
+    text = detail.xhr.responseText;
+  }
+  var host = document.getElementById("slides-modal-container");
+  var target = host ? host.querySelector("#ai-result") : null;
+  if (target) target.textContent = text;
+});
+
 // Start presentation: the API call created the session; go fullscreen and
 // announce presenter mode locally. Previously its JSON replaced the button.
 window.GBSlidesStartPresent = function () {

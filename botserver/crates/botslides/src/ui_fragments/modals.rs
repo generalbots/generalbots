@@ -28,9 +28,8 @@ pub async fn handle_ai_modal(Json(payload): Json<serde_json::Value>) -> Html<Str
 <h3 style="margin:0;color:#c7d2fe;">✨ Criar com IA</h3>
 <button onclick="this.closest('.sl-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="sl-modal-body" hx-post="/suite/slides/forms/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML">
-<div id="ai-result" style="margin-top:12px;padding:8px;background:#0f172a;border-radius:4px;min-height:80px;color:#cbd5e1;font-size:13px;"></div>
-</div>
+<div class="sl-modal-body" hx-post="/suite/slides/forms/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div id="ai-result" style="margin:0 16px 16px;padding:8px;background:#0f172a;border-radius:4px;min-height:80px;color:#cbd5e1;font-size:13px;"></div>
 </div>
 </div>"##,
         id = html_escape(id)
