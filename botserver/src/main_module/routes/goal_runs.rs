@@ -231,7 +231,7 @@ struct AgentContextRow {
 fn agent_context(pool: &DbPool, id: &str) -> Option<(f64, f64)> {
     let mut conn = pool.get().ok()?;
     let row = diesel::sql_query(
-        "SELECT COALESCE(r.last_value, k.start_value)::double precision AS current, \
+        "SELECT COALESCE(r.last_value, k.current_value)::double precision AS current, \
                 k.target_value::double precision AS target \
          FROM goal_runs r JOIN okr_key_results k ON k.id = r.key_result_id \
          WHERE r.id = $1::uuid",
