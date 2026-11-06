@@ -58,22 +58,22 @@ pub async fn handle_find_replace_form(Json(payload): Json<serde_json::Value>) ->
 pub async fn handle_print_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/export/pdf" hx-vals='{{"id":"{id}"}}' hx-target="#print-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:24px;min-height:200px;text-align:center;color:#94a3b8;">
+        r##"<div class="dc-form" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:24px;min-height:160px;text-align:center;color:#94a3b8;">
 <p>Pré-visualização de impressão do documento</p>
-<p style="font-size:11px;">O PDF será gerado em formato A4 com margens de 2cm.</p>
+<p style="font-size:11px;">O PDF é gerado em formato A4 com margens de 2cm.</p>
 </div>
-<label style="color:#f8fafc;font-size:13px;">Formato de saída
-<select name="format" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
-<option value="pdf">PDF</option>
-<option value="docx">DOCX (Word)</option>
-<option value="md">Markdown</option>
-<option value="html">HTML</option>
-<option value="txt">Texto puro</option>
-</select>
-</label>
-<button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Gerar arquivo</button>
-</form>"##,
+<div style="font-size:13px;color:#f8fafc;">Formato de saída</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<a href="/api/docs/export/pdf?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#3b82f6;color:white;padding:10px;border-radius:4px;font-weight:600;text-decoration:none;">PDF</a>
+<a href="/api/docs/export/docx?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">DOCX</a>
+<a href="/api/docs/export/odt?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">ODT</a>
+<a href="/api/docs/export/md?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">Markdown</a>
+<a href="/api/docs/export/html?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">HTML</a>
+<a href="/api/docs/export/txt?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">Texto</a>
+</div>
+<button type="button" onclick="this.closest('.dc-modal').remove()" style="background:#0f172a;color:#94a3b8;border:1px solid #334155;padding:8px;border-radius:4px;cursor:pointer;">Fechar</button>
+</div>"##,
         id = html_escape(id)
     ))
 }

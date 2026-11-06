@@ -125,3 +125,22 @@ var DocumentAIDriver = {
     }).then(function (r) { return r.json(); }).then(function (j) { return j.result || ""; }).catch(function () { return ""; });
   }
 };
+
+// Toolbar buttons in docs.html address the active document as `current`; the
+// real id lives on the rendered view. Rewrite the parameter once per HTMX
+// request so undo/redo, TOC, track-changes and footnote actions target the
+// document the user is editing instead of a literal "current".
+document.addEventListener("htmx:configRequest", function (event) {
+  var parameters = (event.detail && event.detail.parameters) || {};
+  var keys = ["id", "doc_id", "document_id"];
+  var needsRewrite = keys.some(function (key) { return parameters[key] === "current"; });
+  if (!needsRewrite) return;
+  var view = document.querySelector("#doc-view[data-id]");
+  var article = document.querySelector("article[data-doc-id]");
+  var docId = (view && view.getAttribute("data-id")) ||
+    (article && article.dataset ? article.dataset.docId : "") || "";
+  if (!docId || docId === "current") return;
+  keys.forEach(function (key) {
+    if (parameters[key] === "current") parameters[key] = docId;
+  });
+});
