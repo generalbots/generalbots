@@ -81,7 +81,12 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
 pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let comments: Vec<DocumentComment> = serde_json::from_value(payload.get("comments").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
     if comments.is_empty() {
-        return Html(empty_fragment("Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar."));
+        // Keep the panel id: the reply listener replaces #comments-panel and
+        // htmx aborts a swap whose target vanished with the empty state.
+        return Html(format!(
+            r##"<div class="dc-panel" id="comments-panel">{}</div>"##,
+            empty_fragment("Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar.")
+        ));
     }
     let mut html = String::from(
         r##"<div class="dc-panel" id="comments-panel">
@@ -261,7 +266,10 @@ pub async fn handle_styles_panel(
         }
     }
     if styles.is_empty() {
-        return Html(empty_fragment("Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação."));
+        return Html(format!(
+            r##"<div class="dc-panel" id="styles-panel">{}</div>"##,
+            empty_fragment("Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação.")
+        ));
     }
     let mut html = String::from(
         r##"<div class="dc-panel" id="styles-panel">

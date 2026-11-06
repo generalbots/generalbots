@@ -173,7 +173,7 @@ pub async fn handle_comment_reply_modal(Json(payload): Json<serde_json::Value>) 
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
 <div class="dc-modal-body" style="padding:16px;">
-<form hx-post="/api/docs/comment/reply" hx-vals='{{"doc_id":"{id}","comment_id":"{cid}"}}' hx-target="#comments-panel" hx-swap="outerHTML" style="display:flex;flex-direction:column;gap:12px;">
+<form hx-post="/api/docs/comment/reply" hx-vals='{{"doc_id":"{id}","comment_id":"{cid}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsCloseModal(this)" style="display:flex;flex-direction:column;gap:12px;">
 <textarea name="content" required rows="4" placeholder="Sua resposta" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;font-family:inherit;resize:vertical;"></textarea>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Responder</button>
 </form>
@@ -195,7 +195,7 @@ pub async fn handle_style_modal(Json(payload): Json<serde_json::Value>) -> Html<
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
 <div class="dc-modal-body" style="padding:16px;">
-<form hx-post="/api/docs/style" hx-vals='{{"doc_id":"{id}"}}' hx-target="#styles-panel" hx-swap="outerHTML" style="display:flex;flex-direction:column;gap:12px;">
+<form hx-post="/api/docs/style" hx-vals='{{"doc_id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsCloseModal(this)" style="display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Nome do estilo
 <input type="text" name="name" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
