@@ -6,7 +6,7 @@ use crate::storage::{
 use crate::types::{
     AddSlideRequest, ApplyThemeRequest, ApplyTransitionToAllRequest, DeleteElementRequest,
     DeleteSlideRequest, DuplicateSlideRequest, ElementContent, ElementStyle, ReorderSlidesRequest,
-    RemoveTransitionRequest, SaveResponse, SetTransitionRequest, SlideElement,
+    RemoveTransitionRequest, SaveResponse, SetTransitionRequest, SlideElement, TransitionConfig,
     UpdateSlideNotesRequest,
 };
 use crate::SlidesState;
@@ -445,7 +445,14 @@ pub async fn handle_apply_theme<D: DriveOps>(
     let user_id = get_current_user_id();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
-    presentation.theme = req.theme;
+    let theme = match req.theme {
+        Some(theme) => theme,
+        None => match req.theme_name.as_deref() {
+            Some(name) => crate::utils::theme_from_name(name),
+            None => crate::utils::create_default_theme(),
+        },
+    };
+    presentation.theme = theme;
     presentation.updated_at = Utc::now();
     save_pres!(state, &user_id, &presentation);
 
@@ -470,7 +477,16 @@ pub async fn handle_set_transition<D: DriveOps>(
         ));
     }
 
-    presentation.slides[req.slide_index].transition_config = Some(req.transition);
+    let transition = req.transition.unwrap_or_else(|| TransitionConfig {
+        transition_type: req.transition_type.unwrap_or_else(|| "none".to_string()),
+        duration: req.duration.unwrap_or(500.0),
+        direction: req.direction,
+        easing: None,
+        advance_on_click: true,
+        advance_after_time: None,
+        sound: None,
+    });
+    presentation.slides[req.slide_index].transition_config = Some(transition);
     presentation.updated_at = Utc::now();
     save_pres!(state, &user_id, &presentation);
 

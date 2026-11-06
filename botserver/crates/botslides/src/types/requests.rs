@@ -1,5 +1,44 @@
 use super::*;
 
+/// Shell forms send hidden/number inputs as strings ("0"), while the API
+/// declares usize/f64. Accept both shapes instead of rejecting the request.
+fn deserialize_usize<'de, D>(deserializer: D) -> Result<usize, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = <Option<serde_json::Value> as serde::Deserialize>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_json::Value::Number(number)) => number.as_u64().unwrap_or(0) as usize,
+        Some(serde_json::Value::String(text)) => text.trim().parse().unwrap_or(0),
+        _ => 0,
+    })
+}
+
+fn deserialize_opt_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = <Option<serde_json::Value> as serde::Deserialize>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_json::Value::Number(number)) => number.as_u64().map(|value| value as usize),
+        Some(serde_json::Value::String(text)) => text.trim().parse().ok(),
+        _ => None,
+    })
+}
+
+fn deserialize_opt_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = <Option<serde_json::Value> as serde::Deserialize>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_json::Value::Number(number)) => number.as_f64(),
+        Some(serde_json::Value::String(text)) => text.trim().parse().ok(),
+        _ => None,
+    })
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavePresentationRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,7 +67,7 @@ pub struct SearchQuery {
 pub struct AddSlideRequest {
     pub presentation_id: String,
     pub layout: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "deserialize_opt_usize")]
     pub position: Option<usize>,
 }
 
@@ -74,12 +113,18 @@ pub struct DeleteElementRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApplyThemeRequest {
     pub presentation_id: String,
-    pub theme: PresentationTheme,
+    #[serde(default)]
+    pub theme: Option<PresentationTheme>,
+    /// The picker sends the preset name only; the handler resolves it to a
+    /// theme rather than rejecting the payload.
+    #[serde(default)]
+    pub theme_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateSlideNotesRequest {
     pub presentation_id: String,
+    #[serde(default, deserialize_with = "deserialize_usize")]
     pub slide_index: usize,
     pub notes: String,
 }
@@ -158,8 +203,17 @@ pub struct ListSelectionsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SetTransitionRequest {
     pub presentation_id: String,
+    #[serde(default, deserialize_with = "deserialize_usize")]
     pub slide_index: usize,
-    pub transition: TransitionConfig,
+    #[serde(default)]
+    pub transition: Option<TransitionConfig>,
+    // The toolbar modal posts flat transition fields.
+    #[serde(default)]
+    pub transition_type: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_opt_f64")]
+    pub duration: Option<f64>,
+    #[serde(default)]
+    pub direction: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

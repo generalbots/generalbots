@@ -1,7 +1,11 @@
 use super::html_escape;
 use axum::{response::Html, Json};
 
-pub async fn handle_theme_picker(Json(_payload): Json<serde_json::Value>) -> Html<String> {
+pub async fn handle_theme_picker(Json(payload): Json<serde_json::Value>) -> Html<String> {
+    let presentation_id = payload
+        .get("presentation_id")
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
     let themes = vec![
         ("default", "Padrão", "#3b82f6", "#10b981", "#f8fafc"),
         ("corporate", "Corporativo", "#1e40af", "#0891b2", "#f1f5f9"),
@@ -25,11 +29,12 @@ pub async fn handle_theme_picker(Json(_payload): Json<serde_json::Value>) -> Htm
             primary, secondary, text
         );
         html.push_str(&format!(
-            r##"<button hx-post="/api/slides/theme" hx-vals='{{"theme_name":"{id}"}}' hx-target="#theme-panel" hx-swap="outerHTML" style="padding:0;background:#0f172a;border:1px solid #334155;border-radius:8px;cursor:pointer;overflow:hidden;text-align:left;">
+            r##"<button hx-post="/api/slides/theme" hx-vals='{{"presentation_id":"{pid}","theme_name":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:0;background:#0f172a;border:1px solid #334155;border-radius:8px;cursor:pointer;overflow:hidden;text-align:left;">
 <div style="{preview}padding:24px;text-align:center;font-weight:600;font-size:14px;">{name}</div>
 <div style="padding:8px;font-size:11px;color:#94a3b8;">{name}</div>
 </button>"##,
             id = id,
+            pid = html_escape(presentation_id),
             name = html_escape(name),
             preview = preview
         ));
