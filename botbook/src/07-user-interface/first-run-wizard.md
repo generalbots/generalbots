@@ -14,7 +14,7 @@ Issues: #1586 (placement), #1587 (shell), #1588 (services), #1589
 |---|---|
 | Static page | `botui/ui/wizard/index.html` |
 | Styles | `botui/ui/wizard/wizard.css` |
-| Controller | `botui/ui/wizard/wizard.js` |
+| Controller | `botui/ui/wizard/modules/` (00_core → 70_init; `wizard.js` loader is gone) |
 | Step rendering | `botui/ui/wizard/wizard-steps.js` |
 | State and provider copy | `botui/ui/wizard/wizard-state.js` |
 | Tauri bridge | `botui/ui/wizard/wizard-bridge.js` |
