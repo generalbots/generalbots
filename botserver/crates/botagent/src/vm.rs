@@ -37,6 +37,10 @@ const ANONYMOUS_EMAIL_DOMAIN: &str = "@anonymous.local";
 const ANONYMOUS_USERNAME_PREFIX: &str = "guest_";
 
 const LAUNCH_WAIT_SECS: u64 = 60;
+/// First launch may download and unpack the image; the 60 s restart budget is
+/// not enough on a cold host (issue #1744). Override with
+/// AGENT_VM_LAUNCH_WAIT_SECS when a slower mirror needs longer.
+const COLD_LAUNCH_WAIT_SECS: u64 = 900;
 const POLL_INTERVAL_SECS: u64 = 3;
 const CONVERSATIONS_ROOT: &str = "/opt/vibe/conversations";
 
@@ -188,15 +192,31 @@ pub(crate) async fn is_running(state: &AgentService, vm_name: &str) -> Result<bo
     Ok(running_from_list(&String::from_utf8_lossy(&output.stdout), vm_name))
 }
 
+fn cold_launch_wait_secs() -> u64 {
+    std::env::var("AGENT_VM_LAUNCH_WAIT_SECS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value >= LAUNCH_WAIT_SECS)
+        .unwrap_or(COLD_LAUNCH_WAIT_SECS)
+}
+
 pub(crate) async fn wait_for_running(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(LAUNCH_WAIT_SECS);
+    wait_for_running_within(state, vm_name, LAUNCH_WAIT_SECS).await
+}
+
+async fn wait_for_running_within(
+    state: &AgentService,
+    vm_name: &str,
+    wait_secs: u64,
+) -> Result<(), (StatusCode, String)> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(wait_secs);
     while std::time::Instant::now() < deadline {
         if is_running(state, vm_name).await? {
             return Ok(());
         }
         tokio::time::sleep(std::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
     }
-    Err(internal(format!("container {vm_name} did not reach RUNNING within {LAUNCH_WAIT_SECS}s")))
+    Err(internal(format!("container {vm_name} did not reach RUNNING within {wait_secs}s")))
 }
 
 /// Last `ERROR` entries of the container's own start log. The host-side
@@ -654,10 +674,14 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
     )
     .await;
 
-    if wait_for_running(state, vm_name).await.is_err() {
-        // The first launch of a fresh image can exceed the window while the
-        // layers unpack; the container stays created but stopped. Start it
-        // explicitly and wait again instead of failing the whole workspace.
+    // The first launch of a fresh image can download/unpack for minutes; use
+    // the cold budget before declaring the workspace unavailable.
+    if wait_for_running_within(state, vm_name, cold_launch_wait_secs())
+        .await
+        .is_err()
+    {
+        // The container may still be created but stopped; start it explicitly
+        // and wait again instead of failing the whole workspace.
         tracing::warn!("container {vm_name} did not start in time; retrying incus start");
         let _ = run_incus(state, vec!["start".into(), vm_name.into()]).await;
         if let Err(wait_error) = wait_for_running(state, vm_name).await {
