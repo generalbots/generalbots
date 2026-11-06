@@ -281,27 +281,27 @@ pub async fn handle_advanced_ranges_panel(
         r##"<div class="ss-panel" id="advanced-ranges-panel" style="padding:16px;">
 <h3 style="color:#f8fafc;margin-top:0;">{title}</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-<button hx-post="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{cf_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{cf_desc}</div>
 </button>
-<button hx-post="/suite/sheet/modals/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{dv_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{dv_desc}</div>
 </button>
-<button hx-post="/suite/sheet/modals/chart" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/chart" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{charts_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{charts_desc}</div>
 </button>
-<button hx-post="/suite/sheet/modals/print-preview" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/print-preview" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{print_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{print_desc}</div>
 </button>
-<button hx-post="/suite/sheet/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{ai_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{ai_desc}</div>
 </button>
-<button hx-post="/suite/sheet/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#sheet-modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{find_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{find_desc}</div>
 </button>

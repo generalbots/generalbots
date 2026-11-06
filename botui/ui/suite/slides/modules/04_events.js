@@ -60,7 +60,7 @@ window.GBSlidesExport = function (event) {
       var modal = form.closest ? form.closest(".sl-modal") : null;
       if (modal) modal.remove();
       else {
-        var container = form.closest ? form.closest("#modal-container") : null;
+        var container = form.closest ? form.closest("#slides-modal-container") : null;
         if (container) container.innerHTML = "";
       }
     })
@@ -76,7 +76,7 @@ window.afterSlideInsert = function (element) {
     modal.remove();
   } else {
     // Toolbar forms render as a bare form inside #modal-container.
-    var container = element && element.closest ? element.closest("#modal-container") : null;
+    var container = element && element.closest ? element.closest("#slides-modal-container") : null;
     if (container) container.innerHTML = "";
     else if (element && element.remove) element.remove();
   }

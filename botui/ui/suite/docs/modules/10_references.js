@@ -238,7 +238,7 @@
   }
 
   function openEquationModal() {
-    var host = document.getElementById("modal-container");
+    var host = document.getElementById("docs-modal-container");
     if (!host) return;
     host.innerHTML = [
       '<div class="docs-modal" style="position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;">',

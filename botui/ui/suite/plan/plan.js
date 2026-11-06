@@ -276,7 +276,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
   }
 
   function openTaskEditor(task) {
-    const modal = $("#modal-container");
+    const modal = $("#plan-modal-container");
     if (!modal) return;
     modal.innerHTML = "";
     const prioOpts = PRIORITIES.map(function (p) { return '<option value="' + p.id + '"' + (task.priority === p.id ? " selected" : "") + '>' + p.label + '</option>'; }).join("");

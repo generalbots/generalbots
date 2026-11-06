@@ -103,9 +103,9 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{words} palavras • ID: {id}</div>
 </div>
 <div style="display:flex;gap:8px;">
-<button hx-post="/suite/docs/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
-<button hx-post="/suite/docs/modals/share" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
-<button hx-post="/suite/docs/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Buscar</button>
+<button hx-post="/suite/docs/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#docs-modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
+<button hx-post="/suite/docs/modals/share" hx-vals='{{"id":"{id}"}}' hx-target="#docs-modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
+<button hx-post="/suite/docs/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#docs-modal-container" hx-swap="innerHTML" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Buscar</button>
 </div>
 </div>
 <!-- content is the document body authored by this editor; the JSON load path

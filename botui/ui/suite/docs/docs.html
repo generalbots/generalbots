@@ -38,10 +38,10 @@
                 <button class="btn-icon" id="headerFooterBtn" title="Header &amp; Footer" onclick="window.DocsEditor && window.DocsEditor.openHeaderFooterModal()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="17" x2="21" y2="17"></line></svg>
                 </button>
-                <button class="btn-icon" id="footnoteBtn" hx-post="/suite/docs/modals/footnote" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Footnote">
+                <button class="btn-icon" id="footnoteBtn" hx-post="/suite/docs/modals/footnote" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Insert Footnote">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h12"></path></svg>
                 </button>
-                <button class="btn-icon" id="endnoteBtn" hx-post="/suite/docs/modals/endnote" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Insert Endnote">
+                <button class="btn-icon" id="endnoteBtn" hx-post="/suite/docs/modals/endnote" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Insert Endnote">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h18"></path></svg>
                 </button>
             </div>
@@ -62,22 +62,22 @@
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="findReplaceBtn" hx-post="/suite/docs/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Find & Replace">
+                <button class="btn-icon" id="findReplaceBtn" hx-post="/suite/docs/modals/find-replace" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Find & Replace">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
-                <button class="btn-icon" id="printBtn" hx-post="/suite/docs/forms/print" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Print">
+                <button class="btn-icon" id="printBtn" hx-post="/suite/docs/forms/print" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Print">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 </button>
-                <button class="btn-icon" id="compareBtn" hx-post="/suite/docs/modals/compare" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="Compare Documents">
+                <button class="btn-icon" id="compareBtn" hx-post="/suite/docs/modals/compare" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="Compare Documents">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path></svg>
                 </button>
             </div>
             <span class="toolbar-divider"></span>
             <div class="toolbar-group">
-                <button class="btn-icon" id="templateBtn" hx-post="/suite/docs/modals/template" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="From Template">
+                <button class="btn-icon" id="templateBtn" hx-post="/suite/docs/modals/template" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="From Template">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 </button>
-                <button class="btn-icon" id="aiBtn" hx-post="/suite/docs/modals/ai" hx-vals='{"id":"current"}' hx-target="#modal-container" hx-swap="innerHTML" title="AI Assistant">
+                <button class="btn-icon" id="aiBtn" hx-post="/suite/docs/modals/ai" hx-vals='{"id":"current"}' hx-target="#docs-modal-container" hx-swap="innerHTML" title="AI Assistant">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                 </button>
             </div>
@@ -123,7 +123,7 @@
         <span id="doc-stats">Document</span>
     </div>
 
-    <div class="modal-host" id="modal-container"></div>
+    <div class="modal-host" id="docs-modal-container"></div>
 </div>
 
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
@@ -384,14 +384,14 @@ function GBDocsFindReplace(event) {
     return false;
 }
 window.GBDocsFindReplace = GBDocsFindReplace;
-/* The print form is injected into #modal-container, not a .dc-modal. */
+/* The print form is injected into #docs-modal-container, not a .dc-modal. */
 function GBDocsCloseModal(element) {
     var modal = element.closest ? element.closest(".dc-modal") : null;
     if (modal) {
         modal.remove();
         return;
     }
-    var container = document.getElementById("modal-container");
+    var container = document.getElementById("docs-modal-container");
     if (container) container.innerHTML = "";
 }
 window.GBDocsCloseModal = GBDocsCloseModal;
@@ -538,7 +538,7 @@ document.addEventListener("htmx:afterRequest", function (event) {
     var container = elt.parentElement || document;
     var target = container.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
     if (!target && elt.closest) {
-        target = elt.closest("#modal-container, #ai-panel") || document;
+        target = elt.closest("#docs-modal-container, #ai-panel") || document;
         target = target.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
     }
     if (target) target.textContent = output;

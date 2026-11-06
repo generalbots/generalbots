@@ -13,7 +13,7 @@ pub async fn handle_slide_list_panel(Json(payload): Json<serde_json::Value>) -> 
         r##"<div class="sl-panel" id="slide-list-panel" style="padding:8px;">
 <div class="sl-panel-header" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:8px;">
 <h3 style="margin:0;color:#f8fafc;font-size:14px;">Slides</h3>
-<button hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"{id}"}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">+ Slide</button>
+<button hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"{id}"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">+ Slide</button>
 </div>"##
     );
     for (i, slide) in slides.iter().enumerate() {
@@ -128,12 +128,12 @@ pub async fn handle_animations_panel(Json(_payload): Json<serde_json::Value>) ->
     Html(r##"<div class="sl-panel" id="animations-panel" style="padding:16px;">
 <h3 style="margin:0 0 12px 0;color:#f8fafc;font-size:16px;">Animações</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_in"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_out"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade Out</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"slide_in_left"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Slide In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"zoom_in"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Zoom In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"bounce"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Bounce</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"spin"}' hx-target="#modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Spin</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_in"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade In</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_out"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade Out</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"slide_in_left"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Slide In</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"zoom_in"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Zoom In</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"bounce"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Bounce</button>
+<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"spin"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Spin</button>
 </div>
 </div>"##.to_string())
 }
@@ -148,7 +148,7 @@ pub async fn handle_media_panel(Json(payload): Json<serde_json::Value>) -> Html<
         r##"<div class="sl-panel" id="media-panel" style="padding:16px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">Mídia ({count})</h3>
-<button hx-post="/suite/slides/modals/add-image" hx-vals='{{"presentation_id":"{pid}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Adicionar</button>
+<button hx-post="/suite/slides/modals/add-image" hx-vals='{{"presentation_id":"{pid}"}}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Adicionar</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">"##,
         count = media.len(),
