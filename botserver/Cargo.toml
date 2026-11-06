@@ -245,7 +245,6 @@ dirs = { workspace = true }
 dotenvy = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
-git2 = "0.20"
 hex = { workspace = true }
 hmac = { workspace = true }
 log = { workspace = true }

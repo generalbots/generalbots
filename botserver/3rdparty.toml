@@ -27,6 +27,9 @@ cache_dir = "botserver-installers"
 name = "MinIO Object Storage"
 # dl.min.io was shut down (HTTP 410 Gone, 2025-10); the archived release
 # assets on GitHub remain the only official source of the binary.
+# NOTE: RELEASE.2025-10-15 fixes CVE-2025-62506 but has **no binary assets**
+# (GitHub release is empty and dl.min.io returns 410). 2025-09-07 is the last
+# installable release; upgrading needs a trusted container image/mirror.
 url = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
 url_win = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe"
 filename = "minio"
@@ -229,6 +232,8 @@ sha256 = "03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442"
 # Portable CPU build. get_llama_cpp_url() falls back to this component when the
 # host has no Vulkan (no /usr/share/vulkan, no VULKAN_SDK); without it the local
 # model was silently unavailable on plain servers and CI runners.
+# NOTE: the v0.9.0 release publishes no binary assets; b7345 is the newest
+# release that still ships the platform archives used here.
 [components.llm]
 name = "Llama.cpp Server (Linux x64 CPU)"
 url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip"

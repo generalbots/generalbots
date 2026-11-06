@@ -12,7 +12,6 @@ botlib = { workspace = true, features = ["database"] }
 botschema = { workspace = true, features = ["project"] }
 botcoresecrets = { workspace = true }
 axum = { workspace = true }
-git2 = "0.20"
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 serde = { workspace = true, features = ["derive"] }

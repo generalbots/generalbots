@@ -488,6 +488,7 @@
    - [Bot Authentication](./09-security/bot-auth.md)
    - [Security Features](./09-security/security-features.md)
    - [Security Policy](./09-security/security-policy.md)
+   - [Production Security Verification (2026-11-06)](./09-security/production-verification.md)
    - [Compliance Requirements](./09-security/compliance-requirements.md)
    - [RBAC Overview](./09-security/rbac-overview.md)
    - [Permissions Matrix](./09-security/permissions-matrix.md)

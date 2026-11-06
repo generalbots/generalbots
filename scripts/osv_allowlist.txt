@@ -23,8 +23,6 @@ RUSTSEC-2025-0081  # unic-char-property - unmaintained unicode table
 RUSTSEC-2025-0098  # unic-ucd-version - unmaintained unicode table
 RUSTSEC-2025-0100  # unic-ucd-ident - unmaintained unicode table
 RUSTSEC-2025-0134  # rustls-pemfile - unmaintained, folded into rustls
-RUSTSEC-2026-0183  # git2 0.20.4 - Remote::list UB, 0.21 upgrade tracked
-RUSTSEC-2026-0184  # git2 0.20.4 - Signature-from-buffer UB, same upgrade
 RUSTSEC-2026-0192  # ttf-parser - unmaintained font metrics
 RUSTSEC-2026-0194  # quick-xml <0.41 - quadratic start-tag parse (office import)
 RUSTSEC-2026-0195  # quick-xml <0.41 - namespace allocation (office import)

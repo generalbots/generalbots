@@ -122,7 +122,6 @@ annually or when the parent crate ships a fixed release, whichever is first.
 | RUSTSEC-2026-0367 / -0368 / -0369 / -0429, GHSA-8hxf, GHSA-m665, GHSA-q7v9 | zip 0.6.6 / 2.4.2 / 4.6.1 (transitive) | First-party `zip` is 9.2.0 (patched). The transitive copies belong to `docx-rs`, `umya-spreadsheet`, `ooxmlsdk`, `calamine` and `rust_xlsxwriter`. Our code never calls `ZipArchive::extract()`; the only on-disk extraction loop (`botcorepkg/src/facade_download/archive.rs`) resolves every entry with `enclosed_name()` and rejects the rest. An extract-path panic is contained by the request task. | 2027-11-06 |
 | RUSTSEC-2026-0436 | calamine 0.26.1 | CFB/OLE2 unbounded allocation. Only the authenticated spreadsheet import reaches it, behind upload size limits. The 0.38 upgrade changes the public API and is tracked as a follow-up. | 2027-11-06 |
 | RUSTSEC-2023-0071, RUSTSEC-2026-0387 | rsa 0.9.10 / crypto-bigint 0.5.5 | Marvin timing and bigint timing. RSA is used for signing with our own keys, never as a decryption oracle on attacker-chosen ciphertext; timing is not remotely observable. Fix requires a major `rsa` chain upgrade. | 2027-11-06 |
-| RUSTSEC-2026-0183 / -0184 | git2 0.20.4 | UB in `Remote::list()` and `Signature` from a buffer. git2 is used by the git-owned bot sync against repositories we control; 0.21 upgrade tracked. | 2027-11-06 |
 | RUSTSEC-2024-0429, GHSA-wrw7 | glib 0.18.5 | Unsound iterator impls on the Tauri Linux desktop stack only; no server runtime exposure. Fixed by the GTK4 stack upgrade on the desktop track. | 2027-11-06 |
 | RUSTSEC-2026-0235 | rkyv 0.7.46 | **Lockfile-only**: present in `Cargo.lock` but never selected by any shipping feature graph (`cargo deny --all-features` does not see it). No exposure. | 2027-11-06 |
 | Unmaintained crates: RUSTSEC-2024-0370, -0436, -2025-0075/-0080/-0081/-0098/-0100, -2026-0192/-0249/-0370/-0371/-0372/-0441 | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, zbus_names, pin-utils | Build-time proc macros, Unicode tables, font metrics, office write path, or the Tauri D-Bus stack. No attacker-reachable runtime sink identified. | 2027-11-06 |
@@ -130,8 +129,10 @@ annually or when the parent crate ships a fixed release, whichever is first.
 
 Fixed by the 2026-11-06 lockfile refresh (no acceptance needed):
 RUSTSEC-2026-0190, -0204, -0258, -0340, -0341, -0381, -0385, -0386, -0418
-and two yanked crates (`chacha20`, `spin`). The lockfile remains the record;
-`cargo-deny` re-checks it on every push.
+and two yanked crates (`chacha20`, `spin`). **`git2` was removed entirely** —
+it was declared by `botdeployment`/`botserver` but no code used it, so
+RUSTSEC-2026-0183/-0184 left the graph without an API migration. The lockfile
+remains the record; `cargo-deny` re-checks it on every push.
 
 ---
 
@@ -145,7 +146,6 @@ changes a public API and needs its own regression pass.
 |---------|---------|--------|---------|
 | office-document XML stack | quick-xml 0.31–0.39 via `docx-rs` 0.4.20, `ooxmlsdk` 0.3.0, `umya-spreadsheet` 2.3.3, `calamine` 0.26.1 | quick-xml 0.41 across the six first-party consumers + calamine 0.38 | RUSTSEC-2026-0194/-0195/-0436 |
 | zip in office crates | zip 0.6.6 / 2.4.2 / 4.6.1 | a parent release that accepts zip ≥ 9.0.5 | RUSTSEC-2026-0367/-0368/-0369/-0429, GHSA-8hxf/-m665/-q7v9 |
-| git2 | 0.20.4 | 0.21.0 | RUSTSEC-2026-0183/-0184 |
 | rsa / crypto-bigint | rsa 0.9.10, crypto-bigint 0.5.5 | rsa 0.10 (crypto-bigint 0.7.x) | RUSTSEC-2023-0071, RUSTSEC-2026-0387 |
 | GTK / Tauri desktop stack | glib 0.18.5 | GTK4 track | RUSTSEC-2024-0429, GHSA-wrw7 |
 | Python model tooling | accelerate 1.1.1 | first release with the GHSA-4j2p fix | GHSA-4j2p, PYSEC-2026-3804 |
@@ -342,14 +342,18 @@ Residual production risks (documented, not fixed here):
   The full inventory is in the security report (`sca/summary.md`); patching is
   tracked as a follow-up.
 - **The static Go service binaries carry their own CVEs** (scanned with Trivy
-  over the Go buildinfo): Caddy 2.10.0-beta.3 has 4 critical / 62 high,
-  Forgejo 10.0.2 has 2/58, MinIO 2025-05-24 has 7/71, Zitadel v4.13.1 has
-  0/51 (including an LDAP filter injection and an OAuth2 token-exchange
-  privilege escalation), Vault 1.15.4 (2023 build) has 4/76, LiveKit 1.10.1
-  has 1/53. Remediation is tracked as a separate binary-upgrade issue.
-- **The HTTP rate limiter is constructed but never called.** `check_http_limit`
-  has no call site, so `/api/auth/login` accepted 120/120 burst attempts with
-  no 429 (all reached the login handler). Tracked as a follow-up code fix.
+  over the Go buildinfo): Caddy 2.10.0-beta.3 had 4 critical / 62 high,
+  Forgejo 10.0.2 2/58, MinIO 2025-05-24 7/71, Zitadel v4.13.1 0/51 (including
+  an LDAP filter injection and an OAuth2 token-exchange privilege escalation),
+  Vault 1.15.4 (2023 build) 4/76, LiveKit 1.10.1 1/53. **Caddy was upgraded to
+  2.11.9 on 2026-11-06** (and the serving config path
+  `/opt/gbo/config/Caddyfile` was synced so the headers survive a restart).
+  The remaining binaries need migration windows or a distribution source;
+  remediation is tracked in the binary-upgrade issue.
+- **The HTTP rate limiter was constructed but never called.** The fix is
+  merged (`auth_rate_limit_middleware`, per-client 10 req/s burst 20 on
+  `/api/auth/*`); it needs the next binary deployment to take effect. Before
+  the fix, `/api/auth/login` accepted 120/120 burst attempts with no 429.
 
 ---
 
