@@ -2188,6 +2188,7 @@ name = "botdocs"
 version = "6.7.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "botlib",
  "botsecurity-core",
  "calamine",
@@ -3525,6 +3526,7 @@ version = "6.7.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
+ "botbasic_core",
  "botlib",
  "botsecurity-auth",
  "botsecurity-core",
