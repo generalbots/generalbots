@@ -400,8 +400,12 @@ document.addEventListener("htmx:afterRequest", function (event) {
     } catch (error) {
         output = xhr.responseText;
     }
-    var scope = elt.closest ? (elt.closest("#modal-container") || document) : document;
-    var target = scope.querySelector("#ai-result");
+    var container = elt.parentElement || document;
+    var target = container.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
+    if (!target && elt.closest) {
+        target = elt.closest("#modal-container, #ai-panel") || document;
+        target = target.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
+    }
     if (target) target.textContent = output;
 });
 </script>

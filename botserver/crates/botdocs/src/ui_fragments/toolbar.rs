@@ -26,11 +26,11 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
     let action = payload.get("action").and_then(|v| v.as_str()).unwrap_or("improve");
     let text = payload.get("text").and_then(|v| v.as_str()).unwrap_or("");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/ai/{action}" hx-vals='{{"document_id":"{id}","action":"{action}","prompt":"{action}"}}' hx-target="#ai-result" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" hx-post="/api/docs/ai/{action}" hx-vals='{{"document_id":"{id}","action":"{action}","prompt":"{action}"}}' hx-target="#ai-result-modal" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Texto a processar
 <textarea name="selected_text" rows="6" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{text}</textarea>
 </label>
-<div id="ai-result" style="margin-top:8px;padding:8px;background:#0f172a;border-radius:4px;min-height:60px;color:#cbd5e1;font-size:13px;"></div>
+<div id="ai-result-modal" style="margin-top:8px;padding:8px;background:#0f172a;border-radius:4px;min-height:60px;color:#cbd5e1;font-size:13px;"></div>
 <button type="submit" style="background:#6366f1;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Executar {action}</button>
 </form>"##,
         id = html_escape(id),
