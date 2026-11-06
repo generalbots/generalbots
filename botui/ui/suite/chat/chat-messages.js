@@ -387,6 +387,17 @@ function toggleUserAttachmentPreview(chip, name) {
   if (typeof snapToBottom === "function") snapToBottom();
 }
 
+function chatNotice(message, type) {
+  if (typeof window.showToast === "function") {
+    window.showToast(message, type);
+    return;
+  }
+  if (window.GBToasts && typeof window.GBToasts.show === "function") {
+    window.GBToasts.show("Chat", message, type || "info");
+    return;
+  }
+  console.info(message);
+}
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -623,7 +634,7 @@ function createCopyButton(text) {
     var done = function () {
       btn.classList.add("copied");
       btn.title = "Copied";
-      if (window.showToast) window.showToast("Message copied", "success");
+      chatNotice("Message copied", "success");
       setTimeout(function () {
         btn.classList.remove("copied");
         btn.title = "Copy message";
@@ -631,7 +642,7 @@ function createCopyButton(text) {
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(done).catch(function () {
-        if (window.showToast) window.showToast("Copy failed", "warning");
+        chatNotice("Copy failed", "warning");
       });
     } else {
       var area = document.createElement("textarea");
@@ -662,7 +673,7 @@ function createSpeakButton(text) {
 function speakText(text) {
   try {
     if (!("speechSynthesis" in window)) {
-      window.showToast && window.showToast("Text-to-speech is not supported in this browser", "warning");
+      chatNotice("Text-to-speech is not supported in this browser", "warning");
       return;
     }
     window.speechSynthesis.cancel();

@@ -407,13 +407,14 @@ function vmShowPreviewUrl(url, path) {
     document.body.appendChild(overlay);
   }
   var name = vmEscapeHtml(path.split("/").pop() || "file");
+  var downloadUrl = url.indexOf("preview=1") !== -1 ? url.replace("preview=1", "raw=1") : url;
   var body =
     mime.indexOf("image/") === 0
       ? '<img class="gb-vm-preview-body" src="' + url + '" alt="' + name + '">'
       : '<iframe class="gb-vm-preview-body" src="' + url + '" title="' + name + '"></iframe>';
   overlay.innerHTML =
     '<div class="gb-vm-preview-head"><span>' + name + "</span>" +
-    '<a class="gb-vm-preview-download" download="' + name + '" href="' + url + '">Download</a>' +
+    '<a class="gb-vm-preview-download" download="' + name + '" href="' + downloadUrl + '">Download</a>' +
     '<button type="button" class="gb-vm-preview-close" aria-label="Close preview">&times;</button></div>' +
     body;
   overlay._gbUrl = url;
@@ -465,6 +466,13 @@ function vmBindAttachment(card) {
   // HTML instead of downloading a binary. Anything else keeps a download.
   var inlineViewable = /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|txt|md|markdown|csv|tsv|json|xml|ya?ml|log|html?|mp3|wav|ogg|m4a|mp4|webm|mov)$/i.test(fileName);
   var officeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp|rtf)$/i.test(fileName);
+  // Downloads always need the raw file, never the sanitized preview HTML.
+  var rawUrlFor = function () {
+    return resolve().then(function (convId) {
+      if (!convId) throw new Error("No active VM");
+      return vmAttachmentUrl(convId, path);
+    });
+  };
   var urlFor = function () {
     return resolve().then(function (convId) {
       if (!convId) throw new Error("No active VM");
@@ -565,7 +573,7 @@ function vmBindAttachment(card) {
   if (download) {
     download.addEventListener("click", function (e) {
       e.preventDefault();
-      urlFor()
+      rawUrlFor()
         .then(function (url) {
           var link = document.createElement("a");
           link.href = url;
