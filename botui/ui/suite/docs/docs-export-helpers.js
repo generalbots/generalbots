@@ -373,26 +373,3 @@ document.addEventListener("click", function (event) {
     if (headings[best]) headings[best].scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-/* AI endpoints answer JSON, so htmx would leave the serialized object in the
-   panel. Render the `response` field as text in the nearest #ai-result. */
-document.addEventListener("htmx:afterRequest", function (event) {
-    var elt = event.detail && event.detail.elt;
-    var path = elt && (elt.getAttribute("hx-post") || "");
-    if (!path || path.indexOf("/api/docs/ai/") !== 0) return;
-    var xhr = event.detail && event.detail.xhr;
-    if (!xhr || xhr.status >= 400) return;
-    var output = "";
-    try {
-        var data = JSON.parse(xhr.responseText);
-        output = data.content || data.response || (data.result && data.result !== "success" ? data.result : "");
-    } catch (error) {
-        output = xhr.responseText;
-    }
-    var container = elt.parentElement || document;
-    var target = container.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
-    if (!target && elt.closest) {
-        target = elt.closest("#docs-modal-container, #ai-panel") || document;
-        target = target.querySelector("#ai-result-modal, #ai-result-panel, #ai-result");
-    }
-    if (target) target.textContent = output;
-});

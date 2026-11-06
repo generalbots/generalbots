@@ -107,7 +107,12 @@ if (!window.__gbDocsAiHook) {
     var text = "";
     try {
       var data = JSON.parse(detail.xhr.responseText);
-      text = data.content || data.response || data.text || data.result || "";
+      // A batch answer that could not run returns the selection unchanged
+      // plus an explicit error. Showing `content` alone echoed the user's own
+      // text and hid the reason, so surface the error first.
+      text = data.result === "unavailable" && data.error
+        ? data.error
+        : (data.content || data.response || data.text || data.result || "");
     } catch (error) {
       text = detail.xhr.responseText;
     }
