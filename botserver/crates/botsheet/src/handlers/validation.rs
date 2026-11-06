@@ -41,17 +41,44 @@ pub async fn handle_data_validation(
         .validations
         .get_or_insert_with(std::collections::HashMap::new);
 
-    for row in req.start_row..=req.end_row {
-        for col in req.start_col..=req.end_col {
+    let (start_row, start_col, end_row, end_col) = botsheet_core::types::bounds_from_request(
+        req.range.as_deref(),
+        req.start_row,
+        req.start_col,
+        req.end_row,
+        req.end_col,
+    );
+    // The toolbar posts `kind` and a comma-separated `values`; the API calls
+    // them validation_type and allowed_values.
+    let validation_type = if req.validation_type.trim().is_empty() {
+        req.kind.clone().unwrap_or_else(|| "any".to_string())
+    } else {
+        req.validation_type.clone()
+    };
+    let allowed_values = req.allowed_values.clone().or_else(|| {
+        req.values
+            .clone()
+            .filter(|values| !values.trim().is_empty())
+            .map(|values| -> Vec<String> {
+                values
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            })
+    });
+    for row in start_row..=end_row {
+        for col in start_col..=end_col {
             let key = format!("{},{}", row, col);
             validations.insert(
                 key,
                 ValidationRule {
-                    validation_type: req.validation_type.clone(),
+                    validation_type: validation_type.clone(),
                     operator: req.operator.clone(),
                     value1: req.value1.clone(),
                     value2: req.value2.clone(),
-                    allowed_values: req.allowed_values.clone(),
+                    allowed_values: allowed_values.clone(),
                     error_title: None,
                     error_message: req.error_message.clone(),
                     input_title: None,

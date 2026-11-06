@@ -383,15 +383,33 @@ pub async fn handle_conditional_format(
     }
 
     let worksheet = &mut sheet.worksheets[req.worksheet_index];
+    let (start_row, start_col, end_row, end_col) = botsheet_core::types::bounds_from_request(
+        req.range.as_deref(),
+        req.start_row,
+        req.start_col,
+        req.end_row,
+        req.end_col,
+    );
+    // The toolbar posts a comparison `value` and a fill colour instead of the
+    // API's `condition` and `style.background`; merge both shapes here.
+    let condition = if req.condition.trim().is_empty() {
+        req.value.clone().unwrap_or_default()
+    } else {
+        req.condition.clone()
+    };
+    let mut style = req.style.clone();
+    if style.background.is_none() {
+        style.background = req.bg_color.clone();
+    }
     let rule = ConditionalFormatRule {
         id: Uuid::new_v4().to_string(),
-        start_row: req.start_row,
-        start_col: req.start_col,
-        end_row: req.end_row,
-        end_col: req.end_col,
+        start_row,
+        start_col,
+        end_row,
+        end_col,
         rule_type: req.rule_type,
-        condition: req.condition,
-        style: req.style,
+        condition,
+        style,
         priority: 1,
     };
 
