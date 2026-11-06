@@ -1,0 +1,258 @@
+        <div class="report-panel active" id="crm-reports">
+            <h3 class="report-section-title" data-i18n="analytics-crm-reports">
+                CRM Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/pipeline"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-sales-pipeline">
+                            Sales Pipeline
+                        </h4>
+                        <span class="report-badge">Funnel</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="chart-placeholder">
+                            <div class="funnel-chart">
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 100%; --color: #4caf50"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-new"
+                                        >New</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 80%; --color: #8bc34a"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-contacted"
+                                        >Contacted</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 60%; --color: #cddc39"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-qualified"
+                                        >Qualified</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 40%; --color: #ffc107"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-proposal"
+                                        >Proposal</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 25%; --color: #ff9800"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-pipeline-negotiation"
+                                        >Negotiation</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                                <div
+                                    class="funnel-stage"
+                                    style="--width: 15%; --color: #2196f3"
+                                >
+                                    <span
+                                        class="stage-label"
+                                        data-i18n="crm-won"
+                                        >Won</span
+                                    >
+                                    <span class="stage-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/conversion"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-lead-conversion">
+                            Lead Conversion Rate
+                        </h4>
+                        <span class="report-badge">KPI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="kpi-display">
+                            <div class="kpi-main">
+                                <span class="kpi-value">--%</span>
+                                <span class="kpi-trend positive">↑ --%</span>
+                            </div>
+                            <div class="kpi-details">
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-leads"
+                                        >Leads</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-opportunities"
+                                        >Opportunities</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                                <div class="kpi-detail-item">
+                                    <span
+                                        class="detail-label"
+                                        data-i18n="crm-won"
+                                        >Won</span
+                                    >
+                                    <span class="detail-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/won-lost"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-won-lost">
+                            Won/Lost Analysis
+                        </h4>
+                        <span class="report-badge">Chart</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="donut-chart-container">
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 100 100" class="donut-svg">
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="15"
+                                        stroke-dasharray="75 125"
+                                        stroke-dashoffset="25"
+                                        class="donut-segment won"
+                                    />
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="none"
+                                        stroke="#F44336"
+                                        stroke-width="15"
+                                        stroke-dasharray="50 200"
+                                        stroke-dashoffset="-50"
+                                        class="donut-segment lost"
+                                    />
+                                </svg>
+                                <div class="donut-center">
+                                    <span class="donut-total">--</span>
+                                    <span
+                                        class="donut-label"
+                                        data-i18n="label-all"
+                                        >Total</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="donut-legend">
+                                <div class="legend-item">
+                                    <span
+                                        class="legend-color"
+                                        style="background: #4caf50"
+                                    ></span>
+                                    <span data-i18n="crm-won">Won</span>
+                                    <span class="legend-value">--</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span
+                                        class="legend-color"
+                                        style="background: #f44336"
+                                    ></span>
+                                    <span data-i18n="crm-lost">Lost</span>
+                                    <span class="legend-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/crm/forecast"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-sales-forecast">
+                            Sales Forecast
+                        </h4>
+                        <span class="report-badge">Projection</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="forecast-display">
+                            <div class="forecast-main">
+                                <span
+                                    class="forecast-label"
+                                    data-i18n="billing-this-month"
+                                    >This Month</span
+                                >
+                                <span class="forecast-value">$--</span>
+                            </div>
+                            <div class="forecast-bar">
+                                <div
+                                    class="forecast-progress"
+                                    style="width: 0%"
+                                ></div>
+                                <span class="forecast-target">Target: $--</span>
+                            </div>
+                            <div class="forecast-breakdown">
+                                <div class="breakdown-item">
+                                    <span data-i18n="status-complete"
+                                        >Closed</span
+                                    >
+                                    <span>$--</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span data-i18n="status-pending"
+                                        >Pipeline</span
+                                    >
+                                    <span>$--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

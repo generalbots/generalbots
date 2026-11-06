@@ -1,0 +1,229 @@
+        <div class="report-panel" id="support-reports">
+            <h3
+                class="report-section-title"
+                data-i18n="analytics-support-reports"
+            >
+                Support Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/by-priority"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-cases-priority">
+                            Open Cases by Priority
+                        </h4>
+                        <span class="report-badge">Distribution</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="priority-breakdown">
+                            <div class="priority-item urgent">
+                                <span class="priority-icon">🔴</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-urgent"
+                                    >Urgent</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item high">
+                                <span class="priority-icon">🟠</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-high"
+                                    >High</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item medium">
+                                <span class="priority-icon">🟡</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-medium"
+                                    >Medium</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                            <div class="priority-item low">
+                                <span class="priority-icon">🟢</span>
+                                <span
+                                    class="priority-label"
+                                    data-i18n="tickets-priority-low"
+                                    >Low</span
+                                >
+                                <span class="priority-count">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/resolution-time"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-resolution-time">
+                            Resolution Time (Avg)
+                        </h4>
+                        <span class="report-badge">KPI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="time-kpi">
+                            <div class="time-main">
+                                <span class="time-value">--</span>
+                                <span class="time-unit">hours</span>
+                            </div>
+                            <div class="time-comparison">
+                                <span class="comparison-label"
+                                    >vs. last period</span
+                                >
+                                <span class="comparison-value positive"
+                                    >↓ --%</span
+                                >
+                            </div>
+                            <div class="time-breakdown">
+                                <div class="time-item">
+                                    <span data-i18n="tickets-response-time"
+                                        >First Response</span
+                                    >
+                                    <span>-- min</span>
+                                </div>
+                                <div class="time-item">
+                                    <span data-i18n="tickets-resolution-time"
+                                        >Full Resolution</span
+                                    >
+                                    <span>-- hrs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/by-category"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-cases-category">
+                            Cases by Category
+                        </h4>
+                        <span class="report-badge">Breakdown</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="category-list">
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Technical Issue</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Billing Question</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >Feature Request</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                            <div class="category-item">
+                                <span class="category-name"
+                                    >General Inquiry</span
+                                >
+                                <div class="category-bar-container">
+                                    <div
+                                        class="category-bar"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="category-count">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/support/ai-rate"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-ai-resolution">
+                            AI Resolution Rate
+                        </h4>
+                        <span class="report-badge">AI</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="ai-kpi">
+                            <div class="ai-gauge">
+                                <svg viewBox="0 0 100 50" class="gauge-svg">
+                                    <path
+                                        d="M10,50 A40,40 0 0,1 90,50"
+                                        fill="none"
+                                        stroke="#333"
+                                        stroke-width="8"
+                                        stroke-linecap="round"
+                                    />
+                                    <path
+                                        d="M10,50 A40,40 0 0,1 90,50"
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="8"
+                                        stroke-linecap="round"
+                                        stroke-dasharray="0 126"
+                                        class="gauge-fill"
+                                    />
+                                </svg>
+                                <div class="gauge-value">--%</div>
+                            </div>
+                            <div class="ai-stats">
+                                <div class="ai-stat">
+                                    <span
+                                        class="stat-label"
+                                        data-i18n="tickets-ai-suggestion"
+                                        >AI Resolved</span
+                                    >
+                                    <span class="stat-value">--</span>
+                                </div>
+                                <div class="ai-stat">
+                                    <span class="stat-label"
+                                        >Human Resolved</span
+                                    >
+                                    <span class="stat-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

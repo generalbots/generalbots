@@ -1,0 +1,64 @@
+    .business-reports-container {
+        padding: 20px;
+        background: var(--background, #0a0a0f);
+    }
+
+    .reports-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border, #2a2a2a);
+        padding-bottom: 12px;
+    }
+
+    .report-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px solid var(--border, #2a2a2a);
+        border-radius: 8px;
+        color: var(--text-secondary, #888);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .report-tab:hover {
+        background: var(--hover, rgba(255, 255, 255, 0.05));
+        color: var(--text, #fff);
+    }
+
+    .report-tab.active {
+        background: var(--accent, #3b82f6);
+        border-color: var(--accent, #3b82f6);
+        color: #fff;
+    }
+
+    .tab-icon {
+        font-size: 16px;
+    }
+
+    .report-panel {
+        display: none;
+    }
+
+    .report-panel.active {
+        display: block;
+    }
+
+    .report-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text, #fff);
+        margin-bottom: 20px;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+

@@ -1,0 +1,8 @@
+            html.gb-auth-gate body > * { visibility: hidden !important; }
+            html.gb-auth-gate::after {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background: var(--bg, #0b0b12);
+            }
+        

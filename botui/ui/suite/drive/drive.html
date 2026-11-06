@@ -1,501 +1,258 @@
 <!-- Drive - File Management v1.0 -->
 <link rel="stylesheet" href="/suite/drive/drive.css" />
-
 <div class="gb-app drive-container" id="drive-app" data-gb-app="explorer">
-    <!-- Sidebar -->
-    <aside class="drive-sidebar" id="drive-sidebar">
-        <div class="drive-sidebar-header">
-            <h2 data-i18n="nav-drive">Drive</h2>
-            <button class="btn-icon" id="toggle-drive-sidebar" title="Collapse">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <polyline points="11 17 6 12 11 7"></polyline>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="drive-sidebar-actions">
-            <button class="btn-primary-full" id="new-bot-btn" style="display:none;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span data-i18n="drive-new-bot">New Bot</span>
-            </button>
-            <button class="btn-primary-full" id="upload-btn">
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <span data-i18n="drive-upload">Upload</span>
-            </button>
-            <button class="btn-secondary-full" id="upload-folder-btn">
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                    <polyline points="12 15 12 8"></polyline>
-                    <polyline points="9 11 12 8 15 11"></polyline>
-                </svg>
-                <span data-i18n="drive-upload-folder">Upload folder</span>
-            </button>
-            <button class="btn-secondary-full" id="new-folder-btn">
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path
-                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-                    ></path>
-                    <line x1="12" y1="11" x2="12" y2="17"></line>
-                    <line x1="9" y1="14" x2="15" y2="14"></line>
-                </svg>
-                <span data-i18n="drive-new-folder">New Folder</span>
-            </button>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="drive-nav" id="drive-nav">
-            <div class="drive-nav-item active" data-view="my-drive">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path
-                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-                    ></path>
-                </svg>
-                <span data-i18n="drive-my-drive">My Drive</span>
-            </div>
-            <div class="drive-nav-item" data-view="recent">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span data-i18n="drive-recent">Recent</span>
-            </div>
-            <div class="drive-nav-item" data-view="starred">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <polygon
-                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-                    ></polygon>
-                </svg>
-                <span data-i18n="drive-starred">Starred</span>
-            </div>
-            <div class="drive-nav-item" data-view="trash">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path
-                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    ></path>
-                </svg>
-                <span data-i18n="drive-trash">Trash</span>
-            </div>
-        </nav>
-
-        <!-- Storage -->
-        <div class="drive-storage">
-            <div class="storage-bar">
-                <div
-                    class="storage-fill"
-                    id="storage-fill"
-                    style="width: 0%"
-                ></div>
-            </div>
-            <div class="storage-row">
-                <div
-                    class="storage-text"
-                    id="storage-used"
-                    data-i18n="drive-loading-storage"
-                >
-                    Loading storage...
-                </div>
-                <!-- The quota endpoint walks every bucket in the instance
+<!-- Sidebar -->
+<aside class="drive-sidebar" id="drive-sidebar">
+<div class="drive-sidebar-header">
+<h2 data-i18n="nav-drive">Drive</h2>
+<button class="btn-icon" id="toggle-drive-sidebar" title="Collapse">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<polyline points="11 17 6 12 11 7"></polyline>
+</svg>
+</button>
+</div>
+<!-- Quick Actions -->
+<div class="drive-sidebar-actions">
+<button class="btn-primary-full" id="new-bot-btn" style="display:none;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<line x1="12" y1="5" x2="12" y2="19"></line>
+<line x1="5" y1="12" x2="19" y2="12"></line>
+</svg>
+<span data-i18n="drive-new-bot">New Bot</span>
+</button>
+<button class="btn-primary-full" id="upload-btn">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+<polyline points="17 8 12 3 7 8"></polyline>
+<line x1="12" y1="3" x2="12" y2="15"></line>
+</svg>
+<span data-i18n="drive-upload">Upload</span>
+</button>
+<button class="btn-secondary-full" id="upload-folder-btn">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+<polyline points="12 15 12 8"></polyline>
+<polyline points="9 11 12 8 15 11"></polyline>
+</svg>
+<span data-i18n="drive-upload-folder">Upload folder</span>
+</button>
+<button class="btn-secondary-full" id="new-folder-btn">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" ></path>
+<line x1="12" y1="11" x2="12" y2="17"></line>
+<line x1="9" y1="14" x2="15" y2="14"></line>
+</svg>
+<span data-i18n="drive-new-folder">New Folder</span>
+</button>
+</div>
+<!-- Navigation -->
+<nav class="drive-nav" id="drive-nav">
+<div class="drive-nav-item active" data-view="my-drive">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" ></path>
+</svg>
+<span data-i18n="drive-my-drive">My Drive</span>
+</div>
+<div class="drive-nav-item" data-view="recent">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<circle cx="12" cy="12" r="10"></circle>
+<polyline points="12 6 12 12 16 14"></polyline>
+</svg>
+<span data-i18n="drive-recent">Recent</span>
+</div>
+<div class="drive-nav-item" data-view="starred">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" ></polygon>
+</svg>
+<span data-i18n="drive-starred">Starred</span>
+</div>
+<div class="drive-nav-item" data-view="trash">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<polyline points="3 6 5 6 21 6"></polyline>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" ></path>
+</svg>
+<span data-i18n="drive-trash">Trash</span>
+</div>
+</nav>
+<!-- Storage -->
+<div class="drive-storage">
+<div class="storage-bar">
+<div class="storage-fill" id="storage-fill" style="width: 0%" ></div>
+</div>
+<div class="storage-row">
+<div class="storage-text" id="storage-used" data-i18n="drive-loading-storage" >
+Loading storage...
+</div>
+<!-- The quota endpoint walks every bucket in the instance
                      (114s measured in prod across 32 buckets), so it is fetched
                      once when the app loads and only again on demand. -->
-                <button
-                    class="storage-refresh"
-                    id="storage-refresh"
-                    type="button"
-                    title="Refresh storage usage"
-                    aria-label="Refresh storage usage"
-                    onclick="DriveModule.loadStorageInfo()"
-                >
-                    <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M23 4v6h-6"></path>
-                        <path d="M1 20v-6h6"></path>
-                        <path
-                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                        ></path>
-                    </svg>
-                </button>
-            </div>
-            <div class="storage-detail" id="storage-detail"></div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="drive-main">
-        <!-- Top-Level Tabs -->
-        <div class="drive-top-tabs" id="drive-top-tabs">
-            <!-- My Files = the signed-in user's space (users.gbdrive). The
+<button class="storage-refresh" id="storage-refresh" type="button" title="Refresh storage usage" aria-label="Refresh storage usage" onclick="DriveModule.loadStorageInfo()" >
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" >
+<path d="M23 4v6h-6"></path>
+<path d="M1 20v-6h6"></path>
+<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" ></path>
+</svg>
+</button>
+</div>
+<div class="storage-detail" id="storage-detail"></div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="drive-main">
+<!-- Top-Level Tabs -->
+<div class="drive-top-tabs" id="drive-top-tabs">
+<!-- My Files = the signed-in user's space (users.gbdrive). The
                  "Bot" tab is where chat/automation output lands (the bot's
                  {bot}.gbdrive inside the org workspace) and must stay
                  reachable so Office documents generated in chat can be
                  opened/previewed from Drive (loadBranchDriveTab). -->
-            <button class="top-tab active" data-tab="myfiles" id="tab-myfiles">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span>My Files</span>
-            </button>
-            <button class="top-tab" data-tab="branchdrive" id="tab-branchdrive">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span>Bot</span>
-            </button>
-            <button class="top-tab" data-tab="shared" id="tab-shared">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                </svg>
-                <span>Shared</span>
-            </button>
-            <button class="top-tab" data-tab="external" id="tab-external">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
-                    <polyline points="8 11 12 15 16 11"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>Connected</span>
-            </button>
-            <button class="top-tab" data-tab="public" id="tab-public">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-                <span>Public</span>
-            </button>
-
-        </div>
-
-        <!-- Toolbar -->
-        <div class="drive-toolbar">
-            <div class="drive-toolbar-left">
-                <div class="drive-breadcrumb">
-                    <button
-                        class="breadcrumb-item"
-                        onclick="DriveModule.loadFiles('')"
-                    >
-                        Drive
-                    </button>
-                </div>
-            </div>
-            <div class="drive-toolbar-center">
-                <!-- #1638 — one box finds files in every folder and bucket; the
-                     server also matches text extracted from the file body. -->
-                <div class="search-box drive-search" role="search">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input id="search-input" type="search" placeholder="Search all files… (Ctrl+K)"
-                           aria-label="Search all files by name and content" autocomplete="off" />
-                    <kbd class="drive-search-kbd">Ctrl K</kbd>
-                </div>
-            </div>
-            <div class="drive-toolbar-right">
-
-                <button
-                    class="btn-icon"
-                    onclick="var sel=Array.from(DriveModule.selectedFiles||[]);if(sel.length){var el=document.querySelector('[data-path=\\'+CSS.escape(sel[0])+\\']');var b=el?el.dataset.bucket:'';if(el&&el.dataset.type==='folder'){DriveModule.loadFiles(sel[0],b)}else{DriveModule.openFile(sel[0],b)}}"
-                    title="Open selected file"
-                    style="margin-right:8px"
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                </button>
-                <button
-                    class="btn-icon view-toggle"
-                    data-view="grid"
-                    title="Grid view"
-                >
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                </button>
-                <button
-                    class="btn-icon view-toggle active"
-                    data-view="list"
-                    title="List view"
-                >
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- File Content Area - Populated by JavaScript -->
-        <div class="drive-content" id="drive-content">
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading files...</p>
-            </div>
-        </div>
-
-        <!-- Selection Bar -->
-        <div class="selection-bar" id="selection-bar" style="display: none">
-            <span class="selection-count"
-                ><span id="selected-count">0</span> selected</span
-            >
-            <div class="selection-actions">
-                <button
-                    class="action-btn"
-                    onclick="DriveModule.downloadSelected()"
-                    title="Download"
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                </button>
-                <button
-                    class="action-btn"
-                    onclick="DriveModule.copySelected()"
-                    title="Copy"
-                >
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <rect
-                            x="9"
-                            y="9"
-                            width="13"
-                            height="13"
-                            rx="2"
-                            ry="2"
-                        ></rect>
-                        <path
-                            d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                        ></path>
-                    </svg>
-                </button>
-                <button
-                    class="action-btn"
-                    onclick="DriveModule.cutSelected()"
-                    title="Cut"
-                >
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <circle cx="6" cy="6" r="3"></circle>
-                        <circle cx="6" cy="18" r="3"></circle>
-                        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-                    </svg>
-                </button>
-                <button
-                    class="action-btn danger"
-                    onclick="DriveModule.deleteSelected()"
-                    title="Delete"
-                >
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path
-                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                        ></path>
-                    </svg>
-                </button>
-                <button
-                    class="close-selection"
-                    onclick="DriveModule.clearSelection()"
-                    title="Clear selection"
-                >
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <!-- Drop Overlay for Drag & Drop -->
-    <div class="drop-overlay" id="drop-overlay">
-        <div class="drop-zone">
-            <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-            >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <p>Drop files or folders here to upload</p>
-        </div>
-    </div>
+<button class="top-tab active" data-tab="myfiles" id="tab-myfiles">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+<circle cx="12" cy="7" r="4"></circle>
+</svg>
+<span>My Files</span>
+</button>
+<button class="top-tab" data-tab="branchdrive" id="tab-branchdrive">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+</svg>
+<span>Bot</span>
+</button>
+<button class="top-tab" data-tab="shared" id="tab-shared">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="18" cy="5" r="3"></circle>
+<circle cx="6" cy="12" r="3"></circle>
+<circle cx="18" cy="19" r="3"></circle>
+<line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+<line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+</svg>
+<span>Shared</span>
+</button>
+<button class="top-tab" data-tab="external" id="tab-external">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+<polyline points="8 11 12 15 16 11"></polyline>
+<line x1="12" y1="15" x2="12" y2="3"></line>
+</svg>
+<span>Connected</span>
+</button>
+<button class="top-tab" data-tab="public" id="tab-public">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="10"></circle>
+<line x1="2" y1="12" x2="22" y2="12"></line>
+<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+</svg>
+<span>Public</span>
+</button>
 </div>
-
+<!-- Toolbar -->
+<div class="drive-toolbar">
+<div class="drive-toolbar-left">
+<div class="drive-breadcrumb">
+<button class="breadcrumb-item" onclick="DriveModule.loadFiles('')" >
+Drive
+</button>
+</div>
+</div>
+<div class="drive-toolbar-center">
+<!-- #1638 — one box finds files in every folder and bucket; the
+                     server also matches text extracted from the file body. -->
+<div class="search-box drive-search" role="search">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+</svg>
+<input id="search-input" type="search" placeholder="Search all files… (Ctrl+K)" aria-label="Search all files by name and content" autocomplete="off" />
+<kbd class="drive-search-kbd">Ctrl K</kbd>
+</div>
+</div>
+<div class="drive-toolbar-right">
+<button class="btn-icon" onclick="var sel=Array.from(DriveModule.selectedFiles||[]);if(sel.length){var el=document.querySelector('[data-path=\\'+CSS.escape(sel[0])+\\']');var b=el?el.dataset.bucket:'';if(el&&el.dataset.type==='folder'){DriveModule.loadFiles(sel[0],b)}else{DriveModule.openFile(sel[0],b)}}" title="Open selected file" style="margin-right:8px" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+</button>
+<button class="btn-icon view-toggle" data-view="grid" title="Grid view" >
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<rect x="3" y="3" width="7" height="7"></rect>
+<rect x="14" y="3" width="7" height="7"></rect>
+<rect x="14" y="14" width="7" height="7"></rect>
+<rect x="3" y="14" width="7" height="7"></rect>
+</svg>
+</button>
+<button class="btn-icon view-toggle active" data-view="list" title="List view" >
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<line x1="8" y1="6" x2="21" y2="6"></line>
+<line x1="8" y1="12" x2="21" y2="12"></line>
+<line x1="8" y1="18" x2="21" y2="18"></line>
+<line x1="3" y1="6" x2="3.01" y2="6"></line>
+<line x1="3" y1="12" x2="3.01" y2="12"></line>
+<line x1="3" y1="18" x2="3.01" y2="18"></line>
+</svg>
+</button>
+</div>
+</div>
+<!-- File Content Area - Populated by JavaScript -->
+<div class="drive-content" id="drive-content">
+<div class="loading-state">
+<div class="spinner"></div>
+<p>Loading files...</p>
+</div>
+</div>
+<!-- Selection Bar -->
+<div class="selection-bar" id="selection-bar" style="display: none">
+<span class="selection-count" ><span id="selected-count">0</span> selected</span >
+<div class="selection-actions">
+<button class="action-btn" onclick="DriveModule.downloadSelected()" title="Download" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+</button>
+<button class="action-btn" onclick="DriveModule.copySelected()" title="Copy" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2" ></rect>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" ></path>
+</svg>
+</button>
+<button class="action-btn" onclick="DriveModule.cutSelected()" title="Cut" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<circle cx="6" cy="6" r="3"></circle>
+<circle cx="6" cy="18" r="3"></circle>
+<line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+<line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+<line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+</svg>
+</button>
+<button class="action-btn danger" onclick="DriveModule.deleteSelected()" title="Delete" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<polyline points="3 6 5 6 21 6"></polyline>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" ></path>
+</svg>
+</button>
+<button class="close-selection" onclick="DriveModule.clearSelection()" title="Clear selection" >
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<line x1="18" y1="6" x2="6" y2="18"></line>
+<line x1="6" y1="6" x2="18" y2="18"></line>
+</svg>
+</button>
+</div>
+</div>
+</main>
+<!-- Drop Overlay for Drag & Drop -->
+<div class="drop-overlay" id="drop-overlay">
+<div class="drop-zone">
+<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+<polyline points="17 8 12 3 7 8"></polyline>
+<line x1="12" y1="3" x2="12" y2="15"></line>
+</svg>
+<p>Drop files or folders here to upload</p>
+</div>
+</div>
+</div>
 <!-- Hidden file inputs for uploads. The folder input is separate so the
      single/multi-file upload keeps its flat behaviour. -->
 <input type="file" id="file-input" multiple style="display: none" />
 <input type="file" id="folder-input" webkitdirectory multiple style="display: none" />
-
 <!-- Context Menu (dynamically populated by JS) -->
 <div id="context-menu" class="context-menu hidden"></div>
-
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
-<script>
-// Sequential module loader — ensures scripts execute in order
-(function() {
-    var modules = [
-        '/suite/drive/modules/01_state.js',
-        '/suite/drive/modules/02_api.js',
-        '/suite/drive/modules/03_utils.js',
-        '/suite/drive/modules/04_bots.js',
-        '/suite/drive/modules/04_discover.js',
-        '/suite/drive/modules/05_files.js',
-        '/suite/drive/modules/05_files_lists.js',
-        '/suite/drive/modules/05_files_tabs.js',
-        '/suite/drive/modules/05_upload.js',
-        '/suite/drive/modules/06_render.js',
-        '/suite/drive/modules/07_events.js',
-        '/suite/drive/modules/08_modals.js',
-        '/suite/drive/modules/08_modals_editor.js',
-        '/suite/drive/modules/09_ai.js',
-        '/suite/drive/modules/10_comments.js',
-        '/suite/drive/modules/11_external.js',
-        '/suite/drive/modules/98_actions.js',
-        '/suite/drive/modules/98_actions_clipboard.js',
-        '/suite/drive/modules/98_actions_versions.js',
-        '/suite/drive/modules/98_actions_extra.js',
-        '/suite/drive/modules/99_init.js',
-    ];
-    window.DriveAI = window.DriveAI || null;
-    window.DriveComments = window.DriveComments || null;
-    var ts = Date.now();
-    function loadNext() {
-        if (modules.length === 0) return;
-        var src = modules.shift() + '?_=' + ts;
-        var s = document.createElement('script');
-        s.src = src;
-        s.onload = loadNext;
-        s.onerror = loadNext;
-        document.body.appendChild(s);
-    }
-    loadNext();
-})();
-</script>
+<script src="/suite/drive/drive-module-loader.js"></script>

@@ -1,0 +1,325 @@
+/* Vibe Shell — single-row command bar (VB4-inspired styling only).
+   The window keeps the desktop's normal chrome and theme tokens
+   (var(--surface), var(--border), var(--text), var(--text-muted),
+   var(--bg), var(--accent)); only the toolbar layout borrows the VB
+   idea of one compact command row. No menu bar, no status bar. */
+
+/* ── Vibe window — compact floating command bar (VB-style) ───────── */
+/* The Vibe window is a floating toolbar ONLY: two command rows (transport
+   + tools). Every workspace surface — project sidebar, canvas, design
+   surface, palm, chat — lives in its own floating window opened on
+   demand from the toolbar. The legacy .vibe-body is never shown. */
+#window-vibe {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+#window-body-vibe,
+#window-vibe .vibe-container {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+#window-body-vibe {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden;
+    display: block;
+}
+
+body.vibe-toolbar-mode #window-vibe .vibe-container {
+    flex-direction: column;
+}
+
+/* Floating state banners ("Loading Vibe…" / "Vibe service unavailable") are
+   full-app screens meant for whole-page apps; the compact vibe command row
+   has no room for them and they would render huge — always hidden here. */
+#window-vibe .gb-state {
+    display: none !important;
+}
+
+#window-vibe .window-dot-maximize,
+#window-vibe .btn-maximize {
+    display: none !important;
+}
+
+/* ── Command toolbar — a 2-row grid (product spec, never >2 rows) ── */
+.vibe-shell-toolbar {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 6px;
+    background: var(--surface, #14142a);
+    border-bottom: 1px solid var(--border, #2a2a4a);
+    position: relative;
+}
+
+body.vibe-toolbar-mode .vibe-shell-toolbar {
+    display: grid;
+}
+
+.vibe-shell-toolbar.vibe-shell-tb-grid {
+    grid-template-columns: auto auto auto 1fr auto;
+    grid-template-rows: auto auto;
+    height: auto;
+    gap: 2px 8px;
+    /* Content must NEVER overflow up into the window caption: a fixed
+       78px box centered the taller wrapped command groups, pushing the
+       top buttons under the header glass where they intercepted clicks.
+       Auto rows size the toolbar to its real content instead. */
+    align-items: start;
+}
+
+.vibe-shell-tb-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 7px;
+    margin-right: 3px;
+    border-right: 1px solid var(--border, #2a2a4a);
+}
+
+.vibe-shell-tb-group:last-of-type {
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+}
+
+/* RUN — spans both grid rows: the double-height primary action. */
+.vibe-shell-tb-run-group {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: flex;
+    align-items: stretch;
+    padding-right: 9px;
+    margin-right: 5px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-btn {
+    height: 100%;
+    min-width: 64px;
+    min-height: 66px;
+    flex-direction: column;
+    gap: 5px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    border-radius: 6px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-icon {
+    font-size: 18px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-label {
+    font-size: 11px;
+    color: var(--text, #e8e8f2);
+}
+
+/* Combos — stacked, one per row: Project on top, Branch below. */
+.vibe-shell-tb-selectors {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    justify-content: center;
+}
+
+/* Deploy — SAME size as Run, adjacent at LEFT (#1383: Run and Deploy
+   together as the two primary transport actions). */
+.vibe-shell-tb-deploy-group {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: flex;
+    align-items: stretch;
+    padding-right: 9px;
+    margin-right: 5px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-btn {
+    min-width: 64px;
+    min-height: 66px;
+    height: 100%;
+    flex-direction: column;
+    gap: 5px;
+    padding: 4px 12px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    border-radius: 6px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-icon {
+    font-size: 18px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-label {
+    font-size: 11px;
+}
+
+/* Window commands — 3 rows × 4 columns (#1383 review), then the close-all ✕. */
+.vibe-shell-tb-cmds {
+    grid-column: 4;
+    grid-row: 1 / 3;
+    display: grid;
+    grid-template-columns: auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-content: start; /* compact: block hugs its content width */
+    column-gap: 0;
+    row-gap: 3px; /* a little vertical air between the 3 command rows */
+}
+
+/* Command buttons (#1383 review): three rows totaling close to the
+   Project/Branch combos height (~52px), left-aligned, compact width —
+   sized up per follow-up reviews ("a little larger", then "+1pt"). */
+.vibe-shell-tb-cmds .vibe-shell-tb-btn {
+    min-height: 0;
+    height: 19px;
+    padding: 1px 6px;
+    gap: 3px;
+    justify-content: flex-start;
+    border-radius: 3px;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-icon {
+    font-size: 11px;
+    display: inline-flex;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-icon svg {
+    width: 11px;
+    height: 11px;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-label {
+    font-size: 11px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* Full-height column separator — one rule spanning all three rows. */
+.vibe-shell-tb-sep3 {
+    grid-row: 1 / 4;
+    align-self: stretch;
+    margin: 3px 5px;
+}
+
+/* Legacy per-row layout (kept class for compatibility). */
+.vibe-shell-tb-cmdrow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    min-width: max-content;
+}
+
+/* Group separator (single-line variant). */
+.vibe-shell-tb-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 3px 6px;
+    background: var(--border, #2a2a4a);
+    flex: 0 0 auto;
+}
+
+.vibe-shell-tb-close-group {
+    grid-column: 5;
+    grid-row: 1 / 3;
+    align-self: center;
+}
+
+.vibe-shell-tb-closeall .vibe-shell-tb-icon {
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* Project + branch selector fields (VB combo style but themed). */
+.vibe-shell-tb-selectors .vibe-shell-tb-field-label {
+    min-width: 46px;
+}
+
+.vibe-shell-tb-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vibe-shell-tb-field-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted, #8888aa);
+    white-space: nowrap;
+}
+
+.vibe-shell-project-select {
+    /* Project and Branch combos share the SAME width (product spec). */
+    width: 160px;
+    max-width: 160px;
+    height: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 4px;
+    background: var(--bg, #0d0d1f);
+    color: var(--text, #e8e8f2);
+    font-size: 11px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+}
+
+.vibe-shell-project-select:focus:not(:disabled) {
+    border-color: var(--accent, #84d669);
+}
+
+.vibe-shell-project-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.vibe-shell-branch-select {
+    width: 160px;   /* same width as the Project combo */
+    max-width: 160px;
+}
+
+/* Command button (row 2): icon + label on one line, comfortable hit area. */
+.vibe-shell-tb-btn {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: auto;
+    height: 28px;
+    padding: 3px 9px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text, #e8e8f2);
+    border-radius: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.vibe-shell-tb-btn:hover:not(:disabled) {
+    border-color: var(--border, #2a2a4a);
+    background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+.vibe-shell-tb-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}

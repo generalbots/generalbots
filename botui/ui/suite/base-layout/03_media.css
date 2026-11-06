@@ -1,0 +1,14 @@
+@media (max-width: 768px) {
+    .stat-cards {
+        flex-direction: column;
+    }
+    
+    .app-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .topbar-tabs {
+        display: none;
+    }
+}

@@ -1,0 +1,33 @@
+/* #1695 — presenting mode: read-only, chrome-free, full-screen document. */
+body.docs-presenting { background: #ffffff !important; }
+body.docs-presenting .docs-toolbar,
+body.docs-presenting .docs-sidebar,
+body.docs-presenting .docs-statusbar,
+body.docs-presenting #chat-sidebar,
+body.docs-presenting .gb-sidebar { display: none !important; }
+body.docs-presenting article {
+    max-width: 900px !important;
+    margin: 0 auto !important;
+    padding: 4vh 6vw !important;
+    font-size: 1.25rem !important;
+    line-height: 1.75 !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+.docs-present-exitbar {
+    position: fixed; right: 18px; bottom: 18px; z-index: 4000;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 999px;
+    background: rgba(17, 24, 39, .92); color: #f9fafb;
+    font: 12px/1 ui-sans-serif, system-ui, sans-serif;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.docs-present-legend { font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+.docs-present-exitbar button {
+    border: 1px solid rgba(255,255,255,.25); background: transparent; color: inherit;
+    border-radius: 999px; padding: 4px 10px; cursor: pointer; font: inherit;
+}
+.docs-present-exitbar button:hover { background: rgba(255,255,255,.15); }
+.docs-present-stop { font-weight: 600; }

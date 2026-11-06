@@ -1,0 +1,334 @@
+
+    .panel-actions {
+        display: flex;
+        gap: 0.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        margin-top: 1rem;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .chat-form {
+        display: flex;
+        gap: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+    }
+
+    .chat-form input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.875rem;
+    }
+
+    .chat-form input:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .room-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.9);
+        gap: 2rem;
+    }
+
+    .controls-left,
+    .controls-center,
+    .controls-right {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .control-btn-lg {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 0.625rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 64px;
+    }
+
+    .control-btn-lg:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .control-btn-lg.active {
+        background: var(--primary);
+    }
+
+    .control-btn-lg.btn-danger {
+        background: var(--error);
+    }
+
+    .control-btn-lg.btn-danger:hover {
+        background: #dc2626;
+    }
+
+    .control-btn-lg.muted {
+        background: var(--error);
+    }
+
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        z-index: 200;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+        height: 100%;
+    }
+
+    .modal[open] {
+        display: flex;
+    }
+
+    .modal::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background: var(--surface);
+        border-radius: 12px;
+        width: 100%;
+        max-width: 480px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .modal-body {
+        padding: 1.25rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.375rem;
+        color: var(--text-secondary);
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 0.875rem;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .form-group textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .checkbox-label input {
+        width: auto;
+    }
+
+    .preview-container {
+        position: relative;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        margin-top: 1rem;
+    }
+
+    .preview-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .preview-controls {
+        position: absolute;
+        bottom: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        margin-top: 1rem;
+    }
+
+    .copy-input {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .copy-input input {
+        flex: 1;
+    }
+
+    .btn-icon,
+    .btn-icon-sm {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        padding: 0.5rem;
+        background: var(--surface-hover);
+        border: none;
+        border-radius: 6px;
+        color: var(--text);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-icon:hover,
+    .btn-icon-sm:hover {
+        background: var(--border);
+    }
+
+    .btn-icon-sm {
+        padding: 0.25rem;
+    }
+
+    /* Reactions */
+    .reactions-popup {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: var(--surface);
+        border-radius: 9999px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 150;
+    }
+
+    .reactions-popup.hidden {
+        display: none;
+    }
+
+    .reaction-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: 50%;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition:
+            transform 0.2s,
+            background 0.2s;
+    }
+
+    .reaction-btn:hover {
+        background: var(--surface-hover);
+        transform: scale(1.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .meet-header {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .meet-actions {
+            width: 100%;
+        }
+
+        .meet-actions button {
+            flex: 1;
+        }
+
+        .room-sidebar {
+            width: 100%;
+            right: 0;
+            left: 0;
+        }
+
+        .room-controls {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .control-btn-lg {
+            min-width: 56px;
+            padding: 0.5rem;
+        }
+    }

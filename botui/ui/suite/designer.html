@@ -1,560 +1,242 @@
 <!-- Dialog Designer - General Bots (.bas Visual Editor) -->
-
-
-<!-- Note: ws-connect="/ws/designer" removed until backend WebSocket endpoint is implemented -->
-<div class="gb-app designer-container" data-gb-app="designer">
-        <!-- Header -->
-        <header class="designer-header">
-            <div class="designer-logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-                <span>Dialog Designer</span>
-            </div>
-
-            <div class="designer-toolbar">
-                <button class="toolbar-btn" id="btn-new" title="New Dialog (Ctrl+N)" onclick="newDesign()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="12" y1="18" x2="12" y2="12"/>
-                        <line x1="9" y1="15" x2="15" y2="15"/>
-                    </svg>
-                    New
-                </button>
-
-                <button class="toolbar-btn" id="btn-open"
-                        hx-get="/api/ui/designer/files"
-                        hx-target="#file-list-content"
-                        hx-trigger="click"
-                        onclick="showModal('open-modal')"
-                        title="Open Dialog (Ctrl+O)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Open
-                </button>
-
-                <button class="toolbar-btn primary" id="btn-save"
-                        hx-post="/api/ui/designer/save"
-                        hx-include="#designer-data"
-                        hx-indicator="#save-spinner"
-                        title="Save (Ctrl+S)">
-                    <span class="htmx-indicator spinner" id="save-spinner"></span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
-                    </svg>
-                    Save
-                </button>
-
-                <div class="toolbar-separator"></div>
-
-                <button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 7v6h6"/>
-                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
-                    </svg>
-                </button>
-
-                <button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 7v6h-6"/>
-                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
-                    </svg>
-                </button>
-
-                <div class="toolbar-separator"></div>
-
-                <button class="toolbar-btn" id="btn-run"
-                        hx-post="/api/ui/designer/validate"
-                        hx-include="#designer-data"
-                        title="Validate Dialog">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
-                    Validate
-                </button>
-
-                <button class="toolbar-btn" id="btn-export"
-                        hx-get="/api/ui/designer/export"
-                        hx-include="#designer-data"
-                        title="Export as .bas">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export
-                </button>
-
-                <button class="toolbar-btn" id="btn-search-nodes"
-                        onclick="showSearchPanel()"
-                        title="Search Nodes (Ctrl+F)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    Search
-                </button>
-
-                <button class="toolbar-btn" id="btn-deploy"
-                        onclick="deployFlow()"
-                        title="Deploy to Bot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
-                    </svg>
-                    Deploy
-                </button>
-
-                <button class="toolbar-btn" id="btn-versions"
-                        onclick="showVersionsPanel()"
-                        title="Version History">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    History
-                </button>
-
-                <button class="toolbar-btn" id="btn-edit-text"
-                        onclick="var p=window.__EDITOR_FILE_PATH,b=window.__EDITOR_FILE_BUCKET,s=window.__EDITOR_FILE_SCOPE||'bot';if(p&&b){var ts=Date.now();window.WindowManager.open('editor-'+ts, p.split('/').pop(), '');window.__EDITOR_FILE_BUCKET=b;window.__EDITOR_FILE_PATH=p;window.__EDITOR_FILE_SCOPE=s;window.__EDITOR_BOOT=Promise.resolve();fetch('/suite/editor.html').then(function(r){return r.text();}).then(function(h){var bb=document.getElementById('window-body-editor-'+ts);if(bb)window.WindowManager._injectBodyContent('editor-'+ts,h);});}"
-                        title="Open in Text Editor"
-                        style="display:none">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Edit Text
-                </button>
-                <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading designer…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Designer unavailable</span></div>
-<script src="/suite/designer-inline-state.js?v=1"></script>
-<script src="/suite/designer-inline-nodes.js?v=1"></script>
-<script src="/suite/designer-inline-context-menu.js?v=1"></script>
-<script src="/suite/designer-inline-search.js?v=1"></script>
-
-                <div class="toolbar-separator"></div>
-
-                <button class="toolbar-btn magic" id="btn-magic"
-                        onclick="showMagicPanel()"
-                        title="AI Improvements (Ctrl+M)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                    </svg>
-                    Magic
-                </button>
-            </div>
-        </header>
-
-        <!-- Toolbox Panel -->
-        <aside class="toolbox-panel">
-            <div class="toolbox-section">
-                <div class="toolbox-section-title">Conversation</div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="TALK">
-                    <div class="toolbox-icon talk">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">TALK</div>
-                        <div class="toolbox-desc">Send message to user</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="HEAR">
-                    <div class="toolbox-icon hear">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" y1="19" x2="12" y2="23"/>
-                            <line x1="8" y1="23" x2="16" y2="23"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">HEAR</div>
-                        <div class="toolbox-desc">Wait for user input</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="WAIT">
-                    <div class="toolbox-icon wait">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">WAIT</div>
-                        <div class="toolbox-desc">Pause execution</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="toolbox-section">
-                <div class="toolbox-section-title">Logic</div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="IF">
-                    <div class="toolbox-icon if">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">IF</div>
-                        <div class="toolbox-desc">Conditional branch</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SWITCH">
-                    <div class="toolbox-icon switch">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M18 8L22 12L18 16"/>
-                            <path d="M2 12H22"/>
-                            <path d="M6 8L2 12L6 16"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SWITCH</div>
-                        <div class="toolbox-desc">Multiple conditions</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="FOR">
-                    <div class="toolbox-icon for">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <polyline points="1 20 1 14 7 14"/>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">FOR EACH</div>
-                        <div class="toolbox-desc">Loop through items</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="toolbox-section">
-                <div class="toolbox-section-title">Data</div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SET">
-                    <div class="toolbox-icon set">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <polyline points="4 7 4 4 20 4 20 7"/>
-                            <line x1="9" y1="20" x2="15" y2="20"/>
-                            <line x1="12" y1="4" x2="12" y2="20"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SET</div>
-                        <div class="toolbox-desc">Assign variable</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="GET">
-                    <div class="toolbox-icon get">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">GET</div>
-                        <div class="toolbox-desc">Fetch data</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SAVE">
-                    <div class="toolbox-icon send">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                            <polyline points="17 21 17 13 7 13 7 21"/>
-                            <polyline points="7 3 7 8 15 8"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SAVE</div>
-                        <div class="toolbox-desc">Save to storage</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="toolbox-section">
-                <div class="toolbox-section-title">Actions</div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SEND MAIL">
-                    <div class="toolbox-icon send">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                            <polyline points="22,6 12,13 2,6"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SEND MAIL</div>
-                        <div class="toolbox-desc">Send email</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="CALL">
-                    <div class="toolbox-icon call">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="9" y1="9" x2="15" y2="15"/>
-                            <line x1="15" y1="9" x2="9" y2="15"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">CALL</div>
-                        <div class="toolbox-desc">Call procedure</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="POST">
-                    <div class="toolbox-icon call">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="2" y1="12" x2="22" y2="12"/>
-                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">POST</div>
-                        <div class="toolbox-desc">HTTP POST request</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="toolbox-section">
-                <div class="toolbox-section-title">Memory</div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SET BOT MEMORY">
-                    <div class="toolbox-icon set">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
-                            <line x1="6" y1="6" x2="6.01" y2="6"/>
-                            <line x1="6" y1="18" x2="6.01" y2="18"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SET BOT MEMORY</div>
-                        <div class="toolbox-desc">Store bot data</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="GET BOT MEMORY">
-                    <div class="toolbox-icon get">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
-                            <line x1="6" y1="6" x2="6.01" y2="6"/>
-                            <line x1="6" y1="18" x2="6.01" y2="18"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">GET BOT MEMORY</div>
-                        <div class="toolbox-desc">Retrieve bot data</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="SET USER MEMORY">
-                    <div class="toolbox-icon set">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">SET USER MEMORY</div>
-                        <div class="toolbox-desc">Store user data</div>
-                    </div>
-                </div>
-
-                <div class="toolbox-item" draggable="true" data-node-type="GET USER MEMORY">
-                    <div class="toolbox-icon get">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <div class="toolbox-info">
-                        <div class="toolbox-name">GET USER MEMORY</div>
-                        <div class="toolbox-desc">Retrieve user data</div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Canvas Area -->
-        <div class="canvas-container" id="canvas-container">
-            <div class="canvas-grid"></div>
-            <div class="canvas" id="canvas">
-                <svg class="connections-layer" id="connections-layer">
-                    <defs>
-                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="var(--border, #334155)"/>
-                        </marker>
-                    </defs>
-                </svg>
-                <div class="canvas-inner" id="canvas-inner">
-                    <!-- Nodes are rendered here dynamically -->
-                </div>
-            </div>
-
-            <!-- Minimap -->
-            <div class="minimap" id="minimap">
-                <div class="minimap-viewport" id="minimap-viewport"></div>
-            </div>
-        </div>
-
-        <!-- Magic AI Panel -->
-        <div class="magic-panel" id="magic-panel">
-            <div class="magic-header">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-                </svg>
-                <h3>AI Improvements</h3>
-                <button class="magic-close" onclick="hideMagicPanel()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="magic-content" id="magic-content">
-                <div class="magic-loading">
-                    <div class="spinner"></div>
-                    <p>Analyzing your dialog...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Properties Panel -->
-        <aside class="properties-panel" id="properties-panel">
-            <div class="properties-header">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-                Properties
-            </div>
-            <div class="properties-content" id="properties-content">
-                <div class="properties-empty">
-                    Select a node to edit its properties
-                </div>
-            </div>
-        </aside>
-
-        <!-- Status Bar -->
-        <footer class="status-bar">
-            <div class="status-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <span id="file-name">Untitled.bas</span>
-            </div>
-            <div class="status-item">
-                <span id="node-count">0 nodes</span>
-            </div>
-            <div class="status-item">
-                <span id="connection-count">0 connections</span>
-            </div>
-            <div class="status-spacer"></div>
-            <div class="status-item" id="save-status">
-                <span>Not saved</span>
-            </div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" id="zoom-out" title="Zoom Out" onclick="zoomOut()">−</button>
-                <span class="zoom-value" id="zoom-value">100%</span>
-                <button class="zoom-btn" id="zoom-in" title="Zoom In" onclick="zoomIn()">+</button>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Context Menu -->
-    <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" data-action="duplicate">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            Duplicate
-        </div>
-        <div class="context-menu-item" data-action="copy">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            Copy
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="bring-front">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="17 11 12 6 7 11"/>
-                <polyline points="17 18 12 13 7 18"/>
-            </svg>
-            Bring to Front
-        </div>
-        <div class="context-menu-item" data-action="send-back">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="7 13 12 18 17 13"/>
-                <polyline points="7 6 12 11 17 6"/>
-            </svg>
-            Send to Back
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item danger" data-action="delete">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            Delete
-        </div>
-    </div>
-
-    <!-- Open File Modal -->
-    <div class="modal-overlay" id="open-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">Open Dialog File</span>
-                <button class="modal-close" onclick="hideModal('open-modal')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="file-list" id="file-list-content">
-                    <div class="htmx-indicator" style="text-align: center; padding: 20px;">
-                        <div class="spinner" style="margin: 0 auto;"></div>
-                        <div style="margin-top: 8px; color: var(--text-secondary, #94a3b8);">Loading files...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="toolbar-btn" onclick="hideModal('open-modal')">Cancel</button>
-                <button class="toolbar-btn primary" id="btn-open-selected"
-                        hx-get="/api/ui/designer/load"
-                        hx-include="#selected-file"
-                        hx-target="#canvas-inner"
-                        hx-swap="innerHTML"
-                        onclick="hideModal('open-modal')">
-                    Open
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden form for designer data -->
-    <form id="designer-data" style="display: none;">
-        <input type="hidden" name="filename" id="current-filename" value="">
-        <textarea name="nodes" id="nodes-data"></textarea>
-        <textarea name="connections" id="connections-data"></textarea>
-    </form>
-    <input type="hidden" id="selected-file" name="path" value="">
+<!-- Note: ws-connect="/ws/designer" removed until backend WebSocket endpoint is implemented --> <div class="gb-app designer-container" data-gb-app="designer">
+<!-- Header --> <header class="designer-header">
+<div class="designer-logo"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M12 2L2 7l10 5 10-5-10-5z"/> <path d="M2 17l10 5 10-5"/>
+<path d="M2 12l10 5 10-5"/> </svg>
+<span>Dialog Designer</span> </div>
+<div class="designer-toolbar"> <button class="toolbar-btn" id="btn-new" title="New Dialog (Ctrl+N)" onclick="newDesign()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+<polyline points="14 2 14 8 20 8"/> <line x1="12" y1="18" x2="12" y2="12"/>
+<line x1="9" y1="15" x2="15" y2="15"/> </svg>
+New </button>
+<button class="toolbar-btn" id="btn-open" hx-get="/api/ui/designer/files" hx-target="#file-list-content" hx-trigger="click" onclick="showModal('open-modal')" title="Open Dialog (Ctrl+O)"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/> </svg>
+Open </button>
+<button class="toolbar-btn primary" id="btn-save" hx-post="/api/ui/designer/save" hx-include="#designer-data" hx-indicator="#save-spinner" title="Save (Ctrl+S)"> <span class="htmx-indicator spinner" id="save-spinner"></span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+<polyline points="17 21 17 13 7 13 7 21"/> <polyline points="7 3 7 8 15 8"/>
+</svg> Save
+</button> <div class="toolbar-separator"></div>
+<button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M3 7v6h6"/> <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+</svg> </button>
+<button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M21 7v6h-6"/> <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
+</svg> </button>
+<div class="toolbar-separator"></div> <button class="toolbar-btn" id="btn-run" hx-post="/api/ui/designer/validate" hx-include="#designer-data" title="Validate Dialog">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <polygon points="5 3 19 12 5 21 5 3"/>
+</svg> Validate
+</button> <button class="toolbar-btn" id="btn-export" hx-get="/api/ui/designer/export" hx-include="#designer-data" title="Export as .bas">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+<polyline points="7 10 12 15 17 10"/> <line x1="12" y1="15" x2="12" y2="3"/>
+</svg> Export
+</button> <button class="toolbar-btn" id="btn-search-nodes" onclick="showSearchPanel()" title="Search Nodes (Ctrl+F)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+</svg> Search
+</button> <button class="toolbar-btn" id="btn-deploy" onclick="deployFlow()" title="Deploy to Bot">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+</svg> Deploy
+</button> <button class="toolbar-btn" id="btn-versions" onclick="showVersionsPanel()" title="Version History">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+</svg> History
+</button> <button class="toolbar-btn" id="btn-edit-text" onclick="var p=window.__EDITOR_FILE_PATH,b=window.__EDITOR_FILE_BUCKET,s=window.__EDITOR_FILE_SCOPE||'bot';if(p&&b){var ts=Date.now();window.WindowManager.open('editor-'+ts, p.split('/').pop(), '');window.__EDITOR_FILE_BUCKET=b;window.__EDITOR_FILE_PATH=p;window.__EDITOR_FILE_SCOPE=s;window.__EDITOR_BOOT=Promise.resolve();fetch('/suite/editor.html').then(function(r){return r.text();}).then(function(h){var bb=document.getElementById('window-body-editor-'+ts);if(bb)window.WindowManager._injectBodyContent('editor-'+ts,h);});}" title="Open in Text Editor" style="display:none">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/> </svg>
+Edit Text </button>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading designer…</span></div> <div class="gb-state gb-state-error"><span class="gb-state-msg">Designer unavailable</span></div>
+<script src="/suite/designer-inline-state.js?v=1"></script> <script src="/suite/designer-inline-nodes.js?v=1"></script>
+<script src="/suite/designer-inline-context-menu.js?v=1"></script> <script src="/suite/designer-inline-search.js?v=1"></script>
+<div class="toolbar-separator"></div> <button class="toolbar-btn magic" id="btn-magic" onclick="showMagicPanel()" title="AI Improvements (Ctrl+M)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+</svg> Magic
+</button> </div>
+</header> <!-- Toolbox Panel -->
+<aside class="toolbox-panel"> <div class="toolbox-section">
+<div class="toolbox-section-title">Conversation</div> <div class="toolbox-item" draggable="true" data-node-type="TALK">
+<div class="toolbox-icon talk"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">TALK</div> <div class="toolbox-desc">Send message to user</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="HEAR"> <div class="toolbox-icon hear">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+<path d="M19 10v2a7 7 0 0 1-14 0v-2"/> <line x1="12" y1="19" x2="12" y2="23"/>
+<line x1="8" y1="23" x2="16" y2="23"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">HEAR</div> <div class="toolbox-desc">Wait for user input</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="WAIT"> <div class="toolbox-icon wait">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <circle cx="12" cy="12" r="10"/>
+<polyline points="12 6 12 12 16 14"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">WAIT</div> <div class="toolbox-desc">Pause execution</div>
+</div> </div>
+</div> <div class="toolbox-section">
+<div class="toolbox-section-title">Logic</div> <div class="toolbox-item" draggable="true" data-node-type="IF">
+<div class="toolbox-icon if"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<polyline points="9 18 15 12 9 6"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">IF</div> <div class="toolbox-desc">Conditional branch</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="SWITCH"> <div class="toolbox-icon switch">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <path d="M18 8L22 12L18 16"/>
+<path d="M2 12H22"/> <path d="M6 8L2 12L6 16"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">SWITCH</div>
+<div class="toolbox-desc">Multiple conditions</div> </div>
+</div> <div class="toolbox-item" draggable="true" data-node-type="FOR">
+<div class="toolbox-icon for"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<polyline points="23 4 23 10 17 10"/> <polyline points="1 20 1 14 7 14"/>
+<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">FOR EACH</div> <div class="toolbox-desc">Loop through items</div>
+</div> </div>
+</div> <div class="toolbox-section">
+<div class="toolbox-section-title">Data</div> <div class="toolbox-item" draggable="true" data-node-type="SET">
+<div class="toolbox-icon set"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<polyline points="4 7 4 4 20 4 20 7"/> <line x1="9" y1="20" x2="15" y2="20"/>
+<line x1="12" y1="4" x2="12" y2="20"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">SET</div> <div class="toolbox-desc">Assign variable</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="GET"> <div class="toolbox-icon get">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <circle cx="12" cy="12" r="3"/>
+<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">GET</div> <div class="toolbox-desc">Fetch data</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="SAVE"> <div class="toolbox-icon send">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+<polyline points="17 21 17 13 7 13 7 21"/> <polyline points="7 3 7 8 15 8"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">SAVE</div>
+<div class="toolbox-desc">Save to storage</div> </div>
+</div> </div>
+<div class="toolbox-section"> <div class="toolbox-section-title">Actions</div>
+<div class="toolbox-item" draggable="true" data-node-type="SEND MAIL"> <div class="toolbox-icon send">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+<polyline points="22,6 12,13 2,6"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">SEND MAIL</div> <div class="toolbox-desc">Send email</div>
+</div> </div>
+<div class="toolbox-item" draggable="true" data-node-type="CALL"> <div class="toolbox-icon call">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+<line x1="9" y1="9" x2="15" y2="15"/> <line x1="15" y1="9" x2="9" y2="15"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">CALL</div>
+<div class="toolbox-desc">Call procedure</div> </div>
+</div> <div class="toolbox-item" draggable="true" data-node-type="POST">
+<div class="toolbox-icon call"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<circle cx="12" cy="12" r="10"/> <line x1="2" y1="12" x2="22" y2="12"/>
+<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/> </svg>
+</div> <div class="toolbox-info">
+<div class="toolbox-name">POST</div> <div class="toolbox-desc">HTTP POST request</div>
+</div> </div>
+</div> <div class="toolbox-section">
+<div class="toolbox-section-title">Memory</div> <div class="toolbox-item" draggable="true" data-node-type="SET BOT MEMORY">
+<div class="toolbox-icon set"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<rect x="2" y="2" width="20" height="8" rx="2" ry="2"/> <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+<line x1="6" y1="6" x2="6.01" y2="6"/> <line x1="6" y1="18" x2="6.01" y2="18"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">SET BOT MEMORY</div>
+<div class="toolbox-desc">Store bot data</div> </div>
+</div> <div class="toolbox-item" draggable="true" data-node-type="GET BOT MEMORY">
+<div class="toolbox-icon get"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<rect x="2" y="2" width="20" height="8" rx="2" ry="2"/> <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+<line x1="6" y1="6" x2="6.01" y2="6"/> <line x1="6" y1="18" x2="6.01" y2="18"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">GET BOT MEMORY</div>
+<div class="toolbox-desc">Retrieve bot data</div> </div>
+</div> <div class="toolbox-item" draggable="true" data-node-type="SET USER MEMORY">
+<div class="toolbox-icon set"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">SET USER MEMORY</div>
+<div class="toolbox-desc">Store user data</div> </div>
+</div> <div class="toolbox-item" draggable="true" data-node-type="GET USER MEMORY">
+<div class="toolbox-icon get"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/> <circle cx="12" cy="7" r="4"/>
+</svg> </div>
+<div class="toolbox-info"> <div class="toolbox-name">GET USER MEMORY</div>
+<div class="toolbox-desc">Retrieve user data</div> </div>
+</div> </div>
+</aside> <!-- Canvas Area -->
+<div class="canvas-container" id="canvas-container"> <div class="canvas-grid"></div>
+<div class="canvas" id="canvas"> <svg class="connections-layer" id="connections-layer">
+<defs> <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="var(--border, #334155)"/> </marker>
+</defs> </svg>
+<div class="canvas-inner" id="canvas-inner"> <!-- Nodes are rendered here dynamically -->
+</div> </div>
+<!-- Minimap --> <div class="minimap" id="minimap">
+<div class="minimap-viewport" id="minimap-viewport"></div> </div>
+</div> <!-- Magic AI Panel -->
+<div class="magic-panel" id="magic-panel"> <div class="magic-header">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+</svg> <h3>AI Improvements</h3>
+<button class="magic-close" onclick="hideMagicPanel()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<line x1="18" y1="6" x2="6" y2="18"/> <line x1="6" y1="6" x2="18" y2="18"/>
+</svg> </button>
+</div> <div class="magic-content" id="magic-content">
+<div class="magic-loading"> <div class="spinner"></div>
+<p>Analyzing your dialog...</p> </div>
+</div> </div>
+<!-- Properties Panel --> <aside class="properties-panel" id="properties-panel">
+<div class="properties-header"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="3"/> <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg> Properties
+</div> <div class="properties-content" id="properties-content">
+<div class="properties-empty"> Select a node to edit its properties
+</div> </div>
+</aside> <!-- Status Bar -->
+<footer class="status-bar"> <div class="status-item">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+<polyline points="14 2 14 8 20 8"/> </svg>
+<span id="file-name">Untitled.bas</span> </div>
+<div class="status-item"> <span id="node-count">0 nodes</span>
+</div> <div class="status-item">
+<span id="connection-count">0 connections</span> </div>
+<div class="status-spacer"></div> <div class="status-item" id="save-status">
+<span>Not saved</span> </div>
+<div class="zoom-controls"> <button class="zoom-btn" id="zoom-out" title="Zoom Out" onclick="zoomOut()">−</button>
+<span class="zoom-value" id="zoom-value">100%</span> <button class="zoom-btn" id="zoom-in" title="Zoom In" onclick="zoomIn()">+</button>
+</div> </footer>
+</div> <!-- Context Menu -->
+<div class="context-menu" id="context-menu"> <div class="context-menu-item" data-action="duplicate">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/> </svg>
+Duplicate </div>
+<div class="context-menu-item" data-action="copy"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/> <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+</svg> Copy
+</div> <div class="context-menu-separator"></div>
+<div class="context-menu-item" data-action="bring-front"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+<polyline points="17 11 12 6 7 11"/> <polyline points="17 18 12 13 7 18"/>
+</svg> Bring to Front
+</div> <div class="context-menu-item" data-action="send-back">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <polyline points="7 13 12 18 17 13"/>
+<polyline points="7 6 12 11 17 6"/> </svg>
+Send to Back </div>
+<div class="context-menu-separator"></div> <div class="context-menu-item danger" data-action="delete">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"> <polyline points="3 6 5 6 21 6"/>
+<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/> </svg>
+Delete </div>
+</div> <!-- Open File Modal -->
+<div class="modal-overlay" id="open-modal"> <div class="modal">
+<div class="modal-header"> <span class="modal-title">Open Dialog File</span>
+<button class="modal-close" onclick="hideModal('open-modal')"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+<line x1="18" y1="6" x2="6" y2="18"/> <line x1="6" y1="6" x2="18" y2="18"/>
+</svg> </button>
+</div> <div class="modal-body">
+<div class="file-list" id="file-list-content"> <div class="htmx-indicator" style="text-align: center; padding: 20px;">
+<div class="spinner" style="margin: 0 auto;"></div> <div style="margin-top: 8px; color: var(--text-secondary, #94a3b8);">Loading files...</div>
+</div> </div>
+</div> <div class="modal-footer">
+<button class="toolbar-btn" onclick="hideModal('open-modal')">Cancel</button> <button class="toolbar-btn primary" id="btn-open-selected" hx-get="/api/ui/designer/load" hx-include="#selected-file" hx-target="#canvas-inner" hx-swap="innerHTML" onclick="hideModal('open-modal')">
+Open </button>
+</div> </div>
+</div> <!-- Hidden form for designer data -->
+<form id="designer-data" style="display: none;"> <input type="hidden" name="filename" id="current-filename" value="">
+<textarea name="nodes" id="nodes-data"></textarea> <textarea name="connections" id="connections-data"></textarea>
+</form> <input type="hidden" id="selected-file" name="path" value="">

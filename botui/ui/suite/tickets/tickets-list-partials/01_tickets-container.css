@@ -1,0 +1,227 @@
+/* Tickets Styles - Support Cases with AI Assistance */
+
+/* Container */
+.tickets-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary, #0a0a0a);
+    color: var(--text, #f8fafc);
+}
+
+/* Header */
+.tickets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+    flex-shrink: 0;
+}
+
+.tickets-header-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.tickets-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    /* #1317 — the header inherited the window body colour, which washed
+       out the toolbar title on light backgrounds. */
+    color: var(--text, var(--text-primary, #f8fafc));
+}
+
+.tickets-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tickets-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    /* #1317 — the fallback was too faint on the panel background. */
+    color: var(--text-secondary, #6b7280);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tickets-tab:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #f8fafc);
+}
+
+.tickets-tab.active {
+    background: var(--accent, #d4f505);
+    color: var(--accent-contrast, #000);
+    font-weight: 600;
+}
+
+.tickets-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Search */
+.tickets-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    min-width: 250px;
+}
+
+.tickets-search svg {
+    color: var(--text-secondary, #888);
+    flex-shrink: 0;
+}
+
+.tickets-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text, #f8fafc);
+    font-size: 13px;
+    outline: none;
+}
+
+.tickets-search input::placeholder {
+    color: var(--text-secondary, #888);
+}
+
+.tickets-search-results {
+    position: absolute;
+    top: 70px;
+    right: 150px;
+    width: 350px;
+    max-height: 400px;
+    background: var(--surface, #1a1a1a);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+}
+
+.tickets-search-results:not(:empty) {
+    display: block;
+}
+
+/* Summary Cards */
+.tickets-summary {
+    display: flex;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.tickets-summary .summary-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 10px;
+}
+
+.summary-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.summary-icon.open {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.summary-icon.urgent {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.summary-icon.resolved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.summary-icon.ai {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+.summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.summary-label {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+
+.summary-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text, #f8fafc);
+}
+
+.summary-value.open {
+    color: #3b82f6;
+}
+
+.summary-value.urgent {
+    color: #ef4444;
+}
+
+.summary-value.resolved {
+    color: #22c55e;
+}
+
+.summary-value.ai {
+    color: #a855f7;
+}
+
+/* Main Content: List + Detail */
+.tickets-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Tickets List */
+.tickets-list {
+    width: 400px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border, #2a2a2a);
+}
+
+.tickets-list-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.list-filters {
+    display: flex;
+    gap: 8px;
+}

@@ -1,0 +1,363 @@
+.attachment-chip button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .mail-layout {
+        grid-template-columns: 220px 1fr;
+    }
+    .mail-content {
+        display: none;
+    }
+    .mail-content.active {
+        display: flex;
+        position: fixed;
+        inset: 64px 0 0 0;
+        z-index: 100;
+    }
+}
+
+@media (max-width: 768px) {
+    .mail-layout {
+        grid-template-columns: 1fr;
+    }
+    .mail-sidebar {
+        display: none;
+    }
+    .mail-sidebar.active {
+        display: flex;
+        position: fixed;
+        inset: 64px 0 0 0;
+        z-index: 100;
+        width: 280px;
+    }
+    .modal-content {
+        max-height: 90vh;
+    }
+    .compose-toolbar {
+        display: none;
+    }
+}
+
+/* Unified Inbox & Email v1 styles */
+.account-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.flag-icon {
+    color: var(--warning, #f59e0b);
+    font-size: 0.9rem;
+    margin-left: 0.25rem;
+}
+
+.attach-icon {
+    font-size: 0.85rem;
+    margin-left: 0.25rem;
+    opacity: 0.7;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-filter-toggle {
+    flex-shrink: 0;
+}
+
+.search-filters {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    z-index: 50;
+    min-width: 280px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-date {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.search-results .result-stats {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-hover);
+}
+
+.thread-view {
+    padding: 1rem;
+}
+
+.thread-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.thread-message {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.thread-msg-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.thread-sender {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.thread-from {
+    font-size: 0.8rem;
+}
+
+.thread-date {
+    margin-left: auto;
+}
+
+.thread-msg-body {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow-wrap: break-word;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.snooze-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.snooze-menu summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 4px 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.snooze-menu summary::-webkit-details-marker { display: none; }
+
+.snooze-presets {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 100;
+    min-width: 160px;
+}
+
+.snooze-presets button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    background: transparent;
+    color: #f8fafc;
+    border: none;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.snooze-presets button:hover {
+    background: #1e293b;
+}
+
+.mail-action-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.smart-reply-chips {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #334155;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.smart-reply-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.smart-reply-chip {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #3b82f6;
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.smart-reply-chip:hover {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+.nudges-banner {
+    margin-bottom: 12px;
+}
+
+.nudge-item {
+    background: #7c2d12;
+    color: #fef3c7;
+    border: 1px solid #b45309;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    font-size: 0.8125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nudge-item button {
+    background: transparent;
+    color: #fef3c7;
+    border: 1px solid #fef3c7;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+/* Account list — rendered by GET /api/ui/email/accounts */
+#accounts-list .account-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#accounts-list .account-item:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+#accounts-list .account-item > span:first-child {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#accounts-list .account-item .badge {
+    flex: none;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    background: var(--accent, #3b82f6);
+    color: #fff;
+}
+
+/* The mailbox could not be reached on the last sync pass, so an empty inbox is
+   a failure rather than an absence of mail. The full reason is in the title. */
+#accounts-list .account-item .badge-error {
+    background: #dc2626;
+    cursor: help;
+}
+
+/* Provider sign-in — Microsoft 365, Outlook.com and Gmail mailboxes cannot be
+   added with a password, so the add-account modal offers the consent flow. */
+.account-form .oauth-connect {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.account-form .oauth-hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+}
+
+.account-form .oauth-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.account-form .oauth-buttons button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}

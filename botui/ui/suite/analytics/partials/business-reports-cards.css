@@ -1,0 +1,65 @@
+    .report-card {
+        background: var(--surface, var(--card, #1a1a24));
+        border: 1px solid var(--border, #2a2a2a);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .report-card.wide {
+        grid-column: span 2;
+    }
+
+    .report-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border, #2a2a2a);
+    }
+
+    .report-card-header h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text, #fff);
+        margin: 0;
+    }
+
+    .report-badge {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--accent-glow, rgba(59, 130, 246, 0.15));
+        color: var(--accent, #3b82f6);
+    }
+
+    .report-card-body {
+        padding: 20px;
+    }
+
+    .funnel-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .funnel-stage {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        background: var(--color);
+        border-radius: 6px;
+        width: var(--width);
+        margin: 0 auto;
+        transition: width 0.3s;
+    }
+
+    .stage-label,
+    .stage-value {
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+    }
+

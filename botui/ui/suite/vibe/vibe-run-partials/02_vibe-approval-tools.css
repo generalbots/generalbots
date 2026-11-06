@@ -1,0 +1,232 @@
+
+.vibe-approval-tools {
+    font-size: 10px;
+    color: var(--text);
+    max-height: 80px;
+    overflow-y: auto;
+    word-wrap: break-word;
+}
+
+.vibe-approval-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.vibe-approval-actions button {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 6px;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#vibeApproveBtn {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+#vibeDenyBtn {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+}
+
+.vibe-rd-section {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+}
+
+.vibe-rd-section h4 {
+    margin: 0 0 6px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.vibe-src-item {
+    font-size: 10px;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    display: flex;
+    gap: 4px;
+}
+
+.vibe-session-item,
+.vibe-run-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+}
+
+.vibe-session-item .meta,
+.vibe-run-item .meta {
+    flex: 1;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vibe-session-item button,
+.vibe-run-item button,
+.vibe-team-new button {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.vibe-team-new {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vibe-team-new input,
+.vibe-team-new textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 11px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.vibe-team-new textarea {
+    resize: vertical;
+    min-height: 48px;
+}
+
+.vibe-team-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--bg);
+    margin-bottom: 8px;
+}
+
+.vibe-team-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.vibe-member-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.vibe-member-chip {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--surface-hover);
+}
+
+.vibe-member-chip.working {
+    border-color: #f59e0b;
+    color: #b45309;
+}
+
+.vibe-member-chip.done {
+    border-color: var(--accent);
+    color: #3d7a24;
+}
+
+.vibe-member-chip.failed {
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+.vibe-todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vibe-todo-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg);
+}
+
+.vibe-todo-icon {
+    width: 14px;
+    text-align: center;
+    font-weight: 800;
+}
+
+.vibe-todo-item.active { border-color: var(--accent); color: var(--text); }
+.vibe-todo-item.done { color: #3d7a24; }
+
+.vibe-rd-empty {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 4px 0;
+}
+
+/* Runner log (#1271) — chat messages mirrored into the run dock. */
+.vibe-runner-log {
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: 10px;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border, #222);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+.vibe-runner-log-line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 1px 0;
+}
+
+.vibe-runner-log-ts {
+    color: #3d7a24;
+    margin-right: 4px;
+}
+
+.vibe-runner-log-role {
+    display: inline-block;
+    min-width: 44px;
+    font-weight: 700;
+    color: var(--accent, #84d669);
+    margin-right: 4px;
+}
+
+.vibe-runner-log-role:first-letter {
+    text-transform: uppercase;
+}
+
+.vibe-runner-log-text {
+    color: var(--text-muted, #999);
+}

@@ -1,0 +1,213 @@
+        <div class="report-panel" id="billing-reports">
+            <h3
+                class="report-section-title"
+                data-i18n="analytics-billing-reports"
+            >
+                Billing Reports
+            </h3>
+
+            <div class="report-grid">
+                <div
+                    class="report-card wide"
+                    hx-get="/api/reports/billing/revenue"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-revenue-summary">
+                            Revenue Summary
+                        </h4>
+                        <span class="report-badge">Overview</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="revenue-grid">
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-this-month"
+                                    >This Month</span
+                                >
+                                <span class="revenue-value">$--</span>
+                                <span class="revenue-change positive"
+                                    >↑ --%</span
+                                >
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-last-month"
+                                    >Last Month</span
+                                >
+                                <span class="revenue-value">$--</span>
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-outstanding"
+                                    >Outstanding</span
+                                >
+                                <span class="revenue-value warning">$--</span>
+                            </div>
+                            <div class="revenue-stat">
+                                <span
+                                    class="revenue-label"
+                                    data-i18n="billing-total-overdue"
+                                    >Overdue</span
+                                >
+                                <span class="revenue-value danger">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/aging"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-aging-report">Aging Report</h4>
+                        <span class="report-badge">Receivables</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="aging-breakdown">
+                            <div class="aging-item">
+                                <span class="aging-label">Current</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar current"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">1-30 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-30"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">31-60 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-60"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">61-90 days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-90"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                            <div class="aging-item">
+                                <span class="aging-label">90+ days</span>
+                                <div class="aging-bar-container">
+                                    <div
+                                        class="aging-bar days-over"
+                                        style="width: 0%"
+                                    ></div>
+                                </div>
+                                <span class="aging-value">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/payments"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-payment-history">
+                            Payment History
+                        </h4>
+                        <span class="report-badge">Trend</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="mini-chart-placeholder">
+                            <div class="sparkline-container">
+                                <svg
+                                    class="sparkline"
+                                    viewBox="0 0 100 30"
+                                    preserveAspectRatio="none"
+                                >
+                                    <polyline
+                                        fill="none"
+                                        stroke="#4CAF50"
+                                        stroke-width="2"
+                                        points="0,25 20,20 40,15 60,18 80,10 100,12"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="chart-summary">
+                                <span
+                                    class="summary-label"
+                                    data-i18n="billing-total-paid"
+                                    >Total Paid</span
+                                >
+                                <span class="summary-value">$--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="report-card"
+                    hx-get="/api/reports/billing/monthly"
+                    hx-trigger="load"
+                    hx-swap="innerHTML"
+                >
+                    <div class="report-card-header">
+                        <h4 data-i18n="analytics-monthly-revenue">
+                            Monthly Revenue
+                        </h4>
+                        <span class="report-badge">Chart</span>
+                    </div>
+                    <div class="report-card-body">
+                        <div class="bar-chart-container">
+                            <div class="bar-chart">
+                                <div class="bar" style="--height: 60%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Jan</span>
+                                </div>
+                                <div class="bar" style="--height: 75%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Feb</span>
+                                </div>
+                                <div class="bar" style="--height: 45%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Mar</span>
+                                </div>
+                                <div class="bar" style="--height: 80%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Apr</span>
+                                </div>
+                                <div class="bar" style="--height: 90%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">May</span>
+                                </div>
+                                <div class="bar current" style="--height: 70%">
+                                    <span class="bar-value">$--</span>
+                                    <span class="bar-label">Jun</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

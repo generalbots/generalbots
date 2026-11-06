@@ -1,1169 +1,225 @@
 <!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>General Bots Desktop</title>
-        <link rel="manifest" href="/manifest.webmanifest" />
-
-        <script>
-            // Desktop-local has no separate login host: the desktop shell
-            // serves its own sign-in page next to this one. Botui-served
-            // installs inject GB_LOGIN_URL before this script runs, so only
-            // the standalone (botserver-served) build uses the fallback.
-            if (!window.GB_LOGIN_URL) {
-                window.GB_LOGIN_URL = "/suite/login.html";
-            }
-            // Consume a suite session token BEFORE any other script loads.
-            // security-bootstrap.js snapshots the token into memory when it
-            // initialises; a capture at the end of <body> would arrive after
-            // that snapshot and every isAuthenticated() call would still say
-            // "anonymous". Cloud JWTs (3 segments) keep using the SSO hop.
-            try {
-                var __tokParams = new URLSearchParams(window.location.search);
-                var __tok = __tokParams.get("token");
-                if (__tok && __tok.split(".").length !== 3) {
-                    localStorage.setItem("gb-access-token", __tok);
-                    var __u = new URL(window.location.href);
-                    __u.searchParams.delete("token");
-                    __u.searchParams.delete("email");
-                    __u.searchParams.delete("name");
-                    window.history.replaceState({}, "", __u.pathname + __u.search + __u.hash);
-                }
-            } catch (e) {}
-            window.__BOT_IS_PUBLIC__ = false;
-            // Hide the shell from the very first paint: a private bot must
-            // never flash an empty desktop before the auth gate resolves.
-            document.documentElement.classList.add('gb-auth-gate');
-            setTimeout(function() {
-                document.body.style.pointerEvents = 'auto';
-                document.body.style.overflow = 'auto';
-            }, 8000);
-        </script>
-
-        <!-- AUTH GATE: hide the shell until the bot public/auth check resolves.
+<html lang="en"> <head>
+<meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>General Bots Desktop</title> <link rel="manifest" href="/manifest.webmanifest" />
+<script src="/suite/desktop-inline/01_boot_flags.js"></script> <!-- AUTH GATE: hide the shell until the bot public/auth check resolves.
              Private bots redirect unauthenticated visitors before first paint
              of the desktop — never show an empty shell. -->
-        <style>
-            html.gb-auth-gate body > * { visibility: hidden !important; }
-            html.gb-auth-gate::after {
-                content: '';
-                position: fixed;
-                inset: 0;
-                background: var(--bg, #0b0b12);
-            }
-        </style>
-
-        <!-- Global & theme foundation -->
-        <link rel="stylesheet" href="/suite/css/app.css" />
-        <link rel="stylesheet" href="/suite/css/base.css" />
-        <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
-        <link rel="stylesheet" href="/suite/css/config-colors.css" />
-
-        <!-- GB Fluent CSS modules -->
-        <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=14" />
-        <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
-        <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=4" />
-        <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
-        <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/context-menu.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/screensaver.css?v=2" />
-        <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=6" />
-        <link rel="stylesheet" href="/suite/js/multitasking.css?v=1" />
-        <link rel="stylesheet" href="/suite/js/chrome.css?v=1" />
-
-        <!-- Local JS requirements per AGENTS.md / UI.md -->
-        <script src="/suite/js/vendor/htmx.min.js"></script>
-        <script src="/suite/js/gb-shared.js"></script>
-        <script src="/suite/js/i18n.js?v=7"></script>
-        <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
-        <script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"></script>
-        <script src="/suite/js/security-bootstrap/99_init.js?v=6"></script>
-        <script src="/suite/js/vendor/marked.min.js"></script>
-        <script src="/suite/js/window-manager/01_registry.js?v=131"></script>
-        <script src="/suite/js/window-manager/02_class_core.js?v=131"></script>
-        <script src="/suite/js/window-manager/03_window_chrome.js?v=131"></script>
-        <script src="/suite/js/window-manager/04_window_state.js?v=131"></script>
-        <script src="/suite/js/window-manager/05_start_menu.js?v=131"></script>
-        <script src="/suite/js/window-manager/06_deeplinks.js?v=131"></script>
-        <script src="/suite/js/window-manager/99_init.js?v=131"></script>
-        <script src="/suite/js/css-loader.js"></script>
-        <script src="/suite/js/vibe-bridge.js?v=4"></script>
-        <script src="/suite/js/theme-manager.js?v=2"></script>
-        <script src="/suite/js/command-palette.js?v=1"></script>
-        <script src="/suite/js/sidebar-convos.js?v=6"></script>
-        <script src="/suite/js/sidebar-convos-lock.js?v=4"></script>
-        <script src="/suite/js/auto-update.js?v=2"></script>
-        <script src="/suite/js/data-export.js?v=1"></script>
-        <script src="/suite/js/usage-stats.js?v=1"></script>
-        <script src="/suite/js/privacy-controls.js?v=1"></script>
-        <script src="/suite/js/accessibility.js?v=1"></script>
-        <script src="/suite/js/sidebar-apps.js?v=3"></script>
-        <script src="/suite/js/sidebar.js?v=18"></script>
-        <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
-        
-        <link rel="stylesheet" href="/suite/css/mindfulness.css?v=1" />
-        <script src="/suite/js/app-lifecycle.js?v=1"></script>
-        <script src="/suite/js/widget-renderer.js?v=2"></script>
-        <script src="/suite/js/widget-registry.js?v=2"></script>
-        <script src="/suite/js/desktop-shortcuts.js?v=2"></script>
-        <script src="/suite/js/screensavers.js?v=2"></script>
-        <script src="/suite/js/pinned-launcher.js?v=3"></script>
-        <script src="/suite/js/sidebar-enhance.js?v=5"></script>
-        <script src="/suite/js/sidebar-sections.js?v=5"></script>
-        <script src="/suite/js/sidebar-history.js?v=4"></script>
-        <script src="/suite/js/snap-assist.js?v=1"></script>
-        <script src="/suite/js/virtual-desktops.js?v=1"></script>
-        <script src="/suite/js/mission-control.js?v=1"></script>
-        <script src="/suite/js/alt-tab.js?v=1"></script>
-        <script src="/suite/js/taskbar-previews.js?v=1"></script>
-        <script src="/suite/js/gb-toasts.js?v=1"></script>
-        <script src="/suite/js/gb-datetime.js?v=2"></script>
-        <script src="/suite/js/control-center.js?v=1"></script>
-        <script src="/suite/js/lock-screen.js?v=2"></script>
-        <script src="/suite/js/spotlight.js?v=1"></script>
-        <script src="/suite/js/agent-executor.js?v=1"></script>
-        <link rel="stylesheet" href="/suite/css/agent-control.css?v=1" />
-        <script src="/suite/js/agent-control.js?v=1"></script>
-        <script src="/suite/js/proactivity.js?v=4"></script>
-        <script src="/suite/js/workspace-tabs.js?v=1"></script>
-
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-
-            body {
-                font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
-                background: var(--bg, #ffffff);
-                color: var(--text, #333333);
-                overflow: hidden;
-                height: 100vh;
-                width: 100vw;
-                margin: 0;
-                padding: 0;
-                display: flex;
-            }
-
-            .build-container {
-                width: 100%; height: 100%;
-                display: flex;
-                position: absolute; inset: 0;
-                z-index: 1000;
-                background: var(--bg, #ffffff);
-            }
-
-            .main-wrapper {
-                flex: 1;
-                display: flex; flex-direction: column;
-                overflow: hidden;
-            }
-
-            /* ── Fullscreen Mode ── */
-            body.fullscreen .chat-sidebar { display: none !important; }
-
-            /* Anonymous visitors on PUBLIC bots: sidebar stays visible (Sign in,
-               theme, new chat), only management sections are hidden. The
-               .anon-limited class is only applied when no auth token exists at
-               boot; after login the page reloads without it.
-               #1392 — the Apps rail (Preview-mode switch + grid) stays visible
-               for anonymous visitors too: the switch preference is per-browser
-               (localStorage) and needs no session, and /api/apps/catalog is
-               anonymous-allowed (tenant-scoped, nil-scope fallback), so signed-out
-               visitors can browse the suite's preview apps. */
-            .chat-sidebar.anon-limited #sidebarAppsNav { display: block !important; }
-            .chat-sidebar.anon-limited .chat-sidebar-section-label { display: none !important; }
-            .chat-sidebar.anon-limited #chatConversations { display: none !important; }
-            .chat-sidebar.anon-limited #sidebarUser { display: flex !important; }
-            body.fullscreen .toolbar-v15 { display: none !important; }
-            body.fullscreen .workspace-v15 { height: 100vh !important; }
-            body.fullscreen .main-wrapper { height: 100vh !important; }
-            body.fullscreen .window-titlebar { display: none !important; }
-            body.fullscreen .window-element-glass,
-            body.fullscreen .window-element {
-                border: none !important; border-radius: 0 !important;
-                box-shadow: none !important;
-                top: 0 !important; left: 0 !important;
-                width: 100% !important; height: 100% !important;
-            }
-            body.fullscreen .window-element-glass > div:first-child,
-            body.fullscreen .window-element > div:first-child { display: none !important; }
-
-            /* ── Public Bot Mode ── */
-            body.public-mode .chat-sidebar { /* sidebar always visible */ }
-            body.public-mode .workspace-v15 { height: calc(100vh - 56px) !important; }
-            body.public-mode .window-element-glass,
-            body.public-mode .window-element {
-                border: none !important; border-radius: 0 !important;
-                box-shadow: none !important;
-                top: 0 !important; left: 0 !important;
-                width: 100% !important; height: 100% !important;
-            }
-            body.public-mode .window-titlebar { }
-            body.public-mode .window-element-glass > div:first-child,
-            body.public-mode .window-element > div:first-child { display: none !important; }
-
-            .public-signup-cta {
-                display: flex; align-items: center; justify-content: space-between;
-                padding: 10px 16px; background: var(--primary, #84d669);
-                color: #fff; border-radius: 8px; margin: 8px 12px;
-                font-size: 13px; gap: 12px;
-            }
-            .public-signup-cta a { color: #fff; text-decoration: underline; font-weight: 600; white-space: nowrap; cursor: pointer; }
-            .public-signup-cta a:hover { text-decoration: none; }
-
-            /* ── Setup Wizard ── */
-            .setup-wizard-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999; }
-            .setup-wizard-modal { width:520px; max-width:90vw; background: var(--surface,#1a1a24); border:1px solid var(--border,#2a2a2a); border-radius:16px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
-            .setup-wizard-header { text-align:center; margin-bottom:24px; }
-            .setup-wizard-header h2 { font-size:24px; font-weight:700; margin:0 0 8px; color:var(--text,#e5e5e5); }
-            .setup-wizard-header p { margin:0; color:var(--text-secondary,#888); font-size:14px; }
-            .setup-progress { margin-bottom:32px; }
-            .setup-progress-bar { height:4px; background:var(--border,#2a2a2a); border-radius:2px; margin-bottom:8px; overflow:hidden; }
-            .setup-progress-fill { height:100%; background:var(--primary,#84d669); border-radius:2px; transition:width 0.3s ease; }
-            .setup-progress-steps { display:flex; justify-content:space-between; }
-            .setup-step { font-size:12px; color:var(--text-secondary,#888); transition:color 0.3s ease; }
-            .setup-step.active { color:var(--primary,#84d669); font-weight:600; }
-            .setup-step-content { display:none; }
-            .setup-step-content.active { display:block; }
-            .setup-step-content h3 { font-size:18px; font-weight:600; margin:0 0 8px; color:var(--text,#e5e5e5); }
-            .setup-step-content p { margin:0 0 20px; color:var(--text-secondary,#888); font-size:14px; }
-            .setup-options { display:flex; flex-direction:column; gap:12px; }
-            .setup-option { display:flex; align-items:center; gap:16px; padding:16px; background:var(--surface-hover,rgba(255,255,255,0.03)); border:2px solid var(--border,#2a2a2a); border-radius:12px; cursor:pointer; transition:all 0.2s ease; }
-            .setup-option:hover { border-color:var(--primary,#84d669); background:rgba(132,214,105,0.05); }
-            .setup-option.selected { border-color:var(--primary,#84d669); background:rgba(132,214,105,0.1); }
-            .setup-option-icon { width:48px; height:48px; display:flex; align-items:center; justify-content:center; background:rgba(132,214,105,0.1); border-radius:12px; color:var(--primary,#84d669); flex-shrink:0; }
-            .setup-option-info { flex:1; }
-            .setup-option-title { display:block; font-size:15px; font-weight:600; color:var(--text,#e5e5e5); margin-bottom:4px; }
-            .setup-option-desc { font-size:13px; color:var(--text-secondary,#888); }
-            .setup-form { display:flex; flex-direction:column; gap:16px; }
-            .setup-form-group { display:flex; flex-direction:column; gap:6px; }
-            .setup-form-group label { font-size:13px; font-weight:600; color:var(--text,#e5e5e5); }
-            .setup-input { padding:12px 16px; background:var(--surface-hover,rgba(255,255,255,0.05)); border:1px solid var(--border,#2a2a2a); border-radius:8px; color:var(--text,#e5e5e5); font-size:14px; font-family:inherit; outline:none; transition:border-color 0.2s ease; }
-            .setup-input:focus { border-color:var(--primary,#84d669); }
-            .setup-input::placeholder { color:var(--text-secondary,#555); }
-            textarea.setup-input { resize:vertical; min-height:80px; }
-            .setup-wizard-footer { display:flex; justify-content:flex-end; gap:12px; margin-top:32px; padding-top:16px; border-top:1px solid var(--border,#2a2a2a); }
-            .setup-btn { padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s ease; font-family:inherit; }
-            .setup-btn-primary { background:var(--primary,#84d669); color:#000; }
-            .setup-btn-primary:hover { opacity:0.9; transform:translateY(-1px); }
-            .setup-btn-secondary { background:var(--surface-hover,rgba(255,255,255,0.1)); color:var(--text,#e5e5e5); border:1px solid var(--border,#2a2a2a); }
-            .setup-btn-secondary:hover { background:var(--surface-active,rgba(255,255,255,0.15)); }
-            .setup-btn-text { background:none; color:var(--text-secondary,#888); margin-right:auto; }
-            .setup-btn-text:hover { color:var(--text,#e5e5e5); }
-            .setup-drop-zone { border:2px dashed var(--border,#2a2a2a); border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition:all 0.2s ease; background:var(--surface-hover,rgba(255,255,255,0.02)); }
-            .setup-drop-zone:hover,.setup-drop-zone.dragover { border-color:var(--primary,#84d669); background:rgba(132,214,105,0.05); }
-            .setup-drop-zone.dragover .setup-drop-icon svg { stroke:var(--primary,#84d669); }
-            .setup-drop-icon { margin-bottom:12px; }
-            .setup-drop-icon svg { stroke:var(--text-secondary,#888); transition:stroke 0.2s; }
-            .setup-drop-text { font-size:14px; color:var(--text,#e5e5e5); margin:0 0 4px; }
-            .setup-drop-hint { font-size:12px; color:var(--text-secondary,#888); margin:0 0 16px; }
-            .setup-file-list { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
-            .setup-file-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface-hover,rgba(255,255,255,0.03)); border:1px solid var(--border,#2a2a2a); border-radius:6px; font-size:13px; color:var(--text,#e5e5e5); }
-            .setup-file-item .file-name { flex:1; }
-            .setup-file-item .file-size { font-size:11px; color:var(--text-secondary,#888); }
-            .setup-file-item .file-status { font-size:11px; font-weight:600; }
-            .setup-file-item .file-status.uploaded { color:#22c55e; }
-            .setup-file-item .file-status.uploading { color:#f59e0b; }
-            .setup-file-item .file-status.error { color:#ef4444; }
-        </style>
-
-    <script>window.__BOT_IS_PUBLIC__ = false;</script>
-        <style>
-    /* BBSIA mobile: the chat is the product. Hide the rail and give the
-       conversation the full viewport instead of a 90px sliver. */
-    @media (max-width: 768px) {
-        .chat-sidebar { display: none !important; }
-        .main-wrapper { width: 100vw !important; }
-        .window-element,
-        .window-element-glass {
-            left: 0 !important;
-            top: 0 !important;
-            width: 100vw !important;
-            max-width: none !important;
-            height: calc(100vh - 52px) !important;
-            border-radius: 0 !important;
-        }
-        .window-element .window-body,
-        .window-element-glass .window-body {
-            height: calc(100% - 34px) !important;
-        }
-        /* The composer needs the width for the message, not a model legend. */
-        #modelPicker { display: none !important; }
-    }
-    </style>
-        <link rel="stylesheet" href="/suite/css/chat-modern.css?v=18" />
-        <link rel="stylesheet" href="/suite/css/chat-modern-composer.css?v=5" />
-        <link rel="stylesheet" href="/suite/css/chat-modern-chrome.css?v=9" />
-        <link rel="stylesheet" href="/suite/css/chat-modern-dark.css?v=2" />
-</head>
-
-    <body>
-        <!-- Boot splash: covers the shell until CSS is applied so the first
+<link rel="stylesheet" href="/suite/desktop-inline/01_auth_gate.css"> <!-- Global & theme foundation -->
+<link rel="stylesheet" href="/suite/css/app.css" /> <link rel="stylesheet" href="/suite/css/base.css" />
+<link rel="stylesheet" href="/suite/css/theme-sentient.css" /> <link rel="stylesheet" href="/suite/css/config-colors.css" />
+<!-- GB Fluent CSS modules --> <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
+<link rel="stylesheet" href="/suite/css/desktop/windows.css?v=14" /> <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
+<link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=4" /> <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
+<link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" /> <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
+<link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" /> <link rel="stylesheet" href="/suite/css/desktop/context-menu.css?v=1" />
+<link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" /> <link rel="stylesheet" href="/suite/css/screensaver.css?v=2" />
+<link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=6" /> <link rel="stylesheet" href="/suite/js/multitasking.css?v=1" />
+<link rel="stylesheet" href="/suite/js/chrome.css?v=1" /> <!-- Local JS requirements per AGENTS.md / UI.md -->
+<script src="/suite/js/vendor/htmx.min.js"></script> <script src="/suite/js/gb-shared.js"></script>
+<script src="/suite/js/i18n.js?v=7"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
+<script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"></script> <script src="/suite/js/security-bootstrap/99_init.js?v=6"></script>
+<script src="/suite/js/vendor/marked.min.js"></script> <script src="/suite/js/window-manager/01_registry.js?v=131"></script>
+<script src="/suite/js/window-manager/02_class_core.js?v=131"></script> <script src="/suite/js/window-manager/03_window_chrome.js?v=131"></script>
+<script src="/suite/js/window-manager/04_window_state.js?v=131"></script> <script src="/suite/js/window-manager/05_start_menu.js?v=131"></script>
+<script src="/suite/js/window-manager/06_deeplinks.js?v=131"></script> <script src="/suite/js/window-manager/99_init.js?v=131"></script>
+<script src="/suite/js/css-loader.js"></script> <script src="/suite/js/vibe-bridge.js?v=4"></script>
+<script src="/suite/js/theme-manager.js?v=2"></script> <script src="/suite/js/command-palette.js?v=1"></script>
+<script src="/suite/js/sidebar-convos.js?v=6"></script> <script src="/suite/js/sidebar-convos-lock.js?v=4"></script>
+<script src="/suite/js/auto-update.js?v=2"></script> <script src="/suite/js/data-export.js?v=1"></script>
+<script src="/suite/js/usage-stats.js?v=1"></script> <script src="/suite/js/privacy-controls.js?v=1"></script>
+<script src="/suite/js/accessibility.js?v=1"></script> <script src="/suite/js/sidebar-apps.js?v=3"></script>
+<script src="/suite/js/sidebar.js?v=18"></script> <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
+<link rel="stylesheet" href="/suite/css/mindfulness.css?v=1" /> <script src="/suite/js/app-lifecycle.js?v=1"></script>
+<script src="/suite/js/widget-renderer.js?v=2"></script> <script src="/suite/js/widget-registry.js?v=2"></script>
+<script src="/suite/js/desktop-shortcuts.js?v=2"></script> <script src="/suite/js/screensavers.js?v=2"></script>
+<script src="/suite/js/pinned-launcher.js?v=3"></script> <script src="/suite/js/sidebar-enhance.js?v=5"></script>
+<script src="/suite/js/sidebar-sections.js?v=5"></script> <script src="/suite/js/sidebar-history.js?v=4"></script>
+<script src="/suite/js/snap-assist.js?v=1"></script> <script src="/suite/js/virtual-desktops.js?v=1"></script>
+<script src="/suite/js/mission-control.js?v=1"></script> <script src="/suite/js/alt-tab.js?v=1"></script>
+<script src="/suite/js/taskbar-previews.js?v=1"></script> <script src="/suite/js/gb-toasts.js?v=1"></script>
+<script src="/suite/js/gb-datetime.js?v=2"></script> <script src="/suite/js/control-center.js?v=1"></script>
+<script src="/suite/js/lock-screen.js?v=2"></script> <script src="/suite/js/spotlight.js?v=1"></script>
+<script src="/suite/js/agent-executor.js?v=1"></script> <link rel="stylesheet" href="/suite/css/agent-control.css?v=1" />
+<script src="/suite/js/agent-control.js?v=1"></script> <script src="/suite/js/proactivity.js?v=4"></script>
+<script src="/suite/js/workspace-tabs.js?v=1"></script> <link rel="stylesheet" href="/suite/desktop-inline/02_base_layout.css">
+<script src="/suite/desktop-inline/02_public_flag.js"></script> <link rel="stylesheet" href="/suite/desktop-inline/03_bbsia_mobile.css">
+<link rel="stylesheet" href="/suite/css/chat-modern.css?v=18" /> <link rel="stylesheet" href="/suite/css/chat-modern-composer.css?v=5" />
+<link rel="stylesheet" href="/suite/css/chat-modern-chrome.css?v=9" /> <link rel="stylesheet" href="/suite/css/chat-modern-dark.css?v=2" />
+</head> <body>
+<!-- Boot splash: covers the shell until CSS is applied so the first
              paint is never raw, unstyled markup. Removed on window load (or
-             a short timeout as fallback). -->
-        <div id="gbBootSplash" aria-hidden="true">
-            <div class="gb-boot-spinner"></div>
-            <div class="gb-boot-text">General Bots</div>
-        </div>
-        <style>
-            #gbBootSplash {
-                position: fixed; inset: 0; z-index: 2147483000;
-                display: flex; flex-direction: column; gap: 14px;
-                align-items: center; justify-content: center;
-                background: var(--bg, #0f1117);
-                color: var(--text, #e5e5e5);
-                font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
-                transition: opacity 320ms ease;
-            }
-            #gbBootSplash.gb-boot-hidden { opacity: 0; pointer-events: none; }
-            .gb-boot-spinner {
-                width: 34px; height: 34px; border-radius: 50%;
-                border: 3px solid rgba(132, 214, 105, 0.25);
-                border-top-color: var(--primary, #84d669);
-                animation: gbBootSpin 900ms linear infinite;
-            }
-            @keyframes gbBootSpin { to { transform: rotate(360deg); } }
-            .gb-boot-text { font-size: 13px; letter-spacing: 0.08em; opacity: 0.75; }
-        </style>
-        <script>
-            (function () {
-                function hideBootSplash() {
-                    var splash = document.getElementById("gbBootSplash");
-                    if (!splash || splash.dataset.gbHidden === "1") return;
-                    splash.dataset.gbHidden = "1";
-                    splash.classList.add("gb-boot-hidden");
-                    setTimeout(function () {
-                        if (splash.parentNode) splash.parentNode.removeChild(splash);
-                    }, 400);
-                }
-                window.addEventListener("load", hideBootSplash);
-                setTimeout(hideBootSplash, 4000);
-            })();
-        </script>
-
-        <!-- Minibar removed - login moved to taskbar -->
-
-        <div class="build-container">
-            <!-- Sidebar (v16) — Claude/zo.computer style: app links + chat history -->
-            <aside class="chat-sidebar" id="chatSidebar">
-                <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle sidebar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="16" rx="2"/>
-                        <line x1="9" y1="4" x2="9" y2="20"/>
-                    </svg>
-                </div>
-                <div class="chat-sidebar-content">
-                    <div class="chat-sidebar-header">
-                        <div class="chat-sidebar-brand">
-                            <span class="glow-dot"></span>
-                            <span class="chat-sidebar-brand-name">General Bots</span>
-                        </div>
-                    </div>
-                    <button class="chat-sidebar-new-chat" id="sidebarNewChatBtn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        <span data-i18n="chat-new-conversation">New conversation</span>
-                    </button>
-                    <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav>
-                    <div class="chat-sidebar-section-label" data-i18n="sidebar-conversations">Conversations</div>
-                    <div class="chat-sidebar-conversations" id="chatConversations"></div>
-                    <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
-                    <div class="chat-sidebar-user" id="sidebarUser"></div>
-                </div>
-                <div class="chat-sidebar-collapsed-icons">
-                    <div class="chat-sidebar-collapsed-icon" title="Chat" onclick="window.openDeepLink('chat', {})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    </div>
-                    <div class="chat-sidebar-collapsed-icon" title="Terminal" onclick="window.openDeepLink('terminal', {})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-                    </div>
-                    <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </div>
-                    <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div>
-                </div>
-            </aside>
-
-            <!-- Main Wrapper -->
-            <div class="main-wrapper">
-                <!-- Top Navigation Tabs - Removed (already in Vibe) -->
-
-                <!-- Workspace container where WindowManager operates -->
-                <div class="workspace-v15" id="desktop-content">
-                </div>
-
-                <!-- Bottom Taskbar (v15) -->
-                <footer class="toolbar-v15" id="taskbar">
-                    <!-- Compact full-width taskbar: Start + search on the
+             a short timeout as fallback). --> <div id="gbBootSplash" aria-hidden="true">
+<div class="gb-boot-spinner"></div> <div class="gb-boot-text">General Bots</div>
+</div> <link rel="stylesheet" href="/suite/desktop-inline/04_boot_splash.css">
+<script src="/suite/desktop-inline/03_boot_splash.js"></script> <!-- Minibar removed - login moved to taskbar -->
+<div class="build-container"> <!-- Sidebar (v16) — Claude/zo.computer style: app links + chat history -->
+<aside class="chat-sidebar" id="chatSidebar"> <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle sidebar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <rect x="3" y="4" width="18" height="16" rx="2"/>
+<line x1="9" y1="4" x2="9" y2="20"/> </svg>
+</div> <div class="chat-sidebar-content">
+<div class="chat-sidebar-header"> <div class="chat-sidebar-brand">
+<span class="glow-dot"></span> <span class="chat-sidebar-brand-name">General Bots</span>
+</div> </div>
+<button class="chat-sidebar-new-chat" id="sidebarNewChatBtn"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+<span data-i18n="chat-new-conversation">New conversation</span> </button>
+<nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav> <div class="chat-sidebar-section-label" data-i18n="sidebar-conversations">Conversations</div>
+<div class="chat-sidebar-conversations" id="chatConversations"></div> <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
+<div class="chat-sidebar-user" id="sidebarUser"></div> </div>
+<div class="chat-sidebar-collapsed-icons"> <div class="chat-sidebar-collapsed-icon" title="Chat" onclick="window.openDeepLink('chat', {})">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> </div>
+<div class="chat-sidebar-collapsed-icon" title="Terminal" onclick="window.openDeepLink('terminal', {})"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+</div> <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> </div>
+<div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div> </div>
+</aside> <!-- Main Wrapper -->
+<div class="main-wrapper"> <!-- Top Navigation Tabs - Removed (already in Vibe) -->
+<!-- Workspace container where WindowManager operates --> <div class="workspace-v15" id="desktop-content">
+</div> <!-- Bottom Taskbar (v15) -->
+<footer class="toolbar-v15" id="taskbar"> <!-- Compact full-width taskbar: Start + search on the
                          left, running apps centred, tray + clock on the
                          right. Heights are driven by --taskbar-h. -->
-                    <div class="taskbar-shell" id="taskbarShell">
-                    <div class="taskbar-left">
-                    <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start" data-i18n-title="taskbar-start" role="button" tabindex="0" aria-label="Start">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
-                    </div>
-                    <div class="taskbar-search" id="taskbarSearchWrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="search" id="taskbarSearch" placeholder="Search..." data-i18n-placeholder="taskbar-search" aria-label="Universal search" data-i18n-aria-label="taskbar-search" autocomplete="off">
-                    </div>
-                    </div>
-                    <div class="taskbar-center" id="taskbar-center"></div>
-                    <div class="taskbar-right">
-                        <div class="taskbar-tray">
-                            <!-- #1648 — the usage panel finally has a caller. -->
-                            <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" data-i18n-title="taskbar-usage" aria-label="Usage and cost" data-i18n-aria-label="taskbar-usage" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                            </button>
-                            <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                                <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
-                            </button>
-                            <!-- #1617 — Control Center, Mission Control and Virtual
+<div class="taskbar-shell" id="taskbarShell"> <div class="taskbar-left">
+<div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start" data-i18n-title="taskbar-start" role="button" tabindex="0" aria-label="Start"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
+</div> <div class="taskbar-search" id="taskbarSearchWrap">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <input type="search" id="taskbarSearch" placeholder="Search..." data-i18n-placeholder="taskbar-search" aria-label="Universal search" data-i18n-aria-label="taskbar-search" autocomplete="off">
+</div> </div>
+<div class="taskbar-center" id="taskbar-center"></div> <div class="taskbar-right">
+<div class="taskbar-tray"> <!-- #1648 — the usage panel finally has a caller. -->
+<button class="tray-btn" id="trayUsage" title="Usage &amp; cost" data-i18n-title="taskbar-usage" aria-label="Usage and cost" data-i18n-aria-label="taskbar-usage" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+</button> <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
+</button> <!-- #1617 — Control Center, Mission Control and Virtual
                                  Desktops are not part of the current desktop scope.
                                  Their modules stay loaded behind the keyboard
                                  shortcuts; only the tray buttons are removed. -->
-                            <button class="tray-btn" id="trayLock" title="Lock Screen" data-i18n-title="taskbar-lock" aria-label="Lock screen" data-i18n-aria-label="taskbar-lock" onclick="window.LockScreen && window.LockScreen.lock()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            </button>
-                        </div>
-                        <div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" data-i18n-title="taskbar-datetime" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})">
-                            <div id="clock-time">00:00</div>
-                            <div id="clock-date">01/01/2026</div>
-                        </div>
-                    </div>
-                    </div><!-- /taskbar-shell -->
-                </footer>
-            </div>
-        </div>
-
-        <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
-        <script>
-            // Check for fullscreen mode and auth token (from cloud dashboard)
-            (function() {
-                var urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('fullscreen') === 'true') {
-                    document.body.classList.add('fullscreen');
-                }
-                var cloudToken = urlParams.get('token');
-                if (cloudToken) {
-                    var u = new URL(window.location.href);
-                    u.searchParams.delete('token');
-                    u.searchParams.delete('email');
-                    u.searchParams.delete('name');
-                    // Only cloud JWTs go through the SSO hop. A suite session
-                    // token (`gb_...`) is already valid for /api and is stored
-                    // locally; sending it to suite-sso fails with 400 because
-                    // that endpoint verifies a JWT signature.
-                    if (cloudToken.split('.').length === 3) {
-                        window.location.replace('/api/auth/suite-sso?token=' + encodeURIComponent(cloudToken) + '&redirect=' + encodeURIComponent(u.pathname + u.search));
-                        return;
-                    }
-                    try {
-                        localStorage.setItem('gb-access-token', cloudToken);
-                    } catch (e) {}
-                    window.history.replaceState({}, '', u.pathname + u.search);
-                }
-            })();
-
-
-            document.addEventListener("DOMContentLoaded", async () => {
-                // Initialize WindowManager
-                if (typeof window.WindowManager !== "undefined") {
-                    window.wm = window.WindowManager;
-                } else {
-                    console.error(
-                        "WindowManager class not loaded from window-manager.js",
-                    );
-                }
-
-                // AUTO-OPEN an app on load: ?app=vibe (legacy ?vibe=1) opens
-                // the Vibe workbench immediately, so the browser always lands
-                // with the app loaded instead of a bare desktop. Waits for the
-                // catalog merge when it is still in flight so deep links
-                // resolve against the full registry.
-                var autoApp =
-                    new URLSearchParams(window.location.search).get("app") ||
-                    (new URLSearchParams(window.location.search).get("vibe")
-                        ? "vibe"
-                        : "");
-                // Respect a remembered close of the Vibe bar: closing it sets
-                // gb.vibe.closed=1, so a reload of /vibe (or ?app=vibe) must
-                // NOT auto-reopen it. Reopening the bar clears the flag.
-                if (autoApp === "vibe") {
-                    try {
-                        if (localStorage.getItem("gb.vibe.closed") === "1") {
-                            autoApp = "";
-                        }
-                    } catch (e) {
-                        /* storage unavailable — keep the default auto-open */
-                    }
-                }
-                if (autoApp && typeof window.openDeepLink === "function") {
-                    var launched = false;
-                    var launch = function () {
-                        if (launched) return;
-                        launched = true;
-                        window.openDeepLink(autoApp, {});
-                    };
-                    if (window.__gbAppsCatalogLoaded) {
-                        launch();
-                    } else {
-                        var timer = setTimeout(launch, 4000);
-                        window.addEventListener(
-                            "gb-apps-catalog-loaded",
-                            function () {
-                                clearTimeout(timer);
-                                launch();
-                            },
-                            { once: true }
-                        );
-                    }
-                }
-
-                // Initialize ThemeManager
-                if (typeof window.ThemeManager !== "undefined") {
-                    window.ThemeManager.init();
-                }
-
-                // Load product config for app filtering (sidebar visibility
-                // is controlled by bot public status, not product config).
-                try {
-                    const resp = await fetch("/api/product");
-                    if (resp.ok) {
-                        window.productConfig = await resp.json();
-                        // #1433 — honor the .product sidebar switch: sidebar=false
-                        // must actually hide the rail on boot (the Settings
-                        // toggle shares the same body.sidebar-hidden class).
-                        if (window.productConfig && window.productConfig.sidebar === false) {
-                            document.body.classList.add("sidebar-hidden");
-                        }
-                        // Desktop editions disable the omnibox: the taskbar
-                        // search must disappear with it, otherwise it reaches
-                        // domains this product does not ship.
-                        if (window.productConfig && window.productConfig.search_enabled === false) {
-                            var searchWrap = document.getElementById("taskbarSearchWrap");
-                            if (searchWrap) { searchWrap.remove(); }
-                        }
-                    }
-                } catch (e) {
-                    console.warn("Failed to load product config:", e);
-                }
-
-                // No-security mode: skip the entire auth gate when the
-                // product is configured without authentication (desktop-local).
-                var noSecurity = window.productConfig && window.productConfig.no_security === true;
-                if (noSecurity) {
-                    window.__BOT_IS_PUBLIC__ = true;
-                    document.documentElement.classList.remove('gb-auth-gate');
-                }
-
-                // Get bot name from URL path
-                const pathParts = window.location.pathname.split('/');
-                const pathName = pathParts[1] || '';
-                const routeName = pathName === 'sources' ? 'integrations' : pathName;
-                let routeApp = (window.APPS_REGISTRY || []).find(
-                    (app) => app.id === routeName,
-                ) || null;
-                // The packaged desktop serves the shell at /suite/desktop.html;
-                // "suite" is a static segment, not a bot. Without this guard the
-                // Drive app took it as the bot name and probed suite.gborg /
-                // suite.gbai, so its tabs answered 'Access denied for this
-                // bucket' (#1709). Assign the result so every app reads the same
-                // identity (it used to be undefined here).
-                const staticShell = pathName === 'suite' || pathName === 'auth';
-                const botName = window.__INITIAL_BOT_NAME__ ||
-                    (routeApp || staticShell ? 'default' : routeName) || 'default';
-                window.__INITIAL_BOT_NAME__ = botName;
-
-                // AUTH GATE: a private bot (public=false) must NEVER render
-                // the desktop for unauthenticated visitors — not even an empty
-                // shell. The shell stays hidden until this gate resolves; on
-                // private+unauthenticated we redirect to login immediately.
-                var authDenied = false;
-                if (noSecurity) { /* skip auth gate entirely */ } else try {
-
-                    if (botName && botName !== 'default') {
-                        const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
-                        if (resp.ok) {
-                            const config = await resp.json();
-                            const isPub = config.is_public === 'true' || config.is_public === true;
-                            if (isPub) {
-                                window.__BOT_IS_PUBLIC__ = true;
-                                // Hide the management sidebar only for anonymous
-                                // visitors; authenticated owners keep it (thin/large).
-                                var isAuth = false;
-                                try {
-                                    isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
-                                } catch (e) {}
-                                if (!isAuth) {
-                                    try {
-                                        isAuth = !!(localStorage.getItem("gb-access-token") ||
-                                            sessionStorage.getItem("gb-access-token") ||
-                                            localStorage.getItem("management_token"));
-                                    } catch (e) {}
-                                }
-                                // Login redirects back with ?token=... before any
-                                // storage exists yet — that counts as authenticated.
-                                if (!isAuth) {
-                                    try {
-                                        isAuth = new URLSearchParams(window.location.search).has("token");
-                                    } catch (e) {}
-                                }
-                                const sidebar = document.getElementById('chatSidebar');
-                                if (sidebar && !isAuth) {
-                                    // Public bot + anonymous visitor: KEEP the sidebar
-                                    // visible (it hosts the Sign in affordance, theme and
-                                    // new-chat entry point) and hide only management
-                                    // sections via the .anon-limited CSS rules.
-                                    sidebar.classList.add('anon-limited');
-                                }
-                            } else {
-                                window.__BOT_IS_PUBLIC__ = false;
-                                var isAuthPriv = !!(window.getGBAccessToken && window.getGBAccessToken());
-                                if (!isAuthPriv) {
-                                    try {
-                                        isAuthPriv = !!(localStorage.getItem("gb-access-token") ||
-                                            sessionStorage.getItem("gb-access-token") ||
-                                            localStorage.getItem("management_token")) ||
-                                            new URLSearchParams(window.location.search).has("token");
-                                    } catch (e) {}
-                                }
-                                if (!isAuthPriv) {
-                                    authDenied = true;
-                                    window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
-                                }
-                            }
-                        } else {
-                            // Cannot verify public status → fail closed: the
-                            // desktop must not render for unverified bots.
-                            console.warn('Bot public-status check failed (HTTP ' + resp.status + ') — requiring authentication');
-                            authDenied = true;
-                            window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Failed to check bot public status:', e);
-                    // Fail closed on network errors too — never expose the
-                    // desktop of an unverifiable bot address.
-                    authDenied = true;
-                    window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
-                }
-                if (authDenied) {
-                    return; // keep shell hidden; browser navigates to login
-                }
-                document.documentElement.classList.remove('gb-auth-gate');
-                
-                // Open a routed suite app inside the desktop shell; bot routes
-                // continue to open Chat as before.
-                // Remembered close: if the routed app is the Vibe bar and the
-                // user closed it earlier (gb.vibe.closed=1), do NOT auto-open
-                // it here either — the URL-path route must respect the same
-                // memory as the ?app= / ?vibe= query route (window-manager.js
-                // records the close, opening the bar again clears it).
-                if (routeApp && routeApp.id === "vibe") {
-                    try {
-                        if (localStorage.getItem("gb.vibe.closed") === "1") {
-                            routeApp = null;
-                        }
-                    } catch (e) {
-                        /* storage unavailable — keep the default auto-open */
-                    }
-                }
-                if (window.wm) {
-                    try {
-                        // Use suite_default_app from product config, falling back to Chat.
-                        var defaultAppId = (window.productConfig && window.productConfig.suite_default_app) || "chat";
-                        var defaultEntry = (window.APPS_REGISTRY || []).find(function(a) { return a.id === defaultAppId; });
-                        if (!defaultEntry) {
-                            defaultEntry = {
-                                id: defaultAppId,
-                                title: defaultAppId.charAt(0).toUpperCase() + defaultAppId.slice(1),
-                                hxGet: "/suite/partials/" + defaultAppId + ".html",
-                            };
-                        }
-                        const initialApp = routeApp || defaultEntry;
-                        const response = await fetch(initialApp.hxGet);
-                        if (response.ok) {
-                            const htmlContent = await response.text();
-                            window.wm.open(
-                                initialApp.id,
-                                initialApp.title,
-                                htmlContent,
-                            );
-                        }
-                    } catch (err) {
-                        console.error("Failed to auto-open suite app:", err);
-                    }
-                }
-            });
-
-            // Listen to HTMX afterRequest event
-            document.body.addEventListener("htmx:afterRequest", function (evt) {
-                // Ensure Theme dropdown is re-injected if wiped
-                if (window.ThemeManager) {
-                    const container = document.getElementById(
-                        "themeSelectorContainer",
-                    );
-                    if (container && !container.hasChildNodes()) {
-                        window.ThemeManager.init();
-                    }
-                }
-                // Re-evaluate auth state after every HTMX navigation
-                if (typeof updateLoginButton === 'function') {
-                    updateLoginButton();
-                }
-            });
-
-            // Auth UI (sign-in / user menu) lives in js/sidebar.js — it renders
-            // into the sidebar footer instead of the taskbar tray.
-
-            // Desktop wallpaper: restore the user's saved choice and provide a
-            // right-click popup with a Settings command (opens in a background tab).
-            (function () {
-                var savedWall = localStorage.getItem("gb-wallpaper") || "default";
-                document.body.setAttribute("data-wallpaper", savedWall);
-
-                var workspace = document.getElementById("desktop-content");
-                if (!workspace) return;
-
-                var menu = null;
-                function closeDesktopMenu() {
-                    if (menu) {
-                        menu.remove();
-                        menu = null;
-                    }
-                    document.removeEventListener("click", closeDesktopMenu);
-                }
-
-                function openDesktopMenu(x, y) {
-                    closeDesktopMenu();
-                    menu = document.createElement("div");
-                    menu.className = "desktop-context-menu";
-                    menu.style.left = Math.min(x, window.innerWidth - 190) + "px";
-                    menu.style.top = Math.min(y, window.innerHeight - 150) + "px";
-                    menu.innerHTML =
-                        '<div class="desktop-context-item" onclick="if(window.openDeepLink){window.openDeepLink(\'settings\',{});}else{var t=window.open(\'/suite/settings/index.html\',\'_blank\');if(t)setTimeout(function(){window.focus();},50);}">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' +
-                        '<span>Settings</span></div>' +
-                        '<div class="desktop-context-item" onclick="window.location.reload()">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>' +
-                        '<span>Refresh</span></div>' +
-                        '<div class="desktop-context-item" onclick="window.WindowManager && window.WindowManager.toggleStartMenu()">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' +
-                        '<span>Start Menu</span></div>' +
-                        '<div class="desktop-context-separator"></div>' +
-                        '<div class="desktop-context-item" onclick="window.GBWidgets && window.GBWidgets.openPicker(event)">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>' +
-                        '<span>Add widget…</span></div>' +
-                        '<div class="desktop-context-item" onclick="window.GBWidgets && window.GBWidgets.addWebPrompt()">' +
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' +
-                        '<span>Add web page widget…</span></div>';
-                    document.body.appendChild(menu);
-                    document.addEventListener("click", closeDesktopMenu);
-                }
-
-                workspace.addEventListener("contextmenu", function (e) {
-                    e.preventDefault();
-                    openDesktopMenu(e.clientX, e.clientY);
-                });
-
-                window.addEventListener("storage", function (e) {
-                    if (e.key === "gb-wallpaper" && e.newValue) {
-                        document.body.setAttribute("data-wallpaper", e.newValue);
-                    }
-                });
-
-                // React to same-tab theme/wallpaper changes from the Settings
-                // window (the `storage` event only fires across tabs).
-                window.addEventListener("gb-theme-changed", function (e) {
-                    if (e.detail && e.detail.theme) {
-                        document.documentElement.setAttribute(
-                          "data-theme",
-                          e.detail.theme,
-                        );
-                    }
-                });
-                window.addEventListener("gb-wallpaper-changed", function (e) {
-                    if (e.detail && e.detail.name) {
-                        document.body.setAttribute(
-                          "data-wallpaper",
-                          e.detail.name,
-                        );
-                    }
-                });
-            })();
-
-            // Widget pane + pinned launcher (#1160)
-            (function () {
-                if (window.GBWidgets) {
-                    window.GBWidgets.init(document.getElementById("desktop-content"));
-                }
-                if (window.GBPinnedLauncher) {
-                    window.GBPinnedLauncher.init();
-                }
-                // Per-user desktop shortcuts: drop Drive files here (#1188)
-                if (window.GBDesktopShortcuts) {
-                    window.GBDesktopShortcuts.init(document.getElementById("desktop-content"));
-                }
-                // Multitasking (#1155): virtual desktops, chrome (#1158), concierge (#1157)
-                if (window.VirtualDesktops) {
-                    window.VirtualDesktops.init(document.getElementById("desktop-content"));
-                }
-                if (window.ControlCenter) {
-                    window.ControlCenter.init();
-                }
-                if (window.LockScreen) {
-                    window.LockScreen.init();
-                }
-                if (window.GBToasts) {
-                    window.GBToasts.init();
-                }
-                if (window.Spotlight) {
-                    window.Spotlight.init();
-                }
-                if (window.AgentExecutor) {
-                    window.AgentExecutor.init();
-                }
-            })();
-
-            // Listen for auth state changes
-            function initAuthUI() {
-                if (typeof updateLoginButton === "function") updateLoginButton();
-                window.addEventListener("gb:auth:login", function () {
-                    if (typeof updateLoginButton === "function") updateLoginButton();
-                });
-                window.addEventListener("gb:auth:logout", function () {
-                    if (typeof updateLoginButton === "function") updateLoginButton();
-                });
-                window.addEventListener("gb:auth:expired", function () {
-                    if (typeof updateLoginButton === "function") updateLoginButton();
-                });
-            }
-
-            if (window.GBSecurity && window.GBSecurity.initialized) {
-                initAuthUI();
-            } else {
-                window.addEventListener("gb:security:ready", initAuthUI);
-                setTimeout(initAuthUI, 1000);
-            }
-
-            // Taskbar clock. The date/time format comes from Settings ->
-            // Language through the shared GBDateTime helper, and a preference
-            // change re-renders immediately (#1339).
-            (() => {
-                function renderClock() {
-                    const now = new Date();
-                    const timeEl = document.getElementById("clock-time");
-                    const dateEl = document.getElementById("clock-date");
-                    const formatted = window.GBDateTime
-                        ? window.GBDateTime.now()
-                        : {
-                              time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                              date: now.toLocaleDateString(),
-                          };
-                    if (timeEl) timeEl.textContent = formatted.time;
-                    if (dateEl) dateEl.textContent = formatted.date;
-                }
-                renderClock();
-                setInterval(renderClock, 1000);
-                window.addEventListener("storage", (e) => {
-                    if (e.key === "gb-date-format" || e.key === "gb-time-format") renderClock();
-                });
-            })();
-        </script>
-
-        <script>
-            // Offline shell (#1159): register the service worker after load.
-            if ("serviceWorker" in navigator) {
-                window.addEventListener("load", function () {
-                    navigator.serviceWorker.register("/sw.js").catch(function () {});
-                });
-            }
-        </script>
-        <!-- Setup Wizard Overlay (hidden by default) -->
-        <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
-          <div class="setup-wizard-modal">
-            <div class="setup-wizard-header">
-              <h2>Welcome to General Bots</h2>
-              <p>Let's get you set up in a few quick steps</p>
-            </div>
-
-            <div class="setup-progress">
-              <div class="setup-progress-bar">
-                <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
-              </div>
-              <div class="setup-progress-steps">
-                <span class="setup-step active" data-step="1">LLM Provider</span>
-                <span class="setup-step" data-step="2">User Profile</span>
-                <span class="setup-step" data-step="3">Bot Config</span>
-                <span class="setup-step" data-step="4">Training</span>
-              </div>
-            </div>
-
-            <div class="setup-step-content active" id="setupStep1">
-              <h3>Choose your LLM Provider</h3>
-              <p>Select the AI model provider for your bot</p>
-              <div class="setup-options">
-                <div class="setup-option" data-value="openai" onclick="window.selectSetupOption(this, 'llm_provider')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">OpenAI</span>
-                    <span class="setup-option-desc">GPT-4, GPT-3.5 models</span>
-                  </div>
-                </div>
-                <div class="setup-option" data-value="nvidia" onclick="window.selectSetupOption(this, 'llm_provider')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">NVIDIA</span>
-                    <span class="setup-option-desc">NVIDIA NIM inference</span>
-                  </div>
-                </div>
-                <div class="setup-option" data-value="anthropic" onclick="window.selectSetupOption(this, 'llm_provider')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">Anthropic</span>
-                    <span class="setup-option-desc">Claude 3, Claude 3.5 models</span>
-                  </div>
-                </div>
-                <div class="setup-option" data-value="local" onclick="window.selectSetupOption(this, 'llm_provider')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">Local</span>
-                    <span class="setup-option-desc">llama.cpp, Ollama, etc.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="setup-step-content" id="setupStep2">
-              <h3>What describes you best?</h3>
-              <p>Select your profile type for personalized defaults</p>
-              <div class="setup-options">
-                <div class="setup-option" data-value="developer" onclick="window.selectSetupOption(this, 'user_profile')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">Developer</span>
-                    <span class="setup-option-desc">Build and deploy bots, write BASIC scripts</span>
-                  </div>
-                </div>
-                <div class="setup-option" data-value="business" onclick="window.selectSetupOption(this, 'user_profile')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">Business</span>
-                    <span class="setup-option-desc">Automate workflows, manage CRM</span>
-                  </div>
-                </div>
-                <div class="setup-option" data-value="support" onclick="window.selectSetupOption(this, 'user_profile')">
-                  <div class="setup-option-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  </div>
-                  <div class="setup-option-info">
-                    <span class="setup-option-title">Support</span>
-                    <span class="setup-option-desc">Customer service, ticket management</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="setup-step-content" id="setupStep3">
-              <h3>Configure your Bot</h3>
-              <p>Give your bot a name, purpose, and optional template</p>
-              <div class="setup-form">
-                <div class="setup-form-group">
-                  <label for="wizardBotName">Bot Name</label>
-                  <input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" />
-                </div>
-                <div class="setup-form-group">
-                  <label for="setupBotPurpose">Bot Purpose</label>
-                  <textarea id="setupBotPurpose" rows="2" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
-                </div>
-                <div class="setup-form-group">
-                  <label for="wizardBotTemplate">Bot Template <span style="font-weight:400;text-transform:none;color:var(--muted, #888);font-size:.65rem">(optional)</span></label>
-                  <select id="wizardBotTemplate" class="setup-input" style="appearance:auto">
-                    <option value="">— Start from scratch —</option>
-                    <optgroup label="Recommended">
-                      <option value="core/default.gbai">Default — starter with greeting &amp; basic tools</option>
-                      <option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option>
-                      <option value="sales/helpdesk.gbai">Helpdesk — ticket creation and resolution</option>
-                      <option value="education/edu.gbai">Education — semantic learning assistant</option>
-                    </optgroup>
-                    <optgroup label="ai">
-                      <option value="ai/content-moderation.gbai">Content Moderation</option>
-                      <option value="ai/customer-support-workflow.gbai">Customer Support Workflow</option>
-                      <option value="ai/llm-server.gbai">LLM Server</option>
-                      <option value="ai/llm-tools.gbai">LLM Tools</option>
-                      <option value="ai/marketing-campaign.gbai">Marketing Campaign</option>
-                      <option value="ai/order-processing.gbai">Order Processing</option>
-                    </optgroup>
-                    <optgroup label="communications">
-                      <option value="communications/announcements.gbai">Announcements</option>
-                      <option value="communications/broadcast.gbai">Broadcast</option>
-                      <option value="communications/office.gbai">Office</option>
-                      <option value="communications/quick-broadcast.gbai">Quick Broadcast</option>
-                      <option value="communications/reminder.gbai">Reminder</option>
-                      <option value="communications/whatsapp.gbai">WhatsApp</option>
-                    </optgroup>
-                    <optgroup label="core">
-                      <option value="core/ai-search.gbai">AI Search</option>
-                      <option value="core/analytics.gbai">Analytics</option>
-                      <option value="core/analytics-dashboard.gbai">Analytics Dashboard</option>
-                      <option value="core/api-client.gbai">API Client</option>
-                      <option value="core/backup.gbai">Backup</option>
-                      <option value="core/bi.gbai">BI</option>
-                      <option value="core/bling.gbai">Bling ERP</option>
-                      <option value="core/crawler.gbai">Crawler</option>
-                      <option value="core/default.gbai">Default</option>
-                      <option value="core/hybrid.gbai">Hybrid</option>
-                      <option value="core/public-apis.gbai">Public APIs</option>
-                      <option value="core/store-server.gbai">Store Server</option>
-                      <option value="core/talk-to-data.gbai">Talk to Data</option>
-                      <option value="core/template.gbai">Meta-template</option>
-                      <option value="core/vectordb-statistics.gbai">VectorDB Statistics</option>
-                    </optgroup>
-                    <optgroup label="delivery">
-                      <option value="delivery/delivery.gbai">Delivery</option>
-                      <option value="delivery/taxi.gbai">Taxi</option>
-                    </optgroup>
-                    <optgroup label="health">
-                      <option value="health/doctor.gbai">Doctor</option>
-                      <option value="health/fitness.gbai">Fitness</option>
-                      <option value="health/food.gbai">Food</option>
-                    </optgroup>
-                    <optgroup label="hr">
-                      <option value="hr/bank.gbai">Bank</option>
-                      <option value="hr/employee-engage.gbai">Employee Engage</option>
-                      <option value="hr/employees.gbai">Employees</option>
-                      <option value="hr/team-feedback.gbai">Team Feedback</option>
-                    </optgroup>
-                    <optgroup label="legal">
-                      <option value="legal/hipaa-medical.gbai">HIPAA Medical</option>
-                      <option value="legal/law.gbai">Law</option>
-                      <option value="legal/privacy.gbai">Privacy</option>
-                    </optgroup>
-                    <optgroup label="sales">
-                      <option value="sales/attendance.gbai">Attendance</option>
-                      <option value="sales/attendance-crm.gbai">Attendance CRM</option>
-                      <option value="sales/campaign-manager.gbai">Campaign Manager</option>
-                      <option value="sales/contacts.gbai">Contacts</option>
-                      <option value="sales/crm.gbai">CRM</option>
-                      <option value="sales/dating.gbai">Dating</option>
-                      <option value="sales/erp.gbai">ERP</option>
-                      <option value="sales/helpdesk.gbai">Helpdesk</option>
-                      <option value="sales/marketing.gbai">Marketing</option>
-                      <option value="sales/music.gbai">Music</option>
-                      <option value="sales/sales-deals.gbai">Sales Deals</option>
-                      <option value="sales/sales-pipeline.gbai">Sales Pipeline</option>
-                      <option value="sales/shop.gbai">Shop</option>
-                      <option value="sales/store.gbai">Store</option>
-                      <option value="sales/travel.gbai">Travel</option>
-                    </optgroup>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="setup-step-content" id="setupStep4">
-              <h3>Treinar seu Bot</h3>
-              <p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p>
-              <div class="setup-form">
-                <div class="setup-form-group">
-                  <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="window.handleSetupFileDrop(event)">
-                    <div class="setup-drop-icon">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                      </svg>
-                    </div>
-                    <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
-                    <p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p>
-                    <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
-                    <button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button>
-                  </div>
-                  <div id="setupFileList" class="setup-file-list"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="setup-wizard-footer">
-              <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;">Back</button>
-              <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button>
-              <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
-              <button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button>
-            </div>
-          </div>
-        </div>
-
-        <script src="/suite/js/setup-wizard.js?v=1"></script>
-        <script src="/suite/js/versions.js"></script>
-        <script src="/suite/js/preview.js"></script>
-        <script src="/suite/js/campaigns.js"></script>
-        <script src="/suite/js/ui-orchestrator/01_overlay.js?v=6"></script>
-        <script src="/suite/js/ui-orchestrator/02_steps.js?v=6"></script>
-        <script src="/suite/js/ui-orchestrator/99_execute.js?v=6"></script>
-        <script src="/suite/js/gb-search.js"></script>
-        <script>
-            // Bind the taskbar universal search (mount on first paint)
-            (function () {
-                var bindSearch = function () {
-                    if (window.productConfig && window.productConfig.search_enabled === false) { return; }
-                    var input = document.getElementById("taskbarSearch");
-                    if (input && window.GBUniversalSearch) {
-                        window.GBUniversalSearch.mount(input);
-                    }
-                };
-                if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", bindSearch);
-                } else {
-                    bindSearch();
-                }
-            })();
-        </script>
-        <script>
-            // Carregar o modal New Project dinamicamente (Issue #524)
-            fetch('/suite/partials/new-project.html')
-                .then(response => response.text())
-                .then(html => {
-                    const div = document.createElement('div');
-                    div.innerHTML = html;
-                    document.body.appendChild(div);
-                    
-                    // Executar scripts embutidos no modal carregado
-                    const scripts = div.querySelectorAll('script');
-                    scripts.forEach(script => {
-                        const newScript = document.createElement('script');
-                        newScript.textContent = script.textContent;
-                        document.body.appendChild(newScript);
-                    });
-                })
-                .catch(err => console.error('Failed to load new-project wizard:', err));
-        </script>
-    </body>
-</html>
+<button class="tray-btn" id="trayLock" title="Lock Screen" data-i18n-title="taskbar-lock" aria-label="Lock screen" data-i18n-aria-label="taskbar-lock" onclick="window.LockScreen && window.LockScreen.lock()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+</button> </div>
+<div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" data-i18n-title="taskbar-datetime" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})"> <div id="clock-time">00:00</div>
+<div id="clock-date">01/01/2026</div> </div>
+</div> </div><!-- /taskbar-shell -->
+</footer> </div>
+</div> <!-- HTMX Intercepts and WindowManager Init as described in UI.md Phase 3 -->
+<script src="/suite/desktop-inline/04_auth_fullscreen.js"></script> <script src="/suite/desktop-inline/05_offline_shell.js"></script>
+<!-- Setup Wizard Overlay (hidden by default) --> <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
+<div class="setup-wizard-modal"> <div class="setup-wizard-header">
+<h2>Welcome to General Bots</h2> <p>Let's get you set up in a few quick steps</p>
+</div> <div class="setup-progress">
+<div class="setup-progress-bar"> <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
+</div> <div class="setup-progress-steps">
+<span class="setup-step active" data-step="1">LLM Provider</span> <span class="setup-step" data-step="2">User Profile</span>
+<span class="setup-step" data-step="3">Bot Config</span> <span class="setup-step" data-step="4">Training</span>
+</div> </div>
+<div class="setup-step-content active" id="setupStep1"> <h3>Choose your LLM Provider</h3>
+<p>Select the AI model provider for your bot</p> <div class="setup-options">
+<div class="setup-option" data-value="openai" onclick="window.selectSetupOption(this, 'llm_provider')"> <div class="setup-option-icon">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+</svg> </div>
+<div class="setup-option-info"> <span class="setup-option-title">OpenAI</span>
+<span class="setup-option-desc">GPT-4, GPT-3.5 models</span> </div>
+</div> <div class="setup-option" data-value="nvidia" onclick="window.selectSetupOption(this, 'llm_provider')">
+<div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/> </svg>
+</div> <div class="setup-option-info">
+<span class="setup-option-title">NVIDIA</span> <span class="setup-option-desc">NVIDIA NIM inference</span>
+</div> </div>
+<div class="setup-option" data-value="anthropic" onclick="window.selectSetupOption(this, 'llm_provider')"> <div class="setup-option-icon">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+</svg> </div>
+<div class="setup-option-info"> <span class="setup-option-title">Anthropic</span>
+<span class="setup-option-desc">Claude 3, Claude 3.5 models</span> </div>
+</div> <div class="setup-option" data-value="local" onclick="window.selectSetupOption(this, 'llm_provider')">
+<div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/> </svg>
+</div> <div class="setup-option-info">
+<span class="setup-option-title">Local</span> <span class="setup-option-desc">llama.cpp, Ollama, etc.</span>
+</div> </div>
+</div> </div>
+<div class="setup-step-content" id="setupStep2"> <h3>What describes you best?</h3>
+<p>Select your profile type for personalized defaults</p> <div class="setup-options">
+<div class="setup-option" data-value="developer" onclick="window.selectSetupOption(this, 'user_profile')"> <div class="setup-option-icon">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+</svg> </div>
+<div class="setup-option-info"> <span class="setup-option-title">Developer</span>
+<span class="setup-option-desc">Build and deploy bots, write BASIC scripts</span> </div>
+</div> <div class="setup-option" data-value="business" onclick="window.selectSetupOption(this, 'user_profile')">
+<div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/> <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+</svg> </div>
+<div class="setup-option-info"> <span class="setup-option-title">Business</span>
+<span class="setup-option-desc">Automate workflows, manage CRM</span> </div>
+</div> <div class="setup-option" data-value="support" onclick="window.selectSetupOption(this, 'user_profile')">
+<div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/> </svg>
+</div> <div class="setup-option-info">
+<span class="setup-option-title">Support</span> <span class="setup-option-desc">Customer service, ticket management</span>
+</div> </div>
+</div> </div>
+<div class="setup-step-content" id="setupStep3"> <h3>Configure your Bot</h3>
+<p>Give your bot a name, purpose, and optional template</p> <div class="setup-form">
+<div class="setup-form-group"> <label for="wizardBotName">Bot Name</label>
+<input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" /> </div>
+<div class="setup-form-group"> <label for="setupBotPurpose">Bot Purpose</label>
+<textarea id="setupBotPurpose" rows="2" placeholder="Describe what your bot should do..." class="setup-input"></textarea> </div>
+<div class="setup-form-group"> <label for="wizardBotTemplate">Bot Template <span style="font-weight:400;text-transform:none;color:var(--muted, #888);font-size:.65rem">(optional)</span></label>
+<select id="wizardBotTemplate" class="setup-input" style="appearance:auto"> <option value="">— Start from scratch —</option>
+<optgroup label="Recommended"> <option value="core/default.gbai">Default — starter with greeting &amp; basic tools</option>
+<option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option> <option value="sales/helpdesk.gbai">Helpdesk — ticket creation and resolution</option>
+<option value="education/edu.gbai">Education — semantic learning assistant</option> </optgroup>
+<optgroup label="ai"> <option value="ai/content-moderation.gbai">Content Moderation</option>
+<option value="ai/customer-support-workflow.gbai">Customer Support Workflow</option> <option value="ai/llm-server.gbai">LLM Server</option>
+<option value="ai/llm-tools.gbai">LLM Tools</option> <option value="ai/marketing-campaign.gbai">Marketing Campaign</option>
+<option value="ai/order-processing.gbai">Order Processing</option> </optgroup>
+<optgroup label="communications"> <option value="communications/announcements.gbai">Announcements</option>
+<option value="communications/broadcast.gbai">Broadcast</option> <option value="communications/office.gbai">Office</option>
+<option value="communications/quick-broadcast.gbai">Quick Broadcast</option> <option value="communications/reminder.gbai">Reminder</option>
+<option value="communications/whatsapp.gbai">WhatsApp</option> </optgroup>
+<optgroup label="core"> <option value="core/ai-search.gbai">AI Search</option>
+<option value="core/analytics.gbai">Analytics</option> <option value="core/analytics-dashboard.gbai">Analytics Dashboard</option>
+<option value="core/api-client.gbai">API Client</option> <option value="core/backup.gbai">Backup</option>
+<option value="core/bi.gbai">BI</option> <option value="core/bling.gbai">Bling ERP</option>
+<option value="core/crawler.gbai">Crawler</option> <option value="core/default.gbai">Default</option>
+<option value="core/hybrid.gbai">Hybrid</option> <option value="core/public-apis.gbai">Public APIs</option>
+<option value="core/store-server.gbai">Store Server</option> <option value="core/talk-to-data.gbai">Talk to Data</option>
+<option value="core/template.gbai">Meta-template</option> <option value="core/vectordb-statistics.gbai">VectorDB Statistics</option>
+</optgroup> <optgroup label="delivery">
+<option value="delivery/delivery.gbai">Delivery</option> <option value="delivery/taxi.gbai">Taxi</option>
+</optgroup> <optgroup label="health">
+<option value="health/doctor.gbai">Doctor</option> <option value="health/fitness.gbai">Fitness</option>
+<option value="health/food.gbai">Food</option> </optgroup>
+<optgroup label="hr"> <option value="hr/bank.gbai">Bank</option>
+<option value="hr/employee-engage.gbai">Employee Engage</option> <option value="hr/employees.gbai">Employees</option>
+<option value="hr/team-feedback.gbai">Team Feedback</option> </optgroup>
+<optgroup label="legal"> <option value="legal/hipaa-medical.gbai">HIPAA Medical</option>
+<option value="legal/law.gbai">Law</option> <option value="legal/privacy.gbai">Privacy</option>
+</optgroup> <optgroup label="sales">
+<option value="sales/attendance.gbai">Attendance</option> <option value="sales/attendance-crm.gbai">Attendance CRM</option>
+<option value="sales/campaign-manager.gbai">Campaign Manager</option> <option value="sales/contacts.gbai">Contacts</option>
+<option value="sales/crm.gbai">CRM</option> <option value="sales/dating.gbai">Dating</option>
+<option value="sales/erp.gbai">ERP</option> <option value="sales/helpdesk.gbai">Helpdesk</option>
+<option value="sales/marketing.gbai">Marketing</option> <option value="sales/music.gbai">Music</option>
+<option value="sales/sales-deals.gbai">Sales Deals</option> <option value="sales/sales-pipeline.gbai">Sales Pipeline</option>
+<option value="sales/shop.gbai">Shop</option> <option value="sales/store.gbai">Store</option>
+<option value="sales/travel.gbai">Travel</option> </optgroup>
+</select> </div>
+</div> </div>
+<div class="setup-step-content" id="setupStep4"> <h3>Treinar seu Bot</h3>
+<p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p> <div class="setup-form">
+<div class="setup-form-group"> <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="window.handleSetupFileDrop(event)">
+<div class="setup-drop-icon"> <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/> </svg>
+</div> <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
+<p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p> <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
+<button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button> </div>
+<div id="setupFileList" class="setup-file-list"></div> </div>
+</div> </div>
+<div class="setup-wizard-footer"> <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;">Back</button>
+<button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button> <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
+<button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button> </div>
+</div> </div>
+<script src="/suite/js/setup-wizard.js?v=1"></script> <script src="/suite/js/versions.js"></script>
+<script src="/suite/js/preview.js"></script> <script src="/suite/js/campaigns.js"></script>
+<script src="/suite/js/ui-orchestrator/01_overlay.js?v=6"></script> <script src="/suite/js/ui-orchestrator/02_steps.js?v=6"></script>
+<script src="/suite/js/ui-orchestrator/99_execute.js?v=6"></script> <script src="/suite/js/gb-search.js"></script>
+<script src="/suite/desktop-inline/06_taskbar_search.js"></script> <script src="/suite/desktop-inline/07_new_project_modal.js"></script>
+</body> </html>

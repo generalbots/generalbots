@@ -1,0 +1,224 @@
+
+.list-filters select {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--surface, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 6px;
+    color: var(--text, #f8fafc);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.list-filters select option {
+    background: var(--bg-primary, #0a0a0a);
+}
+
+.tickets-list-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Ticket Item */
+.ticket-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ticket-item:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+}
+
+.ticket-item.selected {
+    background: var(--surface, rgba(255, 255, 255, 0.08));
+    border-left: 3px solid var(--accent, #d4f505);
+}
+
+.ticket-priority {
+    width: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.ticket-priority.low {
+    background: #6b7280;
+}
+
+.ticket-priority.medium {
+    background: #3b82f6;
+}
+
+.ticket-priority.high {
+    background: #f59e0b;
+}
+
+.ticket-priority.urgent {
+    background: #ef4444;
+}
+
+.ticket-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ticket-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.ticket-item-number {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent, #d4f505);
+}
+
+.ticket-item-time {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+
+.ticket-item-subject {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text, #f8fafc);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ticket-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+
+.ticket-item-account {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ticket-item-category {
+    padding: 2px 6px;
+    background: var(--surface, rgba(255, 255, 255, 0.05));
+    border-radius: 4px;
+}
+
+/* Ticket Detail */
+.ticket-detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ticket-detail-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-secondary, #888);
+}
+
+.ticket-detail-empty svg {
+    opacity: 0.5;
+}
+
+.ticket-detail-empty p {
+    font-size: 14px;
+}
+
+/* Ticket Detail Content */
+.ticket-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.ticket-detail-title {
+    flex: 1;
+}
+
+.ticket-detail-number {
+    font-size: 12px;
+    color: var(--accent, #d4f505);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.ticket-detail-subject {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text, #f8fafc);
+    margin: 0 0 8px 0;
+}
+
+.ticket-detail-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.ticket-detail-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Status & Priority badges */
+.status-badge,
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.open {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.status-badge.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.status-badge.resolved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.status-badge.closed {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.priority-badge.low {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.priority-badge.medium {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.priority-badge.high {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}

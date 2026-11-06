@@ -1,0 +1,236 @@
+.checkbox-label input {
+        width: 16px;
+        height: 16px;
+    }
+
+    .color-options {
+        display: flex;
+        gap: 8px;
+    }
+
+    .color-option {
+        cursor: pointer;
+    }
+
+    .color-option input {
+        display: none;
+    }
+
+    .color-dot {
+        display: block;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        transition: transform 0.15s;
+    }
+
+    .color-option input:checked + .color-dot {
+        transform: scale(1.2);
+        box-shadow:
+            0 0 0 3px var(--background),
+            0 0 0 5px currentColor;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .btn-secondary {
+        padding: 10px 20px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-secondary:hover {
+        background: var(--accent);
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    /* Event Popup */
+    .event-popup {
+        position: absolute;
+        width: 300px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        z-index: 100;
+    }
+
+    .event-popup.hidden {
+        display: none;
+    }
+
+    .event-popup-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .event-popup-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+
+    .event-popup-header h4 {
+        flex: 1;
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .event-popup-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .event-popup-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .popup-detail {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 13px;
+    }
+
+    .popup-detail svg {
+        color: var(--muted-foreground);
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    /* Button Icons */
+    .btn-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--foreground);
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-icon:hover {
+        background: var(--accent);
+    }
+
+    .btn-icon-sm {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--muted-foreground);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-icon-sm:hover {
+        background: var(--accent);
+        color: var(--foreground);
+    }
+
+    /* Responsive */
+    /* iCal Import/Export */
+    .ical-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ical-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        text-decoration: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+            background 0.2s,
+            border-color 0.2s;
+    }
+
+    .ical-btn:hover {
+        background: var(--surface-hover);
+        border-color: var(--primary);
+    }
+
+    .ical-btn svg {
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        .calendar-sidebar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 60;
+            transform: translateX(-100%);
+        }
+
+        .calendar-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .view-selector {
+            display: none;
+        }
+
+        .month-weekdays span {
+            font-size: 10px;
+            padding: 8px 4px;
+        }
+
+        .month-day {
+            min-height: 60px;
+        }
+
+        .event-popup {
+            width: calc(100% - 32px);
+            left: 16px !important;
+            right: 16px !important;
+        }
+    }

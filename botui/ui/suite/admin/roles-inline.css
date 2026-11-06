@@ -1,0 +1,201 @@
+.roles-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary, #f5f5f5);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.header-left h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.header-left .subtitle {
+    color: #666;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.roles-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.roles-sidebar {
+    width: 320px;
+    background: white;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar-header h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.role-filters select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.search-box {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-box svg {
+    color: #999;
+    flex-shrink: 0;
+}
+
+.search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.875rem;
+}
+
+.roles-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.role-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.role-item:hover {
+    background: #f5f5f5;
+}
+
+.role-item.selected {
+    background: #e3f2fd;
+    border-left: 3px solid #1976d2;
+}
+
+.role-item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    background: #e8f4fd;
+    color: #1976d2;
+}
+
+.role-item.system .role-item-icon {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.role-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.role-item-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.role-item-meta {
+    font-size: 0.75rem;
+    color: #666;
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.125rem;
+}
+
+.roles-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+}
+
+.role-detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    text-align: center;
+}
+
+.role-detail-placeholder svg {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.role-detail-placeholder h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: #666;
+}
+
+.role-detail-content {
+    max-width: 1200px;
+}
+
+.role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.role-header-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.role-icon {
+    width: 56px;
+    height: 56px;
+    border-radius:
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>

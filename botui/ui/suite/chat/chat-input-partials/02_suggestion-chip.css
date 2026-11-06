@@ -1,0 +1,278 @@
+
+.suggestion-chip,
+.suggestion-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, var(--border-color, #d0d0d0));
+  border-radius: 16px;
+  color: #333;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+  flex-shrink: 0;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.suggestion-chip:hover,
+.suggestion-button:hover {
+  border-color: var(--accent, #2563eb);
+  z-index: 100;
+}
+
+/* Dark theme suggestion buttons */
+[data-theme="dark"] .suggestion-chip,
+[data-theme="dark"] .suggestion-button,
+[data-theme="sentient"] .suggestion-chip,
+[data-theme="sentient"] .suggestion-button {
+    background: var(--surface, #1a1a24);
+    border-color: var(--border, #2a2a2a);
+    color: var(--text, #e5e5e5);
+}
+
+[data-theme="dark"] .suggestion-chip:hover,
+[data-theme="sentient"] .suggestion-chip:hover {
+}
+
+.suggestion-chip::before,
+.suggestion-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--accent, #2563eb);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.suggestion-chip:hover::before,
+.suggestion-button:hover::before {
+    opacity: 0.1;
+}
+
+.suggestion-chip:active,
+.suggestion-button:active {
+    transform: translateY(0);
+}
+
+/* Hide initial suggestion buttons when dynamic suggestions are displayed */
+footer.has-suggestions .quick-action-chip {
+    display: none !important;
+}
+
+/* Input Container */
+.input-container,
+form.input-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    border-radius: 24px;
+    padding: 8px 16px;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.input-container:focus-within {
+    border-color: var(--accent, #2563eb);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#messageInput {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text, #e5e5e5);
+    font-size: 14px;
+    outline: none;
+    padding: 4px 0;
+}
+
+#messageInput:focus {
+    outline: none;
+}
+
+#messageInput::placeholder {
+    color: var(--text-secondary, #888);
+}
+
+#voiceBtn,
+#sendBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+/* #1593 — web-search switch. Two visible states, a label that never depends
+   on a hover, and a 44px touch target on coarse pointers. */
+.chat-tool-toggle.web-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 16px;
+    border: 1px solid var(--border, #d0d0d0);
+    background: transparent;
+    color: var(--accent, #2563eb);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.chat-tool-toggle.web-search-toggle:hover {
+    background: var(--surface-hover, rgba(37, 99, 235, 0.08));
+}
+
+.chat-tool-toggle.web-search-toggle:focus-visible {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+.chat-tool-toggle.web-search-toggle.is-off {
+    color: var(--text-secondary, #888);
+    border-color: var(--border, #d0d0d0);
+    opacity: 0.75;
+}
+
+.chat-tool-toggle.web-search-toggle.is-off svg {
+    opacity: 0.6;
+}
+
+@media (pointer: coarse) {
+    .chat-tool-toggle.web-search-toggle {
+        height: 44px;
+        padding: 0 12px;
+    }
+}
+
+#sendBtn {
+    background: var(--accent, #2563eb);
+    color: white;
+}
+
+#voiceBtn {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text-secondary, #888);
+}
+
+#voiceBtn:hover,
+#sendBtn:hover {
+    transform: scale(1.05);
+}
+
+#sendBtn:hover {
+    background: var(--accent-hover, #1d4ed8);
+}
+
+#voiceBtn:active,
+#sendBtn:active {
+    transform: scale(0.95);
+}
+
+[data-theme="dark"] #sendBtn,
+[data-theme="sentient"] #sendBtn {
+    background: var(--accent, #2563eb);
+}
+
+[data-theme="dark"] #voiceBtn,
+[data-theme="sentient"] #voiceBtn {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+/* Scroll to Bottom Button */
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    color: var(--text, #e5e5e5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+}
+
+.scroll-to-bottom.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.scroll-to-bottom:hover {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+    transform: translateY(-2px);
+}
+
+.scroll-to-bottom:active {
+    transform: translateY(0);
+}
+
+/* BBSIA: multiline composer (Shift+Enter newline, auto-grow up to 180px). */
+textarea#messageInput {
+    resize: none;
+    line-height: 1.45;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: inherit;
+    padding: 6px 0;
+}
+
+/* Polish: suggestion chips must hug their text, not stretch to the footer. */
+.suggestions-container {
+    align-items: flex-start;
+    align-content: flex-start;
+}
+.suggestion-chip,
+.suggestion-button {
+    align-self: flex-start;
+    height: auto;
+    min-height: 26px;
+}
+
+/* Polish: actionable retry on a failed assistant turn. */
+.gb-retry-btn {
+    margin-top: 10px;
+    padding: 6px 14px;
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: 999px;
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.gb-retry-btn:hover {
+    border-color: var(--accent, #2563eb);
+    color: var(--accent, #2563eb);
+}

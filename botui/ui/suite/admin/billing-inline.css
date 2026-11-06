@@ -1,0 +1,392 @@
+.billing-dashboard {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.billing-header {
+    margin-bottom: 32px;
+}
+
+.billing-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+}
+
+.billing-header p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.billing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.billing-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.card-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.plan-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.plan-badge.pro {
+    background: var(--accent-color);
+    color: white;
+}
+
+.plan-price {
+    margin-bottom: 20px;
+}
+
+.plan-price .amount {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.plan-price .period {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.plan-features {
+    margin-bottom: 20px;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    color: var(--text-secondary);
+}
+
+.feature-item svg {
+    color: var(--success-color);
+}
+
+.plan-renewal {
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.renewal-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.renewal-date {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.plan-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.usage-item {
+    margin-bottom: 16px;
+}
+
+.usage-item:last-child {
+    margin-bottom: 0;
+}
+
+.usage-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.usage-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.usage-value {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.usage-bar {
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.usage-fill {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.usage-fill.warning {
+    background: var(--warning-color);
+}
+
+.usage-fill.danger {
+    background: var(--danger-color);
+}
+
+.payment-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 2px solid transparent;
+}
+
+.payment-card.active {
+    border-color: var(--accent-color);
+}
+
+.card-brand svg {
+    color: var(--text-secondary);
+}
+
+.card-details {
+    flex: 1;
+}
+
+.card-number {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-expiry {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.default-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 4px;
+}
+
+.address-content p {
+    margin: 0 0 4px 0;
+    color: var(--text-secondary);
+}
+
+.address-name {
+    font-weight: 600;
+    color: var(--text-primary) !important;
+}
+
+.billing-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.billing-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.billing-table th,
+.billing-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.billing-table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.billing-table td {
+    color: var(--text-primary);
+}
+
+.invoice-number {
+    font-family: monospace;
+    font-weight: 500;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.paid {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.status-badge.pending {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.status-badge.failed {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+}
+
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.billing-modal {
+    padding: 0;
+    border: none;
+    border-radius: 16px;
+    max-width: 800px;
+    width: 90%;
+    background: var(--card-bg);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.billing-modal::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 4px;
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>

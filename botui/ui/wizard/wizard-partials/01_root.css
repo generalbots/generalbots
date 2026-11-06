@@ -1,0 +1,257 @@
+/* First-run wizard — static, OS-neutral, no external assets. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f6f6f7;
+  --surface-2: #ececef;
+  --border: #e2e2e7;
+  --text: #16161a;
+  --muted: #6b6b75;
+  --accent: #16161a;
+  --accent-ink: #ffffff;
+  --danger: #b3352a;
+  --warn: #9a6200;
+  --ok: #1f7a4d;
+  /* Graphite rail (the site's black-and-white lockup sits on it). */
+  --rail-bg: #151517;
+  --rail-surface: #1f1f23;
+  --rail-border: #2e2e34;
+  --rail-text: #f7f7f7;
+  --rail-muted: #a6a6ae;
+  /* The thin section rule used across generalbots.org. */
+  --rainbow: linear-gradient(90deg, #ff4d00, #fbbf24, #10b981, #06b6d4, #6366f1, #ec4899, #ff4d00);
+  --radius: 12px;
+  --focus: 0 0 0 3px rgba(22, 22, 26, 0.18);
+}
+
+* { box-sizing: border-box; }
+
+/* The `hidden` attribute must win over the component display rules below. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* A little rainbow line, as on generalbots.org. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--rainbow);
+  z-index: 60;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.wizard {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ---------- left rail ---------- */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 18px;
+  border-right: 1px solid var(--rail-border);
+  background: linear-gradient(180deg, #19191c, var(--rail-bg));
+  color: var(--rail-text);
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+/* Both official variants: the mark alone and the text lockup. */
+.rail-mark {
+  height: 22px;
+  width: auto;
+  flex: 0 0 auto;
+  filter: brightness(0) invert(1);
+}
+.rail-wordmark {
+  height: 10px;
+  width: auto;
+  max-width: 140px;
+  filter: brightness(0) invert(1);
+}
+
+.rail-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rail-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--rail-muted);
+  border: 1px solid transparent;
+}
+.rail-step .num {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--rail-border);
+  font-size: 16px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.rail-step .name { font-size: 13px; font-weight: 500; }
+.rail-step[aria-current="step"] {
+  color: var(--rail-text);
+  background: var(--rail-surface);
+  border-color: var(--rail-border);
+}
+.rail-step[aria-current="step"] .num {
+  border-color: var(--rail-text);
+  color: var(--rail-text);
+}
+.rail-step.done { color: var(--rail-text); }
+.rail-step.done .num {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--rail-text);
+  color: var(--rail-text);
+}
+
+.rail-note {
+  margin-top: auto;
+  font-size: 11.5px;
+  color: var(--rail-muted);
+  line-height: 1.45;
+}
+
+/* ---------- right pane ---------- */
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.pane-head {
+  padding: 20px 32px 0;
+  position: relative;
+}
+/* Language selector: always available, including the very first screen. */
+.pane-lang {
+  position: absolute;
+  top: 18px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pane-lang label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.pane-lang select {
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pane-lang select:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.step-counter {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+/* Full General Bots lockup (mark + wordmark) on the welcome screen. */
+.brand-hero {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 10px;
+}
+.brand-hero img {
+  width: 132px;
+  height: auto;
+  filter: brightness(0);
+}
+.step-heading {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  outline: none;
+}
+
+.pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 32px 16px;
+}
+
+.lead { margin: 0 0 12px; color: var(--muted); max-width: 62ch; }
+
+/* ---------- controls ---------- */
+.field-grid { display: flex; flex-direction: column; gap: 12px; max-width: 620px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field-label { font-size: 12.5px; font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input[type="text"], .field input[type="password"], .field select, .field input[type="number"] {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  outline: none;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); box-shadow: var(--focus); }
+.field input[aria-invalid="true"] { border-color: var(--danger); }
+
+.choice-list { display: grid; gap: 8px; }
+.choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+.choice:hover { border-color: #b9b9c2; }
+.choice.selected { border-color: var(--accent); background: #f1f1f4; }
+.choice input { margin-top: 3px; accent-color: var(--accent); }
+.choice .choice-title { display: block; font-weight: 600; margin-bottom: 2px; }
+.choice .choice-desc { display: block; font-size: 12.5px; color: var(--muted); }

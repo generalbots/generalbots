@@ -1,0 +1,217 @@
+    <div class="monitoring-grid" id="grid-view" style="display: none">
+        <!-- Sessions Panel -->
+        <div
+            class="monitor-panel"
+            hx-get="/api/monitoring/sessions"
+            hx-trigger="load, every 5s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <circle
+                        cx="12"
+                        cy="8"
+                        r="4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <path
+                        d="M4 20c0-4 4-6 8-6s8 2 8 6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Sessions</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Panel -->
+        <div
+            class="monitor-panel"
+            hx-get="/api/monitoring/messages"
+            hx-trigger="load, every 10s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Messages</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources Panel -->
+        <div
+            class="monitor-panel resources-panel"
+            hx-get="/api/monitoring/resources"
+            hx-trigger="load, every 15s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <line
+                        x1="4"
+                        y1="12"
+                        x2="20"
+                        y2="12"
+                        stroke="currentColor"
+                        stroke-width="1"
+                    />
+                    <line
+                        x1="12"
+                        y1="4"
+                        x2="12"
+                        y2="20"
+                        stroke="currentColor"
+                        stroke-width="1"
+                    />
+                </svg>
+                <span>Resources</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Panel -->
+        <div
+            class="monitor-panel services-panel"
+            hx-get="/api/monitoring/services"
+            hx-trigger="load, every 30s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="2"
+                        y="3"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <rect
+                        x="2"
+                        y="10"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <rect
+                        x="2"
+                        y="17"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Services</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bots Panel -->
+        <div
+            class="monitor-panel bots-panel"
+            hx-get="/api/monitoring/bots"
+            hx-trigger="load, every 30s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="14"
+                        rx="3"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+                    <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+                    <path
+                        d="M9 14 Q12 16 15 14"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                    />
+                </svg>
+                <span>Active Bots</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,18 @@
+    @media (max-width: 768px) {
+        .report-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .report-card.wide {
+            grid-column: span 1;
+        }
+
+        .revenue-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .reports-tabs {
+            flex-wrap: wrap;
+        }
+    }
+</style>
