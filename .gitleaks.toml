@@ -1,0 +1,101 @@
+# Gitleaks configuration (#1725).
+#
+# Runs in `.github/workflows/security.yml` against the full history of the
+# repository. The default rule set is kept (`useDefault = true`); this file
+# only documents the noise we deliberately suppress, and the reason matters
+# more than the suppression: every entry here has to be defensible.
+#
+# A hit is a *finding* only when the credential is live or was live and is not
+# rotated. The triage, the affected commits and the rotation list live in
+# SECURITY.md ("Secret rotation register"). Do not add a path here to silence a
+# live credential: rotate it, then record why the historical hit is dead.
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Third-party code and caches: not ours, never edited by hand
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "Vendored browser libraries and the WhatsApp Web browser cache. Minified third-party code and cached HTML contain token-shaped strings (Facebook app ids, minified literals) that we neither author nor control."
+paths = [
+  '''^botui/ui/suite/js/vendor/''',
+  '''^botui/ui/(cloud|login)/.*vendor/''',
+  '''^\.wwebjs_cache/''',
+  '''^botserver/crates/.*/vendor/''',
+]
+
+# ---------------------------------------------------------------------------
+# Retired trees: present in history, absent from HEAD
+# ---------------------------------------------------------------------------
+# These directories were removed by the workspace reorganisation; the files
+# still containing credentials only exist as history. Anything that reappears
+# there is a new finding because the path no longer resolves in HEAD.
+[[allowlists]]
+description = "Legacy monorepo layout removed by the workspace reorganisation; these paths do not exist in HEAD."
+paths = [
+  '''^src/''',
+  '''^packages/''',
+  '''^deploy/''',
+  '''^docs/''',
+  '''^botsecurity/''',
+  '''^config/directory_config\.json$''',
+  '''^google-chat\.json$''',
+  '''^vault-unseal-keys''',
+  '''^start-and-unseal\.sh$''',
+]
+
+# ---------------------------------------------------------------------------
+# Test fixtures with intentionally fake key material
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "Rust unit-test fixtures: generated/fake RSA certificates, DLP sample JWTs and prompt-injection samples. Never used against a real service."
+paths = [
+  '''^botserver/crates/botsecurity-core/src/dlp(/mod)?\.rs$''',
+  '''^botserver/crates/botsecurity-auth/src/auth_provider(/mod)?\.rs$''',
+  '''^botserver/crates/botsecurity-core/src/prompt_security(/mod)?\.rs$''',
+  '''^botserver/crates/botevents/src/redact\.rs$''',
+  '''^botserver/src/security/mutual_tls\.rs$''',
+]
+
+# ---------------------------------------------------------------------------
+# Placeholders that trip the entropy heuristics
+# ---------------------------------------------------------------------------
+[[allowlists]]
+description = "Explicit placeholders: the value itself says it is not a credential."
+regexTarget = "match"
+regexes = [
+  '''sk_test_placeholder''',
+  '''x\.eyJzdWIiOiIxIn0\.y''',
+  '''VAULT_TOKEN=\{\}''',
+  '''REDACTED''',
+  '''your-api-key''',
+  '''example-token''',
+]
+
+# ---------------------------------------------------------------------------
+# Documentation examples (narrow, rule-scoped)
+# ---------------------------------------------------------------------------
+# `botbook/` is the live documentation tree and shows real request shapes:
+# `Authorization: Bearer <jwt>` and `whatsapp-api-key=...`. Those examples trip
+# the two generic rules on every historical commit, which would make the gate
+# permanently red. Only those two *generic* rules are relaxed for the docs
+# trees: specific detectors (private-key, aws, stripe, gcp, slack, ...) still
+# fire there.
+#
+# The docs also contain credentials that look live (an older WhatsApp Cloud API
+# token, and the WhatsApp webhook verify token that was still in HEAD until
+# 2026-11-06 and is now redacted there). History keeps the old values, so they
+# cannot be cleared offline; they are listed in SECURITY.md -> "Secret rotation
+# register" and this relaxation must be re-reviewed when that list is cleared.
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "Documentation examples; live-looking values are in the rotation register."
+paths = ['''^botbook/''', '''^docs/''']
+
+[[rules]]
+id = "curl-auth-header"
+[[rules.allowlists]]
+description = "curl examples in the API documentation."
+paths = ['''^botbook/''', '''^docs/''']

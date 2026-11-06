@@ -70,7 +70,7 @@ The most popular channel for business messaging. Complete integration guide: [Wh
    whatsapp-api-key,EAAQyour_api_key_here
    whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
    whatsapp-business-account-id,YOUR_WABA_ID
-   whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
+   whatsapp-webhook-verify-token,YOUR_VERIFY_TOKEN_HERE
    whatsapp-application-id,YOUR_APP_ID
    ```
 
@@ -242,7 +242,7 @@ whatsapp-enabled,true
 whatsapp-api-key,EAAQyour_api_key_here
 whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
 whatsapp-business-account-id,YOUR_WABA_ID
-whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
+whatsapp-webhook-verify-token,YOUR_VERIFY_TOKEN_HERE
 
 # Twilio SMS (Backup channel)
 twilio-enabled,false

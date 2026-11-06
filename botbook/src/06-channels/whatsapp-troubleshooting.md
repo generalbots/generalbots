@@ -193,10 +193,10 @@ curl "https://your-domain.com/webhooks/whatsapp?hub.verify_token=YOUR_TOKEN&hub.
 1. **Match Verify Token Exactly**
    ```javascript
    // In config.csv
-   whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
+   whatsapp-webhook-verify-token,YOUR_VERIFY_TOKEN_HERE
    
    // In your code
-   const VERIFY_TOKEN = '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY';
+   const VERIFY_TOKEN = 'YOUR_VERIFY_TOKEN_HERE';
    
    app.get('/webhooks/whatsapp', (req, res) => {
      const token = req.query['hub.verify_token'];

@@ -1,0 +1,56 @@
+# OSV baseline allowlist (#1723 / #1726).
+#
+# `scripts/check_osv_allowlist.py` compares the advisory IDs reported by the
+# OSV scan against this file. An ID that is *not* listed fails the `osv` job,
+# so a newly published advisory is noticed the day it appears instead of being
+# buried in the informational SARIF upload.
+#
+# Every entry below is already triaged in `deny.toml` (cargo-deny is the
+# blocking Rust gate) or is a lockfile-only package that never enters the
+# shipping feature graph. Re-validate alongside the annual SECURITY.md
+# residual-risk review (last review: 2026-11-06).
+#
+# Format: one advisory ID per line; everything after `#` is a comment.
+
+# --- RustSec IDs mirrored from deny.toml -----------------------------------
+RUSTSEC-2023-0071  # rsa 0.9.10 - Marvin; no 0.9.x fix, signing-only use
+RUSTSEC-2024-0370  # proc-macro-error - unmaintained, build time only
+RUSTSEC-2024-0429  # glib 0.18.5 - iterator unsoundness, Tauri Linux only
+RUSTSEC-2024-0436  # paste - unmaintained proc-macro, build time only
+RUSTSEC-2025-0075  # unic-char-range - unmaintained unicode table
+RUSTSEC-2025-0080  # unic-common - unmaintained unicode table
+RUSTSEC-2025-0081  # unic-char-property - unmaintained unicode table
+RUSTSEC-2025-0098  # unic-ucd-version - unmaintained unicode table
+RUSTSEC-2025-0100  # unic-ucd-ident - unmaintained unicode table
+RUSTSEC-2025-0134  # rustls-pemfile - unmaintained, folded into rustls
+RUSTSEC-2026-0183  # git2 0.20.4 - Remote::list UB, 0.21 upgrade tracked
+RUSTSEC-2026-0184  # git2 0.20.4 - Signature-from-buffer UB, same upgrade
+RUSTSEC-2026-0192  # ttf-parser - unmaintained font metrics
+RUSTSEC-2026-0194  # quick-xml <0.41 - quadratic start-tag parse (office import)
+RUSTSEC-2026-0195  # quick-xml <0.41 - namespace allocation (office import)
+RUSTSEC-2026-0249  # smartstring - unmaintained, office write path
+RUSTSEC-2026-0367  # zip <9.0.0 - SUID bits on extract (transitive copies)
+RUSTSEC-2026-0368  # zip <9.0.0 - symlink target escape (transitive copies)
+RUSTSEC-2026-0369  # zip <9.0.0 - permissions through symlink (transitive)
+RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
+RUSTSEC-2026-0371  # zbus_names - unmaintained D-Bus, Tauri Linux only
+RUSTSEC-2026-0372  # zvariant_derive - unmaintained D-Bus, Tauri Linux only
+RUSTSEC-2026-0387  # crypto-bigint 0.5.5 - timing, rsa 0.9 signing chain
+RUSTSEC-2026-0429  # zip <9.0.0 - symlink extract abort (transitive copies)
+RUSTSEC-2026-0436  # calamine 0.26.1 - CFB/OLE2 OOM, authenticated import
+RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
+
+# --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
+# GHSA equivalents published by OSV for the same zip advisories above.
+GHSA-8hxf-qr8p-62x4  # zip - extract path traversal (transitive copies)
+GHSA-m665-v7pm-7grj  # zip - extract symlink handling (transitive copies)
+GHSA-q7v9-x93c-xqv3  # zip - extract abort alias of RUSTSEC-2026-0429
+GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429
+# Lockfile-only: rkyv is present in Cargo.lock but never selected by any
+# shipping feature graph (`cargo deny --all-features` does not see it).
+RUSTSEC-2026-0235  # rkyv 0.7.46 - lock-only, not in the build graph
+
+# Python is audited by the `python` job (`pip-audit`), not by this gate:
+# OSV resolves `>=` requirements to their minimum version, which is not what
+# pip installs. The single accepted Python exception (accelerate 1.1.1) lives
+# in .github/workflows/security.yml as an explicit --ignore-vuln.

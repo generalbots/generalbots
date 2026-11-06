@@ -111,7 +111,7 @@ module.exports = {
     apiKey: process.env.WHATSAPP_API_KEY || 'EAAQyour_api_key_here',
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || 'YOUR_PHONE_NUMBER_ID',
     wabaId: process.env.WHATSAPP_WABA_ID || 'YOUR_WABA_ID',
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY',
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'YOUR_VERIFY_TOKEN_HERE',
     apiVersion: 'v18.0'
   }
 };
@@ -281,7 +281,7 @@ app.get('/webhooks/whatsapp', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const VERIFY_TOKEN = '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY';
+  const VERIFY_TOKEN = 'YOUR_VERIFY_TOKEN_HERE';
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
     console.log('✅ Webhook verified');
@@ -513,7 +513,7 @@ class WhatsAppConfig:
     api_key: str = os.getenv('WHATSAPP_API_KEY', 'EAAQyour_api_key_here')
     phone_number_id: str = os.getenv('WHATSAPP_PHONE_NUMBER_ID', 'YOUR_PHONE_NUMBER_ID')
     waba_id: str = os.getenv('WHATSAPP_WABA_ID', 'YOUR_WABA_ID')
-    verify_token: str = os.getenv('WHATSAPP_VERIFY_TOKEN', '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY')
+    verify_token: str = os.getenv('WHATSAPP_VERIFY_TOKEN', 'YOUR_VERIFY_TOKEN_HERE')
     api_version: str = 'v18.0'
 
 config = WhatsAppConfig()

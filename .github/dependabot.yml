@@ -1,0 +1,87 @@
+# Dependency update automation (#1725, #1726).
+#
+# The security gates in `.github/workflows/security.yml` tell us what is wrong;
+# this file is how it gets fixed without waiting for someone to read a report.
+# One grouped PR per ecosystem per week keeps the noise low enough that the
+# updates actually get reviewed.
+
+version: 2
+updates:
+  # Rust workspace: Cargo.lock is tracked, so a bump is a real, testable change.
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Patch/minor bumps land together; majors get their own PR because they
+      # are the ones that need the reachability argument in SECURITY.md.
+      rust-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # The desktop stack (tauri/gtk/webkit) moves as a unit and breaking it
+      # breaks the government installer; it is upgraded on the desktop track.
+      - dependency-name: "tauri*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "gtk*"
+        update-types: ["version-update:semver-major"]
+
+  # The workflow files themselves are supply chain: a stale action is an
+  # unaudited action. Dependabot rewrites the SHA and keeps the `# vX` comment.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:10"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+      - ci
+    commit-message:
+      prefix: "chore(ci)"
+
+  # botmodels is the Python tooling that runs the model server.
+  - package-ecosystem: pip
+    directory: "/botmodels"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:20"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+      - python
+    commit-message:
+      prefix: "chore(py)"
+
+  # Front-end build tooling (botui/package.json).
+  - package-ecosystem: npm
+    directory: "/botui"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:30"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: "chore(ui)"

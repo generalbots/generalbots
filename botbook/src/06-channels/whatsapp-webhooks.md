@@ -292,7 +292,7 @@ app.get('/webhooks/whatsapp', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
   
-  const VERIFY_TOKEN = '4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY';
+  const VERIFY_TOKEN = 'YOUR_VERIFY_TOKEN_HERE';
   
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
     console.log('Webhook verified');
@@ -471,7 +471,7 @@ END SUB
 2. **Edit Webhook**
    - Click "Edit" next to Webhook
    - Enter your webhook URL: `https://your-domain.com/webhooks/whatsapp`
-   - Enter your Verify Token: `4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY`
+   - Enter your Verify Token: `YOUR_VERIFY_TOKEN_HERE`
    - Click "Verify and Save"
 
 3. **Subscribe to Webhook Fields**

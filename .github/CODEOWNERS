@@ -1,0 +1,40 @@
+# Code ownership for security-sensitive paths (#1725).
+#
+# Review routing only: CODEOWNERS does not grant access, it requests a review
+# from the owner of the matching path. The last matching pattern wins, so the
+# specific rules come after the broad ones.
+#
+# Replace the individual handle with a team (for example
+# `@generalbots/security`) once that team exists in the organisation; a team
+# review request survives people changing roles, a personal handle does not.
+
+# Default: anything not covered below goes to the maintainer.
+*                                   @rodrigorodriguez
+
+# Security code: authentication, authorization, crypto, DLP, command guarding.
+/botserver/src/security/            @rodrigorodriguez
+/botserver/crates/botsecurity-auth/ @rodrigorodriguez
+/botserver/crates/botsecurity-core/ @rodrigorodriguez
+/botserver/src/core/bot/ws/         @rodrigorodriguez
+
+# Policy: the files that decide what CI blocks and what risk we accept.
+/deny.toml                          @rodrigorodriguez
+/.gitleaks.toml                     @rodrigorodriguez
+/SECURITY.md                        @rodrigorodriguez
+/LICENSE                            @rodrigorodriguez
+/LICENSES-desktop.md                @rodrigorodriguez
+
+# CI runs with repository write access and deploys to production.
+/.github/workflows/                 @rodrigorodriguez
+/.github/dependabot.yml             @rodrigorodriguez
+/.github/CODEOWNERS                 @rodrigorodriguez
+/scripts/check_workflow_pinning.py  @rodrigorodriguez
+
+# Anything shipped to the browser: a compromised vendor bundle is stored XSS.
+/botui/ui/                          @rodrigorodriguez
+/botui/ui/suite/js/vendor/          @rodrigorodriguez
+/botui/ui/cloud/                    @rodrigorodriguez
+/botui/ui/login/                    @rodrigorodriguez
+
+# Infrastructure and deployment definitions.
+/botserver/crates/botdrive/         @rodrigorodriguez

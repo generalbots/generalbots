@@ -124,7 +124,7 @@ ngrok http 3000
 whatsapp-api-key,EAAQyour_api_key_here
 whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
 whatsapp-business-account-id,YOUR_WABA_ID
-whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
+whatsapp-webhook-verify-token,YOUR_VERIFY_TOKEN_HERE
 whatsapp-application-id,YOUR_APP_ID
 whatsapp-enabled,true
 ```
@@ -138,7 +138,7 @@ node server.js
 # In Meta Developers:
 # 1. WhatsApp > API Setup > Webhook > Edit
 # 2. Webhook URL: https://your-domain.com/webhooks/whatsapp
-# 3. Verify Token: 4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
+# 3. Verify Token: YOUR_VERIFY_TOKEN_HERE
 # 4. Click: Verify and Save
 # 5. Subscribe to: messages
 ```
@@ -156,7 +156,7 @@ Connect securely) or directly in Vault:
 # and business-account-id from here):
 vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> \
   whatsapp-api-key=EAAQyour_api_key_here \
-  whatsapp-verify-token=4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY \
+  whatsapp-verify-token=YOUR_VERIFY_TOKEN_HERE \
   whatsapp-phone-number-id=YOUR_PHONE_NUMBER_ID \
   whatsapp-business-account-id=YOUR_WABA_ID
 # Restart botserver to apply (the adapter is built at boot).

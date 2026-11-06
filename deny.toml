@@ -1,0 +1,124 @@
+# Supply-chain policy for the General Bots workspace (cargo-deny).
+#
+# This file is the single source of truth for the `advisories`, `bans`,
+# `licenses` and `sources` gates that run in `.github/workflows/security.yml`.
+# It is validated locally with:
+#
+#   cargo deny --all-features check advisories bans licenses sources
+#
+# The project itself is MIT (see LICENSE). Third-party binaries we *bundle*
+# (MinIO, Stalwart, Forgejo, Garage, Skytable) keep their own AGPL notices in
+# LICENSES-desktop.md / 3rdparty.toml — they are not Rust dependencies and are
+# therefore out of scope for this file.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+# Vulnerabilities and yanked crates always fail. Unmaintained / unsound
+# advisories are checked for the whole graph and, once triaged, pinned in
+# `ignore` with a date and a reason so a *new* one still fails CI (#1726).
+unmaintained = "all"
+unsound = "all"
+yanked = "deny"
+# Accepted risk entries. Each one carries a date and a reason, and must be
+# re-validated at least once per year (see SECURITY.md -> Residual risk).
+# Entries are scoped to a crate@version so an upgrade surfaces the advisory
+# again instead of silently inheriting the exception.
+ignore = [
+    { id = "RUSTSEC-2023-0071",
+      reason = "Marvin attack on rsa 0.9 (no upstream fix as of 2026-11-06). RSA is used for signing with our own keys, not as a decryption oracle on attacker ciphertext; timing is not remotely observable. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2024-0370",
+      reason = "proc-macro-error is unmaintained (proc-macro, build time only). Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2024-0429",
+      reason = "Unsound Iterator/DoubleEndedIterator impls in glib 0.18 (transitive via the Tauri GTK desktop stack on Linux). Fixed by the GTK4 stack upgrade on the desktop track; no runtime exposure on the server. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2024-0436",
+      reason = "paste is unmaintained (proc-macro, build time only). No advisory; transitive via the desktop/tauri stack. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0075",
+      reason = "unic-char-range is unmaintained; unicode tables behind idna/url, no runtime sink. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0080",
+      reason = "unic-common is unmaintained; unicode tables behind idna/url, no runtime sink. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0081",
+      reason = "unic-char-property is unmaintained; unicode tables behind idna/url, no runtime sink. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0098",
+      reason = "unic-ucd-version is unmaintained; unicode tables behind idna/url, no runtime sink. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0100",
+      reason = "unic-ucd-ident is unmaintained; unicode tables behind idna/url, no runtime sink. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2025-0134",
+      reason = "rustls-pemfile is unmaintained; its functionality moved into rustls. No advisory against the version in lock. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0183",
+      reason = "Undefined behaviour in git2 Remote::list() (fixed in git2 0.21.0). git2 is used by the git-owned bot sync against repositories we control; the 0.21 upgrade is tracked in #1723. Accepted 2026-11-06." },
+    { id = "RUSTSEC-2026-0184",
+      reason = "Undefined behaviour with git2 Signature created from a buffer (fixed in 0.21.0). Same reachability as RUSTSEC-2026-0183; upgrade tracked in #1723. Accepted 2026-11-06." },
+    { id = "RUSTSEC-2026-0192",
+      reason = "ttf-parser is unmaintained; used for font metrics in document rendering, no attacker-reachable parser loop of our own. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0194",
+      reason = "XML start-tag parsing is quadratic on hostile input (fixed in quick-xml 0.41.0). Reached only through office-document import (docx-rs, ooxmlsdk, calamine, umya-spreadsheet) of authenticated user uploads; parents still pin <0.41. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0195",
+      reason = "Unbounded namespace-declaration allocation in quick-xml NsReader (fixed in 0.41.0). Same reachability as RUSTSEC-2026-0194: office-document import of authenticated uploads. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0249",
+      reason = "smartstring is unmaintained; used by an office-document crate on the write path. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0367",
+      reason = "Zip extraction preserves SUID/SGID bits (fixed in zip 9.0.0). This copy is transitive via docx-rs/umya-spreadsheet/ooxmlsdk/calamine; botserver's direct dependency is zip 9.2.0 and extraction runs unprivileged with enclosed_name(). Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0368",
+      reason = "ZipArchive::extract writes symlinks whose target escapes the destination (fixed in 9.0.0). Transitive office-document copy; our extractors reject symlink entries and use enclosed_name(). Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0369",
+      reason = "Zip extraction applies Unix permissions through symlinks (fixed in 9.0.0). Transitive office-document copy; extraction is unprivileged and confined. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0370",
+      reason = "zvariant is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build, never by botserver. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0371",
+      reason = "zbus_names is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0372",
+      reason = "zvariant_derive is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0387",
+      reason = "Timing variability in crypto-bigint 0.5.x (fixed in 0.7.6). Reached only via rsa 0.9 for our own signing keys, never with attacker-chosen scalars; the fix requires a major upgrade of the rsa chain. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0429",
+      reason = "ZipArchive::extract aborts the process on a symlink entry with a large declared size (fixed in 9.0.0). Transitive office-document copy; a panic is contained by the request task, not the process. Accepted 2026-11-06, tracked in #1723." },
+    { id = "RUSTSEC-2026-0436",
+      reason = "Unbounded allocation/OOM in calamine's CFB/OLE2 parser (fixed in 0.38.0). Only the authenticated spreadsheet import path reaches it, behind upload size limits; the 0.38 upgrade changes the calamine API and is tracked in #1723. Accepted 2026-11-06." },
+    { id = "RUSTSEC-2026-0441",
+      reason = "pin-utils is unmaintained (no advisory, no runtime sink we rely on). Accepted 2026-11-06, tracked in #1723." },
+]
+
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "MPL-2.0",
+    "CC0-1.0",
+    "Unlicense",
+    "BSL-1.0",
+]
+# Permissive licenses that are not on the default allow list above. They are
+# scoped to the exact crate that needs them instead of being globally allowed.
+exceptions = [
+    { allow = ["bzip2-1.0.6"], crate = "libbz2-rs-sys" },
+    { allow = ["NCSA"], crate = "libfuzzer-sys" },
+    { allow = ["0BSD"], crate = "mailparse" },
+    { allow = ["0BSD"], crate = "quoted_printable" },
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
+    { allow = ["WTFPL"], crate = "ole" },
+]
+
+[bans]
+# 90 duplicate transitive versions exist today; they are tracked, not blocking.
+multiple-versions = "warn"
+# Internal workspace crates are declared as path-only dependencies
+# (`botagent = { path = "botserver/crates/botagent" }`), which cargo-deny
+# reports as wildcards. They cannot resolve outside this repository, so this
+# stays a warning instead of a hard failure.
+wildcards = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

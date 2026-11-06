@@ -1,0 +1,266 @@
+name: Security
+
+# Continuous security gates (#1726).
+#
+# Everything here runs without compiling the workspace: the tools are static
+# binaries downloaded at a pinned version and verified against a checked-in
+# SHA-256, so a compromised release asset cannot silently become code we run.
+# Budget: the whole matrix finishes in a few minutes because the jobs are
+# independent; the slowest is the full-history secret scan.
+#
+# What each job protects:
+#   supply-chain   Rust advisories / yanked crates / licenses / sources (deny.toml)
+#   osv            OSV enrichment for every lockfile, published as SARIF
+#   secrets        committed credentials across the whole history (.gitleaks.toml)
+#   python         botmodels Python pins (pip-audit)
+#   sbom           SPDX inventory of the shipped tree, kept as an artifact
+#   workflow-lint  actionlint + "every `uses:` is a commit SHA"
+#   headers        the six IMP-09 headers on the public origin (advisory)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily, so a new advisory or an upstream retraction is noticed without a push.
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  supply-chain:
+    name: cargo-deny (advisories, bans, licenses, sources)
+    # The whole repository is mirrored to a Forgejo remote that runs the same
+    # tree; only the GitHub runner has the release assets and the Security tab.
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install cargo-deny 0.20.2 (checksum verified)
+        run: |
+          set -euo pipefail
+          version=0.20.2
+          url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${version}/cargo-deny-${version}-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/cargo-deny.tar.gz "$url"
+          tar -xzf /tmp/cargo-deny.tar.gz -C /tmp
+          echo "b329e25933d01c36dd7c47d84ea5716694f9b7caf53a5003d45674703a8ed54a  /tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" | sha256sum -c -
+          sudo install -m 0755 "/tmp/cargo-deny-${version}-x86_64-unknown-linux-musl/cargo-deny" /usr/local/bin/cargo-deny
+      - name: Evaluate deny.toml
+        # `--all-features` audits the union of every shipping graph
+        # (saas, whatsapp, desktop-local, people, billing, kb-extraction).
+        # Accepted risks live in deny.toml with a date; a new advisory fails here.
+        run: cargo-deny --all-features check advisories bans licenses sources
+      - name: Public key material must never be a licensed dependency
+        # Belt and braces on the MIT policy: AGPL is only acceptable for bundled
+        # binaries (LICENSES-desktop.md), never for a crate we link.
+        run: |
+          set -euo pipefail
+          if cargo-deny --all-features check licenses 2>&1 | grep -Ei "AGPL|GPL-3"; then
+            echo "::error::A GPL-family crate entered the dependency graph; see deny.toml license policy."
+            exit 1
+          fi
+          echo "license policy: no GPL-family crate linked"
+
+  osv:
+    name: OSV scan (Cargo + Python lockfiles)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install osv-scanner 2.7.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/google/osv-scanner/releases/download/v2.7.0/osv-scanner_linux_amd64"
+          curl -fsSL --retry 3 -o /tmp/osv-scanner "$url"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+      - name: Scan lockfiles
+        # Informational: cargo-deny is the blocking Rust gate and every accepted
+        # advisory is justified in deny.toml. OSV adds the SARIF trail; it must
+        # not fail the build on an advisory we have already accepted with a
+        # written reachability argument. Python pins are audited by the
+        # `python` job (pip-audit), not here: OSV resolves `>=` requirements to
+        # their minimum version instead of what pip installs.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile Cargo.lock \
+            --format sarif \
+            --output-file /tmp/osv.sarif \
+            || true
+          test -s /tmp/osv.sarif
+      - name: Upload SARIF
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          sarif_file: /tmp/osv.sarif
+          category: osv-scanner
+      - name: Scan Cargo.lock as JSON (allowlist gate input)
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            --lockfile Cargo.lock \
+            --format json \
+            --output-file /tmp/osv.json \
+            || true
+          test -s /tmp/osv.json
+      - name: Fail on advisories outside the dated allowlist
+        # The scan above tolerates the advisories we accepted in deny.toml and
+        # SECURITY.md; this step makes sure a *new* one cannot hide in the
+        # informational SARIF upload. Update scripts/osv_allowlist.txt only
+        # together with a written reachability argument in SECURITY.md.
+        run: python3 scripts/check_osv_allowlist.py --report /tmp/osv.json --allowlist scripts/osv_allowlist.txt
+
+  secrets:
+    name: Secret scan (full history)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # gitleaks needs every commit, not just the tip
+      - name: Install gitleaks 8.30.1 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/gitleaks.tar.gz "$url"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          echo "88f91962aa2f93ac6ab281d553b9e125f5197bbbce38f9f2437f7299c32e5509  /tmp/gitleaks" | sha256sum -c -
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+      - name: Scan every commit on every branch
+        # Suppressions live in .gitleaks.toml, rule-scoped and justified; the
+        # live-looking values that cannot be rotated from CI are listed in
+        # SECURITY.md -> Secret rotation register.
+        run: |
+          set -euo pipefail
+          gitleaks git \
+            --config .gitleaks.toml \
+            --redact \
+            --no-banner \
+            --report-format sarif \
+            --report-path /tmp/gitleaks.sarif \
+            --log-opts="--all"
+      - name: Upload SARIF
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          sarif_file: /tmp/gitleaks.sarif
+          category: gitleaks
+
+  python:
+    name: Python dependencies (botmodels)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Audit pinned requirements
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/audit-venv
+          /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
+          # `--no-deps` audits the pins we declare without installing torch and
+          # friends (~3 GB); transitive Python coverage comes from the OSV job.
+          # The only accepted exception is accelerate 1.1.1 (no fixed release);
+          # it is re-validated in SECURITY.md on every review.
+          /tmp/audit-venv/bin/pip-audit \
+            --requirement botmodels/requirements.txt \
+            --no-deps \
+            --progress-spinner off \
+            --ignore-vuln GHSA-4j2p-28q2-5m79
+
+  sbom:
+    name: SBOM (SPDX)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install syft 1.57.0 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/syft.tar.gz "$url"
+          tar -xzf /tmp/syft.tar.gz -C /tmp syft
+          echo "103469021520fc36c94fe5d2139bb45506f520a8043c61b8dcb161053933ba9e  /tmp/syft" | sha256sum -c -
+          sudo install -m 0755 /tmp/syft /usr/local/bin/syft
+      - name: Generate SPDX inventory
+        run: |
+          set -euo pipefail
+          syft dir:. \
+            --exclude './target/**' \
+            --exclude './.git/**' \
+            --exclude '**/node_modules/**' \
+            --exclude './.wwebjs_cache/**' \
+            -o "spdx-json=/tmp/sbom.spdx.json"
+          python3 -c "import json; d=json.load(open('/tmp/sbom.spdx.json')); print('packages:', len(d.get('packages', [])))"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sbom-spdx
+          path: /tmp/sbom.spdx.json
+          retention-days: 90
+
+  workflow-lint:
+    name: Workflow pinning and syntax
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install actionlint 1.7.12 (checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o /tmp/actionlint.tar.gz "$url"
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          echo "c872d6db8c6bf83a8eaa704fc93999f027d55dffbc63b8a6abdccb47df5f4cd4  /tmp/actionlint" | sha256sum -c -
+          sudo install -m 0755 /tmp/actionlint /usr/local/bin/actionlint
+      - name: Lint workflows
+        run: actionlint
+      - name: Every `uses:` must be a commit SHA
+        run: python3 scripts/check_workflow_pinning.py
+
+  headers:
+    name: Public origin headers (advisory)
+    # Deliberately advisory: #1720 owns shipping the six IMP-09 headers. Until
+    # that lands this job reports the gap instead of blocking every PR, and it
+    # only runs on the schedule so a customer-facing hiccup never fails a push.
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Assert header set
+        run: |
+          set -uo pipefail
+          host=https://chat.pragmatismo.com.br/
+          headers=$(curl -sS -D - -o /dev/null --max-time 20 "$host" || true)
+          missing=0
+          for h in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy; do
+            if grep -qi "^${h}:" <<<"$headers"; then
+              echo "present: $h"
+            else
+              echo "::warning title=missing header::$h is missing on ${host}"
+              missing=$((missing + 1))
+            fi
+          done
+          echo "missing headers: $missing/6 (tracked in #1720)"
