@@ -17,7 +17,7 @@ use sidebars::{
     handle_new_document_view,
 };
 use toolbar::{
-    handle_share_form, handle_ai_form, handle_find_replace_form, handle_print_form,
+    handle_ai_form, handle_find_replace_form, handle_print_form,
     handle_footnote_form, handle_endnote_form, handle_track_changes_form,
     handle_compare_form, handle_template_form,
 };
@@ -75,7 +75,6 @@ pub fn configure() -> Router<std::sync::Arc<crate::state::DocState>> {
         .route("/suite/docs/fragments/styles", post(handle_styles_panel))
         .route("/suite/docs/fragments/outline", post(handle_outline_panel))
         .route("/suite/docs/fragments/ai", post(handle_ai_panel_inner))
-        .route("/suite/docs/forms/share", post(handle_share_form))
         .route("/suite/docs/forms/ai", post(handle_ai_form))
         .route("/suite/docs/forms/find-replace", post(handle_find_replace_form))
         .route("/suite/docs/forms/print", post(handle_print_form))
