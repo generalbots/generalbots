@@ -361,7 +361,7 @@ pub async fn handle_protection_panel(
 <div class="ss-panel-body" style="padding:12px;">"##,
     );
     for (i, w) in sheet.worksheets.iter().enumerate() {
-        let is_protected = w.protection.as_ref().map(|p| p.protected).unwrap_or(false);
+        let is_protected = w.protection.as_ref().is_some_and(|p| p.protected);
         let status = if is_protected {
             format!(r##"<span style="color:#10b981;">{}</span>"##, t(lang, "panel.protection.protected"))
         } else {
