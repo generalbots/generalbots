@@ -48,7 +48,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | Capability | Notes |
 |---|---|
 | Citations & References | Source management inside the document |
-| AI Assistant | Ask for edits and improvements in natural language |
+| AI Assistant | Ask for edits and improvements in natural language. When the deployment has no LLM configured the panel says the document was not changed and points at the matching control — it never returns a fake rewrite, translation or summary. Summarize falls back to an honest excerpt of the selection. |
 
 Localisation ships with `en` and `pt-BR`.
 

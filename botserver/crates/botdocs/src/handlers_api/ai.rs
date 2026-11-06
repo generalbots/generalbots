@@ -67,32 +67,38 @@ async fn llm_complete(system_prompt: &str, user_prompt: &str) -> Result<String, 
 }
 
 fn fallback_docs_ai(command: &str) -> String {
-    if command.contains("summarize") || command.contains("summary") {
-        "I've created a summary of your document. The key points are highlighted above."
+    // No LLM configured (or the call failed): never claim an edit happened.
+    // The editor shows this text in the AI result panel, so it must be honest
+    // and tell the user what control to use instead.
+    let guidance = if command.contains("summarize") || command.contains("summary") {
+        "select the passage you want condensed and edit it down, or configure an LLM and retry."
     } else if command.contains("expand") || command.contains("longer") {
-        "I've expanded the selected text with more details and examples."
+        "add the extra detail directly, or configure an LLM and retry."
     } else if command.contains("shorter") || command.contains("concise") {
-        "I've made the text more concise while preserving the key information."
+        "trim the selection by hand, or configure an LLM and retry."
     } else if command.contains("formal") {
-        "I've rewritten the text in a more formal, professional tone."
+        "rewrite the tone manually, or configure an LLM and retry."
     } else if command.contains("casual") || command.contains("friendly") {
-        "I've rewritten the text in a more casual, friendly tone."
+        "rewrite the tone manually, or configure an LLM and retry."
     } else if command.contains("grammar") || command.contains("fix") {
-        "I've corrected the grammar and spelling errors in your text."
+        "fix the text manually, or configure an LLM and retry."
     } else if command.contains("translate") {
-        "I've translated the selected text. Please specify the target language if needed."
+        "translate the text manually, or configure an LLM and retry."
     } else if command.contains("improve") {
-        "I've improved the selected text for clarity, grammar, and flow."
+        "edit the selection manually, or configure an LLM and retry."
     } else if command.contains("simplify") {
-        "I've simplified the selected text using clearer, more concise language."
+        "simplify the selection manually, or configure an LLM and retry."
     } else if command.contains("bullet") || command.contains("list") {
-        "I've converted the text into a bulleted list format."
+        "use the toolbar list control, or configure an LLM and retry."
     } else if command.contains("help") {
-        "I can help you with:\n\u{2022} Summarize text\n\u{2022} Expand or shorten content\n\u{2022} Fix grammar\n\u{2022} Change tone (formal/casual)\n\u{2022} Translate text\n\u{2022} Convert to bullet points"
+        return "I can help you with:\n\u{2022} Summarize text\n\u{2022} Expand or shorten content\n\u{2022} Fix grammar\n\u{2022} Change tone (formal/casual)\n\u{2022} Translate text\n\u{2022} Convert to bullet points".to_string();
     } else {
-        "I understand you want help with your document. Try commands like 'summarize', 'make shorter', 'fix grammar', or 'make formal'."
-    }
-    .to_string()
+        "try commands like 'summarize', 'make shorter', 'fix grammar', or 'make formal'."
+    };
+    format!(
+        "AI is not available in this deployment, so the document was not changed. To {}",
+        guidance
+    )
 }
 
 pub async fn handle_docs_ai(
@@ -135,24 +141,28 @@ pub async fn handle_docs_ai(
 }
 
 fn fallback_ai(req: &AiRequest) -> AiResponse {
+    // Without an LLM the only honest local operation is an extractive excerpt;
+    // everything else must leave the text untouched and say so instead of
+    // returning a fake rewrite/translation.
     let text = req.selected_text.clone().unwrap_or_default();
-    let content = match req.action.as_str() {
-        "summarize" if text.len() > 200 => format!(
-            "Summary: {}...",
-            botlib::text::truncate_at_char_boundary(&text, 200)
+    let (content, note) = match req.action.as_str() {
+        "summarize" if text.len() > 200 => (
+            format!(
+                "Excerpt (first 200 characters): {}...",
+                botlib::text::truncate_at_char_boundary(&text, 200)
+            ),
+            None,
         ),
-        "summarize" => format!("Summary: {}", text),
-        "expand" => format!("{}\n\n[Additional context and details would be added here by AI]", text),
-        "translate" => {
-            let lang = req.translate_lang.clone().unwrap_or_else(|| "English".to_string());
-            format!("[Translated to {}]: {}", lang, text)
-        }
-        _ => text,
+        "summarize" => (text.clone(), None),
+        _ => (
+            text,
+            Some("LLM unavailable — the selected text was left unchanged.".to_string()),
+        ),
     };
     AiResponse {
-        result: "success".to_string(),
+        result: if note.is_some() { "unavailable".to_string() } else { "success".to_string() },
         content,
-        error: None,
+        error: note,
     }
 }
 
