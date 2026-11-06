@@ -626,10 +626,21 @@ Script: reads `/tmp/<crate>_check.log` → parses file:line:col → applies rege
 **LLM-enabled scripts:** for semantic fixes use `openai` package with `DEV_LLM_URL`/`DEV_LLM_KEY` from `.env` (DEV-only keys, never committed). Script sends error + code context, LLM returns fixed code.
 
 ### Memory Management (process "Killed")
-```bash
-pkill -9 cargo; pkill -9 rustc; pkill -9 botserver
-CARGO_BUILD_JOBS=1 cargo check -p botserver 2>&1 | tail -200
-```
+
+The dev container is capped at **4.5 GiB**, so `rustc` is SIGKILLed while
+compiling the `botserver` graph (diesel + ooxmlsdk). `CARGO_BUILD_JOBS=1`,
+`nohup` and crate-scoped checks do not make the full graph fit — do not burn
+time retrying it.
+
+- **Syntax gate (local):** `scripts/verify-rust-syntax.sh [base-ref]` parses
+  every changed `.rs` with `rustfmt --emit stdout` and reports failures.
+  It catches syntax errors, not missing imports or type mismatches.
+- **Type/compile gate (authoritative):** push to `main`, or dispatch
+  `alm-release.yml` on a temporary tag. The release build is the only supported
+  compile check under the current memory cap.
+- **If the cap is ever raised to ≥8–12 GiB**, verify
+  `cargo check -p botserver` once and update this section; until then, do not
+  add local cargo jobs to scripts or agent instructions.
 
 ---
 
