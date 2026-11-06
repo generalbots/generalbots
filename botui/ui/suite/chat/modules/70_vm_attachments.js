@@ -120,12 +120,11 @@ function vmInlineKind(path) {
   ) {
     return "text";
   }
-  if (
-    mime.indexOf("officedocument") !== -1 ||
-    mime === "application/msword" ||
-    mime === "application/vnd.ms-excel" ||
-    mime === "application/vnd.ms-powerpoint"
-  ) {
+  // The server-side OOXML converter only handles docx/xlsx/pptx. Legacy
+  // .doc/.xls/.ppt and ODF/RTF returned HTTP 415 inside the iframe, so they
+  // take the honest "no inline preview" path (Download/Open still work).
+  var extension = String(path || "").split(".").pop().toLowerCase();
+  if (extension === "docx" || extension === "xlsx" || extension === "pptx") {
     return "office";
   }
   return "other";

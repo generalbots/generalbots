@@ -114,7 +114,11 @@ var PREVIEWABLE_EXT = [
 
 // Office documents render through the server-side converter (docx-rs,
 // calamine, slide XML) instead of the raw-bytes viewer.
-var OFFICE_PREVIEW_EXT = ["docx", "doc", "odt", "rtf", "xlsx", "xls", "xlsb", "ods", "pptx", "ppt"];
+// Extensions the server-side converter actually renders. .doc/.odt/.rtf go
+// through the OOXML reader (no word/document.xml) and .ppt through the ZIP
+// reader (OLE), so the endpoint answered 422 for them; they now use the
+// regular blob preview instead of failing in the Office modal.
+var OFFICE_PREVIEW_EXT = ["docx", "xlsx", "xls", "xlsb", "ods", "pptx"];
 
 function getFileExt(path) {
     var name = (path || "").split("/").pop() || "";
