@@ -217,6 +217,11 @@ function loadSheet(id) {
     // Load the worksheet tabs HTML from server, then init VirtualGrid
     fetch('/api/sheet/load?id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(sheet){
         window.__LOADED_SHEET = sheet;
+        // Switching workbooks must refresh the title input: it kept the
+        // previous workbook's name, and the next Save then renamed the newly
+        // opened sheet to that stale value.
+        var titleInput = document.getElementById('sheetName');
+        if (titleInput && sheet && sheet.name) titleInput.value = sheet.name;
         if (!host) return;
         host.innerHTML = '';
         // Re-initialize VirtualGrid with fresh state
