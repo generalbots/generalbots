@@ -66,7 +66,19 @@ async fn serve_ui_asset(path: &str) -> Option<Response> {
     Some(([(header::CONTENT_TYPE, mime)], bytes).into_response())
 }
 
-fn to_json(params: Params) -> Json<serde_json::Value> {
+fn to_json(mut params: Params) -> Json<serde_json::Value> {
+    // The shell toolbar and modals predate the typed API: they address the
+    // deck as `id` and the slide as `slide`, while the fragment handlers read
+    // `presentation_id` and `slide_index`. Alias both here so a toolbar action
+    // targets the open deck instead of an empty id.
+    if let Some(value) = params.get("id").cloned() {
+        params.entry("presentation_id".to_string()).or_insert(value);
+    }
+    if let Some(value) = params.get("slide").cloned() {
+        if value.chars().all(|character| character.is_ascii_digit()) {
+            params.entry("slide_index".to_string()).or_insert(value);
+        }
+    }
     Json(serde_json::Value::Object(
         params
             .into_iter()
@@ -119,7 +131,7 @@ fn thumbnails_html(pres: &Presentation) -> Html<String> {
     }
     for (index, slide) in pres.slides.iter().enumerate() {
         html.push_str(&format!(
-            r#"<div class="sl-thumb" data-index="{index}" style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;">
+            r#"<div class="sl-thumb" data-index="{index}" data-slide="{index}" style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;">
 <div style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Slide {n}</div>
 <div style="background:#fff;border-radius:4px;overflow:hidden;aspect-ratio:16/9;">{preview}</div>
 </div>"#,

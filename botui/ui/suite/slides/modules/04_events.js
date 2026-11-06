@@ -1,6 +1,18 @@
 "use strict";
 /* slides events — sidebar, collab, auth, canvas styles, HTMX listeners */
 
+// Toolbar forms send the deck id as `id`/`presentation_id` = "current". Once a
+// deck is open, point those parameters at the real id so save/rename/export
+// and element actions reach the open deck.
+document.addEventListener("htmx:configRequest", function (event) {
+  var real = window.__SLIDES_PRESENTATION_ID;
+  if (!real || real === "current") return;
+  var parameters = (event.detail && event.detail.parameters) || {};
+  ["id", "presentation_id"].forEach(function (key) {
+    if (parameters[key] === "current") parameters[key] = real;
+  });
+});
+
 document.addEventListener("click", function (e) {
   var tab = e.target.closest("[data-sidebar-tab]");
   if (tab) {

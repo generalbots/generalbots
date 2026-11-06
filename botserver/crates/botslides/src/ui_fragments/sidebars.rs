@@ -120,7 +120,7 @@ pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<St
 </div>
 </div>
 <div class="sl-canvas-container" id="slides-content" style="background:#1e293b;padding:24px;display:flex;align-items:center;justify-content:center;min-height:60vh;">
-<div class="sl-canvas" id="slide-canvas" data-bg="{bg}" style="aspect-ratio:16/9;width:100%;max-width:960px;background:{bg};border:1px solid #334155;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);">{slide_html}</div>
+<div class="sl-canvas" id="slide-canvas" data-bg="{bg}" data-slide-id="{cur0}" style="aspect-ratio:16/9;width:100%;max-width:960px;background:{bg};border:1px solid #334155;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);">{slide_html}</div>
 </div>
 <div class="sl-status-bar" style="padding:8px 12px;border-top:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:#0f172a;font-size:12px;color:#94a3b8;">
 <span>Slide {cur} de {total}</span>
@@ -132,6 +132,7 @@ pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<St
         total = total,
         theme = html_escape(&pres.theme.name),
         cur = current + 1,
+        cur0 = current,
         bg = html_escape(&bg),
         primary = html_escape(&primary),
         slide_html = slide_html
@@ -148,7 +149,7 @@ pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> 
         .unwrap_or_else(|| "#0f172a".to_string());
     Html(format!(
         r##"<div class="sl-canvas-container" id="slides-content" data-current-slide="{idx}" style="background:#1e293b;padding:24px;display:flex;align-items:center;justify-content:center;min-height:60vh;">
-<div class="sl-canvas" id="slide-canvas" data-bg="{bg}" style="aspect-ratio:16/9;width:100%;max-width:960px;background:{bg};border:1px solid #334155;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);">{slide_html}</div>
+<div class="sl-canvas" id="slide-canvas" data-bg="{bg}" data-slide-id="{idx}" style="aspect-ratio:16/9;width:100%;max-width:960px;background:{bg};border:1px solid #334155;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);">{slide_html}</div>
 </div>
 <input type="hidden" id="current-presentation" value="{pid}" />
 <input type="hidden" id="current-slide-index" value="{idx}" />"##,
