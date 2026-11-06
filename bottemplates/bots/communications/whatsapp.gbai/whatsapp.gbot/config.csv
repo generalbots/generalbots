@@ -1,0 +1,19 @@
+name,value
+,
+bot-name,WhatsApp Integration
+bot-description,WhatsApp messaging integration
+,
+param-whatsappPhoneNumber,
+param-whatsappBusinessAccountID,
+param-whatsappAccessToken,
+param-whatsappWebhookURL,
+param-whatsappVerifyToken,
+,
+llm-model,gpt-4o-mini
+llm-temperature,0.3
+,
+sync-interval,60
+auto-reply,true
+,
+param-admin1,admin@yourdomain.com
+param-admin2,admin2@yourdomain.com

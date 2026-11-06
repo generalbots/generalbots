@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Rights Center</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .compliance-badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge.lgpd { border-color: #22c55e; color: #16a34a; }
+        .badge.gdpr { border-color: #3b82f6; color: #2563eb; }
+        .badge.hipaa { border-color: #a855f7; color: #9333ea; }
+        .badge.ccpa { border-color: #f97316; color: #ea580c; }
+
+        .rights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .right-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .right-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+        }
+
+        .right-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .right-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .right-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .right-card .legal-ref {
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-top: 0.25rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .consent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .consent-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .consent-info p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: var(--success-color);
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        .request-status {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-list {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .status-item {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+        }
+
+        .status-completed {
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+        }
+
+        .status-processing {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .rights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🔒</div>
+            <h1>Privacy Rights Center</h1>
+            <p class="subtitle">Exercise your data protection rights under LGPD, GDPR, and other privacy regulations</p>
+            <div class="compliance-badges">
+                <span class="badge lgpd">🇧🇷 LGPD Compliant</span>
+                <span class="badge gdpr">🇪🇺 GDPR Compliant</span>
+                <span class="badge hipaa">🏥 HIPAA Ready</span>
+                <span class="badge ccpa">🇺🇸 CCPA Compliant</span>
+            </div>
+        </header>
+
+        <section class="rights-grid">
+            <div class="right-card" onclick="openModal('accessModal')">
+                <div class="icon">📋</div>
+                <h3>Access My Data</h3>
+                <p>Request a complete copy of all personal data we hold about you in a portable format.</p>
+                <span class="legal-ref">LGPD Art. 18 / GDPR Art. 15</span>
+            </div>
+
+            <div class="right-card" onclick="openModal('rectifyModal')">
+                <div class="icon">✏️</div>
+                <h3>Correct My Data</h3>
+                <p>Request correction of inaccurate or incomplete personal data we hold about you.</p>
+                <span class="legal-ref">LGPD Art. 18 III / GDPR Art. 16</span>
+            </div>
+
+            <div class="right-card" onclick="openModal('deleteModal')">
+                <div class="icon">🗑️</div>
+                <h3>Delete My Data</h3>
+                <p>Request deletion of your personal data (Right to be Forgotten).</p>
+                <span class="legal-ref">LGPD Art. 18 VI / GDPR Art. 17</span>
+            </div>
+
+            <div class="right-card" onclick="openModal('portabilityModal')">
+                <div class="icon">📦</div>
+                <h3>Export My Data</h3>
+                <p>Download your data in a machine-readable format to transfer to another service.</p>
+                <span class="legal-ref">LGPD Art. 18 V / GDPR Art. 20</span>
+            </div>
+
+            <div class="right-card" onclick="openModal('consentModal')">
+                <div class="icon">⚙️</div>
+                <h3>Manage Consents</h3>
+                <p>Review and update your data processing consents and preferences.</p>
+                <span class="legal-ref">LGPD Art. 8 / GDPR Art. 7</span>
+            </div>
+
+            <div class="right-card" onclick="openModal('objectModal')">
+                <div class="icon">🚫</div>
+                <h3>Object to Processing</h3>
+                <p>Object to certain types of data processing or opt-out of specific activities.</p>
+                <span class="legal-ref">LGPD Art. 18 IV / GDPR Art. 21</span>
+            </div>
+        </section>
+
+        <section class="request-status">
+            <div class="status-header">
+                <h2>📊 Your Request History</h2>
+                <button class="btn btn-secondary" onclick="refreshStatus()">🔄 Refresh</button>
+            </div>
+            <div class="status-list" id="statusList">
+                <div class="status-item">
+                    <span class="status-badge status-completed">Completed</span>
+                    <span>Data Access Request</span>
+                    <span>2025-01-15</span>
+                    <a href="#" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Download</a>
+                </div>
+                <div class="status-item">
+                    <span class="status-badge status-processing">Processing</span>
+                    <span>Consent Update</span>
+                    <span>2025-01-20</span>
+                    <span>In Progress</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Access Data Modal -->
+    <div class="modal-overlay" id="accessModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('accessModal')">&times;</button>
+            <h2>📋 Access My Data</h2>
+            <div class="alert alert-info">
+                <span>ℹ️</span>
+                <span>You will receive a complete report of all personal data we hold about you within 15 days.</span>
+            </div>
+            <form onsubmit="submitRequest(event, 'access')">
+                <div class="form-group">
+                    <label for="access</span>-email">Email Address *</label>
+                    <input type="email" id="access-email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="access-format">Preferred Format</label>
+                    <select id="access-format">
+                        <option value="pdf">PDF Report</option>
+                        <option value="json">JSON (Machine Readable)</option>
+                        <option value="csv">CSV (Spreadsheet)</option>
+                        <option value="all">All Formats</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="access-notes">Additional Notes</label>
+                    <textarea id="access-notes" placeholder="Any specific data you're looking for..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Data Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+            <h2>🗑️ Delete My Data</h2>
+            <div class="alert alert-warning">
+                <span>⚠️</span>
+                <span>This action is permanent and cannot be undone. Some data may be retained for legal compliance.</span>
+            </div>
+            <form onsubmit="submitRequest(event, 'delete')">
+                <div class="form-group">
+                    <label for="delete-email">Email Address *</label>
+                    <input type="email" id="delete-email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="delete-scope">What to Delete</label>
+                    <select id="delete-scope">
+                        <option value="all">Everything (Complete Account Deletion)</option>
+                        <option value="conversations">Conversation History Only</option>
+                        <option value="files">Files and Documents Only</option>
+                        <option value="activity">Activity Logs Only</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="delete-reason">Reason (Optional)</label>
+                    <textarea id="delete-reason" placeholder="Help us improve by sharing why you're leaving..."></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="delete-confirm" required>
+                        <label for="delete-confirm">I understand this action is permanent and I want to proceed with data deletion</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-danger" style="width: 100%;">Request Deletion</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Consent Management Modal -->
+    <div class="modal-overlay" id="consentModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('consentModal')">&times;</button>
+            <h2>⚙️ Manage Consents</h2>
+            <div class="alert alert-info">
+                <span>ℹ️</span>
+                <span>Changes to your consents take effect immediately.</span>
+            </div>
+            <form onsubmit="submitRequest(event, 'consent')">
+                <div class="form-group">
+                    <label for="consent-email">Email Address *</label>
+                    <input type="email" id="consent-email" required placeholder="your@email.com">
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>Essential Services</h4>
+                        <p>Required for basic functionality (cannot be disabled)</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" checked disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>Analytics & Improvement</h4>
+                        <p>Help us improve through usage analysis</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="consent-analytics" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>Marketing Communications</h4>
+                        <p>Receive news, updates, and promotions</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="consent-marketing">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>Personalization</h4>
+                        <p>Customize experience based on your usage</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="consent-personalization" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>Third-Party Sharing</h4>
+                        <p>Share data with trusted partners</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="consent-thirdparty">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="consent-item">
+                    <div class="consent-info">
+                        <h4>AI Model Training</h4>
+                        <p>Use anonymized data to improve AI</p>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="consent-ai">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Preferences</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rectify Modal -->
+    <div class="modal-overlay" id="rectifyModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('rectifyModal')">&times;</button>
+            <h2>✏️ Correct My Data</h2>
+            <form onsubmit="submitRequest(event, 'rectify')">
+                <div class="form-group">
+                    <label for="rectify-email">Email Address *</label>
+                    <input type="email" id="rectify-email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="rectify-field">Data to Correct *</label>
+                    <select id="rectify-field" required>
+                        <option value="">Select field...</option>
+                        <option value="name">Name</option>
+                        <option value="email">Email Address</option>
+                        <option value="phone">Phone Number</option>
+                        <option value="address">Address</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rectify-current">Current Value</label>
+                    <input type="text" id="rectify-current" placeholder="What it currently shows">
+                </div>
+                <div class="form-group">
+                    <label for="rectify-new">Correct Value *</label>
+                    <input type="text" id="rectify-new" required placeholder="What it should be">
+                </div>
+                <div class="form-group">
+                    <label for="rectify-reason">Additional Information</label>
+                    <textarea id="rectify-reason" placeholder="Any additional details..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Correction Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Portability Modal -->
+    <div class="modal-overlay" id="portabilityModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('portabilityModal')">&times;</button>
+            <h2>📦 Export My Data</h2>
+            <div class="alert alert-info">
+                <span>ℹ️</span>
+                <span>Your data will be prepared and a download link sent to your email within 72 hours.</span>
+            </div>
+            <form onsubmit="submitRequest(event, 'portability')">
+                <div class="form-group">
+                    <label for="port-email">Email Address *</label>
+                    <input type="email" id="port-email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="port-format">Export Format *</label>
+                    <select id="port-format" required>
+                        <option value="json">JSON (Recommended for data transfer)</option>
+                        <option value="csv">CSV (For spreadsheets)</option>
+                        <option value="xml">XML (Universal format)</option>
+                        <option value="all">All Formats (ZIP archive)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data Categories to Include</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="port-profile" checked>
+                        <label for="port-profile">Profile Information</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="port-conversations" checked>
+                        <label for="port-conversations">Conversations & Messages</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="port-files" checked>
+                        <label for="port-files">Files & Documents</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="port-activity">
+                        <label for="port-activity">Activity Logs</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="port-consents" checked>
+                        <label for="port-consents">Consent Records</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Generate Export</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Object Modal -->
+    <div class="modal-overlay" id="objectModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('objectModal')">&times;</button>
+            <h2>🚫 Object to Processing</h2>
+            <form onsubmit="submitRequest(event, 'object')">
+                <div class="form-group">
+                    <label for="object-email">Email Address *</label>
+                    <input type="email" id="object-email" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="object-type">Processing Activity *</label>
+                    <select id="object-type" required>
+                        <option value="">Select activity...</option>
+                        <option value="profiling">Automated Profiling</option>
+                        <option value="direct-marketing">Direct Marketing</option>
+                        <option value="analytics">Analytics & Statistics</option>
+                        <option value="third-party">Third-Party Data Sharing</option>
+                        <option value="ai-processing">AI/ML Processing</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="object-reason">Reason for Objection *</label>
+                    <textarea id="object-reason" required placeholder="Please explain why you object to this processing..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Objection</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>🔒 Your privacy matters. All requests are processed securely and confidentially.</p>
+        <p>
+            <a href="/privacy-policy">Privacy Policy</a> •
+            <a href="/terms">Terms of Service</a> •
+            <a href="mailto:privacy@company.com">Contact DPO</a>
+        </p>
+        <p style="margin-top: 1rem;">© 2025 Pragmatismo. Built with General Bots.</p>
+    </footer>
+
+    <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        async function submitRequest(event, type) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.request_type = type;
+
+            try {
+                const response = await fetch('/api/privacy/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('✅ Your request has been submitted successfully! Check your email for confirmation.');
+                    form.reset();
+                    closeModal(form.closest('.modal-overlay').id);
+                    refreshStatus();
+                } else {
+                    throw new Error('Request failed');
+                }
+            } catch (error) {
+                alert('❌ There was an error submitting your request. Please try again or contact support.');
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/privacy/requests');
+                if (response.ok) {
+                    const requests = await response.json();
+                    updateStatusList(requests);
+                }
+            } catch (error) {
+                console.error('Failed to refresh status:', error);
+            }
+        }
+
+        function updateStatusList(requests) {
+            const statusList = document.getElementById('statusList');
+            if (requests.length === 0) {
+                statusList.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">No requests found.</p>';
+                return;
+            }
+
+            statusList.innerHTML = requests.map(req => `
+                <div class="status-item">
+                    <span class="status-badge status-${req.status.toLowerCase()}">${req.status}</span>
+                    <span>${req.type}</span>
+                    <span>${new Date(req.created_at).toLocaleDateString()}</span>
+                    ${req.download_url ?
+                        `<a href="${req.download_url}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Download</a>` :
+                        `<span>${req.status}</span>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        // Load status on page load
+        document.addEventListener('DOMContentLoaded', refreshStatus);
+    </script>
+</body>
+</html>

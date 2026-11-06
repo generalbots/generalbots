@@ -1,0 +1,51 @@
+{
+  "name": "team-feedback",
+  "version": "1.0.0",
+  "description": "Team feedback and pulse surveys for managers",
+  "author": "General Bots",
+  "category": "hr",
+  "tags": ["pulse", "feedback", "team", "manager", "surveys", "hr"],
+  "entry_dialog": "default.gbdialog",
+  "features": {
+    "pulse_surveys": true,
+    "team_health": true,
+    "sentiment_analysis": true,
+    "trend_tracking": true,
+    "action_items": true,
+    "ai_insights": true
+  },
+  "settings": {
+    "default_frequency": "weekly",
+    "anonymous_responses": true,
+    "alert_threshold": 3.0,
+    "trend_periods": 4,
+    "auto_remind": true,
+    "reminder_hours": 24
+  },
+  "templates": {
+    "wellbeing": {
+      "name": "Team Wellbeing",
+      "questions": 4
+    },
+    "workload": {
+      "name": "Workload Check",
+      "questions": 4
+    },
+    "collaboration": {
+      "name": "Collaboration Health",
+      "questions": 4
+    }
+  },
+  "permissions": {
+    "create_pulse": ["manager", "hr", "admin"],
+    "view_results": ["manager", "hr", "admin"],
+    "respond": ["team_member"],
+    "manage_actions": ["manager", "hr", "admin"]
+  },
+  "integrations": {
+    "tasks": true,
+    "calendar": true,
+    "mail": true,
+    "analytics": true
+  }
+}

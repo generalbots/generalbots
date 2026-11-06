@@ -1,0 +1,35 @@
+{
+  "name": "employee-engage",
+  "version": "1.0.0",
+  "description": "Employee engagement surveys and sentiment analysis",
+  "author": "General Bots",
+  "category": "hr",
+  "tags": ["engagement", "surveys", "pulse", "sentiment", "feedback", "hr"],
+  "entry_dialog": "default.gbdialog",
+  "features": {
+    "engagement_surveys": true,
+    "pulse_checks": true,
+    "sentiment_analysis": true,
+    "anonymous_feedback": true,
+    "results_dashboard": true,
+    "ai_insights": true
+  },
+  "settings": {
+    "default_anonymous": true,
+    "pulse_frequency": "weekly",
+    "sentiment_threshold": 0.3,
+    "auto_escalate_negative": true,
+    "survey_reminder_days": 3
+  },
+  "permissions": {
+    "create_survey": ["hr", "admin"],
+    "view_results": ["hr", "admin", "manager"],
+    "submit_feedback": ["all"],
+    "manage_settings": ["admin"]
+  },
+  "integrations": {
+    "calendar": true,
+    "mail": true,
+    "analytics": true
+  }
+}

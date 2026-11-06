@@ -1,0 +1,219 @@
+PARAM action AS STRING LIKE "pulse" DESCRIPTION "Action: pulse, review, insights, actions"
+PARAM team_id AS STRING DESCRIPTION "Team identifier" OPTIONAL
+PARAM period AS STRING LIKE "weekly" DESCRIPTION "Review period" OPTIONAL
+
+DESCRIPTION "Team feedback and pulse surveys for managers"
+
+SELECT CASE UCASE(action)
+
+CASE "PULSE"
+    pulse_id = GUID()
+    pulse_name = ASK "Name this pulse check (e.g., 'Weekly Team Health'):"
+
+    template = ASK "Use template? (wellbeing, workload, collaboration, custom)"
+
+    questions = NEW ARRAY
+
+    IF template = "wellbeing" THEN
+        PUSH questions, { text: "How are you feeling about work this week?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Do you feel supported by your team?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Is your workload manageable?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Any blockers or concerns?", type: "text" }
+    END IF
+
+    IF template = "workload" THEN
+        PUSH questions, { text: "How would you rate your current workload?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Do you have clarity on priorities?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Are deadlines realistic?", type: "scale", scale: 5 }
+        PUSH questions, { text: "What would help you be more productive?", type: "text" }
+    END IF
+
+    IF template = "collaboration" THEN
+        PUSH questions, { text: "How effective is team communication?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Do you feel your input is valued?", type: "scale", scale: 5 }
+        PUSH questions, { text: "How well is the team working together?", type: "scale", scale: 5 }
+        PUSH questions, { text: "Suggestions for better collaboration?", type: "text" }
+    END IF
+
+    IF template = "custom" THEN
+        adding = TRUE
+        WHILE adding
+            q_text = ASK "Enter question (or 'done'):"
+            IF UCASE(q_text) = "DONE" THEN
+                adding = FALSE
+            ELSE
+                q_type = ASK "Type? (scale/text/choice)"
+                WITH q
+                    text = q_text
+                    type = q_type
+                    scale = 5
+                END WITH
+                PUSH questions, q
+            END IF
+        END WHILE
+    END IF
+
+    frequency = ASK "Send frequency? (once, daily, weekly, biweekly, monthly)"
+
+    WITH pulse
+        id = pulse_id
+        name = pulse_name
+        template = template
+        questions = questions
+        frequency = frequency
+        team_id = team_id
+        anonymous = TRUE
+        status = "active"
+        created_at = NOW()
+    END WITH
+
+    SAVE pulse TO "team_pulses"
+    TALK "Pulse '" + pulse_name + "' created! First survey sends based on " + frequency + " schedule."
+
+CASE "REVIEW"
+    pulses = FIND "team_pulses" WHERE team_id = team_id OR team_id = NULL
+
+    IF LEN(pulses) = 0 THEN
+        TALK "No pulse surveys found. Create one first with action=pulse"
+    ELSE
+        pulse_list = ""
+        FOR i = 0 TO LEN(pulses) - 1
+            pulse_list = pulse_list + (i + 1) + ". " + pulses[i].name + "\n"
+        END FOR
+
+        selection = ASK "Select pulse to review:\n" + pulse_list
+        selected = pulses[INT(selection) - 1]
+
+        responses = FIND "pulse_responses" WHERE pulse_id = selected.id
+
+        IF LEN(responses) = 0 THEN
+            TALK "No responses yet."
+        ELSE
+            TALK "📊 " + selected.name + " Results"
+            TALK "Responses: " + LEN(responses)
+
+            FOR q = 0 TO LEN(selected.questions) - 1
+                question = selected.questions[q]
+                TALK "\n" + question.text
+
+                IF question.type = "scale" THEN
+                    sum = 0
+                    FOR r = 0 TO LEN(responses) - 1
+                        sum = sum + responses[r].answers[q]
+                    END FOR
+                    avg = sum / LEN(responses)
+
+                    bar = ""
+                    filled = INT(avg)
+                    FOR b = 1 TO 5
+                        IF b <= filled THEN
+                            bar = bar + "█"
+                        ELSE
+                            bar = bar + "░"
+                        END IF
+                    END FOR
+                    TALK bar + " " + FORMAT(avg, "0.0") + "/5"
+
+                    IF avg < 3 THEN
+                        TALK "⚠️ Area needs attention"
+                    END IF
+                END IF
+
+                IF question.type = "text" THEN
+                    TALK "Comments:"
+                    FOR r = 0 TO LEN(responses) - 1
+                        IF responses[r].answers[q] <> "" THEN
+                            TALK "• " + responses[r].answers[q]
+                        END IF
+                    END FOR
+                END IF
+            END FOR
+
+            trend = FIND "pulse_trends" WHERE pulse_id = selected.id ORDER BY date DESC LIMIT 4
+            IF LEN(trend) > 1 THEN
+                TALK "\n📈 Trend (last 4 periods):"
+                FOR t = 0 TO LEN(trend) - 1
+                    TALK trend[t].date + ": " + FORMAT(trend[t].avg_score, "0.0")
+                END FOR
+            END IF
+        END IF
+    END IF
+
+CASE "INSIGHTS"
+    TALK "🔍 AI-Generated Team Insights"
+
+    responses = FIND "pulse_responses" WHERE team_id = team_id ORDER BY created_at DESC LIMIT 50
+    text_feedback = ""
+    FOR r = 0 TO LEN(responses) - 1
+        FOR a = 0 TO LEN(responses[r].answers) - 1
+            IF TYPEOF(responses[r].answers[a]) = "string" THEN
+                text_feedback = text_feedback + responses[r].answers[a] + " "
+            END IF
+        END FOR
+    END FOR
+
+    IF text_feedback <> "" THEN
+        themes = ANALYZE THEMES FROM text_feedback
+        sentiment = ANALYZE SENTIMENT FROM text_feedback
+
+        TALK "\n🎯 Key Themes:"
+        FOR t = 0 TO LEN(themes) - 1
+            TALK "• " + themes[t].topic + " (" + themes[t].count + " mentions)"
+        END FOR
+
+        TALK "\n😊 Team Sentiment: " + sentiment.label
+        TALK "Positive: " + FORMAT(sentiment.positive * 100, "0") + "%"
+        TALK "Neutral: " + FORMAT(sentiment.neutral * 100, "0") + "%"
+        TALK "Negative: " + FORMAT(sentiment.negative * 100, "0") + "%"
+
+        IF sentiment.negative > 0.3 THEN
+            TALK "\n⚠️ Elevated negative sentiment detected. Consider scheduling team discussion."
+        END IF
+    ELSE
+        TALK "Not enough feedback data for insights. Run more pulse surveys."
+    END IF
+
+CASE "ACTIONS"
+    TALK "📋 Suggested Actions Based on Feedback"
+
+    low_scores = FIND "pulse_trends" WHERE avg_score < 3 AND team_id = team_id
+
+    IF LEN(low_scores) > 0 THEN
+        TALK "\nAreas needing attention:"
+        FOR s = 0 TO LEN(low_scores) - 1
+            TALK "• " + low_scores[s].question_text + " (Score: " + FORMAT(low_scores[s].avg_score, "0.0") + ")"
+        END FOR
+
+        create_action = ASK "Create action item? (yes/no)"
+        IF UCASE(create_action) = "YES" THEN
+            action_text = ASK "Describe the action:"
+            due_date = ASK "Due date (YYYY-MM-DD):"
+            owner = ASK "Owner (email):"
+
+            WITH action_item
+                id = GUID()
+                description = action_text
+                due = due_date
+                assigned_to = owner
+                team_id = team_id
+                source = "team_feedback"
+                status = "open"
+                created_at = NOW()
+            END WITH
+
+            SAVE action_item TO "action_items"
+            TALK "Action item created and assigned to " + owner
+        END IF
+    ELSE
+        TALK "No critical areas identified. Team health looks good!"
+    END IF
+
+CASE ELSE
+    TALK "Team Feedback System"
+    TALK "Available actions:"
+    TALK "• pulse - Create quick team surveys"
+    TALK "• review - View pulse results"
+    TALK "• insights - AI-generated team insights"
+    TALK "• actions - Review and create action items"
+
+END SELECT

@@ -1,0 +1,49 @@
+name,value
+
+# Bot Identity
+bot-name,Attendance CRM Bot
+bot-description,Hybrid AI + Human support with CRM integration
+
+# CRM / Human Handoff - Required
+crm-enabled,true
+
+# LLM Assist Features for Attendants
+attendant-llm-tips,true
+attendant-polish-message,true
+attendant-smart-replies,true
+attendant-auto-summary,true
+attendant-sentiment-analysis,true
+
+# Bot Personality (used for LLM assist context)
+bot-system-prompt,You are a professional customer service assistant. Be helpful and empathetic. When issues are complex or customers are frustrated transfer to human support.
+
+# Auto-transfer triggers
+auto-transfer-on-frustration,true
+auto-transfer-threshold,3
+
+# Queue Settings
+queue-timeout-minutes,30
+queue-notify-interval,5
+
+# Lead Scoring
+lead-score-threshold-hot,70
+lead-score-threshold-warm,50
+
+# Follow-up Automation
+follow-up-1-day,true
+follow-up-3-day,true
+follow-up-7-day,true
+
+# Collections Automation
+collections-enabled,true
+collections-grace-days,3
+
+# Working Hours (for auto-responses)
+business-hours-start,09:00
+business-hours-end,18:00
+business-days,1-5
+
+# Notifications
+notify-on-vip,true
+notify-on-escalation,true
+notify-email,support@company.com
