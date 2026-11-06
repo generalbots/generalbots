@@ -434,6 +434,9 @@ function addMessage(sender, content, msgId, reasoning) {
   if (sender !== "user") setChatStatus("");
   var userAttachmentName = null;
   if (sender === "user") {
+    // A new user turn always allows the next completion through, even if it
+    // repeats the previous answer verbatim.
+    ChatState.lastCompletedTurn = null;
     // #1641 — persisted user turns carry a trailing `📎 name`. Show it once,
     // as a chip, instead of printing the marker twice (the text plus the
     // restored chip used to duplicate the same filename).
@@ -767,16 +770,32 @@ function processMessage(data) {
     if (ChatState.isStreaming) {
       finalizeStreaming();
     }
-    if (finalContent && finalContent.trim() !== "") {
-      addMessage("bot", finalContent, null, finalReasoning);
-      if (TTSState.autoSpeak) {
-        speakText(finalContent);
+    // The server can emit the same completion more than once (stream end +
+    // final frame + retry). Without this guard each copy became a separate
+    // bubble and a duplicate local-history entry.
+    var completed = finalContent && finalContent.trim() !== ""
+      ? { content: finalContent, reasoning: "" }
+      : { content: "", reasoning: finalReasoning };
+    var previous = ChatState.lastCompletedTurn;
+    var duplicateCompletion = previous &&
+      previous.content === completed.content &&
+      previous.reasoning === completed.reasoning &&
+      // Retries can land several seconds apart; a new user turn clears this
+      // marker, so a long window only suppresses the server's own duplicates.
+      Date.now() - previous.at < 60000;
+    if (!duplicateCompletion) {
+      if (completed.content) {
+        addMessage("bot", completed.content, null, finalReasoning);
+        if (TTSState.autoSpeak) speakText(completed.content);
+      } else if (completed.reasoning && completed.reasoning.trim() !== "") {
+        addMessage("bot", "", null, completed.reasoning);
+        if (TTSState.autoSpeak) speakText(completed.reasoning);
       }
-    } else if (finalReasoning && finalReasoning.trim() !== "") {
-      addMessage("bot", "", null, finalReasoning);
-      if (TTSState.autoSpeak) {
-        speakText(finalReasoning);
-      }
+      ChatState.lastCompletedTurn = {
+        content: completed.content,
+        reasoning: completed.reasoning,
+        at: Date.now(),
+      };
     }
     // The final bubble can be rendered by a pane renderer that skips the
     // addMessage hydration; re-run it on the visible last bot turn so raw

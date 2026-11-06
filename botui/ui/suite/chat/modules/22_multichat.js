@@ -318,6 +318,7 @@
       if (stockSugg) {
         stockSugg.id = "suggestions";
         stockSugg.removeAttribute("data-mc-stock");
+        stockSugg.style.display = "";
       }
       MC.activeId = t.id;
       return;
@@ -334,6 +335,9 @@
       if (oldFooterSugg) {
         oldFooterSugg.removeAttribute("id");
         oldFooterSugg.setAttribute("data-mc-stock", "1");
+        // Parking the stock surface removed its id but left its chips
+        // visible below the parallel pane's own suggestions.
+        oldFooterSugg.style.display = "none";
       }
     } else if (oldPane && oldPane.__mcTabId !== t.id) {
       // Detach the previous active pane (keep its canonical-id removal).
