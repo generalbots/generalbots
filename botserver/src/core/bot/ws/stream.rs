@@ -1,16 +1,23 @@
+mod answer_mode;
+mod caps;
+mod frames;
+mod tool_call;
+mod ttft;
+mod turn;
+
 use std::sync::Arc;
+
 use axum::extract::ws::{Message, WebSocket};
 use botcore::shared::state::AppState;
-use diesel::prelude::*;
 use futures_util::SinkExt;
-use log::{error, info, warn};
+use log::info;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use crate::core::bot::runs::caps::{CapBreach, RunBudget, RunCaps};
-use crate::core::bot::ws::handler::validate_bot_name;
-use crate::core::bot::ws::handler::verify_path_within_workdir;
-use crate::core::bot::ws::message::load_bot_styles_css;
+use crate::core::bot::runs::caps::RunBudget;
+
+/// Sender half of the web socket that a turn writes to.
+pub(super) type WsSink = futures_util::stream::SplitSink<WebSocket, Message>;
 
 /// One LLM turn of a web-socket session.
 pub struct LlmTurn<'a> {
@@ -24,7 +31,7 @@ pub struct LlmTurn<'a> {
 }
 
 pub async fn process_llm_response(
-    ws_sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
+    ws_sender: &mut WsSink,
     rx: &mut mpsc::Receiver<botlib::models::BotResponse>,
     turn: &LlmTurn<'_>,
 ) {
@@ -33,65 +40,16 @@ pub async fn process_llm_response(
         bot_uuid,
         session_id,
         user_id,
-        bot_name,
-        messages,
         user_text,
+        ..
     } = *turn;
     // #1620 — mark the reply as in flight for the whole function (including
     // tool calls) so the desktop shell never terminates mid-generation.
     let _desktop_activity = crate::core::desktop_activity::ActivityGuard::begin();
-    let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
-    let mut full_response = String::new();
-    // #1696 — opt-in per-run budget (tokens + wall clock). Per-bot settings
-    // (plan/workspace `run-max-tokens` / `run-max-seconds`) override the
-    // deployment defaults; 0 means unlimited everywhere.
-    let caps = {
-        use botcore::config::ConfigManager;
-        // Group policy first (most restrictive non-zero across the user's
-        // groups), then per-bot/plan keys, then deployment defaults.
-        let group_policy = {
-            #[derive(diesel::QueryableByName)]
-            struct PolicyRow {
-                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
-                max_tokens: Option<i64>,
-                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
-                max_seconds: Option<i64>,
-            }
-            state
-                .conn
-                .get()
-                .ok()
-                .and_then(|mut conn| {
-                    diesel::sql_query(
-                        "SELECT min(NULLIF(p.max_tokens, 0))::bigint AS max_tokens, \
-                                min(NULLIF(p.max_seconds, 0))::bigint AS max_seconds \
-                         FROM group_cap_policies p \
-                         JOIN rbac_groups g ON g.name = p.group_name \
-                         JOIN rbac_user_groups ug ON ug.group_id = g.id \
-                         WHERE ug.user_id = $1",
-                    )
-                    .bind::<diesel::sql_types::Uuid, _>(user_id)
-                    .get_result::<PolicyRow>(&mut conn)
-                    .ok()
-                })
-        };
-        let group_caps = RunCaps::from_env().restrict_to(
-            group_policy
-                .as_ref()
-                .and_then(|row| row.max_tokens)
-                .and_then(|value| u64::try_from(value).ok()),
-            group_policy
-                .as_ref()
-                .and_then(|row| row.max_seconds)
-                .and_then(|value| u64::try_from(value).ok()),
-        );
-        let cfg = ConfigManager::new(state.conn.clone());
-        let bot_tokens = cfg.get_config(&bot_uuid, "run-max-tokens", None).ok();
-        let bot_seconds = cfg.get_config(&bot_uuid, "run-max-seconds", None).ok();
-        RunCaps::merge(bot_tokens.as_deref(), bot_seconds.as_deref(), group_caps)
-    };
-    let mut budget = RunBudget::start(caps);
-    let mut cap_breach: Option<CapBreach> = None;
+
+    // #1696 — opt-in per-run budget (tokens + wall clock).
+    let caps = caps::resolve(state, bot_uuid, user_id);
+    let budget = RunBudget::start(caps);
 
     let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> =
         match crate::core::bot::pipeline::enriched_llm::resolve_bot_llm_provider(
@@ -103,520 +61,63 @@ pub async fn process_llm_response(
             Err(message) => {
                 // #1654 — a subscription provider without a linked account must
                 // tell the user what to do instead of silently using another key.
-                let err_resp = serde_json::json!({
-                    "bot_id": bot_uuid.to_string(),
-                    "user_id": user_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "channel": "web",
-                    "content": format!("<p>{}</p>", message),
-                    "message_type": 2, "is_complete": true,
-                    "suggestions": [], "switchers": [],
-                    "context_length": 0, "context_max_length": 0,
-                });
+                let err_resp = frames::error(turn, format!("<p>{}</p>", message));
                 let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
                 return;
             }
         };
 
-    let answer_mode = {
-        #[cfg(feature = "chat")]
-        {
-            crate::core::bot::answer_mode::get_answer_mode(
-                state, &session_id,
-            ).await
-        }
-        #[cfg(not(feature = "chat"))]
-        {
-            crate::core::bot::answer_mode::AnswerMode::Default
-        }
-    };
-    if answer_mode != crate::core::bot::answer_mode::AnswerMode::Default {
-        let mode_response = match answer_mode {
-            crate::core::bot::answer_mode::AnswerMode::Data => {
-                crate::core::bot::answer_mode::generate_data_response(
-                    state, user_text, bot_uuid, bot_name, session_id, user_id,
-                ).await
-            }
-            crate::core::bot::answer_mode::AnswerMode::Chart => {
-                crate::core::bot::answer_mode::generate_chart_response(
-                    state, user_text, bot_uuid, bot_name, session_id, user_id,
-                ).await
-            }
-            _ => return,
-        };
-        match mode_response {
-            Ok(resp) => {
-                if let Ok(json) = serde_json::to_string(&resp) {
-                    let _ = ws_sender.send(Message::Text(json)).await;
-                }
-                let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &resp.content, 2);
-            }
-            Err(e) => {
-                let err_resp = serde_json::json!({
-                    "bot_id": bot_uuid.to_string(),
-                    "user_id": user_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "channel": "web",
-                    "content": format!("<p>Error: {}</p>", e),
-                    "message_type": 2, "is_complete": true,
-                    "suggestions": [], "switchers": [],
-                    "context_length": 0, "context_max_length": 0,
-                });
-                let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
-            }
-        }
+    if answer_mode::try_handle(ws_sender, turn).await {
         return;
     }
 
     let env_key = std::env::var("LLM_KEY").unwrap_or_default();
     let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
-    info!("stream: bot_llm_provider.is_some={}, fallback_key_len={}", bot_llm_provider.is_some(), env_key.len());
-    match bot_llm_provider.or_else(|| state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone()))) {
-        Some((ref llm, ref llm_key, ref llm_model)) => {
-            let state_clone = state.clone();
-            let prompt_clone = user_text.to_string();
-            let messages_clone = messages.clone();
-            let llm = llm.clone();
-            let llm_key_clone = llm_key.clone();
-            let llm_model_clone = llm_model.clone();
-            let bot_uuid_s = bot_uuid.to_string();
-            let session_id_s = session_id.to_string();
-            let bot_name_clone = bot_name.to_string();
-
-            let style_css = load_bot_styles_css(&bot_name_clone);
-
-            let session_tools = {
-                let sid: Uuid = match session_id_s.parse() {
-                    Ok(id) => id,
-                    Err(_) => Uuid::new_v4(),
-                };
-                let pool = state_clone.conn.clone();
-                let name = bot_name_clone.clone();
-                let sid_for_block = sid;
-                match tokio::time::timeout(
-                    std::time::Duration::from_secs(10),
-                    tokio::task::spawn_blocking(move || {
-                        crate::core::bot::tool_context::get_session_tools(
-                            &pool, &name, &sid_for_block,
-                        )
-                    }),
-                ).await {
-                    Ok(Ok(Ok(tools))) => {
-                        info!("Loaded {} tools for LLM session {}", tools.len(), session_id_s);
-                        tools
-                    }
-                    Ok(Ok(Err(e))) => {
-                        warn!("get_session_tools error for {}: {}", session_id_s, e);
-                        Vec::new()
-                    }
-                    Ok(Err(e)) => {
-                        warn!("get_session_tools spawn_blocking join error for {}: {}", session_id_s, e);
-                        Vec::new()
-                    }
-                    Err(_) => {
-                        warn!("get_session_tools TIMEOUT after 10s for session {}", session_id_s);
-                        Vec::new()
-                    }
-                }
-            };
-            // #1711 — the native structured tools must be callable through the
-            // provider's tool API. This path serves the web socket only, which
-            // is where the renderers exist.
-            let mut session_tools = session_tools;
-            if crate::core::bot::pipeline::event_sink::enabled() {
-                session_tools.extend(
-                    crate::core::bot::pipeline::surface_catalog::llm_tools(),
-                );
-            }
-
-            let steer_llm = llm.clone();
-            let steer_key = llm_key_clone.clone();
-            let steer_model = llm_model_clone.clone();
-            let steer_tools = if session_tools.is_empty() {
-                None
-            } else {
-                Some(session_tools.clone())
-            };
-            let mut stream_handle = tokio::spawn(async move {
-                info!("LLM spawn task starting: model={}, key_len={}, key_first_20={}", llm_model_clone, llm_key_clone.len(), llm_key_clone.chars().take(20).collect::<String>());
-                let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
-                if let Err(e) = llm.generate_stream(&prompt_clone, &messages_clone, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
-                    error!("LLM stream error: {}", e);
-                } else {
-                    info!("LLM spawn task completed successfully");
-                }
-            });
-
-            // #1700 — first-token latency is recorded once per turn at the
-            // first content chunk, so the ~35% server-held-thread claim can be
-            // measured instead of asserted.
-            let llm_started_at = std::time::Instant::now();
-            let mut ttft_logged = false;
-
-            {
-                let mut init_msg = serde_json::json!({
-                    "bot_id": bot_uuid_s,
-                    "user_id": user_id.to_string(),
-                    "session_id": session_id_s,
-                    "channel": "web",
-                    "content": "",
-                    "message_type": 2,
-                    "is_complete": false,
-                    "thinking": true,
-                    "suggestions": [],
-                    "switchers": [],
-                    "context_length": 0,
-                    "context_max_length": 0,
-                });
-                if !style_css.is_empty() {
-                    init_msg["css"] = serde_json::Value::String(style_css.clone());
-                } else {
-                    info!("CSS NOT included - style_css was empty for bot {}", bot_name_clone);
-                }
-                let _ = ws_sender.send(Message::Text(init_msg.to_string())).await;
-            }
-
-            let mut reasoning_accumulated = String::new();
-            // #1701 — messages sent while this turn streams are honored inside
-            // the run (bounded), not only at the turn boundary.
-            let mut steering_rounds: u8 = 0;
-
-            let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
-            keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            loop {
-                tokio::select! {
-                    chunk = stream_rx.recv() => {
-                        match chunk {
-                            Some(chunk) => {
-                                if chunk.contains("\"__reasoning__\"") {
-                                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&chunk) {
-                                        if let Some(r) = val.get("__reasoning__").and_then(|v| v.as_str()) {
-                                            reasoning_accumulated.push_str(r);
-                                        }
-                                    }
-                                    continue;
-                                }
-                                if chunk.contains("\"__tool_call__\"") {
-                                    full_response.push_str(&chunk);
-                                    continue;
-                                }
-                                full_response.push_str(&chunk);
-                                if !ttft_logged {
-                                    ttft_logged = true;
-                                    let ttft_ms = i64::try_from(llm_started_at.elapsed().as_millis())
-                                        .unwrap_or(i64::MAX);
-                                    info!("llm_ttft: {} ms (model {})", ttft_ms, llm_model);
-                                    let pool = state.conn.clone();
-                                    let model = llm_model.to_string();
-                                    tokio::task::spawn_blocking(move || {
-                                        let Ok(mut conn) = pool.get() else { return };
-                                        let _ = diesel::sql_query(
-                                            "INSERT INTO llm_metrics (id, request_id, session_id, bot_id, model, request_type, input_tokens, output_tokens, total_tokens, latency_ms, ttft_ms, cached, success, estimated_cost, timestamp, metadata) \
-                                             VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, $3, 'chat', 0, 0, 0, $4, $4, false, true, 0, NOW(), '{}'::jsonb)",
-                                        )
-                                        .bind::<diesel::sql_types::Uuid, _>(session_id)
-                                        .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
-                                        .bind::<diesel::sql_types::Text, _>(&model)
-                                        .bind::<diesel::sql_types::BigInt, _>(ttft_ms)
-                                        .execute(&mut conn);
-                                    });
-                                }
-                                // #1696 — stop spending as soon as a limit is
-                                // reached; the final frame explains why.
-                                budget.observe_chars(full_response.chars().count());
-                                if let Some(breach) = budget.check() {
-                                    log::warn!(
-                                        "run cap: {} (session {})",
-                                        RunBudget::describe(&breach),
-                                        session_id_s
-                                    );
-                                    cap_breach = Some(breach);
-                                    break;
-                                }
-                                let chunk_resp = serde_json::json!({
-                                    "bot_id": bot_uuid_s,
-                                    "user_id": user_id.to_string(),
-                                    "session_id": session_id_s,
-                                    "channel": "web",
-                                    "content": chunk,
-                                    "message_type": 2,
-                                    "is_complete": false,
-                                    "suggestions": [],
-                                    "switchers": [],
-                                    "citations": [],
-                                    "context_length": 0,
-                                    "context_max_length": 0,
-                                });
-                                if ws_sender.send(Message::Text(chunk_resp.to_string())).await.is_err() {
-                                    break;
-                                }
-                                // #1701 — honor a message sent mid-run before
-                                // the next step: abort this provider stream and
-                                // continue with the partial answer plus the
-                                // steering instruction.
-                                if steering_rounds < crate::core::bot::runs::steering::MAX_STEERS_PER_RUN {
-                                    let thread_id = session_id_s.clone();
-                                    if let Some(steer) =
-                                        crate::core::bot::runs::bus::bus().take_steering(&thread_id)
-                                    {
-                                        steering_rounds += 1;
-                                        warn!(
-                                            "steering mid-run (session {}, {} chars)",
-                                            session_id_s,
-                                            steer.chars().count()
-                                        );
-                                        stream_handle.abort();
-                                        let mut steered = messages.clone();
-                                        if let Some(items) = steered.as_array_mut() {
-                                            let partial = full_response.trim();
-                                            if !partial.is_empty() {
-                                                items.push(serde_json::json!({
-                                                    "role": "assistant",
-                                                    "content": partial,
-                                                }));
-                                            }
-                                            items.push(serde_json::json!({
-                                                "role": "user",
-                                                "content": crate::core::bot::runs::steering::instruction(&steer),
-                                            }));
-                                        }
-                                        let notice = serde_json::json!({
-                                            "type": "gb.steer",
-                                            "session_id": session_id_s,
-                                            "message": steer,
-                                        });
-                                        let _ = ws_sender
-                                            .send(Message::Text(notice.to_string()))
-                                            .await;
-                                        crate::core::bot::runs::bus::bus().publish(
-                                            &thread_id,
-                                            serde_json::json!({
-                                                "type": "CUSTOM",
-                                                "session_id": session_id_s,
-                                                "data": {
-                                                    "name": "gb.steer",
-                                                    "payload": { "message": steer },
-                                                },
-                                            }),
-                                        );
-                                        full_response.clear();
-                                        reasoning_accumulated.clear();
-                                        let (steer_tx, steer_rx) = mpsc::channel::<String>(100);
-                                        stream_rx = steer_rx;
-                                        let llm2 = steer_llm.clone();
-                                        let key2 = steer_key.clone();
-                                        let model2 = steer_model.clone();
-                                        let prompt2 = user_text.to_string();
-                                        let tools2 = steer_tools.clone();
-                                        stream_handle = tokio::spawn(async move {
-                                            if let Err(e) = llm2
-                                                .generate_stream(
-                                                    &prompt2,
-                                                    &steered,
-                                                    steer_tx,
-                                                    &model2,
-                                                    &key2,
-                                                    tools2.as_ref(),
-                                                )
-                                                .await
-                                            {
-                                                error!("LLM stream error after steering: {}", e);
-                                            }
-                                        });
-                                        continue;
-                                    }
-                                }
-                            }
-                            None => break,
-                        }
-                    }
-                    _ = keepalive_interval.tick() => {
-                        let _ = ws_sender.send(Message::Text(serde_json::json!({
-                            "bot_id": bot_uuid_s,
-                            "user_id": user_id.to_string(),
-                            "session_id": session_id_s,
-                            "channel": "web",
-                            "content": "",
-                            "message_type": 2,
-                            "is_complete": false,
-                            "thinking": true,
-                            "suggestions": [],
-                            "switchers": [],
-                            "context_length": 0,
-                            "context_max_length": 0,
-                        }).to_string())).await;
-                    }
-                }
-            }
-
-            let capped = cap_breach.is_some();
-            let final_content = if let Some(breach) = cap_breach.take() {
-                // Stop the producer too: consuming the loop alone would leave
-                // the provider stream running and still spending.
-                stream_handle.abort();
-                let notice = format!("Run stopped — {}.", RunBudget::describe(&breach));
-                // Persist the stopping message so the run reads the same after
-                // a reconnect or on another device.
-                let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &notice, 2);
-                notice
-            } else {
-                let mut content = full_response.trim_end().to_string();
-                if let Some(pos) = content.rfind("{\"__tool_call__\":") {
-                    content = content[..pos].trim_end().to_string();
-                }
-                content
-            };
+    info!(
+        "stream: bot_llm_provider.is_some={}, fallback_key_len={}",
+        bot_llm_provider.is_some(),
+        env_key.len()
+    );
+    match bot_llm_provider
+        .or_else(|| state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone())))
+    {
+        Some((llm, llm_key, llm_model)) => {
+            let result = turn::run(ws_sender, turn, llm, llm_key, llm_model, budget).await;
 
             // #1635 — drain the sources for this turn. The frame below is the
             // only place the renderer reads `citations` from, so an empty vec
             // here means the answer was produced without live sources.
             let citations = {
                 let mut pending = state.pending_citations.lock().await;
-                pending.remove(&session_id_s).unwrap_or_default()
+                pending
+                    .remove(&session_id.to_string())
+                    .unwrap_or_default()
             };
 
-            let final_resp = serde_json::json!({
-                "bot_id": bot_uuid_s,
-                "user_id": user_id.to_string(),
-                "session_id": session_id_s,
-                "channel": "web",
-                "content": final_content,
-                "message_type": 2,
-                "is_complete": true,
-                "reasoning": reasoning_accumulated.trim(),
-                "suggestions": [],
-                "switchers": [],
-                "citations": citations,
-                "context_length": 0,
-                "context_max_length": 0,
-            });
-            if ws_sender.send(Message::Text(final_resp.to_string())).await.is_err() {
+            let final_resp = frames::final_frame(
+                turn,
+                result.final_content.clone(),
+                result.reasoning.trim(),
+                citations,
+            );
+            if ws_sender
+                .send(Message::Text(final_resp.to_string()))
+                .await
+                .is_err()
+            {
                 let mut pending = state.pending_stream_responses.lock().await;
-                pending.insert(session_id_s.clone(), final_content);
+                pending.insert(session_id.to_string(), result.final_content);
             }
 
-            let tool_call_trigger = "\"__tool_call__\":".to_string();
-            if !capped && full_response.contains(&tool_call_trigger) {
-                if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(&full_response) {
-                    let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
-                    info!("LLM tool_call: executing tool '{}' with args: {}", raw_tool_name, tool_args);
-                    if !raw_tool_name.is_empty() {
-                        let tool_name = match validate_bot_name(&raw_tool_name) {
-                            Ok(n) => n,
-                            Err(e) => {
-                                warn!("LLM tool_call: invalid tool name '{}': {}", raw_tool_name, e);
-                                return;
-                            }
-                        };
-
-                        let work_path = botcore::shared::utils::get_work_path();
-                        let rel_tool_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
-                        if !verify_path_within_workdir(&rel_tool_path) {
-                            error!("Path traversal detected in LLM tool_call for tool: {}", tool_name);
-                            return;
-                        }
-
-                        let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
-                        let ast_content = match tokio::fs::read_to_string(&ast_path).await {
-                            Ok(c) if !c.is_empty() => c,
-                            _ => {
-                                let bas_path = ast_path.replace(".ast", ".bas");
-                                tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
-                            }
-                        };
-
-                        if !ast_content.is_empty() {
-                            let state_for_tool = state.clone();
-                            let tool_name_cl = tool_name.clone();
-                            let work_path_for_mcp = work_path.clone();
-                            let bot_name_for_mcp = bot_name.to_string();
-                            let tool_name_for_mcp = tool_name.clone();
-
-                            let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
-                            let injected_args = parsed_args.clone();
-                            let context_data = if parsed_args.is_object() {
-                                parsed_args
-                            } else {
-                                serde_json::Value::Null
-                            };
-                            info!("Tool '{}' context_data: {:?}", tool_name, context_data);
-
-                            let session_for_tool = botlib::models::UserSession {
-                                id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_uuid,
-                                title: String::new(),
-                                context_data,
-                                current_tool: None,
-                                created_at: chrono::Utc::now(),
-                                updated_at: chrono::Utc::now(),
-                            locked: false, lock_pin_hash: None, };
-                            let _ = tokio::task::spawn_blocking(move || {
-                                let mut svc = crate::basic::ScriptService::new(
-                                    state_for_tool.clone(), session_for_tool,
-                                );
-                                svc.load_bot_config_params(&state_for_tool, bot_uuid);
-                                let mut injected_param_names: std::collections::HashSet<String> = std::collections::HashSet::new();
-                                if let Some(obj) = injected_args.as_object() {
-                                    for (key, value) in obj {
-                                        let rhai_key = key.to_lowercase();
-                                        injected_param_names.insert(rhai_key.clone());
-                                        match value {
-                                            serde_json::Value::String(s) => {
-                                                let _ = svc.set_variable(&rhai_key, s);
-                                            }
-                                            serde_json::Value::Number(n) => {
-                                                let _ = svc.set_variable(&rhai_key, &n.to_string());
-                                            }
-                                            serde_json::Value::Bool(b) => {
-                                                let _ = svc.set_variable(&rhai_key, if *b { "true" } else { "false" });
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                                let mcp_path = format!("{bot_name_for_mcp}.gborg/{bot_name_for_mcp}.gbai/{bot_name_for_mcp}.gbdialog/{tool_name_for_mcp}.mcp.json");
-                                let mcp_full = std::path::Path::new(&work_path_for_mcp).join(&mcp_path);
-                                if mcp_full.exists() {
-                                    if let Ok(mcp_content) = std::fs::read_to_string(&mcp_full) {
-                                        if let Ok(mcp_val) = serde_json::from_str::<serde_json::Value>(&mcp_content) {
-                                            if let Some(props) = mcp_val.get("input_schema").and_then(|s| s.get("properties")).and_then(|p| p.as_object()) {
-                                                for (param_name, _) in props {
-                                                    let clean_name = param_name.trim_end_matches(":string").to_lowercase();
-                                                    if !injected_param_names.contains(&clean_name) {
-                                                        let _ = svc.set_variable(&clean_name, "");
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if let Err(e) = svc.run(&ast_content) {
-                                    warn!("Tool '{}' execution error: {}", tool_name_cl, e);
-                                }
-                            }).await;
-
-                            for _ in 0..50 {
-                                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                                match rx.try_recv() {
-                                    Ok(response) => {
-                                        if let Ok(json) = serde_json::to_string(&response) {
-                                            let _ = ws_sender.send(Message::Text(json)).await;
-                                        }
-                                    }
-                                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
-                                    Err(_) => break,
-                                }
-                            }
-                        }
-                    }
-                }
+            if !result.capped
+                && tool_call::maybe_execute(ws_sender, rx, turn, &result.full_response).await
+            {
+                return;
             }
 
             {
                 let mut sm = state.session_manager.lock().await;
-                let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
+                let _ = sm.save_message(session_id, user_id, 2, &result.full_response, 2);
             }
         }
         None => {
@@ -626,19 +127,8 @@ pub async fn process_llm_response(
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
             }
-            let _ = ws_sender.send(Message::Text(serde_json::json!({
-                "bot_id": bot_uuid.to_string(),
-                "user_id": user_id.to_string(),
-                "session_id": session_id.to_string(),
-                "channel": "web",
-                "content": fallback,
-                "message_type": 2,
-                "is_complete": true,
-                "suggestions": [],
-                "switchers": [],
-                "context_length": 0,
-                "context_max_length": 0,
-            }).to_string())).await;
+            let resp = frames::fallback(turn, fallback);
+            let _ = ws_sender.send(Message::Text(resp.to_string())).await;
         }
     }
 }
