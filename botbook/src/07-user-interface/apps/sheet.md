@@ -103,7 +103,7 @@ These are real and will bite immediately. Each is tracked in [Sheet Parity Plan]
 | `.xls` / `.xlsb` | Partial | — | Cell values, typed cells and formulas are read via calamine; styles, merges, charts and layout are not (BIFF reader exposes values/formulas only). |
 | Markdown | — | Available | — |
 | PDF | — | Available | Real PDF 1.4 export — one page set per worksheet, repeated header row, `application/pdf` content type |
-| ODS | — | Available | Complete ODF package (stored `mimetype`, `content.xml`, manifest); the Export menu also offers it next to CSV/XLSX/Markdown/PDF |
+| ODS | — | Available | Complete ODF package (stored `mimetype`, `content.xml`, manifest); the Export menu offers CSV, XLSX, Markdown, ODS, PDF, HTML and JSON |
 
 > **Warning — opening an `.xlsx` from Drive.** The save-back is non-destructive: the original package is preserved and only edited cells are rewritten (issue 8). Features Sheet cannot model are not altered by an edit round-trip.
 
