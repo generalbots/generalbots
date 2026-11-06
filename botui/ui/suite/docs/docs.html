@@ -465,6 +465,32 @@ function GBDocsCompare(event) {
 }
 window.GBDocsCompare = GBDocsCompare;
 
+/* Re-fetch a sidebar panel after a mutation whose API returns JSON. */
+function GBDocsRefreshTrackChanges() {
+    var view = document.querySelector("#doc-view[data-id]");
+    var article = document.querySelector("article[data-doc-id]");
+    var id = (view && view.getAttribute("data-id")) ||
+        (article && article.dataset ? article.dataset.docId : "") || "";
+    if (!id) return;
+    var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
+        window.localStorage.getItem("gb-access-token") ||
+        window.sessionStorage.getItem("gb-access-token") || "";
+    var headers = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = "Bearer " + token;
+    fetch("/suite/docs/fragments/track-changes", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ id: id }),
+    })
+        .then(function (response) { return response.text(); })
+        .then(function (html) {
+            var panel = document.getElementById("docs-panel-body");
+            if (panel) panel.innerHTML = html;
+        })
+        .catch(function () {});
+}
+window.GBDocsRefreshTrackChanges = GBDocsRefreshTrackChanges;
+
 /* AI endpoints answer JSON, so htmx would leave the serialized object in the
    panel. Render the `response` field as text in the nearest #ai-result. */
 document.addEventListener("htmx:afterRequest", function (event) {

@@ -6,6 +6,12 @@ use std::sync::Arc;
 use crate::types_core::{DocumentComment, DocumentStyle, Endnote, Footnote, OutlineItem, TableOfContents, TocEntry, TrackChange};
 
 pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
+    let doc_id = payload
+        .get("id")
+        .or_else(|| payload.get("doc_id"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
     let toc: Option<TableOfContents> = serde_json::from_value(payload.get("toc").cloned().unwrap_or(serde_json::Value::Null)).ok();
     // The toolbar/sidebar buttons post only the live editor HTML, not a
     // persisted TOC: derive one from the headings so the panel has content.
@@ -46,7 +52,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
                 r##"<div class="dc-panel" id="toc-panel">
 <div class="dc-panel-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">Sumário</h3>
-<button class="btn-icon" hx-post="/api/docs/toc/update" hx-vals='{"id":"{id}"}' hx-target="#toc-panel" hx-swap="outerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">⟳ Atualizar</button>
+<button class="btn-icon" hx-post="/suite/docs/fragments/toc" hx-vals='{"id":"{id}"}' hx-target="#docs-panel-body" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">⟳ Atualizar</button>
 </div>
 <div class="dc-panel-body" style="padding:8px;">"##
             );
@@ -66,7 +72,7 @@ pub async fn handle_toc_panel(Json(payload): Json<serde_json::Value>) -> Html<St
                 ));
             }
             html.push_str("</div></div>");
-            Html(html)
+            Html(html.replace("{id}", &html_escape(&doc_id)))
         }
         _ => Html(empty_fragment("Nenhum sumário gerado. Use o botão Gerar Sumário para criar automaticamente a partir dos cabeçalhos.")),
     }
@@ -129,8 +135,8 @@ pub async fn handle_track_changes_panel(
 <div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">Controle de Alterações</h3>
 <div>
-<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":true}' hx-swap="none" style="background:#10b981;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">✓ Aceitar Tudo</button>
-<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":false}' hx-swap="none" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✗ Rejeitar Tudo</button>
+<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":true}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsRefreshTrackChanges()" style="background:#10b981;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">✓ Aceitar Tudo</button>
+<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":false}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsRefreshTrackChanges()" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✗ Rejeitar Tudo</button>
 </div>
 </div>
 <div class="dc-panel-body" style="padding:8px;">"##
@@ -149,8 +155,8 @@ pub async fn handle_track_changes_panel(
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
 <div style="font-size:12px;color:#94a3b8;">{icon} <strong>{author}</strong> • {change_type} • pos {pos}</div>
 <div>
-<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":true}}' hx-swap="none" style="background:#10b981;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;margin-right:2px;">✓</button>
-<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":false}}' hx-swap="none" style="background:#dc2626;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;">✗</button>
+<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":true}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsRefreshTrackChanges()" style="background:#10b981;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;margin-right:2px;">✓</button>
+<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":false}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsRefreshTrackChanges()" style="background:#dc2626;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;">✗</button>
 </div>
 </div>
 <div style="font-size:12px;">
