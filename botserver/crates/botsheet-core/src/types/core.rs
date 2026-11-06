@@ -53,7 +53,7 @@ pub struct CommentReply {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SheetProtection {
     pub protected: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -27,6 +27,28 @@ fn in_bounds(row: u32, col: u32) -> bool {
     row < MAX_ROWS && col < MAX_COLS
 }
 
+/// Excel-style protection: a protected worksheet locks every cell by default;
+/// `locked_cells` narrows that to an explicit list. There is no per-cell
+/// unlock control in the UI yet, so a protected sheet rejects edits until the
+/// user unprotects it (otherwise the Protect button would be decorative).
+fn cell_edit_blocked(
+    protection: Option<&botsheet_core::types::SheetProtection>,
+    row: u32,
+    col: u32,
+) -> bool {
+    let Some(protection) = protection else {
+        return false;
+    };
+    if !protection.protected {
+        return false;
+    }
+    if protection.locked_cells.is_empty() {
+        return true;
+    }
+    let key = format!("{row},{col}");
+    protection.locked_cells.iter().any(|cell| cell == &key)
+}
+
 pub async fn handle_update_cell(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
@@ -79,6 +101,19 @@ pub async fn handle_update_cell(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "Invalid worksheet index" })),
+        ));
+    }
+
+    if cell_edit_blocked(
+        sheet.worksheets[req.worksheet_index].protection.as_ref(),
+        req.row,
+        req.col,
+    ) {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "Worksheet is protected; unprotect it before editing cells"
+            })),
         ));
     }
 
@@ -314,4 +349,37 @@ pub async fn handle_evaluate_formula(
 
     let result = evaluate_formula_in(&req.formula, &sheet.worksheets, req.worksheet_index);
     Ok(Json(result))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn protection(protected: bool, locked: &[&str]) -> botsheet_core::types::SheetProtection {
+        botsheet_core::types::SheetProtection {
+            protected,
+            locked_cells: locked.iter().map(|cell| cell.to_string()).collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn unprotected_sheet_allows_every_cell() {
+        assert!(!cell_edit_blocked(Some(&protection(false, &[])), 0, 0));
+        assert!(!cell_edit_blocked(None, 5, 5));
+    }
+
+    #[test]
+    fn protected_sheet_locks_every_cell_by_default() {
+        assert!(cell_edit_blocked(Some(&protection(true, &[])), 0, 0));
+        assert!(cell_edit_blocked(Some(&protection(true, &[])), 9, 3));
+    }
+
+    #[test]
+    fn protected_sheet_can_lock_an_explicit_list() {
+        let p = protection(true, &["1,1", "2,0"]);
+        assert!(cell_edit_blocked(Some(&p), 1, 1));
+        assert!(cell_edit_blocked(Some(&p), 2, 0));
+        assert!(!cell_edit_blocked(Some(&p), 0, 0));
+    }
 }
