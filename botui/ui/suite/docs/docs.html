@@ -491,6 +491,35 @@ function GBDocsRefreshTrackChanges() {
 }
 window.GBDocsRefreshTrackChanges = GBDocsRefreshTrackChanges;
 
+/* TOC/outline entries carry the server's character offset; scroll to the
+   closest heading in the live document instead of a non-existent #pos-N id. */
+document.addEventListener("click", function (event) {
+    var link = event.target.closest ? event.target.closest(".dc-toc-entry a, .dc-outline-item a") : null;
+    if (!link) return;
+    var href = link.getAttribute("href") || "";
+    if (href.indexOf("#pos-") !== 0) return;
+    event.preventDefault();
+    var target = parseInt(href.slice(5), 10) || 0;
+    var article = document.querySelector("#doc-content");
+    if (!article) return;
+    var headings = article.querySelectorAll("h1,h2,h3,h4,h5,h6");
+    var regex = /<h[1-6][^>]*>/gi;
+    var html = article.innerHTML;
+    var indexes = [];
+    var match;
+    while ((match = regex.exec(html))) indexes.push(match.index);
+    var best = 0;
+    var bestDistance = Infinity;
+    indexes.forEach(function (index, position) {
+        var distance = Math.abs(index - target);
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            best = position;
+        }
+    });
+    if (headings[best]) headings[best].scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 /* AI endpoints answer JSON, so htmx would leave the serialized object in the
    panel. Render the `response` field as text in the nearest #ai-result. */
 document.addEventListener("htmx:afterRequest", function (event) {
