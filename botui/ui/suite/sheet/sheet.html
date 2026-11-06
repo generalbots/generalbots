@@ -230,6 +230,17 @@ function loadSheet(id) {
 function getLiveSheetId() {
     return (window.__LOADED_SHEET && window.__LOADED_SHEET.id) || window.__SHEET_INITIAL_ID || null;
 }
+// Toolbar modals hardcode id="current"; rewrite it to the live sheet id once
+// per HTMX request so the modal (and the form it renders) targets the open
+// workbook instead of a session literal.
+document.addEventListener("htmx:configRequest", function (event) {
+    var live = getLiveSheetId();
+    if (!live || live === "current") return;
+    var parameters = (event.detail && event.detail.parameters) || {};
+    ["id", "sheet_id"].forEach(function (key) {
+        if (parameters[key] === "current") parameters[key] = live;
+    });
+});
 function openSheetComments() {
     if (!window.GBCollabComments) return;
     var id = getLiveSheetId();

@@ -62,6 +62,8 @@ pub struct ExportRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShareRequest {
+    // The sheet modal posts the workbook as `id`; the API calls it sheet_id.
+    #[serde(alias = "id")]
     pub sheet_id: String,
     pub email: String,
     pub permission: String,
