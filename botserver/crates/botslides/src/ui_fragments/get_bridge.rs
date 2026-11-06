@@ -12,7 +12,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
-use axum::response::Html;
+use axum::http::header;
+use axum::response::{Html, IntoResponse, Response};
 use axum::Json;
 
 use crate::storage::DriveOps;
@@ -20,6 +21,50 @@ use crate::types::Presentation;
 use crate::SlidesState;
 
 type Params = HashMap<String, String>;
+
+/// Serves the Slides shell and its assets when the `/suite/slides/*path`
+/// wildcard shadows the `/suite` static mount. Only files inside
+/// `BOTUI_PATH/slides` are eligible; any path with `.`/`..`/empty segments or
+/// a non-asset extension is rejected so a crafted path can never read outside
+/// the UI directory (#1715).
+async fn serve_ui_asset(path: &str) -> Option<Response> {
+    let last = path.rsplit('/').next().unwrap_or(path);
+    let (_, ext) = last.rsplit_once('.')?;
+    let ext = ext.to_ascii_lowercase();
+    if !matches!(
+        ext.as_str(),
+        "html" | "css" | "js" | "mjs" | "json" | "svg" | "png" | "jpg" | "jpeg" | "gif"
+            | "webp" | "ico" | "woff" | "woff2" | "ttf" | "map" | "txt"
+    ) {
+        return None;
+    }
+    if path
+        .split('/')
+        .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return None;
+    }
+    let ui = std::env::var("BOTUI_PATH").ok()?;
+    let full = std::path::Path::new(&ui).join("slides").join(path);
+    let bytes = tokio::fs::read(&full).await.ok()?;
+    let mime = match ext.as_str() {
+        "html" => "text/html; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "js" | "mjs" => "application/javascript; charset=utf-8",
+        "json" | "map" => "application/json",
+        "svg" => "image/svg+xml",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "ico" => "image/x-icon",
+        "woff" => "font/woff",
+        "woff2" => "font/woff2",
+        "ttf" => "font/ttf",
+        _ => "text/plain; charset=utf-8",
+    };
+    Some(([(header::CONTENT_TYPE, mime)], bytes).into_response())
+}
 
 fn to_json(params: Params) -> Json<serde_json::Value> {
     Json(serde_json::Value::Object(
@@ -92,10 +137,16 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<SlidesState<D>>>,
     Path(path): Path<String>,
     Query(params): Query<Params>,
-) -> Html<String> {
+) -> Response {
+    // The wildcard route takes precedence over the /suite static mount, so the
+    // app shell and its assets would otherwise be answered with a fragment
+    // ("route not found") instead of the file (#1715).
+    if let Some(asset) = serve_ui_asset(&path).await {
+        return asset;
+    }
     let query = params.clone();
     let json = to_json(params);
-    match path.as_str() {
+    let html = match path.as_str() {
         "fragments/presentation-view" => {
             let id = query.get("id").cloned().unwrap_or_default();
             let pres = load_or_blank(&state, &id).await;
@@ -140,5 +191,6 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         "forms/master" => super::toolbar::handle_master_form(json).await,
         "forms/export" => super::toolbar::handle_export_form(json).await,
         _ => Html(super::err_fragment(&format!("route not found: {path}"))),
-    }
+    };
+    html.into_response()
 }
