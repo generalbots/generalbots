@@ -65,12 +65,12 @@ pub async fn handle_print_form(Json(payload): Json<serde_json::Value>) -> Html<S
 </div>
 <div style="font-size:13px;color:#f8fafc;">Formato de saída</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<a href="/api/docs/export/pdf?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#3b82f6;color:white;padding:10px;border-radius:4px;font-weight:600;text-decoration:none;">PDF</a>
-<a href="/api/docs/export/docx?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">DOCX</a>
-<a href="/api/docs/export/odt?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">ODT</a>
-<a href="/api/docs/export/md?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">Markdown</a>
-<a href="/api/docs/export/html?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">HTML</a>
-<a href="/api/docs/export/txt?id={id}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;text-decoration:none;">Texto</a>
+<button type="button" onclick="GBDocsExport('pdf','{id}')" style="display:block;text-align:center;background:#3b82f6;color:white;padding:10px;border-radius:4px;font-weight:600;border:none;cursor:pointer;">PDF</button>
+<button type="button" onclick="GBDocsExport('docx','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">DOCX</button>
+<button type="button" onclick="GBDocsExport('odt','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">ODT</button>
+<button type="button" onclick="GBDocsExport('md','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">Markdown</button>
+<button type="button" onclick="GBDocsExport('html','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">HTML</button>
+<button type="button" onclick="GBDocsExport('txt','{id}')" style="display:block;text-align:center;background:#1e293b;color:#f8fafc;border:1px solid #334155;padding:10px;border-radius:4px;cursor:pointer;">Texto</button>
 </div>
 <button type="button" onclick="this.closest('.dc-modal').remove()" style="background:#0f172a;color:#94a3b8;border:1px solid #334155;padding:8px;border-radius:4px;cursor:pointer;">Fechar</button>
 </div>"##,
