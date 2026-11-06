@@ -50,6 +50,11 @@ pub async fn wizard_test_model(request: ModelRequest) -> ModelTestResult {
 }
 
 #[tauri::command]
+pub async fn wizard_host_check(app: tauri::AppHandle) -> super::HostCheckResult {
+    super::hostcheck::check(&app).await
+}
+
+#[tauri::command]
 pub async fn wizard_provision(
     app: tauri::AppHandle,
     state: tauri::State<'_, WizardState>,

@@ -1,28 +1,45 @@
 {
   "bundle": {
-    "targets": ["nsis", "msi", "deb", "appimage"],
+    "targets": [
+      "nsis",
+      "msi",
+      "deb",
+      "appimage"
+    ],
     "resources": {
       "../botserver/.product.desktop-local": ".product.desktop-local",
       "../botserver/botserver-installers/*": "installers/",
-      "../botui/ui": "ui"
+      "../botui/ui": "ui",
+      "../PROD-DEPENDENCIES.sh": "PROD-DEPENDENCIES.sh",
+      "../DEPENDENCIES.sh": "DEPENDENCIES.sh",
+      "../PROD-DEPENDENCIES.ps1": "PROD-DEPENDENCIES.ps1"
     },
     "externalBin": [
       "binaries/botserver"
     ],
     "windows": {
       "nsis": {
-        "languages": ["PortugueseBR", "English"],
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
         "displayLanguageSelector": true,
         "installMode": "perMachine",
         "installerIcon": "icons/icon.ico"
       },
       "wix": {
-        "language": ["pt-BR", "en-US"]
+        "language": [
+          "pt-BR",
+          "en-US"
+        ]
       }
     },
     "linux": {
       "deb": {
-        "depends": ["libssl3", "libwebkit2gtk-4.1-0"],
+        "depends": [
+          "libssl3",
+          "libwebkit2gtk-4.1-0"
+        ],
         "section": "net",
         "priority": "optional"
       },
@@ -30,10 +47,10 @@
         "bundleMediaFramework": false
       }
     },
-    "shortDescription": "General Bots Desktop — Chat and Drive",
+    "shortDescription": "General Bots Desktop \u2014 Chat and Drive",
     "longDescription": "General Bots desktop edition with Chat and Drive for local use.",
     "category": "Productivity",
-    "copyright": "© 2026 Pragmatismo.cloud. All rights reserved.",
+    "copyright": "\u00a9 2026 Pragmatismo.cloud. All rights reserved.",
     "publisher": "Pragmatismo"
   }
 }

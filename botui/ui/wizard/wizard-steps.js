@@ -241,6 +241,16 @@
         '<div class="install-bar"><div class="install-bar-fill" id="installFill"></div></div>' +
         '<p class="install-status" id="installStatus">' + esc(t("install.preparing", { count: planned.length })) + "</p>" +
       "</div>" +
+      '<div class="card" id="hostReadiness" aria-live="polite" style="margin-bottom:12px">' +
+        '<div class="card-head"><span class="card-title">' + esc(t("host.title")) + "</span>" +
+          '<span class="badge" id="hostBadge">' + esc(t("host.checking")) + "</span></div>" +
+        '<div id="hostRows" style="margin-top:8px"></div>' +
+        '<p class="note" id="hostNote" role="status" style="margin:8px 0 0"></p>' +
+        '<div class="inline-row" style="margin-top:10px">' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="hostRecheckBtn">' + esc(t("host.recheck")) + "</button>" +
+          '<button type="button" class="btn btn-primary btn-sm" id="hostContinueBtn" hidden>' + esc(t("host.continue")) + "</button>" +
+        "</div>" +
+      "</div>" +
       '<div class="component-board" id="componentList"></div>' +
       '<div id="provisionError" class="note err" role="status" style="margin-top:10px"></div>' +
       '<div class="inline-row" style="margin-top:12px">' +

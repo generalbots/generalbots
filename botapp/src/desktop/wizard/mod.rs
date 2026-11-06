@@ -7,10 +7,12 @@
 //! in one place.
 
 mod commands;
+mod hostcheck;
 mod provision;
 mod system;
 
 pub use commands::*;
+pub use hostcheck::HostCheckResult;
 
 use log::{info, warn};
 use serde::{Deserialize, Serialize};

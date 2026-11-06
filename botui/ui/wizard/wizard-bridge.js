@@ -89,6 +89,24 @@
         reason: writable ? "" : "The folder is not writable. Choose another location."
       });
     },
+    /* Deterministic host report for the headless harness: everything the
+       desktop shell needs is present, so the installer starts as before. */
+    hostCheck: function () {
+      return Promise.resolve({
+        platform: "linux",
+        available: true,
+        script: "/opt/general-bots/PROD-DEPENDENCIES.sh",
+        exit_code: 0,
+        status: "ready",
+        desktop_ready: true,
+        agent_ready: true,
+        media_ready: true,
+        items: [],
+        remediation: "sudo /opt/general-bots/PROD-DEPENDENCIES.sh --install",
+        output: "All runtime prerequisites are satisfied.",
+        message: "All runtime prerequisites are satisfied."
+      });
+    },
     pickFolder: function () { return Promise.resolve("/home/user/Documents/General Bots"); },
     testModel: function (req) {
       if (req.mode === "local") {
@@ -258,6 +276,10 @@
 
     checkWorkspace: function (path) {
       return isDesktop ? invoke("wizard_check_workspace", { path: path }) : mock.checkWorkspace(path);
+    },
+
+    hostCheck: function () {
+      return isDesktop ? invoke("wizard_host_check") : mock.hostCheck();
     },
 
     pickFolder: function () {

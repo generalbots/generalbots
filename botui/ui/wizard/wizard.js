@@ -290,8 +290,8 @@
     if (reveal) { reveal.addEventListener("click", function () { B.openFolder("vault"); }); }
   }
 
-  /* The install step owns the installer: it starts on arrival (Borland
-     style), reports every component and keeps the action buttons together. */
+  /* The install step owns the installer: it checks the host first, reports
+     every component and keeps the action buttons together. */
   function bindInstall() {
     var start = document.getElementById("startSetupBtn");
     if (start) { start.addEventListener("click", startProvisioning); }
@@ -301,15 +301,38 @@
     if (logs) { logs.addEventListener("click", function () { B.openFolder("logs"); }); }
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.addEventListener("click", confirmReset); }
+    var recheck = document.getElementById("hostRecheckBtn");
+    if (recheck) { recheck.addEventListener("click", function () { checkHost(true); }); }
+    var proceed = document.getElementById("hostContinueBtn");
+    if (proceed) {
+      proceed.addEventListener("click", function () {
+        state.host.acknowledged = true;
+        renderHostCheck();
+        startProvisioning();
+      });
+    }
     if (state.provisioning.running) {
       setProvisionUi(true);
       renderComponents();
+      renderHostCheck();
     } else if (state.provisioning.ready) {
       markAllReady();
       updateInstallProgress();
+      if (state.host.checked && !state.host.checking) { renderHostCheck(); }
+      else { checkHost(false); }
     } else if (!state.skipped) {
-      startProvisioning();
+      if (state.host.checked || state.host.checking) { renderHostCheck(); }
+      else { checkHost(true); }
     }
+  }
+
+  /* ---------------- host prerequisites (#1742) ---------------- */
+
+  function hostLocked() { return window.GBWizardHost.locked(state); }
+  function syncStartButton() { window.GBWizardHost.syncStartButton(state); }
+  function renderHostCheck() { window.GBWizardHost.render(state); }
+  function checkHost(autoStart) {
+    window.GBWizardHost.check(state, autoStart, startProvisioning, say);
   }
 
   /* ---------------- subscription account on Finish (#1655) ---------------- */
@@ -596,9 +619,7 @@
   }
 
   function setProvisionUi(running) {
-    var start = document.getElementById("startSetupBtn");
     var cancel = document.getElementById("cancelSetupBtn");
-    if (start) { start.disabled = running || state.provisioning.ready; }
     if (cancel) { cancel.disabled = !running; }
     if (running) {
       state.provisioning.running = true;
@@ -606,6 +627,7 @@
       state.provisioning.startedAt = Date.now();
       state.provisioning.components = [];
     }
+    syncStartButton();
     renderFooter();
   }
 
@@ -650,6 +672,10 @@
 
   function startProvisioning() {
     if (state.provisioning.running || state.provisioning.ready) { return; }
+    if (state.host.result && state.host.result.status === "desktop-blocked") {
+      say(t("host.blocked-say"));
+      return;
+    }
     setProvisionUi(true);
     renderComponents();
     var request = {
@@ -751,10 +777,10 @@
     if (!check.ok) { say(check.reason); showInlineError(check.reason); return; }
     if (state.step === 5) {
       goTo(6);
-      startProvisioning();
       return;
     }
     if (state.step === 6 && !state.provisioning.ready && !state.skipped) {
+      if (hostLocked()) { say(t("host.blocked-say")); return; }
       startProvisioning();
       return;
     }

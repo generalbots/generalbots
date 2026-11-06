@@ -119,6 +119,13 @@
       failed: null,
       startedAt: 0,
       components: []
+    },
+    host: {
+      checking: false,
+      checked: false,
+      acknowledged: false,
+      result: null,
+      error: ""
     }
   };
 

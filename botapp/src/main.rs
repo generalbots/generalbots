@@ -247,6 +247,7 @@ fn main() {
         desktop::wizard::wizard_load_draft,
         desktop::wizard::wizard_check_workspace,
         desktop::wizard::wizard_pick_folder,
+        desktop::wizard::wizard_host_check,
         desktop::wizard::wizard_test_model,
         desktop::wizard::wizard_provision,
         desktop::wizard::wizard_cancel_provision,

@@ -122,6 +122,11 @@
     // `next()` renders the installer synchronously, before the first timer.
     assert(window.GBWizard.state.step === 6, "install step is reachable");
     assert(!!document.getElementById("installPercent"), "installer progress is on screen");
+    assert(!!document.getElementById("hostReadiness"), "host readiness is checked before services start");
+    var hostChecked = await waitFor(function () {
+      return window.GBWizard.state.host.checked === true;
+    }, 4000);
+    assert(hostChecked, "host readiness reports a result");
     var lit = await waitFor(function () {
       return document.querySelectorAll("#componentList .dot.ok").length >= 6;
     }, 12000);

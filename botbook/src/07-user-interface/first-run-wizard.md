@@ -44,6 +44,14 @@ mode cannot (WSL2, distro, systemd, Incus or its storage pool missing), and `3`
 on another operating system. `-Install` prints the remediation commands and
 performs no download or install.
 
+Before starting any bundled service, the wizard runs the matching check read-only
+(`wizard_host_check` in `botapp/src/desktop/wizard/hostcheck/`) and renders
+**Desktop shell / Agent VM / Media tools** readiness plus the exact remediation
+command. Only a failing desktop-shell result disables **Start setup** and the
+Next button; agent and media gaps are optional and expose **Continue anyway**.
+A missing script, an unsupported platform or a timed-out check never blocks
+setup.
+
 On Windows, `botagent` executes a single binary name. It cannot read `incus`
 from the Windows `PATH`, so agent mode also requires `AGENT_INCUS_BIN` to point
 at a WSL wrapper (for example a script that runs
@@ -83,7 +91,8 @@ the wizard.
 app start
   ├─ first run → wizard window (main window stays hidden)
   │     steps 1–4 collect choices
-  │     step 5 shows the data map and runs provisioning
+  │     step 5 shows the data map
+  │     step 6 checks host prerequisites, then runs provisioning
   │     wizard spawns `botserver --provision-stack`
   │       vault → tables → cache → drive → vector_db → llm (if local)
   │     wizard starts the normal sidecar and waits for /api/product
