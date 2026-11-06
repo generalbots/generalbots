@@ -259,6 +259,29 @@ documented above.
 - `alm-release.yml` downloads a release and deploys it; the SHA-256 check is
   fail-closed and is covered by the tamper test in the release runbook.
 
+### Code scanning and dependency alerts (2026-11-06)
+
+- **Dependabot alerts: 0 open.** Six npm alerts in
+  `bottemplates/apps/node-starter/package-lock.json` were fixed by refreshing
+  the lockfile (`body-parser` 1.20.9, `qs` 6.16.2, `proxy-addr` 2.0.8,
+  `express` 4.22.3); `npm audit --omit=dev` reports 0 vulnerabilities there,
+  and the `botui` / vendor lockfiles were already clean.
+- **Code scanning alerts: 0 open.** The 63 Rust alerts were triaged:
+  - Two real fixes: the WhatsApp file stub no longer sends a request with
+    empty `phone_number_id`/`access_token` (it fails closed), and seven log
+    lines that included user-provided text now log counts or opaque IDs only.
+  - The rest are false positives with a written reason on the alert:
+    XSS alerts interpolate `Path<Uuid>` or `html_escape()`-escaped values;
+    the SSRF alerts are the validated weather coordinates and the
+    private-host-guarded browser proxy; the SQL alert is the admin-scoped
+    generic SQL console (single statement, DDL/DCL rejected); the
+    cleartext-transmission alerts are `https://` literals or an
+    https-validated Zitadel base; the cleartext-logging alerts are opaque
+    session/user IDs, tool names, lengths and file keys; the hard-coded
+    crypto values are `#[cfg(test)]` password fixtures.
+  - Every dismissal is visible in the repository's Security tab with its
+    reason; re-open one if the surrounding code changes.
+
 ---
 
 ## Coverage Gaps
@@ -284,9 +307,11 @@ Stated explicitly so nobody assumes completeness:
 - **Secret rotation is operator work.** The register above is complete, but the
   rotations themselves need provider/Vault access and are not automatable from
   CI.
-- **Branch protection** on `main` (required reviews, no force-push, signed
-  commits) is a repository setting, not code; it must be verified in both
-  remotes by an administrator.
+- **Branch protection is weak on `origin/main`**: force-pushes are allowed,
+  required reviews/status checks are absent, and signed commits are not
+  enforced. This is a repository setting, not code; changing it needs the
+  maintainers' agreement because it changes the direct-push workflow. `alm` is
+  unreachable from this workstation and could not be checked.
 
 ---
 
