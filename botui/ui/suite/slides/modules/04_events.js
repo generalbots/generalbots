@@ -256,6 +256,29 @@ function gbSlidesParams() {
 }
 window.gbSlidesParams = gbSlidesParams;
 
+// hx-vals cannot use `js:` here: htmx evaluates it while processing the
+// injected window, before this module exists, and then binds nothing at all.
+// Rewrite the literal "current" placeholders at request time instead.
+document.addEventListener("htmx:configRequest", function (event) {
+  var detail = event.detail || {};
+  var path = detail.path || "";
+  if (path.indexOf("/slides/") === -1) return;
+  var params = detail.parameters || {};
+  var canvas = document.getElementById("slide-canvas");
+  var current = canvas ? parseInt(canvas.dataset.slideId, 10) || 0 : 0;
+  if (params.presentation_id === "current") {
+    params.presentation_id = getSlidesPresentationId();
+  }
+  ["slide_index", "current_slide", "slide"].forEach(function (key) {
+    if (params[key] === "current") params[key] = current;
+  });
+  if (!params.element_id &&
+      (path.indexOf("/forms/animation") !== -1 ||
+       path.indexOf("/api/slides/element/update") !== -1)) {
+    params.element_id = (window.SlideCanvas && window.SlideCanvas.selectedId) || "";
+  }
+});
+
 function initCollab() {
   if (!window.GBCollab) return;
   var connStatus = document.getElementById("gb-conn-status");
