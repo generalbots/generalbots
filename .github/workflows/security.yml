@@ -10,7 +10,7 @@ name: Security
 #
 # What each job protects:
 #   supply-chain   Rust advisories / yanked crates / licenses / sources (deny.toml)
-#   osv            OSV enrichment for every lockfile, published as SARIF
+#   osv            OSV enrichment for Cargo.lock, published as SARIF
 #   secrets        committed credentials across the whole history (.gitleaks.toml)
 #   python         botmodels Python pins (pip-audit)
 #   sbom           SPDX inventory of the shipped tree, kept as an artifact
@@ -72,7 +72,7 @@ jobs:
           echo "license policy: no GPL-family crate linked"
 
   osv:
-    name: OSV scan (Cargo + Python lockfiles)
+    name: OSV scan (Cargo.lock)
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
