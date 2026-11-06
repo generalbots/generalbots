@@ -351,9 +351,11 @@ Residual production risks (documented, not fixed here):
   The remaining binaries need migration windows or a distribution source;
   remediation is tracked in the binary-upgrade issue.
 - **The HTTP rate limiter was constructed but never called.** The fix is
-  merged (`auth_rate_limit_middleware`, per-client 10 req/s burst 20 on
-  `/api/auth/*`); it needs the next binary deployment to take effect. Before
-  the fix, `/api/auth/login` accepted 120/120 burst attempts with no 429.
+  deployed in production (`f151582`): a keyed governor limiter enforces
+  `10 req/s` with `burst 20` per client on `/api/auth/*` (keyed by the first
+  `X-Forwarded-For` hop). A 150-request burst produced 37 x 429 and the
+  botserver restarts stayed at 0. Before the fix, 120/120 burst attempts
+  reached the login handler with no 429.
 
 ---
 
