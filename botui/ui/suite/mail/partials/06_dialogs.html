@@ -1,0 +1,352 @@
+<!-- Templates Modal -->
+<dialog id="templates-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Email Templates</h2>
+            <button class="icon-btn" onclick="closeTemplates()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div
+            class="templates-list"
+            id="templates-list"
+            hx-get="/api/ui/email/templates"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeTemplates()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="createNewTemplate()">
+                + New Template
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Signatures Modal -->
+<dialog id="signatures-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Email Signatures</h2>
+            <button class="icon-btn" onclick="closeSignatures()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div
+            class="signatures-list"
+            id="signatures-list"
+            hx-get="/api/ui/email/signatures"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeSignatures()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="createNewSignature()">
+                + New Signature
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Rules Modal -->
+<dialog id="rules-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Email Rules</h2>
+            <button class="icon-btn" onclick="closeRules()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div
+            class="rules-list"
+            id="rules-list"
+            hx-get="/api/ui/email/rules"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeRules()">Cancel</button>
+            <button class="btn-primary" onclick="createNewRule()">
+                + New Rule
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Auto-Responder Modal -->
+<dialog id="autoresponder-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Automatic Replies</h2>
+            <button class="icon-btn" onclick="closeAutoResponder()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <form
+            id="autoresponder-form"
+            hx-post="/api/ui/email/auto-responder"
+            hx-swap="none"
+        >
+            <div class="form-group">
+                <label class="toggle-label">
+                    <input
+                        type="checkbox"
+                        name="enabled"
+                        id="autoresponder-enabled"
+                    />
+                    <span class="toggle-switch"></span>
+                    <span>Send automatic replies</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Start date</label>
+                <input
+                    type="datetime-local"
+                    name="start_date"
+                    id="autoresponder-start"
+                />
+            </div>
+            <div class="form-group">
+                <label>End date</label>
+                <input
+                    type="datetime-local"
+                    name="end_date"
+                    id="autoresponder-end"
+                />
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <input
+                    type="text"
+                    name="subject"
+                    value="Out of Office"
+                    placeholder="Reply subject"
+                />
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea
+                    name="body"
+                    rows="6"
+                    placeholder="Your automatic reply message..."
+                ></textarea>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="internal_only" />
+                    <span>Send only to people in my organization</span>
+                </label>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeAutoResponder()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="saveAutoResponder()">
+                Save
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Schedule Picker Modal -->
+<!-- Add Account Modal -->
+<dialog id="add-account-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Email Account</h2>
+            <button
+                class="icon-btn"
+                onclick="document.getElementById('add-account-modal').close()"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <form
+            hx-post="/api/email/accounts/add"
+            hx-target="#accounts-list"
+            hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) document.getElementById('add-account-modal').close()"
+        >
+            <div class="form-group">
+                <label>Account Name</label>
+                <input
+                    type="text"
+                    name="name"
+                    placeholder="Work, Personal, etc."
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label>IMAP Server</label>
+                <input
+                    type="text"
+                    name="imap_server"
+                    placeholder="imap.example.com"
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label>IMAP Port</label>
+                <input type="number" name="imap_port" value="993" required />
+            </div>
+            <div class="form-group">
+                <label>SMTP Server</label>
+                <input
+                    type="text"
+                    name="smtp_server"
+                    placeholder="smtp.example.com"
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label>SMTP Port</label>
+                <input type="number" name="smtp_port" value="587" required />
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="username or email"
+                    required
+                    autocomplete="username"
+                />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="••••••••"
+                    required
+                    autocomplete="current-password"
+                />
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="use_ssl" checked />
+                    <span>Use SSL/TLS</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="document.getElementById('add-account-modal').close()"
+                >
+                    Cancel
+                </button>
+                <button type="submit" class="btn-primary">Add Account</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="schedule-modal" class="modal">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2>Schedule Send</h2>
+            <button class="icon-btn" onclick="closeScheduleModal()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="schedule-form">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="schedule-date" min="" />
+            </div>
+            <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="schedule-time" value="09:00" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeScheduleModal()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="confirmSchedule()">
+                Schedule
+            </button>
+        </div>
+    </div>
+</dialog>

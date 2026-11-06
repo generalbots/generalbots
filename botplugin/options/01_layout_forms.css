@@ -1,0 +1,243 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --secondary: #64748b;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --bg-dark: #1e293b;
+    --bg-darker: #0f172a;
+    --bg-card: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border: #475569;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --transition: all 0.2s ease;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: var(--bg-darker);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.header img {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-lg);
+}
+
+.header-text h1 {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.header-text p {
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--bg-dark);
+    padding: 4px;
+    border-radius: var(--radius);
+}
+
+.tab {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: var(--transition);
+}
+
+.tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.card {
+    background: var(--bg-dark);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-title .icon {
+    font-size: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-darker);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.form-input::placeholder {
+    color: var(--secondary);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.setting-row:first-child {
+    padding-top: 0;
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.setting-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--secondary);
+    transition: var(--transition);
+    border-radius: 26px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    transition: var(--transition);
+    border-radius: 50%;
+}

@@ -1,0 +1,237 @@
+input:checked + .slider {
+    background: var(--primary);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-darker);
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Select */
+.form-select {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-darker);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Textarea */
+.form-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px 14px;
+    background: var(--bg-darker);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: monospace;
+    resize: vertical;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Badge */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+}
+
+.badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.badge-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+/* Alert */
+.alert {
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--primary);
+}
+
+.alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--warning);
+}
+
+/* Logs */
+.log-viewer {
+    background: var(--bg-darker);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.log-entry {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: var(--secondary);
+    margin-right: 10px;
+}
+
+.log-level {
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.log-level.info {
+    color: var(--primary);
+}
+
+.log-level.success {
+    color: var(--success);
+}
+
+.log-level.warning {
+    color: var(--warning);
+}
+
+.log-level.error {
+    color: var(--error);
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    background: var(--bg-dark);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    border-left: 4px solid var(--primary);
+}
+
+.notification.success {
+    border-left-color: var(--success);
+}
+
+.notification.error {
+    border-left-color: var(--error);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        flex: 1 1 calc(50% - 2px);
+    }
+}

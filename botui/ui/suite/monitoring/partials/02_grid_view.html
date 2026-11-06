@@ -215,3 +215,18 @@
             </div>
         </div>
     </div>
+
+    <!-- Hidden service status updater -->
+    <div
+        id="service-status-container"
+        style="display: none"
+        hx-get="/api/monitoring/services/status"
+        hx-trigger="load, every 30s"
+        hx-swap="innerHTML"
+    ></div>
+
+    <link rel="stylesheet" href="/suite/monitoring/monitoring-base.css?v=1" />
+<link rel="stylesheet" href="/suite/monitoring/monitoring-responsive.css?v=1" />
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script src="/suite/monitoring/monitoring.js"></script>

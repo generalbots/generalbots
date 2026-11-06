@@ -1,0 +1,150 @@
+    <!-- Mail List -->
+    <div class="panel mail-list">
+        <div class="list-header">
+            <div class="list-header-left">
+                <input
+                    type="checkbox"
+                    class="select-all"
+                    onchange="toggleSelectAll(this)"
+                    title="Select all"
+                />
+                <h3 id="folder-title">Inbox</h3>
+            </div>
+            <div class="list-header-right">
+                <div class="search-box">
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search emails..."
+                        id="email-search"
+                        hx-get="/api/ui/email/search"
+                        hx-trigger="keyup changed delay:300ms"
+                        hx-target="closest .window-body #mail-list"
+                        hx-include="this"
+                        name="q"
+                    />
+                </div>
+                <button
+                    class="icon-btn"
+                    onclick="refreshMailList()"
+                    title="Refresh"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path
+                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar (hidden by default) -->
+        <div class="bulk-actions" id="bulk-actions" style="display: none">
+            <span class="selected-count">0 selected</span>
+            <button
+                class="bulk-btn"
+                onclick="archiveSelected()"
+                title="Archive"
+            >
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="21 8 21 21 3 21 3 8" />
+                    <rect x="1" y="3" width="22" height="5" />
+                    <line x1="10" y1="12" x2="14" y2="12" />
+                </svg>
+            </button>
+            <button
+                class="bulk-btn"
+                onclick="markAsRead()"
+                title="Mark as read"
+            >
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            </button>
+            <button
+                class="bulk-btn"
+                onclick="addLabelToSelected()"
+                title="Add label"
+            >
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+                    />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+            </button>
+            <button
+                class="bulk-btn danger"
+                onclick="deleteSelected()"
+                title="Delete"
+            >
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                    />
+                </svg>
+            </button>
+        </div>
+
+        <div
+            id="mail-list"
+            hx-get="/api/ui/email/list?folder=inbox"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading emails...</p>
+            </div>
+        </div>
+    </div>
+    <div hx-get="/suite/mail/partials/03_content.html" hx-trigger="load" hx-swap="outerHTML"></div>

@@ -1,0 +1,354 @@
+    <!-- Sidebar -->
+    <div class="panel mail-sidebar">
+        <div class="compose-section">
+            <button class="compose-btn" onclick="openCompose()">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span data-i18n="email-compose">Compose</span>
+            </button>
+        </div>
+
+        <!-- Folder List -->
+        <div class="folders-section">
+            <div
+                class="nav-item active"
+                data-folder="inbox"
+                hx-get="/api/ui/email/list?folder=inbox"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+                    <path
+                        d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                    />
+                </svg>
+                <span data-i18n="email-inbox">Inbox</span>
+                <span class="folder-badge unread" id="inbox-count">0</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="starred"
+                hx-get="/api/ui/email/list?folder=starred"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                    />
+                </svg>
+                <span data-i18n="email-starred">Starred</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="sent"
+                hx-get="/api/ui/email/list?folder=sent"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+                <span data-i18n="email-sent">Sent</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="scheduled"
+                hx-get="/api/ui/email/list?folder=scheduled"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span data-i18n="email-scheduled">Scheduled</span>
+                <span class="folder-badge" id="scheduled-count">0</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="drafts"
+                hx-get="/api/ui/email/list?folder=drafts"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span data-i18n="email-drafts">Drafts</span>
+                <span class="folder-badge" id="drafts-count">0</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="tracking"
+                hx-get="/api/email/tracking/list"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span data-i18n="email-tracking">Tracking</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="spam"
+                hx-get="/api/ui/email/list?folder=spam"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span data-i18n="email-spam">Spam</span>
+            </div>
+            <div
+                class="nav-item"
+                data-folder="trash"
+                hx-get="/api/ui/email/list?folder=trash"
+                hx-target="closest .window-body #mail-list"
+                hx-swap="innerHTML"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                    />
+                </svg>
+                <span data-i18n="email-trash">Trash</span>
+            </div>
+        </div>
+
+        <!-- Accounts Section -->
+        <div class="labels-section">
+            <div class="section-header">
+                <span>Accounts</span>
+                <button
+                    class="icon-btn"
+                    onclick="document.getElementById('add-account-modal').showModal()"
+                    title="Add account"
+                >
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+            </div>
+            <div
+                id="accounts-list"
+                hx-get="/api/ui/email/accounts"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <!-- Accounts loaded here -->
+            </div>
+        </div>
+
+        <!-- Labels Section -->
+        <div class="labels-section">
+            <div class="section-header">
+                <span>Labels</span>
+                <button
+                    class="icon-btn"
+                    onclick="openLabelManager()"
+                    title="Manage labels"
+                >
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+            </div>
+            <div
+                id="labels-list"
+                hx-get="/api/ui/email/labels"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <div class="label-item" style="--label-color: #ef4444">
+                    <span class="label-dot"></span>
+                    <span>Important</span>
+                </div>
+                <div class="label-item" style="--label-color: #f59e0b">
+                    <span class="label-dot"></span>
+                    <span>Work</span>
+                </div>
+                <div class="label-item" style="--label-color: #22c55e">
+                    <span class="label-dot"></span>
+                    <span>Personal</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button
+                class="quick-action-btn"
+                onclick="openTemplates()"
+                title="Email Templates"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="9" y1="21" x2="9" y2="9" />
+                </svg>
+                <span>Templates</span>
+            </button>
+            <button
+                class="quick-action-btn"
+                onclick="openSignatures()"
+                title="Signatures"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                    />
+                </svg>
+                <span>Signatures</span>
+            </button>
+            <button
+                class="quick-action-btn"
+                onclick="openRules()"
+                title="Email Rules"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <polygon
+                        points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+                    />
+                </svg>
+                <span>Rules</span>
+            </button>
+            <button
+                class="quick-action-btn"
+                onclick="openAutoResponder()"
+                title="Out of Office"
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                </svg>
+                <span>Auto-reply</span>
+            </button>
+        </div>
+    </div>
+    <div hx-get="/suite/mail/partials/02_list.html" hx-trigger="load" hx-swap="outerHTML"></div>

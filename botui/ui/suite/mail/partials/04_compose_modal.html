@@ -1,0 +1,277 @@
+<!-- Compose Modal -->
+<dialog id="compose-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>New Message</h2>
+            <div class="compose-actions-top">
+                <button
+                    class="icon-btn"
+                    onclick="minimizeCompose()"
+                    title="Minimize"
+                >
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+                <button class="icon-btn" onclick="closeCompose()" title="Close">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <form
+            id="compose-form"
+            hx-post="/api/email/send"
+            hx-target="#mail-content"
+            hx-swap="innerHTML"
+        >
+            <div class="compose-fields">
+                <div class="field-row">
+                    <label>To:</label>
+                    <input
+                        type="text"
+                        name="to"
+                        id="compose-to"
+                        placeholder="Recipients"
+                        required
+                        autocomplete="email"
+                    />
+                    <button
+                        type="button"
+                        class="field-toggle"
+                        onclick="toggleCcBcc()"
+                    >
+                        Cc/Bcc
+                    </button>
+                </div>
+                <div class="field-row cc-bcc" style="display: none">
+                    <label>Cc:</label>
+                    <input
+                        type="text"
+                        name="cc"
+                        id="compose-cc"
+                        placeholder="Carbon copy"
+                    />
+                </div>
+                <div class="field-row cc-bcc" style="display: none">
+                    <label>Bcc:</label>
+                    <input
+                        type="text"
+                        name="bcc"
+                        id="compose-bcc"
+                        placeholder="Blind carbon copy"
+                    />
+                </div>
+                <div class="field-row">
+                    <label>Subject:</label>
+                    <input
+                        type="text"
+                        name="subject"
+                        id="compose-subject"
+                        placeholder="Subject"
+                    />
+                </div>
+            </div>
+    <div hx-get="/suite/mail/partials/05_compose_toolbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+            <div
+                class="compose-body"
+                contenteditable="true"
+                id="compose-body"
+                placeholder="Write your message..."
+            ></div>
+            <input type="hidden" name="body" id="compose-body-hidden" />
+            <div class="compose-attachments" id="compose-attachments"></div>
+            <div class="compose-footer">
+                <div class="compose-options">
+                    <label class="option-checkbox">
+                        <input type="checkbox" name="track_opens" checked />
+                        <span>Track opens</span>
+                    </label>
+                    <label class="option-checkbox">
+                        <input type="checkbox" name="request_receipt" />
+                        <span>Request read receipt</span>
+                    </label>
+                    <select name="priority" class="priority-select">
+                        <option value="normal">Normal priority</option>
+                        <option value="high">High priority</option>
+                        <option value="low">Low priority</option>
+                    </select>
+                </div>
+                <div class="compose-actions">
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        hx-post="/api/email/draft"
+                        hx-include="#compose-form"
+                        hx-swap="none"
+                        onclick="prepareSubmit()"
+                    >
+                        Save Draft
+                    </button>
+                    <div class="send-group">
+                        <button
+                            type="submit"
+                            class="btn-primary"
+                            onclick="prepareSubmit()"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                            Send
+                        </button>
+                        <button
+                            type="button"
+                            class="btn-primary dropdown-toggle"
+                            onclick="toggleScheduleMenu()"
+                        >
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        <div class="schedule-menu" id="schedule-menu">
+                            <div
+                                class="schedule-option"
+                                onclick="scheduleSend('tomorrow-morning')"
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="5" />
+                                    <line x1="12" y1="1" x2="12" y2="3" />
+                                    <line x1="12" y1="21" x2="12" y2="23" />
+                                    <line
+                                        x1="4.22"
+                                        y1="4.22"
+                                        x2="5.64"
+                                        y2="5.64"
+                                    />
+                                    <line
+                                        x1="18.36"
+                                        y1="18.36"
+                                        x2="19.78"
+                                        y2="19.78"
+                                    />
+                                    <line x1="1" y1="12" x2="3" y2="12" />
+                                    <line x1="21" y1="12" x2="23" y2="12" />
+                                    <line
+                                        x1="4.22"
+                                        y1="19.78"
+                                        x2="5.64"
+                                        y2="18.36"
+                                    />
+                                    <line
+                                        x1="18.36"
+                                        y1="5.64"
+                                        x2="19.78"
+                                        y2="4.22"
+                                    />
+                                </svg>
+                                <span>Tomorrow morning (8:00 AM)</span>
+                            </div>
+                            <div
+                                class="schedule-option"
+                                onclick="scheduleSend('tomorrow-afternoon')"
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <span>Tomorrow afternoon (1:00 PM)</span>
+                            </div>
+                            <div
+                                class="schedule-option"
+                                onclick="scheduleSend('monday')"
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="4"
+                                        width="18"
+                                        height="18"
+                                        rx="2"
+                                        ry="2"
+                                    />
+                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                <span>Monday morning (8:00 AM)</span>
+                            </div>
+                            <div class="schedule-divider"></div>
+                            <div
+                                class="schedule-option"
+                                onclick="openCustomSchedule()"
+                            >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                    />
+                                </svg>
+                                <span>Pick date & time...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</dialog>
+    <div hx-get="/suite/mail/partials/06_dialogs.html" hx-trigger="load" hx-swap="outerHTML"></div>
