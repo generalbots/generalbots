@@ -35,23 +35,34 @@ pub(super) fn resolve_bucket<'a>(
     user: &AuthenticatedUser,
 ) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     if let Some(b) = override_bucket {
-        // Tenant isolation (#1401, #1387): a client-supplied bucket name is
-        // only honored when it belongs to the caller's own tenant. PLATFORM
-        // admins may address any bucket (admin tooling); everyone else is
-        // validated against their DB-backed org membership. This blocks
-        // cross-tenant reads like {user-a}.gborg content shown to
-        // {user-b}@{other-org}.
-        if !is_platform_admin(state, user) {
-            let allowed = allowed_buckets_for(state, user);
-            if !allowed.iter().any(|a| a == b) {
-                warn!(
-                    "drive: denied bucket override '{}' for user {:?} (not a member)",
-                    b, user.email
-                );
-                return Err(err(StatusCode::FORBIDDEN, "Access denied for this bucket"));
+        // In user scope the target is always the caller's personal bucket.
+        // Clients that only know the workspace bucket (the Drive UI sends the
+        // current {org}.gborg/bot bucket together with scope=user) used to
+        // read and write the wrong bucket: listings came back empty and the
+        // user's own files were invisible (#1709). Any other override is
+        // ignored in this scope; bot scope keeps addressing the bot bucket.
+        let personal = user_id.map(user_scope::get_user_bucket);
+        let user_scope_override = matches!(scope, &FileScope::User)
+            && personal.as_deref().map(|p| p != b).unwrap_or(false);
+        if !user_scope_override {
+            // Tenant isolation (#1401, #1387): a client-supplied bucket name is
+            // only honored when it belongs to the caller's own tenant. PLATFORM
+            // admins may address any bucket (admin tooling); everyone else is
+            // validated against their DB-backed org membership. This blocks
+            // cross-tenant reads like {user-a}.gborg content shown to
+            // {user-b}@{other-org}.
+            if !is_platform_admin(state, user) {
+                let allowed = allowed_buckets_for(state, user);
+                if !allowed.iter().any(|a| a == b) {
+                    warn!(
+                        "drive: denied bucket override '{}' for user {:?} (not a member)",
+                        b, user.email
+                    );
+                    return Err(err(StatusCode::FORBIDDEN, "Access denied for this bucket"));
+                }
             }
+            return Ok(b.to_string());
         }
-        return Ok(b.to_string());
     }
     let default = &state.bucket_name;
     if default.is_empty() {
