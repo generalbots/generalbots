@@ -326,10 +326,17 @@ pub struct ChartData {
     pub datasets: Vec<ChartDataset>,
 }
 
+fn default_chart_color() -> String {
+    "#3b82f6".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChartDataset {
+    #[serde(default)]
     pub label: String,
+    #[serde(default)]
     pub data: Vec<f64>,
+    #[serde(default = "default_chart_color")]
     pub color: String,
 }
 

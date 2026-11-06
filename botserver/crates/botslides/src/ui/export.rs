@@ -94,12 +94,16 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                     .table_data
                     .as_ref()
                     .map(table_html)
+                    .or_else(|| element.content.html.clone())
+                    .or_else(|| element.content.text.clone())
                     .unwrap_or_default(),
                 "chart" => element
                     .content
                     .chart_data
                     .as_ref()
                     .map(|data| chart_html(element.content.text.as_deref().unwrap_or(""), data))
+                    .or_else(|| element.content.html.clone())
+                    .or_else(|| element.content.text.clone())
                     .unwrap_or_default(),
                 _ => element
                     .content
@@ -125,7 +129,7 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 html.push_str(&format!(
                     r#" <img class="element" src="{}" alt="" style="left:{}px;top:{}px;width:{}px;height:{}px;object-fit:contain;"/>
 "#,
-                    item.src, item.x, item.y, item.width, item.height
+                    xml_escape(&item.src), item.x, item.y, item.width, item.height
                 ));
             }
         }
@@ -232,8 +236,8 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                             .collect::<Vec<_>>()
                             .join(" | ");
                         svg.push_str(&format!(
-                            r#" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#0f172a">{}</text>
-"#,
+                            r##" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#0f172a">{}</text>
+"##,
                             element.x,
                             line_y,
                             xml_escape(&line)
@@ -246,8 +250,8 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                 if let Some(data) = &element.content.chart_data {
                     let title = element.content.text.as_deref().unwrap_or("");
                     svg.push_str(&format!(
-                        r#" <text x="{}" y="{}" font-family="Arial" font-size="14" font-weight="bold" fill="#0f172a">{}</text>
-"#,
+                        r##" <text x="{}" y="{}" font-family="Arial" font-size="14" font-weight="bold" fill="#0f172a">{}</text>
+"##,
                         element.x,
                         element.y + 16.0,
                         xml_escape(title)
@@ -261,8 +265,8 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                     for (index, value) in values.iter().enumerate().take(12) {
                         let label = data.labels.get(index).cloned().unwrap_or_default();
                         svg.push_str(&format!(
-                            r#" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#334155">{}: {}</text>
-"#,
+                            r##" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#334155">{}: {}</text>
+"##,
                             element.x,
                             line_y,
                             xml_escape(&label),

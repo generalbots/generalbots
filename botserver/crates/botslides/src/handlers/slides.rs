@@ -208,7 +208,11 @@ fn presentation_id_of(payload: &serde_json::Value) -> String {
 fn slide_index_of(payload: &serde_json::Value) -> usize {
     payload
         .get("slide_index")
-        .and_then(|value| value.as_u64())
+        .and_then(|value| {
+            value
+                .as_u64()
+                .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+        })
         .or_else(|| {
             payload
                 .get("slide_id")
@@ -264,8 +268,19 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
     let y = number("y");
     let y = if y > 0.0 { y } else { 80.0 };
     let table_data = if element_type == "table" {
-        let rows = payload.get("rows").and_then(|value| value.as_u64()).unwrap_or(3).max(1) as usize;
-        let cols = payload.get("cols").and_then(|value| value.as_u64()).unwrap_or(3).max(1) as usize;
+        let unsigned = |key: &str, default: u64| {
+            payload
+                .get(key)
+                .and_then(|value| {
+                    value
+                        .as_u64()
+                        .or_else(|| value.as_str().and_then(|text| text.trim().parse::<u64>().ok()))
+                })
+                .map(|value| value.clamp(1, 50))
+                .unwrap_or(default)
+        };
+        let rows = unsigned("rows", 3) as usize;
+        let cols = unsigned("cols", 3) as usize;
         let headers: Vec<String> = payload
             .get("headers")
             .and_then(|value| value.as_str())
@@ -441,6 +456,36 @@ pub async fn handle_update_element<D: DriveOps>(
         ));
     }
 
+    // Canvas drag/resize posts only geometry for an existing element; merge
+    // those fields so the element type and table/chart content survive.
+    let geometry_only = payload.get("element_type").is_none()
+        && payload.get("text").is_none()
+        && payload.get("chart_data").is_none()
+        && payload.get("table_data").is_none()
+        && payload.get("src").is_none();
+    if geometry_only {
+        let element_id = payload
+            .get("element_id")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
+        let slide = &mut presentation.slides[slide_index];
+        if let Some(existing) = slide.elements.iter_mut().find(|item| item.id == element_id) {
+            existing.x = number("x");
+            existing.y = number("y");
+            existing.width = number("width");
+            existing.height = number("height");
+            existing.rotation = number("rotation");
+            presentation.updated_at = Utc::now();
+            save_pres!(state, &user_id, &presentation);
+            return Ok(Json(SaveResponse {
+                id: presentation_id.clone(),
+                success: true,
+                message: Some("Element updated".to_string()),
+            }));
+        }
+    }
     let element = wire_element(&payload).ok_or_else(|| {
         (
             StatusCode::UNPROCESSABLE_ENTITY,
