@@ -90,6 +90,8 @@
     // CSV/XLSX/Markdown, so those two formats were unreachable from the UI.
     menu.appendChild(item("ODS", function () { exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); }));
     menu.appendChild(item("PDF", function () { exportFormat("pdf", "pdf", "application/pdf"); }));
+    menu.appendChild(item("HTML", function () { exportFormat("html", "html", "text/html"); }));
+    menu.appendChild(item("JSON", function () { exportFormat("json", "json", "application/json"); }));
     document.body.appendChild(menu);
     const rect = anchor.getBoundingClientRect();
     let left = rect.left;
@@ -141,6 +143,8 @@
     markdown: function () { return exportFormat("markdown", "md", "text/markdown"); },
     ods: function () { return exportFormat("ods", "ods", "application/vnd.oasis.opendocument.spreadsheet"); },
     pdf: function () { return exportFormat("pdf", "pdf", "application/pdf"); },
+    html: function () { return exportFormat("html", "html", "text/html"); },
+    json: function () { return exportFormat("json", "json", "application/json"); },
   };
 
   setTimeout(wire, 0);
