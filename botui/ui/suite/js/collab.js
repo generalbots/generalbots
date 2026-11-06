@@ -187,6 +187,18 @@
       console.warn("[GBCollab] app and docId required");
       return null;
     }
+    // botserver has no /ws/{app}/{doc} collaboration endpoint: the socket
+    // handler treats the first segment as a bot name, closes the connection
+    // and logs "no bot named 'docs'", and this client then reconnected every
+    // two seconds forever (one warning per attempt in the server log).
+    // Realtime collaboration stays opt-in: only connect when a caller passes
+    // an explicit url for a route that exists. Presence and comments use the
+    // REST endpoints already provided by collab_routes/collab_ops.
+    if (!this.opts.url) {
+      console.info("[GBCollab] realtime socket not configured; using REST presence");
+      this.callbacks.onDisconnect();
+      return null;
+    }
     this._open();
     return this;
   };
