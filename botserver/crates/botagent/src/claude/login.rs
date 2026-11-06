@@ -8,7 +8,7 @@ use super::b64;
 use super::internal;
 use super::paths::{CLAUDE_HOME, CLAUDE_USER, LOGIN_CODE, LOGIN_LOG, LOGIN_SCRIPT, LOGIN_STATUS};
 use super::pty::PTY_SCRIPT;
-use super::status::{run_script, status};
+use super::status::{run_script, status, ClaudeStatus};
 
 /// Guarantees the CLI and its `claude` identity exist before a login starts.
 /// Workspace preparation runs in the background after the VM is created, so a
