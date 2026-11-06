@@ -22,6 +22,8 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/slides/`)
 | Rotation | Rotate elements by degrees, with a reset |
 | Theme / Background / Transition / Animation | Presentation styling |
 | Notes | Speaker notes per slide |
+| Duplicate / Delete | Buttons on each thumbnail in the slide rail |
+| Reorder slides | Toolbar sorter: drag or use ↑/↓, then Save writes the deck order |
 
 ### Presenting
 

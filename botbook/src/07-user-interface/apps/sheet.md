@@ -37,6 +37,10 @@ The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.
 | Multi-range selection (`Ctrl`+click) | Available | `Ctrl`+click toggles a cell, `Ctrl`+drag sweeps a block, `Ctrl`+click on a row/column header adds the whole row/column; `Esc` clears |
 | Freeze panes | Available | Freeze top row / first column / both via the toolbar; sticky render |
 | Cell comments and notes | Partial | Notes add/edit/clear via right-click; orange marker on noted cells; threaded comments via the sidebar panel |
+| Protect / unprotect worksheet | Available | Sidebar protection panel; a protected worksheet rejects cell writes until unprotected |
+| Pivot table | Available | Toolbar Pivot modal: source range, rows/cols, value field and aggregation; result is read-only |
+| Import workbook | Available | Toolbar Import accepts `.xlsx`, `.xls` and `.ods` and opens the imported workbook |
+| Delete a chart | Available | Charts panel shows a delete button per chart, addressed by worksheet and chart id |
 
 ### Formulas
 
