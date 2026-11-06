@@ -1,48 +1,8 @@
 use super::{empty_fragment, html_escape};
 use axum::{extract::State, response::Html, Json};
 use std::sync::Arc;
-use crate::types::{MediaElement, Slide, TransitionConfig};
+use crate::types::Slide;
 use crate::SlidesState;
-
-pub async fn handle_slide_list_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let presentation_id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let current = payload.get("current_slide").and_then(|v| v.as_u64()).unwrap_or(0);
-    let slides: Vec<Slide> = serde_json::from_value(payload.get("slides").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
-    if slides.is_empty() {
-        return Html(empty_fragment("Nenhum slide. Adicione um slide para começar."));
-    }
-    let mut html = String::from(
-        r##"<div class="sl-panel" id="slide-list-panel" style="padding:8px;">
-<div class="sl-panel-header" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin-bottom:8px;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Slides</h3>
-<button hx-post="/suite/slides/modals/new-slide" hx-vals='{"presentation_id":"{id}"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">+ Slide</button>
-</div>"##
-    );
-    for (i, slide) in slides.iter().enumerate() {
-        let active = if i as u64 == current { "border:2px solid #3b82f6;background:#1e3a8a;" } else { "border:1px solid #334155;background:#0f172a;" };
-        let bg = slide.background.color.clone().unwrap_or_else(|| "#0f172a".to_string());
-        let preview_text = slide.elements.iter()
-            .find_map(|e| e.content.text.clone())
-            .unwrap_or_default();
-        let truncated = preview_text.chars().take(40).collect::<String>();
-        let element_count = slide.elements.len();
-        html.push_str(&format!(
-            r##"<div class="sl-slide-thumb" hx-post="/suite/slides/fragments/thumbnails" hx-vals='{{"presentation_id":"{pid}","index":"{i}"}}' hx-target="#slides-content" hx-swap="innerHTML" style="padding:8px;margin-bottom:6px;cursor:pointer;border-radius:6px;{active}">
-<div style="aspect-ratio:16/9;background:{bg};border-radius:4px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;padding:8px;text-align:center;overflow:hidden;">{truncated}</div>
-<div style="font-size:11px;color:#cbd5e1;margin-top:4px;">Slide {n} • {ec} elem.</div>
-</div>"##,
-            pid = html_escape(presentation_id),
-            i = i,
-            active = active,
-            bg = html_escape(&bg),
-            truncated = html_escape(&truncated),
-            n = i + 1,
-            ec = element_count
-        ));
-    }
-    html.push_str("</div>");
-    Html(html)
-}
 
 pub async fn handle_theme_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let name = payload.get("theme_name").and_then(|v| v.as_str()).unwrap_or("Default");
@@ -85,100 +45,6 @@ pub async fn handle_theme_panel(Json(payload): Json<serde_json::Value>) -> Html<
     ))
 }
 
-pub async fn handle_transitions_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let slide_idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
-    let transitions: Vec<TransitionConfig> = serde_json::from_value(payload.get("transitions").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
-    let mut html = String::from(
-        r##"<div class="sl-panel" id="transitions-panel" style="padding:16px;">
-<h3 style="margin:0 0 12px 0;color:#f8fafc;font-size:16px;">Transições</h3>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">"##
-    );
-    let types = vec![
-        ("none", "Nenhuma"),
-        ("fade", "Fade"),
-        ("slide_left", "Slide Esq"),
-        ("slide_right", "Slide Dir"),
-        ("slide_up", "Slide Cima"),
-        ("slide_down", "Slide Baixo"),
-        ("zoom_in", "Zoom In"),
-        ("zoom_out", "Zoom Out"),
-        ("flip_horizontal", "Flip H"),
-        ("flip_vertical", "Flip V"),
-        ("cube", "Cubo"),
-        ("cover", "Cobrir"),
-    ];
-    for (ttype, tname) in types {
-        let is_current = transitions.iter().any(|t| t.transition_type == ttype);
-        let bg = if is_current { "#1e3a8a" } else { "#0f172a" };
-        let border = if is_current { "border:2px solid #3b82f6;" } else { "border:1px solid #334155;" };
-        html.push_str(&format!(
-            r##"<button hx-post="/api/slides/transition" hx-vals='{{"presentation_id":"{pid}","slide_index":"{idx}","transition_type":"{ttype}","duration":"500"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.refreshSlideView) refreshSlideView()" style="padding:12px;background:{bg};{border}border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;font-size:12px;">{tname}</button>"##,
-            pid = html_escape(pid),
-            idx = slide_idx,
-            ttype = ttype,
-            tname = tname,
-            bg = bg,
-            border = border
-        ));
-    }
-    html.push_str("</div></div>");
-    Html(html)
-}
-
-pub async fn handle_animations_panel(Json(_payload): Json<serde_json::Value>) -> Html<String> {
-    Html(r##"<div class="sl-panel" id="animations-panel" style="padding:16px;">
-<h3 style="margin:0 0 12px 0;color:#f8fafc;font-size:16px;">Animações</h3>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_in"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"fade_out"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Fade Out</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"slide_in_left"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Slide In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"zoom_in"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Zoom In</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"bounce"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Bounce</button>
-<button hx-post="/suite/slides/modals/animation" hx-vals='{"action":"add","type":"spin"}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;font-size:12px;text-align:center;">Spin</button>
-</div>
-</div>"##.to_string())
-}
-
-pub async fn handle_media_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
-    let media: Vec<MediaElement> = serde_json::from_value(payload.get("media").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
-    if media.is_empty() {
-        return Html(empty_fragment("Nenhuma mídia. Use o menu Inserir para adicionar imagens, áudio ou vídeo."));
-    }
-    let mut html = format!(
-        r##"<div class="sl-panel" id="media-panel" style="padding:16px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Mídia ({count})</h3>
-<button hx-post="/suite/slides/modals/add-image" hx-vals='{{"presentation_id":"{pid}"}}' hx-target="#slides-modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Adicionar</button>
-</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">"##,
-        count = media.len(),
-        pid = html_escape(pid)
-    );
-    for m in &media {
-        let icon = match m.media_type.as_str() {
-            "image" => "🖼️",
-            "video" => "🎬",
-            "audio" => "🔊",
-            _ => "📁",
-        };
-        html.push_str(&format!(
-            r##"<div class="sl-media-item" style="padding:8px;background:#0f172a;border:1px solid #334155;border-radius:6px;text-align:center;">
-<div style="font-size:32px;">{icon}</div>
-<div style="font-size:11px;color:#cbd5e1;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name}</div>
-<div style="font-size:10px;color:#94a3b8;">{w}×{h}</div>
-</div>"##,
-            icon = icon,
-            name = html_escape(m.src.split('/').next_back().unwrap_or("media")),
-            w = m.width as i32,
-            h = m.height as i32
-        ));
-    }
-    html.push_str("</div></div>");
-    Html(html)
-}
-
 pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let pid = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let current = payload.get("current_slide").and_then(|v| v.as_u64()).unwrap_or(0);
@@ -213,40 +79,6 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
     ))
 }
 
-pub async fn handle_collaborators_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let collabs: Vec<serde_json::Value> = serde_json::from_value(payload.get("collaborators").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
-    if collabs.is_empty() {
-        return Html(empty_fragment("Nenhum colaborador conectado. Compartilhe a apresentação para começar a colaborar em tempo real."));
-    }
-    let mut html = String::from(
-        r##"<div class="sl-panel" id="collab-panel" style="padding:12px;">
-<h3 style="margin:0 0 8px 0;color:#f8fafc;font-size:14px;">Colaboradores ({count})</h3>"##
-    );
-    for c in &collabs {
-        let name = c.get("name").and_then(|v| v.as_str()).unwrap_or("Anônimo");
-        let color = c.get("color").and_then(|v| v.as_str()).unwrap_or("#3b82f6");
-        let slide = c.get("current_slide").and_then(|v| v.as_u64()).unwrap_or(0);
-        html.push_str(&format!(
-            r##"<div class="sl-collab-item" style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid #334155;">
-<div style="width:24px;height:24px;border-radius:50%;background:{color};display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:600;">{initial}</div>
-<div style="flex:1;font-size:12px;color:#cbd5e1;">{name}</div>
-<div style="font-size:10px;color:#94a3b8;">Slide {slide}</div>
-</div>"##,
-            color = html_escape(color),
-            initial = name.chars().next().unwrap_or('?'),
-            name = html_escape(name),
-            slide = slide + 1
-        ));
-    }
-    html.push_str("</div>");
-    Html(html.replace("{count}", &collabs.len().to_string()))
-}
-
-/// Sorter panel (#1748). The toolbar sends only `{presentation_id}`; the
-/// typed `slides` array is still honoured for callers that already have the
-/// deck in memory, but a missing payload loads the deck by id so the panel is
-/// genuinely reachable. Reordering itself is client-side (05_sorter.js) and
-/// posts `{presentation_id, slide_order}` to /api/slides/slide/reorder.
 pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
     Json(payload): Json<serde_json::Value>,

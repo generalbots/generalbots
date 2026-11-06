@@ -18,9 +18,9 @@ use crate::storage::DriveOps;
 use crate::types::PresentationMetadata;
 
 use panels::{
-    handle_slide_list_panel, handle_theme_panel, handle_transitions_panel,
-    handle_animations_panel, handle_media_panel, handle_presenter_panel,
-    handle_collaborators_panel, handle_slide_sorter,
+    handle_theme_panel,
+    handle_presenter_panel,
+    handle_slide_sorter,
 };
 use sidebars::{
     handle_presentation_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
@@ -108,14 +108,9 @@ pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Route
         .route("/suite/slides/fragments/view", post(handle_presentation_view_post::<D>))
         .route("/suite/slides/fragments/view-by-id", get(handle_presentation_view_by_id::<D>))
         .route("/suite/slides/fragments/thumbnails", post(handle_slide_thumbnails))
-        .route("/suite/slides/fragments/slide-list", post(handle_slide_list_panel))
         .route("/suite/slides/fragments/theme", post(handle_theme_panel))
         .route("/suite/slides/fragments/themes-picker", post(handle_theme_picker))
-        .route("/suite/slides/fragments/transitions", post(handle_transitions_panel))
-        .route("/suite/slides/fragments/animations", post(handle_animations_panel))
-        .route("/suite/slides/fragments/media", post(handle_media_panel))
         .route("/suite/slides/fragments/presenter", post(handle_presenter_panel))
-        .route("/suite/slides/fragments/collaborators", post(handle_collaborators_panel))
         .route("/suite/slides/fragments/sorter", post(handle_slide_sorter::<D>))
         .route("/suite/slides/forms/share", post(handle_share_form))
         .route("/suite/slides/forms/ai", post(handle_ai_form))
