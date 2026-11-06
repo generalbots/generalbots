@@ -322,8 +322,15 @@ Residual production risks (documented, not fixed here):
 - SSH keeps `PermitRootLogin yes` and password auth because the operator
   access pattern depends on it; fail2ban is active and all authorized keys are
   known.
-- noVNC and the MinIO console are internet-facing but password-protected;
-  restrict them to the admin source or a VPN.
+- noVNC is reached through Caddy (`desktop1/2.`) and password-protected; the
+  direct srv2 6080/5901 ports are blocked externally (6080 is allowed only
+  from srv1's egress because the `desktop2.` vhost proxies through it). The
+  MinIO console is still internet-facing but password-protected; restrict it
+  to the admin source or a VPN.
+- **Firewall drift was observed once:** srv2's ACCEPT rules for 6080/5901
+  reappeared above the DROPs after the first fix. They were removed again and
+  replaced with the source-restricted rule; external port checks from three
+  independent nodes now show 6080/5901/8443 blocked.
 - srv1 disk is at 89% and srv2 at 85%; monitor.
 - **Every container is behind on OS security updates.** After refreshing the
   stale apt lists, proxy has 6 pending security updates, bot 11, tables 5,
