@@ -32,7 +32,7 @@ use crate::handlers::data_ops::{
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_delete_chart,
     handle_filter_data, handle_sort_range,
 };
-use crate::handlers::export_import::{handle_export_sheet, handle_import_sheet};
+use crate::handlers::export_import::{handle_export_sheet, handle_import_sheet, handle_print_preview};
 use crate::handlers::find_replace::handle_find_replace;
 use crate::handlers::grid_ops::{
     handle_paste, handle_resize, handle_table_create, handle_table_delete, handle_table_list,
@@ -59,6 +59,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/search", get(handle_search_sheets))
         .route("/api/sheet/load", get(handle_load_sheet))
         .route("/api/sheet/find-replace", post(handle_find_replace))
+        .route("/api/sheet/print-preview", post(handle_print_preview))
         .route("/api/sheet/load-from-drive", post(handle_load_from_drive))
         .route("/api/sheet/save", post(handle_save_sheet))
         .route("/api/sheet/delete", post(handle_delete_sheet))

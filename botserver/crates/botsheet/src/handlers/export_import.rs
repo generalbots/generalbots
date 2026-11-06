@@ -12,7 +12,7 @@ use crate::types::{ExportRequest, Spreadsheet};
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{Html, IntoResponse},
     Json,
 };
 use std::sync::Arc;
@@ -90,17 +90,46 @@ pub async fn handle_export_sheet(
                     Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
                 )
             })?;
-            let encoded = base64::engine::general_purpose::STANDARD.encode(&pdf);
-            Ok((
-                [(axum::http::header::CONTENT_TYPE, "application/pdf")],
-                encoded,
-            ))
+            // Raw PDF bytes; the old base64 text with a PDF content type
+            // downloaded as a corrupt file.
+            Ok(([(axum::http::header::CONTENT_TYPE, "application/pdf")], pdf))
         }
         _ => Err((
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "Unsupported format" })),
         )),
     }
+}
+
+/// Print preview as an HTML modal with the PDF embedded as a data URL: the
+/// export endpoint streams bytes, which htmx cannot render into a modal.
+pub async fn handle_print_preview(
+    State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
+    Json(req): Json<ExportRequest>,
+) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.id)
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": error })),
+            )
+        })?;
+    let sheet = session.sheet.read().await.clone();
+    let pdf = export_to_pdf_data(&sheet).map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&error, "botsheet::handlers::export_import", None)})),
+        )
+    })?;
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&pdf);
+    Ok(Html(format!(
+        r##"<div class="ss-modal" id="print-preview-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;"><div style="background:#1e293b;border:1px solid #334155;border-radius:8px;width:92%;max-width:1100px;height:88vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;font-size:15px;">Print preview</h3><button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">×</button></div><iframe title="Print preview" src="data:application/pdf;base64,{encoded}" style="flex:1;width:100%;border:0;border-radius:0 0 8px 8px;"></iframe></div></div>"##
+    )))
 }
 
 pub async fn handle_import_sheet(

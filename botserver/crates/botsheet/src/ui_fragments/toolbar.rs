@@ -258,7 +258,7 @@ pub async fn handle_print_preview_form(
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
-        r##"<form class="ss-form" id="print-form" hx-post="/api/sheet/export" hx-vals='{{"id":"{id}","format":"pdf"}}' hx-target="#print-preview-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="ss-form" id="print-form" hx-post="/api/sheet/print-preview" hx-vals='{{"id":"{id}","format":"pdf"}}' hx-target="#print-preview-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <div class="print-preview-frame" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:24px;min-height:300px;">
 <h3 style="color:#f8fafc;margin-top:0;">{title}</h3>
 <p style="color:#94a3b8;">{description}</p>
