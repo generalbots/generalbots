@@ -241,6 +241,7 @@
           state.questions.forEach(function (q) { if (q.id === id) q.answered = !q.answered; });
         }
         renderQuestions();
+        bindPanelActions();
       });
     });
   }

@@ -10,11 +10,14 @@ document.addEventListener("htmx:configRequest", function (event) {
   // 0-based index, even while the deck id is still "current".
   var canvas = document.getElementById("slide-canvas");
   var visibleSlide = canvas && canvas.dataset.slideId ? canvas.dataset.slideId : "0";
-  ["slide", "slide_index"].forEach(function (key) {
+  ["slide", "slide_index", "current_slide"].forEach(function (key) {
     if (parameters[key] === "current") {
       parameters[key] = parseInt(visibleSlide, 10) || 0;
     }
   });
+  if (parameters.current_slide === undefined) {
+    parameters.current_slide = parseInt(visibleSlide, 10) || 0;
+  }
   var real = window.__SLIDES_PRESENTATION_ID;
   if (!real || real === "current") return;
   ["id", "presentation_id"].forEach(function (key) {
@@ -43,6 +46,17 @@ document.addEventListener("htmx:afterRequest", function (event) {
   var target = host ? host.querySelector("#ai-result") : null;
   if (target) target.textContent = text;
 });
+
+window.GBSlidesEndPresent = function () {
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+  } catch (error) {}
+  if (window.SlidesPresenter && window.SlidesPresenter.releasePresenter) {
+    window.SlidesPresenter.releasePresenter();
+  }
+};
 
 // Start presentation: the API call created the session; go fullscreen and
 // announce presenter mode locally. Previously its JSON replaced the button.
@@ -313,7 +327,7 @@ document.addEventListener("htmx:afterSwap", function (e) {
           htmx.ajax("GET", "/suite/slides/fragments/presentation-view", {
             target: "#slides-content",
             swap: "innerHTML",
-            values: { id: "current", slide: slideId }
+            values: { id: window.__SLIDES_PRESENTATION_ID || "current", slide: slideId }
           });
         }
         // Presenter drives every follower's slide (remote control).

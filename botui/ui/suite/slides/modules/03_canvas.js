@@ -96,17 +96,44 @@ SlideCanvas.bindElement = function (el) {
           window.GBCollab.send("typing_stop", {});
         }
         t.contentEditable = "false";
-        self.persistElement(el);
+        self.persistElement(el, t.textContent || "");
       }, { once: true });
     }
     e.stopPropagation();
   });
 };
 
+SlideCanvas.deleteElement = function (el) {
+  if (!el) return;
+  var slide = this.canvas ? this.canvas.dataset.slideId : "0";
+  var deck = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
+  var elementId = el.dataset.id;
+  el.remove();
+  this.selectedId = null;
+  var rg = document.getElementById("rotation-group");
+  if (rg) rg.style.display = "none";
+  // The old handler only removed the node client-side and re-posted the
+  // element list, so a refresh brought the element back.
+  fetch("/api/slides/element/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      presentation_id: deck,
+      slide_index: parseInt(slide, 10) || 0,
+      element_id: elementId
+    })
+  }).catch(function () {});
+  if (window.recordSlidesEdit) window.recordSlidesEdit();
+  if (window.recordSlidesSnapshot) window.recordSlidesSnapshot();
+};
+
 SlideCanvas.bindGlobalKeys = function () {
   var self = this;
+  if (SlideCanvas._globalKeysBound) return;
+  SlideCanvas._globalKeysBound = true;
   document.addEventListener("keydown", function (e) {
     if (e.target.isContentEditable) return;
+    if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable=true]")) return;
     if (!self.selectedId) return;
     var el = document.querySelector('[data-id="' + self.selectedId + '"]');
     if (!el) return;
@@ -118,11 +145,8 @@ SlideCanvas.bindGlobalKeys = function () {
     else if (e.key === "ArrowUp") { y -= step; e.preventDefault(); }
     else if (e.key === "ArrowDown") { y += step; e.preventDefault(); }
     else if (e.key === "Delete" || e.key === "Backspace") {
-      el.remove();
-      self.selectedId = null;
-      var rg = document.getElementById("rotation-group");
-      if (rg) rg.style.display = "none";
-      self.persistSlide();
+      e.preventDefault();
+      self.deleteElement(el);
       return;
     } else { return; }
     el.style.left = x + "px";
@@ -134,6 +158,8 @@ SlideCanvas.bindGlobalKeys = function () {
 SlideCanvas.bindCanvasScroll = function (host) {
   var c = host.querySelector(".sl-canvas-scroll");
   if (!c) return;
+  if (c.dataset.gbScrollBound) return;
+  c.dataset.gbScrollBound = "1";
   var self = this;
   c.addEventListener("wheel", function (e) {
     if (e.ctrlKey || e.metaKey) {
@@ -156,6 +182,8 @@ SlideCanvas.bindCanvasScroll = function (host) {
 SlideCanvas.bindQuickShapes = function () {
   var self = this;
   $$(".quick-shape").forEach(function (btn) {
+    if (btn.dataset.gbShapeBound) return;
+    btn.dataset.gbShapeBound = "1";
     btn.addEventListener("click", function () {
       var type = btn.dataset.shape;
       self.insertShape(type);
@@ -209,7 +237,7 @@ SlideCanvas.insertShape = function (type) {
   }
 };
 
-SlideCanvas.persistElement = function (el) {
+SlideCanvas.persistElement = function (el, text) {
   var slide = this.canvas ? this.canvas.dataset.slideId : null;
   if (!slide) return;
   var payload = {
@@ -222,6 +250,9 @@ SlideCanvas.persistElement = function (el) {
     height: el.offsetHeight,
     rotation: parseFloat(el.dataset.rotation || "0")
   };
+  // Inline text edits must reach the server; geometry-only updates used to
+  // overwrite nothing and the typed text vanished on reload.
+  if (typeof text === "string") payload.text = text;
   fetch("/api/slides/element/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

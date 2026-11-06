@@ -468,14 +468,12 @@ pub async fn handle_update_element<D: DriveOps>(
         ));
     }
 
-    // Canvas drag/resize posts only geometry for an existing element; merge
-    // those fields so the element type and table/chart content survive.
-    let geometry_only = payload.get("element_type").is_none()
-        && payload.get("text").is_none()
-        && payload.get("chart_data").is_none()
-        && payload.get("table_data").is_none()
-        && payload.get("src").is_none();
-    if geometry_only {
+    // Canvas drag/resize and inline text edits target an existing element
+    // with a partial payload; merge those fields so the element type and
+    // table/chart content survive instead of being rebuilt as a 0×0 shape.
+    let partial_update = payload.get("element_type").is_none()
+        && payload.get("element_id").is_some();
+    if partial_update {
         let element_id = payload
             .get("element_id")
             .and_then(|value| value.as_str())
@@ -484,11 +482,14 @@ pub async fn handle_update_element<D: DriveOps>(
         let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
         let slide = &mut presentation.slides[slide_index];
         if let Some(existing) = slide.elements.iter_mut().find(|item| item.id == element_id) {
-            existing.x = number("x");
-            existing.y = number("y");
-            existing.width = number("width");
-            existing.height = number("height");
-            existing.rotation = number("rotation");
+            if payload.get("x").is_some() { existing.x = number("x"); }
+            if payload.get("y").is_some() { existing.y = number("y"); }
+            if payload.get("width").is_some() { existing.width = number("width"); }
+            if payload.get("height").is_some() { existing.height = number("height"); }
+            if payload.get("rotation").is_some() { existing.rotation = number("rotation"); }
+            if let Some(text) = payload.get("text").and_then(|value| value.as_str()) {
+                existing.content.text = Some(text.to_string());
+            }
             presentation.updated_at = Utc::now();
             save_pres!(state, &user_id, &presentation);
             return Ok(Json(SaveResponse {

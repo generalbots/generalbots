@@ -186,11 +186,14 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
         r##"<div class="sl-panel" id="presenter-panel" style="padding:16px;background:#0f172a;border:1px solid #4338ca;border-radius:8px;">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
 <h3 style="margin:0;color:#c7d2fe;font-size:16px;">🎤 Modo Apresentador</h3>
-<span style="color:#94a3b8;font-size:12px;">Slide {cur}/{total}</span>
+<div style="display:flex;align-items:center;gap:8px;">
+<span style="color:#94a3b8;font-size:12px;">{position}</span>
+<button onclick="this.closest('#slides-modal-container').innerHTML=''" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;">×</button>
+</div>
 </div>
 <div style="display:flex;gap:8px;margin-bottom:12px;">
-<button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#10b981;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;" hx-swap="none">▶ Iniciar</button>
-<button hx-post="/api/slides/presenter/end" hx-vals='{{"presentation_id":"{pid}"}}' style="flex:1;background:#dc2626;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;" hx-swap="none">⏹ Encerrar</button>
+<button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{pid}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.GBSlidesStartPresent) GBSlidesStartPresent()" style="flex:1;background:#10b981;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">▶ Iniciar</button>
+<button hx-post="/api/slides/presenter/end" hx-vals='{{"presentation_id":"{pid}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful && window.GBSlidesEndPresent) GBSlidesEndPresent()" style="flex:1;background:#dc2626;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">⏹ Encerrar</button>
 </div>
 <div style="padding:8px;background:#1e293b;border-radius:4px;">
 <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Notas do apresentador</div>
@@ -198,9 +201,12 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
 </div>
 </div>"##,
         pid = html_escape(pid),
-        cur = current + 1,
+        position = if total > 0 {
+            format!("Slide {}/{}", current + 1, total)
+        } else {
+            format!("Slide {}", current + 1)
+        },
         cur0 = current,
-        total = total,
         notes = html_escape(notes)
     ))
 }
