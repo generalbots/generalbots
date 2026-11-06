@@ -1,6 +1,7 @@
 //! Seed the default `secret/gbo/*` credentials after Vault init.
 
 use crate::generate_random_string;
+use anyhow::Result;
 use botlib::security::SafeCommand;
 use log::{info, warn};
 
