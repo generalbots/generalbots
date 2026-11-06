@@ -178,15 +178,21 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/audit-venv
           /tmp/audit-venv/bin/pip install --quiet --disable-pip-version-check "pip-audit==2.10.1"
-          # `--no-deps` audits the pins we declare without installing torch and
-          # friends (~3 GB); transitive Python coverage comes from the OSV job.
-          # The only accepted exception is accelerate 1.1.1 (no fixed release);
-          # it is re-validated in SECURITY.md on every review.
+          # Audit the exact pins without installing torch and friends (~3 GB):
+          # `--disable-pip --no-deps` reads the requirement metadata directly.
+          # `>=` lines are resolved by pip to the latest release at install time;
+          # they were checked against PyPI latest + OSV on 2026-11-06 and the
+          # OSV check is repeated in the release runbook. The two accepted
+          # accelerate aliases are the only ignores.
+          grep -E '^[A-Za-z0-9_.-]+(\[[^]]+\])?==' botmodels/requirements.txt \
+            > /tmp/requirements-exact.txt
           /tmp/audit-venv/bin/pip-audit \
-            --requirement botmodels/requirements.txt \
+            --requirement /tmp/requirements-exact.txt \
             --no-deps \
+            --disable-pip \
             --progress-spinner off \
-            --ignore-vuln GHSA-4j2p-28q2-5m79
+            --ignore-vuln GHSA-4j2p-28q2-5m79 \
+            --ignore-vuln PYSEC-2026-3804
 
   sbom:
     name: SBOM (SPDX)

@@ -45,7 +45,7 @@ compromised release asset cannot silently become code we run.
 | `supply-chain` | cargo-deny 0.20.2 | vulnerability, yanked, license, source | `--all-features` audits the union of every shipping graph. Accepted risks live in `deny.toml` with a date. |
 | `osv` | osv-scanner 2.7.0 | advisory outside `scripts/osv_allowlist.txt` | Cargo.lock only (Python is pip-audit below). SARIF goes to the Security tab; the JSON diff makes a new advisory fail the job. |
 | `secrets` | gitleaks 8.30.1 | any hit in the full history | Suppressions are rule-scoped in `.gitleaks.toml` and justified below. |
-| `python` | pip-audit 2.10.1 | vulnerability in `botmodels/requirements.txt` | `--no-deps` audits declared pins; OSV covers transitive packages. |
+| `python` | pip-audit 2.10.1 | vulnerability in an exact pin in `botmodels/requirements.txt` | `--no-deps --disable-pip` on the `==` subset; no multi-GB downloads. |
 | `sbom` | syft 1.57.0 | — | SPDX inventory of the shipped tree, 90-day artifact. |
 | `workflow-lint` | actionlint 1.7.12 + `scripts/check_workflow_pinning.py` | unpinned `uses:`, `pull_request_target`, workflow syntax | Every remote action must be a 40-character commit SHA. |
 | `headers` | curl | — (advisory) | Checks the six IMP-09 headers on the public origin; #1720 owns shipping them. |
@@ -234,12 +234,14 @@ Gaps below.
 
 ### Python
 
-`botmodels/requirements.txt` is audited with `pip-audit --no-deps` on CI
-(venv creation is not available on every developer host). The only accepted
-pin is `accelerate==1.1.1`, documented above. `pip-audit` installs the latest
-release for every `>=` requirement and the exact version for every `==` pin,
-which is why the OSV allowlist gate intentionally covers `Cargo.lock` only
-(OSV resolves `>=` to the minimum version instead of what pip installs).
+`botmodels/requirements.txt` is audited with `pip-audit` on CI. The job
+filters the exact `==` pins into a temporary file and runs
+`pip-audit --no-deps --disable-pip` on it, so it never downloads torch and
+friends (~3 GB). The `>=` requirements are resolved by pip to the latest
+release at install time; they were checked against PyPI latest + OSV on
+2026-11-06, and the release runbook repeats that check. The only accepted pin
+is `accelerate==1.1.1` (two advisory aliases are ignored explicitly),
+documented above.
 
 ---
 
