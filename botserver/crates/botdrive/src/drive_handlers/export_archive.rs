@@ -68,7 +68,7 @@ pub async fn export_archive(
     {
         let mut archive = zip::ZipWriter::new(&mut cursor);
         for entry in &entries {
-            let key = format!("{prefix}{entry}");
+            let key = scoped_key(&prefix, entry);
             let bytes = match drive.get_object(&bucket, &key).await {
                 Ok(bytes) => bytes,
                 Err(e) => {

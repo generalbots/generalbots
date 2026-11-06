@@ -183,6 +183,7 @@ pub async fn restore_trash(
         return Err(err(StatusCode::NOT_FOUND, "Trash item not found"));
     };
 
+    let mut restored = 0usize;
     if row.is_dir {
         let prefix = format!("{}/", row.path.trim_end_matches('/'));
         let keys = drive.list_objects(&row.bucket, Some(&prefix)).await.unwrap_or_default();
@@ -200,21 +201,36 @@ pub async fn restore_trash(
             };
             // #1640 — restoring over a live file must not destroy it silently.
             snapshot_before_write(drive, &row.bucket, &destination, &scope, &uid).await;
-            let _ = drive.put_object(&row.bucket, &destination, data, None).await;
+            drive
+                .put_object(&row.bucket, &destination, data, None)
+                .await
+                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Restore failed: {e}")))?;
             let _ = drive.delete_object(&row.bucket, &child).await;
+            restored += 1;
         }
     } else if let Ok(data) = drive.get_object(&row.bucket, &row.path).await {
         snapshot_before_write(drive, &row.bucket, &row.original_path, &scope, &uid).await;
-        let _ = drive
+        drive
             .put_object(&row.bucket, &row.original_path, data, None)
-            .await;
+            .await
+            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Restore failed: {e}")))?;
         let _ = drive.delete_object(&row.bucket, &row.path).await;
+        restored = 1;
+    }
+    if restored == 0 {
+        return Err(err(StatusCode::NOT_FOUND, "Trash item has no objects to restore"));
     }
 
-    let _ = diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1 AND user_id = $2")
+    // Keep the row when the objects could not be written back, so the user can
+    // retry instead of losing the entry.
+    diesel::sql_query("DELETE FROM drive_trash WHERE id::text = $1 AND user_id = $2")
         .bind::<Text, _>(&req.id)
         .bind::<Text, _>(&uid)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .map_err(|e| {
+            botlog::safe_error!("drive trash row cleanup failed: {e}");
+            err(StatusCode::INTERNAL_SERVER_ERROR, "Restored, but could not clear the trash entry")
+        })?;
 
     botlog::safe_info!("Trash item restored: {}", row.original_path);
     Ok(Json(SuccessResponse { success: true }))
