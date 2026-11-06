@@ -6,6 +6,7 @@
 pub mod bus;
 pub mod caps;
 pub mod caps_resolve;
+pub mod goal_agent;
 pub mod goal_runner;
 pub mod group_budget;
 pub mod observability;

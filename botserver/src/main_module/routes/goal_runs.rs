@@ -61,6 +61,10 @@ struct CreateBody {
     interval_seconds: Option<u64>,
     #[serde(default)]
     step_value: Option<f64>,
+    /// Optional agent instruction: when present and an LLM is configured, the
+    /// model chooses each checkpoint's increment instead of `step_value`.
+    #[serde(default)]
+    instruction: Option<String>,
 }
 
 #[derive(Debug, diesel::QueryableByName)]
@@ -96,6 +100,10 @@ async fn create(
 ) -> Result<Json<Value>, ApiError> {
     let user = user_from_headers(&headers)?;
     let interval = clamp_interval(body.interval_seconds.unwrap_or(60));
+    let agent_instruction = body
+        .instruction
+        .clone()
+        .filter(|value| !value.trim().is_empty());
     let mut conn = state
         .conn
         .get()
@@ -147,9 +155,48 @@ async fn create(
     // Bounded background runner: no task can outlive its checkpoint budget.
     let pool = state.conn.clone();
     let run_id = run.id.clone();
+    #[cfg(feature = "llm")]
+    let agent_provider = state.llm_provider.clone();
+    #[cfg(not(feature = "llm"))]
+    let agent_provider: Option<Arc<dyn botlib::traits::LLMProvider>> = None;
     tokio::spawn(async move {
         for _ in 0..MAX_CHECKPOINTS {
             tokio::time::sleep(Duration::from_secs(interval)).await;
+            // Agent/LLM-driven checkpoint (#1706): ask the configured model for
+            // this increment; any error keeps the fixed step below.
+            if let (Some(instruction), Some(provider)) =
+                (agent_instruction.as_deref(), agent_provider.as_ref())
+            {
+                let context = {
+                    let pool = pool.clone();
+                    let run_id = run_id.clone();
+                    tokio::task::spawn_blocking(move || agent_context(&pool, &run_id))
+                        .await
+                        .ok()
+                        .flatten()
+                };
+                if let Some((current, target)) = context {
+                    if let Some(step) = crate::core::bot::runs::goal_agent::choose_step(
+                        provider,
+                        instruction,
+                        current,
+                        target,
+                    )
+                    .await
+                    {
+                        let pool = pool.clone();
+                        let run_id = run_id.clone();
+                        if let Err(error) = tokio::task::spawn_blocking(move || {
+                            set_agent_step(&pool, &run_id, step)
+                        })
+                        .await
+                        .unwrap_or_else(|error| Err(error.to_string()))
+                        {
+                            log::warn!("goal run agent step update failed: {error}");
+                        }
+                    }
+                }
+            }
             let pool = pool.clone();
             let run_id = run_id.clone();
             let log_id = run_id.clone();
@@ -170,6 +217,39 @@ async fn create(
     });
 
     Ok(Json(json!({ "run": run_json(&run) })))
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+struct AgentContextRow {
+    #[diesel(sql_type = diesel::sql_types::Double)]
+    current: f64,
+    #[diesel(sql_type = diesel::sql_types::Double)]
+    target: f64,
+}
+
+/// Current value and target for the checkpoint prompt, read in one query.
+fn agent_context(pool: &DbPool, id: &str) -> Option<(f64, f64)> {
+    let mut conn = pool.get().ok()?;
+    let row = diesel::sql_query(
+        "SELECT COALESCE(r.last_value, k.start_value)::double precision AS current, \
+                k.target_value::double precision AS target \
+         FROM goal_runs r JOIN okr_key_results k ON k.id = r.key_result_id \
+         WHERE r.id = $1::uuid",
+    )
+    .bind::<diesel::sql_types::Text, _>(id)
+    .get_result::<AgentContextRow>(&mut conn)
+    .ok()?;
+    Some((row.current, row.target))
+}
+
+fn set_agent_step(pool: &DbPool, id: &str, step: f64) -> Result<(), String> {
+    let mut conn = pool.get().map_err(|error| error.to_string())?;
+    diesel::sql_query("UPDATE goal_runs SET step_value = $2 WHERE id = $1::uuid")
+        .bind::<diesel::sql_types::Text, _>(id)
+        .bind::<diesel::sql_types::Double, _>(step)
+        .execute(&mut conn)
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 #[derive(Debug, diesel::QueryableByName)]
