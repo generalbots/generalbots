@@ -1,4 +1,5 @@
 use super::{empty_fragment, html_escape, Lang, t, tf};
+use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use axum::extract::{Extension, State};
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
@@ -135,22 +136,12 @@ pub async fn handle_charts_panel(
     if charts_total == 0 {
         return Html(empty_fragment(&t(lang, "panel.charts.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="charts-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.charts.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">"##,
-    );
+    let mut body = String::new();
     for (ws_index, c) in chart_data {
         let chart_type = c.chart_type.clone();
         let title = c.title.clone();
         let series_count = c.datasets.len();
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-chart-card" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
 <div style="font-weight:600;color:#f8fafc;font-size:14px;">{title}</div>
@@ -170,8 +161,13 @@ pub async fn handle_charts_panel(
             )
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell_with_body_style(
+        "ss",
+        "charts-panel",
+        &t(lang, "panel.charts.title"),
+        "padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;",
+        &body,
+    ))
 }
 
 pub async fn handle_validations_panel(
@@ -186,19 +182,9 @@ pub async fn handle_validations_panel(
     if validations.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.validations.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="validations-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.validations.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;">"##,
-    );
+    let mut body = String::new();
     for (cell_ref, v) in validations {
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-validation-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;">{cell}</div>
 <div style="font-size:12px;color:#94a3b8;">{info}</div>
@@ -207,8 +193,12 @@ pub async fn handle_validations_panel(
             info = tf(lang, "panel.type", &[("t", &html_escape(&v.validation_type))])
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell(
+        "ss",
+        "validations-panel",
+        &t(lang, "panel.validations.title"),
+        &body,
+    ))
 }
 
 pub async fn handle_conditional_formats_panel(
@@ -223,21 +213,11 @@ pub async fn handle_conditional_formats_panel(
     if rules.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.cf.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="cf-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.cf.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;">"##,
-    );
+    let mut body = String::new();
     for r in rules {
         let preview = r.style.background.clone().unwrap_or_else(|| "#3b82f6".to_string());
         let range = format!("{}{}:{}{}", col_name(r.start_col), r.start_row + 1, col_name(r.end_col), r.end_row + 1);
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-cf-item" style="padding:8px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:8px;">
 <div style="width:24px;height:24px;background:{preview};border-radius:4px;border:1px solid #334155;"></div>
 <div>
@@ -250,8 +230,7 @@ pub async fn handle_conditional_formats_panel(
             range = html_escape(&range)
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell("ss", "cf-panel", &t(lang, "panel.cf.title"), &body))
 }
 
 pub async fn handle_external_links_panel(
@@ -263,19 +242,9 @@ pub async fn handle_external_links_panel(
     if links.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.links.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="external-links-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.links.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;">"##,
-    );
+    let mut body = String::new();
     for l in links {
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-link-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;">{source}</div>
 <div style="font-size:12px;color:#94a3b8;">{info}</div>
@@ -288,8 +257,12 @@ pub async fn handle_external_links_panel(
             )
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell(
+        "ss",
+        "external-links-panel",
+        &t(lang, "panel.links.title"),
+        &body,
+    ))
 }
 
 pub async fn handle_comments_panel(
@@ -304,17 +277,7 @@ pub async fn handle_comments_panel(
     if comments.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.comments.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="comments-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.comments.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;max-height:400px;overflow-y:auto;">"##,
-    );
+    let mut body = String::new();
     for (cell, c) in comments {
         let resolved = if c.resolved {
             format!(
@@ -324,7 +287,7 @@ pub async fn handle_comments_panel(
         } else {
             String::new()
         };
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-comment-item" style="padding:8px;border-bottom:1px solid #334155;border-left:3px solid #f59e0b;background:#1e293b50;margin-bottom:4px;">
 <div style="display:flex;justify-content:space-between;align-items:center;">
 <div style="font-weight:600;color:#f8fafc;font-size:13px;">{cell} — {author}</div>
@@ -340,8 +303,13 @@ pub async fn handle_comments_panel(
             resolved = resolved
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell_with_body_style(
+        "ss",
+        "comments-panel",
+        &t(lang, "panel.comments.title"),
+        "padding:8px;max-height:400px;overflow-y:auto;",
+        &body,
+    ))
 }
 
 pub async fn handle_protection_panel(
@@ -349,17 +317,7 @@ pub async fn handle_protection_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="protection-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.protection.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:12px;">"##,
-    );
+    let mut body = String::new();
     for (i, w) in sheet.worksheets.iter().enumerate() {
         let is_protected = w.protection.as_ref().is_some_and(|p| p.protected);
         let status = if is_protected {
@@ -401,7 +359,7 @@ pub async fn handle_protection_panel(
                 ),
             )
         };
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-prot-item" style="padding:8px;margin-bottom:8px;background:#0f172a;border:1px solid #334155;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
 <div>
 <div style="font-weight:600;color:#f8fafc;">{sheet} {status}</div>
@@ -418,10 +376,15 @@ pub async fn handle_protection_panel(
         ));
     }
     if sheet.worksheets.is_empty() {
-        html.push_str(&empty_fragment(&t(lang, "panel.protection.empty")));
+        body.push_str(&empty_fragment(&t(lang, "panel.protection.empty")));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell_with_body_style(
+        "ss",
+        "protection-panel",
+        &t(lang, "panel.protection.title"),
+        "padding:12px;",
+        &body,
+    ))
 }
 
 pub async fn handle_array_formulas_panel(
@@ -436,17 +399,7 @@ pub async fn handle_array_formulas_panel(
     if formulas.is_empty() {
         return Html(empty_fragment(&t(lang, "panel.arrays.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-panel" id="array-formulas-panel">
-<div class="ss-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
-    );
-    html.push_str(&t(lang, "panel.arrays.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-panel-body" style="padding:8px;">"##,
-    );
+    let mut body = String::new();
     for f in formulas {
         let dynamic = if f.is_dynamic {
             format!(
@@ -456,7 +409,7 @@ pub async fn handle_array_formulas_panel(
         } else {
             String::new()
         };
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="ss-array-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;font-family:monospace;font-size:12px;">{formula} {dynamic}</div>
 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">{range}</div>
@@ -475,6 +428,10 @@ pub async fn handle_array_formulas_panel(
             )
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell(
+        "ss",
+        "array-formulas-panel",
+        &t(lang, "panel.arrays.title"),
+        &body,
+    ))
 }

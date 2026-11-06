@@ -27,7 +27,14 @@ pub mod brazil;
 pub mod brazil_queries;
 pub mod minutes_app;
 pub mod minutes_app_forms;
+pub mod shells;
 pub mod timeclock;
+
+pub use shells::{
+    empty_state, error_box, form_field, modal_body, modal_shell, modal_shell_width,
+    modal_shell_with_content_style, panel_shell, panel_shell_with_body_style, sidebar_shell,
+    sidebar_shell_plain,
+};
 
 pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
     Router::<S>::new()
@@ -36,7 +43,7 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .merge(minutes_app::configure())
 }
 
-pub(super) fn htmx_escape(s: &str) -> String {
+pub fn htmx_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")

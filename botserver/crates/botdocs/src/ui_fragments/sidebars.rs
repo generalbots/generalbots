@@ -1,4 +1,5 @@
 use super::{empty_fragment, err_fragment, html_escape, render_metadata_card};
+use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 use axum::{extract::{Query, State}, response::Html, Json};
 use crate::state::DocState;
 use crate::types_core::DocumentMetadata;
@@ -31,41 +32,38 @@ pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -
     if items.is_empty() {
         return Html(empty_fragment("Nenhum documento. Crie um novo para começar."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-sidebar" id="doc-list-sidebar">
-<div class="dc-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Meus Documentos</h3>
-<button hx-get="/suite/docs/fragments/new" hx-target="#docs-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Novo</button>
-</div>
-<div class="dc-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">"##
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    let action = r##"<button hx-get="/suite/docs/fragments/new" hx-target="#docs-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Novo</button>"##;
+    Html(sidebar_shell(
+        "dc",
+        "doc-list-sidebar",
+        "Meus Documentos",
+        action,
+        &body,
+    ))
 }
 
 pub async fn handle_search_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     if items.is_empty() {
         return Html(empty_fragment("Nenhum resultado para esta busca."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-sidebar" id="search-sidebar">
-<div class="dc-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Resultados da Busca</h3>
-</div>
-<div class="dc-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str(&format!(
+    body.push_str(&format!(
         r##"<div style="padding:8px;color:#94a3b8;font-size:12px;text-align:center;">{} documento(s) encontrado(s)</div>"##,
         items.len()
     ));
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "dc",
+        "search-sidebar",
+        "Resultados da Busca",
+        &body,
+    ))
 }
 
 pub async fn handle_recent_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
@@ -73,18 +71,16 @@ pub async fn handle_recent_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> 
     if recent.is_empty() {
         return Html(empty_fragment("Nenhum documento recente."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-sidebar" id="recent-sidebar">
-<div class="dc-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Recentes</h3>
-</div>
-<div class="dc-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##
-    );
+    let mut body = String::new();
     for m in recent {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "dc",
+        "recent-sidebar",
+        "Recentes",
+        &body,
+    ))
 }
 
 pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Html<String> {

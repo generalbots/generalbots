@@ -1,4 +1,5 @@
 use super::{html_escape, Lang, t, tf};
+use botuifragments::ui_fragments::form_field;
 use axum::extract::Query;
 use axum::Json;
 use axum::http::HeaderMap;
@@ -239,18 +240,20 @@ pub async fn handle_insert_image_form(
     let mut params = query;
     merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
+    let file = form_field(
+        &t(lang, "form.img.file"),
+        r#"<input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
+    );
+    let anchor = form_field(
+        &t(lang, "form.img.anchor"),
+        r#"<input type="text" name="anchor" placeholder="B5" value="B5" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
+    );
     Html(format!(
         r##"<form class="ss-form" id="img-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"image"}}' hx-target="#insert-image-modal" hx-swap="outerHTML" enctype="multipart/form-data" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{file}
-<input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
-</label>
-<label style="color:#f8fafc;font-size:13px;">{anchor}
-<input type="text" name="anchor" placeholder="B5" value="B5" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
-</label>
+{file}
+{anchor}
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>"##,
-        file = t(lang, "form.img.file"),
-        anchor = t(lang, "form.img.anchor"),
         submit = t(lang, "form.img.submit"),
         id = html_escape(&sheet_id)
     ))

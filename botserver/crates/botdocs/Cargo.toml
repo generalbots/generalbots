@@ -9,6 +9,7 @@ repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 botlib = { workspace = true, features = ["database"] }
+botuifragments = { workspace = true }
 axum = { workspace = true, features = ["ws", "multipart", "macros"] }
 base64 = { workspace = true }
 botsecurity-core = { workspace = true }

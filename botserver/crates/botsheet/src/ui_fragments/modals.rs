@@ -1,4 +1,7 @@
 use super::{html_escape, Lang, t, tf};
+use botuifragments::ui_fragments::{
+    modal_body, modal_shell, modal_shell_width, modal_shell_with_content_style,
+};
 use axum::extract::Query;
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
@@ -23,18 +26,21 @@ pub async fn handle_share_modal(
         .map(str::to_string)
         .or_else(|| query.get("name").cloned())
         .unwrap_or_else(|| t(lang, "common.spreadsheet"));
-    Html(format!(
-        r##"<div class="ss-modal" id="share-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = tf(lang, "modal.share_title", &[("name", &html_escape(&name))]),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell_with_content_style(
+        "ss",
+        "share-modal",
+        &tf(lang, "modal.share_title", &[("name", &html_escape(&name))]),
+        480,
+        "max-height:80vh;overflow-y:auto;",
+        &body,
     ))
 }
 
@@ -50,18 +56,19 @@ pub async fn handle_chart_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="chart-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/chart" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.chart"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/chart" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "chart-modal",
+        &t(lang, "modal.chart"),
+        &body,
     ))
 }
 
@@ -77,18 +84,19 @@ pub async fn handle_find_replace_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="find-replace-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.find_replace"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "find-replace-modal",
+        &t(lang, "modal.find_replace"),
+        &body,
     ))
 }
 
@@ -104,18 +112,19 @@ pub async fn handle_conditional_format_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="conditional-format-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/conditional-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.conditional_format"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/conditional-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "conditional-format-modal",
+        &t(lang, "modal.conditional_format"),
+        &body,
     ))
 }
 
@@ -131,18 +140,19 @@ pub async fn handle_data_validation_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="data-validation-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/data-validation" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.data_validation"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/data-validation" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "data-validation-modal",
+        &t(lang, "modal.data_validation"),
+        &body,
     ))
 }
 
@@ -158,18 +168,19 @@ pub async fn handle_custom_format_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="custom-format-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/custom-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.custom_format"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/custom-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "custom-format-modal",
+        &t(lang, "modal.custom_format"),
+        &body,
     ))
 }
 
@@ -185,18 +196,19 @@ pub async fn handle_insert_image_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="insert-image-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/insert-image" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.insert_image"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/insert-image" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell(
+        "ss",
+        "insert-image-modal",
+        &t(lang, "modal.insert_image"),
+        &body,
     ))
 }
 
@@ -212,18 +224,20 @@ pub async fn handle_print_preview_modal(
         .and_then(|v| v.as_str())
         .or_else(|| query.get("id").map(String::as_str))
         .unwrap_or("");
-    Html(format!(
-        r##"<div class="ss-modal" id="print-preview-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
-<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:640px;width:90%;">
-<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
-<h3 style="margin:0;color:#f8fafc;">{title}</h3>
-<button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
-</div>
-<div class="ss-modal-body" hx-post="/suite/sheet/forms/print-preview" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
-</div>
-</div>"##,
-        title = t(lang, "modal.print_preview"),
-        id = html_escape(sheet_id)
+    let id = html_escape(sheet_id);
+    let body = modal_body(
+        "ss",
+        &format!(
+            r#" hx-post="/suite/sheet/forms/print-preview" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML""#
+        ),
+        "",
+    );
+    Html(modal_shell_width(
+        "ss",
+        "print-preview-modal",
+        &t(lang, "modal.print_preview"),
+        640,
+        &body,
     ))
 }
 

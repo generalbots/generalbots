@@ -1,4 +1,5 @@
 use super::{empty_fragment, html_escape, render_metadata_card};
+use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 use axum::{extract::{Query, State}, response::Html, Json};
 use crate::types::{Presentation, PresentationMetadata, Slide};
 use crate::SlidesState;
@@ -7,41 +8,38 @@ pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<Presentation
     if items.is_empty() {
         return Html(empty_fragment("Nenhuma apresentação. Crie uma nova para começar."));
     }
-    let mut html = String::from(
-        r##"<div class="sl-sidebar" id="presentation-list-sidebar">
-<div class="sl-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Apresentações</h3>
-<button hx-get="/suite/slides/fragments/new" hx-target="#slides-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button>
-</div>
-<div class="sl-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">"##
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    let action = r##"<button hx-get="/suite/slides/fragments/new" hx-target="#slides-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button>"##;
+    Html(sidebar_shell(
+        "sl",
+        "presentation-list-sidebar",
+        "Apresentações",
+        action,
+        &body,
+    ))
 }
 
 pub async fn handle_search_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     if items.is_empty() {
         return Html(empty_fragment("Nenhum resultado para esta busca."));
     }
-    let mut html = String::from(
-        r##"<div class="sl-sidebar" id="search-sidebar">
-<div class="sl-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Resultados da Busca</h3>
-</div>
-<div class="sl-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str(&format!(
+    body.push_str(&format!(
         r##"<div style="padding:8px;color:#94a3b8;font-size:12px;text-align:center;">{} apresentação(ões) encontrada(s)</div>"##,
         items.len()
     ));
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "sl",
+        "search-sidebar",
+        "Resultados da Busca",
+        &body,
+    ))
 }
 
 pub async fn handle_recent_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
@@ -49,18 +47,16 @@ pub async fn handle_recent_sidebar(Json(items): Json<Vec<PresentationMetadata>>)
     if recent.is_empty() {
         return Html(empty_fragment("Nenhuma apresentação recente."));
     }
-    let mut html = String::from(
-        r##"<div class="sl-sidebar" id="recent-sidebar">
-<div class="sl-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">Recentes</h3>
-</div>
-<div class="sl-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##
-    );
+    let mut body = String::new();
     for m in recent {
-        html.push_str(&render_metadata_card(m));
+        body.push_str(&render_metadata_card(m));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "sl",
+        "recent-sidebar",
+        "Recentes",
+        &body,
+    ))
 }
 
 /// Server-rendered presentation view resolved by id (metadata cards carry

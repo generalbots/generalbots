@@ -1,5 +1,6 @@
 use super::html_escape;
 use axum::{response::Html, Json};
+use botuifragments::ui_fragments::form_field;
 
 pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
@@ -60,31 +61,39 @@ pub async fn handle_footnote_form(Json(payload): Json<serde_json::Value>) -> Htm
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
     let position = payload.get("position").and_then(|v| v.as_u64()).unwrap_or(0);
+    let field = form_field(
+        "Conteúdo da nota",
+        &format!(
+            r#"<textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{}</textarea>"#,
+            html_escape(content)
+        ),
+    );
     Html(format!(
         r##"<form class="dc-form" hx-post="/api/docs/footnote" hx-vals='{{"doc_id":"{id}","position":{pos}}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsCloseModal(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">Conteúdo da nota
-<textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{content}</textarea>
-</label>
+{field}
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Inserir Nota de Rodapé</button>
 </form>"##,
         id = html_escape(id),
         pos = position,
-        content = html_escape(content)
     ))
 }
 
 pub async fn handle_endnote_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
+    let field = form_field(
+        "Conteúdo da nota final",
+        &format!(
+            r#"<textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{}</textarea>"#,
+            html_escape(content)
+        ),
+    );
     Html(format!(
         r##"<form class="dc-form" hx-post="/api/docs/endnote" hx-vals='{{"doc_id":"{id}","position":0}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) GBDocsCloseModal(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">Conteúdo da nota final
-<textarea name="content" rows="4" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{content}</textarea>
-</label>
+{field}
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Inserir Nota Final</button>
 </form>"##,
         id = html_escape(id),
-        content = html_escape(content)
     ))
 }
 

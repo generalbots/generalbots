@@ -1,5 +1,6 @@
 use super::html_escape;
 use axum::{response::Html, Json};
+use botuifragments::ui_fragments::form_field;
 
 pub async fn handle_share_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
@@ -121,11 +122,13 @@ pub async fn handle_add_text_form(Json(payload): Json<serde_json::Value>) -> Htm
 pub async fn handle_add_image_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
+    let field = form_field(
+        "URL da imagem",
+        r#"<input type="url" name="url" placeholder="https://exemplo.com/imagem.jpg" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
+    );
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/media" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">URL da imagem
-<input type="url" name="url" placeholder="https://exemplo.com/imagem.jpg" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
-</label>
+{field}
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Inserir Imagem</button>
 </form>"##,
         id = html_escape(id),
@@ -212,16 +215,20 @@ pub async fn handle_notes_form(Json(payload): Json<serde_json::Value>) -> Html<S
     let id = payload.get("presentation_id").and_then(|v| v.as_str()).unwrap_or("");
     let idx = payload.get("slide_index").and_then(|v| v.as_u64()).unwrap_or(0);
     let notes = payload.get("notes").and_then(|v| v.as_str()).unwrap_or("");
+    let field = form_field(
+        "Notas do apresentador (não visíveis ao público)",
+        &format!(
+            r#"<textarea name="notes" rows="6" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{}</textarea>"#,
+            html_escape(notes)
+        ),
+    );
     Html(format!(
         r##"<form class="sl-form" hx-post="/api/slides/slide/notes" hx-vals='{{"presentation_id":"{id}","slide_index":"{idx}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) afterSlideInsert(this)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">Notas do apresentador (não visíveis ao público)
-<textarea name="notes" rows="6" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:inherit;resize:vertical;">{notes}</textarea>
-</label>
+{field}
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Salvar Notas</button>
 </form>"##,
         id = html_escape(id),
         idx = idx,
-        notes = html_escape(notes)
     ))
 }
 

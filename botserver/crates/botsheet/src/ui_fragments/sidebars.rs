@@ -1,4 +1,5 @@
 use super::{empty_fragment, html_escape, render_metadata_card, render_spreadsheet_summary, Lang, t, tf};
+use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
 use botsheet_core::types::{Spreadsheet, SpreadsheetMetadata, Worksheet};
@@ -11,31 +12,22 @@ pub async fn handle_sheet_list_sidebar(
     if items.is_empty() {
         return Html(empty_fragment(&t(lang, "sidebar.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-sidebar" id="sheet-list-sidebar">
-<div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">"##
-    );
-    html.push_str(&t(lang, "sidebar.title"));
-    html.push_str(
-        r##"</h3>
-<button class="btn-icon" hx-get="/api/sheet/new" hx-ext="json-enc" hx-target="#sheet-content" hx-swap="innerHTML" title=""##,
-    );
-    html.push_str(&t(lang, "sidebar.new_title"));
-    html.push_str(
-        r##"" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">"##,
-    );
-    html.push_str(&t(lang, "sidebar.new"));
-    html.push_str(
-        r##"</button>
-</div>
-<div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">"##,
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m, lang));
+        body.push_str(&render_metadata_card(m, lang));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    let action = format!(
+        r##"<button class="btn-icon" hx-get="/api/sheet/new" hx-ext="json-enc" hx-target="#sheet-content" hx-swap="innerHTML" title="{}" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">{}</button>"##,
+        t(lang, "sidebar.new_title"),
+        t(lang, "sidebar.new"),
+    );
+    Html(sidebar_shell(
+        "ss",
+        "sheet-list-sidebar",
+        &t(lang, "sidebar.title"),
+        &action,
+        &body,
+    ))
 }
 
 pub async fn handle_search_sidebar(
@@ -46,26 +38,20 @@ pub async fn handle_search_sidebar(
     if items.is_empty() {
         return Html(empty_fragment(&t(lang, "search.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-sidebar" id="search-sidebar">
-<div class="ss-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">"##,
-    );
-    html.push_str(&t(lang, "search.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##,
-    );
+    let mut body = String::new();
     for m in &items {
-        html.push_str(&render_metadata_card(m, lang));
+        body.push_str(&render_metadata_card(m, lang));
     }
-    html.push_str(&format!(
+    body.push_str(&format!(
         r##"<div style="padding:8px;color:#94a3b8;font-size:12px;text-align:center;">{}</div>"##,
         tf(lang, "search.count", &[("n", &items.len().to_string())])
     ));
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "ss",
+        "search-sidebar",
+        &t(lang, "search.title"),
+        &body,
+    ))
 }
 
 pub async fn handle_recent_sidebar(
@@ -77,22 +63,16 @@ pub async fn handle_recent_sidebar(
     if recent.is_empty() {
         return Html(empty_fragment(&t(lang, "recent.empty")));
     }
-    let mut html = String::from(
-        r##"<div class="ss-sidebar" id="recent-sidebar">
-<div class="ss-sidebar-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:14px;">"##,
-    );
-    html.push_str(&t(lang, "recent.title"));
-    html.push_str(
-        r##"</h3>
-</div>
-<div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;">"##,
-    );
+    let mut body = String::new();
     for m in recent {
-        html.push_str(&render_metadata_card(m, lang));
+        body.push_str(&render_metadata_card(m, lang));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(sidebar_shell_plain(
+        "ss",
+        "recent-sidebar",
+        &t(lang, "recent.title"),
+        &body,
+    ))
 }
 
 pub async fn handle_worksheet_tabs_sidebar(

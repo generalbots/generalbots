@@ -28,35 +28,14 @@ use modals::{
     handle_style_modal,
 };
 
-pub fn html_escape(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for ch in s.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&#39;"),
-            _ => out.push(ch),
-        }
-    }
-    out
-}
+pub use botuifragments::ui_fragments::htmx_escape as html_escape;
 
 pub fn err_fragment(msg: &str) -> String {
-    format!(
-        r##"<div class="dc-error" role="alert" style="padding:12px;border:1px solid #f87171;background:#7f1d1d;color:#fecaca;border-radius:6px;margin:8px 0;">
-<strong>Erro:</strong> {}</div>"##,
-        html_escape(msg)
-    )
+    botuifragments::ui_fragments::error_box("dc-error", "Erro:", msg)
 }
 
 pub fn empty_fragment(text: &str) -> String {
-    format!(
-        r##"<div class="dc-empty" style="padding:24px;text-align:center;color:#94a3b8;font-style:italic;">
-{}</div>"##,
-        html_escape(text)
-    )
+    botuifragments::ui_fragments::empty_state("dc-empty", text)
 }
 
 pub fn configure() -> Router<std::sync::Arc<crate::state::DocState>> {

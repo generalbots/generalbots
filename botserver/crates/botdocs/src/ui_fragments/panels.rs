@@ -1,4 +1,5 @@
 use super::{empty_fragment, html_escape};
+use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
 use crate::state::DocState;
 use axum::extract::State;
 use axum::{response::Html, Json};
@@ -88,16 +89,10 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
             empty_fragment("Nenhum comentário. Adicione anotações ao texto selecionado para começar a revisar.")
         ));
     }
-    let mut html = String::from(
-        r##"<div class="dc-panel" id="comments-panel">
-<div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Comentários</h3>
-</div>
-<div class="dc-panel-body" style="padding:8px;max-height:400px;overflow-y:auto;">"##
-    );
+    let mut body = String::new();
     for c in &comments {
         let resolved = if c.resolved { r##"<span style="color:#10b981;font-size:11px;background:#064e3b;padding:2px 6px;border-radius:3px;">Resolvido</span>"## } else { r##"<span style="color:#f59e0b;font-size:11px;background:#78350f;padding:2px 6px;border-radius:3px;">Aberto</span>"## };
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="dc-comment-item" style="padding:10px;border-bottom:1px solid #334155;border-left:3px solid #f59e0b;background:#1e293b50;margin-bottom:4px;border-radius:4px;">
 <div style="display:flex;justify-content:space-between;align-items:center;">
 <div style="font-weight:600;color:#f8fafc;font-size:13px;">{author}</div>
@@ -113,8 +108,13 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
             resolved = resolved
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell_with_body_style(
+        "dc",
+        "comments-panel",
+        "Comentários",
+        "padding:8px;max-height:400px;overflow-y:auto;",
+        &body,
+    ))
 }
 
 pub async fn handle_track_changes_panel(
@@ -198,15 +198,9 @@ pub async fn handle_footnotes_panel(
     if notes.is_empty() {
         return Html(empty_fragment("Nenhuma nota de rodapé. Use Inserir > Nota de Rodapé para adicionar referências."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-panel" id="footnotes-panel">
-<div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Notas de Rodapé</h3>
-</div>
-<div class="dc-panel-body" style="padding:8px;">"##
-    );
+    let mut body = String::new();
     for n in &notes {
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="dc-footnote-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-size:12px;color:#94a3b8;">[{mark}] pos {pos}</div>
 <div style="font-size:13px;color:#cbd5e1;margin-top:2px;">{content}</div>
@@ -216,8 +210,12 @@ pub async fn handle_footnotes_panel(
             content = html_escape(&n.content)
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell(
+        "dc",
+        "footnotes-panel",
+        "Notas de Rodapé",
+        &body,
+    ))
 }
 
 pub async fn handle_endnotes_panel(
@@ -233,15 +231,9 @@ pub async fn handle_endnotes_panel(
     if notes.is_empty() {
         return Html(empty_fragment("Nenhuma nota final. Use Inserir > Nota Final para adicionar referências no fim do documento."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-panel" id="endnotes-panel">
-<div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Notas Finais</h3>
-</div>
-<div class="dc-panel-body" style="padding:8px;">"##
-    );
+    let mut body = String::new();
     for n in &notes {
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="dc-endnote-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-size:12px;color:#94a3b8;">[{mark}] pos {pos}</div>
 <div style="font-size:13px;color:#cbd5e1;margin-top:2px;">{content}</div>
@@ -251,8 +243,7 @@ pub async fn handle_endnotes_panel(
             content = html_escape(&n.content)
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell("dc", "endnotes-panel", "Notas Finais", &body))
 }
 
 pub async fn handle_styles_panel(
@@ -271,16 +262,10 @@ pub async fn handle_styles_panel(
             empty_fragment("Nenhum estilo personalizado. Crie estilos baseados em Normal/Título 1/Título 2 para acelerar a formatação.")
         ));
     }
-    let mut html = String::from(
-        r##"<div class="dc-panel" id="styles-panel">
-<div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Estilos</h3>
-</div>
-<div class="dc-panel-body" style="padding:8px;">"##
-    );
+    let mut body = String::new();
     for s in &styles {
         let font_preview = format!("{} {}pt", s.font_family.as_deref().unwrap_or("Arial"), s.font_size.unwrap_or(12.0) as i32);
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="dc-style-item" style="padding:8px;border-bottom:1px solid #334155;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
 <div style="font-size:11px;color:#94a3b8;">Tipo: {kind} • Fonte: {font}</div>
@@ -290,8 +275,7 @@ pub async fn handle_styles_panel(
             font = html_escape(&font_preview)
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell("dc", "styles-panel", "Estilos", &body))
 }
 
 pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
@@ -306,16 +290,10 @@ pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Htm
     if outline.is_empty() {
         return Html(empty_fragment("Nenhum item de estrutura detectado. Use títulos (H1, H2, H3) para criar uma estrutura hierárquica."));
     }
-    let mut html = String::from(
-        r##"<div class="dc-panel" id="outline-panel">
-<div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;">
-<h3 style="margin:0;color:#f8fafc;font-size:16px;">Estrutura</h3>
-</div>
-<div class="dc-panel-body" style="padding:8px;">"##
-    );
+    let mut body = String::new();
     for o in &outline {
         let indent = (o.level.max(1) as usize - 1) * 16;
-        html.push_str(&format!(
+        body.push_str(&format!(
             r##"<div class="dc-outline-item" style="padding:4px 4px 4px {indent}px;border-bottom:1px solid #33415520;">
 <a href="#pos-{pos}" style="color:#3b82f6;text-decoration:none;font-size:13px;">{text}</a>
 </div>"##,
@@ -324,8 +302,7 @@ pub async fn handle_outline_panel(Json(payload): Json<serde_json::Value>) -> Htm
             text = html_escape(&o.text)
         ));
     }
-    html.push_str("</div></div>");
-    Html(html)
+    Html(panel_shell("dc", "outline-panel", "Estrutura", &body))
 }
 
 pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
