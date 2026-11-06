@@ -70,7 +70,7 @@ async function retryWithBackoff() {
     await init();
 }
 
-async function downloadFile(path) {
+async function downloadFile(path, bucket) {
     try {
         const fileName = path.split("/").pop() || "download";
         const token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
@@ -79,7 +79,7 @@ async function downloadFile(path) {
         const res = await fetch(API_BASE + "/download-binary", {
             method: "POST",
             headers: headers,
-            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope })
+            body: JSON.stringify({ bucket: bucket || getEffectiveBucket(), path: path, scope: currentScope })
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const blob = await res.blob();
@@ -168,11 +168,12 @@ async function previewFile(path, bucket) {
     }
 }
 
-    async function openFile(path) {
+    async function openFile(path, bucket) {
     try {
+        const fileBucket = bucket || getEffectiveBucket();
         const response = await apiRequest("/open", {
             method: "POST",
-            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+            body: JSON.stringify({ bucket: fileBucket, path: path, scope: currentScope }),
         });
         const { app, url } = response;
         if (app === "sheets" && window.WindowManager) {
@@ -224,11 +225,11 @@ async function previewFile(path, bucket) {
         // query string of its own, so the app reads file/bucket from
         // window.__gbAppParams__ (see docs 99_init / slides boot).
         if (app === "docs" && window.WindowManager) {
-            window.WindowManager.openDeepLink("docs", { file: path, bucket: getEffectiveBucket() || "" });
+            window.WindowManager.openDeepLink("docs", { file: path, bucket: fileBucket || "" });
             return;
         }
         if (app === "slides" && window.WindowManager) {
-            window.WindowManager.openDeepLink("slides", { file: path, bucket: getEffectiveBucket() || "" });
+            window.WindowManager.openDeepLink("slides", { file: path, bucket: fileBucket || "" });
             return;
         }
         if (app === "designer" && window.WindowManager) {
@@ -296,12 +297,10 @@ async function previewFile(path, bucket) {
             });
             return;
         }
-        if (window.htmx) {
-            htmx.ajax("GET", url, { target: "#main-content", swap: "innerHTML" });
-            window.history.pushState({}, "", "/#" + app + "?bucket=" + encodeURIComponent(currentBucket) + "&path=" + encodeURIComponent(path));
-        } else {
-            window.location.href = url;
-        }
+        // PDFs and unknown types have no app window; the Drive preview modal
+        // is the working viewer (htmx has no #main-content target here).
+        previewFile(path, fileBucket);
+        window.history.pushState({}, "", "/#" + app + "?bucket=" + encodeURIComponent(fileBucket) + "&path=" + encodeURIComponent(path));
     } catch (err) {
         console.error("Failed to open file:", err);
         showNotification("Failed to open file: " + err.message, "error");

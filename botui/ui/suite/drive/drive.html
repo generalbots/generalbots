@@ -257,7 +257,7 @@
 
                 <button
                     class="btn-icon"
-                    onclick="var sel=Array.from(DriveModule.selectedFiles||[]);if(sel.length)DriveModule.openFile(sel[0])"
+                    onclick="var sel=Array.from(DriveModule.selectedFiles||[]);if(sel.length){var el=document.querySelector('[data-path=\\'+CSS.escape(sel[0])+\\']');var b=el?el.dataset.bucket:'';if(el&&el.dataset.type==='folder'){DriveModule.loadFiles(sel[0],b)}else{DriveModule.openFile(sel[0],b)}}"
                     title="Open selected file"
                     style="margin-right:8px"
                 >

@@ -78,14 +78,14 @@ pub async fn open_file(
         "txt" | "md" | "json" | "xml" | "html" | "css" | "js" => {
             ("editor".to_string(), format!("/suite/editor.html?file={path}&bucket={bucket}"))
         }
-        "pdf" => ("viewer".to_string(), format!("/suite/docs/?file={path}")),
+        "pdf" => ("preview".to_string(), format!("/suite/docs/docs.html?file={path}&bucket={bucket}")),
         "csv" | "xls" | "xlsx" | "ods" => (
             "sheets".to_string(),
             format!("/suite/sheet/sheet.html?bucket={bucket}&path={path}"),
         ),
         "docx" | "doc" | "odt" | "rtf" => (
             "docs".to_string(),
-            format!("/suite/docs/?file={path}&bucket={bucket}"),
+            format!("/suite/docs/docs.html?file={path}&bucket={bucket}"),
         ),
         // Presentations open in the Slides app (the app imports the file
         // from Drive through the existing /api/slides/import handler).
@@ -109,7 +109,7 @@ pub async fn open_file(
             "photo-editor".to_string(),
             format!("/suite/photos/photos-editor.html?bucket={bucket}&path={path}"),
         ),
-        _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
+        _ => ("preview".to_string(), format!("/suite/docs/docs.html?file={path}&bucket={bucket}")),
     };
     Ok(Json(OpenFileResponse { app, url }))
 }
