@@ -344,23 +344,27 @@ Residual production risks (documented, not fixed here):
   independent nodes now show 6080/5901/8443 blocked.
 - srv1 disk is at 89% and srv2 at 92%; most of it is the Incus storage pool
   (56G / 51G). Monitor; cleanup needs a decision on unused containers.
-- **Every container is behind on OS security updates.** After refreshing the
-  stale apt lists, proxy has 6 pending security updates, bot 11, tables 5,
-  cache 5, drive 2, directory 5, vault 5, desktop1 15 and the rest 2–9 each.
-  Recurring items: apt/libapt-pkg `CVE-2026-109518` (RCE) on all 18 targets,
-  `libsasl2` on every Debian 12 container, `openssh-server CVE-2026-60002`
-  (no Debian fix yet), and `linux-image-rt-amd64` on desktop1/desktop2.
-  The full inventory is in the security report (`sca/summary.md`); patching is
-  tracked as a follow-up.
+- **OS security updates are applied.** All 19 containers were upgraded on
+  2026-11-06 (`apt-get -y upgrade`, `dpkg --get-selections` saved per
+  container). The only remaining packages are the held `incus-*` trio on
+  `bot` (must move together with the host Incus 6 → 7) and
+  `linux-image-rt-amd64` on desktop1/desktop2 (installed, takes effect on the
+  next container reboot).
 - **The static Go service binaries carry their own CVEs** (scanned with Trivy
-  over the Go buildinfo): Caddy 2.10.0-beta.3 had 4 critical / 62 high,
-  Forgejo 10.0.2 2/58, MinIO 2025-05-24 7/71, Zitadel v4.13.1 0/51 (including
-  an LDAP filter injection and an OAuth2 token-exchange privilege escalation),
-  Vault 1.15.4 (2023 build) 4/76, LiveKit 1.10.1 1/53. **Caddy was upgraded to
-  2.11.9 on 2026-11-06** (and the serving config path
-  `/opt/gbo/config/Caddyfile` was synced so the headers survive a restart).
-  The remaining binaries need migration windows or a distribution source;
-  remediation is tracked in the binary-upgrade issue.
+  over the Go buildinfo). Original findings: Caddy 2.10.0-beta.3 4
+  critical / 62 high, Forgejo 10.0.2 2/58, MinIO 2025-05-24 7/71,
+  Zitadel v4.13.1 0/51 (LDAP filter injection, OAuth2 token-exchange
+  privilege escalation), Vault 1.15.4 4/76, LiveKit 1.10.1 1/53.
+  **Upgraded on production on 2026-11-06:** Caddy **2.11.9** (and the serving
+  config path `/opt/gbo/config/Caddyfile` was synced so the headers survive a
+  restart), Forgejo **17.0.1**, Zitadel **4.20.1** (with the `zitadel setup`
+  migration), Vault **2.2.1** (file storage migrated, unsealed, secrets
+  readable) and LiveKit **1.13.11**. **MinIO 2025-10-15** (the
+  `CVE-2025-62506` fix) is built from the official source tag
+  (`RELEASE.2025-10-15T17-29-55Z`, commit `9e49d5e7a648`) with
+  `scripts/build-minio-fixed.sh` — the release publishes no assets and
+  `dl.min.io` is gone — and was deployed after checksum verification with the
+  bucket list and botserver Drive access verified.
 - **The HTTP rate limiter was constructed but never called.** The fix is
   deployed in production (`f151582`): a keyed governor limiter enforces
   `10 req/s` with `burst 20` per client on `/api/auth/*` (keyed by the first

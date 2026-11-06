@@ -27,7 +27,7 @@ in the repository's `SECURITY.md` and the security report.
 | Database | PostgreSQL no longer trusts `0.0.0.0/0`; external 5432 blocked |
 | Containers | No `security.privileged`; Incus socket and Chromium CDP proxies restricted to their client containers |
 | OS packages | All security updates applied; only held Incus packages (bot) and the kernel package (desktops, reboot pending) remain |
-| Service binaries | Caddy upgraded to 2.11.9; the Go binaries were scanned and the remaining upgrades are tracked |
+| Service binaries | Caddy **2.11.9**, Forgejo **17.0.1**, Zitadel **4.20.1**, Vault **2.2.1**, LiveKit **1.13.11** and MinIO **2025-10-15** deployed and verified (MinIO built from the official source tag) |
 
 ## Fixes applied during the verification
 
@@ -41,8 +41,13 @@ in the repository's `SECURITY.md` and the security report.
   (9223) proxies.
 - Narrowed PostgreSQL `pg_hba` to the Incus subnets and enabled Valkey
   `requirepass`.
-- Applied the pending OS security updates to every container and upgraded
-  Caddy to 2.11.9.
+- Applied the pending OS security updates to every container.
+- Upgraded the edge and service binaries with a backup at every step:
+  Caddy 2.11.9 (and synced the serving Caddyfile), Forgejo 17.0.1,
+  Zitadel 4.20.1 (running `zitadel setup` for the schema migration),
+  Vault 2.2.1 (file-storage migration, unsealed), LiveKit 1.13.11 and
+  MinIO 2025-10-15 (built from the official source tag with
+  `scripts/build-minio-fixed.sh`).
 
 ## Open items
 
@@ -50,7 +55,7 @@ in the repository's `SECURITY.md` and the security report.
 |------|----------|
 | Rotate the credentials exposed in git history | issue #1761 |
 | Authenticated cross-tenant IDOR/RBAC/stored-XSS/SSRF/CSRF tests | issue #1782 |
-| Upgrade Zitadel, Forgejo, MinIO, Vault and LiveKit binaries | issue #1783 |
+
 | Apply the parent dependency upgrades (quick-xml, git2, calamine, rsa, zip) | issues #1757, #1762–#1765 |
 
 The rate-limiter fix (per-client 10 req/s on `/api/auth/*`) is merged and

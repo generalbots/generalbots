@@ -27,9 +27,11 @@ cache_dir = "botserver-installers"
 name = "MinIO Object Storage"
 # dl.min.io was shut down (HTTP 410 Gone, 2025-10); the archived release
 # assets on GitHub remain the only official source of the binary.
-# NOTE: RELEASE.2025-10-15 fixes CVE-2025-62506 but has **no binary assets**
-# (GitHub release is empty and dl.min.io returns 410). 2025-09-07 is the last
-# installable release; upgrading needs a trusted container image/mirror.
+# NOTE: RELEASE.2025-10-15 (the CVE-2025-62506 fix) has **no binary assets**
+# (GitHub release is empty and dl.min.io returns 410). Production runs the
+# binary built from the official source tag with scripts/build-minio-fixed.sh
+# (tag RELEASE.2025-10-15T17-29-55Z, commit 9e49d5e7a648); this URL stays on
+# the last published binary for fresh installs until upstream ships assets.
 url = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
 url_win = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe"
 filename = "minio"
