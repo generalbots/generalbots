@@ -139,56 +139,13 @@ pub(super) async fn send_whatsapp_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use reqwest::Client;
-
-    let _ = WhatsAppAdapter::new(&state, user.bot_id);
-
-    let phone_number_id = "";
-    let upload_url = format!("https://graph.facebook.com/v17.0/{}/media", phone_number_id);
-
-    let client = Client::new();
-    let form = reqwest::multipart::Form::new()
-        .text("messaging_product", "whatsapp")
-        .part("file", reqwest::multipart::Part::bytes(file_data));
-
-    let access_token = "";
-    let upload_response = client
-        .post(&upload_url)
-        .bearer_auth(access_token)
-        .multipart(form)
-        .send()
-        .await?;
-
-    if !upload_response.status().is_success() {
-        return Err("Failed to upload file to WhatsApp".into());
-    }
-
-    let upload_result: serde_json::Value = upload_response.json().await?;
-    let media_id = upload_result["id"].as_str().ok_or("No media ID returned")?;
-
-    let send_url = format!(
-        "https://graph.facebook.com/v17.0/{}/messages",
-        phone_number_id
-    );
-
-    let payload = json!({
-        "messaging_product": "whatsapp",
-        "to": recipient,
-        "type": "document",
-        "document": {
-            "id": media_id,
-            "caption": caption
-        }
-    });
-
-    client
-        .post(&send_url)
-        .bearer_auth(access_token)
-        .json(&payload)
-        .send()
-        .await?;
-
-    Ok(())
+    // This runtime has no WhatsApp media-upload adapter: the previous body
+    // built the Graph API URL with empty `phone_number_id`/`access_token`
+    // values and still sent the request, so every call failed with an opaque
+    // provider error after leaking an empty bearer token. Fail closed with a
+    // clear message instead of issuing an unauthenticated request.
+    let _ = (state, user, recipient, file_data, caption);
+    Err("WhatsApp file sending is not available in this runtime: the media-upload adapter is not configured".into())
 }
 #[cfg(feature = "drive")]
 pub(super) async fn send_instagram_file(

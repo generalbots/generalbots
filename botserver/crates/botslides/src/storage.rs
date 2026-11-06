@@ -125,7 +125,7 @@ pub async fn load_presentation_by_id<D: DriveOps>(
         if error.contains("404") {
             "Presentation not found".to_string()
         } else {
-            log::error!("presentation load of {path} failed: {error}");
+            log::error!("presentation load failed: {error}");
             "Failed to load presentation".to_string()
         }
     })?;

@@ -367,12 +367,12 @@ pub fn capture_from_message(
             }
             Ok(keys) => {
                 log::info!(
-                    "memory: forgot {:?} for user {user_id}",
-                    keys
+                    "memory: forgot {} entries for user {user_id}",
+                    keys.len()
                 );
             }
             Err(error) => {
-                log::warn!("memory: could not forget '{needle}': {error}");
+                log::warn!("memory: could not forget entry: {error}");
             }
         }
         return None;
@@ -381,11 +381,11 @@ pub fn capture_from_message(
     let key = memory_key_for(&fact);
     match store_memory(pool, user_id, bot_id, &key, &fact) {
         Ok(()) => {
-            log::info!("memory: stored '{key}' for user {user_id}");
+            log::info!("memory: stored an entry for user {user_id}");
             Some(key)
         }
         Err(error) => {
-            log::warn!("memory: could not store '{key}': {error}");
+            log::warn!("memory: could not store entry: {error}");
             None
         }
     }

@@ -150,9 +150,8 @@ pub async fn handle_ws(
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         info!(
-                            "WS frame received: session={session_id} bytes={} head={}",
-                            text.len(),
-                            text.chars().take(70).collect::<String>()
+                            "WS frame received: session={session_id} bytes={}",
+                            text.len()
                         );
                         let parsed: Option<serde_json::Value> = serde_json::from_str(&text).ok();
                         let frame_type = parsed

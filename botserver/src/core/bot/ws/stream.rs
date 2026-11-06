@@ -362,8 +362,9 @@ pub async fn process_llm_response(
                                     {
                                         steering_rounds += 1;
                                         warn!(
-                                            "steering mid-run (session {}): {}",
-                                            session_id_s, steer
+                                            "steering mid-run (session {}, {} chars)",
+                                            session_id_s,
+                                            steer.chars().count()
                                         );
                                         stream_handle.abort();
                                         let mut steered = messages.clone();

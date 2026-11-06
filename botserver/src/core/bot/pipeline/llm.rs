@@ -543,8 +543,8 @@ async fn stream_llm_response_inner(
                                 .take_steering(&session_id_s)
                             {
                                 log::warn!(
-                                    "steering applied before follow-up (session {}): {}",
-                                    session_id_s, steer
+                                    "steering applied before follow-up (session {}, {} chars)",
+                                    session_id_s, steer.chars().count()
                                 );
                                 let notice = serde_json::json!({
                                     "type": "gb.steer",

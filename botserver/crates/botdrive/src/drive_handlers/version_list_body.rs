@@ -69,7 +69,7 @@ pub async fn snapshot_before_write(
             let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%S%3fZ").to_string();
             let version_key = format!("{}{}", versions_prefix(scope, uid, key), stamp);
             if let Err(error) = drive.copy_object(bucket, key, &version_key).await {
-                warn!("version snapshot failed for {key}: {error}");
+                warn!("version snapshot failed: {error}");
                 return;
             }
             prune_versions(drive, bucket, scope, uid, key).await;
