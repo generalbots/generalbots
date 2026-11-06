@@ -9,8 +9,6 @@
 //!
 //! All enums derive necessary traits for Diesel ORM integration.
 
-// use diesel::{AsExpression, FromSqlRow}; // Removed to avoid conflict
-
 // ============================================================================
 // CHANNEL TYPES
 // ============================================================================

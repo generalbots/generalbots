@@ -1,5 +1,4 @@
 // ScriptService stays in botserver layer
-// use crate::basic::ScriptService;
 use crate::shared::models::{Automation, TriggerKind};
 use crate::shared::utils::current_org_id;
 use log::{error, trace};

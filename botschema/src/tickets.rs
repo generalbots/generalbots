@@ -1,5 +1,3 @@
-// use crate::core::{branches};
-
 diesel::table! {
     support_tickets (id) {
 

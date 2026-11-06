@@ -1,5 +1,3 @@
-// use crate::core::{branches};
-
 diesel::table! {
     global_email_signatures (id) {
 

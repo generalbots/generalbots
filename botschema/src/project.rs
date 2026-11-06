@@ -1,5 +1,3 @@
-// use crate::core::{bots, branches, organizations};
-
 diesel::table! {
     projects (id) {
         id -> Uuid,

@@ -1,7 +1,4 @@
 // Channel adapters accessed via botserver layer
-// use botinstagram::InstagramAdapter;
-// use botmsteams::TeamsAdapter;
-// use botwhatsapp::WhatsAppAdapter;
 
 // Stub adapter types - real implementations require botserver-layer registration
 // These allow the module to compile without the adapter crate dependencies.

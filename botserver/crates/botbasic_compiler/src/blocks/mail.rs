@@ -82,7 +82,6 @@ pub fn convert_mail_line_with_substitution(line: &str) -> String {
 pub fn convert_mail_block(recipient: &str, lines: &[String]) -> String {
     let mut subject = String::new();
     let mut body_lines: Vec<String> = Vec::new();
-    // let mut in_subject = true; // Removed unused variable
     let mut skip_blank = true;
 
     for line in lines.iter() {
