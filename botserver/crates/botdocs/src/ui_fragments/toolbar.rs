@@ -39,10 +39,9 @@ pub async fn handle_ai_form(Json(payload): Json<serde_json::Value>) -> Html<Stri
     ))
 }
 
-pub async fn handle_find_replace_form(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/load" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+pub async fn handle_find_replace_form(Json(_payload): Json<serde_json::Value>) -> Html<String> {
+    Html(
+        r##"<form class="dc-form" onsubmit="return GBDocsFindReplace(event)" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Localizar
 <input type="text" name="find" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
@@ -51,9 +50,7 @@ pub async fn handle_find_replace_form(Json(payload): Json<serde_json::Value>) ->
 </label>
 <div id="find-replace-results"></div>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Aplicar</button>
-</form>"##,
-        id = html_escape(id)
-    ))
+</form>"##.to_string())
 }
 
 pub async fn handle_print_form(Json(payload): Json<serde_json::Value>) -> Html<String> {

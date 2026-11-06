@@ -303,11 +303,7 @@ window.GBDocsExport = GBDocsExport;
 
 /* The template endpoints return a Document JSON; persist it as a real doc and
    load it into the editor instead of navigating to the JSON response. */
-function GBDocsApplyTemplate(event, id) {
-    event.preventDefault();
-    var form = event.target;
-    var select = form.querySelector('[name="template"]');
-    var name = (select && select.value) || (form.dataset && form.dataset.template) || "blank";
+function GBDocsApplyTemplateByName(name, id) {
     var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
         window.localStorage.getItem("gb-access-token") ||
         window.sessionStorage.getItem("gb-access-token") || "";
@@ -329,7 +325,7 @@ function GBDocsApplyTemplate(event, id) {
             });
         })
         .then(function (doc) {
-            var scope = form.closest ? (form.closest("[id^=window-body-docs]") || document) : document;
+            var scope = document.querySelector("[id^=window-body-docs]") || document;
             var article = scope.querySelector("#doc-content");
             var title = scope.querySelector("#docTitle");
             if (title) title.value = doc.title || "Untitled Document";
@@ -337,15 +333,57 @@ function GBDocsApplyTemplate(event, id) {
                 article.innerHTML = doc.content || "";
                 if (article.dataset) article.dataset.docId = doc.id;
             }
-            var modal = form.closest ? form.closest(".dc-modal") : null;
+            var modal = scope.querySelector("#template-modal") ||
+                document.getElementById("template-modal");
             if (modal) modal.remove();
         })
         .catch(function (error) {
             if (window.GBToasts) GBToasts.show("Template", "Failed: " + error.message, "error");
         });
+}
+
+function GBDocsApplyTemplate(event, id) {
+    event.preventDefault();
+    var form = event.target;
+    var select = form.querySelector('[name="template"]');
+    var name = (select && select.value) || (form.dataset && form.dataset.template) || "blank";
+    GBDocsApplyTemplateByName(name, id);
     return false;
 }
+window.GBDocsApplyTemplateByName = GBDocsApplyTemplateByName;
 window.GBDocsApplyTemplate = GBDocsApplyTemplate;
+/* Find & replace in the live document. The old form posted to the GET-only
+   /api/docs/load (405); replacing text nodes keeps markup and attributes
+   intact, and the autosave persists the result. */
+function GBDocsFindReplace(event) {
+    event.preventDefault();
+    var form = event.target;
+    var find = form.querySelector('[name="find"]');
+    var replace = form.querySelector('[name="replace"]');
+    var needle = find ? find.value : "";
+    if (!needle) return false;
+    var replacement = replace ? replace.value : "";
+    var scope = form.closest ? (form.closest("[id^=window-body-docs]") || document) : document;
+    var article = scope.querySelector("#doc-content");
+    if (!article) return false;
+    var count = 0;
+    var walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+        if (node.nodeValue && node.nodeValue.indexOf(needle) !== -1) {
+            count += node.nodeValue.split(needle).length - 1;
+            node.nodeValue = node.nodeValue.split(needle).join(replacement);
+        }
+    });
+    var output = form.querySelector("#find-replace-results");
+    if (output) output.textContent = count + " replacement(s) applied.";
+    if (typeof scheduleSave === "function" && article.dataset && article.dataset.docId) {
+        scheduleSave(article.dataset.docId, article.innerHTML);
+    }
+    return false;
+}
+window.GBDocsFindReplace = GBDocsFindReplace;
 
 /* AI endpoints answer JSON, so htmx would leave the serialized object in the
    panel. Render the `response` field as text in the nearest #ai-result. */

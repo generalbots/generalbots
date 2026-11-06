@@ -139,19 +139,19 @@ pub async fn handle_template_modal(Json(payload): Json<serde_json::Value>) -> Ht
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
 <div class="dc-modal-body" style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-<button hx-post="/api/docs/template/blank" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button onclick="GBDocsApplyTemplateByName('blank', '{id}')" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>📄 Em Branco</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Documento vazio pronto para escrever.</div>
 </button>
-<button hx-post="/api/docs/template/meeting" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button onclick="GBDocsApplyTemplateByName('meeting', '{id}')" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>📋 Ata de Reunião</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Estrutura com pauta, decisões e ações.</div>
 </button>
-<button hx-post="/api/docs/template/report" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button onclick="GBDocsApplyTemplateByName('report', '{id}')" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>📊 Relatório</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Capa, resumo executivo, métricas, conclusão.</div>
 </button>
-<button hx-post="/api/docs/template/letter" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button onclick="GBDocsApplyTemplateByName('letter', '{id}')" style="padding:20px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>✉️ Carta</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Formato comercial com cabeçalho e assinatura.</div>
 </button>
