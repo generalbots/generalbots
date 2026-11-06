@@ -307,7 +307,7 @@ pub async fn copy_file(
         let source_prefix = format!("{}/", from_key.trim_end_matches('/'));
         let dest_prefix = format!("{}/", to_key.trim_end_matches('/'));
         let objects = drive
-            .list_objects_with_metadata(src_bucket, Some(&source_prefix))
+            .list_objects_with_metadata(&src_bucket, Some(&source_prefix))
             .await
             .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source folder not found: {e}")))?;
         if objects.is_empty() {
@@ -319,11 +319,11 @@ pub async fn copy_file(
                 .strip_prefix(&source_prefix)
                 .unwrap_or(object.key.as_str());
             let data = drive
-                .get_object(src_bucket, &object.key)
+                .get_object(&src_bucket, &object.key)
                 .await
                 .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder copy read failed: {e}")))?;
             drive
-                .put_object(dest_bucket, &format!("{dest_prefix}{relative}"), data, None)
+                .put_object(&dest_bucket, &format!("{dest_prefix}{relative}"), data, None)
                 .await
                 .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder copy write failed: {e}")))?;
         }
@@ -332,12 +332,12 @@ pub async fn copy_file(
     }
 
     let data = drive
-        .get_object(src_bucket, &from_key)
+        .get_object(&src_bucket, &from_key)
         .await
         .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source file not found: {e}")))?;
 
     drive
-        .put_object(dest_bucket, &to_key, data, None)
+        .put_object(&dest_bucket, &to_key, data, None)
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Copy failed: {e}")))?;
 
