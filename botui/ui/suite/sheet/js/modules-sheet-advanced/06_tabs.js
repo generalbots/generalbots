@@ -111,7 +111,7 @@
   }
 
   function switchWorksheetClient(i) {
-    window.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: i } }));
+    document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: i } }));
     renderTabBar();
     rehydrateGrid();
   }

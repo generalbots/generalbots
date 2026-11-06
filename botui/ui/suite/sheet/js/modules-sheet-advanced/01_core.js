@@ -59,7 +59,7 @@
     sel = normalize(r1, c1, r2, c2);
     positionRangeBox();
     positionFillHandle();
-    window.dispatchEvent(new CustomEvent("gb-sheet-selection", { detail: sel }));
+    document.dispatchEvent(new CustomEvent("gb-sheet-selection", { detail: sel }));
   }
 
   function rangeKey(r1, c1, r2, c2) {
@@ -125,7 +125,7 @@
   window.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && multiRanges.length > 0 && !e.ctrlKey && !e.metaKey) {
       clearMultiSelection();
-      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: [] }));
+      document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: [] }));
     }
   });
 
@@ -225,7 +225,7 @@
       // additional range; the primary selection moves to the clicked cell.
       addMultiRange(r, c, r, c);
       setSelection(r, c, r, c);
-      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
+      document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
       return;
     }
     if (e.shiftKey && sel) {
@@ -248,7 +248,7 @@
     if (pt) {
       if (e.ctrlKey || e.metaKey) {
         addMultiRange(anchor.row, anchor.col, pt.row, pt.col);
-        window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
+        document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
       } else {
         setSelection(anchor.row, anchor.col, pt.row, pt.col);
       }
@@ -400,7 +400,7 @@
     },
     addRange: function (r1, c1, r2, c2) {
       addMultiRange(r1, c1, r2, c2);
-      window.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
+      document.dispatchEvent(new CustomEvent("gb-sheet-multirange", { detail: multiRanges.slice() }));
     },
   };
 })();
