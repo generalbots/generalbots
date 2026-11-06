@@ -116,5 +116,8 @@ echo To run locally:
 echo   .\restart.ps1
 echo.
 echo NOTE: Restart your terminal so PQ_LIB_DIR takes effect.
+echo.
+echo Runtime prerequisites (WebView2, VC++ 2015-2022, WSL2/Incus):
+echo   powershell -ExecutionPolicy Bypass -File .\PROD-DEPENDENCIES.ps1 -Check
 
 exit /b 0

@@ -101,6 +101,11 @@ sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
 xcode-select --install
 ```
 
+> The packaged desktop edition (`tauri.desktop-local.conf.json`) targets Linux
+> (`deb`, `AppImage`) and Windows (`nsis`, `msi`); it has no macOS `dmg` target.
+> The macOS steps above are for Tauri development only. Run
+> `./PROD-DEPENDENCIES.sh --check` for the current status.
+
 **Windows:**
 - Visual Studio Build Tools with C++ workload
 

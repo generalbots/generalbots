@@ -27,9 +27,99 @@ pub struct AgentService {
     idle_timeout_secs: i64,
 }
 
+/// Environment variable that names the Incus executable used by the agent.
+pub const AGENT_INCUS_BIN_ENV: &str = "AGENT_INCUS_BIN";
+
+/// Why agent mode cannot run on this host, or `None` when it can.
+///
+/// `/api/product` can expose this as `agent_backend_unavailable` from
+/// `get_product_config()` in `main_module/routes/product_handlers.rs` (inside
+/// the `agent-vm` feature). The agent error path can call it before spawning
+/// Incus so the caller gets this reason instead of the generic
+/// `Agent VM operation failed`.
+pub fn agent_backend_unavailable() -> Option<String> {
+    let configured = std::env::var(AGENT_INCUS_BIN_ENV).ok();
+    agent_backend_unavailable_for(std::env::consts::OS, configured.as_deref(), binary_on_path)
+}
+
+fn agent_backend_unavailable_for(
+    platform: &str,
+    configured: Option<&str>,
+    exists: impl Fn(&str) -> bool,
+) -> Option<String> {
+    let configured = configured.map(str::trim).filter(|value| !value.is_empty());
+    let binary = configured.unwrap_or("incus");
+    match platform {
+        "windows" => {
+            // An explicit wrapper (or remote client) is trusted: it may not
+            // need WSL at all. `botagent` executes a single binary name, so
+            // the default `incus` cannot reach the CLI inside the WSL2 distro.
+            if configured.is_some_and(|value| value != "incus") {
+                return None;
+            }
+            if !exists("wsl") {
+                return Some(
+                    "agent workspace unavailable on Windows: WSL2 is not installed (wsl.exe not found); run `PROD-DEPENDENCIES.ps1 -Check` for the exact remediation"
+                        .to_string(),
+                );
+            }
+            Some(
+                "agent workspace unavailable on Windows: botagent cannot execute Incus inside WSL2; set AGENT_INCUS_BIN to a WSL wrapper (for example a script running `wsl -d <distro> -u root -- incus`) or to a remote Incus client, then run `PROD-DEPENDENCIES.ps1 -Check` to verify WSL2 + Incus"
+                    .to_string(),
+            )
+        }
+        "macos" => {
+            if exists(binary) {
+                None
+            } else {
+                Some(
+                    "agent workspace unavailable on macOS: `incus` was not found on PATH and there is no WSL2 backend; the desktop bundle is not built for macOS"
+                        .to_string(),
+                )
+            }
+        }
+        _ => {
+            if exists(binary) {
+                None
+            } else {
+                Some(format!(
+                    "agent workspace unavailable: `{binary}` was not found on PATH; install Incus (`DEPENDENCIES.sh`) or set AGENT_INCUS_BIN to a remote Incus client"
+                ))
+            }
+        }
+    }
+}
+
+/// Checks for an executable on `PATH` without spawning a process.
+fn binary_on_path(binary: &str) -> bool {
+    if binary.contains('/') || binary.contains('\\') {
+        return std::path::Path::new(binary).is_file();
+    }
+    let Some(path) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&path).any(|dir| executable_in(&dir, binary))
+}
+
+fn executable_in(dir: &std::path::Path, binary: &str) -> bool {
+    if dir.join(binary).is_file() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        ["exe", "cmd", "bat", "com"]
+            .iter()
+            .any(|extension| dir.join(format!("{binary}.{extension}")).is_file())
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
 impl AgentService {
     pub fn new(pool: state::DbPool) -> Self {
-        let incus_bin = std::env::var("AGENT_INCUS_BIN").unwrap_or_else(|_| "incus".to_string());
+        let incus_bin = std::env::var(AGENT_INCUS_BIN_ENV).unwrap_or_else(|_| "incus".to_string());
         let max_snapshots_per_session = std::env::var("AGENT_MAX_SNAPSHOTS_PER_SESSION")
             .ok()
             .and_then(|v| v.parse::<i64>().ok())
@@ -90,4 +180,81 @@ pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
             get(keys::list_org_keys).post(keys::create_org_key),
         )
         .route("/api/cloud/orgkeys/:id", delete(keys::revoke_org_key))
+}
+
+#[cfg(test)]
+mod backend_tests {
+    use super::{agent_backend_unavailable_for, binary_on_path};
+
+    fn absent(_: &str) -> bool {
+        false
+    }
+
+    fn present(_: &str) -> bool {
+        true
+    }
+
+    #[test]
+    fn linux_without_incus_reports_the_missing_binary() {
+        let reason = agent_backend_unavailable_for("linux", None, absent)
+            .expect("a host without incus must be unavailable");
+        assert!(reason.contains("incus"));
+        assert!(reason.contains("AGENT_INCUS_BIN"));
+    }
+
+    #[test]
+    fn linux_with_incus_is_available() {
+        assert_eq!(agent_backend_unavailable_for("linux", None, present), None);
+    }
+
+    #[test]
+    fn windows_without_wsl_is_unavailable() {
+        let reason = agent_backend_unavailable_for("windows", None, absent)
+            .expect("a host without wsl must be unavailable");
+        assert!(reason.contains("WSL2"));
+        assert!(reason.contains("PROD-DEPENDENCIES.ps1"));
+    }
+
+    #[test]
+    fn windows_with_wsl_needs_an_explicit_wrapper() {
+        let only_wsl = |name: &str| name == "wsl";
+        let reason = agent_backend_unavailable_for("windows", None, only_wsl)
+            .expect("wsl alone is not an Incus backend");
+        assert!(reason.contains("AGENT_INCUS_BIN"));
+    }
+
+    #[test]
+    fn windows_with_a_wrapper_is_available() {
+        let only_wsl = |name: &str| name == "wsl";
+        assert_eq!(
+            agent_backend_unavailable_for("windows", Some("wsl-incus.cmd"), only_wsl),
+            None
+        );
+    }
+
+    #[test]
+    fn windows_with_a_remote_client_does_not_require_wsl() {
+        assert_eq!(
+            agent_backend_unavailable_for("windows", Some("incus-remote.cmd"), absent),
+            None
+        );
+    }
+
+    #[test]
+    fn macos_without_incus_reports_the_unsupported_bundle() {
+        let reason = agent_backend_unavailable_for("macos", None, absent)
+            .expect("macOS has no default Incus backend");
+        assert!(reason.contains("macOS"));
+        assert!(reason.contains("WSL2"));
+    }
+
+    #[test]
+    fn macos_with_a_remote_incus_client_is_available() {
+        assert_eq!(agent_backend_unavailable_for("macos", None, present), None);
+    }
+
+    #[test]
+    fn a_configured_absolute_path_must_exist() {
+        assert!(!binary_on_path("/definitely/not/a/real/incus"));
+    }
 }

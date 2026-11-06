@@ -3,12 +3,11 @@ use axum::Json;
 pub async fn get_product_config() -> Json<serde_json::Value> {
     // Optional routes that the suite probes at boot are advertised here so a
     // build without them can skip the request instead of logging a 404 every
-    // load (#1693 follow-up). When neither feature is compiled the manifest is
-    // returned untouched.
-    #[cfg(any(feature = "consent", feature = "vibe"))]
-    let value = {
-        let mut value = crate::core::product::get_product_config_json();
-        if let Some(object) = value.as_object_mut() {
+    // load (#1693 follow-up). The manifest is always returned.
+    let mut value = crate::core::product::get_product_config_json();
+    if let Some(object) = value.as_object_mut() {
+        #[cfg(any(feature = "consent", feature = "vibe"))]
+        {
             let entry = object
                 .entry("compiled_features")
                 .or_insert_with(|| serde_json::json!([]));
@@ -19,10 +18,17 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
                 features.push(serde_json::json!("vibe"));
             }
         }
-        value
-    };
-    #[cfg(not(any(feature = "consent", feature = "vibe")))]
-    let value = crate::core::product::get_product_config_json();
+        // #1747 — tell the desktop/wizard why terminal, browser and VM actions
+        // cannot run (missing Incus/WSL wrapper). `null` means the backend is
+        // available; the reason is shown instead of a generic VM failure.
+        #[cfg(feature = "agent-vm")]
+        {
+            object.insert(
+                "agent_backend_unavailable".to_string(),
+                serde_json::json!(botagent::agent_backend_unavailable()),
+            );
+        }
+    }
     Json(value)
 }
 

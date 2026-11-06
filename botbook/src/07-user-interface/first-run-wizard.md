@@ -26,6 +26,46 @@ The page is served at `/wizard/index.html`. In a packaged build it resolves
 from the Tauri asset protocol; in development botui serves
 `botui/ui/wizard/` at `/wizard`.
 
+## Platform prerequisites
+
+The packaged desktop edition is built for Linux x86_64 and, best effort,
+Windows x64. The host check is read-only and installs nothing:
+
+| Platform | Check | Agent backend |
+|---|---|---|
+| Windows | `.\PROD-DEPENDENCIES.ps1 -Check` | WSL2 distro (`GBO_WSL_DISTRO`, default `Debian`) with systemd and Incus |
+| Linux | `./PROD-DEPENDENCIES.sh --check` | Incus on the host, user in the `incus-admin` group |
+| macOS | `./PROD-DEPENDENCIES.sh --check` | Not supported; no desktop bundle is published |
+
+`PROD-DEPENDENCIES.ps1 -Check` exits `0` when the desktop shell and agent mode
+can run, `1` when the desktop shell cannot run (WebView2, VC++ 2015-2022 x64
+runtime or `libpq.dll` missing), `2` when desktop Chat/Drive can run but agent
+mode cannot (WSL2, distro, systemd, Incus or its storage pool missing), and `3`
+on another operating system. `-Install` prints the remediation commands and
+performs no download or install.
+
+On Windows, `botagent` executes a single binary name. It cannot read `incus`
+from the Windows `PATH`, so agent mode also requires `AGENT_INCUS_BIN` to point
+at a WSL wrapper (for example a script that runs
+`wsl -d <distro> -u root -- incus`) or at a remote Incus client. `botvibe`
+attempts to provision WSL2 and Incus itself
+(`crates/botvibe/src/vm_incus/windows.rs`); the Windows check reports whether
+systemd is actually enabled. `botagent::agent_backend_unavailable()` returns
+the platform reason that `/api/product` should expose as
+`agent_backend_unavailable`. The wiring point is `get_product_config()` in
+`botserver/src/main_module/routes/product_handlers.rs`, next to the existing
+`compiled_features` merge: under `#[cfg(feature = "agent-vm")]`, set
+`value["agent_backend_unavailable"] = serde_json::json!(botagent::agent_backend_unavailable());`.
+Without that field, call the same function from the agent error path before
+spawning Incus.
+
+The BotModels pythonbox release asset is
+`botmodels-pythonbox-linux-x86_64.tar.gz` only. On Windows, vision/STT/TTS
+cannot be provisioned: the only published pythonbox is Linux x86_64, so the
+desktop-local package manager refuses the runtime download ("not found in
+bundled installers"). Those features stay unavailable until a Windows
+pythonbox exists.
+
 ## Detection
 
 The wizard opens only when **both** are true:
