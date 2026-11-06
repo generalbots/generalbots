@@ -325,6 +325,23 @@ Residual production risks (documented, not fixed here):
 - noVNC and the MinIO console are internet-facing but password-protected;
   restrict them to the admin source or a VPN.
 - srv1 disk is at 89% and srv2 at 85%; monitor.
+- **Every container is behind on OS security updates.** After refreshing the
+  stale apt lists, proxy has 6 pending security updates, bot 11, tables 5,
+  cache 5, drive 2, directory 5, vault 5, desktop1 15 and the rest 2–9 each.
+  Recurring items: apt/libapt-pkg `CVE-2026-109518` (RCE) on all 18 targets,
+  `libsasl2` on every Debian 12 container, `openssh-server CVE-2026-60002`
+  (no Debian fix yet), and `linux-image-rt-amd64` on desktop1/desktop2.
+  The full inventory is in the security report (`sca/summary.md`); patching is
+  tracked as a follow-up.
+- **The static Go service binaries carry their own CVEs** (scanned with Trivy
+  over the Go buildinfo): Caddy 2.10.0-beta.3 has 4 critical / 62 high,
+  Forgejo 10.0.2 has 2/58, MinIO 2025-05-24 has 7/71, Zitadel v4.13.1 has
+  0/51 (including an LDAP filter injection and an OAuth2 token-exchange
+  privilege escalation), Vault 1.15.4 (2023 build) has 4/76, LiveKit 1.10.1
+  has 1/53. Remediation is tracked as a separate binary-upgrade issue.
+- **The HTTP rate limiter is constructed but never called.** `check_http_limit`
+  has no call site, so `/api/auth/login` accepted 120/120 burst attempts with
+  no 429 (all reached the login handler). Tracked as a follow-up code fix.
 
 ---
 
