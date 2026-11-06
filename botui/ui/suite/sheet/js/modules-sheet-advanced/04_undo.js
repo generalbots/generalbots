@@ -240,6 +240,13 @@
     window.__gbSuspendUndo = true;
     const keys = [];
     const updates = [];
+    const rangeKeys = [];
+    for (let r = r1; r <= r2; r++) {
+      for (let c = c1; c <= c2; c++) {
+        rangeKeys.push(r + "," + c);
+      }
+    }
+    const beforeSnapshot = snapshot(rangeKeys);
     for (let r = r1; r <= r2; r++) {
       for (let c = c1; c <= c2; c++) {
         const srcR = r - dr;
@@ -260,7 +267,7 @@
         const d = g.cells.get(k);
         s[k] = d ? { value: d.value != null ? String(d.value) : "", formula: d.formula || "" } : null;
       });
-      pushEntry(dr !== 0 ? "Fill Down" : "Fill Right", snapshot(keys), s);
+      pushEntry(dr !== 0 ? "Fill Down" : "Fill Right", beforeSnapshot, s);
       g.lastRenderedRange = null;
       g.requestRange();
       updateButtons();

@@ -146,7 +146,9 @@
         if (!fill) continue;
         const key = r + "," + c;
         const ref = colName(c) + (r + 1);
-        g.cells.set(key, { value: fill.value, formula: fill.isFormula ? fill.value : undefined });
+        g.cells.set(key, fill.isFormula
+          ? { value: "", formula: fill.value }
+          : { value: fill.value });
         updates.push(api().updateCell(ref, fill.value));
       }
     }
