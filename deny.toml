@@ -24,8 +24,9 @@ unsound = "all"
 yanked = "deny"
 # Accepted risk entries. Each one carries a date and a reason, and must be
 # re-validated at least once per year (see SECURITY.md -> Residual risk).
-# Entries are scoped to a crate@version so an upgrade surfaces the advisory
-# again instead of silently inheriting the exception.
+# Entries are ID-only and dated. If a dependency upgrade fixes the advisory it
+# disappears from the report, so the entry becomes visibly stale at the next
+# review instead of silently inheriting the exception.
 ignore = [
     { id = "RUSTSEC-2023-0071",
       reason = "Marvin attack on rsa 0.9 (no upstream fix as of 2026-11-06). RSA is used for signing with our own keys, not as a decryption oracle on attacker ciphertext; timing is not remotely observable. Accepted 2026-11-06, tracked in #1723." },
