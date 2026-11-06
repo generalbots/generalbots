@@ -122,11 +122,13 @@ pub async fn handle_charts_panel(
     Json(sheet): Json<Spreadsheet>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
+    // Keep the real worksheet index together with the chart: the previous
+    // `i * 1000 + j` flattening lost it, so a delete could not address the
+    // worksheet that owns the chart.
     let chart_data: Vec<(usize, &ChartConfig)> = sheet.worksheets.iter()
         .enumerate()
         .flat_map(|(i, w)| {
-            w.charts.as_ref().into_iter().flatten().enumerate()
-                .map(move |(j, ch)| (i * 1000 + j, ch))
+            w.charts.as_ref().into_iter().flatten().map(move |ch| (i, ch))
         })
         .collect();
     let charts_total = chart_data.len();
@@ -144,17 +146,23 @@ pub async fn handle_charts_panel(
 </div>
 <div class="ss-panel-body" style="padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">"##,
     );
-    for (_idx, c) in chart_data {
+    for (ws_index, c) in chart_data {
         let chart_type = c.chart_type.clone();
         let title = c.title.clone();
         let series_count = c.datasets.len();
         html.push_str(&format!(
             r##"<div class="ss-chart-card" style="padding:12px;background:#0f172a;border:1px solid #334155;border-radius:6px;">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
 <div style="font-weight:600;color:#f8fafc;font-size:14px;">{title}</div>
+<button type="button" class="btn-icon" onclick="GBSheetDeleteChart({ws_index}, '{chart_id}')" title="{delete_label}" style="background:#dc2626;color:white;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">×</button>
+</div>
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{info}</div>
 <div style="margin-top:8px;height:60px;background:linear-gradient(135deg,#3b82f620,#10b98120);border-radius:4px;"></div>
 </div>"##,
             title = html_escape(&title),
+            chart_id = html_escape(&c.id),
+            ws_index = ws_index,
+            delete_label = html_escape(&t(lang, "panel.charts.delete")),
             info = tf(
                 lang,
                 "panel.charts.series",
@@ -353,33 +361,63 @@ pub async fn handle_protection_panel(
 <div class="ss-panel-body" style="padding:12px;">"##,
     );
     for (i, w) in sheet.worksheets.iter().enumerate() {
-        if let Some(p) = &w.protection {
-            let status = if p.protected {
-                format!(r##"<span style="color:#10b981;">{}</span>"##, t(lang, "panel.protection.protected"))
-            } else {
-                format!(r##"<span style="color:#94a3b8;">{}</span>"##, t(lang, "panel.protection.unprotected"))
-            };
-            let perms = if p.allow_format_cells {
-                t(lang, "panel.protection.fmt_allowed")
-            } else {
-                t(lang, "panel.protection.fmt_blocked")
-            };
-            html.push_str(&format!(
-                r##"<div class="ss-prot-item" style="padding:8px;margin-bottom:8px;background:#0f172a;border:1px solid #334155;border-radius:6px;">
-<div style="font-weight:600;color:#f8fafc;">{sheet} {status}</div>
-<div style="font-size:12px;color:#94a3b8;margin-top:4px;">{locked}</div>
-</div>"##,
-                sheet = tf(lang, "panel.protection.sheet", &[("n", &(i + 1).to_string())]),
-                status = status,
-                locked = tf(
+        let is_protected = w.protection.as_ref().map(|p| p.protected).unwrap_or(false);
+        let status = if is_protected {
+            format!(r##"<span style="color:#10b981;">{}</span>"##, t(lang, "panel.protection.protected"))
+        } else {
+            format!(r##"<span style="color:#94a3b8;">{}</span>"##, t(lang, "panel.protection.unprotected"))
+        };
+        let locked = match &w.protection {
+            Some(p) => {
+                let perms = if p.allow_format_cells {
+                    t(lang, "panel.protection.fmt_allowed")
+                } else {
+                    t(lang, "panel.protection.fmt_blocked")
+                };
+                tf(
                     lang,
                     "panel.protection.locked",
-                    &[("n", &p.locked_cells.len().to_string()), ("p", &perms)]
+                    &[("n", &p.locked_cells.len().to_string()), ("p", &perms)],
                 )
-            ));
-        }
+            }
+            None => String::new(),
+        };
+        let (action_label, action_call) = if is_protected {
+            (
+                t(lang, "panel.protection.unprotect"),
+                format!(
+                    "GBSheetProtectSheet('{}', {}, false)",
+                    html_escape(&sheet.id),
+                    i
+                ),
+            )
+        } else {
+            (
+                t(lang, "panel.protection.protect"),
+                format!(
+                    "GBSheetProtectSheet('{}', {}, true)",
+                    html_escape(&sheet.id),
+                    i
+                ),
+            )
+        };
+        html.push_str(&format!(
+            r##"<div class="ss-prot-item" style="padding:8px;margin-bottom:8px;background:#0f172a;border:1px solid #334155;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+<div>
+<div style="font-weight:600;color:#f8fafc;">{sheet} {status}</div>
+<div style="font-size:12px;color:#94a3b8;margin-top:4px;">{locked}</div>
+</div>
+<button type="button" class="btn-icon" onclick="{action_call}" style="background:{color};color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;">{action_label}</button>
+</div>"##,
+            sheet = tf(lang, "panel.protection.sheet", &[("n", &(i + 1).to_string())]),
+            status = status,
+            locked = locked,
+            action_call = action_call,
+            action_label = html_escape(&action_label),
+            color = if is_protected { "#dc2626" } else { "#3b82f6" },
+        ));
     }
-    if sheet.worksheets.iter().all(|w| w.protection.is_none()) {
+    if sheet.worksheets.is_empty() {
         html.push_str(&empty_fragment(&t(lang, "panel.protection.empty")));
     }
     html.push_str("</div></div>");
