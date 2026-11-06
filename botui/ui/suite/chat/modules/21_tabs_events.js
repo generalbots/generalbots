@@ -396,7 +396,16 @@
           try { GBTabs.renderStrip(); } catch (err) { /* not rendered */ }
           if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
         } else {
+          // Drop the parallel conversation's runtime record with the tab:
+          // closeTab only updates the strip, so the deleted session's socket
+          // kept running in the background and its pane could still receive
+          // frames (and unread badges) for a conversation that no longer exists.
+          var gone = window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[t.id];
+          if (gone && gone.ws) {
+            try { gone.ws.close(); } catch (err) { /* already closed */ }
+          }
           try { GBTabs.closeTab(t.id); } catch (err) { /* already gone */ }
+          if (gone && window.GBMultiChat) delete GBMultiChat.tabs[t.id];
         }
       });
       if (window.ChatState && String(ChatState.currentSessionId || "") === String(sid)) {
