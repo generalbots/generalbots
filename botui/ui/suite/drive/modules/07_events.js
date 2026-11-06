@@ -187,7 +187,8 @@ function showContextMenu(x, y, path, type, bucket) {
     };
     var hideMenu = "document.getElementById('context-menu').style.display='none';";
     var hasClipboard = clipboardFiles.length > 0;
-    var isStarred = sessionStorage.getItem("drive-tab") === "starred";
+    var isStarred = (window._starredPaths && window._starredPaths[path]) ||
+        sessionStorage.getItem("drive-tab") === "starred";
     var html = '';
     html += isFolder
         ? '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.loadFiles(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.open + '<span>Open</span></div>'

@@ -64,6 +64,9 @@ async function init() {
             break;
     }
     loadStorageInfo();
+    // Decorate the rows with their true starred state (one favorite listing
+    // per boot; toggleStar keeps the cache current afterwards).
+    loadStarredPathSet();
 }
 
 window.DriveModule = {
@@ -82,6 +85,8 @@ window.DriveModule = {
     downloadSelected: downloadSelected,
     previewFile: previewFile,
     toggleStar: toggleStar,
+    toggleStarFromButton: toggleStarFromButton,
+    refreshRowStars: refreshRowStars,
     shareFile: shareFile,
     createShareLinkNow: createShareLinkNow,
     revokeShareLinkFromModal: revokeShareLinkFromModal,
