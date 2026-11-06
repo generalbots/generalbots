@@ -9,7 +9,7 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
         let umya_sheet = if ws_idx == 0 {
             workbook
                 .sheet_mut(0)
-                .ok_or("Failed to get first sheet")?
+                .map_err(|_| "Failed to get first sheet")?
         } else {
             workbook
                 .new_sheet(&worksheet.name)
@@ -182,7 +182,7 @@ pub fn apply_umya_style(cell: &mut umya_spreadsheet::Cell, style: &CellStyle) {
         cell_style
             .font_mut()
             .color_mut()
-            .set_argb(format!("FF{color_str}"));
+            .set_argb_str(format!("FF{color_str}"));
     }
 
     if let Some(ref bg) = style.background {
@@ -191,7 +191,7 @@ pub fn apply_umya_style(cell: &mut umya_spreadsheet::Cell, style: &CellStyle) {
             .fill_mut()
             .pattern_fill_mut()
             .foreground_color_mut()
-            .set_argb(format!("FF{bg_str}"));
+            .set_argb_str(format!("FF{bg_str}"));
         cell_style
             .fill_mut()
             .pattern_fill_mut()

@@ -41,7 +41,7 @@ pub fn extract_hyperlinks(
                     } else {
                         Some(tooltip.to_string())
                     },
-                    is_internal: *hyperlink.get_location(),
+                    is_internal: hyperlink.get_location(),
                 },
             );
         }
@@ -73,10 +73,10 @@ pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStruc
     let mut tables = Vec::new();
     for table in sheet.get_tables() {
         let area = table.get_area();
-        let start_row = *area.0.get_row_num();
-        let start_col = *area.0.get_col_num();
-        let end_row = *area.1.get_row_num();
-        let end_col = *area.1.get_col_num();
+        let start_row = area.0.get_row_num();
+        let start_col = area.0.get_col_num();
+        let end_row = area.1.get_row_num();
+        let end_col = area.1.get_col_num();
         let name = table.get_name().to_string();
         tables.push(TableConfig {
             id: name.clone(),
@@ -91,11 +91,11 @@ pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStruc
 
     let mut row_page_breaks = Vec::new();
     for brk in sheet.get_row_breaks().get_break_list() {
-        row_page_breaks.push(*brk.get_id());
+        row_page_breaks.push(brk.get_id());
     }
     let mut column_page_breaks = Vec::new();
     for brk in sheet.get_column_breaks().get_break_list() {
-        column_page_breaks.push(*brk.get_id());
+        column_page_breaks.push(brk.get_id());
     }
 
     ExtractedStructures {
@@ -136,8 +136,8 @@ pub fn extract_images(sheet: &umya_spreadsheet::Worksheet) -> Option<Vec<SheetIm
         images.push(SheetImage {
             id: Uuid::new_v4().to_string(),
             name: name.to_string(),
-            row: *image.get_row(),
-            col: *image.get_col(),
+            row: image.get_row(),
+            col: image.get_col(),
         });
     }
     if images.is_empty() {
@@ -158,7 +158,7 @@ pub fn extract_print_titles(
         if name.get_name() != "_xlnm.Print_Titles" {
             continue;
         }
-        let sheet_index = *name.get_local_sheet_id() as usize;
+        let sheet_index = name.get_local_sheet_id() as usize;
         let titles = map.entry(sheet_index).or_default();
         for part in name.get_address().split(',') {
             let range = part.rsplit('!').next().unwrap_or(part).replace('$', "");
@@ -188,7 +188,7 @@ pub fn extract_print_areas(
             continue;
         }
         let address = name.get_address();
-        let sheet_index = *name.get_local_sheet_id() as usize;
+        let sheet_index = name.get_local_sheet_id() as usize;
         for part in address.split(',') {
             let range = part.rsplit('!').next().unwrap_or(part).replace('$', "");
             if !range.is_empty() {
@@ -232,10 +232,10 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         }
     };
 
-    let paper_size = *page_setup.get_paper_size();
-    let scale = *page_setup.get_scale();
-    let fit_to_width = *page_setup.get_fit_to_width();
-    let fit_to_height = *page_setup.get_fit_to_height();
+    let paper_size = page_setup.get_paper_size();
+    let scale = page_setup.get_scale();
+    let fit_to_width = page_setup.get_fit_to_width();
+    let fit_to_height = page_setup.get_fit_to_height();
 
     // Skip untouched sheets: umya defaults are paper_size/scale/fit = 0 and
     // empty header/footer text.
@@ -256,12 +256,12 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         scale: Some(scale),
         fit_to_width: Some(fit_to_width),
         fit_to_height: Some(fit_to_height),
-        margin_left: Some(*margins.get_left()),
-        margin_right: Some(*margins.get_right()),
-        margin_top: Some(*margins.get_top()),
-        margin_bottom: Some(*margins.get_bottom()),
-        margin_header: Some(*margins.get_header()),
-        margin_footer: Some(*margins.get_footer()),
+        margin_left: Some(margins.get_left()),
+        margin_right: Some(margins.get_right()),
+        margin_top: Some(margins.get_top()),
+        margin_bottom: Some(margins.get_bottom()),
+        margin_header: Some(margins.get_header()),
+        margin_footer: Some(margins.get_footer()),
         // Print titles are extracted separately (extract_print_titles) and
         // merged on the import path; the layout writer has no titles source.
         print_titles: None,
@@ -283,11 +283,11 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     let mut hidden_columns = Vec::new();
     for dim in sheet.get_column_dimensions() {
         let col = dim.get_col_num().saturating_sub(1);
-        let width = *dim.get_width();
+        let width = dim.get_width();
         if width > 0.0 {
             column_widths.insert(col, width.round() as u32);
         }
-        if *dim.get_hidden() {
+        if dim.get_hidden() {
             hidden_columns.push(col);
         }
     }
@@ -296,11 +296,11 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     let mut hidden_rows = Vec::new();
     for dim in sheet.get_row_dimensions() {
         let row = dim.get_row_num().saturating_sub(1);
-        let height = *dim.get_height();
+        let height = dim.get_height();
         if height > 0.0 {
             row_heights.insert(row, height.round() as u32);
         }
-        if *dim.get_hidden() {
+        if dim.get_hidden() {
             hidden_rows.push(row);
         }
     }
@@ -314,10 +314,10 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     let view = sheet.get_sheets_views().get_sheet_view_list().first();
     let pane = view.and_then(|v| v.get_pane());
     let frozen_rows = pane
-        .map(|p| *p.get_vertical_split() as u32)
+        .map(|p| p.get_vertical_split() as u32)
         .filter(|&v| v > 0);
     let frozen_cols = pane
-        .map(|p| *p.get_horizontal_split() as u32)
+        .map(|p| p.get_horizontal_split() as u32)
         .filter(|&v| v > 0);
 
     ExtractedLayout {

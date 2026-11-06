@@ -63,7 +63,7 @@ pub fn load_xlsx_from_bytes(
 
 /// Reads a sheet's protection flags into the structured model (#788).
 fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtection> {
-    let p = sheet.get_sheet_protection().filter(|p| *p.get_sheet())?;
+    let p = sheet.get_sheet_protection().filter(|p| p.get_sheet())?;
     Some(SheetProtection {
         protected: true,
         password_hash: {
@@ -75,19 +75,19 @@ fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtec
             }
         },
         locked_cells: Vec::new(),
-        allow_select_locked: !*p.get_select_locked_cells(),
-        allow_select_unlocked: !*p.get_select_unlocked_cells(),
-        allow_format_cells: *p.get_format_cells(),
-        allow_format_columns: *p.get_format_columns(),
-        allow_format_rows: *p.get_format_rows(),
-        allow_insert_columns: *p.get_insert_columns(),
-        allow_insert_rows: *p.get_insert_rows(),
-        allow_insert_hyperlinks: *p.get_insert_hyperlinks(),
-        allow_delete_columns: *p.get_delete_columns(),
-        allow_delete_rows: *p.get_delete_rows(),
-        allow_sort: *p.get_sort(),
-        allow_filter: *p.get_auto_filter(),
-        allow_pivot_tables: *p.get_pivot_tables(),
+        allow_select_locked: !p.get_select_locked_cells(),
+        allow_select_unlocked: !p.get_select_unlocked_cells(),
+        allow_format_cells: p.get_format_cells(),
+        allow_format_columns: p.get_format_columns(),
+        allow_format_rows: p.get_format_rows(),
+        allow_insert_columns: p.get_insert_columns(),
+        allow_insert_rows: p.get_insert_rows(),
+        allow_insert_hyperlinks: p.get_insert_hyperlinks(),
+        allow_delete_columns: p.get_delete_columns(),
+        allow_delete_rows: p.get_delete_rows(),
+        allow_sort: p.get_sort(),
+        allow_filter: p.get_auto_filter(),
+        allow_pivot_tables: p.get_pivot_tables(),
     })
 }
 

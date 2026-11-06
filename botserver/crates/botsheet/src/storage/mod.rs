@@ -86,7 +86,7 @@ pub async fn update_xlsx_cell(
 ) -> Result<(), String> {
     let sheet = workbook
         .get_sheet_by_name_mut(sheet_name)
-        .ok_or_else(|| format!("Sheet '{sheet_name}' not found"))?;
+        .map_err(|_| format!("Sheet '{sheet_name}' not found"))?;
 
     let cell = sheet.get_cell_mut((col + 1, row + 1));
 
