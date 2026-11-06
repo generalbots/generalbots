@@ -161,8 +161,13 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
     let html = match path.as_str() {
         "fragments/presentation-view" => {
             let id = query.get("id").cloned().unwrap_or_default();
+            let requested = query
+                .get("slide_index")
+                .or_else(|| query.get("slide"))
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(0);
             let pres = load_or_blank(&state, &id).await;
-            super::sidebars::handle_presentation_view(Json(pres)).await
+            Html(super::sidebars::render_presentation_view(&pres, requested))
         }
         "fragments/slide-thumbnails" => {
             let id = query.get("id").cloned().unwrap_or_default();

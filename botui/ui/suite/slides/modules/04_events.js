@@ -173,6 +173,20 @@ function initCollab() {
 
 document.addEventListener("htmx:afterSwap", function (e) {
   if (e.target.id === "slides-content" || (e.target.closest && e.target.closest("#slides-content"))) {
+    // Any rendered deck (import or metadata card) tells the toolbar which id
+    // to address; without this the next save/rename created a second deck.
+    var view = document.getElementById("slides-view");
+    if (view && view.dataset.presentationId) {
+      window.__SLIDES_PRESENTATION_ID = view.dataset.presentationId;
+      var titleInput = document.getElementById("presTitle");
+      if (titleInput) {
+        titleInput.setAttribute(
+          "hx-vals",
+          JSON.stringify({ id: view.dataset.presentationId, action: "rename" })
+        );
+        if (window.htmx) htmx.process(titleInput);
+      }
+    }
     SlideCanvas.attach(document.getElementById("slides-content"));
     if (typeof checkSlidesDraftOnLoad === "function") checkSlidesDraftOnLoad();
   }

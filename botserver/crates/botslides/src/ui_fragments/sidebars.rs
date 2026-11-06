@@ -77,8 +77,13 @@ pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
     let Some(drive) = state.drive.as_ref() else {
         return Html(super::err_fragment("Drive indisponível"));
     };
+    let requested = params
+        .get("slide_index")
+        .or_else(|| params.get("slide"))
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0);
     match crate::storage::load_presentation_by_id(drive, &user_id, &pid).await {
-        Ok(pres) => handle_presentation_view(Json(pres)).await,
+        Ok(pres) => Html(render_presentation_view(&pres, requested)),
         Err(e) => Html(super::err_fragment(&e)),
     }
 }
@@ -94,26 +99,37 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
         return handle_presentation_view(Json(pres)).await;
     }
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+    let requested = payload
+        .get("slide_index")
+        .or_else(|| payload.get("slide"))
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0) as usize;
     let pres = super::get_bridge::load_or_blank(&state, id).await;
-    handle_presentation_view(Json(pres)).await
+    Html(render_presentation_view(&pres, requested))
 }
 
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {
+    Html(render_presentation_view(&pres, 0))
+}
+
+/// Renders one slide of a deck. Split out so a thumbnail click can request a
+/// specific index instead of always receiving slide 0.
+pub fn render_presentation_view(pres: &Presentation, requested: usize) -> String {
     let total = pres.slides.len();
-    let current = 0;
+    let current = requested.min(total.saturating_sub(1));
     let bg = pres.theme.colors.background.clone();
     let primary = pres.theme.colors.primary.clone();
-    let current_slide = pres.slides.first();
+    let current_slide = pres.slides.get(current);
     let slide_html = current_slide.map(render_slide).unwrap_or_default();
-    Html(format!(
-        r##"<div class="sl-view" id="slides-view" data-presentation-id="{id}" data-current-slide="0">
+    format!(
+        r##"<div class="sl-view" id="slides-view" data-presentation-id="{id}" data-current-slide="{cur0}">
 <div class="sl-view-header" style="padding:12px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:#0f172a;">
 <div>
 <h2 style="margin:0;color:#f8fafc;">{name}</h2>
 <div style="font-size:12px;color:#94a3b8;margin-top:2px;">{total} slides • Tema: {theme}</div>
 </div>
 <div style="display:flex;gap:6px;">
-<button hx-post="/suite/slides/modals/insert-element" hx-vals='{{"presentation_id":"{id}","slide_index":"0"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">+ Elemento</button>
+<button hx-post="/suite/slides/modals/insert-element" hx-vals='{{"presentation_id":"{id}","slide_index":"{cur0}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">+ Elemento</button>
 <button hx-post="/suite/slides/modals/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
 <button hx-post="/suite/slides/modals/share" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
 <button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{id}"}}' style="background:#f59e0b;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">▶ Apresentar</button>
@@ -136,7 +152,7 @@ pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<St
         bg = html_escape(&bg),
         primary = html_escape(&primary),
         slide_html = slide_html
-    ))
+    )
 }
 
 pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> Html<String> {
