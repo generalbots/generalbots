@@ -18,6 +18,10 @@ mod chart_ranges;
 use self::chart_parse::{parse_chart, ParsedChart};
 use self::chart_ranges::{resolve_range_labels, resolve_range_values, resolve_single_cell};
 
+// The chart API resolves a freshly created chart's range with the same
+// reader the imported charts use, so the panel never shows an empty series.
+pub(crate) use self::chart_ranges::{resolve_range_labels as resolve_chart_labels, resolve_range_values as resolve_chart_values};
+
 const PALETTE: [&str; 8] = [
     "#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#06b6d4", "#f97316", "#ec4899",
 ];

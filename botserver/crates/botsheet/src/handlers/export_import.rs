@@ -4,7 +4,7 @@ use base64::Engine;
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::export::{
     export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
-    export_to_pdf_data, export_to_xlsx,
+    export_to_pdf_data, export_to_pdf_data_with, export_to_xlsx,
 };
 use crate::state::{save_sheet_to_drive, SheetState};
 use crate::storage::import::import_spreadsheet_bytes;
@@ -122,7 +122,18 @@ pub async fn handle_print_preview(
             )
         })?;
     let sheet = session.sheet.read().await.clone();
-    let pdf = export_to_pdf_data(&sheet).map_err(|error| {
+    let landscape = req
+        .orientation
+        .as_deref()
+        .map(|value| value.eq_ignore_ascii_case("landscape") || value == "horizontal")
+        .unwrap_or(false);
+    let scale = req
+        .scale
+        .as_deref()
+        .and_then(|value| value.trim().trim_end_matches('%').parse::<f32>().ok())
+        .map(|value| if value > 10.0 { value / 100.0 } else { value })
+        .unwrap_or(1.0);
+    let pdf = export_to_pdf_data_with(&sheet, landscape, scale).map_err(|error| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&error, "botsheet::handlers::export_import", None)})),

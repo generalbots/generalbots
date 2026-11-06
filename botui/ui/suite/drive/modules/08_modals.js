@@ -352,7 +352,9 @@ async function shareWithRecipient(path, recipientId, email) {
             body: JSON.stringify({
                 bucket: getEffectiveBucket(),
                 path: path,
-                recipient_id: recipientId,
+                // drive_shares keys recipients by the same identity /shared
+                // filters on (uid = email); the picker's UUID never matched.
+                recipient_id: email || recipientId,
                 permissions: role ? role.value : "read",
                 scope: currentScope,
             }),

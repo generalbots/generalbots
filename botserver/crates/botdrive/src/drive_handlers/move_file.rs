@@ -15,9 +15,27 @@ pub async fn move_file(
     let from_key = scoped_key(&prefix, &req.source_path);
     let to_key = scoped_key(&prefix, &req.dest_path);
 
+    // Listings send folder paths without the trailing slash; treat a path as
+    // a folder when its marker object exists or children live under it.
+    let source_is_folder = req.source_path.ends_with('/') || {
+        let marker = format!("{}/", from_key.trim_end_matches('/'));
+        if drive.get_object(&src_bucket, &marker).await.is_ok() {
+            true
+        } else if drive.get_object(&src_bucket, &from_key).await.is_ok() {
+            // A real object wins over a same-named prefix: never turn a file
+            // into a folder move/copy.
+            false
+        } else {
+            drive
+                .list_objects(&src_bucket, Some(&marker))
+                .await
+                .map(|keys| !keys.is_empty())
+                .unwrap_or(false)
+        }
+    };
     // Folder move: copy every child, then delete the sources only after all
     // writes succeeded (renaming a folder used to move just its marker).
-    if req.source_path.ends_with('/') {
+    if source_is_folder {
         let source_prefix = format!("{}/", from_key.trim_end_matches('/'));
         let dest_prefix = format!("{}/", to_key.trim_end_matches('/'));
         let objects = drive

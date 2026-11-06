@@ -147,14 +147,35 @@ pub async fn handle_validate_cell(
 
 fn validate_value(value: &str, rule: &ValidationRule) -> ValidationResult {
     let valid = match rule.validation_type.as_str() {
-        "number" => value.parse::<f64>().is_ok(),
+        "number" => value
+            .parse::<f64>()
+            .map(|number| {
+                let min = rule.value1.as_ref().and_then(|v| v.parse::<f64>().ok());
+                let max = rule.value2.as_ref().and_then(|v| v.parse::<f64>().ok());
+                min.map_or(true, |limit| number >= limit)
+                    && max.map_or(true, |limit| number <= limit)
+            })
+            .unwrap_or(false),
         "integer" => value.parse::<i64>().is_ok(),
         "list" => rule
             .allowed_values
             .as_ref()
             .map(|v| v.contains(&value.to_string()))
             .unwrap_or(true),
-        "date" => chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").is_ok(),
+        "date" => chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+            .map(|date| {
+                let min = rule
+                    .value1
+                    .as_ref()
+                    .and_then(|v| chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok());
+                let max = rule
+                    .value2
+                    .as_ref()
+                    .and_then(|v| chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok());
+                min.map_or(true, |limit| date >= limit)
+                    && max.map_or(true, |limit| date <= limit)
+            })
+            .unwrap_or(false),
         "text_length" => {
             let len = value.len();
             let min = rule

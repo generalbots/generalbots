@@ -205,7 +205,7 @@ async function loadStarredFiles() {
         params.set("scope", currentScope);
         const items = await apiRequest("/favorite?" + params.toString());
         if (!items || items.length === 0) {
-            content.innerHTML = '<div class="empty-state"><h3>No starred files</h3><p>Click the star icon on any file to add it here.</p></div>';
+            content.innerHTML = '<div class="empty-state"><h3>No starred files</h3><p>Click the ☆ button on any file (or its ⋮ menu) to add it here.</p></div>';
             return;
         }
         var html = '<div class="file-list">';

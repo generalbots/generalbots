@@ -1,7 +1,7 @@
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
-    CellData, ChartConfig, ChartOptions, ChartPosition, ChartRequest, ClearFilterRequest,
+    CellData, ChartConfig, ChartDataset, ChartOptions, ChartPosition, ChartRequest, ClearFilterRequest,
     ConditionalFormatRequest, ConditionalFormatRule, DeleteChartRequest, FilterConfig,
     FilterRequest, SaveResponse, SortRequest,
 };
@@ -268,6 +268,24 @@ pub async fn handle_create_chart(
         ));
     }
 
+    // Resolve the series before mutably borrowing the worksheet; otherwise a
+    // toolbar chart is stored with empty datasets/labels and renders blank.
+    let values = crate::storage::chart_read::resolve_chart_values(
+        &req.data_range,
+        req.worksheet_index,
+        &sheet.worksheets,
+    );
+    let labels = req
+        .label_range
+        .as_deref()
+        .map(|range| {
+            crate::storage::chart_read::resolve_chart_labels(
+                range,
+                req.worksheet_index,
+                &sheet.worksheets,
+            )
+        })
+        .unwrap_or_default();
     let worksheet = &mut sheet.worksheets[req.worksheet_index];
     let chart = ChartConfig {
         id: Uuid::new_v4().to_string(),
@@ -289,8 +307,17 @@ pub async fn handle_create_chart(
             }
         }),
         options: ChartOptions::default(),
-        datasets: vec![],
-        labels: vec![],
+        datasets: if values.is_empty() {
+            vec![]
+        } else {
+            vec![ChartDataset {
+                label: "Series 1".to_string(),
+                data: values,
+                color: "#3b82f6".to_string(),
+                background_color: None,
+            }]
+        },
+        labels,
     };
 
     let charts = worksheet.charts.get_or_insert_with(Vec::new);

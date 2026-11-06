@@ -12,10 +12,29 @@ function escapeHtml(str) {
 
 function escapeJs(str) {
     if (!str) return "";
+    // Produces a value safe inside a single-quoted inline handler; the old
+    // version emitted two backslashes before an apostrophe, so any file name
+    // containing ' terminated the onclick string and the action died.
     return String(str)
-        .replace(/\\\\/g, "\\\\\\\\")
-        .replace(/'/g, "\\\\'")
-        .replace(/"/g, '\\\\"');
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\r?\n/g, " ");
+}
+
+// Rows from search / cross-bucket listings carry their own data-bucket; the
+// context menu used the active browse bucket and 404'd on those hits.
+function driveBucketForPath(path) {
+    try {
+        var rows = document.querySelectorAll("[data-path]");
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].getAttribute("data-path") === path) {
+                var bucket = rows[i].getAttribute("data-bucket");
+                if (bucket) return bucket;
+            }
+        }
+    } catch (e) { /* fall through */ }
+    return getEffectiveBucket();
 }
 
 function formatFileSize(bytes) {

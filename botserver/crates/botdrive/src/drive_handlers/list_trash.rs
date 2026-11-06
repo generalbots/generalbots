@@ -112,6 +112,9 @@ pub async fn trash_file(
     let mut total = 0i64;
     for child in keys {
         if child.ends_with('/') {
+            // Directory markers carry no content but keep the empty folder
+            // visible after the files are gone.
+            let _ = drive.delete_object(&bucket, &child).await;
             continue;
         }
         let relative_child = child
@@ -133,7 +136,15 @@ pub async fn trash_file(
     )
     .bind::<Text, _>(&uid)
     .bind::<Text, _>(&bucket)
-    .bind::<Text, _>(&format!("{trash_base}/{relative}"))
+    // Children were written under `{trash_base}/{relative_child}` (the scope
+    // prefix stripped); storing the raw `relative` duplicated `users/{uid}`
+    // and restore listed a prefix that did not exist.
+    .bind::<Text, _>(&format!(
+        "{trash_base}/{}",
+        key.strip_prefix(&format!("{}/", prefix.trim_end_matches('/')))
+            .unwrap_or(&relative)
+            .trim_end_matches('/')
+    ))
     .bind::<Text, _>(&key)
     .bind::<BigInt, _>(total)
     .execute(&mut conn)
@@ -325,15 +336,27 @@ pub async fn empty_trash(
             bucket: String,
             #[diesel(sql_type = Text)]
             path: String,
+            #[diesel(sql_type = Bool)]
+            is_dir: bool,
         }
         let rows = diesel::sql_query(
-            "SELECT bucket, path FROM drive_trash WHERE user_id = $1"
+            "SELECT bucket, path, is_dir FROM drive_trash WHERE user_id = $1"
         )
         .bind::<Text, _>(&uid)
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
         for row in &rows {
+            if row.is_dir {
+                // A trashed folder keeps every child under its prefix; deleting
+                // the row path alone orphaned the whole tree in .trash/.
+                let prefix = format!("{}/", row.path.trim_end_matches('/'));
+                if let Ok(keys) = drive.list_objects(&row.bucket, Some(&prefix)).await {
+                    for key in keys {
+                        let _ = drive.delete_object(&row.bucket, &key).await;
+                    }
+                }
+            }
             let _ = drive.delete_object(&row.bucket, &row.path).await;
         }
 

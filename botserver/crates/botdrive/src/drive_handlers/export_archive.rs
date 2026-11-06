@@ -39,7 +39,10 @@ pub async fn export_archive(
         if folder.is_empty() {
             return Err(err(StatusCode::BAD_REQUEST, "folder is empty"));
         }
-        let folder_prefix = format!("{prefix}{folder}/");
+        // `folder` arrives relative to the caller's scope while `prefix`
+        // already carries users/{uid}/; concatenating both produced a prefix
+        // that never matched (user-scope folder downloads returned 400).
+        let folder_prefix = format!("{}/", scoped_key(&prefix, &folder).trim_end_matches('/'));
         let keys = drive
             .list_objects(&bucket, Some(&folder_prefix))
             .await

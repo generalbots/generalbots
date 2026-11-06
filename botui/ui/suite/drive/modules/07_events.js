@@ -187,6 +187,7 @@ function showContextMenu(x, y, path, type, bucket) {
     };
     var hideMenu = "document.getElementById('context-menu').style.display='none';";
     var hasClipboard = clipboardFiles.length > 0;
+    var isStarred = sessionStorage.getItem("drive-tab") === "starred";
     var html = '';
     html += isFolder
         ? '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.loadFiles(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.open + '<span>Open</span></div>'
@@ -195,23 +196,23 @@ function showContextMenu(x, y, path, type, bucket) {
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.downloadFile(\'' + ep + '\', \'' + eb + '\')">' + icons.download + '<span>Download</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.shareFile(\'' + ep + '\')">' + icons.link + '<span>Share link</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyLink(\'' + ep + '\')">' + icons.link + '<span>Copy link</span></div>'
-        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.toggleStar(\'' + ep + '\', \'' + (eb || currentBucket) + '\', true)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span>Add to starred</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.toggleStar(\'' + ep + '\', \'' + (eb || currentBucket) + '\', ' + (isStarred ? "false" : "true") + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span>' + (isStarred ? "Remove from starred" : "Add to starred") + '</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.openComments(\'' + ep + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span>Comments</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.askAIOnFile(\'' + ep + '\')">' + icons.ai + '<span>Ask AI</span></div>'
-        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.duplicateItem(\'' + ep + '\')">' + icons.duplicate + '<span>Duplicate</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.duplicateItem(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.duplicate + '<span>Duplicate</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.showVersionHistory(\'' + ep + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Version history</span></div>';
     html += '<div class="context-menu-divider"></div>';
-    html += '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyToClipboard(\'' + ep + '\')">' + icons.copy + '<span>Copy</span></div>'
-        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.cutToClipboard(\'' + ep + '\')">' + icons.cut + '<span>Cut</span></div>'
+    html += '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyToClipboard(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.copy + '<span>Copy</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.cutToClipboard(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.cut + '<span>Cut</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.copyPathToClipboard(\'' + ep + '\')">' + icons.copyPath + '<span>Copy path</span></div>'
-        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.renameItem(\'' + ep + '\')">' + icons.rename + '<span>Rename</span></div>';
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.renameItem(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.rename + '<span>Rename</span></div>';
     if (hasClipboard) {
         html += isFolder
             ? '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.pasteInto(\'' + ep + '\')">' + icons.paste + '<span>Paste into folder</span></div>'
             : '';
     }
     html += '<div class="context-menu-divider"></div>'
-        + '<div class="context-menu-item danger" onclick="' + hideMenu + 'DriveModule.deleteItem(\'' + ep + '\')">' + icons.delete + '<span>Delete</span></div>';
+        + '<div class="context-menu-item danger" onclick="' + hideMenu + 'DriveModule.deleteItem(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.delete + '<span>Delete</span></div>';
     menu.innerHTML = html;
     menu.style.display = "block";
     menu.classList.remove("hidden");

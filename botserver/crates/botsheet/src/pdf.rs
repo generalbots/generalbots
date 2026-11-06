@@ -36,9 +36,27 @@ const FONT_SIZE: f32 = 8.5;
 /// Object numbers of the three structural objects emitted before the pages.
 const HEADER_OBJECTS: u32 = 3;
 
+/// Print layout selected in the sheet print dialog.
+#[derive(Debug, Clone, Copy)]
+pub struct PdfOptions {
+    pub landscape: bool,
+    /// 0.5–2.0; scales the grid metrics, never the page.
+    pub scale: f32,
+}
+
+impl Default for PdfOptions {
+    fn default() -> Self {
+        Self { landscape: false, scale: 1.0 }
+    }
+}
+
 /// Renders every worksheet of the spreadsheet as paginated PDF bytes.
 pub fn export_pdf(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
-    let mut writer = PdfWriter::new();
+    export_pdf_with(sheet, PdfOptions::default())
+}
+
+pub fn export_pdf_with(sheet: &Spreadsheet, options: PdfOptions) -> Result<Vec<u8>, String> {
+    let mut writer = PdfWriter::new(options);
     for worksheet in &sheet.worksheets {
         writer.add_worksheet(worksheet.name.as_str(), &worksheet.data)?;
     }
@@ -60,13 +78,38 @@ struct GridCell {
 struct PdfWriter {
     objects: Vec<Vec<u8>>,
     page_refs: Vec<u32>,
+    page_w: f32,
+    page_h: f32,
+    col_width: f32,
+    row_height: f32,
+    font_size: f32,
+    rows_per_page: usize,
 }
 
 impl PdfWriter {
-    fn new() -> Self {
+    fn new(options: PdfOptions) -> Self {
+        let (page_w, page_h) = if options.landscape {
+            (PAGE_HEIGHT, PAGE_WIDTH)
+        } else {
+            (PAGE_WIDTH, PAGE_HEIGHT)
+        };
+        let scale = if options.scale.is_finite() {
+            options.scale.clamp(0.5, 2.0)
+        } else {
+            1.0
+        };
+        let row_height = ROW_HEIGHT * scale;
+        let rows_per_page = (((page_h - 2.0 * MARGIN - 18.0) / row_height).floor() as usize)
+            .clamp(1, ROWS_PER_PAGE * 2);
         Self {
             objects: Vec::new(),
             page_refs: Vec::new(),
+            page_w,
+            page_h,
+            col_width: COL_WIDTH * scale,
+            row_height,
+            font_size: FONT_SIZE * scale,
+            rows_per_page,
         }
     }
 
@@ -121,7 +164,7 @@ impl PdfWriter {
             }
         }
 
-        for chunk in rows.chunks(ROWS_PER_PAGE) {
+        for chunk in rows.chunks(self.rows_per_page) {
             self.add_page(name, max_col, chunk)?;
         }
         Ok(())
@@ -136,9 +179,9 @@ impl PdfWriter {
     ) -> Result<(), String> {
         let mut stream = String::new();
         stream.push_str("BT\n/F1 ");
-        stream.push_str(&format!("{FONT_SIZE} Tf\n"));
+        stream.push_str(&format!("{} Tf\n", self.font_size));
 
-        let top = PAGE_HEIGHT - MARGIN;
+        let top = self.page_h - MARGIN;
         let first = rows.first().map(|(r, _)| *r).unwrap_or(0);
         let last = rows.last().map(|(r, _)| *r).unwrap_or(first);
         stream.push_str(&text_cmd(MARGIN, top - 4.0, sheet_name));
@@ -153,15 +196,15 @@ impl PdfWriter {
         let header_y = top - 18.0;
         stream.push_str(&text_cmd(MARGIN, header_y, "#"));
         for col in 0..=max_col {
-            let x = MARGIN + ADDRESS_WIDTH + col as f32 * COL_WIDTH;
+            let x = MARGIN + ADDRESS_WIDTH + col as f32 * self.col_width;
             stream.push_str(&text_cmd(x, header_y, &column_letter(col)));
         }
 
         for (slot, (row, cells_of_row)) in rows.iter().enumerate() {
-            let y = top - 18.0 - (slot as u32 + 1) as f32 * ROW_HEIGHT - FONT_SIZE;
+            let y = top - 18.0 - (slot as u32 + 1) as f32 * self.row_height - self.font_size;
             stream.push_str(&text_cmd(MARGIN, y, &(row + 1).to_string()));
             for cell in cells_of_row {
-                let x = MARGIN + ADDRESS_WIDTH + cell.col as f32 * COL_WIDTH;
+                let x = MARGIN + ADDRESS_WIDTH + cell.col as f32 * self.col_width;
                 stream.push_str(&text_cmd(x, y, &cell.value));
             }
         }
@@ -175,8 +218,8 @@ impl PdfWriter {
         let page_body = format!(
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w} {h}] \
              /Resources << /Font << /F1 3 0 R >> >> /Contents {stream} 0 R >>",
-            w = PAGE_WIDTH as u32,
-            h = PAGE_HEIGHT as u32,
+            w = self.page_w as u32,
+            h = self.page_h as u32,
             stream = stream_obj,
         );
         let page_ref = self.push_object(page_body.as_bytes());
@@ -186,8 +229,9 @@ impl PdfWriter {
 
     fn add_blank_page(&mut self, sheet_name: &str) {
         let stream = format!(
-            "BT\n/F1 {FONT_SIZE} Tf\n{} ET",
-            text_cmd(MARGIN, PAGE_HEIGHT - MARGIN - 4.0, sheet_name)
+            "BT\n/F1 {} Tf\n{} ET",
+            self.font_size,
+            text_cmd(MARGIN, self.page_h - MARGIN - 4.0, sheet_name)
         );
         if let Err(e) = self.add_page_object(stream.as_bytes()) {
             log::warn!("blank PDF page emission failed: {e}");

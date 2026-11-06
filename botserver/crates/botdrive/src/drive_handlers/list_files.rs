@@ -303,7 +303,24 @@ pub async fn copy_file(
 
     // A folder copy must clone every child; the old code copied only the
     // folder marker key (a zero-byte object) and left the contents behind.
-    if req.source_path.ends_with('/') {
+    // Listings omit the trailing slash, so probe the marker/children too.
+    let source_is_folder = req.source_path.ends_with('/') || {
+        let marker = format!("{}/", from_key.trim_end_matches('/'));
+        if drive.get_object(&src_bucket, &marker).await.is_ok() {
+            true
+        } else if drive.get_object(&src_bucket, &from_key).await.is_ok() {
+            // A real object wins over a same-named prefix: never turn a file
+            // into a folder move/copy.
+            false
+        } else {
+            drive
+                .list_objects(&src_bucket, Some(&marker))
+                .await
+                .map(|keys| !keys.is_empty())
+                .unwrap_or(false)
+        }
+    };
+    if source_is_folder {
         let source_prefix = format!("{}/", from_key.trim_end_matches('/'));
         let dest_prefix = format!("{}/", to_key.trim_end_matches('/'));
         let objects = drive

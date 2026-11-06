@@ -168,6 +168,14 @@ pub async fn handle_data_validation_form(
 <label style="color:#f8fafc;font-size:13px;">{values}
 <input type="text" name="values" placeholder="Sim,Não,Talvez" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<label style="color:#f8fafc;font-size:13px;">Min
+<input type="text" name="value1" placeholder="0" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+</label>
+<label style="color:#f8fafc;font-size:13px;">Max
+<input type="text" name="value2" placeholder="10" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+</label>
+</div>
 <label style="color:#f8fafc;font-size:13px;">{error_msg}
 <input type="text" name="error_message" value="{invalid}" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
 </label>

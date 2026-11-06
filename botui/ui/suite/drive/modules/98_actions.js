@@ -2,7 +2,7 @@
 "use strict";
 
 // ── File Actions ─────────────────────────────────────────────
-async function deleteItem(path) {
+async function deleteItem(path, bucket) {
     const fileName = path.split("/").pop();
     if (!confirm('Move "' + fileName + '" to Trash? It can be restored for 30 days.')) return;
     try {
@@ -10,7 +10,7 @@ async function deleteItem(path) {
         // deletion only happens through Empty Trash.
         await apiRequest("/trash/move", {
             method: "POST",
-            body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+            body: JSON.stringify({ bucket: bucket || driveBucketForPath(path), path: path, scope: currentScope }),
         });
         showNotification("Moved to Trash", "success");
         selectedFiles.delete(path);
@@ -99,7 +99,7 @@ async function deleteSelected() {
             // #1640 — same Trash route as the single-item delete.
             await apiRequest("/trash/move", {
                 method: "POST",
-                body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
+                body: JSON.stringify({ bucket: driveBucketForPath(path), path: path, scope: currentScope }),
             });
             deleted++;
         } catch (err) {
@@ -111,19 +111,20 @@ async function deleteSelected() {
     loadFiles(currentPath, currentBucket);
 }
 
-async function renameItem(path) {
+async function renameItem(path, bucket) {
     const oldName = path.split("/").pop();
     const newName = prompt("Enter new name:", oldName);
     if (!newName || newName === oldName || !newName.trim()) return;
     const parentPath = path.substring(0, path.lastIndexOf("/"));
     const newPath = parentPath ? parentPath + "/" + newName.trim() : newName.trim();
     try {
+        var sourceBucket = bucket || driveBucketForPath(path);
         await apiRequest("/move", {
             method: "POST",
             body: JSON.stringify({
-                source_bucket: getEffectiveBucket(),
+                source_bucket: sourceBucket,
                 source_path: path,
-                dest_bucket: getEffectiveBucket(),
+                dest_bucket: currentBucket || sourceBucket,
                 dest_path: newPath,
                 scope: currentScope,
             }),
@@ -135,26 +136,40 @@ async function renameItem(path) {
     }
 }
 
-function copyToClipboard(path) {
+var clipboardFileBuckets = {};
+
+function copyToClipboard(path, bucket) {
     clipboardFiles = [path];
+    clipboardFileBuckets = {};
+    clipboardFileBuckets[path] = bucket || driveBucketForPath(path);
     clipboardOperation = "copy";
     showNotification("Copied to clipboard", "info");
 }
 
-function cutToClipboard(path) {
+function cutToClipboard(path, bucket) {
     clipboardFiles = [path];
+    clipboardFileBuckets = {};
+    clipboardFileBuckets[path] = bucket || driveBucketForPath(path);
     clipboardOperation = "cut";
     showNotification("Cut to clipboard", "info");
 }
 
 function copySelected() {
     clipboardFiles = Array.from(selectedFiles);
+    clipboardFileBuckets = {};
+    clipboardFiles.forEach(function (path) {
+        clipboardFileBuckets[path] = driveBucketForPath(path);
+    });
     clipboardOperation = "copy";
     showNotification(clipboardFiles.length + " item(s) copied", "info");
 }
 
 function cutSelected() {
     clipboardFiles = Array.from(selectedFiles);
+    clipboardFileBuckets = {};
+    clipboardFiles.forEach(function (path) {
+        clipboardFileBuckets[path] = driveBucketForPath(path);
+    });
     clipboardOperation = "cut";
     showNotification(clipboardFiles.length + " item(s) cut", "info");
 }
@@ -163,28 +178,39 @@ async function pasteFiles() {
     if (clipboardFiles.length === 0) return;
     const operation = clipboardOperation;
     var processed = 0;
+    var failures = [];
     for (const sourcePath of clipboardFiles) {
         const fileName = sourcePath.split("/").pop();
         const destPath = currentPath ? currentPath + "/" + fileName : fileName;
         try {
             const endpoint = operation === "copy" ? "/copy" : "/move";
+            const sourceBucket = clipboardFileBuckets[sourcePath] || driveBucketForPath(sourcePath);
             await apiRequest(endpoint, {
                 method: "POST",
                 body: JSON.stringify({
-                    source_bucket: getEffectiveBucket(),
+                    source_bucket: sourceBucket,
                     source_path: sourcePath,
-                    dest_bucket: getEffectiveBucket(),
+                    dest_bucket: currentBucket || sourceBucket,
                     dest_path: destPath,
                     scope: currentScope,
                 }),
             });
             processed++;
         } catch (err) {
+            failures.push(sourcePath);
             console.error("Failed to " + operation + " " + sourcePath + ":", err);
         }
     }
-    if (operation === "cut") { clipboardFiles = []; clipboardOperation = null; }
-    showNotification((operation === "copy" ? "Copied" : "Moved") + " " + processed + " item(s)", "success");
+    if (operation === "cut") { clipboardFiles = []; clipboardFileBuckets = {}; clipboardOperation = null; }
+    if (failures.length) {
+        showNotification(
+            (operation === "copy" ? "Copied" : "Moved") + " " + processed + " of " +
+                (processed + failures.length) + " item(s); failed: " + failures.join(", "),
+            "warning"
+        );
+    } else {
+        showNotification((operation === "copy" ? "Copied" : "Moved") + " " + processed + " item(s)", "success");
+    }
     loadFiles(currentPath, currentBucket);
 }
 
@@ -324,7 +350,7 @@ function saveFileVersion(path, content) {
 
 // ── Extended file operations (enterprise drive) ─────────────────────────
 
-function duplicateItem(path) {
+function duplicateItem(path, bucket) {
     const fileName = path.split("/").pop() || "file";
     const dot = fileName.lastIndexOf(".");
     let base, ext;
@@ -336,9 +362,9 @@ function duplicateItem(path) {
     apiRequest("/copy", {
         method: "POST",
         body: JSON.stringify({
-            source_bucket: getEffectiveBucket(),
+            source_bucket: bucket || driveBucketForPath(path),
             source_path: path,
-            dest_bucket: getEffectiveBucket(),
+            dest_bucket: currentBucket || bucket || driveBucketForPath(path),
             dest_path: newPath,
             scope: currentScope,
         }),
@@ -447,9 +473,9 @@ function uploadClipboardFiles(fileList) {
             apiRequest("/write", {
                 method: "POST",
                 body: JSON.stringify({
-                    bucket: getEffectiveBucket(),
+                    bucket: currentBucket || getEffectiveBucket(),
                     path: currentPath ? currentPath + "/" + file.name : file.name,
-                    content: reader.result,
+                    content: String(reader.result).split(",")[1] || reader.result,
                     scope: currentScope,
                 }),
             }).then(function() {

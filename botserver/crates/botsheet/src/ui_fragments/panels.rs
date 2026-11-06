@@ -1,14 +1,31 @@
 use super::{empty_fragment, html_escape, Lang, t, tf};
+use axum::extract::{Extension, State};
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
 use botsheet_core::types::{ArrayFormula, CellComment, ConditionalFormatRule, ChartConfig, ExternalLink, NamedRange, Spreadsheet, ValidationRule};
+use std::sync::Arc;
 
 pub async fn handle_named_ranges_panel(
+    State(state): State<Arc<crate::state::SheetState>>,
+    user: Option<Extension<crate::auth::SheetUser>>,
     headers: HeaderMap,
-    Json(sheet): Json<Spreadsheet>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    match sheet.named_ranges {
+    // The panel refresh posts only {id} (a browser fetch), not a whole
+    // Spreadsheet; binding Json<Spreadsheet> answered 422 and the panel was
+    // never refreshed after create/delete.
+    let id = payload.get("id").and_then(|value| value.as_str()).unwrap_or("");
+    if id.is_empty() {
+        return Html(super::err_fragment(lang, "id ausente"));
+    }
+    let user_id = crate::auth::resolve_user_id(user.as_deref());
+    let session = match state.sessions.get_or_load(&state, &user_id, id).await {
+        Ok(session) => session,
+        Err(error) => return Html(super::err_fragment(lang, &error)),
+    };
+    let sheet = session.sheet.read().await;
+    match &sheet.named_ranges {
         Some(ref ranges) if !ranges.is_empty() => {
             let mut html = String::from(
                 r##"<div class="ss-panel" id="named-ranges-panel">

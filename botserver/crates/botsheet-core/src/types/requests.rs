@@ -71,6 +71,12 @@ pub struct FormatRequest {
 pub struct ExportRequest {
     pub id: String,
     pub format: String,
+    /// Print preview only: orientation/scale selected in the dialog. They are
+    /// ignored by the data exporters and default to portrait / 100% in PDF.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub orientation: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -909,7 +909,13 @@
           VirtualGrid.render();
         }
         if (window.SheetAdvanced && window.SheetAdvanced.init) {
-          var adv = window.SheetAdvanced.init(host, { sheetId: (host.dataset.sheetId || "current") });
+          // "current" here used to overwrite the id of the Drive/manifest
+          // sheet that had just loaded, so every fetch-based control (format,
+          // sort, filter, charts...) mutated a different, blank workbook.
+          var adv = window.SheetAdvanced.init(host, {
+            sheetId: (host.dataset.sheetId || window.__SHEET_INITIAL_ID ||
+              (window.__LOADED_SHEET && window.__LOADED_SHEET.id) || "current")
+          });
           if (adv) window.SheetAdvancedInstance = adv;
         }
       }
