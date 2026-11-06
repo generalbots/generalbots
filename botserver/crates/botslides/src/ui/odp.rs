@@ -1,5 +1,6 @@
 //! ODP export (#1715): ODF packages, not bare content.xml.
 
+use super::export::xml_escape;
 use crate::types::Presentation;
 
 pub fn export_to_odp_content(presentation: &Presentation) -> String {

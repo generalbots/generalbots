@@ -282,7 +282,7 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
     svg
 }
 
-fn xml_escape(s: &str) -> String {
+pub(super) fn xml_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
