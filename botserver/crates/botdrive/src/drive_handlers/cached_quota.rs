@@ -164,6 +164,18 @@ pub(super) fn normalize_path(path: &str) -> String {
         .collect::<Vec<_>>()
         .join("/")
 }
+
+/// Joins a scope prefix to a path without doubling it. Listings return keys
+/// that already carry `users/<uid>/`, and handlers used to prepend it again.
+pub(super) fn scoped_key(prefix: &str, path: &str) -> String {
+    let clean = normalize_path(path);
+    let relative = if prefix.is_empty() {
+        clean.as_str()
+    } else {
+        clean.strip_prefix(prefix).unwrap_or(clean.as_str())
+    };
+    format!("{prefix}{relative}")
+}
 pub(super) fn build_file_list_items(
     prefix: &str,
     keys: &[String],

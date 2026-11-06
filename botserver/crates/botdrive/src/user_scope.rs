@@ -75,6 +75,13 @@ pub fn resolve_key_prefix(scope: &FileScope, user_id: &str) -> String {
 pub fn build_object_key(scope: &FileScope, user_id: &str, path: &str) -> String {
     let prefix = resolve_key_prefix(scope, user_id);
     let clean = path.trim_matches('/');
+    // Listings hand back keys that already include the scope prefix; joining
+    // them again produced users/<uid>/users/<uid>/… and 404s.
+    let clean = if prefix.is_empty() {
+        clean
+    } else {
+        clean.strip_prefix(prefix.as_str()).unwrap_or(clean)
+    };
     if clean.is_empty() {
         prefix
     } else if prefix.is_empty() {

@@ -14,7 +14,7 @@ pub async fn list_files(
     let full_prefix = if sub_path.is_empty() {
         prefix
     } else {
-        format!("{prefix}{sub_path}/")
+        format!("{}/", scoped_key(&prefix, &sub_path).trim_end_matches('/'))
     };
 
     // One LIST carries key + size, so the second, identical listing was pure
@@ -79,7 +79,7 @@ pub async fn upload_file_to_drive(
         _ => req.content.as_bytes().to_vec(),
     };
 
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
     // GB6-14 — the previous revision becomes restorable history before the
     // overwrite. The snapshot never blocks the write.
     snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;
@@ -119,7 +119,7 @@ pub async fn read_file(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
 
     let data = drive
         .get_object(&bucket, &key)
@@ -139,7 +139,7 @@ pub async fn download_file(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
 
     let data = drive
         .get_object(&bucket, &key)
@@ -161,7 +161,7 @@ pub async fn download_file_binary(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
 
     let data = drive
         .get_object(&bucket, &key)
@@ -195,7 +195,7 @@ pub async fn download_file_inline(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
 
     let data = drive
         .get_object(&bucket, &key)
@@ -247,7 +247,7 @@ pub async fn delete_file(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = format!("{prefix}{}", normalize_path(&req.path));
+    let key = scoped_key(&prefix, &req.path);
 
     drive
         .delete_object(&bucket, &key)
@@ -270,9 +270,9 @@ pub async fn create_folder(
     let parent = normalize_path(&req.path);
     let folder_name = normalize_path(&req.name);
     let key = if parent.is_empty() {
-        format!("{prefix}{folder_name}/")
+        format!("{}/", scoped_key(&prefix, folder_name).trim_end_matches('/'))
     } else {
-        format!("{prefix}{parent}/{folder_name}/")
+        format!("{}/", scoped_key(&prefix, &format!("{parent}/{folder_name}")).trim_end_matches('/'))
     };
 
     drive
@@ -295,8 +295,8 @@ pub async fn copy_file(
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
     let dest_bucket = req.dest_bucket.as_deref().unwrap_or(&state.bucket_name);
-    let from_key = format!("{prefix}{}", normalize_path(&req.source_path));
-    let to_key = format!("{prefix}{}", normalize_path(&req.dest_path));
+    let from_key = scoped_key(&prefix, &req.source_path);
+    let to_key = scoped_key(&prefix, &req.dest_path);
 
     let data = drive
         .get_object(src_bucket, &from_key)

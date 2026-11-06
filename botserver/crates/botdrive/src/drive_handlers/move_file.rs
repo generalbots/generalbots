@@ -12,8 +12,8 @@ pub async fn move_file(
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
     let dest_bucket = req.dest_bucket.as_deref().unwrap_or(&state.bucket_name);
-    let from_key = format!("{prefix}{}", normalize_path(&req.source_path));
-    let to_key = format!("{prefix}{}", normalize_path(&req.dest_path));
+    let from_key = scoped_key(&prefix, &req.source_path);
+    let to_key = scoped_key(&prefix, &req.dest_path);
 
     let data = drive
         .get_object(src_bucket, &from_key)
