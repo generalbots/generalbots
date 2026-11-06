@@ -114,9 +114,12 @@ fn seed_tenant(name: &str) -> Option<SeededTenant> {
     .execute(&mut conn)
     .ok()?;
 
+    // Schema drift guard: `users.name` was dropped (username is the column
+    // now) and user_organizations/crm_contacts gained NOT NULL columns, so the
+    // old fixture failed silently and every assertion below was skipped.
     diesel::sql_query(
-        "INSERT INTO users (id, name, email, is_active, created_at) \
-         VALUES ($1, $2, $3, true, NOW())",
+        "INSERT INTO users (id, username, email, password_hash, is_active, is_admin, created_at, updated_at) \
+         VALUES ($1, $2, $3, 'x', true, false, NOW(), NOW())",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Text, _>(&slug)
@@ -125,17 +128,20 @@ fn seed_tenant(name: &str) -> Option<SeededTenant> {
     .ok()?;
 
     diesel::sql_query(
-        "INSERT INTO user_organizations (user_id, org_id, role, created_at) \
-         VALUES ($1, $2, 'admin', NOW())",
+        "INSERT INTO user_organizations (id, user_id, org_id, role, is_default, joined_at) \
+         VALUES ($1, $2, $3, 'admin', true, NOW())",
     )
+    .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .bind::<diesel::sql_types::Uuid, _>(org_id)
     .execute(&mut conn)
     .ok()?;
 
+    // `crm_contacts.org_id` is a legacy FK to `branches`, not to
+    // `organizations`; the entitlement lookup reads branch_id.
     diesel::sql_query(
-        "INSERT INTO crm_contacts (id, branch_id, first_name, last_name, email, created_at) \
-         VALUES ($1, $2, $3, 'Admin', $4, NOW())",
+        "INSERT INTO crm_contacts (id, org_id, branch_id, bot_id, status, first_name, last_name, email, created_at, updated_at) \
+         VALUES ($1, $2, $2, (SELECT id FROM bots ORDER BY created_at LIMIT 1), 'active', $3, 'Admin', $4, NOW(), NOW())",
     )
     .bind::<diesel::sql_types::Uuid, _>(contact_id)
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
@@ -169,8 +175,8 @@ fn grant_global_admin_group(slug: &str) -> Option<()> {
     let mut conn = PgConnection::establish(&url).ok()?;
     let user_id = seeded_admin_user_id(slug)?;
     let group_id: OrgIdRow = diesel::sql_query(
-        "INSERT INTO rbac_groups (id, name, is_active, created_at) \
-         VALUES ($1, 'Administrators', true, NOW()) \
+        "INSERT INTO rbac_groups (id, name, display_name, is_active, created_at, updated_at) \
+         VALUES ($1, 'Administrators', 'Administrators', true, NOW(), NOW()) \
          ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name \
          RETURNING id AS org_id",
     )
