@@ -21,6 +21,7 @@ Verified from the app's own toolbar and module layout (`botui/ui/suite/docs/`).
 | **Compare Documents** | Diff two documents against each other |
 | **Version history** | Browse and restore earlier states |
 | Activity log | What happened to the document, and when |
+| Export | Toolbar Export menu downloads the active document as `.docx`, `.odt`, `.pdf`, `.html`, Markdown or plain text; if the document has no stored copy the editor content is exported instead |
 
 ### Structure and content
 
