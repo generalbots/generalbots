@@ -121,9 +121,9 @@ pub fn with_launcher_default(mut definition: AppDefinition) -> AppDefinition {
 
 pub fn all_apps() -> Vec<AppDefinition> {
     let mut apps = entries::entries();
-    apps.extend(entries_2::entries());
+    apps.extend(entries_extra::entries());
     apps
 }
 
 mod entries;
-mod entries_2;
+mod entries_extra;

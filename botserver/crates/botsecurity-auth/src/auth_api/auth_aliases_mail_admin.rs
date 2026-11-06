@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk1(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_mail_admin(s_lower: &str) -> Option<Self> {
     if s_lower == "read" { return Some(Self::Read); }
     if s_lower == "write" { return Some(Self::Write); }
     if s_lower == "delete" { return Some(Self::Delete); }

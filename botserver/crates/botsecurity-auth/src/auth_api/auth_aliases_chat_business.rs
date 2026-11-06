@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk2(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_chat_business(s_lower: &str) -> Option<Self> {
     if s_lower == "documents:read:*" { return Some(Self::DocumentsCanRead); }
     if s_lower == "documents.read.*" { return Some(Self::DocumentsCanRead); }
     if s_lower == "documents:create:*" { return Some(Self::DocumentsCanCreate); }

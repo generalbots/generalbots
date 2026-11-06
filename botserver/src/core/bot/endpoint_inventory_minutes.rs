@@ -1,7 +1,7 @@
 #[rustfmt::skip]
 use crate::core::bot::api_catalog::ApiEndpoint;
 
-pub(crate) const ALL_ROUTES_B: &[ApiEndpoint] = &[
+pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "PUT", path: "/api/minutes/documents/:id", summary: "registered in crates/botminutes/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/minutes/forms/action", summary: "registered in crates/botuifragments/src/ui_fragments/minutes_app.rs" },
     ApiEndpoint { method: "POST", path: "/api/minutes/forms/action/:id/done", summary: "registered in crates/botuifragments/src/ui_fragments/minutes_app.rs" },

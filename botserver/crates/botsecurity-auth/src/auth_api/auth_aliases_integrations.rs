@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk3(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_integrations(s_lower: &str) -> Option<Self> {
     if s_lower == "integrations.manage.webhooks" { return Some(Self::IntegrationsCanManageWebhooks); }
     if s_lower == "integrations:manage:apikeys" { return Some(Self::IntegrationsCanManageApiKeys); }
     if s_lower == "integrations.manage.apikeys" { return Some(Self::IntegrationsCanManageApiKeys); }

@@ -1,7 +1,7 @@
 #[rustfmt::skip]
 use crate::core::bot::api_catalog::ApiEndpoint;
 
-pub(crate) const ALL_ROUTES_A2: &[ApiEndpoint] = &[
+pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "DELETE", path: "/api/directory/groups/:group_id/delete", summary: "registered in crates/botcoredirectory/src/ui_api.rs" },
     ApiEndpoint { method: "POST", path: "/api/directory/groups/:group_id/invites/send", summary: "registered in crates/botcoredirectory/src/ui_api.rs" },
     ApiEndpoint { method: "GET", path: "/api/directory/groups/:group_id/members", summary: "registered in crates/botcoredirectory/src/ui_api.rs" },

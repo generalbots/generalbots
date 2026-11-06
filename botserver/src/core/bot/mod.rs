@@ -12,10 +12,10 @@ pub mod api_exec;
 pub mod crm_commands;
 pub mod commands_derived;
 pub mod endpoint_inventory;
-mod endpoint_inventory_a2;
-mod endpoint_inventory_b;
-mod endpoint_inventory_c;
-mod endpoint_inventory_d;
+mod endpoint_inventory_directory;
+mod endpoint_inventory_minutes;
+mod endpoint_inventory_editor_email;
+mod endpoint_inventory_ui_billing;
 
 pub use ws::{websocket_handler, websocket_handler_with_bot};
 

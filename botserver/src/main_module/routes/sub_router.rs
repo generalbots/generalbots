@@ -31,8 +31,8 @@ async fn inner_build_sub_router(
 ) -> Router<()> {
     let mut sub_router: Router<()> = Router::new();
 
-    super::feature_merge_a::merge_part_a(app_state, port, api_router, &mut sub_router).await;
-    super::feature_merge_b::merge_part_b(app_state, api_router, &mut sub_router).await;
+    super::feature_merge_office::merge_office_routers(app_state, port, api_router, &mut sub_router).await;
+    super::feature_merge_platform::merge_platform_routers(app_state, api_router, &mut sub_router).await;
 
     sub_router
 }

@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk4(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_workspace(s_lower: &str) -> Option<Self> {
     if s_lower == "canvas:create:*" { return Some(Self::CanvasCanCreate); }
     if s_lower == "canvas.create.*" { return Some(Self::CanvasCanCreate); }
     if s_lower == "canvas:edit:*" { return Some(Self::CanvasCanEdit); }

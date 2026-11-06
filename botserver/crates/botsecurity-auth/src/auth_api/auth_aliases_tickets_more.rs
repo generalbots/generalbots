@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk6(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_tickets_more(s_lower: &str) -> Option<Self> {
     if s_lower == "automationcancreateworkflows" { return Some(Self::AutomationCanCreateWorkflows); }
     if s_lower == "automationcaneditworkflows" { return Some(Self::AutomationCanEditWorkflows); }
     if s_lower == "automationcandeleteworkflows" { return Some(Self::AutomationCanDeleteWorkflows); }

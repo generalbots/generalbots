@@ -1,7 +1,7 @@
 #[rustfmt::skip]
 use crate::core::bot::api_catalog::ApiEndpoint;
 
-pub(crate) const ALL_ROUTES_C: &[ApiEndpoint] = &[
+pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/editor/undo", summary: "registered in crates/boteditor/src/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/email/accounts", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/email/accounts/:account_id", summary: "registered in crates/botemail/src/routes.rs" },

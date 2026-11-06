@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk8(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_code(s_lower: &str) -> Option<Self> {
     if s_lower == "learncaneditcourses" { return Some(Self::LearnCanEditCourses); }
     if s_lower == "learncandeletecourses" { return Some(Self::LearnCanDeleteCourses); }
     if s_lower == "learncanmanagemodules" { return Some(Self::LearnCanManageModules); }

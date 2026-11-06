@@ -8,7 +8,7 @@ use botcore::shared::state::AppState;
 /// tasks, analytics, docs, research) onto the api/sub routers. Every block
 /// is an independent `#[cfg]` merge preserved verbatim from the original
 /// monolithic `inner_build_sub_router`.
-pub(super) async fn merge_part_a(
+pub(super) async fn merge_office_routers(
     app_state: &Arc<AppState>,
     port: u16,
     api_router: &mut Router<Arc<AppState>>,

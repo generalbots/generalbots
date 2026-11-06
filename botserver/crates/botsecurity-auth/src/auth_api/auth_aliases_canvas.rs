@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk7(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_canvas(s_lower: &str) -> Option<Self> {
     if s_lower == "socialcanviewfeed" { return Some(Self::SocialCanViewFeed); }
     if s_lower == "socialcanmanageaccounts" { return Some(Self::SocialCanManageAccounts); }
     if s_lower == "socialcanviewanalytics" { return Some(Self::SocialCanViewAnalytics); }

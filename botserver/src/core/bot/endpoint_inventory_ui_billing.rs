@@ -1,7 +1,7 @@
 #[rustfmt::skip]
 use crate::core::bot::api_catalog::ApiEndpoint;
 
-pub(crate) const ALL_ROUTES_D: &[ApiEndpoint] = &[
+pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/ui/billing/stats/revenue-month", summary: "registered in crates/botbilling/src/billing_ui.rs" },
     ApiEndpoint { method: "POST", path: "/api/ui/billing/subscription/cancel", summary: "registered in crates/botbilling/src/billing_ui.rs" },
     ApiEndpoint { method: "POST", path: "/api/ui/billing/subscription/upgrade", summary: "registered in crates/botbilling/src/billing_ui.rs" },

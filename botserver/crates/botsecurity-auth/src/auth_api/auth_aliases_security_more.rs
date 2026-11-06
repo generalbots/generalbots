@@ -1,7 +1,7 @@
 use super::Permission;
 
 impl Permission {
-    pub(crate) fn from_alias_chunk5(s_lower: &str) -> Option<Self> {
+    pub(crate) fn from_alias_security_more(s_lower: &str) -> Option<Self> {
     if s_lower == "compliancecanviewdashboard" { return Some(Self::ComplianceCanViewDashboard); }
     if s_lower == "compliancecanmanagepolicies" { return Some(Self::ComplianceCanManagePolicies); }
     if s_lower == "compliancecanviewreports" { return Some(Self::ComplianceCanViewReports); }

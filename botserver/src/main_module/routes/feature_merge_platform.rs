@@ -7,7 +7,7 @@ use botcore::shared::state::AppState;
 /// monitoring, scripting, people, vibe, project, goals, sheet, canvas,
 /// fraud, inventory, gl, retail, banking, weba and the channel routers)
 /// onto the api/sub routers.
-pub(super) async fn merge_part_b(
+pub(super) async fn merge_platform_routers(
     app_state: &Arc<AppState>,
     api_router: &mut Router<Arc<AppState>>,
     sub_router: &mut Router<()>,
