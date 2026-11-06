@@ -39,7 +39,7 @@ pub async fn handle_export_sheet(
     match req.format.as_str() {
         "csv" => {
             let csv = export_to_csv(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv))
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv.into_bytes()))
         }
         "xlsx" => {
             let xlsx = export_to_xlsx(&sheet).map_err(|e| {
@@ -58,11 +58,11 @@ pub async fn handle_export_sheet(
         }
         "json" => {
             let json = export_to_json(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json))
+            Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json.into_bytes()))
         }
         "html" => {
             let html = export_to_html(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html.into_bytes()))
         }
         "ods" => {
             let ods = export_to_ods(&sheet).map_err(|e| {
@@ -81,7 +81,7 @@ pub async fn handle_export_sheet(
         }
         "md" | "markdown" => {
             let md = export_to_markdown(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md))
+            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md.into_bytes()))
         }
         "pdf" => {
             let pdf = export_to_pdf_data(&sheet).map_err(|e| {
