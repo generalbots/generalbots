@@ -14,7 +14,7 @@
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Vibe…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Vibe service unavailable</span></div>
 <!-- Ribbon status sink: the run status text is mirrored into the window
-     status bar (vibe-shell/10_toolbar.js). The legacy PLAN/BUILD/REVIEW/
+     status bar (vibe-shell/toolbar/). The legacy PLAN/BUILD/REVIEW/
      DEPLOY/MONITOR ribbon was removed — the VB-style toolbar is the only
      command surface. -->
 <span id="vibeRibbonStatus" class="vibe-ribbon-status" style="display:none"></span>
@@ -120,7 +120,12 @@
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=36"></script>
 <script src="/suite/vibe/vibe-metrics.js?v=3"></script>
-<script src="/suite/vibe/vibe-run.js?v=28"></script>
+<script src="/suite/vibe/run/01_state.js?v=28"></script>
+<script src="/suite/vibe/run/02_render.js?v=28"></script>
+<script src="/suite/vibe/run/03_polling.js?v=28"></script>
+<script src="/suite/vibe/run/04_transport.js?v=28"></script>
+<script src="/suite/vibe/run/05_sessions.js?v=28"></script>
+<script src="/suite/vibe/run/06_wire.js?v=28"></script>
 <script src="/suite/vibe/vibe-init.js?v=7"></script>
 <script src="/suite/vibe/vibe-deeplink.js?v=2"></script>
 <script src="/suite/vibe/vibe-new-project.js?v=11"></script>
@@ -133,7 +138,11 @@
 <script src="/suite/vibe/vibe-dialog-code.js?v=6"></script>
 <script src="/suite/vibe/vibe-dialog-deploy.js?v=47"></script>
 <script src="/suite/vibe/vibe-shell/00_shell_state.js?v=3"></script>
-<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=44"></script>
+<script src="/suite/vibe/vibe-shell/toolbar/01_shared.js?v=44"></script>
+<script src="/suite/vibe/vibe-shell/toolbar/02_chat_info.js?v=44"></script>
+<script src="/suite/vibe/vibe-shell/toolbar/03_controls.js?v=44"></script>
+<script src="/suite/vibe/vibe-shell/toolbar/04_status.js?v=44"></script>
+<script src="/suite/vibe/vibe-shell/toolbar/05_build.js?v=44"></script>
 <script src="/suite/vibe/vibe-shell/20_palettes.js?v=3"></script>
 <script src="/suite/vibe/vibe-shell/30_canvas_flow.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/99_shell_init.js?v=4"></script>
