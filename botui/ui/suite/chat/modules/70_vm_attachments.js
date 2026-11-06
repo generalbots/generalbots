@@ -157,9 +157,11 @@ function vmSplitTarget(target) {
 // #1711 — the app that can edit an Office artifact produced in chat.
 function vmOfficeAppFor(path) {
   var ext = String(path || "").split(".").pop().toLowerCase();
-  if (["docx", "doc", "odt", "rtf"].indexOf(ext) !== -1) return "docs";
+  // Only formats the editors can actually open: the docs converter reads
+  // docx (not legacy .doc/ODF/RTF) and slides imports pptx (not OLE .ppt).
+  if (ext === "docx") return "docs";
   if (["xlsx", "xls", "ods", "csv"].indexOf(ext) !== -1) return "sheet";
-  if (["pptx", "ppt"].indexOf(ext) !== -1) return "slides";
+  if (ext === "pptx") return "slides";
   return null;
 }
 
