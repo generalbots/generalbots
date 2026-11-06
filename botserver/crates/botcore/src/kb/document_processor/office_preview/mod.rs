@@ -20,7 +20,8 @@ mod slides;
 mod spreadsheet;
 mod word;
 
-pub use self::common::escape_html;
+#[cfg(test)]
+use self::common::escape_html;
 use self::slides::slides_html;
 use self::spreadsheet::spreadsheet_html;
 use self::word::word_html;

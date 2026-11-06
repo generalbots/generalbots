@@ -2,7 +2,7 @@
 //! resolved through the slide's relationship part.
 
 use super::common::{document_shell, escape_html, media_gallery, zip_entry_text};
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use zip::ZipArchive;
 
 pub(super) fn slides_html(file_name: &str, bytes: &[u8]) -> Result<String, String> {
