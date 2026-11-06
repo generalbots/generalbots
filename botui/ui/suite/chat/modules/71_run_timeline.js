@@ -9,21 +9,23 @@
     "use strict";
 
     var LAST_SEQ_PREFIX = "gb.run.last_seq.";
-    var MAX_LOG_LINES = 200;
-    var runs = Object.create(null);
-    var seenSeq = Object.create(null);
-    var activeRunId = null;
-    // True while replaying stored frames right after a (re)connect. A run
-    // that already finished before this page loaded is history: its card is
-    // removed on RUN_FINISHED instead of being parked at the end of the
-    // transcript, away from the turn it belongs to.
-    var restoring = false;
-    // #1677 — takeover segments that arrived before the run card existed
-    // (the WS broadcast can beat RUN_STARTED). Applied on card creation.
-    var pendingTakeover = Object.create(null);
-    var timer = null;
-    var logBuffer = [];
-    var flushScheduled = false;
+    var RT = (window.RunTimeline = window.RunTimeline || {});
+    var S = (RT._state = {
+        runs: Object.create(null),
+        seenSeq: Object.create(null),
+        activeRunId: null,
+        // True while replaying stored frames right after a (re)connect. A run
+        // that already finished before this page loaded is history: its card is
+        // removed on RUN_FINISHED instead of being parked at the end of the
+        // transcript, away from the turn it belongs to.
+        restoring: false,
+        // #1677 — takeover segments that arrived before the run card existed
+        // (the WS broadcast can beat RUN_STARTED). Applied on card creation.
+        pendingTakeover: Object.create(null),
+        timer: null,
+        logBuffer: [],
+        flushScheduled: false,
+    });
 
     function sessionKey() {
         var id = (window.ChatState && window.ChatState.currentSessionId) || "global";
@@ -51,15 +53,15 @@
     // #1677 — takeover asked from a terminal/browser card without the run id
     // in scope (61_terminal_use.js). Uses the active run.
     function reportTakeoverState(state, surface) {
-        if (!activeRunId) return;
-        applyTakeover(activeRunId, state, surface || "terminal");
-        reportTakeover(activeRunId, state, surface || "terminal");
+        if (!S.activeRunId) return;
+        applyTakeover(S.activeRunId, state, surface || "terminal");
+        reportTakeover(S.activeRunId, state, surface || "terminal");
     }
 
     // #1677 — ESC interrupts the run (Claude-Code-style): same message the
     // Stop button sends. An input or textarea keeps the key to itself.
     document.addEventListener("keydown", function (event) {
-        if (event.key !== "Escape" || !activeRunId) return;
+        if (event.key !== "Escape" || !S.activeRunId) return;
         var target = event.target;
         if (target) {
             var tag = String(target.tagName || "").toLowerCase();
@@ -78,7 +80,7 @@
     // #1677 — reflect a takeover/hand-back segment on the run card. Used by
     // the local controls and by replicated frames (live broadcast or replay).
     function applyTakeover(runId, state, surface) {
-        var entry = runs[runId];
+        var entry = S.runs[runId];
         if (!entry || !entry.takeoverBar) return;
         if (state === "handed_back") {
             entry.takeoverBar.hidden = true;
@@ -283,7 +285,7 @@
             terminal: false,
             logLines: 0,
             collapsed: false,
-            restored: restoring,
+            restored: S.restoring,
         };
 
         toggle.addEventListener("click", function () {
@@ -305,12 +307,12 @@
             stop.textContent = "Stopping…";
         });
 
-        runs[runId] = entry;
-        activeRunId = runId;
-        var pending = pendingTakeover[runId];
+        S.runs[runId] = entry;
+        S.activeRunId = runId;
+        var pending = S.pendingTakeover[runId];
         if (pending) {
             applyTakeover(runId, pending.state, pending.surface);
-            delete pendingTakeover[runId];
+            delete S.pendingTakeover[runId];
         }
         startTimer();
         // #1680 — first-paint sample for the performance gate.
@@ -323,349 +325,28 @@
     }
 
     function startTimer() {
-        if (timer) return;
-        timer = setInterval(function () {
+        if (S.timer) return;
+        S.timer = setInterval(function () {
             var any = false;
-            Object.keys(runs).forEach(function (id) {
-                var entry = runs[id];
+            Object.keys(S.runs).forEach(function (id) {
+                var entry = S.runs[id];
                 if (entry.terminal) return;
                 any = true;
                 entry.elapsed.textContent = elapsedLabel(entry.startedAt);
             });
-            if (!any && timer) {
-                clearInterval(timer);
-                timer = null;
+            if (!any && S.timer) {
+                clearInterval(S.timer);
+                S.timer = null;
             }
         }, 250);
     }
 
-    function row(entry, key, name, status) {
-        var existing = entry.rows.querySelector('[data-row-key="' + key + '"]');
-        if (existing) {
-            existing.setAttribute("data-status", status);
-            var badge = existing.querySelector(".run-row-status");
-            if (badge) badge.textContent = status;
-            var existingLabel = existing.querySelector(".run-row-name");
-            if (existingLabel && name) existingLabel.textContent = name;
-            return existing;
-        }
-        var item = document.createElement("div");
-        item.className = "run-row";
-        item.setAttribute("data-row-key", key);
-        item.setAttribute("data-status", status);
-
-        var badge = document.createElement("span");
-        badge.className = "run-row-status";
-        badge.textContent = status;
-
-        var label = document.createElement("span");
-        label.className = "run-row-name";
-        label.textContent = name;
-
-        item.appendChild(badge);
-        item.appendChild(label);
-        entry.rows.appendChild(item);
-        return item;
-    }
-
-    function appendLog(entry, line, stream) {
-        if (!entry || entry.terminal) return;
-        logBuffer.push({ entry: entry, line: String(line || ""), stream: stream || "stdout" });
-        if (!flushScheduled) {
-            flushScheduled = true;
-            window.requestAnimationFrame(flushLog);
-        }
-    }
-
-    function flushLog() {
-        flushScheduled = false;
-        var batch = logBuffer;
-        logBuffer = [];
-        var byRun = Object.create(null);
-        batch.forEach(function (item) {
-            (byRun[item.entry.id] = byRun[item.entry.id] || []).push(item);
-        });
-        Object.keys(byRun).forEach(function (id) {
-            var entry = runs[id];
-            if (!entry) return;
-            entry.log.hidden = false;
-            var fragment = document.createDocumentFragment();
-            byRun[id].forEach(function (item) {
-                if (entry.logLines >= MAX_LOG_LINES) return;
-                var line = document.createElement("span");
-                line.className = "run-log-line " + item.stream;
-                line.textContent = item.line;
-                fragment.appendChild(line);
-                fragment.appendChild(document.createTextNode("\n"));
-                entry.logLines += 1;
-            });
-            if (entry.logLines >= MAX_LOG_LINES && !entry.log.dataset.truncated) {
-                entry.log.dataset.truncated = "1";
-                var note = document.createElement("span");
-                note.className = "run-log-truncated";
-                note.textContent = "Output truncated. Download the full log from the run menu.";
-                fragment.appendChild(note);
-            }
-            entry.log.appendChild(fragment);
-            entry.log.scrollTop = entry.log.scrollHeight;
-        });
-    }
-
-    function finish(entry, state, data) {
-        if (!entry || entry.terminal) return;
-        entry.terminal = true;
-        if (entry.restored && state === "succeeded") {
-            // Replayed history, not a live turn: the transcript already holds
-            // the answer and this card would sit detached at the bottom.
-            entry.card.remove();
-            delete runs[entry.id];
-            if (activeRunId === entry.id) activeRunId = null;
-            return;
-        }
-        entry.card.classList.remove("running", "waiting");
-        entry.card.classList.add("state-" + state);
-        entry.stop.hidden = true;
-        entry.elapsed.textContent = data && data.duration_ms
-            ? (data.duration_ms / 1000).toFixed(1) + "s"
-            : elapsedLabel(entry.startedAt);
-        var label = {
-            succeeded: "Succeeded",
-            failed: "Failed",
-            cancelled: "Cancelled",
-        }[state] || state;
-        entry.summary.textContent = label;
-        if (state === "succeeded") {
-            entry.collapsed = true;
-            entry.card.classList.add("collapsed");
-            entry.toggle.textContent = "Expand";
-            entry.toggle.setAttribute("aria-expanded", "false");
-        } else {
-            entry.card.classList.add("expanded");
-            entry.stop.hidden = true;
-        }
-        // #1677 — opt-in completion notification. Never fires per step, and
-        // never requests permission on its own.
-        try {
-            if (
-                localStorage.getItem("gb.run.notify") === "1" &&
-                "Notification" in window &&
-                window.Notification.permission === "granted" &&
-                document.visibilityState !== "visible"
-            ) {
-                new window.Notification(entry.title.textContent || "Run finished", {
-                    body: label,
-                    tag: "gb-run-" + entry.id,
-                });
-            }
-        } catch (e) { /* notifications unavailable */ }
-        if (activeRunId === entry.id) activeRunId = null;
-    }
-
-    function customName(data) {
-        var payload = data && data.data ? data.data : {};
-        return payload.name || "";
-    }
-
-    function customPayload(data) {
-        var payload = data && data.data ? data.data : {};
-        return payload.payload || {};
-    }
-
-    function handleFrame(frame) {
-        if (!frame) return;
-        // Replayed frames come back as AG-UI envelopes (`event_type`); the
-        // live path uses `type`. Normalize so both render identically.
-        if (!frame.type && frame.event_type) {
-            frame = Object.assign({}, frame, { type: frame.event_type });
-        }
-        if (!frame.type) return;
-        var runId = frame.run_id || frame.runId || "";
-        if (frame.seq) writeLastSeq(frame.seq);
-        if (runId && frame.seq && seenSeq[runId + ":" + frame.seq]) return;
-        if (runId && frame.seq) seenSeq[runId + ":" + frame.seq] = true;
-
-        var entry = runId ? runs[runId] : null;
-        if (!entry && activeRunId) entry = runs[activeRunId] || null;
-        var type = frame.type;
-
-        // #1677 — takeover segments (live broadcast or replay) restore the
-        // controls after a reload, on any device.
-        if (type === "CUSTOM") {
-            var custom = frame.data || {};
-            if (custom.name === "gb.takeover") {
-                var payload = custom.payload || {};
-                if (entry) {
-                    applyTakeover(entry.id, payload.state || "taken_over", payload.surface || "terminal");
-                } else {
-                    pendingTakeover[runId || "pending"] = {
-                        state: payload.state || "taken_over",
-                        surface: payload.surface || "terminal",
-                    };
-                }
-                return;
-            }
-            // Every OTHER custom frame must continue to the dispatcher below;
-            // the takeover branch used to return unconditionally, so
-            // `gb.command_output` (live terminal lines) never reached the log.
-        }
-
-        // A run that touched the terminal or the browser exposes takeover.
-        if ((type === "terminal_output" || type === "browser_ready") && entry && entry.takeover) {
-            entry.surface = type === "browser_ready" ? "browser" : "terminal";
-            entry.takeover.hidden = false;
-        }
-
-        if (type === "RUN_STARTED") {
-            // A new run on the same thread means the previous waiting card was
-            // answered or approved; close it instead of leaving it spinning.
-            Object.keys(runs).forEach(function (key) {
-                var previous = runs[key];
-                if (previous.waiting && !previous.terminal) {
-                    finish(previous, "succeeded", {});
-                }
-            });
-            if (!entry && runId) createCard(runId, Object.assign({}, frame.data || {}, {
-                startedAt: Date.parse(frame.ts) || Date.now(),
-            }));
-            return;
-        }
-        if (type === "RUN_FINISHED") {
-            var state = (frame.data && frame.data.state) || "succeeded";
-            finish(entry, state, frame.data || {});
-            return;
-        }
-        if (type === "RUN_ERROR") {
-            if (entry) {
-                var errorRow = row(entry, "error:" + runId, (frame.data && frame.data.message) || "Run failed", "error");
-                errorRow.classList.add("run-error");
-            }
-            finish(entry, "failed", frame.data || {});
-            return;
-        }
-        if (!entry && type === "STEP_STARTED" && runId) {
-            entry = createCard(runId, { title: "Working…" });
-        }
-        if (!entry) return;
-
-        if (type === "STEP_STARTED") {
-            var stepId = (frame.data && frame.data.step_id) || "step";
-            var stepName = (frame.data && frame.data.name) || stepId;
-            entry.summary.textContent = stepName;
-            // The only step the pipeline emits is "Answering", and the summary
-            // already shows it. A row with the same word printed the status
-            // twice ("Answering … Answering", #1693).
-            if (stepName.toLowerCase() !== "answering") {
-                row(entry, "step:" + stepId, stepName, "running");
-            }
-            return;
-        }
-        if (type === "STEP_FINISHED") {
-            var doneStep = (frame.data && frame.data.step_id) || "step";
-            row(entry, "step:" + doneStep, doneStep, (frame.data && frame.data.status) || "ok");
-            return;
-        }
-        if (type === "TOOL_CALL_START") {
-            var callId = (frame.data && frame.data.call_id) || "call";
-            var toolName = (frame.data && frame.data.name) || callId;
-            // Say what the VM is doing while it runs, instead of a static
-            // "Answering" until the tool returns (#1693).
-            entry.summary.textContent = "Running " + toolName + "…";
-            row(entry, "tool:" + callId, toolName, "running");
-            return;
-        }
-        if (type === "TOOL_CALL_RESULT") {
-            var resultId = (frame.data && frame.data.call_id) || "call";
-            var status = (frame.data && frame.data.status) || "ok";
-            row(entry, "tool:" + resultId, "Tool result", status);
-            entry.summary.textContent = status === "error" ? "Tool failed" : "Answering…";
-            var result = frame.data && frame.data.result;
-            if (result && typeof result === "object") {
-                var lines = Array.isArray(result.lines) ? result.lines : null;
-                if (lines) {
-                    lines.forEach(function (line) {
-                        appendLog(entry, line, "stdout");
-                    });
-                }
-            }
-            return;
-        }
-        if (type === "SUBAGENT_STARTED") {
-            var child = (frame.data && frame.data.child_run_id) || "child";
-            row(entry, "subagent:" + child, (frame.data && frame.data.agent_name) || "Sub-agent", "running");
-            return;
-        }
-        if (type === "SUBAGENT_FINISHED") {
-            var childDone = (frame.data && frame.data.child_run_id) || "child";
-            row(entry, "subagent:" + childDone, "Sub-agent", (frame.data && frame.data.state) || "succeeded");
-            return;
-        }
-        if (type === "CUSTOM") {
-            var name = customName(frame);
-            var payload = customPayload(frame);
-            if (name === "gb.command_output") {
-                appendLog(entry, payload.line || "", payload.stream || "stdout");
-            } else if (name === "gb.tool_progress") {
-                // #1693 — the VM reports start/finish so the card says what it
-                // is doing during a long run instead of a static "Answering".
-                var progressTool = payload.tool || "tool";
-                if (payload.phase === "start") {
-                    entry.summary.textContent = "Running " + progressTool + "…";
-                    row(entry, "progress:" + progressTool, progressTool +
-                        (payload.detail ? " · " + payload.detail : ""), "running");
-                } else {
-                    entry.summary.textContent = "Answering…";
-                    row(entry, "progress:" + progressTool, progressTool + " finished",
-                        payload.ok === false ? "error" : "ok");
-                }
-            } else if (name === "gb.question") {
-                row(entry, "question:" + (payload.question_id || "q"), "Waiting for your answer", "waiting");
-                entry.card.classList.add("waiting");
-                entry.waiting = true;
-                entry.summary.textContent = "Waiting for input";
-            } else if (name === "gb.surface") {
-                row(entry, "surface:" + (payload.surface_id || "s"), "Showing a result", "ok");
-            } else if (name === "gb.plan") {
-                row(entry, "plan", "Plan proposed", "waiting");
-                entry.waiting = true;
-            }
-        }
-    }
-
-    function resume() {
-        // A fresh page has no cards: replay from the beginning so the run
-        // summaries are restored together with the conversation. A reconnect
-        // with cards already mounted resumes from the last seen frame.
-        var hasCards = document.querySelectorAll(".run-card").length > 0;
-        var last = hasCards ? readLastSeq() : 0;
-        var ws = window.ChatState && window.ChatState.ws;
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        restoring = true;
-        window.setTimeout(function () { restoring = false; }, 2500);
-        ws.send(JSON.stringify({
-            type: "run_resume",
-            session_id: sessionKey(),
-            last_seq: last,
-        }));
-    }
-
-    function reset() {
-        runs = Object.create(null);
-        seenSeq = Object.create(null);
-        activeRunId = null;
-        logBuffer = [];
-        if (timer) {
-            clearInterval(timer);
-            timer = null;
-        }
-    }
-
-    window.addEventListener("gb-chat-connected", resume);
-
-    window.RunTimeline = {
-        handleFrame: handleFrame,
-        resume: resume,
-        reset: reset,
-        activeRunId: function () { return activeRunId; },
-        reportTakeoverState: reportTakeoverState,
-    };
+    // Internals shared with the sibling files (same split for #1731).
+    RT._createCard = createCard;
+    RT._applyTakeover = applyTakeover;
+    RT._readLastSeq = readLastSeq;
+    RT._writeLastSeq = writeLastSeq;
+    RT._elapsedLabel = elapsedLabel;
+    RT._sessionKey = sessionKey;
+    RT.reportTakeoverState = reportTakeoverState;
 })();
