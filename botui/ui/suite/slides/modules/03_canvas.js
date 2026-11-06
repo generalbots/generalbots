@@ -280,7 +280,8 @@ SlideCanvas.bindRotationInput = function () {
   var inp = document.getElementById("rotationInput");
   var rst = document.getElementById("resetRotationBtn");
   var self = this;
-  if (inp) {
+  if (inp && !inp.dataset.gbRotBound) {
+    inp.dataset.gbRotBound = "1";
     inp.addEventListener("input", function () {
       var el = document.querySelector('[data-id="' + self.selectedId + '"]');
       if (!el) return;
@@ -290,7 +291,8 @@ SlideCanvas.bindRotationInput = function () {
       self.persistElement(el);
     });
   }
-  if (rst) {
+  if (rst && !rst.dataset.gbRotBound) {
+    rst.dataset.gbRotBound = "1";
     rst.addEventListener("click", function () {
       var el = document.querySelector('[data-id="' + self.selectedId + '"]');
       if (!el) return;
