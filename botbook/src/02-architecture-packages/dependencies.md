@@ -172,7 +172,10 @@ cargo search jsonwebtoken
 
 ```toml
 [dependencies]
-jsonwebtoken = "9.2"
+# Exactly one crypto backend must be selected. `aws_lc_rs` reuses the AWS-LC
+# library already pulled in by rustls and keeps the `rsa`/`crypto-bigint`
+# chain (RUSTSEC-2023-0071, RUSTSEC-2026-0387) out of the lockfile.
+jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
 ```
 
 ### 3. Update Dependencies
@@ -437,8 +440,8 @@ Good documentation makes dependencies easier to maintain. Add comments in `Cargo
 
 ```toml
 [dependencies]
-# JWT token generation and validation
-jsonwebtoken = "9.2"
+# JWT token generation and validation (aws-lc-rs backend, see above)
+jsonwebtoken = { version = "10.3", features = ["aws_lc_rs", "use_pem"] }
 ```
 
 Document usage in your code with doc comments that explain the dependency's role:
