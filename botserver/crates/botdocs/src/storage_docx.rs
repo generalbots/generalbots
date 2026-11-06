@@ -151,16 +151,19 @@ pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, 
 
         match para_data.style.as_str() {
             "h1" => {
-                paragraph =
-                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(32));
+                paragraph = paragraph
+                    .style("Heading1")
+                    .add_run(Run::new().add_text(&para_data.text).bold().size(32));
             }
             "h2" => {
-                paragraph =
-                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(28));
+                paragraph = paragraph
+                    .style("Heading2")
+                    .add_run(Run::new().add_text(&para_data.text).bold().size(28));
             }
             "h3" => {
-                paragraph =
-                    paragraph.add_run(Run::new().add_text(&para_data.text).bold().size(24));
+                paragraph = paragraph
+                    .style("Heading3")
+                    .add_run(Run::new().add_text(&para_data.text).bold().size(24));
             }
             "li" => {
                 paragraph = paragraph

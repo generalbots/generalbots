@@ -123,9 +123,15 @@ fn html_to_docx_full(title: &str, html: &str) -> Result<Vec<u8>, String> {
 
 fn paragraph_from_data(p: &ParagraphData) -> Paragraph {
     match p.style.as_str() {
-        "h1" => Paragraph::new().add_run(Run::new().add_text(&p.text).bold().size(32)),
-        "h2" => Paragraph::new().add_run(Run::new().add_text(&p.text).bold().size(28)),
-        "h3" => Paragraph::new().add_run(Run::new().add_text(&p.text).bold().size(24)),
+        "h1" => Paragraph::new()
+            .style("Heading1")
+            .add_run(Run::new().add_text(&p.text).bold().size(32)),
+        "h2" => Paragraph::new()
+            .style("Heading2")
+            .add_run(Run::new().add_text(&p.text).bold().size(28)),
+        "h3" => Paragraph::new()
+            .style("Heading3")
+            .add_run(Run::new().add_text(&p.text).bold().size(24)),
         "li" => Paragraph::new()
             .add_run(Run::new().add_text("• "))
             .add_run(Run::new().add_text(&p.text)),
