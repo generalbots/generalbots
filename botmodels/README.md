@@ -46,6 +46,14 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+System libraries are not installable with pip:
+
+- `libzbar0` — barcode/QR decoding (`apt-get install -y libzbar0`). Without it
+  BotModels still starts and `/api/health` reports
+  `media_capabilities.barcode.available: false`; the barcode endpoints return
+  503 with that remediation instead of an import traceback.
+- `tesseract-ocr` — optional OCR backend; RapidOCR is the pip-only fallback.
+
 ### Configuration
 
 Copy the example environment file and configure:
@@ -230,6 +238,25 @@ question: "How many people are in this image?"
 
 ```http
 GET /api/health
+```
+
+The payload includes `media_capabilities` so callers can tell which optional
+system libraries are present, for example:
+
+```json
+"media_capabilities": {
+  "barcode": {
+    "available": false,
+    "library": "libzbar0",
+    "detail": "Unable to find zbar shared library",
+    "remediation": "apt-get install -y libzbar0"
+  },
+  "ocr": {
+    "available": true,
+    "detail": null,
+    "remediation": null
+  }
+}
 ```
 
 Interactive API documentation:

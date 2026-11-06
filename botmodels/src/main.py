@@ -21,6 +21,7 @@ from .core.mode import InvalidModeError
 from .core.startup import finalize_mode, health_summary
 from .services.backends import registry
 from .services.errors import BotModelsError
+from .services.media_capabilities import media_capabilities
 
 logger = get_logger("main")
 
@@ -134,6 +135,9 @@ async def health():
         "device": settings.device,
         **health_summary(),
         "backends_loaded": registry.status(),
+        # System libraries pip cannot install: reported here so a missing
+        # libzbar degrades barcode decoding instead of failing at import.
+        "media_capabilities": media_capabilities(),
     }
 
 

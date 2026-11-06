@@ -3,13 +3,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from PIL import Image
-from pyzbar import pyzbar
 
 from ....schemas.generation import (
     ImageDescribeResponse,
     QRCodeResponse,
     VideoDescribeResponse,
 )
+from ....services.media_capabilities import require_pyzbar
 from ....services.ocr_service import describe_codes, image_metadata, run_ocr
 from ....services.vision_service import get_vision_service
 from ...dependencies import verify_api_key
@@ -100,6 +100,10 @@ async def read_qrcode(
     """
     image_data = await file.read()
 
+    # Imported here, not at module level: pyzbar loads libzbar on import, and a
+    # host without it must still serve the rest of the vision endpoints.
+    pyzbar = require_pyzbar()
+
     try:
         # Load image
         image = Image.open(io.BytesIO(image_data))
@@ -172,6 +176,8 @@ async def read_barcode(
         List of all barcodes found with their data and type
     """
     image_data = await file.read()
+
+    pyzbar = require_pyzbar()
 
     try:
         image = Image.open(io.BytesIO(image_data))

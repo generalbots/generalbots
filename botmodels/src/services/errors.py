@@ -29,6 +29,23 @@ class BackendNotLoadedError(BotModelsError):
         super().__init__(detail)
 
 
+class BarcodeUnavailableError(BotModelsError):
+    """libzbar is missing, so pyzbar cannot decode QR codes or barcodes.
+
+    Carries the exact package to install so the 503 body is actionable instead
+    of surfacing an import traceback from inside the vision router.
+    """
+
+    remediation = "apt-get install -y libzbar0"
+
+    def __init__(self, cause: Optional[str] = None):
+        self.cause = cause
+        detail = f"barcode decoding is unavailable; run: {self.remediation}"
+        if cause:
+            detail = f"{detail} ({cause})"
+        super().__init__(detail)
+
+
 class UnsupportedBackendError(BotModelsError):
     """The requested backend is not registered for this capability."""
 

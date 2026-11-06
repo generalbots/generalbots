@@ -10,6 +10,7 @@ from PIL import Image
 
 from .backends import registry
 from .errors import BotModelsError
+from .media_capabilities import require_pyzbar
 
 
 def run_ocr(image_data: bytes, language: str = "eng") -> dict:
@@ -47,7 +48,7 @@ def run_ocr(image_data: bytes, language: str = "eng") -> dict:
 
 def describe_codes(image_data: bytes) -> list[dict]:
     """QR and barcode payloads found in an image."""
-    from pyzbar import pyzbar
+    pyzbar = require_pyzbar()
 
     image = Image.open(io.BytesIO(image_data))
     if image.mode != "RGB":
