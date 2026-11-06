@@ -79,7 +79,12 @@ COMMAND_ALLOWED_FILES = {
     "botapp/src/desktop/wizard/provision.rs",
     "botserver/crates/botvideo/src/safe_command.rs",
 }
-COMMAND_ALLOWED_PREFIXES = ("botlib/src/security/command_guard/",)
+COMMAND_ALLOWED_PREFIXES = (
+    "botlib/src/security/command_guard/",
+    # The desktop wizard spawns the bundled botserver provisioner; #1730 split
+    # provision.rs into this directory, so the exemption follows the code.
+    "botapp/src/desktop/wizard/provision/",
+)
 # Directory-scoped rules: a PR must clear these in the directories it touches
 # even while the repo-wide baseline is still above zero.
 STRICT_RULES = {
