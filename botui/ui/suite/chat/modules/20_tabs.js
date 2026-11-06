@@ -150,6 +150,20 @@ function tabText(key, fallback) {
     return tab;
   };
 
+  // Closing a chat tab must also dispose its runtime record: the parallel
+  // conversation owns a WebSocket and a detached pane, and leaving them alive
+  // kept receiving frames (and unread badges) for a tab that no longer exists.
+  // App/history tabs have no MC record, so this is a no-op for them.
+  function disposeChatRecord(id) {
+    var MC = window.GBMultiChat;
+    var rec = MC && MC.tabs ? MC.tabs[id] : null;
+    if (!rec) return;
+    if (rec.ws) {
+      try { rec.ws.close(); } catch (e) { /* already closed */ }
+    }
+    try { delete MC.tabs[id]; } catch (e) { /* frozen */ }
+  }
+
   GBTabs.closeTab = function (id) {
     var tabs = GBTabs.state.tabs;
     if (tabs.length <= 1) return;
@@ -159,6 +173,7 @@ function tabText(key, fallback) {
     }
     if (idx === -1) return;
     tabs.splice(idx, 1);
+    disposeChatRecord(id);
     delete GBTabs.unread[id];
     if (GBTabs.state.activeTabId === id) {
       var next = tabs[Math.min(idx, tabs.length - 1)];
