@@ -231,12 +231,29 @@ function getLiveSheetId() {
 // per HTMX request so the modal (and the form it renders) targets the open
 // workbook instead of a session literal.
 document.addEventListener("htmx:configRequest", function (event) {
-    var live = getLiveSheetId();
-    if (!live || live === "current") return;
     var parameters = (event.detail && event.detail.parameters) || {};
-    ["id", "sheet_id"].forEach(function (key) {
-        if (parameters[key] === "current") parameters[key] = live;
-    });
+    var live = getLiveSheetId();
+    if (live && live !== "current") {
+        ["id", "sheet_id"].forEach(function (key) {
+            if (parameters[key] === "current") parameters[key] = live;
+        });
+    }
+    // Mutations must target the active worksheet tab, not always the first.
+    var tabs = document.getElementById("worksheet-tabs");
+    if (tabs && tabs.dataset.activeIndex !== undefined) {
+        parameters.worksheet_index = parseInt(tabs.dataset.activeIndex, 10) || 0;
+    }
+});
+// Re-render the grid after a successful htmx mutation (CF/DV/format/chart/
+// share) so the change is visible without a reload. Cell edits use fetch.
+document.addEventListener("htmx:afterRequest", function (event) {
+    var detail = event.detail || {};
+    if (!detail.successful) return;
+    var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";
+    if (path.indexOf("/api/sheet/") !== 0) return;
+    if (path === "/api/sheet/load" || path === "/api/sheet/load-from-drive") return;
+    var live = getLiveSheetId();
+    if (live && typeof loadSheet === "function") loadSheet(live);
 });
 function openSheetComments() {
     if (!window.GBCollabComments) return;
