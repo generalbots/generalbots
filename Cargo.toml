@@ -420,7 +420,7 @@ qdrant-client = "1.17"
 livekit = "0.7"
 
 # ─── SYSTEM MONITORING ───
-sysinfo = "0.37.2"
+sysinfo = "0.40.1"
 
 # ─── CONSOLE / TUI ───
 crossterm = "0.29.0"
