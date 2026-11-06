@@ -106,8 +106,21 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
     Html(html)
 }
 
-pub async fn handle_track_changes_panel(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let changes: Vec<TrackChange> = serde_json::from_value(payload.get("track_changes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+pub async fn handle_track_changes_panel(
+    State(state): State<Arc<DocState>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    let mut changes: Vec<TrackChange> = serde_json::from_value(payload.get("track_changes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
+    if changes.is_empty() {
+        if let Some(doc) = panel_document(&state, &payload).await {
+            changes = doc.track_changes.unwrap_or_default();
+        }
+    }
+    let doc_id = payload
+        .get("id")
+        .or_else(|| payload.get("doc_id"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
     if changes.is_empty() {
         return Html(empty_fragment("Nenhuma alteração rastreada. Ative o controle de alterações no menu Revisão."));
     }
@@ -116,12 +129,13 @@ pub async fn handle_track_changes_panel(Json(payload): Json<serde_json::Value>) 
 <div class="dc-panel-header" style="padding:12px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">Controle de Alterações</h3>
 <div>
-<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"id":"{id}","action":"accept_all"}' hx-target="#tc-panel" hx-swap="outerHTML" style="background:#10b981;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">✓ Aceitar Tudo</button>
-<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"id":"{id}","action":"reject_all"}' hx-target="#tc-panel" hx-swap="outerHTML" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✗ Rejeitar Tudo</button>
+<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":true}' hx-swap="none" style="background:#10b981;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:4px;">✓ Aceitar Tudo</button>
+<button hx-post="/api/docs/track-changes/accept-reject-all" hx-vals='{"doc_id":"{id}","accept":false}' hx-swap="none" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">✗ Rejeitar Tudo</button>
 </div>
 </div>
 <div class="dc-panel-body" style="padding:8px;">"##
-    );
+    )
+    .replace("{id}", &html_escape(doc_id));
     for c in &changes {
         let icon = match c.change_type.as_str() {
             "insertion" => r##"<span style="color:#10b981;">+</span>"##,
@@ -135,8 +149,8 @@ pub async fn handle_track_changes_panel(Json(payload): Json<serde_json::Value>) 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
 <div style="font-size:12px;color:#94a3b8;">{icon} <strong>{author}</strong> • {change_type} • pos {pos}</div>
 <div>
-<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"id":"{cid}","action":"accept"}}' hx-target="#tc-panel" hx-swap="outerHTML" style="background:#10b981;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;margin-right:2px;">✓</button>
-<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"id":"{cid}","action":"reject"}}' hx-target="#tc-panel" hx-swap="outerHTML" style="background:#dc2626;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;">✗</button>
+<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":true}}' hx-swap="none" style="background:#10b981;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;margin-right:2px;">✓</button>
+<button hx-post="/api/docs/track-changes/accept-reject" hx-vals='{{"doc_id":"{doc_id}","change_id":"{cid}","accept":false}}' hx-swap="none" style="background:#dc2626;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:11px;">✗</button>
 </div>
 </div>
 <div style="font-size:12px;">
@@ -149,6 +163,7 @@ pub async fn handle_track_changes_panel(Json(payload): Json<serde_json::Value>) 
             change_type = html_escape(&c.change_type),
             pos = c.position,
             cid = c.id,
+            doc_id = html_escape(doc_id),
             original_label = if original.is_empty() { "" } else { "Original:" },
             new_label = if new.is_empty() { "" } else { "Novo:" },
             original = html_escape(original),
