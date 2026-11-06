@@ -138,7 +138,18 @@ function GBDocsExport(format, id) {
                 printWindow.print();
                 return;
             }
-            gbDocsSaveBlob(new Blob([html], { type: "text/html" }), "document.html");
+            // The stored-document export 404s for a file opened from Drive:
+            // there is no saved copy to convert. Save the live editor content
+            // as HTML and say so, instead of naming an HTML file ".docx".
+            var fallbackTitle = (document.getElementById("docTitle") && document.getElementById("docTitle").value) ||
+                "document";
+            var fallbackSlug = fallbackTitle.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "document";
+            if (window.GBToasts) {
+                GBToasts.show("Export",
+                    "This document has no stored copy yet, so the editor content was saved as HTML.",
+                    "info");
+            }
+            gbDocsSaveBlob(new Blob([html], { type: "text/html" }), fallbackSlug + ".html");
         });
 }
 window.GBDocsExport = GBDocsExport;
