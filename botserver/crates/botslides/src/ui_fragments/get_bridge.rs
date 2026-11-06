@@ -129,15 +129,31 @@ fn thumbnails_html(pres: &Presentation) -> Html<String> {
     if pres.slides.is_empty() {
         html.push_str(&super::empty_fragment("Nenhum slide. Adicione um slide para começar."));
     }
+    let total = pres.slides.len();
     for (index, slide) in pres.slides.iter().enumerate() {
+        let delete_button = if total > 1 {
+            format!(
+                r##"<button type="button" title="Delete slide" onclick="event.stopPropagation()" hx-post="/api/slides/slide/delete" hx-vals='{{"presentation_id":"{id}","slide_index":{index}}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) refreshSlideView()" style="background:#7f1d1d;color:#fecaca;border:1px solid #991b1b;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:2px 4px;">×</button>"##,
+                id = html_escape(&pres.id),
+                index = index
+            )
+        } else {
+            String::new()
+        };
         html.push_str(&format!(
-            r#"<div class="sl-thumb" data-index="{index}" data-slide="{index}" style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;">
+            r#"<div class="sl-thumb" data-index="{index}" data-slide="{index}" style="position:relative;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;cursor:pointer;">
+<div style="position:absolute;top:4px;right:4px;display:flex;gap:2px;z-index:2;">
+<button type="button" title="Duplicate slide" onclick="event.stopPropagation()" hx-post="/api/slides/slide/duplicate" hx-vals='{{"presentation_id":"{id}","slide_index":{index}}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) refreshSlideView()" style="background:#1e3a8a;color:#bfdbfe;border:1px solid #1d4ed8;border-radius:3px;cursor:pointer;font-size:11px;line-height:1;padding:2px 4px;">⧉</button>
+{delete}
+</div>
 <div style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Slide {n}</div>
 <div style="background:#fff;border-radius:4px;overflow:hidden;aspect-ratio:16/9;">{preview}</div>
 </div>"#,
             index = index,
             n = index + 1,
-            preview = super::sidebars::render_slide(slide)
+            preview = super::sidebars::render_slide(slide),
+            id = html_escape(&pres.id),
+            delete = delete_button
         ));
     }
     html.push_str("</div>");
