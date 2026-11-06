@@ -82,6 +82,22 @@ function slidesInit() {
   if (window.SlidesPresenter && window.SlidesPresenter.refreshPresenterStatus) {
     window.SlidesPresenter.refreshPresenterStatus();
   }
+  // A deck the shell rendered directly (already-imported Drive file) has no
+  // deep link to run: adopt its id so thumbnails, rename and canvas edits do
+  // not fall back to the literal "current" deck.
+  var initialView = document.querySelector(".sl-view[data-presentation-id]");
+  if (initialView && initialView.dataset.presentationId &&
+      initialView.dataset.presentationId !== "current") {
+    window.__SLIDES_PRESENTATION_ID = initialView.dataset.presentationId;
+    var initialTitle = document.querySelector("#presTitle");
+    if (initialTitle) {
+      initialTitle.setAttribute(
+        "hx-vals",
+        JSON.stringify({ id: initialView.dataset.presentationId, action: "rename" })
+      );
+      if (window.htmx) htmx.process(initialTitle);
+    }
+  }
   loadDrivePresentationIntoApp();
   if (!window.__gbSlidesDeepLinkBound) {
     window.__gbSlidesDeepLinkBound = true;
