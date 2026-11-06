@@ -81,7 +81,13 @@ fn render_named_range(r: &NamedRange, lang: Lang, sheet_id: &str) -> String {
         .worksheet_index
         .map(|i| tf(lang, "panel.sheet_n", &[("n", &(i + 1).to_string())]))
         .unwrap_or_else(|| t(lang, "panel.global"));
-    let ref_str = format!("{}:{}{}", col_name(r.start_col), r.start_row + 1, col_name(r.end_col)) + &format!("{}", r.end_row + 1);
+    let ref_str = format!(
+        "{}{}:{}{}",
+        col_name(r.start_col),
+        r.start_row + 1,
+        col_name(r.end_col),
+        r.end_row + 1
+    );
     let comment = r.comment.as_deref().unwrap_or("");
     format!(
         r##"<div class="ss-range-item" style="padding:8px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">

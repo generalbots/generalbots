@@ -107,7 +107,7 @@ if (!window.__gbDocsAiHook) {
     var text = "";
     try {
       var data = JSON.parse(detail.xhr.responseText);
-      text = data.response || data.result || data.text || "";
+      text = data.content || data.response || data.text || data.result || "";
     } catch (error) {
       text = detail.xhr.responseText;
     }
