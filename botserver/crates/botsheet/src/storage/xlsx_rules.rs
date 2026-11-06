@@ -132,8 +132,7 @@ fn dxf_style(style: Option<&umya_spreadsheet::structs::Style>) -> CellStyle {
 
     let font = style.font();
     let color = font
-        .and_then(|f| f.color())
-        .map(|c| argb_to_hex(&c.argb_str()))
+        .map(|f| argb_to_hex(&f.color().argb_str()))
         .filter(|c| c != "#000000");
     let font_family = font.map(|f| f.name().to_string());
     let font_size = font.map(|f| f.size().round() as u32);

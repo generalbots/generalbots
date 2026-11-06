@@ -349,7 +349,7 @@ pub fn extract_cell_style(cell: &umya_spreadsheet::Cell) -> Option<CellStyle> {
 pub(crate) fn extract_border(sides: [&umya_spreadsheet::Border; 4]) -> Option<String> {
     let side = sides.into_iter().find(|b| b.border_style() != "none")?;
     let style = border_style_to_css(side.border_style())?;
-    let argb = side.get_color().map(|c| c.argb_str()).unwrap_or_default();
+    let argb = side.color().map(|c| c.argb_str()).unwrap_or_default();
     let color = if argb.len() >= 8 {
         format!("#{}", &argb[2..])
     } else if argb.is_empty() {
