@@ -25,8 +25,22 @@ impl ChannelSink for RunBusSink {
         &self,
         response: &botlib::models::BotResponse,
     ) -> Result<(), PipelineError> {
-        let frame = serde_json::to_value(response)
+        let mut frame = serde_json::to_value(response)
             .map_err(|error| PipelineError::Transport(format!("run frame encode: {error}")))?;
+        // #1756 — a completed assistant frame carries a stable, non-empty id so
+        // tests and clients can assert one message per turn without relying on
+        // content equality. Suggestions-only and keepalive frames stay idless.
+        if response.is_complete
+            && !response.content.is_empty()
+            && frame.get("message_id").is_none()
+        {
+            if let Some(object) = frame.as_object_mut() {
+                object.insert(
+                    "message_id".to_string(),
+                    serde_json::Value::String(Uuid::new_v4().to_string()),
+                );
+            }
+        }
         bus::bus().publish(&self.thread_id, frame);
         Ok(())
     }

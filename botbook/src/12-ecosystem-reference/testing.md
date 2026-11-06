@@ -418,6 +418,25 @@ fn test_user_story() {
 }
 ```
 
+### Deterministic chat mock
+
+Browser chat tests need a provider that answers exactly once. Use the
+repo-owned mock instead of an ad-hoc `/tmp` script:
+
+```bash
+python3 scripts/mock_llm.py                  # 127.0.0.1:8090, MOCK_MODE=answer
+MOCK_MODE=tool MOCK_TOOL=drive_fetch python3 scripts/mock_llm.py
+```
+
+`answer` streams one content chunk, one `finish_reason=stop` and one `[DONE]`
+per request; `tool` streams a single tool call. The reply is
+`MOCK-OK <sha256-prefix>` of the last user message, so a test can match the
+answer to the turn. `ATTACH-TEST` in the prompt streams a docx attachment link.
+Point the bot's `llm-url` at the mock (Vault value, never committed). A
+completed assistant frame now carries a non-empty `message_id`, so the
+assertion "one user turn → one bot message" does not depend on content
+deduplication.
+
 ## Summary
 
 Comprehensive testing ensures botserver's reliability and makes refactoring safe. Focus on writing clear, independent tests that cover both success and failure cases, and maintain good test coverage across the codebase.
