@@ -178,6 +178,20 @@
       inner.textContent = content;
     }
     div.appendChild(inner);
+    if (!msgId || String(msgId).indexOf("streaming-") !== 0) {
+      try {
+        div.dataset.time = new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch (e) { /* Intl unavailable — no timestamp is fine */ }
+    }
+    // Parallel tabs render through this helper, so they must add the same
+    // per-message actions the stock addMessage path attaches.
+    if (sender !== "user" && content && content.trim()) {
+      if (typeof createCopyButton === "function") div.appendChild(createCopyButton(content));
+      if (typeof createSpeakButton === "function") div.appendChild(createSpeakButton(content));
+    }
     msgs.appendChild(div);
     if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
     msgs.scrollTop = msgs.scrollHeight;
@@ -611,6 +625,13 @@
           pushScrollback(t, "bot", data.content);
         }
       }
+      var tabSugg = t.pane && t.pane.querySelector
+        ? t.pane.querySelector(".suggestions-container")
+        : null;
+      if (tabSugg && data.suggestions && Array.isArray(data.suggestions) &&
+          data.suggestions.length && typeof renderSuggestions === "function") {
+        renderSuggestions(data.suggestions, tabSugg);
+      }
       bumpUnread(t);
       schedulePersist();
     } else if ((data.content && data.content.trim()) || data.reasoning) {
@@ -701,11 +722,15 @@
     t.ackTimer = setTimeout(expire, 7000);
   }
 
-  MC.sendInTab = function (tabId, text, file) {
+  MC.sendInTab = function (tabId, text, fileOrFiles) {
     var t = MC.tabs[tabId];
     if (!t) return;
+    var files = Array.isArray(fileOrFiles)
+      ? fileOrFiles.filter(Boolean)
+      : (fileOrFiles ? [fileOrFiles] : []);
+    var file = files[0] || null;
     text = (text || "").trim();
-    if (!text && !file) return;
+    if (!text && !files.length) return;
     // Parallel tabs ALWAYS use their own socket + session: the stock
     // pipeline's socket is bound to the default conversation, so routing
     // through it sent the message (and received the reply) under the WRONG
@@ -750,19 +775,31 @@
     // dropped: the router only forwarded text, so the attachment never
     // reached the tab's socket. Read it like the stock path does and send the
     // same `file` payload.
-    if (file) {
-      var reader = new FileReader();
-      reader.onerror = function () {
-        notify("Could not read the attachment. Attach it again.", "error");
-      };
-      reader.onload = function () {
-        payload.file = {
-          name: file.name,
-          content_base64: String(reader.result).split(",")[1] || reader.result,
-        };
-        dispatch();
-      };
-      reader.readAsDataURL(file);
+    if (files.length) {
+      // The stock send path forwards every attachment as `files[]`; the tab
+      // router used to send only the first one and silently drop the rest.
+      var readers = files.map(function (attachment) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onerror = function () { reject(attachment.name); };
+          reader.onload = function () {
+            resolve({
+              name: attachment.name,
+              content_base64: String(reader.result).split(",")[1] || reader.result,
+            });
+          };
+          reader.readAsDataURL(attachment);
+        });
+      });
+      Promise.all(readers)
+        .then(function (attachments) {
+          payload.files = attachments;
+          payload.file = attachments[0];
+          dispatch();
+        })
+        .catch(function () {
+          notify("Could not read an attachment. Attach it again.", "error");
+        });
     } else {
       dispatch();
     }
@@ -1284,14 +1321,16 @@
         if (!t || t.usesStockDom) return stockSend.apply(this, arguments);
         var input = q("messageInput");
         var fileInput = q("messageFile");
-        var file = fileInput && fileInput.files && fileInput.files[0];
+        var files = fileInput && fileInput.files
+          ? Array.prototype.slice.call(fileInput.files)
+          : [];
         var text = messageContent || (input ? input.value : "");
         if (input && !messageContent) {
           input.value = "";
           input.focus();
         }
-        if ((!text || !text.trim()) && !file) return;
-        MC.sendInTab(t.id, text, file);
+        if ((!text || !text.trim()) && !files.length) return;
+        MC.sendInTab(t.id, text, files);
         if (fileInput) fileInput.value = "";
         var chip = q("fileChip");
         if (chip) { chip.style.display = "none"; chip.textContent = ""; }

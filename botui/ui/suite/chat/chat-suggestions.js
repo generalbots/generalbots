@@ -1,5 +1,7 @@
-function renderSuggestions(suggestions) {
-  var suggestionsEl = document.getElementById("suggestions");
+function renderSuggestions(suggestions, targetEl) {
+  // Parallel chat tabs each own a suggestions container; the caller passes
+  // the tab's element so a background frame never paints the active pane.
+  var suggestionsEl = targetEl || document.getElementById("suggestions");
   if (!suggestionsEl) return;
 
   suggestionsEl.innerHTML = "";
@@ -23,6 +25,13 @@ console.log("[SUGGESTION] Parsed action:", actionData);
 
 if (actionData.type === "invoke_tool") {
 console.log("[SUGGESTION] Invoking tool:", actionData.tool);
+// TOOL_EXEC (message_type 6) only carries the tool name; a tool that
+// declares parameters needs a normal turn so the model can ask for them.
+if (actionData.prompt_for_params ||
+    (Array.isArray(actionData.params) && actionData.params.length)) {
+  window.sendMessage(sugg.text);
+  return;
+}
 // Check if WebSocket is available
 if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
 var msg = {

@@ -344,9 +344,9 @@ function vmToggleInlinePreview(card, url, path, convId) {
       "loading",
       "lazy"
     );
-    officeFrame.src = vmOfficePreviewUrl(convId || "", path);
+    var previewUrl = vmOfficePreviewUrl(convId || "", path);
     var fallbackNote = null;
-    officeFrame.addEventListener("error", function () {
+    function showOfficeFallback() {
       if (fallbackNote) return;
       fallbackNote = document.createElement("div");
       fallbackNote.className = "gb-attachment-inline-note";
@@ -361,8 +361,21 @@ function vmToggleInlinePreview(card, url, path, convId) {
       });
       fallbackNote.appendChild(openWindow);
       officeFrame.replaceWith(fallbackNote);
-    });
+    }
+    officeFrame.addEventListener("error", showOfficeFallback);
     body.appendChild(officeFrame);
+    // An iframe fires no `error` event for an HTTP error page (the 415 used
+    // for unconvertible packages renders the raw response), so probe the
+    // conversion endpoint before loading it.
+    fetch(previewUrl, { method: "GET", credentials: "same-origin" })
+      .then(function (res) {
+        if (!res.ok) {
+          showOfficeFallback();
+          return;
+        }
+        officeFrame.src = previewUrl;
+      })
+      .catch(showOfficeFallback);
   } else if (kind === "text") {
     // Plain text, CSV, markdown and JSON render inline: fetch the signed URL
     // and write it into a <pre> as text (never parsed as HTML).
@@ -616,6 +629,30 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   return card;
 }
 
+// Resolve the conversation a rendered reply belongs to. Background chat
+// tabs hydrate detached panes; falling back to the active tab linked their
+// files to the wrong conversation.
+function vmConversationIdForElement(el) {
+  try {
+    var pane = el && el.closest ? el.closest(".chat-pane-messages") : null;
+    if (!pane) return null;
+    var holder = pane.parentElement;
+    var tabId = (holder && holder.__mcTabId) || pane.__mcTabId;
+    if (tabId && window.GBMultiChat && GBMultiChat.tabs && GBMultiChat.tabs[tabId]) {
+      var tab = GBMultiChat.tabs[tabId];
+      if (tab.sessionId) return tab.sessionId;
+    }
+  } catch (e) { /* stock surface */ }
+  return null;
+}
+
+function vmConversationIdFromCards(root) {
+  var card = root && root.querySelector
+    ? root.querySelector(".gb-attachment[data-conversation-id]")
+    : null;
+  return card ? card.dataset.conversationId : "";
+}
+
 // The conversation the user is looking at, not the VM's last active folder.
 function vmCurrentConversationId() {
   try {
@@ -651,6 +688,11 @@ function vmAttachmentAnchor(container) {
     var rect = container.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) return container;
   }
+  // A background tab's pane is detached while it waits; keep its files in
+  // that pane instead of stapling them onto the visible conversation.
+  if (container && container.closest && container.closest(".chat-pane-messages")) {
+    return container;
+  }
   // The reply may render into a hidden chat tab; attach the manifest to the
   // last visible bot message so the active pane always shows the files.
   var pane = vmVisiblePane();
@@ -678,7 +720,8 @@ function vmApplyFolderOrder(grid, rank) {
 var vmFolderPending = {};
 function vmOrderFolder(grid) {
   if (!grid || grid.querySelectorAll(".gb-attachment").length < 2) return;
-  vmCurrentConversationId()
+  var explicitConversation = vmConversationIdFromCards(grid);
+  (explicitConversation ? Promise.resolve(explicitConversation) : vmCurrentConversationId())
     .then(function (conversationId) {
       if (!conversationId) return;
       if (vmFolderOrder[conversationId]) {
@@ -746,7 +789,8 @@ function vmGroupAttachments(anchor) {
   if (saveAll && !saveAll.dataset.bound) {
     saveAll.dataset.bound = "1";
     saveAll.addEventListener("click", function () {
-      vmCurrentConversationId()
+      var cardConversation = vmConversationIdFromCards(folder);
+      (cardConversation ? Promise.resolve(cardConversation) : vmCurrentConversationId())
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
           return vmSaveToDrive(convId, []);
@@ -841,6 +885,10 @@ function hydrateVmAttachments(container) {
   if (typeof ChatState === "undefined" || !ChatState.suppressPersist) {
     vmFolderOrder = {};
   }
+  var ownerConversation = vmConversationIdForElement(container);
+  var conversationPromise = ownerConversation
+    ? Promise.resolve(ownerConversation)
+    : vmCurrentConversationId();
   vmRenderInlineReferences(container);
   vmDropEmptyListItems(container);
   var cards = container.querySelectorAll(".gb-attachment");
@@ -856,7 +904,7 @@ function hydrateVmAttachments(container) {
   // existing files as seen first, otherwise the next live answer would
   // re-attach every PDF produced before the reload.
   if (typeof ChatState !== "undefined" && ChatState.suppressPersist) {
-    vmCurrentConversationId().then(function (conversationId) {
+    conversationPromise.then(function (conversationId) {
       if (!conversationId) return;
       var seen = VmAttachments.renderedPaths[conversationId];
       if (!seen) {
@@ -877,7 +925,7 @@ function hydrateVmAttachments(container) {
     }).catch(function () { /* replay stays best-effort */ });
     return;
   }
-  vmCurrentConversationId()
+  conversationPromise
     .then(function (conversationId) {
       if (!conversationId) return;
       // Claim the conversation synchronously: replay hydrates every message
@@ -889,8 +937,15 @@ function hydrateVmAttachments(container) {
         VmAttachments.renderedPaths[conversationId] = seen;
       }
       // The fallback folder belongs to the newest reply, never to an older
-      // turn that happened to hydrate first.
-      var fallback = vmLatestBotMessage() || anchor;
+      // turn that happened to hydrate first. Stay inside the reply's own
+      // pane so a background tab never paints the visible conversation.
+      var fallbackPane = anchor.closest ? anchor.closest(".chat-pane-messages") : null;
+      var fallback = null;
+      if (fallbackPane) {
+        var paneBots = fallbackPane.querySelectorAll(".message.bot");
+        fallback = paneBots.length ? paneBots[paneBots.length - 1] : null;
+      }
+      fallback = fallback || vmLatestBotMessage() || anchor;
       var present = {};
       var existing = fallback.querySelectorAll(".gb-attachment");
       for (var j = 0; j < existing.length; j++) {

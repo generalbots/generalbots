@@ -333,12 +333,31 @@
     // that session so the UI cannot keep talking to a deleted history row.
     window.addEventListener("gb-conversation-deleted", function (e) {
       var sid = e.detail && e.detail.sessionId;
-      if (!sid || !window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
+      if (!sid) return;
+      // The server row is gone, but the browser kept replaying it: the
+      // per-session transcript and the pinned session pointer must go too,
+      // otherwise boot restores a deleted conversation.
+      try {
+        localStorage.removeItem("gb_chat_history_" + sid);
+        Object.keys(localStorage).forEach(function (key) {
+          if (key.indexOf("gb.chat.session.") === 0 && localStorage.getItem(key) === String(sid)) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (err) { /* storage unavailable */ }
+      if (!window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
       GBTabs.state.tabs.slice().forEach(function (t) {
         if (String(t.sessionId || "") === String(sid)) {
           try { GBTabs.closeTab(t.id); } catch (err) { /* already gone */ }
         }
       });
+      if (window.ChatState && String(ChatState.currentSessionId || "") === String(sid)) {
+        var box = document.getElementById("messages");
+        if (box) box.innerHTML = "";
+        try {
+          window.dispatchEvent(new CustomEvent("gb-chat-session-deleted", { detail: { sessionId: sid } }));
+        } catch (err) { /* CustomEvent unavailable */ }
+      }
     });
 
     // Event DELEGATION on document: the strip is created dynamically by
