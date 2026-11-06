@@ -1,0 +1,29 @@
+            #messages {
+                padding: 20px 16px 140px;
+            }
+
+            .float-menu {
+                left: 12px;
+                top: 12px;
+            }
+
+            .float-logo,
+            .menu-button {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .scroll-to-bottom {
+                width: 36px;
+                height: 36px;
+                bottom: 70px;
+                right: 12px;
+            }
+
+            .context-indicator {
+                bottom: 120px;
+                right: 12px;
+                width: 100px;
+            }
+        }

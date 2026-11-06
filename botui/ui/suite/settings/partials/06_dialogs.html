@@ -1,0 +1,186 @@
+
+<!-- Create User Modal -->
+<dialog id="create-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-user">Create User</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-user-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/users/create" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-user-modal').close(); showToast('User created successfully'); }">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required placeholder="username" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" required placeholder="user@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" name="display_name" placeholder="John Doe" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required placeholder="••••••••" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-user-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create User</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Create Group Modal -->
+<dialog id="create-group-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="admin-create-group">Create Group</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/groups/create" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" name="name" required placeholder="Engineering Team">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="Group description..." rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-group-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Group</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Register DNS Modal -->
+<dialog id="register-dns-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Register DNS Hostname</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('register-dns-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/dns/register" hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('register-dns-modal').close(); showToast('DNS record registered'); }">
+            <div class="form-group">
+                <label>Hostname</label>
+                <input type="text" name="hostname" required placeholder="mybot.example.com">
+            </div>
+            <div class="form-group">
+                <label>Record Type</label>
+                <select name="record_type">
+                    <option value="A">A (IPv4)</option>
+                    <option value="AAAA">AAAA (IPv6)</option>
+                    <option value="CNAME">CNAME</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target</label>
+                <input type="text" name="target" placeholder="192.168.1.1 or target.domain.com">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('register-dns-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Register</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="create-api-key-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="settings-create-api-key">Create API Key</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('create-api-key-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/user/api-keys" hx-target="#create-api-key-result" hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/api-keys', { target: '#api-keys-list', swap: 'innerHTML' }); }">
+            <div class="form-group">
+                <label data-i18n="settings-api-key-name">Key Name</label>
+                <input type="text" name="name" required placeholder="Production key">
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-api-key-scopes">Scopes (comma-separated)</label>
+                <input type="text" name="scopes" placeholder="user, admin">
+                <p class="hint" data-i18n="settings-api-key-scopes-hint">Leave empty for the default "user" scope.</p>
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-api-key-expiry">Expires in (days)</label>
+                <input type="number" name="expires_in_days" min="1" placeholder="90">
+                <p class="hint" data-i18n="settings-api-key-expiry-hint">Leave empty for no expiration.</p>
+            </div>
+            <div id="create-api-key-result"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('create-api-key-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Create Key</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<dialog id="add-webhook-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="settings-add-webhook">Add Webhook</h2>
+            <button type="button" class="close-btn" onclick="document.getElementById('add-webhook-modal').close()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form hx-post="/api/user/webhooks" hx-target="#add-webhook-result" hx-swap="innerHTML"
+            hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/webhooks', { target: '#webhooks-list', swap: 'innerHTML' }); }">
+            <div class="form-group">
+                <label data-i18n="settings-webhook-url">Webhook URL</label>
+                <input type="url" name="url" required placeholder="https://example.com/hooks/gb">
+            </div>
+            <div class="form-group">
+                <label data-i18n="settings-webhook-events">Events (comma-separated)</label>
+                <input type="text" name="events" placeholder="user.created, order.completed">
+                <p class="hint" data-i18n="settings-webhook-events-hint">Leave empty to receive all events.</p>
+            </div>
+            <div id="add-webhook-result"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary"
+                    onclick="document.getElementById('add-webhook-modal').close()">Cancel</button>
+                <button type="submit" class="btn-primary">Add Webhook</button>
+            </div>
+        </form>
+    </div>
+</dialog>

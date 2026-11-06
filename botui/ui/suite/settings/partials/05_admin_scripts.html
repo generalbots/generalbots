@@ -1,0 +1,180 @@
+        <!-- Users Section (Admin) -->
+        <section id="users-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1 data-i18n="admin-users">Users</h1>
+                <p class="subtitle" data-i18n="admin-users-subtitle">Manage user accounts and permissions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>User Management</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-user-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add User
+                    </button>
+                </div>
+                <div hx-get="/api/admin/users" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading users...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Groups Section (Admin) -->
+        <section id="groups-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1 data-i18n="admin-groups">Groups</h1>
+                <p class="subtitle" data-i18n="admin-groups-subtitle">Manage groups and team permissions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Group Management</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-group-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Group
+                    </button>
+                </div>
+                <div hx-get="/api/admin/groups" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading groups...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bots Section (Admin) -->
+        <section id="bots-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1 data-i18n="admin-bots">Bots</h1>
+                <p class="subtitle" data-i18n="admin-bots-subtitle">Manage bot instances and deployments</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Bot Management</h2>
+                </div>
+                <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading bots...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DNS Section (Admin) -->
+        <section id="dns-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1 data-i18n="admin-dns">DNS Management</h1>
+                <p class="subtitle" data-i18n="admin-dns-subtitle">Configure custom domains and DNS settings</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Domain Configuration</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('register-dns-modal').showModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Domain
+                    </button>
+                </div>
+                <div hx-get="/api/admin/dns" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading DNS records...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Audit Section (Admin) -->
+        <section id="audit-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1 data-i18n="admin-audit">Audit Log</h1>
+                <p class="subtitle" data-i18n="admin-audit-subtitle">Track system events and user actions</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Recent Activity</h2>
+                </div>
+                <div hx-get="/api/admin/audit" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading audit log...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Versions Section -->
+        <section id="versions-section" class="settings-section">
+            <div class="section-header">
+                <h1>System Versions</h1>
+                <p class="subtitle">Component versions and update availability</p>
+            </div>
+            <div class="setting-card">
+                <div class="versions-table-container" id="versionsTableContainer">
+                    <div class="versions-loading">
+                        <div class="versions-spinner"></div>
+                        <span>Loading version information...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ledger Section (#1702) -->
+        <section id="ledger-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1>Ledger</h1>
+                <p class="section-description">Every terminal and browser action, with the consent decision, outcome and screenshot path.</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Actions ledger</h2>
+                    <button type="button" class="btn-secondary btn-sm" id="ledger-refresh">Refresh</button>
+                </div>
+                <div class="ledger-tabs">
+                    <button type="button" class="ledger-tab active" data-kind="terminal">Terminal</button>
+                    <button type="button" class="ledger-tab" data-kind="browser">Browser</button>
+                    <button type="button" class="ledger-tab" data-kind="budget">Budgets</button>
+                    <button type="button" class="ledger-tab" data-kind="ttft">TTFT</button>
+                </div>
+                <div id="ledger-list" class="ledger-list">Loading…</div>
+            </div>
+        </section>
+        <script src="/suite/settings/main/01_state.js?v=4"></script>
+        <script src="/suite/settings/main/02_edition.js?v=4"></script>
+        <script src="/suite/settings/main/03_oauth.js?v=4"></script>
+        <script src="/suite/settings/main/04_current_user.js?v=4"></script>
+        <script src="/suite/settings/main/05_ui_bindings.js?v=4"></script>
+        <script src="/suite/settings/main/06_users_groups.js?v=4"></script>
+        <script src="/suite/settings/main/07_appearance.js?v=4"></script>
+        <script src="/suite/settings/main/08_preview.js?v=4"></script>
+        <script src="/suite/settings/main/99_init.js?v=4"></script>
+        <script src="/suite/settings/settings-ai-accounts.js?v=1"></script>
+        <script src="/suite/settings/settings-ledger.js?v=3"></script>
+        <script src="/suite/settings/settings-mcp.js?v=2"></script>
+        <script src="/suite/settings/settings-skills.js"></script>
+        <script src="/suite/settings/settings-actions.js"></script>
+        <script src="/suite/settings/settings-preferences.js"></script>
+        <script src="/suite/settings/settings-vibe-slots.js"></script>
+        <script src="/suite/settings/settings-memory.js"></script>

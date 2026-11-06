@@ -1,0 +1,127 @@
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.2);
+            }
+        }
+
+        .markdown-content p {
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-bottom: 12px;
+            padding-left: 20px;
+        }
+
+        .markdown-content li {
+            margin-bottom: 4px;
+        }
+
+        .markdown-content code {
+            background: var(--glass);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .markdown-content pre {
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .markdown-content h1 {
+            font-size: 20px;
+        }
+
+        .markdown-content h2 {
+            font-size: 18px;
+        }
+
+        .markdown-content h3 {
+            font-size: 16px;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+
+        .markdown-content table th,
+        .markdown-content table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .markdown-content table th {
+            font-weight: 600;
+            background: var(--glass);
+        }
+
+        .markdown-content blockquote {
+            border-left: 2px solid var(--accent);
+            padding-left: 14px;
+            margin: 12px 0;
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .markdown-content a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .markdown-content a:hover {
+            opacity: 0.7;
+            text-decoration: underline;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--fg);
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                left: -100%;
+            }

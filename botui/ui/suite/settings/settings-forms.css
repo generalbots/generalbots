@@ -1,0 +1,359 @@
+    /* Fix dialog elements - ensure they're hidden by default */
+    dialog.modal {
+        display: none;
+        padding: 0;
+        border: none;
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 480px;
+        width: 90%;
+    }
+
+    dialog.modal[open] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    dialog.modal::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    dialog.modal form {
+        padding: 24px;
+    }
+
+    dialog.modal .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    dialog.modal .modal-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    dialog.modal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        background: var(--surface-hover);
+        border-radius: 0 0 16px 16px;
+    }
+
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100%;
+        background: var(--bg);
+    }
+
+    .settings-sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nav-divider {
+        padding: 16px 16px 8px 16px;
+        margin-top: 8px;
+        border-top: 1px solid var(--border);
+    }
+
+    .nav-divider span {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+    }
+
+    .settings-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 24px 24px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+        color: var(--text);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .settings-header svg {
+        color: var(--primary);
+    }
+
+    .settings-nav {
+        flex: 1;
+        padding: 0 12px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .nav-item.active svg {
+        color: white;
+    }
+
+    .settings-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+    }
+
+    .back-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .back-link:hover {
+        color: var(--primary);
+    }
+
+    .settings-main {
+        padding: 32px 48px;
+        overflow-y: auto;
+        max-width: 900px;
+    }
+
+    .settings-section {
+        display: none;
+    }
+
+    .settings-section.active {
+        display: block;
+    }
+
+    .section-header {
+        margin-bottom: 32px;
+    }
+
+    .section-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 8px;
+    }
+
+    .section-header .subtitle {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .setting-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .setting-card.danger-card {
+        border-color: var(--danger);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .card-header h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 4px;
+    }
+
+    .card-header p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .setting-row:first-child {
+        padding-top: 0;
+    }
+
+    .setting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .setting-title {
+        font-weight: 500;
+        color: var(--text);
+    }
+
+    .setting-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.9375rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: var(--hover);
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-danger:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.875rem;
+    }
+
+    .btn-text {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 10px 20px;
+    }
+
+    .btn-text:hover {
+        color: var(--text);
+    }

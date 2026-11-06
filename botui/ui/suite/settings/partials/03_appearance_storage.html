@@ -1,0 +1,327 @@
+        <!-- Appearance Section -->
+        <section id="appearance-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-appearance">Appearance</h1>
+                <p class="subtitle">Customize how the application looks</p>
+            </div>
+
+            <!-- Theme Selection — driven by the shared ThemeManager (#1304).
+                 Settings must not carry its own palette: the sidebar combobox
+                 and this card both read ThemeManager.getAvailableThemes() and
+                 call ThemeManager.loadTheme(), so the choice stays in sync. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2 data-i18n="settings-theme">Theme</h2>
+                    <p data-i18n="settings-theme-desc">Choose your preferred color theme</p>
+                </div>
+                <div class="theme-grid" id="settings-theme-grid"></div>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Desktop Wallpaper</h2>
+                    <p>Choose the background displayed on your desktop</p>
+                </div>
+                <div class="wallpaper-grid" id="wallpaper-grid"></div>
+            </div>
+
+            <!-- Layout Preferences -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Layout Preferences</h2>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Compact Mode</span>
+                        <span class="setting-desc">Reduce spacing for more content</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="compact_mode" onchange="toggleCompactMode(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Show Sidebar</span>
+                        <span class="setting-desc">Always show navigation sidebar</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="show_sidebar" checked onchange="toggleShowSidebar(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Animations</span>
+                        <span class="setting-desc">Enable UI animations and transitions</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="animations" checked onchange="toggleAnimations(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Preview Mode</span>
+                        <span class="setting-desc">Show experimental apps in the launcher</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="settings-preview-toggle" onchange="togglePreviewMode(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Language, date and time formats live in the Language section.
+                 Duplicating the controls here (and their element ids) made the
+                 selects ambiguous and the wallpaper picker appear twice (#1339). -->
+        </section>
+
+        <!-- Organizations & Bots Section (Admin) — #1295 unified from the orphan
+             settings/organizations.html page -->
+        <section id="organizations-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1>Organizations &amp; Bots</h1>
+                <p class="subtitle">Manage your organizations and bot hierarchy</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Current Organization</h2>
+                    <p>Select the organization you want to manage</p>
+                </div>
+                <div hx-get="/api/user/organizations" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading organizations...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Bot Tree</h2>
+                    <p>Bots belonging to the selected organization</p>
+                </div>
+                <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading bots...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notifications Section -->
+        <section id="notifications-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-notifications">Notifications</h1>
+                <p class="subtitle">Control how you receive notifications</p>
+            </div>
+
+            <form hx-put="/api/user/notifications/preferences" hx-swap="none"
+                hx-on::after-request="showToast('Notification preferences saved')">
+
+                <!-- Email Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Email Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Direct Messages</span>
+                            <span class="setting-desc">Receive email for new direct messages</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_dm" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Mentions</span>
+                            <span class="setting-desc">Receive email when someone mentions you</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_mentions" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Weekly Digest</span>
+                            <span class="setting-desc">Get a weekly summary of activity</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_digest">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Marketing</span>
+                            <span class="setting-desc">Receive news and product updates</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="email_marketing">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Push Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Push Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Enable Push Notifications</span>
+                            <span class="setting-desc">Receive browser push notifications</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="push_enabled" onchange="togglePushNotifications(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Sound</span>
+                            <span class="setting-desc">Play sound for notifications</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="push_sound" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- In-App Notifications -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>In-App Notifications</h2>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Desktop Notifications</span>
+                            <span class="setting-desc">Show notifications on desktop</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="desktop_notifications" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title">Badge Count</span>
+                            <span class="setting-desc">Show unread count badge</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" name="badge_count" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Preferences</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Storage Section -->
+        <section id="storage-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-storage">Storage</h1>
+                <p class="subtitle">Manage your storage and sync settings</p>
+            </div>
+
+            <!-- #1545: Drive as knowledge base -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Knowledge</h2>
+                </div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" id="settings-index-all-drive" onchange="toggleIndexAllDrive(this)">
+                    <span>Use all Drive files as knowledge context</span>
+                </label>
+                <p class="subtitle" style="margin-top:8px;">When enabled, recent Drive files are included in chat context by default.</p>
+            </div>
+
+            <!-- Storage Usage -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Storage Usage</h2>
+                </div>
+                <div class="storage-display" hx-get="/api/ui/user/storage" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="storage-bar-container">
+                        <div class="storage-bar">
+                            <div class="storage-bar-fill" style="width: 45%"></div>
+                        </div>
+                        <div class="storage-stats">
+                            <span>4.5 GB used of 10 GB</span>
+                            <span>5.5 GB available</span>
+                        </div>
+                    </div></span>
+                    <div class="storage-breakdown">
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #3b82f6"></div>
+                            <span class="breakdown-label">Documents</span>
+                            <span class="breakdown-value">2.1 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #10b981"></div>
+                            <span class="breakdown-label">Images</span>
+                            <span class="breakdown-value">1.8 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #f59e0b"></div>
+                            <span class="breakdown-label">Videos</span>
+                            <span class="breakdown-value">0.4 GB</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-color" style="background: #6b7280"></div>
+                            <span class="breakdown-label">Other</span>
+                            <span class="breakdown-value">0.2 GB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connected Storage -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Cloud Storage</h2>
+                </div>
+                <div class="connections-list" id="storage-connections" hx-get="/api/ui/user/storage/connections"
+                    hx-trigger="load" hx-swap="innerHTML">
+                    <div class="connection-item">
+                        <div class="connection-icon google-drive">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4.433 22l-1.6-2.773 8.167-14.167L19.4 19.227 17.8 22H4.433z"></path>
+                            </svg>
+                        </div>
+                        <div class="connection-info">
+                            <span class="connection-name">Google Drive</span>
+                            <span class="connection-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
+                    </div>
+                    <div class="connection-item">
+                        <div class="connection-icon dropbox">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M6 2l6 3.75L6 9.5 0 5.75 6 2zm12 0l6 3.75-6 3.75-6-3.75L18 2zM0 13.25L6 9.5l6 3.75-6 3.75-6-3.75zm18-3.75l6 3.75-6 3.75-6-3.75 6-3.75zM6 18.25l6-3.75 6 3.75-6 3.75-6-3.75z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="connection-info">
+                            <span class="connection-name">Dropbox</span>
+                            <span class="connection-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div hx-get="/suite/settings/partials/04_integrations_billing.html" hx-trigger="load" hx-swap="outerHTML"></div>

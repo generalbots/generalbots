@@ -1,0 +1,232 @@
+    <div class="modal" id="createDashboardModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeCreateDashboardModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-create-title">
+                    Create New Dashboard
+                </h3>
+                <button
+                    class="modal-close"
+                    onclick="closeCreateDashboardModal()"
+                >
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form
+                id="createDashboardForm"
+                hx-post="/api/dashboards"
+                hx-target="#dashboards-grid"
+                hx-swap="innerHTML"
+                hx-on::after-request="closeCreateDashboardModal()"
+            >
+                <div class="form-group">
+                    <label for="dashboardName" data-i18n="dashboards-name"
+                        >Name</label
+                    >
+                    <input
+                        type="text"
+                        id="dashboardName"
+                        name="name"
+                        required
+                        placeholder="My Dashboard"
+                        data-i18n-placeholder="dashboards-name-placeholder"
+                    />
+                </div>
+                <div class="form-group">
+                    <label
+                        for="dashboardDescription"
+                        data-i18n="dashboards-description"
+                        >Description</label
+                    >
+                    <textarea
+                        id="dashboardDescription"
+                        name="description"
+                        rows="3"
+                        placeholder="Describe what this dashboard shows..."
+                        data-i18n-placeholder="dashboards-description-placeholder"
+                    ></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label
+                            for="dashboardLayout"
+                            data-i18n="dashboards-layout"
+                            >Layout</label
+                        >
+                        <select id="dashboardLayout" name="layout">
+                            <option
+                                value="grid-12"
+                                data-i18n="dashboards-layout-12col"
+                            >
+                                12 Columns
+                            </option>
+                            <option
+                                value="grid-6"
+                                data-i18n="dashboards-layout-6col"
+                            >
+                                6 Columns
+                            </option>
+                            <option
+                                value="grid-4"
+                                data-i18n="dashboards-layout-4col"
+                            >
+                                4 Columns
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dashboardTags" data-i18n="dashboards-tags"
+                            >Tags</label
+                        >
+                        <input
+                            type="text"
+                            id="dashboardTags"
+                            name="tags"
+                            placeholder="sales, marketing"
+                            data-i18n-placeholder="dashboards-tags-placeholder"
+                        />
+                    </div>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            id="dashboardPublic"
+                            name="is_public"
+                        />
+                        <span data-i18n="dashboards-public"
+                            >Make dashboard public</span
+                        >
+                    </label>
+                </div>
+                <div class="form-group template-selection">
+                    <label data-i18n="dashboards-start-from">Start from</label>
+                    <div class="template-options">
+                        <button
+                            type="button"
+                            class="template-option active"
+                            data-template="blank"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <line x1="12" y1="8" x2="12" y2="16" />
+                                <line x1="8" y1="12" x2="16" y2="12" />
+                            </svg>
+                            <span data-i18n="dashboards-blank">Blank</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="sales"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <line x1="12" y1="20" x2="12" y2="10" />
+                                <line x1="18" y1="20" x2="18" y2="4" />
+                                <line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                            <span data-i18n="dashboards-sales-template"
+                                >Sales</span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="marketing"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <path
+                                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                                />
+                            </svg>
+                            <span data-i18n="dashboards-marketing-template"
+                                >Marketing</span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            class="template-option"
+                            data-template="operations"
+                        >
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            >
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                />
+                            </svg>
+                            <span data-i18n="dashboards-operations-template"
+                                >Operations</span
+                            >
+                        </button>
+                    </div>
+                    <input
+                        type="hidden"
+                        id="selectedTemplate"
+                        name="template"
+                        value="blank"
+                    />
+                </div>
+                <div class="modal-footer">
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="closeCreateDashboardModal()"
+                        data-i18n="action-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        data-i18n="action-create"
+                    >
+                        Create Dashboard
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div hx-get="/suite/dashboards/partials/02_data_source.html" hx-trigger="load" hx-swap="outerHTML"></div>

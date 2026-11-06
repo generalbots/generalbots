@@ -1,0 +1,121 @@
+    <header class="dashboards-header">
+        <div class="header-title">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="header-icon"
+            >
+                <rect
+                    x="3"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="14"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="3"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+                <rect
+                    x="14"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    stroke="currentColor"
+                    stroke-width="2"
+                />
+            </svg>
+            <h2 data-i18n="dashboards-title">Dashboards</h2>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                    type="text"
+                    id="dashboardSearch"
+                    placeholder="Search dashboards..."
+                    data-i18n-placeholder="dashboards-search-placeholder"
+                    hx-get="/api/dashboards"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#dashboards-grid"
+                    hx-include="this"
+                    name="search"
+                />
+            </div>
+            <select
+                id="dashboardFilter"
+                class="filter-select"
+                hx-get="/api/dashboards"
+                hx-trigger="change"
+                hx-target="#dashboards-grid"
+                hx-include="#dashboardSearch"
+                name="tag"
+            >
+                <option value="" data-i18n="dashboards-filter-all">
+                    All Dashboards
+                </option>
+                <option value="sales" data-i18n="dashboards-filter-sales">
+                    Sales
+                </option>
+                <option
+                    value="marketing"
+                    data-i18n="dashboards-filter-marketing"
+                >
+                    Marketing
+                </option>
+                <option
+                    value="operations"
+                    data-i18n="dashboards-filter-operations"
+                >
+                    Operations
+                </option>
+                <option value="finance" data-i18n="dashboards-filter-finance">
+                    Finance
+                </option>
+                <option value="hr" data-i18n="dashboards-filter-hr">HR</option>
+            </select>
+            <button class="btn-primary" onclick="showCreateDashboardModal()">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span data-i18n="dashboards-create">New Dashboard</span>
+            </button>
+        </div>
+    </header>

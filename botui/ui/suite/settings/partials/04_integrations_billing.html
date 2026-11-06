@@ -1,0 +1,386 @@
+        <!-- Integrations Section -->
+        <section id="integrations-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-integrations">Integrations</h1>
+                <p class="subtitle">Connect external services and manage API access</p>
+            </div>
+
+            <!-- API Keys -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>API Keys</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('create-api-key-modal').showModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Create Key
+                    </button>
+                </div>
+                <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="empty-state">
+                        <p>No API keys created yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Webhooks -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Webhooks</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="document.getElementById('add-webhook-modal').showModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Webhook
+                    </button>
+                </div>
+                <div class="webhooks-list" id="webhooks-list" hx-get="/api/user/webhooks" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="empty-state">
+                        <p>No webhooks configured</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- #1675 — MCP server management embedded in Settings. Same API
+                 as the Integrations app (/api/sources/mcp); no parallel store.
+                 The component renders with GBSettingsMcp (settings-mcp.js). -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>MCP Servers</h2>
+                    <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">
+                        Full catalog
+                    </button>
+                </div>
+                <div class="connections-list settings-mcp-list" id="settings-mcp-list" aria-busy="true">
+                    <div class="empty-state">
+                        <p>Loading MCP servers</p>
+                    </div>
+                </div>
+                <div class="settings-mcp-status" id="settings-mcp-status" role="status"></div>
+            </div>
+
+            <!-- #1681 — Agent Skills packages. Imported SKILL.md documents are
+                 advertised to the model as guidance and can be toggled off. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Agent Skills</h2>
+                    <button class="btn-secondary btn-sm" id="settings-skills-import">Import skill</button>
+                </div>
+                <textarea id="settings-skills-input" class="settings-skills-input" rows="6"
+                    placeholder="Paste a SKILL.md package:&#10;---&#10;name: deploy-check&#10;description: Verify a deploy before announcing it&#10;---&#10;1. …"></textarea>
+                <div class="connections-list settings-mcp-list" id="settings-skills-list" aria-busy="true">
+                    <div class="empty-state">
+                        <p>Loading skills</p>
+                    </div>
+                </div>
+                <div class="settings-mcp-status" id="settings-skills-status" role="status"></div>
+            </div>
+
+            <!-- OAuth Connections -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Accounts</h2>
+                </div>
+                <div class="oauth-list">
+                    <div class="oauth-item">
+                        <div class="oauth-icon google">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#4285F4"
+                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z">
+                                </path>
+                                <path fill="#34A853"
+                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z">
+                                </path>
+                                <path fill="#FBBC05"
+                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z">
+                                </path>
+                                <path fill="#EA4335"
+                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">Google</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="google">Connect</button>
+                    </div>
+                    <div class="oauth-item">
+                        <div class="oauth-icon microsoft">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#F25022" d="M1 1h10v10H1z"></path>
+                                <path fill="#00A4EF" d="M1 13h10v10H1z"></path>
+                                <path fill="#7FBA00" d="M13 1h10v10H13z"></path>
+                                <path fill="#FFB900" d="M13 13h10v10H13z"></path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">Microsoft</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="microsoft">Connect</button>
+                    </div>
+                    <div class="oauth-item">
+                        <div class="oauth-icon github">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="oauth-info">
+                            <span class="oauth-name">GitHub</span>
+                            <span class="oauth-status">Not connected</span>
+                        </div>
+                        <button class="btn-secondary btn-sm" data-oauth-connect="github">Connect</button>
+                    </div>
+                </div>
+                <div class="oauth-accounts" id="oauth-accounts-fragment">
+                    <div class="empty-state"><p>Loading linked accounts…</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Accounts Section (#1654/#1655/#1656) -->
+        <section id="ai-accounts-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-ai-accounts">AI accounts</h1>
+                <p class="subtitle">Claude Code and ChatGPT plan subscriptions are per user. Credentials stay in your agent VM or the local vault; only the status and display metadata are stored here.</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Subscription accounts</h2>
+                    <span class="subtitle">Connect an account, then assign it to a Vibe agent type</span>
+                </div>
+                <div id="ai-accounts-list">
+                    <div class="empty-state"><p>Loading AI accounts…</p></div>
+                </div>
+                <div class="note" id="ai-accounts-status" role="status" style="margin-top:12px"></div>
+            </div>
+        </section>
+
+        <!-- Vibe Section -->
+        <section id="vibe-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-vibe">Vibe</h1>
+                <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → LLM Providers (BYOK) or the Cloud store.</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Agent LLM Providers</h2>
+                    <span class="subtitle">Each agent type routes its runs to the provider selected here for this branch</span>
+                </div>
+                <div class="vibe-agent-slots" id="vibe-agent-slots">
+                    <div class="empty-state"><p>Loading agent providers…</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privacy Section -->
+        <section id="privacy-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-privacy">Privacy</h1>
+                <p class="subtitle">Manage your data and privacy settings</p>
+            </div>
+
+            <!-- Privacy Settings -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Privacy Preferences</h2>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Profile Visibility</span>
+                        <span class="setting-desc">Who can see your profile</span>
+                    </div>
+                    <select name="profile_visibility" class="select-sm" data-pref="gb-privacy-profile-visibility">
+                        <option value="public">Public</option>
+                        <option value="contacts">Contacts Only</option>
+                        <option value="private">Private</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Online Status</span>
+                        <span class="setting-desc">Show when you're online</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="show_online" checked data-pref="gb-privacy-online">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Read Receipts</span>
+                        <span class="setting-desc">Let others know when you've read messages</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="read_receipts" checked data-pref="gb-privacy-read-receipts">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Data Export -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Your Data</h2>
+                    <p>Download a copy of your data</p>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Export Data</span>
+                        <span class="setting-desc">Download all your data in a portable format</span>
+                    </div>
+                    <button class="btn-secondary" hx-post="/api/user/data/export" hx-swap="none"
+                        hx-on::after-request="showToast('Export started. You will receive an email when ready.')">
+                        Request Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Deletion -->
+            <div class="setting-card danger-card">
+                <div class="card-header">
+                    <h2>Delete Account</h2>
+                    <p>Permanently delete your account and all associated data</p>
+                </div>
+                <div class="danger-content">
+                    <p>Once you delete your account, there is no going back. Please be certain.</p>
+                    <button class="btn-danger" disabled title="Contact support to delete account">
+                        Delete My Account
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Billing Section -->
+        <section id="memory-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-memory">Memory</h1>
+                <p class="subtitle">What the assistant remembers about you across conversations</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Remembered facts</h2>
+                </div>
+                <p class="setting-desc" style="padding:0 20px 12px;">
+                    These facts are sent with every message so answers stay consistent between
+                    conversations. Remove anything you no longer want the assistant to use.
+                </p>
+                <div id="gbMemoryList" style="padding:0 20px 16px;"></div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Add a fact</span>
+                        <span class="setting-desc">For example: "preferred language: Portuguese"</span>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input id="gbMemoryKey" class="input-sm" placeholder="key" style="width:130px;">
+                        <input id="gbMemoryValue" class="input-sm" placeholder="value" style="width:220px;">
+                        <button type="button" class="btn btn-primary btn-sm" id="gbMemoryAdd">Add</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="gbMemoryClear">Clear all</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="billing-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="nav-billing">Billing</h1>
+                <p class="subtitle">Manage your subscription and payment methods</p>
+            </div>
+
+            <!-- Current Plan -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Current Plan</h2>
+                </div>
+                <div class="plan-display" hx-get="/api/user/billing/plan" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="plan-info">
+                        <div class="plan-badge">Pro</div>
+                        <div class="plan-details">
+                            <span class="plan-price">$19/month</span>
+                            <span class="plan-cycle">Billed monthly</span>
+                        </div>
+                    </div>
+                    <div class="plan-actions">
+                        <button class="btn-secondary" onclick="return openCloudBilling()">Change Plan</button>
+                        <button class="btn-text" onclick="return openCloudBilling()">Cancel Subscription</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Payment Method</h2>
+                    <button class="btn-primary btn-sm"
+                        onclick="window.location.href=(window.GB_CLOUD_URL || window.location.origin.replace(/:\d+$/, function(_, p) { return p === '3000' ? ':4000' : ':' + p })) + '/cloud/payment-cards';">
+                        Add Method
+                    </button>
+                </div>
+                <div class="payment-methods" id="payment-methods" hx-get="/api/user/billing/payment-methods"
+                    hx-trigger="load" hx-swap="innerHTML">
+                    <div class="payment-card">
+                        <div class="card-brand visa">
+                            <svg width="32" height="20" viewBox="0 0 32 20">
+                                <rect width="32" height="20" rx="2" fill="#1A1F71"></rect>
+                                <text x="16" y="13" text-anchor="middle" fill="white" font-size="8"
+                                    font-weight="bold">VISA</text>
+                            </svg>
+                        </div>
+                        <div class="card-details">
+                            <span class="card-number">•••• •••• •••• 4242</span>
+                            <span class="card-expiry">Expires 12/25</span>
+                        </div>
+                        <span class="default-badge">Default</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Billing History</h2>
+                </div>
+                <div class="invoices-list" id="invoices-list" hx-get="/api/user/billing/invoices" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <table class="invoices-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Jan 1, 2025</td>
+                                <td>Pro Plan - Monthly</td>
+                                <td>$19.00</td>
+                                <td><span class="status-badge paid">Paid</span></td>
+                                <td><a href="#" class="invoice-link">Download</a></td>
+                            </tr>
+                            <tr>
+                                <td>Dec 1, 2024</td>
+                                <td>Pro Plan - Monthly</td>
+                                <td>$19.00</td>
+                                <td><span class="status-badge paid">Paid</span></td>
+                                <td><a href="#" class="invoice-link">Download</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        <div hx-get="/suite/settings/partials/05_admin_scripts.html" hx-trigger="load" hx-swap="outerHTML"></div>

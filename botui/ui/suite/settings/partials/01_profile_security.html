@@ -1,0 +1,193 @@
+        <!-- Profile Section -->
+        <section id="profile-section" class="settings-section active">
+            <div class="section-header">
+                <h1 data-i18n="settings-profile">Profile Settings</h1>
+                <p class="subtitle"><span id="profile-directory-note">Managed by the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory profile</a></p>
+                <p class="subtitle">Manage your personal information and preferences</p>
+            </div>
+
+            <form class="settings-form" hx-put="/api/user/profile" hx-swap="none"
+                hx-on::after-request="showToast('Profile updated successfully')">
+                <!-- Avatar -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Profile Photo</h2>
+                        <p>Your profile photo is visible to other users</p>
+                    </div>
+                    <div class="avatar-section">
+                        <div class="current-avatar" id="current-avatar">
+                            <span>JD</span>
+                        </div>
+                        <div class="avatar-actions">
+                            <label class="btn-secondary upload-btn">
+                                <input type="file" name="avatar" accept="image/*" hidden onchange="previewAvatar(this)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                Upload Photo
+                            </label>
+                            <button type="button" class="btn-text" onclick="removeAvatar()">Remove</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Info -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Basic Information</h2>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Display Name</label>
+                            <input type="text" name="display_name" placeholder="John Doe" hx-get="/api/user/profile"
+                                hx-trigger="load" hx-swap="outerHTML" hx-select="[name='display_name']">
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" placeholder="johndoe">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Email Address</label>
+                            <input type="email" name="email" placeholder="john@example.com">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Bio</label>
+                            <textarea name="bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="setting-card">
+                    <div class="card-header">
+                        <h2>Contact Information</h2>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" placeholder="+1 (555) 000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" name="location" placeholder="City, Country">
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="url" name="website" placeholder="https://example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Timezone</label>
+                            <select name="timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time</option>
+                                <option value="America/Chicago">Central Time</option>
+                                <option value="America/Denver">Mountain Time</option>
+                                <option value="America/Los_Angeles">Pacific Time</option>
+                                <option value="Europe/London">London</option>
+                                <option value="Europe/Paris">Paris</option>
+                                <option value="Asia/Tokyo">Tokyo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-security">Security Settings</h1>
+                <p class="subtitle"><span>Identity, sessions and 2FA live in the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory security</a></p>
+                <p class="subtitle">Protect your account with enhanced security</p>
+            </div>
+
+            <!-- Password Change -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Change Password</h2>
+                    <p>Update your password regularly for better security</p>
+                </div>
+                <form hx-post="/api/user/password" hx-swap="none"
+                    hx-on::after-request="this.reset(); showToast('Password changed successfully')">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Current Password</label>
+                            <input type="password" name="current_password" required autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" name="new_password" required minlength="8"
+                                autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" name="confirm_password" required autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Update Password</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Two-Factor Authentication -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Two-Factor Authentication</h2>
+                    <p>Add an extra layer of security to your account</p>
+                </div>
+                <div class="setting-row" id="2fa-status" hx-get="/api/ui/user/security/2fa/status" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="setting-info">
+                        <span class="setting-title">Authenticator App</span>
+                        <span class="setting-desc">Use an authenticator app for 2FA codes</span>
+                    </div>
+                    <button class="btn-primary" hx-post="/api/ui/user/security/2fa/enable" hx-swap="none">
+                        Enable 2FA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Active Sessions</h2>
+                    <p>Manage your active login sessions</p>
+                </div>
+                <div class="sessions-list" id="sessions-list" hx-get="/api/ui/user/security/sessions" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-danger-outline" hx-post="/api/ui/user/security/sessions/revoke-all"
+                        hx-confirm="Sign out of all other devices?"
+                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')">
+                        Sign Out All Other Sessions
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connected Devices -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Connected Devices</h2>
+                    <p>Devices that have accessed your account</p>
+                </div>
+                <div class="devices-list" id="devices-list" hx-get="/api/ui/user/security/devices" hx-trigger="load"
+                    hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div hx-get="/suite/settings/partials/02_language.html" hx-trigger="load" hx-swap="outerHTML"></div>

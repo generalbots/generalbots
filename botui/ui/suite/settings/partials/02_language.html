@@ -1,0 +1,239 @@
+        <!-- Language Section -->
+        <section id="language-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-language">Language & Region</h1>
+                <p class="subtitle">Choose your preferred language and regional settings</p>
+            </div>
+
+            <!-- Language Selection -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Display Language</h2>
+                    <p>Choose the language for the application interface</p>
+                </div>
+                <div class="language-grid"
+                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                    <button class="language-option" data-locale="en" onclick="selectLanguage('en', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇺🇸</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">English</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">English</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="pt-BR" onclick="selectLanguage('pt-BR', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇧🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Portuguese (Brazil)</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Português (Brasil)</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="es" onclick="selectLanguage('es', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇪🇸</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Spanish</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Español</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="zh-CN" onclick="selectLanguage('zh-CN', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇨🇳</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Chinese (Simplified)</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">简体中文</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="fr" onclick="selectLanguage('fr', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇫🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">French</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Français</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="de" onclick="selectLanguage('de', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇩🇪</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">German</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Deutsch</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="ja" onclick="selectLanguage('ja', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇯🇵</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Japanese</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">日本語</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                    <button class="language-option" data-locale="ko" onclick="selectLanguage('ko', this)"
+                        style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #0f172a; border: 2px solid #334155; border-radius: 12px; cursor: pointer; position: relative; transition: all 0.2s; text-align: left;">
+                        <span style="font-size: 40px; line-height: 1;">🇰🇷</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: #f8fafc;">Korean</div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">한국어</div>
+                        </div>
+                        <svg class="lang-check" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                            stroke-width="3" style="opacity: 0;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script>
+                (function () {
+                    function initLanguageSelector() {
+                        var savedLocale = localStorage.getItem('gb-locale') || 'en';
+                        var buttons = document.querySelectorAll('.language-option[data-locale]');
+
+                        buttons.forEach(function (btn) {
+                            var locale = btn.dataset.locale;
+                            var checkmark = btn.querySelector('.lang-check');
+
+                            if (locale === savedLocale && checkmark) {
+                                btn.style.borderColor = '#3b82f6';
+                                btn.style.background = 'rgba(59, 130, 246, 0.1)';
+                                checkmark.style.opacity = '1';
+                            }
+
+                            btn.addEventListener('mouseover', function () {
+                                if (!btn.disabled) {
+                                    btn.style.borderColor = '#3b82f6';
+                                }
+                            });
+
+                            btn.addEventListener('mouseout', function () {
+                                if (!btn.disabled && locale !== localStorage.getItem('gb-locale')) {
+                                    btn.style.borderColor = '#334155';
+                                    btn.style.background = '#0f172a';
+                                }
+                            });
+                        });
+                    }
+
+                    // #1304 — the <select> calls changeLanguage(value) but only
+                    // selectLanguage(locale, element) existed, so choosing a
+                    // language threw a ReferenceError and nothing happened.
+                    window.changeLanguage = function (locale) {
+                        var element = null;
+                        document.querySelectorAll('.language-option[data-locale]').forEach(function (btn) {
+                            if (btn.dataset.locale === locale) element = btn;
+                        });
+                        window.selectLanguage(locale, element);
+                    };
+
+                    window.selectLanguage = function (locale, element) {
+                        var buttons = document.querySelectorAll('.language-option[data-locale]');
+                        buttons.forEach(function (btn) {
+                            btn.style.borderColor = '#334155';
+                            btn.style.background = '#0f172a';
+                            var check = btn.querySelector('.lang-check');
+                            if (check) check.style.opacity = '0';
+                        });
+
+                        if (element) {
+                            element.style.borderColor = '#3b82f6';
+                            element.style.background = 'rgba(59, 130, 246, 0.1)';
+                            var check = element.querySelector('.lang-check');
+                            if (check) check.style.opacity = '1';
+                        }
+
+                        localStorage.setItem('gb-locale', locale);
+                        document.documentElement.lang = locale;
+
+                        if (window.showToast) {
+                            showToast('Language changed to ' + (locale === 'pt-BR' ? 'Português' : 'English') + '. Reloading...');
+                        }
+
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1000);
+                    };
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initLanguageSelector);
+                    } else {
+                        initLanguageSelector();
+                    }
+                })();
+            </script>
+
+            <!-- Regional Settings -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Regional Settings</h2>
+                    <p>Configure date, time, and number formats</p>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date Format</label>
+                        <select id="date-format-select" class="form-select" onchange="changeDateFormat(this.value)">
+                            <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY (EU/BR)</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Time Format</label>
+                        <select id="time-format-select" class="form-select" onchange="changeTimeFormat(this.value)">
+                            <option value="12h">12-hour (1:30 PM)</option>
+                            <option value="24h">24-hour (13:30)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Timezone</label>
+                        <select id="timezone-select" class="form-select" onchange="changeTimezone(this.value)">
+                            <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                            <option value="America/New_York">New York (GMT-5)</option>
+                            <option value="America/Los_Angeles">Los Angeles (GMT-8)</option>
+                            <option value="Europe/London">London (GMT+0)</option>
+                            <option value="Europe/Paris">Paris (GMT+1)</option>
+                            <option value="Asia/Tokyo">Tokyo (GMT+9)</option>
+                            <option value="UTC">UTC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>First Day of Week</label>
+                        <select id="first-day-select" class="form-select">
+                            <option value="sunday">Sunday</option>
+                            <option value="monday">Monday</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div hx-get="/suite/settings/partials/03_appearance_storage.html" hx-trigger="load" hx-swap="outerHTML"></div>

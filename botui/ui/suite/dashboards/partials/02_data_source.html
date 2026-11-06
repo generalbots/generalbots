@@ -1,0 +1,207 @@
+    <div class="modal" id="addDataSourceModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeAddDataSourceModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-add-data-source">Add Data Source</h3>
+                <button class="modal-close" onclick="closeAddDataSourceModal()">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <form
+                id="addDataSourceForm"
+                hx-post="/api/dashboards/sources"
+                hx-target=".data-sources-list"
+                hx-swap="innerHTML"
+                hx-on::after-request="closeAddDataSourceModal()"
+            >
+                <div class="form-group">
+                    <label for="sourceName" data-i18n="dashboards-source-name"
+                        >Name</label
+                    >
+                    <input
+                        type="text"
+                        id="sourceName"
+                        name="name"
+                        required
+                        placeholder="My Database"
+                        data-i18n-placeholder="dashboards-source-name-placeholder"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="sourceType" data-i18n="dashboards-source-type"
+                        >Type</label
+                    >
+                    <select
+                        id="sourceType"
+                        name="source_type"
+                        required
+                        onchange="updateConnectionFields()"
+                    >
+                        <option value="" data-i18n="dashboards-select-type">
+                            Select type...
+                        </option>
+                        <optgroup
+                            label="Databases"
+                            data-i18n-label="dashboards-databases"
+                        >
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="mongodb">MongoDB</option>
+                        </optgroup>
+                        <optgroup
+                            label="Cloud Data Warehouses"
+                            data-i18n-label="dashboards-warehouses"
+                        >
+                            <option value="bigquery">BigQuery</option>
+                            <option value="snowflake">Snowflake</option>
+                            <option value="redshift">Redshift</option>
+                        </optgroup>
+                        <optgroup
+                            label="APIs"
+                            data-i18n-label="dashboards-apis"
+                        >
+                            <option value="rest_api">REST API</option>
+                            <option value="graphql_api">GraphQL API</option>
+                        </optgroup>
+                        <optgroup
+                            label="Files"
+                            data-i18n-label="dashboards-files"
+                        >
+                            <option value="csv">CSV</option>
+                            <option value="excel">Excel</option>
+                            <option value="google_sheets">Google Sheets</option>
+                        </optgroup>
+                        <optgroup
+                            label="Internal"
+                            data-i18n-label="dashboards-internal"
+                        >
+                            <option value="internal_tables">
+                                Internal Tables
+                            </option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div id="connectionFields" class="connection-fields"></div>
+                <div class="form-group">
+                    <label
+                        for="sourceDescription"
+                        data-i18n="dashboards-source-description"
+                        >Description</label
+                    >
+                    <textarea
+                        id="sourceDescription"
+                        name="description"
+                        rows="2"
+                        placeholder="Optional description..."
+                        data-i18n-placeholder="dashboards-source-description-placeholder"
+                    ></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="testDataSourceConnection()"
+                        data-i18n="dashboards-test-connection"
+                    >
+                        Test Connection
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="closeAddDataSourceModal()"
+                        data-i18n="action-cancel"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        data-i18n="action-add"
+                    >
+                        Add Source
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="editWidgetModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeEditWidgetModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-edit-widget">Edit Widget</h3>
+                <button class="modal-close" onclick="closeEditWidgetModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="edit-widget-form">
+                <input type="hidden" id="editWidgetId" />
+                <div class="form-group">
+                    <label for="editWidgetTitle" data-i18n="dashboards-widget-title">Title</label>
+                    <input type="text" id="editWidgetTitle" placeholder="Widget title" data-i18n-placeholder="dashboards-widget-title-placeholder" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editWidgetType" data-i18n="dashboards-widget-type">Type</label>
+                        <select id="editWidgetType">
+                            <option value="line_chart">Line Chart</option>
+                            <option value="bar_chart">Bar Chart</option>
+                            <option value="pie_chart">Pie Chart</option>
+                            <option value="area_chart">Area Chart</option>
+                            <option value="scatter_plot">Scatter Plot</option>
+                            <option value="kpi">KPI</option>
+                            <option value="table">Table</option>
+                            <option value="gauge">Gauge</option>
+                            <option value="map">Map</option>
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="iframe">iFrame</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editWidgetWidth" data-i18n="dashboards-width">Width</label>
+                        <input type="number" id="editWidgetWidth" min="1" max="12" step="1" placeholder="4" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editWidgetHeight" data-i18n="dashboards-height">Height</label>
+                        <input type="number" id="editWidgetHeight" min="1" max="12" step="1" placeholder="2" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetDataSource" data-i18n="dashboards-data-source">Data source</label>
+                    <select id="editWidgetDataSource">
+                        <option value="" data-i18n="dashboards-all-sources">All Data Sources</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetXAxis" data-i18n="dashboards-x-axis">X axis field</label>
+                    <input type="text" id="editWidgetXAxis" placeholder="date" />
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetYAxis" data-i18n="dashboards-y-axis">Y axis field</label>
+                    <input type="text" id="editWidgetYAxis" placeholder="value" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeEditWidgetModal()" data-i18n="action-cancel">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="saveWidgetEdit()" data-i18n="action-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div hx-get="/suite/dashboards/partials/03_add_widget.html" hx-trigger="load" hx-swap="outerHTML"></div>

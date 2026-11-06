@@ -1,0 +1,105 @@
+    @media (max-width: 1024px) {
+        .settings-main {
+            padding: 24px 32px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .settings-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .settings-sidebar {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            z-index: 200;
+            transition: left 0.3s ease;
+        }
+
+        .settings-sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        .mobile-menu-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-main {
+            padding: 20px 16px;
+        }
+
+        .section-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .setting-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .plan-display {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .plan-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .plan-actions button {
+            width: 100%;
+        }
+
+        .theme-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card-header {
+            flex-direction: column;
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .avatar-upload {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .theme-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .invoices-table {
+            font-size: 0.875rem;
+        }
+
+        .invoices-table th:nth-child(3),
+        .invoices-table td:nth-child(3) {
+            display: none;
+        }
+    }
