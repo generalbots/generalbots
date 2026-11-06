@@ -1,9 +1,7 @@
 use axum::extract::{Json, Path, Query};
 use axum::http::{HeaderMap, StatusCode};
-use botcore::shared::state::AppState;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::sync::Arc;
 use uuid::Uuid;
 
 use super::page::fetch_page;

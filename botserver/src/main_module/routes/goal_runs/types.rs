@@ -1,6 +1,5 @@
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
-use diesel::prelude::*;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;
+use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::core::bot::runs::caps::RunCaps;

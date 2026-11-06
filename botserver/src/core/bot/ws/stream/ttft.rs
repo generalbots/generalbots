@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;
+use diesel::prelude::*;
 use uuid::Uuid;
 
 /// #1700 — first-token latency is recorded once per turn at the first content
