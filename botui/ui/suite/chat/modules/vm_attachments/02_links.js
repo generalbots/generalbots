@@ -30,7 +30,9 @@ function renderVmFileLinks(html) {
       vmEscapeHtml(name) +
       "</a>" +
       '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
-      (vmOfficeAppFor(parts.path)
+      // Open publishes the output to Drive first, so it needs the same
+      // agent-vm capability as Save; without it the click could only fail.
+      (vmOfficeAppFor(parts.path) && vmAgentDriveEnabled()
         ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
         : "") +
       '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
