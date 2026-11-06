@@ -186,11 +186,14 @@ function copyPromoCode(code, elementId) {
   });
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+function escapeHtml(value) {
+  if (window.GBShared && window.GBShared.html) return window.GBShared.html.escape(value);
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function showToast(msg, type = 'success') {

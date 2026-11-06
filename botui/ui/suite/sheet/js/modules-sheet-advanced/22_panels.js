@@ -18,6 +18,7 @@
     );
   }
 
+  // Kept local: uses the sheet module's accessToken() helper.
   function authHeaders(extra) {
     var headers = extra || {};
     var token = accessToken();

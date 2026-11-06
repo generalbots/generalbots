@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Payment &amp; Cards — General Bots Cloud</title>
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/cloud-shell.js"></script>
   <style>
     .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
     .card-item { background:var(--surface,#fff); border:1px solid var(--border,#e5e7eb); border-radius:12px; padding:1.25rem; display:flex; flex-direction:column; gap:.75rem; }
@@ -25,7 +23,6 @@
   </style>
 </head>
 <body class="mgmt-layout">
-<div class="mgmt-shell">
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
@@ -46,10 +43,10 @@
       </div>
     </div>
   </main>
-</div>
 
 <div class="toast" id="toast"></div>
 
+<script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (function() {
@@ -154,12 +151,7 @@
     setTimeout(() => { el.className = 'toast'; }, 3000);
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  /* escapeHtml comes from /cloud/js/gb-shared.js (loaded before this page). */
 
   // Minimal i18n: fetch the same /api/i18n/:locale bundle the suite uses and
   // fall back to the hardcoded English text baked into the templates.

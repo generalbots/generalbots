@@ -86,6 +86,7 @@
     return token;
   }
 
+  // Kept local: uses the sidebar module's authToken() helper.
   function authHeaders() {
     var token = authToken();
     return token ? { Authorization: "Bearer " + token } : {};

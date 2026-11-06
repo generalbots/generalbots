@@ -43,6 +43,8 @@
         if (content) content.innerHTML = '';
     };
 
+    // Kept local: reads only the legacy `gb-access-token` key (no runtime
+    // token fallback); migrating would change precedence. See gb-shared.js.
     function authHeaders(extra) {
         return Object.assign({
             'Authorization': 'Bearer ' + (localStorage.getItem('gb-access-token') || '')

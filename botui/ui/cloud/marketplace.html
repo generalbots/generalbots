@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Skills Marketplace — General Bots Cloud</title>
   <meta name="description" content="Browse and install community skill packages for your General Bots agents.">
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/cloud-shell.js"></script>
   <style>
     .mkt-hero {
       text-align: center;
@@ -163,7 +161,6 @@
   </style>
 </head>
 <body class="mgmt-layout">
-<div class="mgmt-shell">
 
   <!-- Sidebar injected by cloud.js -->
 
@@ -196,7 +193,6 @@
       <a href="/store">Store</a>·<a href="/plans">Plans</a>·<a href="/dashboard">Dashboard</a>
     </footer>
   </main>
-</div>
 
 <div class="mkt-modal" id="mkt-modal" role="dialog" aria-modal="true" aria-labelledby="mkt-detail-name">
   <div class="mkt-backdrop" data-mkt-close="1"></div>
@@ -212,6 +208,7 @@
 
 <div id="cloud-toast"></div>
 
+<script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js"></script>
 <script src="/cloud/js/marketplace-state.js?v=1"></script>
 <script src="/cloud/js/marketplace-install.js?v=1"></script>

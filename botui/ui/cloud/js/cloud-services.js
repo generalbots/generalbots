@@ -169,12 +169,7 @@ function doLogout() {
   window.location.href = '/';
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+/* escapeHtml comes from /cloud/js/gb-shared.js (loaded by the cloud pages). */
 
 function showError(msg) {
   document.getElementById('services-list').innerHTML = '<div class="saas-loading" style="color:red">' + escapeHtml(msg) + '</div>';

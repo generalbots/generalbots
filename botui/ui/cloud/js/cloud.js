@@ -41,9 +41,23 @@ const SVG = {
 };
 
 
+// ── Shell mount: pages declare only <main class="mgmt-main">; the wrapper is
+//    created here so the layout structure lives in one place, not in 19 pages. ──
+function ensureShell() {
+  let shell = document.querySelector('.mgmt-shell');
+  if (shell) return shell;
+  const main = document.querySelector('main.mgmt-main');
+  if (!main || !main.parentNode) return null;
+  shell = document.createElement('div');
+  shell.className = 'mgmt-shell';
+  main.parentNode.insertBefore(shell, main);
+  shell.appendChild(main);
+  return shell;
+}
+
 // ── Sidebar: loaded from /cloud/partials/sidebar.html (single source of truth) ──
 async function loadSidebar() {
-  const shell = document.querySelector('.mgmt-shell');
+  const shell = ensureShell();
   if (!shell) return;
   if (shell.querySelector('.mgmt-sidebar')) return; // already present
 
@@ -293,7 +307,7 @@ function doLogout() {
   sessionStorage.setItem('gb-signed-out', 'true');
   window.location.href = '/';
 }
-function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+/* escapeHtml comes from /cloud/js/gb-shared.js (loaded before this file). */
 function getToken() { return localStorage.getItem('management_token'); }
 function isAuthenticated() {
   return !!getToken();

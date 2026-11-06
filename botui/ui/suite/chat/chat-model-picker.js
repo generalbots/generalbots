@@ -9,6 +9,7 @@
   }
 
   function authHeaders() {
+    if (window.GBShared && window.GBShared.auth) return window.GBShared.auth.headers();
     try {
       var token =
         (window.getGBAccessToken && window.getGBAccessToken()) ||

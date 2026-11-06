@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Organizations — General Bots Cloud</title>
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/cloud-shell.js"></script>
   <style>
     .org-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
     .org-card {
@@ -67,7 +65,6 @@
   </style>
 </head>
 <body class="mgmt-layout">
-<div class="mgmt-shell">
 
 
   <main class="mgmt-main" id="app-root">
@@ -102,7 +99,6 @@
       </div>
     </div>
   </main>
-</div>
 
 <!-- Create Org Modal -->
 <div class="mgmt-modal" id="create-org-modal">
@@ -221,6 +217,7 @@
 </div>
 
 <script src="/cloud/js/cloud-orgs.js?v=20260801-2"></script>
+<script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js?v=20260801-2"></script>
 </body>
 </html>

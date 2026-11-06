@@ -270,6 +270,7 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
   var SYNC_PATH = "Desktop/.gbdesktop.json";
   var syncTimer = null;
 
+  // Kept local: always sends Content-Type and skips the runtime token source.
   function authHeaders() {
     var h = { "Content-Type": "application/json" };
     try {

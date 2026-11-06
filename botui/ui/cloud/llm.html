@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LLM Models — General Bots Cloud</title>
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/cloud-shell.js"></script>
   <style>
     .provider-section { margin-bottom: 2.5rem; }
     .provider-header {
@@ -65,7 +63,6 @@
   </style>
 </head>
 <body class="mgmt-layout">
-<div class="mgmt-shell">
 
 
   <main class="mgmt-main">
@@ -91,7 +88,6 @@
       <div id="providers-container"></div>
     </div>
   </main>
-</div>
 
 <div id="llm-connect-mask" class="llm-connect-mask" role="dialog" aria-modal="true" aria-labelledby="llm-connect-title">
   <div class="llm-connect-dialog">
@@ -115,6 +111,7 @@
   </div>
 </div>
 
+<script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {

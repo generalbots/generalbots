@@ -28,6 +28,7 @@
     }
   });
 
+  // Kept local: consent flow also falls back to management_token.
   function authHeaders(extra) {
     var h = extra || {};
     try {

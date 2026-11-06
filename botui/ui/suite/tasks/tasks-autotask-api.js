@@ -12,6 +12,7 @@
   var TOKEN = null;
 
   function authHeaders() {
+    if (window.GBShared && window.GBShared.auth) return window.GBShared.auth.headers(null, { management: true });
     var token =
       (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
       localStorage.getItem("gb-access-token") ||

@@ -112,8 +112,14 @@
     if (count) count.textContent = "";
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  function escapeHtml(value) {
+    if (window.GBShared && window.GBShared.html) return window.GBShared.html.escape(value);
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
   function escapeAttr(s) {
     return String(s).replace(/"/g, "&quot;");

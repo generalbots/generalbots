@@ -84,11 +84,9 @@ function updateTerminalStats(taskId, manifest) {
   }
 }
 
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+function escapeHtml(value) {
+  if (window.GBShared && window.GBShared.html) return window.GBShared.html.escape(value);
+  return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function updateActivityMetrics(activity) {

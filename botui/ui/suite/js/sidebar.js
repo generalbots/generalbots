@@ -58,6 +58,7 @@
     }
   }
 
+  // Kept local: uses the sidebar module's authToken() helper.
   function authHeaders() {
     var h = {};
     var token = authToken();

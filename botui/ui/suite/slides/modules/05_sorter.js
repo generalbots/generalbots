@@ -39,6 +39,7 @@
   }
 
   function authHeaders() {
+    if (window.GBShared && window.GBShared.auth) return window.GBShared.auth.headers({ "Content-Type": "application/json" });
     var token =
       (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
       window.localStorage.getItem("gb-access-token") ||

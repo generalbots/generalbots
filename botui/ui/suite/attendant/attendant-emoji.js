@@ -111,10 +111,14 @@
                 if (picker) picker.style.display = "none";
             }
 
-            function escapeHtml(text) {
-                var div = document.createElement("div");
-                div.textContent = text == null ? "" : String(text);
-                return div.innerHTML;
+            function escapeHtml(value) {
+              if (window.GBShared && window.GBShared.html) return window.GBShared.html.escape(value);
+              return String(value == null ? "" : value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
             }
 
             function loadHistoricalConversation(id) {

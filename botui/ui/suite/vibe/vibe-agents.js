@@ -12,6 +12,7 @@
 "use strict";
 
 function authHeaders(extra) {
+    if (window.GBShared && window.GBShared.auth) return window.GBShared.auth.headers(extra, { legacy: true });
     var headers = Object.assign({}, extra || {});
     var token =
         (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||

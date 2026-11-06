@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — General Bots Cloud</title>
-  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
-  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/cloud-shell.js"></script>
   <style>
     .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .usage-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
@@ -29,7 +27,6 @@
   </style>
 </head>
 <body class="mgmt-layout">
-<div class="mgmt-shell">
 
 
 
@@ -171,13 +168,14 @@
       </div>
     </div>
   </main>
-</div>
 <div id="cloud-toast"></div>
+<script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
   const token = requireAuth();
   if (!token) return;
+  // Kept local: cloud pages tokenize from management_token (cloud getToken()).
   const authHeaders = { 'Authorization': 'Bearer ' + token };
 
   // Load dashboard data

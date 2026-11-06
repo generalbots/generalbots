@@ -224,6 +224,7 @@
         setLoading(false);
     }
 
+    // Kept local: token comes from resolveAccessToken() in this page.
     function authHeaders() {
         var token = resolveAccessToken();
         return token ? { 'Authorization': 'Bearer ' + token } : {};

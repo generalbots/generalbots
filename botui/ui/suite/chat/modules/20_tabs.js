@@ -43,6 +43,7 @@ function tabText(key, fallback) {
     }
   }
 
+  // Kept local: uses the tabs module's session-scoped token() helper.
   function authHeaders(extra) {
     var h = extra || {};
     var t = token();
