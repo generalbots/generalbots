@@ -15,6 +15,41 @@ pub async fn move_file(
     let from_key = scoped_key(&prefix, &req.source_path);
     let to_key = scoped_key(&prefix, &req.dest_path);
 
+    // Folder move: copy every child, then delete the sources only after all
+    // writes succeeded (renaming a folder used to move just its marker).
+    if req.source_path.ends_with('/') {
+        let source_prefix = format!("{}/", from_key.trim_end_matches('/'));
+        let dest_prefix = format!("{}/", to_key.trim_end_matches('/'));
+        let objects = drive
+            .list_objects_with_metadata(src_bucket, Some(&source_prefix))
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source folder not found: {e}")))?;
+        if objects.is_empty() {
+            return Err(err(StatusCode::NOT_FOUND, "Source folder is empty or missing"));
+        }
+        for object in &objects {
+            let relative = object
+                .key
+                .strip_prefix(&source_prefix)
+                .unwrap_or(object.key.as_str());
+            let data = drive
+                .get_object(src_bucket, &object.key)
+                .await
+                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder move read failed: {e}")))?;
+            drive
+                .put_object(dest_bucket, &format!("{dest_prefix}{relative}"), data, None)
+                .await
+                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder move write failed: {e}")))?;
+        }
+        for object in &objects {
+            if let Err(error) = drive.delete_object(src_bucket, &object.key).await {
+                warn!("Move: failed to delete source {}: {error}", object.key);
+            }
+        }
+        botlog::safe_info!("Moved folder {from_key} -> {to_key}");
+        return Ok(Json(SuccessResponse { success: true }));
+    }
+
     let data = drive
         .get_object(src_bucket, &from_key)
         .await
