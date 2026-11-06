@@ -1,5 +1,6 @@
 .goals-app {
     display: flex;
+    flex-direction: row;
     height: 100%;
     background: var(--bg-primary);
     color: var(--text-primary);

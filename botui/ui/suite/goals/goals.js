@@ -61,12 +61,13 @@
     state.currentView = view;
 
     // Update button states
-    document.querySelectorAll(".view-btn").forEach((btn) => {
+    document.querySelectorAll(".goals-app .view-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.view === view);
     });
 
-    // Update view panels
-    document.querySelectorAll(".goals-view").forEach((panel) => {
+    // Update view panels (the fragment's containers are .view-container,
+    // not .goals-view — the old selector left every view hidden).
+    document.querySelectorAll(".goals-app .view-container").forEach((panel) => {
       panel.classList.toggle("active", panel.id === `${view}-view`);
     });
 
@@ -126,6 +127,10 @@
         // both the array and the wrapped { objectives: [...] } shape so the
         // list never silently renders empty.
         state.objectives = Array.isArray(data) ? data : (data.objectives || []);
+        // The app hides its views until at least one objective exists; the old
+        // HTMX:afterSwap hook never fired because the list is JSON-driven.
+        const app = document.querySelector(".goals-app");
+        if (app) app.classList.toggle("has-objectives", state.objectives.length > 0);
         renderObjectives();
       }
     } catch (e) {
