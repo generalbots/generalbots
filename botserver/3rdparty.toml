@@ -91,9 +91,9 @@ sha256 = ""
 
 [components.directory]
 name = "Zitadel Identity Provider"
-url = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz"
+url = "https://github.com/zitadel/zitadel/releases/download/v2.71.19/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
-url_win = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-windows-amd64.tar.gz"
+url_win = "https://github.com/zitadel/zitadel/releases/download/v2.71.19/zitadel-windows-amd64.tar.gz"
 filename_win = "zitadel-windows-amd64.tar.gz"
 sha256 = ""
 
