@@ -50,6 +50,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/goals/runs", post(create).get(list))
         .route("/api/goals/runs/:id/tick", post(tick_now))
         .route("/api/goals/runs/:id/stop", post(stop))
+        .route("/api/goals/runs/:id/pause", post(pause))
+        .route("/api/goals/runs/:id/resume", post(resume))
 }
 
 #[derive(Debug, Deserialize)]
@@ -133,8 +135,8 @@ async fn create(
 
     let run = diesel::sql_query(
         "INSERT INTO goal_runs \
-            (objective_id, key_result_id, user_id, step_value, interval_seconds, next_checkpoint_at) \
-         VALUES ($1, $2, $3, $4, $5, NOW() + ($5 * INTERVAL '1 second')) \
+            (objective_id, key_result_id, user_id, step_value, interval_seconds, next_checkpoint_at, instruction) \
+         VALUES ($1, $2, $3, $4, $5, NOW() + ($5 * INTERVAL '1 second'), $6) \
          RETURNING id::text AS id, status, checkpoints, interval_seconds, \
                    step_value::double precision AS step_value, \
                    last_value::double precision AS last_value, NULL::double precision AS target_value",
@@ -144,6 +146,7 @@ async fn create(
     .bind::<diesel::sql_types::Uuid, _>(user)
     .bind::<diesel::sql_types::Double, _>(step)
     .bind::<diesel::sql_types::Integer, _>(interval as i32)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(agent_instruction.clone())
     .get_result::<RunRow>(&mut conn)
     .map_err(|error| {
         api_error(
@@ -152,15 +155,109 @@ async fn create(
         )
     })?;
 
-    // Bounded background runner: no task can outlive its checkpoint budget.
+    spawn_goal_runner(
+        &state,
+        run.id.clone(),
+        interval,
+        agent_instruction,
+        MAX_CHECKPOINTS,
+    );
+
+    Ok(Json(json!({ "run": run_json(&run) })))
+}
+
+
+#[derive(Debug, diesel::QueryableByName)]
+struct ResumeRow {
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    interval_seconds: i32,
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    checkpoints: i32,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    instruction: Option<String>,
+}
+
+fn load_run(conn: &mut diesel::PgConnection, id: &str) -> Result<RunRow, diesel::result::Error> {
+    diesel::sql_query(format!("{RUN_COLUMNS}{RUN_FROM} WHERE r.id = $1::uuid"))
+        .bind::<diesel::sql_types::Text, _>(id)
+        .get_result::<RunRow>(conn)
+}
+
+/// POST /api/goals/runs/:id/pause — the background task exits at its next
+/// checkpoint (advance refuses a non-running run).
+async fn pause(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    let _user = user_from_headers(&headers)?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    let run = diesel::sql_query(
+        "UPDATE goal_runs SET status = 'paused', updated_at = NOW() \
+         WHERE id = $1::uuid AND status = 'running' \
+         RETURNING id::text AS id, status, checkpoints, interval_seconds, \
+                   step_value::double precision AS step_value, \
+                   last_value::double precision AS last_value, NULL::double precision AS target_value",
+    )
+    .bind::<diesel::sql_types::Text, _>(&id)
+    .get_result::<RunRow>(&mut conn)
+    .map_err(|_| api_error(StatusCode::BAD_REQUEST, "goal run is not running"))?;
+    Ok(Json(json!({ "run": run_json(&run) })))
+}
+
+/// POST /api/goals/runs/:id/resume — flips a paused run back to running and
+/// restarts the bounded runner with the same instruction and checkpoint budget.
+async fn resume(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    let _user = user_from_headers(&headers)?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    let resumed = diesel::sql_query(
+        "UPDATE goal_runs \
+         SET status = 'running', updated_at = NOW(), \
+             next_checkpoint_at = NOW() + (interval_seconds * INTERVAL '1 second') \
+         WHERE id = $1::uuid AND status = 'paused' \
+         RETURNING interval_seconds, checkpoints, instruction",
+    )
+    .bind::<diesel::sql_types::Text, _>(&id)
+    .get_result::<ResumeRow>(&mut conn)
+    .map_err(|_| api_error(StatusCode::BAD_REQUEST, "goal run is not paused"))?;
+    let interval = clamp_interval(u64::try_from(resumed.interval_seconds.max(0)).unwrap_or(60));
+    let done = u32::try_from(resumed.checkpoints).unwrap_or(MAX_CHECKPOINTS);
+    let budget = MAX_CHECKPOINTS.saturating_sub(done);
+    if budget > 0 {
+        spawn_goal_runner(&state, id.clone(), interval, resumed.instruction, budget);
+    }
+    let run = load_run(&mut conn, &id)
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("goal run load failed: {e}")))?;
+    Ok(Json(json!({ "run": run_json(&run) })))
+}
+
+/// Bounded background runner: no task can outlive its checkpoint budget.
+/// Shared by create and resume; pause flips the status and the loop exits at
+/// the next checkpoint because `advance` refuses a non-running run.
+fn spawn_goal_runner(
+    state: &Arc<AppState>,
+    run_id: String,
+    interval: u64,
+    agent_instruction: Option<String>,
+    budget: u32,
+) {
     let pool = state.conn.clone();
-    let run_id = run.id.clone();
     #[cfg(feature = "llm")]
     let agent_provider = state.llm_provider.clone();
     #[cfg(not(feature = "llm"))]
     let agent_provider: Option<Arc<dyn botlib::traits::LLMProvider>> = None;
     tokio::spawn(async move {
-        for _ in 0..MAX_CHECKPOINTS {
+        for _ in 0..budget {
             tokio::time::sleep(Duration::from_secs(interval)).await;
             // Agent/LLM-driven checkpoint (#1706): ask the configured model for
             // this increment; any error keeps the fixed step below.
@@ -216,7 +313,6 @@ async fn create(
         }
     });
 
-    Ok(Json(json!({ "run": run_json(&run) })))
 }
 
 #[derive(Debug, diesel::QueryableByName)]
