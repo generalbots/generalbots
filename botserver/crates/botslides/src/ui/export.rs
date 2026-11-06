@@ -1,5 +1,48 @@
-use crate::types::{Presentation, Slide};
+use crate::types::{ChartData, Presentation, Slide, TableData};
 
+
+fn table_html(data: &TableData) -> String {
+    let mut html = String::from(
+        r#"<table style="border-collapse:collapse;width:100%;height:100%;font-size:12px;color:#0f172a;background:#fff;">"#,
+    );
+    for (row_index, row) in data.cells.iter().enumerate() {
+        html.push_str("<tr>");
+        for cell in row {
+            let tag = if row_index == 0 { "th" } else { "td" };
+            html.push_str(&format!(
+                r#"<{tag} style="border:1px solid #cbd5e1;padding:3px 6px;text-align:left;">{}</{tag}>"#,
+                xml_escape(&cell.content)
+            ));
+        }
+        html.push_str("</tr>");
+    }
+    html.push_str("</table>");
+    html
+}
+
+fn chart_html(title: &str, data: &ChartData) -> String {
+    let mut html = format!(
+        r#"<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:4px;padding:4px;box-sizing:border-box;"><div style="font-weight:600;font-size:13px;color:#0f172a;">{}</div>"#,
+        xml_escape(title)
+    );
+    let dataset = data.datasets.first();
+    let values = dataset.map(|item| item.data.as_slice()).unwrap_or(&[]);
+    let color = dataset.map(|item| item.color.as_str()).unwrap_or("#3b82f6");
+    let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
+    html.push_str(r#"<div style="flex:1;display:flex;align-items:flex-end;gap:6px;min-height:40px;">"#);
+    for (index, value) in values.iter().enumerate() {
+        let height = ((value / max) * 100.0).clamp(2.0, 100.0);
+        let label = data.labels.get(index).cloned().unwrap_or_default();
+        html.push_str(&format!(
+            r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
+            height = height,
+            color = xml_escape(color),
+            label = xml_escape(&label)
+        ));
+    }
+    html.push_str("</div></div>");
+    html
+}
 pub fn export_to_html(presentation: &Presentation) -> String {
     let mut html = String::from(
         r#"<!DOCTYPE html>
@@ -45,18 +88,46 @@ box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 element.x, element.y, element.width, element.height
             );
 
-            let content = element
-                .content
-                .html
-                .as_deref()
-                .or(element.content.text.as_deref())
-                .unwrap_or("");
+            let content = match element.element_type.as_str() {
+                "table" => element
+                    .content
+                    .table_data
+                    .as_ref()
+                    .map(table_html)
+                    .unwrap_or_default(),
+                "chart" => element
+                    .content
+                    .chart_data
+                    .as_ref()
+                    .map(|data| chart_html(element.content.text.as_deref().unwrap_or(""), data))
+                    .unwrap_or_default(),
+                _ => element
+                    .content
+                    .html
+                    .as_deref()
+                    .or(element.content.text.as_deref())
+                    .unwrap_or("")
+                    .to_string(),
+            };
 
             html.push_str(&format!(
                 r#" <div class="element element-{}" style="{}">{}</div>
 "#,
                 element.element_type, style, content
             ));
+        }
+
+        if let Some(media) = &slide.media {
+            for item in media {
+                if item.media_type != "image" {
+                    continue;
+                }
+                html.push_str(&format!(
+                    r#" <img class="element" src="{}" alt="" style="left:{}px;top:{}px;width:{}px;height:{}px;object-fit:contain;"/>
+"#,
+                    item.src, item.x, item.y, item.width, item.height
+                ));
+            }
         }
 
         html.push_str(" </div>\n");
@@ -151,6 +222,56 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                     _ => {}
                 }
             }
+            "table" => {
+                if let Some(data) = &element.content.table_data {
+                    let mut line_y = element.y + 16.0;
+                    for row in data.cells.iter().take(24) {
+                        let line = row
+                            .iter()
+                            .map(|cell| cell.content.clone())
+                            .collect::<Vec<_>>()
+                            .join(" | ");
+                        svg.push_str(&format!(
+                            r#" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#0f172a">{}</text>
+"#,
+                            element.x,
+                            line_y,
+                            xml_escape(&line)
+                        ));
+                        line_y += 16.0;
+                    }
+                }
+            }
+            "chart" => {
+                if let Some(data) = &element.content.chart_data {
+                    let title = element.content.text.as_deref().unwrap_or("");
+                    svg.push_str(&format!(
+                        r#" <text x="{}" y="{}" font-family="Arial" font-size="14" font-weight="bold" fill="#0f172a">{}</text>
+"#,
+                        element.x,
+                        element.y + 16.0,
+                        xml_escape(title)
+                    ));
+                    let values = data
+                        .datasets
+                        .first()
+                        .map(|dataset| dataset.data.clone())
+                        .unwrap_or_default();
+                    let mut line_y = element.y + 36.0;
+                    for (index, value) in values.iter().enumerate().take(12) {
+                        let label = data.labels.get(index).cloned().unwrap_or_default();
+                        svg.push_str(&format!(
+                            r#" <text x="{}" y="{}" font-family="Arial" font-size="12" fill="#334155">{}: {}</text>
+"#,
+                            element.x,
+                            line_y,
+                            xml_escape(&label),
+                            value
+                        ));
+                        line_y += 16.0;
+                    }
+                }
+            }
             "image" => {
                 if let Some(ref src) = element.content.src {
                     svg.push_str(&format!(
@@ -161,6 +282,18 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                 }
             }
             _ => {}
+        }
+    }
+
+    if let Some(media) = &slide.media {
+        for item in media {
+            if item.media_type == "image" {
+                svg.push_str(&format!(
+                    r#" <image x="{}" y="{}" width="{}" height="{}" href="{}"/>
+"#,
+                    item.x, item.y, item.width, item.height, item.src
+                ));
+            }
         }
     }
 

@@ -140,11 +140,58 @@ fn slide_shape_xml(
     )
 }
 
+
+fn element_export_text(element: &crate::types::SlideElement) -> String {
+    match element.element_type.as_str() {
+        "table" => element
+            .content
+            .table_data
+            .as_ref()
+            .map(|data| {
+                data.cells
+                    .iter()
+                    .map(|row| {
+                        row.iter()
+                            .map(|cell| cell.content.clone())
+                            .collect::<Vec<_>>()
+                            .join(" | ")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("
+")
+            })
+            .unwrap_or_default(),
+        "chart" => {
+            let title = element.content.text.clone().unwrap_or_default();
+            let mut lines = vec![title];
+            if let Some(data) = &element.content.chart_data {
+                if let Some(dataset) = data.datasets.first() {
+                    for (index, value) in dataset.data.iter().enumerate() {
+                        let label = data.labels.get(index).cloned().unwrap_or_default();
+                        lines.push(format!("{label}: {value}"));
+                    }
+                }
+            }
+            lines.join("
+")
+        }
+        _ => element.content.text.clone().unwrap_or_default(),
+    }
+}
 fn slide_xml(slide: &Slide, images: &mut Vec<ImagePart>) -> String {
     let bg = hex_color(slide.background.color.as_ref(), "FFFFFF");
     let mut shapes = String::new();
     for (i, element) in slide.elements.iter().enumerate() {
-        shapes.push_str(&slide_shape_xml(element, i + 1, images));
+        // Tables/charts have no native shape writer here; export their text so
+        // the imported deck still carries the data instead of an empty box.
+        if matches!(element.element_type.as_str(), "table" | "chart") {
+            let mut text_element = element.clone();
+            text_element.element_type = "text".to_string();
+            text_element.content.text = Some(element_export_text(element));
+            shapes.push_str(&slide_shape_xml(&text_element, i + 1, images));
+        } else {
+            shapes.push_str(&slide_shape_xml(element, i + 1, images));
+        }
     }
     format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\

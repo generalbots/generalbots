@@ -5,8 +5,9 @@ use crate::storage::{
 };
 use crate::types::{
     AddSlideRequest, ApplyThemeRequest, ApplyTransitionToAllRequest, DeleteElementRequest,
-    DeleteSlideRequest, DuplicateSlideRequest, ElementContent, ElementStyle, ReorderSlidesRequest,
-    RemoveTransitionRequest, SaveResponse, SetTransitionRequest, SlideElement, TransitionConfig,
+    ChartData, ChartDataset, DeleteSlideRequest, DuplicateSlideRequest, ElementContent,
+    ElementStyle, ReorderSlidesRequest, RemoveTransitionRequest, SaveResponse,
+    SetTransitionRequest, SlideElement, TableCell, TableData, TransitionConfig,
     UpdateSlideNotesRequest,
 };
 use crate::SlidesState;
@@ -262,6 +263,70 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
     let x = if x > 0.0 { x } else { 80.0 };
     let y = number("y");
     let y = if y > 0.0 { y } else { 80.0 };
+    let table_data = if element_type == "table" {
+        let rows = payload.get("rows").and_then(|value| value.as_u64()).unwrap_or(3).max(1) as usize;
+        let cols = payload.get("cols").and_then(|value| value.as_u64()).unwrap_or(3).max(1) as usize;
+        let headers: Vec<String> = payload
+            .get("headers")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .split(',')
+            .map(|header| header.trim().to_string())
+            .collect();
+        let mut cells = vec![vec![TableCell::default(); cols]; rows];
+        for (column, header) in headers.iter().enumerate().take(cols) {
+            if !header.is_empty() {
+                cells[0][column].content = header.clone();
+            }
+        }
+        Some(TableData {
+            rows,
+            cols,
+            cells,
+            col_widths: Vec::new(),
+            row_heights: Vec::new(),
+        })
+    } else {
+        None
+    };
+    let chart_data = if element_type == "chart" {
+        let parsed = payload.get("data").and_then(|value| {
+            if value.is_string() {
+                value.as_str().and_then(|text| serde_json::from_str(text).ok())
+            } else {
+                Some(value.clone())
+            }
+        });
+        parsed.map(|value| {
+            let labels = value
+                .get("labels")
+                .and_then(|items| items.as_array())
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(|item| item.as_str().map(str::to_string))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let datasets = value
+                .get("datasets")
+                .and_then(|items| items.as_array())
+                .map(|items| {
+                    items
+                        .iter()
+                        .filter_map(|item| serde_json::from_value::<ChartDataset>(item.clone()).ok())
+                        .collect()
+                })
+                .unwrap_or_default();
+            ChartData {
+                chart_type: text("chart_type").unwrap_or_else(|| "bar".to_string()),
+                labels,
+                datasets,
+            }
+        })
+    } else {
+        None
+    };
     Some(SlideElement {
         id,
         element_type,
@@ -271,12 +336,12 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
         height,
         rotation: number("rotation"),
         content: ElementContent {
-            text: text("text"),
+            text: text("chart_title").or_else(|| text("text")),
             html: None,
             src: text("src"),
             shape_type: text("shape_type"),
-            chart_data: None,
-            table_data: None,
+            chart_data,
+            table_data,
         },
         style: ElementStyle {
             fill: text("fill"),

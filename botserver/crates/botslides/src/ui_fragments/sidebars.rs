@@ -175,6 +175,53 @@ pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> 
     ))
 }
 
+
+/// Renders a table element with escaped cell text and a header row.
+fn render_table_html(data: &crate::types::TableData) -> String {
+    let mut html = String::from(
+        r#"<table style="border-collapse:collapse;width:100%;height:100%;font-size:12px;color:#0f172a;background:#fff;">"#,
+    );
+    for (row_index, row) in data.cells.iter().enumerate() {
+        html.push_str("<tr>");
+        for cell in row {
+            let tag = if row_index == 0 { "th" } else { "td" };
+            html.push_str(&format!(
+                r#"<{tag} style="border:1px solid #cbd5e1;padding:3px 6px;text-align:left;">{}</{tag}>"#,
+                html_escape(&cell.content)
+            ));
+        }
+        html.push_str("</tr>");
+    }
+    html.push_str("</table>");
+    html
+}
+
+/// A compact bar chart from the first dataset; labels under the bars.
+fn render_chart_html(title: &str, data: &crate::types::ChartData) -> String {
+    let mut html = format!(
+        r#"<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:4px;padding:4px;box-sizing:border-box;"><div style="font-weight:600;font-size:13px;color:#0f172a;">{}</div>"#,
+        html_escape(title)
+    );
+    let dataset = data.datasets.first();
+    let values = dataset.map(|item| item.data.as_slice()).unwrap_or(&[]);
+    let color = dataset.map(|item| item.color.as_str()).unwrap_or("#3b82f6");
+    let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
+    html.push_str(
+        r#"<div style="flex:1;display:flex;align-items:flex-end;gap:6px;min-height:40px;">"#,
+    );
+    for (index, value) in values.iter().enumerate() {
+        let height = ((value / max) * 100.0).clamp(2.0, 100.0);
+        let label = data.labels.get(index).cloned().unwrap_or_default();
+        html.push_str(&format!(
+            r#"<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;"><div style="width:70%;height:{height:.0}%;background:{color};border-radius:2px 2px 0 0;"></div><span style="font-size:10px;color:#475569;">{label}</span></div>"#,
+            height = height,
+            color = html_escape(color),
+            label = html_escape(&label)
+        ));
+    }
+    html.push_str("</div></div>");
+    html
+}
 pub(super) fn render_slide(slide: &Slide) -> String {
     let mut html = String::new();
     for e in &slide.elements {
@@ -189,8 +236,25 @@ pub(super) fn render_slide(slide: &Slide) -> String {
         let font_family = e.style.font_family.clone().unwrap_or_else(|| "Arial".to_string());
         let text = e.content.text.clone().unwrap_or_default();
         let text_align = e.style.text_align.clone().unwrap_or_else(|| "left".to_string());
+        // Tables and charts carry structured content; render it instead of the
+        // former empty box (their text field is only the chart title).
+        let inner = match e.element_type.as_str() {
+            "table" => e
+                .content
+                .table_data
+                .as_ref()
+                .map(render_table_html)
+                .unwrap_or_else(|| html_escape(&text)),
+            "chart" => e
+                .content
+                .chart_data
+                .as_ref()
+                .map(|data| render_chart_html(&text, data))
+                .unwrap_or_else(|| html_escape(&text)),
+            _ => html_escape(&text),
+        };
         html.push_str(&format!(
-            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" data-rotation="{r}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:center;padding:4px;">{text}</div>"##,
+            r##"<div class="sl-element" data-id="{id}" data-type="{kind}" data-rotation="{r}" style="{style}background:{fill};color:{color};font-size:{fs}px;font-family:{ff};text-align:{ta};display:flex;align-items:center;padding:4px;overflow:hidden;">{inner}</div>"##,
             id = html_escape(&e.id),
             kind = html_escape(&e.element_type),
             r = e.rotation as i32,
@@ -200,7 +264,7 @@ pub(super) fn render_slide(slide: &Slide) -> String {
             fs = font_size,
             ff = html_escape(&font_family),
             ta = html_escape(&text_align),
-            text = html_escape(&text)
+            inner = inner
         ));
     }
     // Media images are stored on the slide (not as elements); draw them so an
