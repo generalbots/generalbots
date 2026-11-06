@@ -65,7 +65,9 @@ fn component_plan() -> Vec<Component> {
     };
     let mut plan = vec![
         Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false, start: true },
-        Component { id: "tables", label: "Database", timeout_secs: 90, optional: false, start: true },
+        // 90 s was not enough on a cold CI runner (first-run smoke test timed
+        // out while initdb was still writing); the wait is bounded either way.
+        Component { id: "tables", label: "Database", timeout_secs: 180, optional: false, start: true },
         Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false, start: true },
         Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false, start: true },
         Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false, start: true },
