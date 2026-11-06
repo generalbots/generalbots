@@ -47,7 +47,7 @@ url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.
 url_win = "https://get.enterprisedb.com/postgresql/postgresql-17.2-1-windows-x64-binaries.zip"
 filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
 filename_win = "postgresql-17.2-1-windows-x64-binaries.zip"
-sha256 = ""
+sha256 = "c5a214f3ffc71018877a11c0e105177e524ecd33fc77db65a92eba02c2acfbd8"
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
@@ -56,7 +56,7 @@ filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
 url_win = "https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip"
 filename_win = "Redis-x64-3.0.504.zip"
 note = "Windows: Uses Microsoft Redis port. For production, use Memurai or Docker."
-sha256 = ""
+sha256 = "9f5b1fc5c4599e71dc03de5bc4fe1c619d6881d0230f9877b3d470c36a635789"
 
 [components.cache_win]
 name = "Valkey Cache (Windows - via Memurai)"
@@ -95,7 +95,7 @@ url = "https://github.com/zitadel/zitadel/releases/download/v2.71.19/zitadel-lin
 filename = "zitadel-linux-amd64.tar.gz"
 url_win = "https://github.com/zitadel/zitadel/releases/download/v2.71.19/zitadel-windows-amd64.tar.gz"
 filename_win = "zitadel-windows-amd64.tar.gz"
-sha256 = ""
+sha256 = "1ae64de1db1b0796e0962255e4dd335ee7bb7af12720c6fa04dda2f4c1c01b64"
 
 [components.alm]
 name = "Forgejo Git Server"
@@ -103,7 +103,7 @@ url = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10
 filename = "forgejo-10.0.1-linux-amd64"
 url_win = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-windows-amd64.exe"
 filename_win = "forgejo-10.0.1-windows-amd64.exe"
-sha256 = ""
+sha256 = "0256a95f6592f1d55149a5a0a7d2a5ca6b583d9ca1031e9c66f93562e0fcae06"
 
 [components.alm_ci]
 name = "Forgejo Actions Runner"
@@ -111,7 +111,7 @@ url = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-
 filename = "forgejo-runner-6.0.0-linux-amd64"
 url_win = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-runner-6.0.0-windows-amd64.exe"
 filename_win = "forgejo-runner-6.0.0-windows-amd64.exe"
-sha256 = ""
+sha256 = "59124ed0a086a4d48a582dfb6919dfb93f5a6aea59a0ec63b8d326099f83f67d"
 
 [components.dns]
 name = "CoreDNS Server"
@@ -158,7 +158,7 @@ url = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-
 filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz"
 url_win = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-pc-windows-msvc.zip"
 filename_win = "qdrant-x86_64-pc-windows-msvc.zip"
-sha256 = ""
+sha256 = "1417ca7f2c1933c1275e97cbf57ed9a1224b99d500be2a9ed6ef939f5eef8835"
 
 [components.timeseries_db]
 name = "InfluxDB Time Series Database"
@@ -174,7 +174,7 @@ url = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip"
 url_win = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_windows_amd64.zip"
 filename = "vault_1.18.2_linux_amd64.zip"
 filename_win = "vault_1.18.2_windows_amd64.zip"
-sha256 = ""
+sha256 = "a448c8b6839d76ec54fa320d3a558ff0e5ef0c3d27ea78c88ace333461d7264b"
 
 [components.observability]
 name = "Vector Log Aggregator"

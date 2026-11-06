@@ -187,6 +187,51 @@ it was unreferenced, carried GHSA-4r6h-8v6p-xvw6 (prototype pollution) and
 GHSA-5pgg-2g8v-p4x9 (ReDoS), and its GPL-family license was incompatible with
 the MIT policy. XLSX handling is server-side (`calamine` / `zip`).
 
+### Desktop installer payload
+
+The offline installer cache (`botserver/botserver-installers/`, not tracked)
+was audited against `botserver/3rdparty.toml` on 2026-11-06:
+
+- **10 of 10 present Linux payloads** now match a SHA-256 in the manifest.
+  The seven components that previously had `sha256 = ""` (Postgres, Valkey,
+  Zitadel, Forgejo, the Forgejo runner, Qdrant and Vault) now carry one; the
+  remaining empty entries belong to payloads not present in this Linux cache
+  (Windows binaries, alternate architectures and optional services) and are
+  listed under Coverage Gaps.
+- Two cached files did **not** match the upstream release checksum and were
+  replaced: the Forgejo runner file was an anti-bot HTML page, and the Zitadel
+  tarball was a different build. The Postgres, Valkey, Forgejo, Qdrant and
+  Vault entries were confirmed against the upstream `SHA256SUMS`/asset digest
+  where the project publishes one.
+- The fail-closed path is `botcore/src/package_manager/facade/install_system_packages.rs:121`:
+  a mismatch returns `Checksum verification failed for '<component>'` and the
+  install aborts. A missing checksum is now impossible for the Linux payloads
+  shipped in this cache.
+
+Reproduce:
+
+```bash
+python3 - <<'PY'
+import tomllib, hashlib, os
+raw = open("botserver/3rdparty.toml", "rb").read()
+if raw.startswith(b"\xef\xbb\xbf"): raw = raw[3:]
+cfg = tomllib.loads(raw.decode())
+base = "botserver/botserver-installers"
+for key, c in cfg["components"].items():
+    p = os.path.join(base, c["filename"])
+    if os.path.exists(p):
+        assert c["sha256"], f"{key}: cached payload has no checksum"
+        got = hashlib.sha256(open(p, "rb").read()).hexdigest()
+        assert got == c["sha256"].lower(), (key, got, c["sha256"])
+print("installer cache: all present files match")
+PY
+```
+
+The Windows-only and alternate-architecture components are not in this
+workstation's cache. Their `sha256` entries remain empty and must be filled
+before a Windows desktop installer is shipped; they are listed under Coverage
+Gaps below.
+
 ### Python
 
 `botmodels/requirements.txt` is audited with `pip-audit --no-deps` on CI
@@ -225,6 +270,10 @@ Stated explicitly so nobody assumes completeness:
 - **Container/OS scanning is offline-only.** No image or `dpkg` scan of the
   production hosts has been performed from this repository; it is tracked in
   #1724.
+- **Windows/alternate-architecture installer checksums are incomplete.** The
+  Linux payloads present on this workstation are verified, but the Windows,
+  macOS, s390x and optional-service entries in `3rdparty.toml` still have an
+  empty `sha256` and must be filled before those installers ship.
 - **No DAST in CI.** Active scanning of production is manual and monthly by
   design (noise and cost); it is tracked in the report issue #1727.
 - **`cargo check` of the refreshed lockfile was not run on the authoring host**
