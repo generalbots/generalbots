@@ -66,23 +66,26 @@ pub(crate) async fn list_llm_providers() -> Result<Json<serde_json::Value>, (Sta
             },
             {
                 "id": "openai", "name": "OpenAI",
-                "description": "Frontier models: GPT-5.5, GPT-5.4 and o-5 reasoning.",
+                "description": "GPT-5.6 family (Sol, Terra, Luna) plus GPT-5.5 and o-5 reasoning.",
                 "website": "https://platform.openai.com", "requires_byok": false, "icon": "openai",
                 "models": [
-                    {"id": "gpt-5.5", "name": "GPT-5.5", "context": 1048576, "description": "Frontier multimodal intelligence — 1M context", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
-                    {"id": "gpt-5.4", "name": "GPT-5.4", "context": 262144, "description": "Previous frontier — still excellent for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
+                    {"id": "gpt-5.6-sol", "name": "GPT-5.6 Sol", "context": 1048576, "description": "Latest flagship — frontier reasoning, coding and computer use", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
+                    {"id": "gpt-5.6-terra", "name": "GPT-5.6 Terra", "context": 1048576, "description": "Balanced 5.6 variant for production workloads", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
+                    {"id": "gpt-5.6-luna", "name": "GPT-5.6 Luna", "context": 524288, "description": "Budget-friendly 5.6 variant for high volume", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools"]},
+                    {"id": "gpt-5.5", "name": "GPT-5.5", "context": 1048576, "description": "Previous frontier — still excellent for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","vision","tools","reasoning"]},
                     {"id": "o-5", "name": "o-5", "context": 524288, "description": "Advanced reasoning with full chain-of-thought", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","reasoning"]}
                 ]
             },
             {
                 "id": "anthropic", "name": "Anthropic",
-                "description": "Claude Fable 5 (Mythos-class), Opus 4.8, Sonnet 4.6, Haiku 4.5 — no legacy 3.x.",
+                "description": "Claude 5.5 family (Fable 5.1, Opus 5.5, Sonnet 5.5, Haiku 5.5) plus 4.x models.",
                 "website": "https://console.anthropic.com", "requires_byok": false, "icon": "anthropic",
                 "models": [
-                    {"id": "claude-fable-5", "name": "Claude Fable 5", "context": 1048576, "description": "Mythos-class — Anthropic's most capable model", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
-                    {"id": "claude-opus-4-8", "name": "Claude Opus 4.8", "context": 1048576, "description": "Top Opus-tier — complex reasoning & agentic coding", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
-                    {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context": 1048576, "description": "Best speed-intelligence balance for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]},
-                    {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "context": 204800, "description": "Fastest — high-volume, cost-sensitive tasks", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]}
+                    {"id": "claude-fable-5-1", "name": "Claude Fable 5.1", "context": 1048576, "description": "Mythos-class — demanding reasoning and long-horizon agentic work", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
+                    {"id": "claude-opus-5-5", "name": "Claude Opus 5.5", "context": 1048576, "description": "Long-running agentic coding and knowledge work", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
+                    {"id": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5", "context": 1048576, "description": "Best speed-intelligence balance — the default flagship", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision","reasoning"]},
+                    {"id": "claude-haiku-5-5", "name": "Claude Haiku 5.5", "context": 1048576, "description": "Fastest — high-volume, cost-sensitive tasks", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools"]},
+                    {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context": 1048576, "description": "Previous generation — still available for production", "pricing": "token-package", "package_url": "/cloud/store?calc=1#calc-llm-grid", "capabilities": ["chat","tools","vision"]}
                 ]
             },
             {

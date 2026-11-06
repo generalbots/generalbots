@@ -11,7 +11,7 @@ This reference provides detailed information about each component in the botserv
 | Property | Value |
 |----------|-------|
 | **Service** | HashiCorp Vault |
-| **Current Version** | 1.18.2 |
+| **Current Version** | 2.2.1 |
 | **Default Port** | 8200 |
 | **Binary Path** | `botserver-stack/bin/vault/vault` |
 | **Config Path** | `botserver-stack/conf/vault/` |
@@ -20,7 +20,7 @@ This reference provides detailed information about each component in the botserv
 
 **Download URL:**
 ```
-https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip
+https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip
 ```
 
 **Purpose:**
@@ -44,7 +44,7 @@ https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip
 | Property | Value |
 |----------|-------|
 | **Service** | PostgreSQL |
-| **Current Version** | 17.2.0 |
+| **Current Version** | 18.6.1 |
 | **Default Port** | 5432 |
 | **Binary Path** | `botserver-stack/bin/tables/` |
 | **Config Path** | `botserver-stack/conf/tables/` |
@@ -53,7 +53,7 @@ https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip
 
 **Download URL:**
 ```
-https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz
+https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 **Purpose:**
@@ -77,7 +77,7 @@ https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postg
 | Property | Value |
 |----------|-------|
 | **Service** | Zitadel |
-| **Current Version** | 2.44.0 |
+| **Current Version** | 4.20.1 |
 | **Default Port** | 8080 |
 | **Binary Path** | `botserver-stack/bin/directory/zitadel` |
 | **Config Path** | `botserver-stack/conf/directory/` |
@@ -86,7 +86,7 @@ https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postg
 
 **Download URL:**
 ```
-https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz
+https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-linux-amd64.tar.gz
 ```
 
 **Purpose:**
@@ -145,7 +145,7 @@ https://dl.min.io/server/minio/release/linux-amd64/minio
 | Property | Value |
 |----------|-------|
 | **Service** | Valkey |
-| **Current Version** | 8.1.5 |
+| **Current Version** | 9.1.3 |
 | **Default Port** | 6379 |
 | **Binary Path** | `botserver-stack/bin/cache/valkey-server` |
 | **Config Path** | `botserver-stack/conf/cache/` |
@@ -154,7 +154,7 @@ https://dl.min.io/server/minio/release/linux-amd64/minio
 
 **Download URL:**
 ```
-https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz
+https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz
 ```
 
 **Note:** installed from a prebuilt release tarball; no compilation is required.
@@ -235,7 +235,7 @@ llama-b7345-bin-win-cuda-13.1-x64.zip: 06ea715cefb07e9862394e6d1ffa066f4c33add53
 | Property | Value |
 |----------|-------|
 | **Service** | Stalwart Mail Server |
-| **Current Version** | 0.10.7 |
+| **Current Version** | 1.0.3 |
 | **Default Ports** | 25 (SMTP), 993 (IMAPS), 587 (Submission) |
 | **Binary Path** | `botserver-stack/bin/email/stalwart-mail` |
 | **Config Path** | `botserver-stack/conf/email/` |
@@ -244,7 +244,7 @@ llama-b7345-bin-win-cuda-13.1-x64.zip: 06ea715cefb07e9862394e6d1ffa066f4c33add53
 
 **Download URL:**
 ```
-https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-linux.tar.gz
+https://github.com/stalwartlabs/mail-server/releases/download/v1.0.3/stalwart-mail-x86_64-linux.tar.gz
 ```
 
 **Purpose:**
@@ -268,7 +268,7 @@ https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-m
 | Property | Value |
 |----------|-------|
 | **Service** | Caddy |
-| **Current Version** | 2.9.1 |
+| **Current Version** | 2.11.9 |
 | **Default Ports** | 443 (HTTPS), 80 (HTTP) |
 | **Binary Path** | `botserver-stack/bin/proxy/caddy` |
 | **Config Path** | `botserver-stack/conf/proxy/Caddyfile` |
@@ -277,7 +277,7 @@ https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-m
 
 **Download URL:**
 ```
-https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz
+https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_linux_amd64.tar.gz
 ```
 
 **Purpose:**
@@ -301,7 +301,7 @@ https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_
 | Property | Value |
 |----------|-------|
 | **Service** | CoreDNS |
-| **Current Version** | 1.11.3 |
+| **Current Version** | 1.15.0 |
 | **Default Port** | 53 |
 | **Binary Path** | `botserver-stack/bin/dns/coredns` |
 | **Config Path** | `botserver-stack/conf/dns/Corefile` |
@@ -309,7 +309,7 @@ https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_
 
 **Download URL:**
 ```
-https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_linux_amd64.tgz
+https://github.com/coredns/coredns/releases/download/v1.15.0/coredns_1.15.0_linux_amd64.tgz
 ```
 
 **Purpose:**
@@ -331,7 +331,7 @@ https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_linu
 | Property | Value |
 |----------|-------|
 | **Service** | Forgejo |
-| **Current Version** | 10.0.1 |
+| **Current Version** | 17.0.1 |
 | **Default Port** | 3000 |
 | **Binary Path** | `botserver-stack/bin/alm/forgejo` |
 | **Config Path** | `botserver-stack/conf/alm/` |
@@ -340,7 +340,7 @@ https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_linu
 
 **Download URL:**
 ```
-https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-linux-amd64
+https://codeberg.org/forgejo/forgejo/releases/download/v17.0.1/forgejo-17.0.1-linux-amd64
 ```
 
 **Purpose:**
@@ -364,7 +364,7 @@ https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-li
 | Property | Value |
 |----------|-------|
 | **Service** | LiveKit |
-| **Current Version** | 2.8.5 |
+| **Current Version** | 1.13.11 |
 | **Default Ports** | 7880 (HTTP), 7881 (RTC) |
 | **Binary Path** | `botserver-stack/bin/meeting/livekit-server` |
 | **Config Path** | `botserver-stack/conf/meeting/` |
@@ -372,7 +372,7 @@ https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-li
 
 **Download URL:**
 ```
-https://github.com/livekit/livekit/releases/download/v2.8.5/livekit_2.8.5_linux_amd64.tar.gz
+https://github.com/livekit/livekit/releases/download/v1.13.11/livekit_1.13.11_linux_amd64.tar.gz
 ```
 
 **Purpose:**
@@ -398,13 +398,13 @@ https://github.com/livekit/livekit/releases/download/v2.8.5/livekit_2.8.5_linux_
 | Property | Value |
 |----------|-------|
 | **Service** | Qdrant |
-| **Current Version** | 1.12.0 |
+| **Current Version** | 1.20.0 |
 | **Default Ports** | 6333 (HTTP), 6334 (gRPC) |
 | **Binary Path** | `botserver-stack/bin/vector_db/qdrant` |
 
 **Download URL:**
 ```
-https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-unknown-linux-gnu.tar.gz
+https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 **Purpose:**

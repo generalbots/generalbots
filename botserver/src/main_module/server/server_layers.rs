@@ -62,6 +62,7 @@ pub(super) fn apply_middleware(app: Router, app_state: Arc<AppState>, layers: Se
             }
         }))
         .layer(axum::middleware::from_fn(security_headers_middleware))
+        .layer(axum::middleware::from_fn(auth_rate_limit_middleware))
         .layer(security_headers_extension)
         .layer(rate_limit_extension)
         .layer(axum::middleware::from_fn(request_id_middleware))

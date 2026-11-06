@@ -24,17 +24,17 @@ Check installed versions:
 Example output:
 ```
 botserver Stack Versions:
-  vault:     1.18.2
-  tables:    17.2.0 (PostgreSQL)
-  directory: 2.44.0 (Zitadel)
+  vault:     2.2.1
+  tables:    18.6.1 (PostgreSQL)
+  directory: 4.20.1 (Zitadel)
   drive:     latest (MinIO)
-  cache:     8.1.5 (Valkey)
+  cache:     9.1.3 (Valkey)
   llm:       b7345 (llama.cpp)
-  email:     0.10.7 (Stalwart)
-  proxy:     2.9.1 (Caddy)
-  dns:       1.11.3 (CoreDNS)
-  alm:       10.0.1 (Forgejo)
-  meeting:   2.8.5 (LiveKit)
+  email:     1.0.3 (Stalwart)
+  proxy:     2.11.9 (Caddy)
+  dns:       1.15.0 (CoreDNS)
+  alm:       17.0.1 (Forgejo)
+  meeting:   1.13.11 (LiveKit)
 ```
 
 ### Check Upstream Releases
@@ -176,8 +176,8 @@ pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
 
 # Update 3rdparty.toml
 [components.tables]
-url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
-filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"
+filename = "postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"
 
 # Stop services
 ./botserver stop
@@ -220,8 +220,8 @@ Valkey requires compilation from source.
 ```bash
 # Update 3rdparty.toml
 [components.cache]
-url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz"
-filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
+url = "https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz"
+filename = "valkey-9.1.3-jammy-x86_64.tar.gz"
 
 # Stop cache
 ./botserver stop cache
@@ -248,7 +248,7 @@ pg_dump -d zitadel > zitadel-backup-$(date +%Y%m%d).sql
 
 # Update 3rdparty.toml
 [components.directory]
-url = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz"
+url = "https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
 
 # Stop directory
@@ -273,8 +273,8 @@ filename = "zitadel-linux-amd64.tar.gz"
 ```bash
 # Update 3rdparty.toml
 [components.vault]
-url = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip"
-filename = "vault_1.18.2_linux_amd64.zip"
+url = "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip"
+filename = "vault_2.2.1_linux_amd64.zip"
 
 # Stop Vault
 ./botserver stop vault
@@ -342,7 +342,7 @@ cd offline-updates
 curl -LO https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip
 
 # Database
-curl -LO https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz
 
 # ... other components
 ```

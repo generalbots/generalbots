@@ -34,7 +34,7 @@ pub fn llm_provider_defaults(provider_slug: &str) -> Option<(&'static str, &'sta
         "kilo-cohere" => (KILO_BASE_URL, "cohere/north-mini-code:free"),
         "kilo-flint" => (KILO_BASE_URL, "recursive/flint-v1.0:free"),
         "kilo-xing" => (KILO_BASE_URL, "xingchen-agi/xing4.0-29b-a4b:free"),
-        CLAUDE_CODE_SLUG => ("https://api.anthropic.com/v1/messages", "claude-sonnet-4-5"),
+        CLAUDE_CODE_SLUG => ("https://api.anthropic.com/v1/messages", "claude-sonnet-5-5"),
         CHATGPT_PLAN_SLUG => ("https://chatgpt.com/backend-api/codex", "gpt-5-codex"),
         _ => return None,
     };
