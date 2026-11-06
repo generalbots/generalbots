@@ -502,10 +502,12 @@ mod tests {
         let bytes = export_to_ods(&sample_sheet()).expect("ods export");
         assert_eq!(&bytes[..2], b"PK");
         let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
-        let mut mime = zip.by_name("mimetype").expect("mimetype entry");
-        let mut text = String::new();
-        std::io::Read::read_to_string(&mut mime, &mut text).expect("read mimetype");
-        assert_eq!(text, "application/vnd.oasis.opendocument.spreadsheet");
+        {
+            let mut mime = zip.by_name("mimetype").expect("mimetype entry");
+            let mut text = String::new();
+            std::io::Read::read_to_string(&mut mime, &mut text).expect("read mimetype");
+            assert_eq!(text, "application/vnd.oasis.opendocument.spreadsheet");
+        }
         assert!(zip.by_name("content.xml").is_ok());
         assert!(zip.by_name("META-INF/manifest.xml").is_ok());
     }
