@@ -4,9 +4,7 @@ pub(crate) use crate::component::ComponentConfig;
 pub(crate) use crate::os::detect_os;
 pub(crate) use crate::{InstallMode, OsType};
 pub(crate) use crate::installer_regs;
-pub(crate) use crate::installer_regs2;
 pub(crate) use crate::installer_vault;
-pub(crate) use crate::installer_vault2;
 pub(crate) use botlib::security::SafeCommand;
 pub(crate) use anyhow::Result;
 pub(crate) use log::{info, trace, warn};
@@ -43,7 +41,7 @@ mod component_entry;
 mod urls;
 mod shell;
 mod llama;
-mod manager_new;
+mod manager_construction;
 mod manager_run;
 
 pub use urls::*;

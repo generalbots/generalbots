@@ -7,12 +7,19 @@ pub mod os;
 pub mod setup;
 pub mod alm_setup;
 
-// #1347 — the plugin registry's single implementation lives in botcorepkg
-// (the crate this module already depends on); the copies that used to exist
-// here were the drift risk. This re-export makes the boot path
+// #1347/#1732 — the plugin registry's single implementation lives in
+// botcorepkg (the crate this module already depends on); the copies that used
+// to exist here were the drift risk. This re-export makes the boot path
 // (state_builder.rs -> botcorepkg::plugin::init_global_registry) and the
 // PLUGIN CALL keyword (botbasic_system -> botcorepkg::plugin) resolve to
 // the same registry with one canonical import path available.
+//
+// The component registry follows the same direction: this crate's
+// `installer::PackageManager` reuses
+// `botcorepkg::installer::PackageManager::all_components()` for its component
+// table (see `installer/with_base_path.rs`), so a component is declared once in
+// `botcorepkg/src/installer_regs/`. Do not add a parallel `register_*` list
+// here.
 pub use botcorepkg::plugin;
 pub use cache::{CacheResult, DownloadCache};
 pub use container::{ContainerOperations, ContainerSettings, NatRule};

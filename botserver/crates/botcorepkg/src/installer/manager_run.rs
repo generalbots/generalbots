@@ -156,7 +156,7 @@ impl PackageManager {
                         );
 
                         if component.name == "vault" && self.mode == InstallMode::Local {
-                            let _ = installer_vault2::ensure_env_file_exists(&self.base_path);
+                            let _ = installer_vault::ensure_env_file_exists(&self.base_path);
                         }
 
                         SafeCommand::noop_child()

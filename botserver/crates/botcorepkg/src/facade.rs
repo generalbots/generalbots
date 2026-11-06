@@ -3,22 +3,11 @@ use crate::component::{ComponentConfig, InstallResult};
 use crate::installer::PackageManager;
 use crate::InstallMode;
 use crate::OsType;
-use botlib::security::SafeCommand;
 use anyhow::{Context, Result};
 use log::{info, trace, warn};
 use std::collections::HashMap;
 
-fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
-    SafeCommand::new("lxc")
-        .and_then(|c| c.args(args))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
-}
-
-fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
-    let cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
-    cmd_res.ok().and_then(|cmd| cmd.execute().ok())
-}
+use crate::facade_container::{safe_lxc, safe_lxd};
 
 impl PackageManager {
     pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {

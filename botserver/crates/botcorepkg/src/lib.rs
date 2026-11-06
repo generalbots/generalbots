@@ -14,19 +14,19 @@ pub mod facade_container;
 pub mod facade_download;
 pub mod installer;
 pub mod installer_regs;
-pub mod installer_regs2;
 pub mod installer_vault;
-pub mod installer_vault2;
 pub mod os;
 pub mod setup;
 
-// #1347 — package_manager duplication note: the module that is actually
+// #1347/#1732 — package_manager duplication note: the module that is actually
 // invoked at boot is `botcore::package_manager` (botserver main.rs CLI and
 // init.rs). The files in this crate that also exist there (setup, cache,
 // alm_setup, cli, facade, container, os, component, installer) are the
 // drift-prone copies documented in issue #1347 section 3; only `plugin`,
-// `component`, `container` and the installer_regs*/installer_vault* component
-// tables are shared from here via re-exports and direct calls. Do not edit a
+// `component`, `container` and the installer registry/vault modules are shared
+// from here via re-exports and direct calls. Within this crate there are no
+// numeric duplicates: `installer_regs/` and `installer_vault/` are the single
+// homes for every `register_*` entry and every Vault step (#1732). Do not edit a
 // drifted copy expecting a behavior change at runtime — check which side the
 // caller imports first.
 

@@ -57,14 +57,14 @@ impl PackageManager {
         installer_regs::register_alm_ci(&mut components);
         installer_regs::register_dns(&mut components);
         installer_regs::register_meeting(&mut components);
-        installer_regs2::register_table_editor(&mut components);
-        installer_regs2::register_remote_terminal(&mut components);
-        installer_regs2::register_devtools(&mut components);
-        installer_regs2::register_vector_db(&mut components);
-        installer_regs2::register_timeseries_db(&mut components);
-        installer_regs2::register_vault(&mut components);
-        installer_regs2::register_observability(&mut components);
-        installer_regs2::register_host(&mut components);
+        installer_regs::register_table_editor(&mut components);
+        installer_regs::register_remote_terminal(&mut components);
+        installer_regs::register_devtools(&mut components);
+        installer_regs::register_vector_db(&mut components);
+        installer_regs::register_timeseries_db(&mut components);
+        installer_regs::register_vault(&mut components);
+        installer_regs::register_observability(&mut components);
+        installer_regs::register_host(&mut components);
         installer_regs::register_botmodels(&mut components);
         components
     }

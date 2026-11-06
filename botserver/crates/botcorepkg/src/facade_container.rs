@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::PathBuf;
 
-fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
+pub(crate) fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
     SafeCommand::new("lxc")
         .and_then(|c| c.args(args))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }
 
-fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
+pub(crate) fn safe_lxd(args: &[&str]) -> Option<std::process::Output> {
     let cmd_res = SafeCommand::new("lxd").and_then(|c| c.args(args));
     cmd_res.ok().and_then(|cmd| cmd.execute().ok())
 }
