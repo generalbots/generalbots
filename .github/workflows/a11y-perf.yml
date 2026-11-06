@@ -32,7 +32,7 @@ jobs:
         run: |
           python3 -m http.server 3000 --directory botui/ui >/tmp/suite-http.log 2>&1 &
           SERVER=$!
-          trap "kill $SERVER" EXIT
+          trap 'kill $SERVER' EXIT
           for _ in $(seq 1 20); do
             curl -sf http://127.0.0.1:3000/suite/desktop.html >/dev/null && break
             sleep 1
