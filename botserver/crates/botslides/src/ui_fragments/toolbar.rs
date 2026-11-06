@@ -331,16 +331,11 @@ pub async fn handle_export_form(Json(payload): Json<serde_json::Value>) -> Html<
 <label style="color:#f8fafc;font-size:13px;">Formato
 <select name="format" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="pptx">PPTX (PowerPoint)</option>
+<option value="odp">ODP (OpenDocument)</option>
 <option value="html">HTML</option>
 <option value="svg">SVG (primeiro slide)</option>
 <option value="md">Markdown</option>
-</select>
-</label>
-<label style="color:#f8fafc;font-size:13px;">Qualidade
-<select name="quality" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
-<option value="standard">Padrão</option>
-<option value="high">Alta (1920×1080)</option>
-<option value="print">Impressão (300 DPI)</option>
+<option value="json">JSON (modelo do deck)</option>
 </select>
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Baixar</button>
