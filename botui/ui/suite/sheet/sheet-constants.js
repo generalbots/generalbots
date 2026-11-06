@@ -751,21 +751,25 @@
     }
     var formulaInput = document.getElementById("formulaInput");
     if (formulaInput) {
+      var commitFormula = function () {
+        var val = formulaInput.value;
+        if (VirtualGrid.selectedRow == null || VirtualGrid.selectedCol == null) return;
+        var ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
+        SheetAPI.updateCell(ref, val).then(function (res) {
+          if (res && res.success) {
+            VirtualGrid.lastRenderedRange = null;
+            VirtualGrid.requestRange();
+          }
+        });
+      };
       formulaInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
           e.preventDefault();
-          var val = formulaInput.value;
-          if (VirtualGrid.selectedRow != null && VirtualGrid.selectedCol != null) {
-            var ref = colName(VirtualGrid.selectedCol) + (VirtualGrid.selectedRow + 1);
-            SheetAPI.updateCell(ref, val).then(function (res) {
-              if (res && res.success) {
-                VirtualGrid.lastRenderedRange = null;
-                VirtualGrid.requestRange();
-              }
-            });
-          }
+          commitFormula();
         }
       });
+      // Clicking away used to discard the typed value silently.
+      formulaInput.addEventListener("change", commitFormula);
     }
   }
   window.initToolbar = initToolbar;
