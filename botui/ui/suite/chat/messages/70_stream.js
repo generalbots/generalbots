@@ -1,0 +1,146 @@
+/* Chat messages module: Streaming render/finalize and the websocket message dispatcher. */
+function updateStreaming(content) {
+  var el = document.getElementById(ChatState.streamingMessageId);
+  if (!el) return;
+  var streamBox = document.getElementById("messages");
+  var wasNearBottom = streamBox &&
+    (streamBox.scrollHeight - streamBox.scrollTop - streamBox.clientHeight) < 240;
+
+  var msgContent = el.querySelector(".message-content");
+  var cleanContent = stripMarkdownBlocks(content);
+  var parsed;
+  if (typeof marked !== "undefined" && marked.parse) {
+    parsed = marked.parse(cleanContent);
+  } else {
+    var isHtml = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
+    parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
+  }
+  parsed = convertNumberedLists(parsed);
+  parsed = renderInlineMarkdown(parsed);
+  parsed = parsed.replace(/<br\s*\/?>/gi, '');
+  parsed = renderMentionInMessage(parsed);
+  var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
+  msgContent.innerHTML = thinkingHtml + parsed;
+  // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
+  // lives on the message (not inside .message-content) so the next streaming
+  // re-render does not destroy and reload it every 200 ms.
+  if (window.GBLiveArtifact) window.GBLiveArtifact.render(el, content);
+  if (window.ChatCodeUX) {
+    ChatCodeUX.enhance(msgContent);
+    var toolCards = ChatCodeUX.extractToolCards(content);
+    toolCards.forEach(function (tool) {
+      if (tool.status) ChatCodeUX.appendCard(tool);
+    });
+  }
+  if (!ChatState.isUserScrolling || wasNearBottom) scrollToBottom(true);
+}
+
+function finalizeStreaming() {
+  var el = document.getElementById(ChatState.streamingMessageId);
+  if (el) {
+    el.remove();
+  }
+  ChatState.streamingMessageId = null;
+  ChatState.currentStreamingContent = "";
+  ChatState.currentReasoning = "";
+  ChatState.streamingBuffer = "";
+}
+
+function processMessage(data) {
+  if (data.thinking) {
+    if (!ChatState.isStreaming) {
+      showThinkingIndicator();
+    }
+    return;
+  }
+
+  if (data.is_complete) {
+    // Capture the accumulated stream before finalizeStreaming() clears it.
+    // Completion frames often carry only reasoning; dropping the accumulated
+    // content left a "Thinking" bubble with no visible answer (the persisted
+    // message still had the answer).
+    var finalContent =
+      (data.content && data.content.trim() !== "")
+        ? data.content
+        : (ChatState.currentStreamingContent || "");
+    var finalReasoning = data.reasoning || ChatState.currentReasoning || "";
+    hideThinkingIndicator();
+    if (ChatState.isStreaming) {
+      finalizeStreaming();
+    }
+    // The server can emit the same completion more than once (stream end +
+    // final frame + retry). Without this guard each copy became a separate
+    // bubble and a duplicate local-history entry.
+    var completed = finalContent && finalContent.trim() !== ""
+      ? { content: finalContent, reasoning: "" }
+      : { content: "", reasoning: finalReasoning };
+    var previous = ChatState.lastCompletedTurn;
+    var duplicateCompletion = previous &&
+      previous.content === completed.content &&
+      previous.reasoning === completed.reasoning &&
+      // Retries can land several seconds apart; a new user turn clears this
+      // marker, so a long window only suppresses the server's own duplicates.
+      Date.now() - previous.at < 60000;
+    if (!duplicateCompletion) {
+      if (completed.content) {
+        addMessage("bot", completed.content, null, finalReasoning);
+        if (TTSState.autoSpeak) speakText(completed.content);
+      } else if (completed.reasoning && completed.reasoning.trim() !== "") {
+        addMessage("bot", "", null, completed.reasoning);
+        if (TTSState.autoSpeak) speakText(completed.reasoning);
+      }
+      ChatState.lastCompletedTurn = {
+        content: completed.content,
+        reasoning: completed.reasoning,
+        at: Date.now(),
+      };
+    }
+    // The final bubble can be rendered by a pane renderer that skips the
+    // addMessage hydration; re-run it on the visible last bot turn so raw
+    // `[name](vmfile:...)` text always becomes attachment cards.
+    try {
+      var bots = document.querySelectorAll("#messages .message.bot");
+      var lastBot = bots.length ? bots[bots.length - 1] : null;
+      if (lastBot && typeof hydrateVmAttachments === "function") {
+        hydrateVmAttachments(lastBot);
+      }
+    } catch (e) { /* hydration is best-effort */ }
+    ChatState.isStreaming = false;
+    ChatState.currentReasoning = "";
+    // Consumers that react to a finished turn (voice/full-duplex, proactivity)
+    // must fire once, on completion — not on the first streaming chunk.
+    try {
+      window.dispatchEvent(new CustomEvent("gb-chat-bot-complete", {
+        detail: { content: finalContent || finalReasoning || "" },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
+    if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+      renderSuggestions(data.suggestions);
+    }
+    if (data.switchers && Array.isArray(data.switchers) && data.switchers.length > 0) {
+      // The stock socket speaks for the default conversation even while a
+      // parallel pane is mounted — render into the stock strip, not the pane.
+      renderBotSwitchers(data.switchers, "tab-default");
+    }
+  } else if ((data.content && data.content.trim() !== "") || (data.reasoning && data.reasoning.trim() !== "")) {
+    if (!ChatState.isStreaming) {
+      ChatState.isStreaming = true;
+      ChatState.streamingMessageId = "streaming-" + Date.now();
+      ChatState.currentStreamingContent = data.content || "";
+      ChatState.currentReasoning = data.reasoning || "";
+      addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning);
+      ChatState.lastRenderTime = Date.now();
+    } else {
+      if (data.reasoning) {
+        ChatState.currentReasoning = (ChatState.currentReasoning || "") + data.reasoning;
+      }
+      if (data.content) {
+        ChatState.currentStreamingContent += data.content;
+      }
+      var now = Date.now();
+      if (now - ChatState.lastRenderTime > ChatState.renderInterval) {
+        updateStreaming(ChatState.currentStreamingContent);
+      }
+    }
+  }
+}
