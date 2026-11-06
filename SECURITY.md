@@ -331,7 +331,8 @@ Residual production risks (documented, not fixed here):
   reappeared above the DROPs after the first fix. They were removed again and
   replaced with the source-restricted rule; external port checks from three
   independent nodes now show 6080/5901/8443 blocked.
-- srv1 disk is at 89% and srv2 at 85%; monitor.
+- srv1 disk is at 89% and srv2 at 92%; most of it is the Incus storage pool
+  (56G / 51G). Monitor; cleanup needs a decision on unused containers.
 - **Every container is behind on OS security updates.** After refreshing the
   stale apt lists, proxy has 6 pending security updates, bot 11, tables 5,
   cache 5, drive 2, directory 5, vault 5, desktop1 15 and the rest 2–9 each.
