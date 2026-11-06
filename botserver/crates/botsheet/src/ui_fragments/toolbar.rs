@@ -1,19 +1,37 @@
 use super::{html_escape, Lang, t, tf};
-use axum::extract::{Form, Query};
+use axum::extract::Query;
+use axum::Json;
 use axum::http::HeaderMap;
 use axum::response::Html;
 use std::collections::HashMap;
 
+
+/// htmx posts these modal forms as JSON (`hx-ext="json-enc"`), while the
+/// handlers were reading a URL-encoded `Form` — every field (including the
+/// sheet id) was dropped. Normalize both shapes into the string map below.
+fn merge_json_body(
+    params: &mut HashMap<String, String>,
+    body: Option<Json<serde_json::Value>>,
+) {
+    let Some(Json(value)) = body else { return };
+    let Some(object) = value.as_object() else { return };
+    for (key, item) in object {
+        if let Some(text) = item.as_str() {
+            params.insert(key.clone(), text.to_string());
+        } else if !item.is_null() {
+            params.insert(key.clone(), item.to_string());
+        }
+    }
+}
+
 pub async fn handle_share_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     let action = params.get("action").cloned().unwrap_or_else(|| "share".to_string());
     if action == "delete_named" {
@@ -51,13 +69,11 @@ pub async fn handle_share_form(
 pub async fn handle_find_replace_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="find-replace-form" hx-post="/api/sheet/load" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -82,13 +98,11 @@ pub async fn handle_find_replace_form(
 pub async fn handle_conditional_format_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="cf-form" hx-post="/api/sheet/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#conditional-format-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -131,13 +145,11 @@ pub async fn handle_conditional_format_form(
 pub async fn handle_data_validation_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="dv-form" hx-post="/api/sheet/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#data-validation-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -179,13 +191,11 @@ pub async fn handle_data_validation_form(
 pub async fn handle_custom_format_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="cf-custom-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"custom"}}' hx-target="#custom-format-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -215,13 +225,11 @@ pub async fn handle_custom_format_form(
 pub async fn handle_insert_image_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="img-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"image"}}' hx-target="#insert-image-modal" hx-swap="outerHTML" enctype="multipart/form-data" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -243,13 +251,11 @@ pub async fn handle_insert_image_form(
 pub async fn handle_print_preview_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="print-form" hx-post="/api/sheet/export" hx-vals='{{"id":"{id}","format":"pdf"}}' hx-target="#print-preview-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -282,13 +288,11 @@ pub async fn handle_print_preview_form(
 pub async fn handle_chart_form(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
-    body: Option<Form<HashMap<String, String>>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
     let mut params = query;
-    if let Some(Form(form)) = body {
-        params.extend(form);
-    }
+    merge_json_body(&mut params, body);
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="chart-form" hx-post="/api/sheet/chart" hx-vals='{{"id":"{id}"}}' hx-target="#chart-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">

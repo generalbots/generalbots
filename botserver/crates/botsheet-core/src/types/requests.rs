@@ -142,7 +142,10 @@ pub struct FilterRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChartRequest {
+    // The chart modal posts the workbook as `id` and never sends an index.
+    #[serde(alias = "id")]
     pub sheet_id: String,
+    #[serde(default)]
     pub worksheet_index: usize,
     pub chart_type: String,
     pub data_range: String,
