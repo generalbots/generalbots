@@ -13,7 +13,19 @@ function notify(message, type) {
     } else {
       window.GBAlerts.info("Chat", friendly);
     }
+    return;
   }
+  // The suite/desktop shell does not load GBAlerts; without this fallback
+  // every disconnect / delivery / upload message was silently dropped.
+  if (window.GBToasts && typeof window.GBToasts.show === "function") {
+    window.GBToasts.show("Chat", friendly, type === "error" ? "error" : "info");
+    return;
+  }
+  if (typeof window.showToast === "function") {
+    window.showToast(friendly, type);
+    return;
+  }
+  console.info(friendly);
 }
 
 // #1701 — steering feedback. The chat route has no global showToast and not

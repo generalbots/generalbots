@@ -182,7 +182,9 @@ function sendMessage(messageContent, extra) {
   var finalSend = function () {
     var sentPayload = payload;
     ChatState.ws.send(JSON.stringify(sentPayload));
-    armChatPending(content || file?.name || "");
+    // `file` is not defined in this scope: referencing it threw a
+    // ReferenceError right after ws.send and skipped the delivery guard.
+    armChatPending(content || "");
     // Delivery guard: a send that never reaches the server used to look like a
     // bot that ignores the user. Watch for any frame of this conversation for
     // a few seconds; if nothing arrives, reopen the socket and resend once.

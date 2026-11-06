@@ -374,7 +374,9 @@ function toggleUserAttachmentPreview(chip, name) {
   var frame = document.createElement("iframe");
   frame.src = userAttachmentPreviewUrl(name);
   frame.title = "Preview of " + name;
-  frame.setAttribute("sandbox", "");
+  // Chrome refuses to run its PDF viewer inside a sandboxed frame; the
+  // server already sends application/pdf + nosniff, so a PDF is safe.
+  if (!/\.pdf$/i.test(name)) frame.setAttribute("sandbox", "");
   frame.setAttribute("referrerpolicy", "no-referrer");
   frame.setAttribute("loading", "lazy");
   body.appendChild(frame);

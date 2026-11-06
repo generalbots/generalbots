@@ -920,5 +920,5 @@ function hydrateVmAttachments(container) {
         }
       });
     })
-    .catch(function () {});
+    .catch(vmNotifyError);
 }
