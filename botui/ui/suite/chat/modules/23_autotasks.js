@@ -197,16 +197,26 @@
   });
 
   // Tab switches and new sessions change which conversation is visible.
-  document.addEventListener("gb-tab-activated", poll);
-  document.addEventListener("gb-session-changed", poll);
-  document.addEventListener("gb-chat-ready", function () {
+  // The real events are gb-tab-focused / gb-chat-session-changed (dispatched
+  // on window by 20_tabs.js and chat-session.js); the previous names never
+  // fired, so the background-job poller never started.
+  window.addEventListener("gb-tab-focused", poll);
+  window.addEventListener("gb-chat-session-changed", poll);
+  window.addEventListener("gb-chat-ready", function () {
     poll();
     start();
   });
-  document.addEventListener("DOMContentLoaded", function () {
+  // The chat partial can be inserted after DOMContentLoaded, so also boot
+  // immediately when the document is already parsed.
+  function bootAutotasks() {
     setTimeout(poll, 1500);
     start();
-  });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootAutotasks);
+  } else {
+    bootAutotasks();
+  }
 
   AT.refresh = refresh;
   AT.stop = stop;
