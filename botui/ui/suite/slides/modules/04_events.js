@@ -5,14 +5,9 @@
 // deck is open, point those parameters at the real id so save/rename/export
 // and element actions reach the open deck.
 document.addEventListener("htmx:configRequest", function (event) {
-  var real = window.__SLIDES_PRESENTATION_ID;
-  if (!real || real === "current") return;
   var parameters = (event.detail && event.detail.parameters) || {};
-  ["id", "presentation_id"].forEach(function (key) {
-    if (parameters[key] === "current") parameters[key] = real;
-  });
-  // Toolbar forms address the visible slide as "current"; send its 0-based
-  // index, since the handlers deserialize slide_index as a number.
+  // Toolbar forms address the visible slide as "current"; always send its
+  // 0-based index, even while the deck id is still "current".
   var canvas = document.getElementById("slide-canvas");
   var visibleSlide = canvas && canvas.dataset.slideId ? canvas.dataset.slideId : "0";
   ["slide", "slide_index"].forEach(function (key) {
@@ -20,12 +15,30 @@ document.addEventListener("htmx:configRequest", function (event) {
       parameters[key] = parseInt(visibleSlide, 10) || 0;
     }
   });
+  var real = window.__SLIDES_PRESENTATION_ID;
+  if (!real || real === "current") return;
+  ["id", "presentation_id"].forEach(function (key) {
+    if (parameters[key] === "current") parameters[key] = real;
+  });
 });
 
 // Re-render the current slide after a toolbar insert. The element API answers
 // JSON, so those forms save with hx-swap="none" and ask for a fresh view
 // instead of replacing the canvas with the response body.
 // A successful insert saves and refreshes the slide; close its modal too.
+// Start presentation: the API call created the session; go fullscreen and
+// announce presenter mode locally. Previously its JSON replaced the button.
+window.GBSlidesStartPresent = function () {
+  try {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+  } catch (error) {}
+  if (window.SlidesPresenter && window.SlidesPresenter.takePresenter) {
+    window.SlidesPresenter.takePresenter();
+  }
+};
+
 // Export is a JSON POST returning a file body; fetch it with the suite token
 // and save a blob, because htmx cannot stream a download.
 window.GBSlidesExport = function (event) {
