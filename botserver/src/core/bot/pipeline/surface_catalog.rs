@@ -322,6 +322,11 @@ mod tests {
                 annotations.get("destructiveHint"),
                 Some(&json!(entry.destructive))
             );
+            let schema = manifest.get("inputSchema").expect("inputSchema");
+            assert_eq!(schema.get("type"), Some(&json!("object")));
+        }
+    }
+
     #[test]
     fn llm_tools_declare_structured_arguments() {
         let tools = llm_tools();
