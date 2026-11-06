@@ -270,7 +270,7 @@ pub async fn create_folder(
     let parent = normalize_path(&req.path);
     let folder_name = normalize_path(&req.name);
     let key = if parent.is_empty() {
-        format!("{}/", scoped_key(&prefix, folder_name).trim_end_matches('/'))
+        format!("{}/", scoped_key(&prefix, &folder_name).trim_end_matches('/'))
     } else {
         format!("{}/", scoped_key(&prefix, &format!("{parent}/{folder_name}")).trim_end_matches('/'))
     };
