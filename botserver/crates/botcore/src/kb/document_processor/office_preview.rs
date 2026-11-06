@@ -496,51 +496,51 @@ fn spreadsheet_html(file_name: &str, bytes: &[u8]) -> Result<String, String> {
     Ok(document_shell(file_name, &body))
 }
 
-/// Minimal XLSX reader: workbook sheet names in workbook order and each
-/// sheet's rows decoded from shared strings and literal values. Errors
-/// surface as `Result` so the caller degrades to the old window preview
-/// instead of guessing about a broken package.
+/// Minimal XLSX reader: workbook sheet names mapped through the workbook
+/// relationships and each sheet's rows decoded from shared strings, inline
+/// strings, booleans and literal values. Cell references (`r="B2"`) are
+/// honoured so sparse rows keep their columns aligned.
 fn read_spreadsheet(file_name: &str, bytes: &[u8]) -> Result<Vec<Sheet>, String> {
     let reader = Cursor::new(bytes);
     let mut archive = ZipArchive::new(reader)
         .map_err(|error| format!("Failed to open XLSX as ZIP: {error}"))?;
 
     let shared: Vec<String> = match zip_entry_text(&mut archive, "xl/sharedStrings.xml") {
-        Ok(xml) => collect_tag_values(&xml, "<t"),
+        Ok(xml) => collect_shared_strings(&xml),
         Err(_) => Vec::new(),
     };
 
+    let targets = workbook_targets(&mut archive);
     let workbook = zip_entry_text(&mut archive, "xl/workbook.xml")
         .map_err(|error| format!("XLSX has no workbook.xml: {error}"))?;
     let mut sheets = Vec::new();
     let mut remaining = workbook.as_str();
     while let Some(open) = remaining.find("<sheet ") {
-        let entry_end = match remaining[open..].find("/>") {
+        let entry_end = match remaining[open..].find('>') {
             Some(end) => open + end,
             None => break,
         };
         let entry = &remaining[open..entry_end];
-        let name = match entry.find("name=\"") {
-            Some(start) => {
-                let after = &entry[start + 6..];
-                match after.find('"') {
-                    Some(end) => after[..end].to_string(),
-                    None => format!("Sheet {}", sheets.len() + 1),
+        let name = attribute(entry, "name")
+            .map(str::to_string)
+            .unwrap_or_else(|| format!("Sheet {}", sheets.len() + 1));
+        let part = attribute(entry, "r:id")
+            .and_then(|id| targets.get(id))
+            .map(|target| {
+                let cleaned = target.trim_start_matches('/');
+                if cleaned.starts_with("xl/") {
+                    cleaned.to_string()
+                } else {
+                    format!("xl/{cleaned}")
                 }
-            }
-            None => format!("Sheet {}", sheets.len() + 1),
-        };
-        // The part requires the alphabetical member mapping the agent's own
-        // writer (`umya-spreadsheet`) and every common producer use:
-        // `xl/worksheets/sheet1.xml`, `sheet2.xml`, … in workbook order.
-        let sheet_number = sheets.len() + 1;
-        let part = format!("xl/worksheets/sheet{sheet_number}.xml");
+            })
+            .unwrap_or_else(|| format!("xl/worksheets/sheet{}.xml", sheets.len() + 1));
         let rows = match zip_entry_text(&mut archive, &part) {
             Ok(xml) => decode_sheet_rows(&xml, &shared),
             Err(_) => Vec::new(),
         };
         sheets.push(Sheet { name, rows });
-        remaining = &remaining[entry_end..];
+        remaining = &remaining[entry_end + 1..];
     }
     if sheets.is_empty() {
         return Err(format!("No sheets found in {file_name}"));
@@ -562,79 +562,148 @@ fn zip_entry_text(
     Ok(content)
 }
 
-/// Collects the text of every `<t…>…</t>` value in an XML document — the
-/// shape `xl/sharedStrings.xml` uses.
-fn collect_tag_values(xml: &str, tag_start: &str) -> Vec<String> {
-    let closing = format!("</{}", &tag_start[1..]);
+/// `r:id` → worksheet part from `xl/_rels/workbook.xml.rels`.
+fn workbook_targets(archive: &mut ZipArchive<Cursor<&[u8]>>) -> std::collections::HashMap<String, String> {
+    let mut targets = std::collections::HashMap::new();
+    let Ok(rels) = zip_entry_text(archive, "xl/_rels/workbook.xml.rels") else {
+        return targets;
+    };
+    let mut remaining = rels.as_str();
+    while let Some(open) = remaining.find("<Relationship") {
+        let Some(end) = remaining[open..].find('>') else { break };
+        let entry = &remaining[open..open + end];
+        if let (Some(id), Some(target)) = (attribute(entry, "Id"), attribute(entry, "Target")) {
+            targets.insert(id.to_string(), target.to_string());
+        }
+        remaining = &remaining[open + end + 1..];
+    }
+    targets
+}
+
+/// Reads an XML attribute value; `name` is matched with a leading space so
+/// `id` cannot match `r:id`.
+fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let needle = format!(" {name}=\"");
+    let start = tag.find(&needle)? + needle.len();
+    let rest = &tag[start..];
+    let end = rest.find('"')?;
+    Some(&rest[..end])
+}
+
+fn unescape_xml(value: &str) -> String {
+    value
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&amp;", "&")
+}
+
+/// One shared string per `<si>` (rich text runs are concatenated), preserving
+/// empty entries so later indices stay aligned.
+fn collect_shared_strings(xml: &str) -> Vec<String> {
     let mut values = Vec::new();
     let mut remaining = xml;
-    loop {
-        let open = match remaining.find(tag_start) {
-            Some(open) => open,
-            None => break,
-        };
-        let after_open = open + tag_start.len();
-        let inner_start = match remaining[after_open..].find('>') {
-            Some(end) => after_open + end + 1,
-            None => break,
-        };
-        let rest = &remaining[inner_start..];
-        let end = match rest.find(closing.as_str()) {
-            Some(end) => end,
-            None => break,
-        };
-        values.push(rest[..end].to_string());
-        remaining = &rest[end + closing.len()..];
+    while let Some(open) = remaining.find("<si") {
+        let after = &remaining[open + 3..];
+        let next = after.chars().next();
+        if !matches!(next, Some('>') | Some('/')) && !next.is_some_and(char::is_whitespace) {
+            remaining = after;
+            continue;
+        }
+        let Some(gt) = after.find('>') else { break };
+        if after[..gt].trim_end().ends_with('/') {
+            values.push(String::new());
+            remaining = &after[gt + 1..];
+            continue;
+        }
+        let Some(close) = after.find("</si>") else { break };
+        values.push(collect_text_runs(&after[gt + 1..close]));
+        remaining = &after[close + 5..];
     }
-    values.retain(|value| !value.is_empty());
     values
+}
+
+fn collect_text_runs(xml: &str) -> String {
+    let mut output = String::new();
+    let mut remaining = xml;
+    while let Some(open) = remaining.find("<t") {
+        let Some(gt) = remaining[open..].find('>') else { break };
+        let text_start = open + gt + 1;
+        let Some(end) = remaining[text_start..].find("</t>") else { break };
+        output.push_str(&unescape_xml(&remaining[text_start..text_start + end]));
+        remaining = &remaining[text_start + end + 4..];
+    }
+    output
+}
+
+fn column_index(reference: &str) -> Option<usize> {
+    let mut index = 0usize;
+    let mut any = false;
+    for character in reference.chars().take_while(|value| value.is_ascii_alphabetic()) {
+        any = true;
+        index = index * 26 + (character.to_ascii_uppercase() as usize - 'A' as usize + 1);
+    }
+    if any { Some(index - 1) } else { None }
 }
 
 fn decode_sheet_rows(xml: &str, shared: &[String]) -> Vec<SheetRow> {
     let mut rows = Vec::new();
     let mut remaining = xml;
-    loop {
-        let row_open = match remaining.find("<row ") {
-            Some(open) => open,
-            None => break,
+    while let Some(row_open) = remaining.find("<row ") {
+        let after = &remaining[row_open + 4..];
+        let Some(gt) = after.find('>') else { break };
+        let self_closing = after[..gt].trim_end().ends_with('/');
+        let (row_xml, next_row) = if self_closing {
+            ("", &after[gt + 1..])
+        } else {
+            let Some(close) = after.find("</row>") else { break };
+            (&after[gt + 1..close], &after[close + 6..])
         };
-        let row_end = match remaining[row_open..].find("</row>") {
-            Some(end) => row_open + end + "</row>".len(),
-            None => break,
-        };
-        let row_xml = &remaining[row_open..row_end];
-        let mut cells = Vec::new();
+        let mut cells: Vec<String> = Vec::new();
         let mut cell_remaining = row_xml;
-        loop {
-            let cell_open = match cell_remaining.find("<c ") {
-                Some(open) => open,
-                None => break,
+        while let Some(cell_open) = cell_remaining.find("<c") {
+            let Some(cell_gt) = cell_remaining[cell_open..].find('>') else { break };
+            let tag = &cell_remaining[cell_open + 2..cell_open + cell_gt];
+            let cell_self_closing = tag.trim_end().ends_with('/');
+            let content_start = cell_open + cell_gt + 1;
+            let (cell_xml, next_cell) = if cell_self_closing {
+                ("", &cell_remaining[content_start..])
+            } else {
+                let Some(end) = cell_remaining[content_start..].find("</c>") else { break };
+                (
+                    &cell_remaining[content_start..content_start + end],
+                    &cell_remaining[content_start + end + 4..],
+                )
             };
-            let cell_end = match cell_remaining[cell_open..].find("</c>") {
-                Some(end) => cell_open + end + "</c>".len(),
-                None => break,
-            };
-            let cell_xml = &cell_remaining[cell_open..cell_end];
-            let value = inner_value(cell_xml);
-            // `t="s"` marks a shared-string index; everything else is stored
-            // inline (number, boolean or inline string). Numbers keep their
-            // textual form — no localization surprises.
-            let text = if cell_xml.contains("t=\"s\"") {
-                value
+            let column = attribute(tag, "r")
+                .and_then(column_index)
+                .unwrap_or(cells.len());
+            let kind = attribute(tag, "t").unwrap_or("");
+            let raw = inner_value(cell_xml);
+            let text = match kind {
+                "s" => raw
                     .trim()
                     .parse::<usize>()
                     .ok()
                     .and_then(|index| shared.get(index))
                     .cloned()
-                    .unwrap_or_default()
-            } else {
-                value
+                    .unwrap_or_default(),
+                "b" => match raw.trim() {
+                    "1" => "TRUE".to_string(),
+                    "0" => "FALSE".to_string(),
+                    other => other.to_string(),
+                },
+                _ => unescape_xml(&raw),
             };
-            cells.push(text);
-            cell_remaining = &cell_remaining[cell_end..];
+            if column >= cells.len() {
+                cells.resize(column + 1, String::new());
+            }
+            cells[column] = text;
+            cell_remaining = next_cell;
         }
         rows.push(SheetRow { cells });
-        remaining = &remaining[row_end..];
+        remaining = next_row;
     }
     rows
 }
