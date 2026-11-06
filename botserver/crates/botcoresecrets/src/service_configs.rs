@@ -38,7 +38,7 @@ impl SecretsManager {
 
                 let result = vault_curl(&url, &auth, &ca_cert);
 
-                if let Ok(output) = result {
+                if let Some(output) = result {
                     if output.status.success() {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
@@ -77,7 +77,7 @@ impl SecretsManager {
 
                 let result = vault_curl(&url, &auth, &ca_cert);
 
-                if let Ok(output) = result {
+                if let Some(output) = result {
                     if output.status.success() {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
@@ -113,7 +113,7 @@ impl SecretsManager {
 
                 let result = vault_curl(&url, &auth, &ca_cert);
 
-                if let Ok(output) = result {
+                if let Some(output) = result {
                     if output.status.success() {
                         if let Ok(data) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                             if let Some(secret_data) = data.get("data").and_then(|d| d.get("data")) {
