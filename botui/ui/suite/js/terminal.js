@@ -222,10 +222,17 @@ const botCoderTerminal = {
         }).then((result) => {
             var data = result.data;
             if (!result.ok || !data || !data.id) {
-                // Keep the raw server payload for support, show the actionable
-                // category to the user (#1841).
                 console.error('Terminal create failed:', result.status, data);
-                this.term.write('\r\n\x1b[31mTerminal session failed: ' + self.errorMessage(data, result.status) + '\x1b[0m\r\n');
+                const errCode = data && (data.error || data.detail);
+                let errMsg;
+                if (errCode === 'not_found' || errCode === 'no_workspace') {
+                    errMsg = 'No workspace VM found. Send a message in Chat first to start your workspace, then retry.';
+                } else if (errCode === 'forbidden' || (typeof errCode === 'string' && errCode.startsWith('Host shell denied'))) {
+                    errMsg = 'Terminal access requires an active workspace. Open Chat and start a task first.';
+                } else {
+                    errMsg = self.errorMessage(data, result.status);
+                }
+                this.term.write('\r\n\x1b[31mTerminal session failed — ' + errMsg + '\x1b[0m\r\n');
                 return;
             }
             this.sessionId = data.id;
