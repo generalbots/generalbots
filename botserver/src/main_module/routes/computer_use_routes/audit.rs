@@ -229,7 +229,9 @@ pub fn spawn_terminal_audit_purge(state: Arc<AppState>) {
                     .execute(&mut conn)
                     .unwrap_or(0);
                     if browser_deleted > 0 {
-                        log::info!("browser audit: purged {browser_deleted} row(s) older than 90 days");
+                        log::info!(
+                            "browser audit: purged {browser_deleted} row(s) older than 90 days"
+                        );
                     }
                 }
                 Err(error) => log::warn!("terminal audit purge: db pool: {error}"),

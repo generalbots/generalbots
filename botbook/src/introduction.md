@@ -243,8 +243,9 @@ Copy the folder to deploy. That's it. No XML, no JSON schemas, no build process.
 
 ### 1. Install (2 minutes)
 ```bash
-wget https://github.com/generalbots/generalbots/releases/latest/botserver
-chmod +x botserver
+wget https://github.com/generalbots/generalbots/releases/latest/download/botserver-linux-x86_64
+chmod +x botserver-linux-x86_64
+mv botserver-linux-x86_64 botserver
 ./botserver
 ```
 

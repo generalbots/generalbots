@@ -33,8 +33,10 @@ pub fn start_event_dispatcher(state: Arc<AppState>) {
             tokio::time::sleep(TICK).await;
             let events = {
                 let pool = pool.clone();
-                match tokio::task::spawn_blocking(move || basic_events::pending_events(&pool, BATCH))
-                    .await
+                match tokio::task::spawn_blocking(move || {
+                    basic_events::pending_events(&pool, BATCH)
+                })
+                .await
                 {
                     Ok(events) => events,
                     Err(e) => {
@@ -90,12 +92,7 @@ async fn dispatch_one(state: &Arc<AppState>, pool: &DbPool, event: PendingEvent)
 }
 
 /// Execute one subscribed tool with the event payload in scope.
-async fn run_tool(
-    state: &Arc<AppState>,
-    pool: &DbPool,
-    event: &PendingEvent,
-    tool: &str,
-) {
+async fn run_tool(state: &Arc<AppState>, pool: &DbPool, event: &PendingEvent, tool: &str) {
     let bot_name = {
         let pool = pool.clone();
         let bot_id = event.bot_id;
@@ -111,9 +108,7 @@ async fn run_tool(
             }
         }
     };
-    let rel = format!(
-        "{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool}.ast",
-    );
+    let rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool}.ast",);
     if !crate::core::bot::ws::handler::verify_path_within_workdir(&rel) {
         log::error!("[event_dispatcher] path traversal rejected for tool {tool}");
         return;
@@ -146,8 +141,14 @@ async fn run_tool(
             context.insert(key.clone(), serde_json::Value::String(text));
         }
     }
-    context.insert("event".to_string(), serde_json::Value::String(event.event_name.clone()));
-    context.insert("bot".to_string(), serde_json::Value::String(bot_name.clone()));
+    context.insert(
+        "event".to_string(),
+        serde_json::Value::String(event.event_name.clone()),
+    );
+    context.insert(
+        "bot".to_string(),
+        serde_json::Value::String(bot_name.clone()),
+    );
     let variables: Vec<(String, String)> = context
         .into_iter()
         .filter_map(|(k, v)| v.as_str().map(|s| (k, s.to_string())))
@@ -172,7 +173,9 @@ async fn run_tool(
         current_tool: Some(tool.to_string()),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-    locked: false, lock_pin_hash: None, };
+        locked: false,
+        lock_pin_hash: None,
+    };
     let tool_name = tool.to_string();
     let _ = tokio::task::spawn_blocking(move || {
         let mut svc = crate::basic::ScriptService::new(state_for_tool.clone(), session);

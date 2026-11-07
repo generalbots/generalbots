@@ -20,9 +20,15 @@ pub(super) async fn handle_agent_ws_stream(
 
     let session_arc = Arc::new(Mutex::new(session));
 
-    let llm_url = params.llm_url.clone().unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
+    let llm_url = params
+        .llm_url
+        .clone()
+        .unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
     let llm_key = params.llm_key.clone().unwrap_or_default();
-    let llm_model = params.llm_model.clone().unwrap_or_else(|| "default".to_string());
+    let llm_model = params
+        .llm_model
+        .clone()
+        .unwrap_or_else(|| "default".to_string());
     let llm_config = agent::LlmConfig::new(&llm_url, &llm_key, &llm_model);
 
     let max_steps = params.max_steps.unwrap_or(10);
@@ -42,7 +48,8 @@ pub(super) async fn handle_agent_ws_stream(
             Err(e) => {
                 let _ = socket
                     .send(Message::Text(
-                        serde_json::json!({ "type": "error", "message": e.to_string() }).to_string(),
+                        serde_json::json!({ "type": "error", "message": e.to_string() })
+                            .to_string(),
                     ))
                     .await;
                 break;
@@ -63,24 +70,19 @@ pub(super) async fn handle_agent_ws_stream(
             ))
             .await;
 
-        let action = match agent::decide_next_action(
-            &observation,
-            &params.goal,
-            None,
-            &llm_config,
-        )
-        .await
-        {
-            Ok(a) => a,
-            Err(e) => {
-                let _ = socket
-                    .send(Message::Text(
-                        serde_json::json!({ "type": "error", "message": e.to_string() }).to_string(),
-                    ))
-                    .await;
-                break;
-            }
-        };
+        let action =
+            match agent::decide_next_action(&observation, &params.goal, None, &llm_config).await {
+                Ok(a) => a,
+                Err(e) => {
+                    let _ = socket
+                        .send(Message::Text(
+                            serde_json::json!({ "type": "error", "message": e.to_string() })
+                                .to_string(),
+                        ))
+                        .await;
+                    break;
+                }
+            };
 
         let _ = socket
             .send(Message::Text(

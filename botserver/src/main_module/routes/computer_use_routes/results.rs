@@ -98,9 +98,7 @@ pub async fn submit_result(
                     .and_then(Value::as_str)
                     .or_else(|| submitted.get("error").and_then(Value::as_str))
                     .or_else(|| submitted.get("title").and_then(Value::as_str));
-                let screenshot_path = submitted
-                    .get("screenshot_path")
-                    .and_then(Value::as_str);
+                let screenshot_path = submitted.get("screenshot_path").and_then(Value::as_str);
                 audit_browser(
                     &state.conn,
                     BrowserAuditRow {

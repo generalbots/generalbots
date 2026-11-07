@@ -1,8 +1,13 @@
-pub(crate) use axum::{ extract::{Path, State}, http::StatusCode, response::{Html, IntoResponse, Json}, Form, Router, };
+pub(crate) use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Json},
+    Form, Router,
+};
+pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::RunQueryDsl;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
-pub(crate) use botcore::shared::state::AppState;
 
 /// Workspace name of the branch that backs the **default** org on every
 /// environment: `{branch}.gbai/` inside the `default.gborg` bucket. Bots
@@ -11,8 +16,8 @@ pub(crate) use botcore::shared::state::AppState;
 const DEFAULT_WORKSPACE_PREFIX: &str = "default.gbai";
 const DEFAULT_GBORG_BUCKET: &str = "default.gborg";
 
-mod slugify_bot_name;
 mod handle_bot_config_get;
+mod slugify_bot_name;
 
-pub use slugify_bot_name::*;
 pub use handle_bot_config_get::*;
+pub use slugify_bot_name::*;

@@ -9,8 +9,7 @@ use futures_util::{SinkExt, StreamExt};
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use tokio_tungstenite::{
-    connect_async_tls_with_config,
-    tungstenite,
+    connect_async_tls_with_config, tungstenite,
     tungstenite::protocol::Message as TungsteniteMessage,
 };
 
@@ -40,9 +39,7 @@ pub async fn api_ws_proxy(
 ) -> impl IntoResponse {
     let forwarded_path = uri.path().to_string();
     let forwarded_query = uri.query().map_or_else(String::new, |q| format!("?{q}"));
-    ws.on_upgrade(move |socket| {
-        handle_api_ws_proxy(socket, state, forwarded_path, forwarded_query)
-    })
+    ws.on_upgrade(move |socket| handle_api_ws_proxy(socket, state, forwarded_path, forwarded_query))
 }
 
 async fn handle_api_ws_proxy(
@@ -73,8 +70,7 @@ async fn handle_api_ws_proxy(
                 Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
             }
         }
-        let Ok(tls_connector) = tls_builder.build()
-        else {
+        let Ok(tls_connector) = tls_builder.build() else {
             error!("Failed to build TLS connector for API WebSocket proxy");
             return;
         };
@@ -155,7 +151,11 @@ pub async fn ws_proxy(
             path_parts
                 .iter()
                 .find(|part| {
-                    !part.is_empty() && **part != "chat" && **part != "app" && **part != "ws" && **part != "cloud"
+                    !part.is_empty()
+                        && **part != "chat"
+                        && **part != "app"
+                        && **part != "ws"
+                        && **part != "cloud"
                 })
                 .map(|s| s.to_string())
         })
@@ -169,11 +169,7 @@ pub async fn ws_proxy(
     ws.on_upgrade(move |socket| handle_ws_proxy(socket, state, params_with_bot))
 }
 
-async fn handle_ws_proxy(
-    client_socket: WebSocket,
-    state: AppState,
-    params: WsQuery,
-) {
+async fn handle_ws_proxy(client_socket: WebSocket, state: AppState, params: WsQuery) {
     let bot_name = params.bot_name.unwrap_or_else(|| "default".to_string());
     let backend_url = format!(
         "{}/ws?bot_name={}&session_id={}&user_id={}",
@@ -200,8 +196,7 @@ async fn handle_ws_proxy(
                 Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
             }
         }
-        let Ok(tls_connector) = tls_builder.build()
-        else {
+        let Ok(tls_connector) = tls_builder.build() else {
             error!("Failed to build TLS connector for WebSocket proxy");
             return;
         };
@@ -310,8 +305,7 @@ async fn handle_task_progress_ws_proxy(
                 Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
             }
         }
-        let Ok(tls_connector) = tls_builder.build()
-        else {
+        let Ok(tls_connector) = tls_builder.build() else {
             error!("Failed to build TLS connector for task-progress");
             return;
         };
@@ -386,10 +380,7 @@ async fn handle_task_progress_ws_proxy(
                         debug!("[WS_PROXY] Forwarding task_progress to client");
                     }
                     match client_tx.send(AxumMessage::Text(text)).await {
-                        Ok(()) => {
-                            if is_manifest {
-                            }
-                        }
+                        Ok(()) => if is_manifest {},
                         Err(e) => {
                             error!("[WS_PROXY] Failed to send message to client: {:?}", e);
                             break;

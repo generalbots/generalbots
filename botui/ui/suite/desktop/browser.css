@@ -185,3 +185,99 @@
 .btn-danger:hover {
     background: #e74c3c;
 }
+
+/* #1843 — shared container/VM tab strip. Agent/VM tabs are green-badged so
+   they are never mistaken for the user's personal browser tabs. */
+.vm-tabstrip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1.5rem;
+    background: #12261a;
+    border-bottom: 1px solid #1f4d32;
+    overflow-x: auto;
+}
+
+.vm-tabstrip-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4ade80;
+    white-space: nowrap;
+}
+
+.vm-tabstrip-list {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.vm-tabstrip-hint {
+    margin-left: auto;
+    font-size: 0.65rem;
+    color: #86a894;
+    white-space: nowrap;
+}
+
+.vm-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 200px;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid #2f7d4d;
+    border-radius: 999px;
+    background: #0f1f16;
+    color: #d7f5e3;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.vm-tab:hover {
+    background: #173524;
+}
+
+.vm-tab.active {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 1px #22c55e inset;
+}
+
+.vm-tab-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vm-tab-close {
+    opacity: 0.55;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.vm-tab-close:hover {
+    opacity: 1;
+    color: #f87171;
+}
+
+.vm-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #16a34a;
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.vm-tab-shared {
+    font-size: 0.55rem;
+    color: #14532d;
+    background: #bbf7d0;
+    border-radius: 999px;
+    padding: 1px 5px;
+}

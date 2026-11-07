@@ -16,7 +16,10 @@ pub fn configure_ops_routes() -> Router<Arc<AppState>> {
         .route("/api/ops/metrics/summary", get(ops_metrics_summary))
         .route("/api/ops/metrics/requests", get(ops_metrics_requests))
         .route("/api/ops/errors/recent", get(ops_errors_recent))
-        .route("/api/ops/endpoints/performance", get(ops_endpoints_performance))
+        .route(
+            "/api/ops/endpoints/performance",
+            get(ops_endpoints_performance),
+        )
         .route("/api/ops/traces", get(ops_traces))
 }
 
@@ -135,7 +138,8 @@ pub async fn ops_metrics_requests(State(state): State<Arc<AppState>>) -> impl In
 
 pub async fn ops_errors_recent(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     Html(
-        r#"<div class="errors-empty"><p>No errors recorded in the last 24 hours.</p></div>"#.to_string(),
+        r#"<div class="errors-empty"><p>No errors recorded in the last 24 hours.</p></div>"#
+            .to_string(),
     )
 }
 

@@ -1,8 +1,8 @@
 use super::*;
 
 pub async fn save_search_settings(
-State(state): State<Arc<AppState>>,
-Json(settings): Json<SearchSettingsRequest>,
+    State(state): State<Arc<AppState>>,
+    Json(settings): Json<SearchSettingsRequest>,
 ) -> Json<SearchSettingsResponse> {
     let mut conn = match crate::settings_api::get_conn(&state) {
         Some(c) => c,
@@ -59,7 +59,12 @@ pub(super) fn write_mfa_enabled(state: &Arc<AppState>, enabled: bool) {
     let Some(user_id) = crate::settings_api::first_user(&mut conn) else {
         return;
     };
-    crate::settings_api::write_pref(&mut conn, user_id, "mfa_enabled", &serde_json::json!(enabled));
+    crate::settings_api::write_pref(
+        &mut conn,
+        user_id,
+        "mfa_enabled",
+        &serde_json::json!(enabled),
+    );
 }
 pub async fn get_2fa_status(State(state): State<Arc<AppState>>) -> Html<String> {
     if read_mfa_enabled(&state) {
@@ -68,7 +73,7 @@ pub async fn get_2fa_status(State(state): State<Arc<AppState>>) -> Html<String> 
 <span class="status-dot active"></span>
 <span class="status-text">Two-factor authentication enabled</span>
 </div>"##
-            .to_string(),
+                .to_string(),
         )
     } else {
         Html(
@@ -76,7 +81,7 @@ pub async fn get_2fa_status(State(state): State<Arc<AppState>>) -> Html<String> 
 <span class="status-dot inactive"></span>
 <span class="status-text">Two-factor authentication is not enabled</span>
 </div>"##
-            .to_string(),
+                .to_string(),
         )
     }
 }
@@ -87,7 +92,7 @@ pub async fn enable_2fa(State(state): State<Arc<AppState>>) -> Html<String> {
 <span class="status-dot active"></span>
 <span class="status-text">Two-factor authentication enabled</span>
 </div>"##
-        .to_string(),
+            .to_string(),
     )
 }
 pub async fn disable_2fa(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -97,7 +102,7 @@ pub async fn disable_2fa(State(state): State<Arc<AppState>>) -> Html<String> {
 <span class="status-dot inactive"></span>
 <span class="status-text">Two-factor authentication disabled</span>
 </div>"##
-        .to_string(),
+            .to_string(),
     )
 }
 pub async fn get_active_sessions(State(state): State<Arc<AppState>>) -> Html<String> {
@@ -129,10 +134,7 @@ pub async fn get_active_sessions(State(state): State<Arc<AppState>>) -> Html<Str
     let mut count = 0;
     for r in rows {
         let parsed: serde_json::Value = serde_json::from_str(&r.user_data).unwrap_or_default();
-        let uid = parsed
-            .get("user_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let uid = parsed.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
         let Ok(parsed_uid) = uuid::Uuid::parse_str(uid) else {
             continue;
         };
@@ -169,7 +171,9 @@ pub async fn get_active_sessions(State(state): State<Arc<AppState>>) -> Html<Str
     }
 
     if items.is_empty() {
-        items = r##"<div class="sessions-empty"><p class="text-muted">No active sessions</p></div>"##.to_string();
+        items =
+            r##"<div class="sessions-empty"><p class="text-muted">No active sessions</p></div>"##
+                .to_string();
     }
 
     Html(items)

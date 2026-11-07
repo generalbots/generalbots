@@ -35,7 +35,11 @@ pub(crate) fn run_git(cwd: &Path, args: &[&str]) -> Result<String, String> {
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
     if !out.status.success() {
-        return Err(if stderr.trim().is_empty() { stdout } else { stderr });
+        return Err(if stderr.trim().is_empty() {
+            stdout
+        } else {
+            stderr
+        });
     }
     Ok(stdout)
 }
@@ -81,13 +85,14 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
     }
     let url = match authenticated_clone_url(org, &project.repo_slug) {
         Some(u) => u,
-        None => {
-            return Err("ALM config missing (secret/gbo/alm) — git monitor idle".to_string())
-        }
+        None => return Err("ALM config missing (secret/gbo/alm) — git monitor idle".to_string()),
     };
     let tmp = root.join(format!(".clone-{}", project.repo_slug));
     let _ = std::fs::remove_dir_all(&tmp);
-    match run_git(&root, &["clone", "--quiet", &url, tmp.to_string_lossy().as_ref()]) {
+    match run_git(
+        &root,
+        &["clone", "--quiet", &url, tmp.to_string_lossy().as_ref()],
+    ) {
         Ok(_) => {
             for entry in std::fs::read_dir(&tmp).map_err(|e| format!("read clone: {e}"))? {
                 let entry = entry.map_err(|e| format!("clone entry: {e}"))?;
@@ -136,7 +141,8 @@ pub(crate) fn ensure_checkout_with_heal(
             }
             log::info!(
                 "[git_monitor] {0}/{1} has no repo yet — provisioning from deployed sources",
-                org, project.repo_slug
+                org,
+                project.repo_slug
             );
             provision_repo(pool, project, org)?;
             ensure_checkout(project, org)
@@ -171,7 +177,9 @@ fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<()
         drop(conn);
         log::info!(
             "[git_monitor] provision {0}/{1}: source_control → git (was '{2}')",
-            org, project.repo_slug, p.source_control
+            org,
+            project.repo_slug,
+            p.source_control
         );
         p.source_control = "git".to_string();
     }
@@ -198,12 +206,16 @@ fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<()
                 .map_err(|e| format!("seed .gbdialog: {e}"))?;
             log::info!(
                 "[git_monitor] provision {0}/{1}: seeded .gbdialog from deployed sources",
-                org, project.repo_slug
+                org,
+                project.repo_slug
             );
         }
         None if !cwd.join(".git").exists() => std::fs::write(
             cwd.join("README.md"),
-            format!("# {0}\n\nVibe-managed bot sources (reform #1503).\n", project.name),
+            format!(
+                "# {0}\n\nVibe-managed bot sources (reform #1503).\n",
+                project.name
+            ),
         )
         .map_err(|e| format!("seed README: {e}"))?,
         None => {}
@@ -241,8 +253,8 @@ pub(crate) fn materialize_dialog_dir(
     std::fs::create_dir_all(work_dir).map_err(|e| format!("mkdir {}: {e}", work_dir.display()))?;
     let mut materialized = Vec::new();
     let mut total = 0usize;
-    for entry in std::fs::read_dir(source_dir)
-        .map_err(|e| format!("read {}: {e}", source_dir.display()))?
+    for entry in
+        std::fs::read_dir(source_dir).map_err(|e| format!("read {}: {e}", source_dir.display()))?
     {
         let entry = entry.map_err(|e| format!("entry: {e}"))?;
         let path = entry.path();
@@ -348,10 +360,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         let root_dialog = tmp.join(".gbdialog");
         std::fs::create_dir_all(&root_dialog).unwrap();
-        assert_eq!(
-            dialog_source_dir(&tmp, "mybot"),
-            Some(root_dialog.clone())
-        );
+        assert_eq!(dialog_source_dir(&tmp, "mybot"), Some(root_dialog.clone()));
         let _ = std::fs::remove_dir_all(&tmp);
     }
 

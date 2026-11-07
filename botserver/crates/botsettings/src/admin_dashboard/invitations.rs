@@ -237,7 +237,9 @@ pub async fn bulk_invite(
     })))
 }
 
-pub async fn admin_invitations(State(state): State<Arc<AppState>>) -> axum::Json<serde_json::Value> {
+pub async fn admin_invitations(
+    State(state): State<Arc<AppState>>,
+) -> axum::Json<serde_json::Value> {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => return axum::Json(serde_json::json!([])),

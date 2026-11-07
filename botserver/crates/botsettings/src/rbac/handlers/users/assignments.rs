@@ -17,11 +17,14 @@ use botsecurity::error_sanitizer::log_and_sanitize_str;
 
 use crate::rbac::AssignRoleRequest;
 
-pub async fn get_user_roles(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_user_roles(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use botcore::shared::models::schema::{rbac_user_roles, rbac_roles};
+        use botcore::shared::models::schema::{rbac_roles, rbac_user_roles};
         let roles: Vec<RbacRole> = rbac_user_roles::table
             .filter(rbac_user_roles::user_id.eq(user_id))
             .inner_join(rbac_roles::table)
@@ -35,12 +38,16 @@ pub async fn get_user_roles(State(state): State<Arc<AppState>>, Path(user_id): P
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "get_user_roles", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_user_roles", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "get_user_roles", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_user_roles", None),
+        )
+            .into_response(),
     }
 }
 
@@ -84,12 +91,16 @@ pub async fn assign_role_to_user(
             });
             (StatusCode::CREATED, Json(ur)).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "assign_role_to_user", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "assign_role_to_user", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "assign_role_to_user", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "assign_role_to_user", None),
+        )
+            .into_response(),
     }
 }
 
@@ -126,20 +137,27 @@ pub async fn remove_role_from_user(
             });
             StatusCode::NO_CONTENT.into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_role_from_user", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "remove_role_from_user", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "remove_role_from_user", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "remove_role_from_user", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn get_user_groups(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_user_groups(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use botcore::shared::models::schema::{rbac_user_groups, rbac_groups};
+        use botcore::shared::models::schema::{rbac_groups, rbac_user_groups};
         let groups: Vec<RbacGroup> = rbac_user_groups::table
             .filter(rbac_user_groups::user_id.eq(user_id))
             .inner_join(rbac_groups::table)
@@ -153,12 +171,16 @@ pub async fn get_user_groups(State(state): State<Arc<AppState>>, Path(user_id): 
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "get_user_groups", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_user_groups", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "get_user_groups", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_user_groups", None),
+        )
+            .into_response(),
     }
 }
 
@@ -198,12 +220,16 @@ pub async fn add_user_to_group(
             });
             (StatusCode::CREATED, Json(ug)).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "add_user_to_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "add_user_to_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "add_user_to_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "add_user_to_group", None),
+        )
+            .into_response(),
     }
 }
 
@@ -240,11 +266,15 @@ pub async fn remove_user_from_group(
             });
             StatusCode::NO_CONTENT.into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_user_from_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "remove_user_from_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "remove_user_from_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "remove_user_from_group", None),
+        )
+            .into_response(),
     }
 }

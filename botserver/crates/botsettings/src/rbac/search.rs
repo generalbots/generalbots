@@ -61,12 +61,7 @@ pub async fn search_roles(
         return Html(String::new());
     };
 
-    let pattern = query
-        .q
-        .clone()
-        .unwrap_or_default()
-        .trim()
-        .to_string();
+    let pattern = query.q.clone().unwrap_or_default().trim().to_string();
 
     let rows: Vec<RoleRow> = if pattern.is_empty() {
         diesel::sql_query(
@@ -153,11 +148,9 @@ pub async fn search_users(
     let pattern = query.q.clone().unwrap_or_default().trim().to_string();
 
     let rows: Vec<UserRow> = if pattern.is_empty() {
-        diesel::sql_query(
-            "SELECT id, username, email FROM users ORDER BY username LIMIT 20",
-        )
-        .load(&mut conn)
-        .unwrap_or_default()
+        diesel::sql_query("SELECT id, username, email FROM users ORDER BY username LIMIT 20")
+            .load(&mut conn)
+            .unwrap_or_default()
     } else {
         let p = format!("%{pattern}%");
         diesel::sql_query(

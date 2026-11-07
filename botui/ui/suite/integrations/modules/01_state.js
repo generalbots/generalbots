@@ -149,6 +149,7 @@
             priority: namespace.text(source.priority, "standard"),
             module: namespace.text(source.module, "Core"),
             official_docs: namespace.text(source.official_docs, ""),
+            credentials_url: namespace.text(source.credentials_url, ""),
             auth: auth,
             actions: actions,
             action_count: Number.isFinite(count) ? count : actions.length,

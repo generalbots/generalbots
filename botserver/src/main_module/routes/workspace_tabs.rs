@@ -70,7 +70,12 @@ pub async fn get_tabs(
         .select(WorkspaceTabsRow::as_select())
         .get_result::<WorkspaceTabsRow>(&mut conn)
         .optional()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("tabs lookup: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("tabs lookup: {e}"),
+            )
+        })?;
     match row {
         Some(r) => Ok(Json(serde_json::json!({
             "tabs": r.tabs,
@@ -90,7 +95,10 @@ pub async fn put_tabs(
         .map(|s| s.len() > MAX_TAB_JSON_BYTES)
         .unwrap_or(true)
     {
-        return Err((StatusCode::BAD_REQUEST, "tabs payload too large".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "tabs payload too large".to_string(),
+        ));
     }
     if body.tabs.as_array().map(|a| a.len()).unwrap_or(0) > MAX_TABS {
         return Err((StatusCode::BAD_REQUEST, "too many tabs".to_string()));
@@ -121,6 +129,5 @@ pub async fn put_tabs(
 }
 
 pub fn configure_workspace_tabs_routes() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/user/workspace/tabs", get(get_tabs).put(put_tabs))
+    Router::new().route("/api/user/workspace/tabs", get(get_tabs).put(put_tabs))
 }

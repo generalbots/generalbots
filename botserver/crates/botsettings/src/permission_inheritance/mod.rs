@@ -117,10 +117,10 @@ pub enum ResourceVisibility {
     Public,
 }
 
-mod add_role;
 mod add_group;
-mod with_default_roles;
-mod create_default_resolver;
+mod add_role;
 mod check_access;
+mod create_default_resolver;
+mod with_default_roles;
 
 pub use create_default_resolver::*;

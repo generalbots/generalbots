@@ -222,6 +222,10 @@ pub struct ProviderItem {
     pub module: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub official_docs: Option<&'static str>,
+    /// Direct vendor page that issues the credential (token/key/OAuth app).
+    /// `None` for unsupported, unknown, keyless or user-supplied endpoints.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credentials_url: Option<&'static str>,
     pub auth: AuthProfile,
     pub actions: Vec<ProviderAction>,
     pub action_count: usize,

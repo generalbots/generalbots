@@ -14,7 +14,12 @@ pub async fn handle_calendar_event_save(
     let id = Uuid::new_v4();
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<div class=\"calendar-error\">{}</div>", html_escape(&e.1))),
+        Err(e) => {
+            return Html(format!(
+                "<div class=\"calendar-error\">{}</div>",
+                html_escape(&e.1)
+            ))
+        }
     };
     let branch = branch_id_for(&mut conn);
     let bot = bot_id_for(&mut conn, branch);

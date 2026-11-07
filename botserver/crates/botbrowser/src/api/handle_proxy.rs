@@ -182,13 +182,21 @@ mod ssrf_tests {
             "fd12:3456::1",
             "fe80::1",
         ] {
-            assert!(is_private_ip(ip(text)), "{text} must be treated as internal");
+            assert!(
+                is_private_ip(ip(text)),
+                "{text} must be treated as internal"
+            );
         }
     }
 
     #[test]
     fn allows_public_addresses() {
-        for text in ["8.8.8.8", "1.1.1.1", "93.184.216.34", "2001:4860:4860::8888"] {
+        for text in [
+            "8.8.8.8",
+            "1.1.1.1",
+            "93.184.216.34",
+            "2001:4860:4860::8888",
+        ] {
             assert!(!is_private_ip(ip(text)), "{text} is public");
         }
     }

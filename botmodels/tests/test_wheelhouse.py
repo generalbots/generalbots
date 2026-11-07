@@ -61,6 +61,18 @@ class PlanTests(unittest.TestCase):
             self.assertIn("manylinux_2_28_x86_64", text)
             self.assertEqual(list(Path(tmp).glob("*.whl")), [])
 
+    def test_windows_target_uses_the_win_amd64_tag(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(
+                wheelhouse.main(["plan", "--json", "--target", "windows"]), 0
+            )
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["target"], "windows")
+        self.assertEqual(payload["platforms"], ["win_amd64"])
+        self.assertIn("--platform win_amd64", payload["commands"][0])
+        self.assertNotIn("manylinux", " ".join(payload["commands"]))
+
 
 class InspectTests(unittest.TestCase):
     def test_inspect_sums_fake_wheels_and_uses_the_install_formula(self):

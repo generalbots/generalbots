@@ -128,7 +128,10 @@ pub async fn submit_op(
     Json(body): Json<SubmitOpBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&body.resource_type, &body.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     if body.base_version < 0 {
         return Err(err(StatusCode::BAD_REQUEST, "Invalid base_version"));
@@ -206,7 +209,10 @@ pub async fn list_ops(
     Query(params): Query<OpsQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -258,7 +264,8 @@ pub async fn list_ops(
     let items: Vec<serde_json::Value> = rows
         .iter()
         .map(|r| {
-            let payload = serde_json::from_str::<serde_json::Value>(&r.payload).unwrap_or(serde_json::Value::Null);
+            let payload = serde_json::from_str::<serde_json::Value>(&r.payload)
+                .unwrap_or(serde_json::Value::Null);
             serde_json::json!({
                 "id": r.id,
                 "actor_id": r.actor_id,

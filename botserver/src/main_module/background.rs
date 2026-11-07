@@ -1,18 +1,16 @@
 //! background - extracted from bootstrap.rs
 
-use botcore::shared::state::AppState;
 use crate::core::bot::BotOrchestrator;
 #[cfg(feature = "llm")]
 use crate::llm::local::ensure_llama_servers_running;
+use botcore::shared::state::AppState;
 use log::{error, info, trace};
 use std::sync::Arc;
 
-use super::drive_monitors::{start_drive_monitors, start_drive_compiler};
+use super::drive_monitors::{start_drive_compiler, start_drive_monitors};
 
 #[cfg(all(feature = "drive", feature = "vibe"))]
-use super::git_bot_monitor::{
-    run_archive_pass, run_import_pass, start as start_git_bot_monitor,
-};
+use super::git_bot_monitor::{run_archive_pass, run_import_pass, start as start_git_bot_monitor};
 
 /// Runs every 5 minutes and promotes trialing `billing_recurring` rows whose
 /// trial period has ended to `active` at the plan price, generating the first
@@ -27,7 +25,9 @@ fn start_trial_promotion_guard(app_state: Arc<AppState>) {
             loop {
                 match pool.get() {
                     Ok(mut conn) => {
-                        if let Err(e) = botbilling::lifecycle::promote_expired_trials_in_db(&mut conn) {
+                        if let Err(e) =
+                            botbilling::lifecycle::promote_expired_trials_in_db(&mut conn)
+                        {
                             error!("Billing trial promotion failed: {}", e);
                         }
                     }
@@ -41,16 +41,17 @@ fn start_trial_promotion_guard(app_state: Arc<AppState>) {
     let _ = app_state;
 }
 
-
 pub async fn start_background_services(
-  app_state: Arc<AppState>,
-  _pool: &botcore::shared::utils::DbPool,
+    app_state: Arc<AppState>,
+    _pool: &botcore::shared::utils::DbPool,
 ) {
     use botcore::shared::memory_monitor::{log_process_memory, start_memory_monitor};
 
     // Resume workflows after server restart
-    if let Err(e) =
-        crate::basic::keywords::orchestration::resume_workflows_on_startup(Arc::new(crate::basic::AppStateBasicRuntime(app_state.clone()))).await
+    if let Err(e) = crate::basic::keywords::orchestration::resume_workflows_on_startup(Arc::new(
+        crate::basic::AppStateBasicRuntime(app_state.clone()),
+    ))
+    .await
     {
         log::warn!("Failed to resume workflows on startup: {}", e);
     }
@@ -62,18 +63,27 @@ pub async fn start_background_services(
             run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> {
                 Ok("stub".to_string())
             }),
-            call_llm: Arc::new(|_sys: &str, _prompt: &str| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
-                Box::pin(async { Ok("stub".to_string()) })
-            }),
-            get_config: Arc::new(|_key: &str| -> Result<String, String> {
-                Ok("stub".to_string())
-            }),
-            cache_get: Arc::new(|_key: String| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>> {
-                Box::pin(async { Ok(None) })
-            }),
-            cache_set: Arc::new(|_key: String, _value: String, _ttl: Option<u64>| -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>> {
-                Box::pin(async { Ok(()) })
-            }),
+            call_llm: Arc::new(
+                |_sys: &str,
+                 _prompt: &str|
+                 -> std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                > { Box::pin(async { Ok("stub".to_string()) }) },
+            ),
+            get_config: Arc::new(|_key: &str| -> Result<String, String> { Ok("stub".to_string()) }),
+            cache_get: Arc::new(
+                |_key: String| -> std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>,
+                > { Box::pin(async { Ok(None) }) },
+            ),
+            cache_set: Arc::new(
+                |_key: String,
+                 _value: String,
+                 _ttl: Option<u64>|
+                 -> std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<(), String>> + Send>,
+                > { Box::pin(async { Ok(()) }) },
+            ),
         });
         let task_scheduler = Arc::new(crate::tasks::scheduler::TaskScheduler::new(tasks_state));
         task_scheduler.start();
@@ -104,49 +114,53 @@ pub async fn start_background_services(
         trace!("ensure_llama_servers_running completed");
     }
 
-  // Start DriveMonitor for S3/MinIO file watching and syncing
-  #[cfg(feature = "drive")]
-  start_drive_monitors(app_state.clone(), _pool).await;
+    // Start DriveMonitor for S3/MinIO file watching and syncing
+    #[cfg(feature = "drive")]
+    start_drive_monitors(app_state.clone(), _pool).await;
 
-  // Start DriveCompiler to compile .bas files from drive_files table
-  #[cfg(feature = "drive")]
-  start_drive_compiler(app_state.clone()).await;
+    // Start DriveCompiler to compile .bas files from drive_files table
+    #[cfg(feature = "drive")]
+    start_drive_compiler(app_state.clone()).await;
 
-  // #1640 — Trash retention: purge rows whose 30-day `expires_at` elapsed.
-  #[cfg(feature = "drive")]
-  crate::drive::drive_handlers::spawn_trash_purge(app_state.clone());
+    // #1640 — Trash retention: purge rows whose 30-day `expires_at` elapsed.
+    #[cfg(feature = "drive")]
+    crate::drive::drive_handlers::spawn_trash_purge(app_state.clone());
 
-  // #1645 — terminal audit retention (90 days).
-  #[cfg(feature = "chat")]
-  crate::main_module::routes::computer_use_routes::spawn_terminal_audit_purge(
-    app_state.clone(),
-  );
+    // #1645 — terminal audit retention (90 days).
+    #[cfg(feature = "chat")]
+    crate::main_module::routes::computer_use_routes::spawn_terminal_audit_purge(app_state.clone());
 
-  // Reform #1500/#1501/#1502 — Vibe git bot monitor: bot sources come from
-  // Forgejo (one repo per project in the branch org) instead of Drive. The
-  // import pass moves legacy Drive sources into git once (idempotent), then
-  // the monitor git-pulls into work/ and feeds the existing compile pipeline.
-  #[cfg(all(feature = "drive", feature = "vibe"))]
-  {
-    let pool_for_vibe = _pool.clone();
-    let state_for_import = app_state.clone();
-    tokio::spawn(async move {
-      botvibe::bootstrap_backfill::backfill_default_projects(pool_for_vibe.clone()).await;
-      run_import_pass(state_for_import.clone(), pool_for_vibe.clone()).await;
-      // #1501 step 3 — once imports are verified, move the legacy Drive
-      // source prefixes to the archive prefix (reversible, never deleted).
-      run_archive_pass(state_for_import, pool_for_vibe).await;
-    });
-    start_git_bot_monitor(app_state.clone(), _pool.clone()).await;
-    register_vibe_bootstrap_hook(_pool.clone());
-  }
+    // Reform #1500/#1501/#1502 — Vibe git bot monitor: bot sources come from
+    // Forgejo (one repo per project in the branch org) instead of Drive. The
+    // import pass moves legacy Drive sources into git once (idempotent), then
+    // the monitor git-pulls into work/ and feeds the existing compile pipeline.
+    #[cfg(all(feature = "drive", feature = "vibe"))]
+    {
+        let pool_for_vibe = _pool.clone();
+        let state_for_import = app_state.clone();
+        tokio::spawn(async move {
+            botvibe::bootstrap_backfill::backfill_default_projects(pool_for_vibe.clone()).await;
+            run_import_pass(state_for_import.clone(), pool_for_vibe.clone()).await;
+            // #1501 step 3 — once imports are verified, move the legacy Drive
+            // source prefixes to the archive prefix (reversible, never deleted).
+            run_archive_pass(state_for_import, pool_for_vibe).await;
+        });
+        start_git_bot_monitor(app_state.clone(), _pool.clone()).await;
+        register_vibe_bootstrap_hook(_pool.clone());
+    }
 
-  // Start billing trial promotion (trialing -> active + first invoice)
-  // Channel event subscriptions (#1507): tools declared with
-  // `ON EVENT "…" CALL "…"` run when a channel publishes the event.
-  crate::main_module::event_dispatcher::start_event_dispatcher(app_state.clone());
+    // Start billing trial promotion (trialing -> active + first invoice)
+    // Channel event subscriptions (#1507): tools declared with
+    // `ON EVENT "…" CALL "…"` run when a channel publishes the event.
+    crate::main_module::event_dispatcher::start_event_dispatcher(app_state.clone());
 
-  start_trial_promotion_guard(app_state.clone());
+    start_trial_promotion_guard(app_state.clone());
+
+    // #1813 — the weekly notification digest. Without this the `email_digest`
+    // checkbox was persisted but never acted on.
+    #[cfg(feature = "digest")]
+    crate::main_module::settings_digest::spawn(app_state.clone());
+
     // start_config_watcher(app_state.clone()).await;
 }
 
@@ -156,10 +170,10 @@ pub async fn start_background_services(
 /// this closure and the signup flow invokes it through the hook registry.
 #[cfg(all(feature = "drive", feature = "vibe"))]
 fn register_vibe_bootstrap_hook(pool: botcore::shared::utils::DbPool) {
-  let hook: botcoresecrets::hooks::WorkspaceBootstrapHook =
-    std::sync::Arc::new(move |branch_id, name| {
-      botvibe::bootstrap::ensure_branch_default_project(&pool, branch_id, branch_id, &name)
-        .map(|_| ())
-    });
-  botcoresecrets::hooks::register_workspace_bootstrap_hook(hook);
+    let hook: botcoresecrets::hooks::WorkspaceBootstrapHook =
+        std::sync::Arc::new(move |branch_id, name| {
+            botvibe::bootstrap::ensure_branch_default_project(&pool, branch_id, branch_id, &name)
+                .map(|_| ())
+        });
+    botcoresecrets::hooks::register_workspace_bootstrap_hook(hook);
 }

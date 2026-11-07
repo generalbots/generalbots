@@ -16,7 +16,10 @@ pub struct ActivityQuery {
     pub page: Option<u32>,
 }
 
-pub async fn dashboard_activity(State(state): State<Arc<AppState>>, Query(query): Query<ActivityQuery>) -> Html<String> {
+pub async fn dashboard_activity(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ActivityQuery>,
+) -> Html<String> {
     let page = query.page.unwrap_or(1).max(1);
     let limit = 8;
     let offset = (page - 1) * limit;

@@ -111,7 +111,8 @@ pub fn user_has_db_permission(
             return Ok(true);
         }
 
-        let colon_alias_full = format!("{}:{}:{}", perm.resource_type, perm.action, perm_name_lower);
+        let colon_alias_full =
+            format!("{}:{}:{}", perm.resource_type, perm.action, perm_name_lower);
         if botsecurity::rbac_middleware::match_wildcard(&colon_alias_full, &req_lower) {
             return Ok(true);
         }

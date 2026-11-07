@@ -28,8 +28,8 @@ struct Component {
     /// service to start on first use (heavy dependencies, no blocking).
     start: bool,
     /// Optional components that cannot exist on this host (no published
-    /// pythonbox for Windows/aarch64). The wizard reports the reason and never
-    /// attempts a download that would fail or hang.
+    /// pythonbox for Linux aarch64 / Windows arm64). The wizard reports the
+    /// reason and never attempts a download that would fail or hang.
     unavailable: Option<String>,
 }
 
@@ -40,12 +40,7 @@ fn emit(event: WizardEvent) {
     }
 }
 
-fn progress(
-    id: &str,
-    state: &str,
-    message: &str,
-    started: Instant,
-) {
+fn progress(id: &str, state: &str, message: &str, started: Instant) {
     emit(WizardEvent {
         id: id.to_string(),
         state: state.to_string(),
@@ -60,22 +55,70 @@ fn component_plan() -> Vec<Component> {
     // `unwrap_or("local")` treated a missing value as "local", so the Kilo flow
     // still downloaded and started llama.cpp (and failed on slow links).
     let model_mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
-    let remote_model = !std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default().trim().is_empty()
-        && !std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default().trim().is_empty();
+    let remote_model = !std::env::var("GB_WIZARD_LLM_URL")
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+        && !std::env::var("GB_WIZARD_LLM_MODEL")
+            .unwrap_or_default()
+            .trim()
+            .is_empty();
     let wants_local = if model_mode.trim().is_empty() {
         !remote_model
     } else {
         model_mode.eq_ignore_ascii_case("local")
     };
     let mut plan = vec![
-        Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false, start: true, unavailable: None },
+        Component {
+            id: "vault",
+            label: "Local vault",
+            timeout_secs: 90,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
         // 90 s was not enough on a cold CI runner (first-run smoke test timed
         // out while initdb was still writing); the wait is bounded either way.
-        Component { id: "tables", label: "Database", timeout_secs: 180, optional: false, start: true, unavailable: None },
-        Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false, start: true, unavailable: None },
-        Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false, start: true, unavailable: None },
-        Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false, start: true, unavailable: None },
-        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false, start: true, unavailable: None },
+        Component {
+            id: "tables",
+            label: "Database",
+            timeout_secs: 180,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
+        Component {
+            id: "cache",
+            label: "Cache",
+            timeout_secs: 45,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
+        Component {
+            id: "drive",
+            label: "Object store",
+            timeout_secs: 60,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
+        Component {
+            id: "vector_db",
+            label: "Vector store",
+            timeout_secs: 60,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
+        Component {
+            id: "directory",
+            label: "Identity provider",
+            timeout_secs: 90,
+            optional: false,
+            start: true,
+            unavailable: None,
+        },
     ];
     if wants_local {
         plan.push(Component {
@@ -91,9 +134,9 @@ fn component_plan() -> Vec<Component> {
     // CPU-tier wheelhouse, so the wizard only has to unpack it. The virtual
     // environment is created offline on first use (no PyPI round-trip), which
     // must never block setup — hence `start: false`.
-    // GB_WIZARD_WITH_BOTMODELS=0 opts out entirely. Only the Linux x86_64
-    // pythonbox is published; Windows and Linux arm64 get an explicit reason
-    // instead of a download that cannot succeed.
+    // GB_WIZARD_WITH_BOTMODELS=0 opts out entirely. Linux x86_64 and Windows
+    // x86_64 have published boxes; Linux arm64 and Windows arm64 get an
+    // explicit reason instead of a download that cannot succeed.
     let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
     if with_botmodels.trim() != "0" {
         plan.push(Component {
@@ -118,7 +161,12 @@ async fn provision_component(
     component: &Component,
     started: Instant,
 ) -> Result<(), String> {
-    progress(component.id, "pending", &format!("Preparing {}", component.label.to_lowercase()), started);
+    progress(
+        component.id,
+        "pending",
+        &format!("Preparing {}", component.label.to_lowercase()),
+        started,
+    );
 
     if let Some(reason) = &component.unavailable {
         // Optional component absent from this platform: never download, fail or
@@ -131,7 +179,10 @@ async fn provision_component(
         progress(
             component.id,
             "starting",
-            &format!("Installing {} from the bundled files", component.label.to_lowercase()),
+            &format!(
+                "Installing {} from the bundled files",
+                component.label.to_lowercase()
+            ),
             started,
         );
         if let Err(e) = pm.install(component.id).await {
@@ -175,7 +226,12 @@ async fn provision_component(
     }
 
     if !component.start {
-        progress(component.id, "ready", "Bundled with offline wheels — installs on first use", started);
+        progress(
+            component.id,
+            "ready",
+            "Bundled with offline wheels — installs on first use",
+            started,
+        );
         return Ok(());
     }
 
@@ -233,8 +289,14 @@ async fn provision_component(
 /// LLM secret (a desktop install is single-user).
 async fn apply_llm_choice() {
     let mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
-    let remote_model = !std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default().trim().is_empty()
-        && !std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default().trim().is_empty();
+    let remote_model = !std::env::var("GB_WIZARD_LLM_URL")
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+        && !std::env::var("GB_WIZARD_LLM_MODEL")
+            .unwrap_or_default()
+            .trim()
+            .is_empty();
     let wants_local = if mode.trim().is_empty() {
         !remote_model
     } else {
@@ -254,10 +316,11 @@ async fn apply_llm_choice() {
     // the assistant's first boot, which happens after provisioning. The Vault
     // root token is already on disk from the install, so use it here instead of
     // silently dropping the model choice.
-    let stack = std::path::PathBuf::from(
-        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
-    );
-    if std::env::var("VAULT_TOKEN").map(|v| v.trim().is_empty()).unwrap_or(true) {
+    let stack = std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
+    if std::env::var("VAULT_TOKEN")
+        .map(|v| v.trim().is_empty())
+        .unwrap_or(true)
+    {
         let init = stack.join("conf/vault/init.json");
         if let Ok(raw) = std::fs::read_to_string(&init) {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
@@ -267,7 +330,10 @@ async fn apply_llm_choice() {
             }
         }
     }
-    if std::env::var("VAULT_ADDR").map(|v| v.trim().is_empty()).unwrap_or(true) {
+    if std::env::var("VAULT_ADDR")
+        .map(|v| v.trim().is_empty())
+        .unwrap_or(true)
+    {
         std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
     }
     if std::env::var("VAULT_CACERT").is_err() {
@@ -291,9 +357,8 @@ async fn apply_llm_choice() {
         // credentials land in the stack .env during the assistant's first
         // boot). Persist the choice on disk; the boot applies it before the
         // LLM provider is built, so the very first message already uses it.
-        let stack = std::path::PathBuf::from(
-            std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
-        );
+        let stack =
+            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
         let path = stack.join("conf/system/model-choice.json");
         let payload = serde_json::json!({ "url": url, "model": model, "api_key": std::env::var("GB_WIZARD_LLM_KEY").unwrap_or_default() });
         if let Some(parent) = path.parent() {
@@ -338,7 +403,9 @@ pub async fn run() -> std::io::Result<()> {
     {
         std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
     }
-    let tenant = std::env::var("GB_TENANT").ok().filter(|value| !value.trim().is_empty());
+    let tenant = std::env::var("GB_TENANT")
+        .ok()
+        .filter(|value| !value.trim().is_empty());
     let pm = PackageManager::new(InstallMode::Local, tenant)
         .map_err(|e| std::io::Error::other(format!("package manager: {e}")))?;
 
@@ -351,9 +418,8 @@ pub async fn run() -> std::io::Result<()> {
     // Vault finishes initialization a few seconds after its process reports
     // ready; wait for the init file so the model choice can actually be saved.
     for _ in 0..120 {
-        let stack = std::path::PathBuf::from(
-            std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
-        );
+        let stack =
+            std::path::PathBuf::from(std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default());
         if stack.join("conf/vault/init.json").exists() {
             break;
         }

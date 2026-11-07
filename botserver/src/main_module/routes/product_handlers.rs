@@ -6,10 +6,10 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
     // load (#1693 follow-up). The manifest is always returned.
     let mut value = crate::core::product::get_product_config_json();
     if let Some(object) = value.as_object_mut() {
-        // #1793 — BotModels has no Windows/aarch64 pythonbox. Report the real
-        // media capability (and the reason) so the suite can hide or explain
-        // vision/STT/TTS instead of failing when the optional service is not
-        // installed.
+        // #1793 — BotModels publishes Linux x86_64 and Windows x86_64 boxes;
+        // arm64 has none. Report the real media capability (and the reason) so
+        // the suite can hide or explain vision/STT/TTS instead of failing when
+        // the optional service is not installed.
         object.insert(
             "media_capabilities".to_string(),
             crate::main_module::media_capabilities::media_capabilities_json(

@@ -34,7 +34,7 @@ pub(crate) const INSTAGRAM_OAUTH2_STEPS: &[&str] = &[
 ];
 
 pub(crate) const API_KEY_STEPS: &[&str] = &[
-    "Open the vendor console through the documentation link below and sign in to the workspace that owns this integration.",
+    "Open the credential page with the Get credentials button above and sign in to the workspace that owns this integration.",
     "Create a dedicated API key with the narrowest scope required by the actions you enable.",
     "Paste the key here; it is stored in the secrets vault and is never sent to the language model.",
     "Record the key's expiry and rotation policy, then rotate it before it expires.",
@@ -47,14 +47,14 @@ pub(crate) const KEYLESS_STEPS: &[&str] = &[
 ];
 
 pub(crate) const TOKEN_STEPS: &[&str] = &[
-    "Open the vendor console through the documentation link below and sign in to the account that owns this integration.",
+    "Open the credential page with the Get credentials button above and sign in to the account that owns this integration.",
     "Create a dedicated access token with only the scopes required by the enabled actions.",
     "Set an expiry when the vendor supports one, then paste the token here; it is stored in the secrets vault.",
     "Rotate the token before it expires and revoke it immediately if it leaks.",
 ];
 
 pub(crate) const BASIC_STEPS: &[&str] = &[
-    "Create a dedicated integration or API user in the vendor's admin console.",
+    "Open the credential page with the Get credentials button above, then create a dedicated integration or API user.",
     "Grant that user only the permissions required by the enabled actions.",
     "Enter the username and password or API secret here; the credentials stay in the secrets vault.",
 ];

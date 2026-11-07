@@ -16,7 +16,9 @@ pub use self::assets::{
 };
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
-pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images, serve_login_cloud};
+pub use self::login::{
+    serve_login_cloud, serve_login_images, serve_login_index, serve_login_js, serve_login_signup,
+};
 pub use self::proxy::*;
 pub use self::suite::*;
 pub use self::suite_ops::*;
@@ -37,9 +39,9 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::shared::AppState;
-use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::SUITE_DIRS;
+use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
 
 fn create_api_router() -> Router<AppState> {
     Router::new()
@@ -51,6 +53,8 @@ fn create_api_router() -> Router<AppState> {
         .route("/terminal/ws", get(api_ws_proxy))
         .route("/speech/duplex", get(api_ws_proxy))
         .route("/browser/session/:id/agent/ws", get(api_ws_proxy))
+        // #1843 — the shared VM tab surface streams frames over this socket.
+        .route("/browser/session/:id/stream", get(api_ws_proxy))
         .fallback(any(proxy_api))
 }
 
@@ -122,7 +126,10 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
         let ui_root = get_ui_root();
         for file in SITE_ROOT_FILES {
             let path = ui_root.join(file);
-            r = r.nest_service(&format!("/{}", file), no_cache().layer(ServeFile::new(path)));
+            r = r.nest_service(
+                &format!("/{}", file),
+                no_cache().layer(ServeFile::new(path)),
+            );
         }
         r
     }

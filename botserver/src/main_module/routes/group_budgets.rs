@@ -88,16 +88,10 @@ fn summary_json(budget_milli: u64, spent_milli: u64) -> Value {
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route(
-            "/api/groups/:group/budget",
-            get(get_budget).put(put_budget),
-        )
+        .route("/api/groups/:group/budget", get(get_budget).put(put_budget))
         .route("/api/groups/:group/spend", post(add_spend))
         .route("/api/groups/:group/usage", get(usage))
-        .route(
-            "/api/groups/:group/caps",
-            get(get_caps).put(put_caps),
-        )
+        .route("/api/groups/:group/caps", get(get_caps).put(put_caps))
 }
 
 async fn get_budget(

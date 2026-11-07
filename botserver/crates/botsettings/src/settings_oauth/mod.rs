@@ -8,15 +8,20 @@
 //! Vault under `secret/gbo/oauth/{user_id}/{provider}` — never in the DB or
 //! logs.
 
-pub(crate) use axum::{ extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect, Response}, Json, };
+pub(crate) use crate::audit_log::record_audit_event;
+pub(crate) use crate::settings_api::{get_conn, resolve_user_id};
+pub(crate) use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Redirect, Response},
+    Json,
+};
+pub(crate) use botcore::shared::state::AppState;
+pub(crate) use botcoreoauth::{OAuthConfig, OAuthProvider, OAuthState};
 pub(crate) use diesel::RunQueryDsl;
 pub(crate) use serde::Deserialize;
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
-pub(crate) use botcore::shared::state::AppState;
-pub(crate) use botcoreoauth::{OAuthConfig, OAuthProvider, OAuthState};
-pub(crate) use crate::audit_log::record_audit_event;
-pub(crate) use crate::settings_api::{get_conn, resolve_user_id};
 
 /// Providers the Settings page offers for account linking.
 const LINKABLE_PROVIDERS: &[&str] = &["google", "microsoft", "github"];

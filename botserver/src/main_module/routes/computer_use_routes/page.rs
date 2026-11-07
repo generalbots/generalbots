@@ -26,7 +26,10 @@ pub(super) async fn fetch_page(url: &str) -> Result<PageContent, String> {
         .await
         .map_err(|e| format!("fetch failed: {e}"))?;
     if !response.status().is_success() {
-        return Err(format!("the page answered HTTP {}", response.status().as_u16()));
+        return Err(format!(
+            "the page answered HTTP {}",
+            response.status().as_u16()
+        ));
     }
     let final_url = response.url().to_string();
     let bytes = response

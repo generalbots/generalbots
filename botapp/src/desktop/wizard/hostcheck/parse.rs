@@ -145,8 +145,8 @@ pub(super) fn windows(output: &str, exit_code: i32, script: &Path) -> HostCheckR
         if message.is_empty() {
             continue;
         }
-        // Windows has no published BotModels pythonbox, so media is reported as
-        // an optional gap rather than a desktop blocker.
+        // When the Windows payload has no BotModels pythonbox in installers/,
+        // media is reported as an optional gap rather than a desktop blocker.
         let is_media = message.to_ascii_lowercase().contains("pythonbox");
         let status = if is_media { "missing" } else { status };
         items.push(HostCheckItem {
@@ -183,9 +183,9 @@ mod tests {
 
     const LINUX_DESKTOP: &str = "  MISSING  command    curl\n  MISSING  library    libgtk-3.so.0*\n  MISSING  group      incus-admin\n";
 
-    const WINDOWS_DESKTOP: &str = "--- Desktop shell ---\n  [ok]      WebView2 runtime 125.0\n  [missing] libpq.dll not found on PATH.\n  [warn]    BotModels pythonbox is Linux x86_64 only; vision/STT/TTS stay unavailable on Windows.\n\n--- Agent mode (WSL2 + Incus) ---\n  [missing] wsl.exe not found: WSL2 is not installed.\n\nResult: DESKTOP BLOCKED - fix the [missing] items above.\n";
+    const WINDOWS_DESKTOP: &str = "--- Desktop shell ---\n  [ok]      WebView2 runtime 125.0\n  [missing] libpq.dll not found on PATH.\n  [warn]    no BotModels Windows pythonbox in installers/; vision/STT/TTS need a first-run download.\n\n--- Agent mode (WSL2 + Incus) ---\n  [missing] wsl.exe not found: WSL2 is not installed.\n\nResult: DESKTOP BLOCKED - fix the [missing] items above.\n";
 
-    const WINDOWS_AGENT: &str = "--- Desktop shell ---\n  [ok]      WebView2 runtime 125.0\n  [warn]    BotModels pythonbox is Linux x86_64 only; vision/STT/TTS stay unavailable on Windows.\n\n--- Agent mode (WSL2 + Incus) ---\n  [missing] systemd is not running in 'Debian' (state: stopped).\n\nResult: AGENT BLOCKED - desktop Chat/Drive can run; agent mode cannot.\n";
+    const WINDOWS_AGENT: &str = "--- Desktop shell ---\n  [ok]      WebView2 runtime 125.0\n  [warn]    no BotModels Windows pythonbox in installers/; vision/STT/TTS need a first-run download.\n\n--- Agent mode (WSL2 + Incus) ---\n  [missing] systemd is not running in 'Debian' (state: stopped).\n\nResult: AGENT BLOCKED - desktop Chat/Drive can run; agent mode cannot.\n";
 
     fn linux_result(output: &str, exit_code: i32) -> HostCheckResult {
         linux(

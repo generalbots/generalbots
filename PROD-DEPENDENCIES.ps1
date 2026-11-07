@@ -279,8 +279,9 @@ function Show-InstallGuidance {
     Write-Host '  botagent needs a WSL wrapper in AGENT_INCUS_BIN; see botbook/src/07-user-interface/first-run-wizard.md.' -ForegroundColor Yellow
     Write-Host ''
     Write-Host 'Media features:' -ForegroundColor Cyan
-    Write-Host '  The BotModels pythonbox is published for Linux x86_64 only; vision/STT/TTS' -ForegroundColor Yellow
-    Write-Host '  stay unavailable on Windows until a Windows pythonbox exists.' -ForegroundColor Yellow
+    Write-Host '  The Windows BotModels pythonbox (botmodels-pythonbox-windows-x86_64.zip)' -ForegroundColor Yellow
+    Write-Host '  is bundled in installers/; the first use builds its venv from the offline' -ForegroundColor Yellow
+    Write-Host '  wheelhouse, so vision/STT/TTS need no network access.' -ForegroundColor Yellow
     Write-Host ''
     Write-Host 'Offline components:' -ForegroundColor Cyan
     Write-Host '  Copy the component archives into installers/ next to generalbots.exe;' -ForegroundColor Yellow
@@ -369,7 +370,11 @@ if ($runCheck) {
         Write-Caution "no installers/ directory here; the desktop-local package manager refuses runtime downloads ('not found in bundled installers')."
     }
 
-    Write-Caution 'BotModels pythonbox is Linux x86_64 only; vision/STT/TTS stay unavailable on Windows.'
+    if ($installers -and (Test-Path (Join-Path $installers 'botmodels-pythonbox-windows-x86_64.zip'))) {
+        Write-Ok 'BotModels Windows pythonbox is bundled; vision/STT/TTS install offline on first use.'
+    } else {
+        Write-Caution 'no BotModels Windows pythonbox in installers/; vision/STT/TTS need a first-run download.'
+    }
 
     Write-Host ''
     Write-Host '--- Agent mode (WSL2 + Incus) ---' -ForegroundColor Cyan

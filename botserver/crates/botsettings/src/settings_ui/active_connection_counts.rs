@@ -48,13 +48,14 @@ pub async fn get_accounts_social(State(state): State<Arc<AppState>>) -> Html<Str
     Html(html)
 }
 pub async fn get_accounts_messaging(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(r##"<div class="accounts-list">
+    Html(r##"<div class="accounts-list">
 <div class="account-item"><span class="account-icon">💬</span><span class="account-name">Discord</span><span class="account-status disconnected">Not connected</span></div>
 <div class="account-item"><span class="account-icon">📱</span><span class="account-name">WhatsApp</span><span class="account-status disconnected">Not connected</span></div>
 <div class="account-item"><span class="account-icon">✈️</span><span class="account-name">Telegram</span><span class="account-status disconnected">Not connected</span></div>
 <div class="account-item"><span class="account-icon">💼</span><span class="account-name">Teams</span><span class="account-status disconnected">Not connected</span></div>
 
-</div>"##.to_string()) }
+</div>"##.to_string())
+}
 pub async fn get_accounts_email(State(state): State<Arc<AppState>>) -> Html<String> {
     let smtp_configured = {
         let Some(mut conn) = crate::settings_api::get_conn(&state) else {
@@ -82,8 +83,8 @@ pub async fn get_accounts_email(State(state): State<Arc<AppState>>) -> Html<Stri
     ))
 }
 pub async fn save_smtp_account(
-State(state): State<Arc<AppState>>,
-Json(config): Json<serde_json::Value>,
+    State(state): State<Arc<AppState>>,
+    Json(config): Json<serde_json::Value>,
 ) -> Json<serde_json::Value> {
     let mut conn = match crate::settings_api::get_conn(&state) {
         Some(c) => c,
@@ -128,27 +129,28 @@ pub async fn get_storage_info(State(state): State<Arc<AppState>>) -> Html<String
         count: i64,
     }
 
-    let db_size: i64 = diesel::sql_query(
-        "SELECT pg_database_size(current_database())::bigint AS size",
-    )
-    .get_result::<SizeRow>(&mut conn)
-    .map(|r| r.size)
-    .unwrap_or(0);
+    let db_size: i64 =
+        diesel::sql_query("SELECT pg_database_size(current_database())::bigint AS size")
+            .get_result::<SizeRow>(&mut conn)
+            .map(|r| r.size)
+            .unwrap_or(0);
 
     let bot_count: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM bots")
         .get_result::<CountRow>(&mut conn)
         .map(|r| r.count)
         .unwrap_or(0);
 
-    let message_count: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM message_history")
-        .get_result::<CountRow>(&mut conn)
-        .map(|r| r.count)
-        .unwrap_or(0);
+    let message_count: i64 =
+        diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM message_history")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
 
-    let source_count: i64 = diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM knowledge_sources")
-        .get_result::<CountRow>(&mut conn)
-        .map(|r| r.count)
-        .unwrap_or(0);
+    let source_count: i64 =
+        diesel::sql_query("SELECT COUNT(*)::bigint AS count FROM knowledge_sources")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
 
     let used_gb = db_size as f64 / (1024.0 * 1024.0 * 1024.0);
 
@@ -179,8 +181,9 @@ pub async fn get_storage_info(State(state): State<Arc<AppState>>) -> Html<String
     ))
 }
 pub async fn get_storage_connections(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(
+    Html(
 r##"<div class="connections-empty">
 <p class="text-muted">No external storage connections configured.</p>
 <p class="text-muted" style="font-size:0.85em;">Use the Integrations section to connect cloud storage providers.</p>
-</div>"## .to_string(), ) }
+</div>"## .to_string(), )
+}

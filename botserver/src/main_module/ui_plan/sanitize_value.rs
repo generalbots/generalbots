@@ -26,9 +26,7 @@ pub fn validate_ui_plan(raw: &UiPlan) -> Result<UiPlan, String> {
         return Err("UI plan has no steps".to_string());
     }
     if raw.steps.len() > MAX_UI_STEPS {
-        return Err(format!(
-            "UI plan exceeds step limit of {MAX_UI_STEPS}"
-        ));
+        return Err(format!("UI plan exceeds step limit of {MAX_UI_STEPS}"));
     }
 
     if let Some(app) = &raw.app {
@@ -104,7 +102,11 @@ pub(super) fn is_cell_ref(reference: &str) -> bool {
     if bytes.is_empty() || bytes.len() > 5 {
         return false;
     }
-    let letters: Vec<u8> = bytes.iter().copied().take_while(u8::is_ascii_uppercase).collect();
+    let letters: Vec<u8> = bytes
+        .iter()
+        .copied()
+        .take_while(u8::is_ascii_uppercase)
+        .collect();
     if letters.is_empty() || letters.len() > 3 {
         return false;
     }
@@ -116,8 +118,8 @@ pub(super) fn is_cell_ref(reference: &str) -> bool {
 }
 /// Attempts to decode a raw `__ui_plan__` payload into a validated plan.
 pub fn parse_ui_plan(payload: &serde_json::Value) -> Result<UiPlan, String> {
-    let raw: UiPlan = serde_json::from_value(payload.clone())
-        .map_err(|e| format!("UI plan parse error: {e}"))?;
+    let raw: UiPlan =
+        serde_json::from_value(payload.clone()).map_err(|e| format!("UI plan parse error: {e}"))?;
     validate_ui_plan(&raw)
 }
 /// Extracts and validates the first `{"__ui_plan__": {...}}` object from a
@@ -223,8 +225,7 @@ pub fn scrub_plan_fragments(text: &str) -> String {
             !(value.contains("\"__ui_plan__\"")
                 || value.contains("\"op\":")
                 || value.contains("\"steps\":")
-                || (value.contains("\"app\":")
-                    && (value.contains('{') || value.contains('['))))
+                || (value.contains("\"app\":") && (value.contains('{') || value.contains('['))))
         })
         .collect();
     filtered.join("\n").trim().to_string()
@@ -236,10 +237,14 @@ mod tests {
 
     #[test]
     fn plan_tail_is_scrubbed_from_the_user_message() {
-        let leaked = "city\", \"value\": \"Curitiba\"}, {\"op\": \"click\", \"label\": \"Search\"}]}}\n\n\
+        let leaked =
+            "city\", \"value\": \"Curitiba\"}, {\"op\": \"click\", \"label\": \"Search\"}]}}\n\n\
                       Opening Weather for Curitiba.";
         let cleaned = scrub_plan_fragments(leaked);
         assert!(!cleaned.contains("\"op\""), "{cleaned}");
-        assert!(cleaned.contains("Opening Weather for Curitiba."), "{cleaned}");
+        assert!(
+            cleaned.contains("Opening Weather for Curitiba."),
+            "{cleaned}"
+        );
     }
 }

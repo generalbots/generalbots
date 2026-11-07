@@ -21,23 +21,19 @@ pub async fn billing_plan(
         None => return Html(String::new()),
     };
 
-    let branch_id = resolve_user_id(&state, &headers)
-        .ok()
-        .and_then(|uid| {
-            #[derive(diesel::QueryableByName)]
-            #[diesel(check_for_backend(diesel::pg::Pg))]
-            struct BranchRow {
-                #[diesel(sql_type = diesel::sql_types::Uuid)]
-                branch_id: uuid::Uuid,
-            }
-            diesel::sql_query(
-                "SELECT branch_id FROM crm_contacts WHERE user_id = $1 LIMIT 1",
-            )
+    let branch_id = resolve_user_id(&state, &headers).ok().and_then(|uid| {
+        #[derive(diesel::QueryableByName)]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct BranchRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: uuid::Uuid,
+        }
+        diesel::sql_query("SELECT branch_id FROM crm_contacts WHERE user_id = $1 LIMIT 1")
             .bind::<diesel::sql_types::Uuid, _>(uid)
             .get_result::<BranchRow>(&mut conn)
             .ok()
             .map(|r| r.branch_id)
-        });
+    });
 
     #[derive(Debug, diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -133,7 +129,9 @@ pub async fn billing_payment_methods(State(state): State<Arc<AppState>>) -> impl
 }
 
 /// POST /api/user/data/export — real aggregate counts, not fabricated rows.
-pub async fn data_export(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
+pub async fn data_export(
+    State(state): State<Arc<AppState>>,
+) -> (StatusCode, Json<serde_json::Value>) {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => {

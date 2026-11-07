@@ -1,24 +1,26 @@
 //! Bootstrap and application initialization logic
 
-use botcore::shared::utils::{create_conn, get_stack_path};
+use super::migrations::run_diesel_migrations;
+use super::BootstrapProgress;
 use crate::core::config::AppConfig;
 use crate::core::i18n;
 use crate::core::package_manager::InstallMode;
-use log::{error, info, trace, warn};
-use super::BootstrapProgress;
-use super::migrations::run_diesel_migrations;
-use std::path::Path;
+use botcore::shared::utils::{create_conn, get_stack_path};
 use botlib::security::SafeCommand;
+use log::{error, info, trace, warn};
+use std::path::Path;
 
 pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
-
     if no_console || no_ui {
         botlib::logging::init_compact_logger_with_style("info");
-        println!(r#"
+        println!(
+            r#"
   ╔═══════════════════════════════════════╗
   ║         General Bots v{}          ║
   ╚═══════════════════════════════════════╝
-"#, env!("CARGO_PKG_VERSION"));
+"#,
+            env!("CARGO_PKG_VERSION")
+        );
     }
 
     let locales_path = if std::path::Path::new("./locales").exists() {
@@ -92,7 +94,8 @@ pub async fn run_bootstrap(
             && !vault_addr.contains("localhost")
             && !vault_addr.contains("127.0.0.1");
 
-        let bootstrap_completed = is_remote_vault || ((env_exists || stack_env_exists) && vault_init_exists);
+        let bootstrap_completed =
+            is_remote_vault || ((env_exists || stack_env_exists) && vault_init_exists);
 
         info!(
             "Bootstrap check: .env exists={}, stack/.env exists={}, init.json exists={}, remote_vault={}, bootstrap_completed={}",
@@ -231,9 +234,11 @@ pub async fn init_database(
             trace!("Running database migrations...");
             info!("Running database migrations...");
             if let Err(e) = {
-    let mut conn = pool.get().map_err(|e| std::io::Error::other(format!("Pool error: {e}")))?;
-    run_diesel_migrations(&mut conn)
-    } {
+                let mut conn = pool
+                    .get()
+                    .map_err(|e| std::io::Error::other(format!("Pool error: {e}")))?;
+                run_diesel_migrations(&mut conn)
+            } {
                 error!("Failed to run migrations: {}", e);
 
                 warn!("Continuing despite migration errors - database might be partially migrated");

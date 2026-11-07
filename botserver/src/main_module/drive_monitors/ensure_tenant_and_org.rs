@@ -1,6 +1,9 @@
 use super::*;
 
-pub(super) fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenant_slug: &str) -> Result<(Uuid, Uuid), String> {
+pub(super) fn ensure_tenant_and_org(
+    pool: &botcore::shared::utils::DbPool,
+    tenant_slug: &str,
+) -> Result<(Uuid, Uuid), String> {
     use diesel::sql_query;
     let mut conn = pool.get().map_err(|e| e.to_string())?;
 
@@ -19,14 +22,15 @@ pub(super) fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenan
     // Get tenant_id
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct TenantId { #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid }
-    let tid: Uuid = diesel::sql_query(
-        "SELECT id FROM tenants WHERE slug = $1 LIMIT 1"
-    )
-    .bind::<diesel::sql_types::Text, _>(tenant_slug)
-    .get_result::<TenantId>(&mut conn)
-    .map_err(|e| format!("Failed to get tenant_id: {}", e))?
-    .id;
+    struct TenantId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let tid: Uuid = diesel::sql_query("SELECT id FROM tenants WHERE slug = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Text, _>(tenant_slug)
+        .get_result::<TenantId>(&mut conn)
+        .map_err(|e| format!("Failed to get tenant_id: {}", e))?
+        .id;
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -46,12 +50,15 @@ pub(super) fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenan
     let mut reusable: Option<OrgRow> = None;
     for slug in &reuse_ids {
         match diesel::sql_query(
-            "SELECT org_id, tenant_id FROM organizations WHERE slug = $1 LIMIT 1"
+            "SELECT org_id, tenant_id FROM organizations WHERE slug = $1 LIMIT 1",
         )
         .bind::<diesel::sql_types::Text, _>(slug)
         .get_result::<OrgRow>(&mut conn)
         {
-            Ok(row) => { reusable = Some(row); break; }
+            Ok(row) => {
+                reusable = Some(row);
+                break;
+            }
             Err(_) => continue,
         }
     }
@@ -60,11 +67,17 @@ pub(super) fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenan
     let effective_tenant_id: Uuid = match reusable {
         // Reuse the org as-is, keeping ITS tenant so branch/workspace scopes
         // stay consistent with whatever created it (signup or default tenant).
-        Some(OrgRow { org_id, tenant_id: Some(org_tenant) }) => {
+        Some(OrgRow {
+            org_id,
+            tenant_id: Some(org_tenant),
+        }) => {
             resolved_org_id = org_id;
             org_tenant
         }
-        Some(OrgRow { org_id, tenant_id: None }) => {
+        Some(OrgRow {
+            org_id,
+            tenant_id: None,
+        }) => {
             resolved_org_id = org_id;
             tid
         }
@@ -98,7 +111,12 @@ pub(super) fn ensure_tenant_and_org(pool: &botcore::shared::utils::DbPool, tenan
 
     Ok((effective_tenant_id, resolved_org_id))
 }
-pub(super) fn ensure_branch_exists(pool: &botcore::shared::utils::DbPool, branch_slug: &str, org_id: Uuid, tenant_id: Uuid) -> Result<Uuid, String> {
+pub(super) fn ensure_branch_exists(
+    pool: &botcore::shared::utils::DbPool,
+    branch_slug: &str,
+    org_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<Uuid, String> {
     use diesel::sql_query;
     let mut conn = pool.get().map_err(|e| e.to_string())?;
 
@@ -117,15 +135,17 @@ pub(super) fn ensure_branch_exists(pool: &botcore::shared::utils::DbPool, branch
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct BranchId { #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid }
-    let resolved_bid: Uuid = diesel::sql_query(
-        "SELECT id FROM branches WHERE org_id = $1 AND slug = $2 LIMIT 1"
-    )
-    .bind::<diesel::sql_types::Uuid, _>(org_id)
-    .bind::<diesel::sql_types::Text, _>(branch_slug)
-    .get_result::<BranchId>(&mut conn)
-    .map_err(|e| format!("Failed to get branch_id: {}", e))?
-    .id;
+    struct BranchId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let resolved_bid: Uuid =
+        diesel::sql_query("SELECT id FROM branches WHERE org_id = $1 AND slug = $2 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .bind::<diesel::sql_types::Text, _>(branch_slug)
+            .get_result::<BranchId>(&mut conn)
+            .map_err(|e| format!("Failed to get branch_id: {}", e))?
+            .id;
 
     Ok(resolved_bid)
 }
@@ -146,23 +166,30 @@ pub(super) fn create_bot_from_drive(
             // Legacy mode: resolve actual default tenant/org from database
             #[derive(diesel::QueryableByName)]
             #[diesel(check_for_backend(diesel::pg::Pg))]
-            struct OrgId { #[diesel(sql_type = diesel::sql_types::Uuid)] org_id: Uuid }
+            struct OrgId {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                org_id: Uuid,
+            }
 
             #[derive(diesel::QueryableByName)]
             #[diesel(check_for_backend(diesel::pg::Pg))]
-            struct TenantId { #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid }
+            struct TenantId {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+            }
 
-            let actual_tenant_id: Uuid = diesel::sql_query(
-                "SELECT id FROM tenants WHERE slug = 'default' LIMIT 1"
-            ).get_result::<TenantId>(&mut conn)
-             .map(|r| r.id)
-             .unwrap_or(DEFAULT_TENANT_ID);
+            let actual_tenant_id: Uuid =
+                diesel::sql_query("SELECT id FROM tenants WHERE slug = 'default' LIMIT 1")
+                    .get_result::<TenantId>(&mut conn)
+                    .map(|r| r.id)
+                    .unwrap_or(DEFAULT_TENANT_ID);
 
             let actual_org_id: Uuid = diesel::sql_query(
-                "SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1"
-            ).get_result::<OrgId>(&mut conn)
-             .map(|r| r.org_id)
-             .unwrap_or(DEFAULT_ORG_ID);
+                "SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1",
+            )
+            .get_result::<OrgId>(&mut conn)
+            .map(|r| r.org_id)
+            .unwrap_or(DEFAULT_ORG_ID);
 
             let bs = bot_name.to_string();
             (actual_tenant_id, actual_org_id, bs)
@@ -250,7 +277,10 @@ pub(super) fn create_bot_from_drive(
     ))
     .execute(&mut conn);
 
-    info!("Bot '{}' created (org: {}, branch: {})", bot_name, org_id, branch_id);
+    info!(
+        "Bot '{}' created (org: {}, branch: {})",
+        bot_name, org_id, branch_id
+    );
     Ok(())
 }
 pub(crate) async fn start_drive_compiler(app_state: Arc<AppState>) {

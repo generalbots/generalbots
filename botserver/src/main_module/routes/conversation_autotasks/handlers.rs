@@ -11,8 +11,8 @@ use uuid::Uuid;
 use super::store::{conversation_bot, load_all_rows, load_rows};
 use super::types::{next_run_for, respond, AutotaskRow, CreateAutotaskRequest, NewAutotask};
 use super::{
-    api_error, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED,
-    STATUS_PENDING, STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
+    api_error, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED, STATUS_PENDING,
+    STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
 };
 use botschema::conversation_autotasks as table;
 
@@ -79,11 +79,7 @@ pub async fn create(
             "title, schedule and command are required",
         ));
     }
-    let kind = body
-        .kind
-        .as_deref()
-        .unwrap_or("cron")
-        .to_ascii_lowercase();
+    let kind = body.kind.as_deref().unwrap_or("cron").to_ascii_lowercase();
     if kind != "cron" && kind != "systemd" {
         return Err(api_error(
             StatusCode::BAD_REQUEST,

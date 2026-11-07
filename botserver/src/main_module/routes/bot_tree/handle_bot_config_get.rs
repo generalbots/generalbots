@@ -104,7 +104,10 @@ pub async fn handle_bot_config_put(
 
     let name = form.get("name").cloned().unwrap_or_default();
     let description = form.get("description").cloned();
-    let llm_provider = form.get("llm_provider").cloned().unwrap_or_else(|| "openai".to_string());
+    let llm_provider = form
+        .get("llm_provider")
+        .cloned()
+        .unwrap_or_else(|| "openai".to_string());
     let llm_model = form.get("llm_model").cloned();
     let llm_url = form.get("llm_url").cloned();
     let llm_temperature = form.get("llm_temperature").cloned();
@@ -182,9 +185,12 @@ pub async fn handle_bot_config_put(
     ];
     platform_credentials.retain(|(_, v)| !v.as_deref().map(str::trim).unwrap_or("").is_empty());
     for (key, value) in platform_credentials {
-        if let Err(e) =
-            config_manager.set_config_with_branch(&bot_id, key, value.as_deref().unwrap_or_default(), None)
-        {
+        if let Err(e) = config_manager.set_config_with_branch(
+            &bot_id,
+            key,
+            value.as_deref().unwrap_or_default(),
+            None,
+        ) {
             log::error!("platform credential '{key}' persist for bot {bot_id} failed: {e}");
         }
     }
@@ -211,9 +217,13 @@ pub async fn handle_bot_create(
     }
 
     let description = form.get("description").cloned();
-    let parent_bot_id = form
-        .get("parent_bot_id")
-        .and_then(|v| if v.is_empty() { None } else { Uuid::parse_str(v).ok() });
+    let parent_bot_id = form.get("parent_bot_id").and_then(|v| {
+        if v.is_empty() {
+            None
+        } else {
+            Uuid::parse_str(v).ok()
+        }
+    });
 
     let bot_id = Uuid::new_v4();
     let branch_id = uuid::Uuid::nil();

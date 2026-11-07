@@ -15,6 +15,10 @@ name: ALM release binaries
 # and refuses a build older than a few hours (that is what a red or missing
 # build looks like from the other side).
 #
+# ALM builds are component releases (#1804): they are published as pre-releases
+# and never take /releases/latest. The product line is vMAJOR.MINOR.PATCH,
+# published by `.github/workflows/release.yml` + `desktop-binaries.yml`.
+#
 # The release URL for a given build (public repository, no token needed):
 #   https://github.com/generalbots/generalbots/releases/download/alm-<stamp>-<sha>/MANIFEST.json
 #
@@ -183,7 +187,7 @@ jobs:
           # Sortable, unique, and readable in the releases list.
           TAG="alm-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
 
-          gh release create "$TAG" --draft --repo "$REPO" --latest=false \
+          gh release create "$TAG" --draft --repo "$REPO" --latest=false --prerelease \
             --title "ALM binaries ${GITHUB_SHA:0:7}" \
             --notes "Deployable binaries for the ALM (Forgejo) CI.
 
@@ -197,7 +201,8 @@ jobs:
           gh release upload "$TAG" dist/* --repo "$REPO"
           # Assets can only be attached to a draft: publishing first makes
           # the release immutable and every upload fails with HTTP 422.
-          gh release edit "$TAG" --draft=false --repo "$REPO"
+          # `--prerelease` keeps this component build out of /releases/latest.
+          gh release edit "$TAG" --draft=false --prerelease --repo "$REPO"
           echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
 
       - name: Prune old builds

@@ -40,11 +40,7 @@ async fn task_progress_ws_loop(
     // Hello frame — the UI treats `{"type":"connected"}` as ready (see
     // botui/ui/suite/vibe/vibe-websocket.js).
     let hello = serde_json::json!({ "type": "connected" });
-    if sender
-        .send(Message::Text(hello.to_string()))
-        .await
-        .is_err()
-    {
+    if sender.send(Message::Text(hello.to_string())).await.is_err() {
         return;
     }
 
@@ -121,19 +117,21 @@ pub fn forward_autotask_event(app_state: &AppState, event: botautotask::types::T
         timestamp: event.timestamp.clone(),
         details: event.details.clone(),
         error: event.error.clone(),
-        activity: event.activity.map(|a| botcore::shared::state::AgentActivity {
-            phase: a.phase.clone(),
-            items_processed: a.items_processed,
-            items_total: a.items_total,
-            speed_per_min: a.speed_per_min,
-            eta_seconds: a.eta_seconds,
-            current_item: a.current_item.clone(),
-            bytes_processed: a.bytes_processed,
-            tokens_used: a.tokens_used,
-            files_created: a.files_created.clone(),
-            tables_created: a.tables_created.clone(),
-            log_lines: a.log_lines.clone(),
-        }),
+        activity: event
+            .activity
+            .map(|a| botcore::shared::state::AgentActivity {
+                phase: a.phase.clone(),
+                items_processed: a.items_processed,
+                items_total: a.items_total,
+                speed_per_min: a.speed_per_min,
+                eta_seconds: a.eta_seconds,
+                current_item: a.current_item.clone(),
+                bytes_processed: a.bytes_processed,
+                tokens_used: a.tokens_used,
+                files_created: a.files_created.clone(),
+                tables_created: a.tables_created.clone(),
+                log_lines: a.log_lines.clone(),
+            }),
         text: event.text,
     };
     app_state.broadcast_task_progress(core_event);

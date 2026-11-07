@@ -88,9 +88,7 @@ pub(super) fn verify_pin(pin: &str, hash: &str) -> bool {
         .is_ok()
 }
 
-async fn read_lock_body(
-    request: axum::extract::Request,
-) -> Result<LockSessionBody, HandlerError> {
+async fn read_lock_body(request: axum::extract::Request) -> Result<LockSessionBody, HandlerError> {
     let bytes = axum::body::to_bytes(request.into_body(), 16 * 1024)
         .await
         .map_err(|_| (StatusCode::BAD_REQUEST, "bad body".to_string()))?;

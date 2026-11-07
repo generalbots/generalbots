@@ -98,7 +98,10 @@ pub(super) async fn install(
 /// The database connection is acquired only for the update: the workspace call
 /// can take seconds and must never pin a pooled connection.
 pub(super) async fn refresh(state: &AppState, row: &AutotaskRow) {
-    let unit = row.unit_name.clone().unwrap_or_else(|| unit_name_for(row.id));
+    let unit = row
+        .unit_name
+        .clone()
+        .unwrap_or_else(|| unit_name_for(row.id));
     let check = if row.kind == "systemd" {
         format!("systemctl is-active {unit}.service 2>/dev/null || true")
     } else {
@@ -153,7 +156,10 @@ pub(super) async fn refresh(state: &AppState, row: &AutotaskRow) {
 
 /// Removes the schedule and the script from the workspace.
 pub(super) async fn remove(row: &AutotaskRow) -> Option<String> {
-    let unit = row.unit_name.clone().unwrap_or_else(|| unit_name_for(row.id));
+    let unit = row
+        .unit_name
+        .clone()
+        .unwrap_or_else(|| unit_name_for(row.id));
     let root = conversation_root(row.conversation_id);
     let id = row.id;
     let removal = if row.kind == "systemd" {

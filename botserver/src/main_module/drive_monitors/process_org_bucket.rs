@@ -6,8 +6,10 @@ pub(super) async fn process_org_bucket(
     pool: &botcore::shared::utils::DbPool,
     bucket_name: &str,
 ) {
-    let tenant_slug = bucket_name.strip_suffix(".gborg").unwrap_or(bucket_name).to_string();
-
+    let tenant_slug = bucket_name
+        .strip_suffix(".gborg")
+        .unwrap_or(bucket_name)
+        .to_string();
 
     // Get S3 client to list prefixes
     let (tenant_id, org_id) = if let Ok(result) = ensure_tenant_and_org(pool, &tenant_slug) {
@@ -29,8 +31,13 @@ pub(super) async fn process_org_bucket(
                     // Ensure branch record + cloud workspace row (mirrors Drive in cloud UI)
                     match ensure_branch_exists(pool, &branch_slug, org_id, tenant_id) {
                         Ok(branch_id) => {
-                            if let Err(e) = ensure_cloud_workspace(pool, org_id, branch_id, &branch_slug) {
-                                warn!("Failed to ensure cloud workspace for branch '{}': {}", branch_slug, e);
+                            if let Err(e) =
+                                ensure_cloud_workspace(pool, org_id, branch_id, &branch_slug)
+                            {
+                                warn!(
+                                    "Failed to ensure cloud workspace for branch '{}': {}",
+                                    branch_slug, e
+                                );
                             }
                         }
                         Err(e) => warn!("Failed to ensure branch '{}': {}", branch_slug, e),
@@ -38,21 +45,36 @@ pub(super) async fn process_org_bucket(
 
                     // Discover bot names within this branch
                     discover_and_create_bots(
-                        state, pool, bucket_name, &prefix,
-                        &branch_slug, tenant_id, org_id,
-                    ).await;
+                        state,
+                        pool,
+                        bucket_name,
+                        &prefix,
+                        &branch_slug,
+                        tenant_id,
+                        org_id,
+                    )
+                    .await;
 
                     // Start monitors for bots in this branch immediately
                     let bot_names = get_bot_names_in_branch(pool, &branch_slug, org_id).await;
                     for bot_name in bot_names {
                         start_org_bot_monitor(
-                            state, pool, bucket_name, &bot_name,
-                            &branch_slug, &tenant_slug, &prefix,
-                        ).await;
+                            state,
+                            pool,
+                            bucket_name,
+                            &bot_name,
+                            &branch_slug,
+                            &tenant_slug,
+                            &prefix,
+                        )
+                        .await;
                     }
                 }
             }
-            Err(e) => error!("Failed to list prefixes in .gborg bucket '{}': {}", bucket_name, e),
+            Err(e) => error!(
+                "Failed to list prefixes in .gborg bucket '{}': {}",
+                bucket_name, e
+            ),
         }
     }
 }
@@ -78,7 +100,8 @@ pub(super) async fn discover_and_create_bots(
                 // the bot. Only a top-level `{bot}.gb*` counts (a nested key
                 // would name a path, not a bot).
                 const BOT_MARKERS: [&str; 4] = [".gbdialog", ".gbot", ".gbkb", ".gbdrive"];
-                let mut bot_names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+                let mut bot_names: std::collections::BTreeSet<String> =
+                    std::collections::BTreeSet::new();
                 for key in &objects {
                     let relative = key.strip_prefix(branch_prefix).unwrap_or(key);
                     for marker in BOT_MARKERS {
@@ -98,8 +121,10 @@ pub(super) async fn discover_and_create_bots(
                 }
 
                 for bot_name in &bot_names {
-                    info!("Ensuring bot '{}' in branch '{}' (org: {}, tenant: {})",
-                          bot_name, branch_slug, org_id, tenant_id);
+                    info!(
+                        "Ensuring bot '{}' in branch '{}' (org: {}, tenant: {})",
+                        bot_name, branch_slug, org_id, tenant_id
+                    );
 
                     let create_state = state.clone();
                     let bn = bot_name.clone();
@@ -108,11 +133,15 @@ pub(super) async fn discover_and_create_bots(
                     let pool_create = pool.clone();
                     let created = match tokio::task::spawn_blocking(move || {
                         create_bot_from_drive(
-                            &create_state, &pool_create, &bn,
+                            &create_state,
+                            &pool_create,
+                            &bn,
                             Some((tenant_id, org_id, bs)),
                             Some(bs_is_default),
                         )
-                    }).await {
+                    })
+                    .await
+                    {
                         Ok(Ok(_)) => {
                             info!("Bot '{}' created in org", bot_name);
                             true
@@ -129,14 +158,26 @@ pub(super) async fn discover_and_create_bots(
 
                     if created {
                         if let Err(e) = sync_tables_for_org_bot(
-                            state, pool, bot_name, bucket_name, branch_prefix,
-                        ).await {
-                            warn!("Failed to sync tables for new org bot '{}': {}", bot_name, e);
+                            state,
+                            pool,
+                            bot_name,
+                            bucket_name,
+                            branch_prefix,
+                        )
+                        .await
+                        {
+                            warn!(
+                                "Failed to sync tables for new org bot '{}': {}",
+                                bot_name, e
+                            );
                         }
                     }
                 }
             }
-            Err(e) => error!("Failed to list objects in '{}/{}': {}", bucket_name, branch_prefix, e),
+            Err(e) => error!(
+                "Failed to list objects in '{}/{}': {}",
+                bucket_name, branch_prefix, e
+            ),
         }
     }
 }
@@ -147,12 +188,16 @@ pub(super) async fn scan_org_bucket(
     bucket_name: &str,
     monitored_bots: &mut std::collections::HashSet<String>,
 ) -> Result<(), String> {
-    let tenant_slug = bucket_name.strip_suffix(".gborg").unwrap_or(bucket_name).to_string();
+    let tenant_slug = bucket_name
+        .strip_suffix(".gborg")
+        .unwrap_or(bucket_name)
+        .to_string();
 
     let (tenant_id, org_id) = ensure_tenant_and_org(pool, &tenant_slug)?;
 
     if let Some(s3) = &state.drive {
-        let prefixes = s3.list_common_prefixes(bucket_name, "/")
+        let prefixes = s3
+            .list_common_prefixes(bucket_name, "/")
             .await
             .map_err(|e| format!("Failed to list prefixes: {}", e))?;
 
@@ -170,14 +215,23 @@ pub(super) async fn scan_org_bucket(
             // Ensure branch + cloud workspace row mirror this Drive branch
             let branch_id = ensure_branch_exists(pool, &branch_slug, org_id, tenant_id)?;
             if let Err(e) = ensure_cloud_workspace(pool, org_id, branch_id, &branch_slug) {
-                warn!("Failed to ensure cloud workspace for branch '{}': {}", branch_slug, e);
+                warn!(
+                    "Failed to ensure cloud workspace for branch '{}': {}",
+                    branch_slug, e
+                );
             }
 
             // Discover bots within branch
             discover_and_create_bots(
-                state, pool, bucket_name, &prefix,
-                &branch_slug, tenant_id, org_id,
-            ).await;
+                state,
+                pool,
+                bucket_name,
+                &prefix,
+                &branch_slug,
+                tenant_id,
+                org_id,
+            )
+            .await;
 
             // Mark branch as monitored (track via prefix)
             monitored_bots.insert(branch_key);
@@ -188,8 +242,16 @@ pub(super) async fn scan_org_bucket(
                 let mon_key = format!("{}/{}", branch_slug, bot_name);
                 if !monitored_bots.contains(&mon_key) {
                     monitored_bots.insert(mon_key);
-                    start_org_bot_monitor(state, pool, bucket_name, &bot_name, &branch_slug,
-                                          &tenant_slug, &prefix).await;
+                    start_org_bot_monitor(
+                        state,
+                        pool,
+                        bucket_name,
+                        &bot_name,
+                        &branch_slug,
+                        &tenant_slug,
+                        &prefix,
+                    )
+                    .await;
                 }
             }
         }
@@ -210,8 +272,8 @@ pub(super) async fn start_org_bot_monitor(
     let mon_pool = pool.clone();
     let mn = bot_name.to_string();
     let bot_id = tokio::task::spawn_blocking(move || {
-        use diesel::prelude::*;
         use botcore::shared::models::schema::bots;
+        use diesel::prelude::*;
         let mut conn = match mon_pool.get() {
             Ok(c) => c,
             Err(_) => return None,
@@ -221,7 +283,10 @@ pub(super) async fn start_org_bot_monitor(
             .select(bots::dsl::id)
             .first::<Uuid>(&mut conn)
             .ok()
-    }).await.ok().flatten();
+    })
+    .await
+    .ok()
+    .flatten();
 
     if let Some(bot_id) = bot_id {
         let mon_state = state.clone();
@@ -237,17 +302,21 @@ pub(super) async fn start_org_bot_monitor(
             use crate::drive::drive_monitor::DriveMonitor;
             use botcore::shared::memory_monitor::register_thread;
             register_thread(&format!("drive-monitor-{}", bn_for_log), "drive");
-            let monitor = DriveMonitor::new_with_params(botdrive::drive_monitor::DriveMonitorParams {
-                state: mon_state,
-                bucket_name: bucket,
-                bot_id,
-                bot_name: bn,
-                branch_slug: bs,
-                s3_prefix: Some(prefix),
-                tenant_slug: ts,
-                org_slug: org_slug_for_spawn,
-            });
-            info!("Starting DriveMonitor for org bot: {} (bucket: {})", bn_for_log, bucket_for_log);
+            let monitor =
+                DriveMonitor::new_with_params(botdrive::drive_monitor::DriveMonitorParams {
+                    state: mon_state,
+                    bucket_name: bucket,
+                    bot_id,
+                    bot_name: bn,
+                    branch_slug: bs,
+                    s3_prefix: Some(prefix),
+                    tenant_slug: ts,
+                    org_slug: org_slug_for_spawn,
+                });
+            info!(
+                "Starting DriveMonitor for org bot: {} (bucket: {})",
+                bn_for_log, bucket_for_log
+            );
             if let Err(e) = monitor.start_monitoring().await {
                 error!("DriveMonitor failed for org bot {}: {}", bn_for_log, e);
             }
@@ -263,8 +332,8 @@ pub(super) async fn get_bot_names_in_branch(
     let pool_clone = pool.clone();
     let bs = branch_slug.to_string();
     tokio::task::spawn_blocking(move || {
+        use botcore::shared::models::schema::{bots, branches};
         use diesel::prelude::*;
-        use botcore::shared::models::schema::{branches, bots};
         let mut conn = match pool_clone.get() {
             Ok(c) => c,
             Err(_) => return Vec::new(),
@@ -284,5 +353,7 @@ pub(super) async fn get_bot_names_in_branch(
             .select(bots::dsl::name)
             .load::<String>(&mut conn)
             .unwrap_or_default()
-    }).await.unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default()
 }

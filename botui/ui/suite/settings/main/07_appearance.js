@@ -224,12 +224,49 @@ function notificationPreferenceInputs() {
     : [];
 }
 
+function formatDigestDate(value) {
+  if (!value) return "";
+  var date = new Date(value);
+  if (isNaN(date.getTime())) return "";
+  try {
+    return date.toLocaleString();
+  } catch (e) {
+    return date.toISOString();
+  }
+}
+
+function applyDigestStatus(prefs) {
+  var status = document.querySelector("[data-digest-status]");
+  if (!status) return;
+  if (!prefs.email_digest) {
+    status.textContent = "Off";
+    return;
+  }
+  if (prefs.digest_last_error) {
+    status.textContent =
+      "Last delivery failed: " +
+      prefs.digest_last_error +
+      " — retrying automatically.";
+    return;
+  }
+  var sent = formatDigestDate(prefs.digest_last_sent);
+  var next = formatDigestDate(prefs.digest_next_run);
+  if (sent && next) {
+    status.textContent = "Last sent " + sent + " · next " + next + ".";
+  } else if (sent) {
+    status.textContent = "Last sent " + sent + ".";
+  } else {
+    status.textContent = "First digest will be sent on the next weekly run.";
+  }
+}
+
 function applyNotificationPreferences(prefs) {
   notificationPreferenceInputs().forEach(function (input) {
     if (Object.prototype.hasOwnProperty.call(prefs, input.name)) {
       input.checked = !!prefs[input.name];
     }
   });
+  applyDigestStatus(prefs);
 }
 
 function loadNotificationPreferences() {

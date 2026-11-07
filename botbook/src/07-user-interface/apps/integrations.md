@@ -39,8 +39,10 @@ Browse and activate connectors for external services:
 Every catalog entry ships a vendor help link ("Open official documentation")
 and a numbered credential setup guide that walks through where to create the
 key or OAuth app, which scope to grant, where to paste it, and when to rotate
-it. The guide is read-only: secrets are submitted through the connect form and
-stored in the vault, never shown back in the detail panel.
+it. Providers that issue credentials also show a direct "Open credential page"
+button that opens the exact vendor screen where the token, key or OAuth app is
+created. The guide is read-only: secrets are submitted through the connect form
+and stored in the vault, never shown back in the detail panel.
 
 ### Connected Services
 

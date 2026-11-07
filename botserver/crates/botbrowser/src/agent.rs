@@ -19,7 +19,11 @@ impl LlmConfig {
         Self {
             url: url.to_string(),
             key: key.to_string(),
-            model: if model.is_empty() { "default".to_string() } else { model.to_string() },
+            model: if model.is_empty() {
+                "default".to_string()
+            } else {
+                model.to_string()
+            },
         }
     }
 }
@@ -102,7 +106,10 @@ async fn call_llm(prompt: &str, config: &LlmConfig) -> Result<String> {
         .await
         .context("LLM API request failed")?;
 
-    let body: Value = response.json().await.context("Failed to parse LLM response")?;
+    let body: Value = response
+        .json()
+        .await
+        .context("Failed to parse LLM response")?;
     let content = body["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or("")
@@ -118,7 +125,8 @@ pub async fn observe_page(session: &Arc<Mutex<BrowserSession>>) -> Result<AgentO
     let url = page.url().await.ok().flatten().unwrap_or_default();
     let title = page.get_title().await.ok().flatten().unwrap_or_default();
 
-    let text_script = r#"document.body.innerText ? document.body.innerText.substring(0, 5000) : ''"#;
+    let text_script =
+        r#"document.body.innerText ? document.body.innerText.substring(0, 5000) : ''"#;
 
     let visible_text = page
         .evaluate(text_script)
@@ -248,7 +256,9 @@ pub async fn run_agent_loop(
 fn parse_action_from_json(action_val: &Value) -> Result<AgentAction> {
     if let Some(action_type) = action_val.as_str() {
         return match action_type {
-            "Done" | "done" => Ok(AgentAction::Done { summary: String::new() }),
+            "Done" | "done" => Ok(AgentAction::Done {
+                summary: String::new(),
+            }),
             "ExtractText" | "extract_text" => Ok(AgentAction::ExtractText),
             "ExtractLinks" | "extract_links" => Ok(AgentAction::ExtractLinks),
             "Screenshot" | "screenshot" => Ok(AgentAction::Screenshot),
@@ -371,4 +381,3 @@ pub async fn execute_action(
 
     Ok(())
 }
-

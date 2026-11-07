@@ -14,6 +14,8 @@ const BOTMODELS_HEALTH: &str = "http://127.0.0.1:8085/api/health";
 const LIBZBAR_REMEDIATION: &str = "apt-get install -y libzbar0";
 const OCR_REMEDIATION: &str =
     "apt-get install -y tesseract-ocr (or reinstall the BotModels pythonbox)";
+const WINDOWS_OCR_REMEDIATION: &str =
+    "reinstall the BotModels pythonbox (it bundles the RapidOCR fallback)";
 
 pub async fn capabilities() -> Value {
     match fetch_health().await {
@@ -82,8 +84,12 @@ fn normalize(payload: Value, service_running: bool, source: &str, error: Option<
 }
 
 fn host_probe() -> Value {
+    if cfg!(target_os = "windows") {
+        return windows_host_probe();
+    }
     if !cfg!(target_os = "linux") {
-        let detail = "The BotModels pythonbox is published for Linux x86_64 only.";
+        let detail =
+            "The BotModels pythonbox is published for Linux x86_64 and Windows x86_64 only.";
         return json!({
             "service_running": false,
             "source": "host",
@@ -131,6 +137,43 @@ fn host_probe() -> Value {
     })
 }
 
+/// Windows probe: the bundled wheelhouse carries RapidOCR, so OCR works out of
+/// the box. Barcode decoding additionally needs a zbar DLL, which the pythonbox
+/// does not ship; install.ps1 leaves pyzbar out unless the user opts in.
+fn windows_host_probe() -> Value {
+    let pyzbar = bundle_contains("pyzbar");
+    let barcode = if pyzbar {
+        unavailable(
+            "the zbar DLL is not bundled with the Windows pythonbox",
+            "install a zbar build, then run .\\install.ps1 -With barcode",
+        )
+    } else {
+        unavailable(
+            "the barcode wheel is not part of this bundle",
+            "reinstall the BotModels pythonbox or run .\\install.ps1 -With barcode",
+        )
+    };
+
+    let rapidocr =
+        bundle_contains("rapidocr_onnxruntime") || bundle_contains("rapidocr-onnxruntime");
+    let ocr = if rapidocr {
+        json!({
+            "available": true,
+            "detail": "RapidOCR will be used (tesseract is not installed).",
+            "remediation": Value::Null,
+        })
+    } else {
+        unavailable("no OCR backend was found", WINDOWS_OCR_REMEDIATION)
+    };
+
+    json!({
+        "service_running": false,
+        "source": "host",
+        "barcode": barcode,
+        "ocr": ocr,
+    })
+}
+
 fn botmodels_dir() -> PathBuf {
     stack_path().join("bin").join("botmodels")
 }
@@ -161,15 +204,19 @@ fn has_prefix(directory: &Path, prefix: &str) -> bool {
 }
 
 fn venv_contains(venv: &Path, module: &str) -> bool {
-    let Ok(versions) = std::fs::read_dir(venv.join("lib")) else {
-        return false;
-    };
     let prefixes = [
         format!("{module}-").to_ascii_lowercase(),
         format!("{module}_").to_ascii_lowercase(),
     ];
-    for version in versions.flatten() {
-        let site = version.path().join("site-packages");
+    let mut sites = vec![venv.join("Lib").join("site-packages")];
+    if let Ok(versions) = std::fs::read_dir(venv.join("lib")) {
+        sites.extend(
+            versions
+                .flatten()
+                .map(|version| version.path().join("site-packages")),
+        );
+    }
+    for site in sites {
         if site.join(module).exists() {
             return true;
         }

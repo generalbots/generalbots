@@ -108,7 +108,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             status: Status::Unsupported,
             priority: Priority::Nice,
             module: None,
-            official_docs: Some("https://qik.com/"),
+            official_docs: Some("https://rest.docs.qik.dev/"),
             auth: &UNSUPPORTED,
             actions: PAYMENT_ACTIONS,
         },

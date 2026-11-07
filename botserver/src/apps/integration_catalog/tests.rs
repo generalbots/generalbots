@@ -69,6 +69,37 @@ fn every_provider_publishes_a_vendor_link_and_numbered_setup_guide() {
 }
 
 #[test]
+fn supported_providers_publish_a_direct_credentials_page() {
+    // #1859: the docs link explains the API, but users still need the exact
+    // vendor page where the token/key/OAuth app is created. Providers that
+    // cannot issue credentials (unsupported/unknown, keyless free gateways or
+    // the user-supplied OpenAI-compatible endpoint) must not advertise one.
+    let catalog = search(None, None, None);
+    for provider in &catalog.providers {
+        let needs_credentials = !provider.auth.fields.is_empty()
+            && !matches!(
+                provider.auth.method,
+                AuthMethod::Unknown | AuthMethod::Unsupported
+            )
+            && provider.id != "openai-compatible";
+        if needs_credentials {
+            let url = provider.credentials_url.unwrap_or_default();
+            assert!(
+                url.starts_with("https://"),
+                "{} must publish an https credential page, got {url:?}",
+                provider.id
+            );
+            continue;
+        }
+        assert!(
+            provider.credentials_url.is_none(),
+            "{} must not advertise a credential page without a supported auth flow",
+            provider.id
+        );
+    }
+}
+
+#[test]
 fn github_and_stripe_flip_llm_available_without_status_drift() {
     let expectations = [("github", Status::Partial), ("stripe", Status::Built)];
     for (id, status) in expectations {

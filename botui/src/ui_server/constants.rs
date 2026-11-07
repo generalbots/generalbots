@@ -1,7 +1,7 @@
-#[cfg(feature = "embed-ui")]
-use rust_embed::RustEmbed;
 #[cfg(not(feature = "embed-ui"))]
 use log::{error, info};
+#[cfg(feature = "embed-ui")]
+use rust_embed::RustEmbed;
 use std::path::PathBuf;
 
 #[cfg(feature = "embed-ui")]
@@ -92,16 +92,52 @@ pub const SUITE_DIRS: &[&str] = &[
     "goals",
     "vibe",
     // Additional Apps (static HTML - always included)
-    "banking", "biometry", "brazil", "browser", "campaigns",
-    "compliance", "database", "desktop", "email", "handoff", "hr",
-    "integrations", "erp", "itsm", "kyc", "lists", "o365", "minutes",
-    "plan", "plugins", "pos", "retail", "sales", "tax",
-    "templates", "templates-app", "terminal", "timeclock", "vision",
+    "banking",
+    "biometry",
+    "brazil",
+    "browser",
+    "campaigns",
+    "compliance",
+    "database",
+    "desktop",
+    "email",
+    "handoff",
+    "hr",
+    "integrations",
+    "erp",
+    "itsm",
+    "kyc",
+    "lists",
+    "o365",
+    "minutes",
+    "plan",
+    "plugins",
+    "pos",
+    "retail",
+    "sales",
+    "tax",
+    "templates",
+    "templates-app",
+    "terminal",
+    "timeclock",
+    "vision",
     // AI OS apps (issues #1170-fe, #1178-fe)
-    "automations", "memory",
+    "automations",
+    "memory",
     // AI OS utility apps (embedded registry apps, always included)
-    "jukebox", "calculator", "notepad", "photos", "timer", "weather",
-    "recycle", "snapshot", "clock", "notes", "store", "concierge", "fraud",
+    "jukebox",
+    "calculator",
+    "notepad",
+    "photos",
+    "timer",
+    "weather",
+    "recycle",
+    "snapshot",
+    "clock",
+    "notes",
+    "store",
+    "concierge",
+    "fraud",
     // Desktop widget partials (widget-registry.js loads /suite/widgets/*)
     "widgets",
     // Split assets introduced by #1731

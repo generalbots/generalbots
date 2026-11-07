@@ -1,12 +1,9 @@
-use axum::{
-    http::StatusCode,
-    response::IntoResponse,
-};
+use axum::{http::StatusCode, response::IntoResponse};
 
-#[cfg(feature = "embed-ui")]
-use crate::ui_server::constants::{Assets, ROOT_FILES, SITE_ROOT_FILES, SUITE_DIRS};
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::get_ui_root;
+#[cfg(feature = "embed-ui")]
+use crate::ui_server::constants::{Assets, ROOT_FILES, SITE_ROOT_FILES, SUITE_DIRS};
 
 pub async fn serve_favicon() -> impl IntoResponse {
     #[cfg(feature = "embed-ui")]
@@ -131,5 +128,3 @@ pub async fn handle_site_root_asset(
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
-
-

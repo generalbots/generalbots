@@ -1,0 +1,35 @@
+name: Release links
+
+# #1804 — the documented /releases/latest/download/... links must resolve to a
+# product release that carries the desktop tarball and checksums. Run after the
+# desktop build publishes, nightly to catch later regressions, and on demand.
+on:
+  workflow_run:
+    workflows: ["Desktop binaries"]
+    types: [completed]
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-links
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify latest download links
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+
+      - name: Verify the latest product release and its assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/verify-latest-release.sh

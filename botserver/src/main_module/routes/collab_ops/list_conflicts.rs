@@ -8,7 +8,10 @@ pub async fn list_conflicts(
     Query(params): Query<ConflictQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -48,12 +51,18 @@ pub async fn list_conflicts(
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
     .load::<Row>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("list conflicts: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("list conflicts: {e}"),
+        )
+    })?;
 
     let items: Vec<serde_json::Value> = rows
         .iter()
         .map(|r| {
-            let payload = serde_json::from_str::<serde_json::Value>(&r.payload).unwrap_or(serde_json::Value::Null);
+            let payload = serde_json::from_str::<serde_json::Value>(&r.payload)
+                .unwrap_or(serde_json::Value::Null);
             serde_json::json!({
                 "id": r.id,
                 "actor_id": r.actor_id,
@@ -82,7 +91,12 @@ pub async fn resolve_conflict(
     let resolution = match body.resolution.as_str() {
         "accept-server" => "rejected",
         "accept-client" => "accepted",
-        _ => return Err(err(StatusCode::BAD_REQUEST, "resolution must be accept-server or accept-client")),
+        _ => {
+            return Err(err(
+                StatusCode::BAD_REQUEST,
+                "resolution must be accept-server or accept-client",
+            ))
+        }
     };
 
     let mut conn = state
@@ -121,27 +135,44 @@ pub async fn resolve_conflict(
     .bind::<SqlUuid, _>(id)
     .bind::<Text, _>(resolution)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("resolve op: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("resolve op: {e}"),
+        )
+    })?;
 
     if updated == 0 {
-        return Err(err(StatusCode::CONFLICT, "Operation is not an unresolved conflict"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Operation is not an unresolved conflict",
+        ));
     }
 
     // accept-client advances the converged version past the applied change and
     // records the rebased op in the version vector.
     if resolution == "accepted" {
-        let current = read_current_version(&mut conn, &op.resource_type, &op.resource_id)
-            .unwrap_or(0);
+        let current =
+            read_current_version(&mut conn, &op.resource_type, &op.resource_id).unwrap_or(0);
         let new_version = current.max(op.lamport_ts);
-        let mut vector = read_vector(&mut conn, &op.resource_type, &op.resource_id).unwrap_or_default();
+        let mut vector =
+            read_vector(&mut conn, &op.resource_type, &op.resource_id).unwrap_or_default();
         vector.insert(op.actor_id.clone(), op.lamport_ts);
         let vector_json = serde_json::to_string(&vector).unwrap_or_else(|_| "{}".to_string());
-        if let Err(e) = upsert_state(&mut conn, &op.resource_type, &op.resource_id, new_version, &vector_json) {
+        if let Err(e) = upsert_state(
+            &mut conn,
+            &op.resource_type,
+            &op.resource_id,
+            new_version,
+            &vector_json,
+        ) {
             warn!("resolve op: state upsert failed: {e}");
         }
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "resolution": resolution })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "resolution": resolution }),
+    ))
 }
 /// `GET /api/collab/ops/actors?resource_type=&resource_id=` — distinct actors
 /// grouped by `actor_type` (human vs llm) with their last Lamport timestamp and
@@ -152,7 +183,10 @@ pub async fn list_actors(
     Query(params): Query<ConflictQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -184,7 +218,12 @@ pub async fn list_actors(
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
     .load::<Row>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("list actors: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("list actors: {e}"),
+        )
+    })?;
 
     let items: Vec<serde_json::Value> = rows
         .iter()
@@ -209,17 +248,20 @@ pub async fn ops_state(
     Query(params): Query<ConflictQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
         .get()
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
 
-    let current = read_current_version(&mut conn, &params.resource_type, &params.resource_id)
-        .unwrap_or(0);
-    let vector = read_vector(&mut conn, &params.resource_type, &params.resource_id)
-        .unwrap_or_default();
+    let current =
+        read_current_version(&mut conn, &params.resource_type, &params.resource_id).unwrap_or(0);
+    let vector =
+        read_vector(&mut conn, &params.resource_type, &params.resource_id).unwrap_or_default();
 
     Ok(Json(serde_json::json!({
         "resource_type": params.resource_type,

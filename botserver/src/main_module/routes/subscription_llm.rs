@@ -13,7 +13,7 @@ use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::Json;
 use axum::routing::post;
-use axum::{Router};
+use axum::Router;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -81,7 +81,10 @@ fn flatten(messages: &Value) -> String {
     };
     let mut parts: Vec<String> = Vec::new();
     for message in list {
-        let role = message.get("role").and_then(Value::as_str).unwrap_or("user");
+        let role = message
+            .get("role")
+            .and_then(Value::as_str)
+            .unwrap_or("user");
         let content = message.get("content").and_then(Value::as_str).unwrap_or("");
         if content.trim().is_empty() {
             continue;
@@ -121,7 +124,9 @@ pub async fn chat_completions(
     let Some(entry) = entry else {
         return Err((
             StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": { "message": "Subscription token expired; send the message again" } })),
+            Json(
+                json!({ "error": { "message": "Subscription token expired; send the message again" } }),
+            ),
         ));
     };
     if entry.provider == "unlinked" {
@@ -188,7 +193,10 @@ pub async fn chat_completions(
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/api/llm/subscription/chat/completions", post(chat_completions))
+    Router::new().route(
+        "/api/llm/subscription/chat/completions",
+        post(chat_completions),
+    )
 }
 
 #[cfg(test)]

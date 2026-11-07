@@ -50,6 +50,13 @@ PLATFORMS = (
     "manylinux_2_27_x86_64",
     "manylinux_2_28_x86_64",
 )
+# The Windows pythonbox carries the same CPU tier, resolved for win_amd64.
+# pip still accepts the pure-Python (py3-none-any) and abi3 wheels from PyPI.
+WINDOWS_PLATFORMS = ("win_amd64",)
+TARGET_PLATFORMS = {
+    "linux": PLATFORMS,
+    "windows": WINDOWS_PLATFORMS,
+}
 GIB = 1024**3
 MIN_FREE_GIB = 6
 ONLINE_DOWNLOAD_GIB = 4.0
@@ -160,7 +167,20 @@ def wheel_records(directory: Path) -> list[dict]:
     return records
 
 
-def pip_command(python_version: str, abi: str, destination: Path) -> list[str]:
+def platforms_for(target: str) -> tuple[str, ...]:
+    """Wheel platform tags for a pythonbox target (``linux`` or ``windows``)."""
+    try:
+        return TARGET_PLATFORMS[target]
+    except KeyError:
+        raise SystemExit(f"unknown target {target!r}; expected linux or windows") from None
+
+
+def pip_command(
+    python_version: str,
+    abi: str,
+    destination: Path,
+    platforms: Iterable[str] = PLATFORMS,
+) -> list[str]:
     command = [
         sys.executable,
         "-m",
@@ -176,15 +196,20 @@ def pip_command(python_version: str, abi: str, destination: Path) -> list[str]:
         "--abi",
         abi,
     ]
-    for platform in PLATFORMS:
+    for platform in platforms:
         command.extend(["--platform", platform])
     return command
 
 
-def build_commands(python_version: str, abi: str, destination: Path) -> list[list[str]]:
+def build_commands(
+    python_version: str,
+    abi: str,
+    destination: Path,
+    platforms: Iterable[str] = PLATFORMS,
+) -> list[list[str]]:
     # First pass: only the PyTorch CPU index, without dependencies. This is the
     # one place a CUDA wheel could sneak in, so do not let PyPI's torch compete.
-    torch = pip_command(python_version, abi, destination) + [
+    torch = pip_command(python_version, abi, destination, platforms) + [
         "--no-deps",
         "--index-url",
         TORCH_INDEX,
@@ -194,7 +219,7 @@ def build_commands(python_version: str, abi: str, destination: Path) -> list[lis
     # version downloaded above (the constraint carries the +cpu local tag). The
     # resolver is then free to pick the matching torchvision/torchaudio CPU
     # builds from the extra index instead of us guessing their versions here.
-    rest = pip_command(python_version, abi, destination) + [
+    rest = pip_command(python_version, abi, destination, platforms) + [
         "--index-url",
         PYPI_INDEX,
         "--extra-index-url",
@@ -223,8 +248,11 @@ def run(command: list[str]) -> None:
     subprocess.run(command, check=True)
 
 
-def build(output: Path, python_version: str, dry_run: bool) -> int:
+def build(
+    output: Path, python_version: str, dry_run: bool, target: str = "linux"
+) -> int:
     version, abi = parse_python_version(python_version)
+    platforms = platforms_for(target)
     output.mkdir(parents=True, exist_ok=True)
     if not dry_run:
         # A rebuild must not inherit wheels from an older tier: the manifest and
@@ -233,7 +261,7 @@ def build(output: Path, python_version: str, dry_run: bool) -> int:
             stale.unlink()
         (output / "wheelhouse-manifest.json").unlink(missing_ok=True)
 
-    torch_command, rest_command = build_commands(version, abi, output)
+    torch_command, rest_command = build_commands(version, abi, output, platforms)
     if dry_run:
         print("+ " + shlex.join(torch_command))
         print("+ " + shlex.join(rest_command))
@@ -274,7 +302,8 @@ def build(output: Path, python_version: str, dry_run: bool) -> int:
         "schema": 1,
         "python": version,
         "abi": abi,
-        "platforms": list(PLATFORMS),
+        "target": target,
+        "platforms": list(platforms),
         "torch_index": TORCH_INDEX,
         "requirements": [path.name for path in REQUIREMENTS],
         "wheels": records,
@@ -293,17 +322,21 @@ def build(output: Path, python_version: str, dry_run: bool) -> int:
     return 0
 
 
-def plan(as_json: bool) -> int:
+def plan(as_json: bool, target: str = "linux") -> int:
     names = cpu_tier_names()
     estimated = estimate_wheelhouse_bytes()
     version, abi = parse_python_version("3.12")
-    torch_command, rest_command = build_commands(version, abi, Path("<wheelhouse>"))
+    platforms = platforms_for(target)
+    torch_command, rest_command = build_commands(
+        version, abi, Path("<wheelhouse>"), platforms
+    )
     payload = {
         "requirements": [path.name for path in REQUIREMENTS],
         "packages": names,
         "python": version,
         "abi": abi,
-        "platforms": list(PLATFORMS),
+        "target": target,
+        "platforms": list(platforms),
         "torch_index": TORCH_INDEX,
         "estimated_wheelhouse_bytes": estimated,
         "install_required_bytes": install_required_bytes(estimated),
@@ -317,8 +350,8 @@ def plan(as_json: bool) -> int:
         return 0
     print("BotModels CPU-tier wheelhouse")
     print(f"  requirements: {', '.join(payload['requirements'])}")
-    print(f"  target:       CPython {version} ({abi}), linux x86_64")
-    print(f"  platforms:    {', '.join(PLATFORMS)}")
+    print(f"  target:       CPython {version} ({abi}), {target} x86_64")
+    print(f"  platforms:    {', '.join(platforms)}")
     print(f"  torch index:  {TORCH_INDEX}")
     print(f"  packages:     {', '.join(names)}")
     print(
@@ -362,10 +395,12 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     plan_parser = sub.add_parser("plan", help="list the CPU-tier wheel set and size estimate")
     plan_parser.add_argument("--json", action="store_true")
+    plan_parser.add_argument("--target", choices=sorted(TARGET_PLATFORMS), default="linux")
 
     build_parser = sub.add_parser("build", help="download the CPU-tier wheelhouse")
     build_parser.add_argument("--output", required=True, type=Path)
     build_parser.add_argument("--python-version", default="3.12")
+    build_parser.add_argument("--target", choices=sorted(TARGET_PLATFORMS), default="linux")
     build_parser.add_argument("--dry-run", action="store_true")
 
     inspect_parser = sub.add_parser("inspect", help="list an existing wheelhouse")
@@ -377,9 +412,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.command == "plan":
-        return plan(args.json)
+        return plan(args.json, args.target)
     if args.command == "build":
-        return build(args.output, args.python_version, args.dry_run)
+        return build(args.output, args.python_version, args.dry_run, args.target)
     if args.command == "inspect":
         return inspect(args.directory, args.json)
     if args.command == "estimate":

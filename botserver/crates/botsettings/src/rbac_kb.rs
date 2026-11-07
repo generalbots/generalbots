@@ -9,15 +9,15 @@
 //!   DELETE /api/rbac/kbs/{kb_id}/groups/{group_id}
 //!   GET    /api/rbac/users/{user_id}/accessible-kbs
 
-use botcore::shared::models::RbacGroup;
-use botcore::shared::state::AppState;
-use botsecurity::error_sanitizer::log_and_sanitize_str;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use botcore::shared::models::RbacGroup;
+use botcore::shared::state::AppState;
+use botsecurity::error_sanitizer::log_and_sanitize_str;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::info;
@@ -60,57 +60,61 @@ pub async fn get_kb_groups(
     Path(kb_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let conn = state.conn.clone();
-    let result: Result<Result<Vec<RbacGroup>, String>, JoinError> = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        
-        #[derive(QueryableByName)]
-        struct GroupRow {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: Uuid,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            name: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            display_name: String,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-            description: Option<String>,
-            #[diesel(sql_type = diesel::sql_types::Bool)]
-            is_active: bool,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-            parent_group_id: Option<Uuid>,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-            created_by: Option<Uuid>,
-            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-            created_at: chrono::DateTime<Utc>,
-            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-            updated_at: chrono::DateTime<Utc>,
-        }
-        
-        let rows: Vec<GroupRow> = diesel::sql_query(
-            "SELECT rg.id, rg.name, rg.display_name, rg.description, rg.is_active,
+    let result: Result<Result<Vec<RbacGroup>, String>, JoinError> =
+        tokio::task::spawn_blocking(move || {
+            let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
+
+            #[derive(QueryableByName)]
+            struct GroupRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                name: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                display_name: String,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+                description: Option<String>,
+                #[diesel(sql_type = diesel::sql_types::Bool)]
+                is_active: bool,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+                parent_group_id: Option<Uuid>,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+                created_by: Option<Uuid>,
+                #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+                created_at: chrono::DateTime<Utc>,
+                #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+                updated_at: chrono::DateTime<Utc>,
+            }
+
+            let rows: Vec<GroupRow> = diesel::sql_query(
+                "SELECT rg.id, rg.name, rg.display_name, rg.description, rg.is_active,
                     rg.parent_group_id, rg.created_by, rg.created_at, rg.updated_at
              FROM research.kb_group_associations kga
              JOIN core.rbac_groups rg ON rg.id = kga.group_id
-             WHERE kga.kb_id = $1 AND rg.is_active = true"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(kb_id)
-        .load(&mut db_conn)
-        .map_err(|e| format!("Query error: {e}"))?;
-        
-        let groups: Vec<RbacGroup> = rows.into_iter().map(|r| RbacGroup {
-            id: r.id,
-            name: r.name,
-            display_name: r.display_name,
-            description: r.description,
-            is_active: r.is_active,
-            parent_group_id: r.parent_group_id,
-            created_by: r.created_by,
-            created_at: r.created_at,
-            updated_at: r.updated_at,
-        }).collect();
-        
-        Ok(groups)
-    })
-    .await;
+             WHERE kga.kb_id = $1 AND rg.is_active = true",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(kb_id)
+            .load(&mut db_conn)
+            .map_err(|e| format!("Query error: {e}"))?;
+
+            let groups: Vec<RbacGroup> = rows
+                .into_iter()
+                .map(|r| RbacGroup {
+                    id: r.id,
+                    name: r.name,
+                    display_name: r.display_name,
+                    description: r.description,
+                    is_active: r.is_active,
+                    parent_group_id: r.parent_group_id,
+                    created_by: r.created_by,
+                    created_at: r.created_at,
+                    updated_at: r.updated_at,
+                })
+                .collect();
+
+            Ok(groups)
+        })
+        .await;
 
     match result {
         Ok(Ok(groups)) => Json(serde_json::json!({ "groups": groups })).into_response(),
@@ -220,15 +224,14 @@ pub async fn get_accessible_kbs_for_user(
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
 
-        let group_ids: Vec<Uuid> = diesel::sql_query(
-            "SELECT group_id FROM rbac_user_groups WHERE user_id = $1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .load::<GroupIdQueryRow>(&mut db_conn)
-        .map_err(|e| format!("Failed to get user groups: {e}"))?
-        .into_iter()
-        .map(|r| r.group_id)
-        .collect();
+        let group_ids: Vec<Uuid> =
+            diesel::sql_query("SELECT group_id FROM rbac_user_groups WHERE user_id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .load::<GroupIdQueryRow>(&mut db_conn)
+                .map_err(|e| format!("Failed to get user groups: {e}"))?
+                .into_iter()
+                .map(|r| r.group_id)
+                .collect();
 
         let kbs: Vec<KbCollectionRow> = if group_ids.is_empty() {
             diesel::sql_query(
@@ -271,7 +274,8 @@ pub async fn get_accessible_kbs_for_user(
             (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
         Err(e) => {
-            let sanitized = log_and_sanitize_str(&e.to_string(), "get_accessible_kbs_for_user", None);
+            let sanitized =
+                log_and_sanitize_str(&e.to_string(), "get_accessible_kbs_for_user", None);
             (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }

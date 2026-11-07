@@ -14,9 +14,14 @@ pub(super) fn ensure_org_branches_schema(pool: &botcore::shared::utils::DbPool) 
                 slug        VARCHAR(255) NOT NULL UNIQUE,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create tenants table: {}", e);
+            )",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create tenants table: {}",
+                e
+            );
         }
 
         // Ensure tenant_id column exists on organizations (pre-requisite for branches)
@@ -38,57 +43,93 @@ pub(super) fn ensure_org_branches_schema(pool: &botcore::shared::utils::DbPool) 
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE(org_id, slug)
-            )"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create branches table: {}", e);
+            )",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create branches table: {}",
+                e
+            );
         }
 
         if let Err(e) = sql_query(
-            "ALTER TABLE bots ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES branches(id)"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to add branch_id to bots: {}", e);
+            "ALTER TABLE bots ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES branches(id)",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to add branch_id to bots: {}",
+                e
+            );
         }
 
         if let Err(e) = sql_query(
-            "ALTER TABLE bots ADD COLUMN IF NOT EXISTS is_default_for_branch BOOLEAN DEFAULT false"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to add is_default_for_branch to bots: {}", e);
+            "ALTER TABLE bots ADD COLUMN IF NOT EXISTS is_default_for_branch BOOLEAN DEFAULT false",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to add is_default_for_branch to bots: {}",
+                e
+            );
+        }
+
+        if let Err(e) = sql_query("CREATE INDEX IF NOT EXISTS idx_branches_org ON branches(org_id)")
+            .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create idx_branches_org: {}",
+                e
+            );
+        }
+
+        if let Err(e) =
+            sql_query("CREATE INDEX IF NOT EXISTS idx_branches_tenant ON branches(tenant_id)")
+                .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create idx_branches_tenant: {}",
+                e
+            );
+        }
+
+        if let Err(e) = sql_query("CREATE INDEX IF NOT EXISTS idx_branches_slug ON branches(slug)")
+            .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create idx_branches_slug: {}",
+                e
+            );
+        }
+
+        if let Err(e) = sql_query("CREATE INDEX IF NOT EXISTS idx_bots_branch ON bots(branch_id)")
+            .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to create idx_bots_branch: {}",
+                e
+            );
         }
 
         if let Err(e) = sql_query(
-            "CREATE INDEX IF NOT EXISTS idx_branches_org ON branches(org_id)"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create idx_branches_org: {}", e);
+            "UPDATE bots SET org_id = '00000000-0000-0000-0000-000000000001' WHERE org_id IS NULL",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to update null org_ids: {}",
+                e
+            );
         }
 
-        if let Err(e) = sql_query(
-            "CREATE INDEX IF NOT EXISTS idx_branches_tenant ON branches(tenant_id)"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create idx_branches_tenant: {}", e);
-        }
-
-        if let Err(e) = sql_query(
-            "CREATE INDEX IF NOT EXISTS idx_branches_slug ON branches(slug)"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create idx_branches_slug: {}", e);
-        }
-
-        if let Err(e) = sql_query(
-            "CREATE INDEX IF NOT EXISTS idx_bots_branch ON bots(branch_id)"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to create idx_bots_branch: {}", e);
-        }
-
-        if let Err(e) = sql_query(
-            "UPDATE bots SET org_id = '00000000-0000-0000-0000-000000000001' WHERE org_id IS NULL"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to update null org_ids: {}", e);
-        }
-
-        if let Err(e) = sql_query(
-            "ALTER TABLE bots ALTER COLUMN org_id SET NOT NULL"
-        ).execute(&mut conn) {
-            warn!("ensure_org_branches_schema: failed to set org_id NOT NULL: {}", e);
+        if let Err(e) =
+            sql_query("ALTER TABLE bots ALTER COLUMN org_id SET NOT NULL").execute(&mut conn)
+        {
+            warn!(
+                "ensure_org_branches_schema: failed to set org_id NOT NULL: {}",
+                e
+            );
         }
 
         trace!("ensure_org_branches_schema: branches table and bot columns ensured");
@@ -102,11 +143,18 @@ pub(super) fn ensure_cloud_workspaces_schema(pool: &botcore::shared::utils::DbPo
     if let Ok(mut conn) = pool.get() {
         if let Err(e) = sql_query(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_workspaces_branch \
-             ON cloud_workspaces(branch_id)"
-        ).execute(&mut conn) {
-            warn!("ensure_cloud_workspaces_schema: failed to create unique index: {}", e);
+             ON cloud_workspaces(branch_id)",
+        )
+        .execute(&mut conn)
+        {
+            warn!(
+                "ensure_cloud_workspaces_schema: failed to create unique index: {}",
+                e
+            );
         }
-        trace!("ensure_cloud_workspaces_schema: unique index on cloud_workspaces(branch_id) ensured");
+        trace!(
+            "ensure_cloud_workspaces_schema: unique index on cloud_workspaces(branch_id) ensured"
+        );
     }
 }
 /// Upsert a cloud_workspaces row for a Drive branch (.gbai prefix) so the
@@ -139,7 +187,10 @@ pub(super) fn ensure_cloud_workspace(
 
     match insert_result {
         Ok(_) => {
-            info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+            info!(
+                "Cloud workspace '{}' ensured (org: {}, branch: {})",
+                branch_slug, org_id, branch_id
+            );
             return Ok(());
         }
         Err(e) => {
@@ -154,13 +205,12 @@ pub(super) fn ensure_cloud_workspace(
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         id: Uuid,
     }
-    let existing: Option<Uuid> = sql_query(
-        "SELECT id FROM cloud_workspaces WHERE branch_id = $1 LIMIT 1"
-    )
-    .bind::<diesel::sql_types::Uuid, _>(branch_id)
-    .get_result::<WsIdRow>(&mut conn)
-    .ok()
-    .map(|r| r.id);
+    let existing: Option<Uuid> =
+        sql_query("SELECT id FROM cloud_workspaces WHERE branch_id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .get_result::<WsIdRow>(&mut conn)
+            .ok()
+            .map(|r| r.id);
 
     match existing {
         Some(existing_id) => {
@@ -168,8 +218,13 @@ pub(super) fn ensure_cloud_workspace(
                 .bind::<diesel::sql_types::Uuid, _>(existing_id)
                 .bind::<diesel::sql_types::Text, _>(branch_slug)
                 .execute(&mut conn)
-                .map_err(|e| format!("Failed to update cloud workspace '{}': {}", branch_slug, e))?;
-            info!("Cloud workspace '{}' updated (org: {}, branch: {})", branch_slug, org_id, branch_id);
+                .map_err(|e| {
+                    format!("Failed to update cloud workspace '{}': {}", branch_slug, e)
+                })?;
+            info!(
+                "Cloud workspace '{}' updated (org: {}, branch: {})",
+                branch_slug, org_id, branch_id
+            );
         }
         None => {
             sql_query(
@@ -185,7 +240,10 @@ pub(super) fn ensure_cloud_workspace(
             )
             .execute(&mut conn)
             .map_err(|e| format!("Failed to insert cloud workspace '{}': {}", branch_slug, e))?;
-            info!("Cloud workspace '{}' ensured (org: {}, branch: {})", branch_slug, org_id, branch_id);
+            info!(
+                "Cloud workspace '{}' ensured (org: {}, branch: {})",
+                branch_slug, org_id, branch_id
+            );
         }
     }
 
@@ -193,7 +251,11 @@ pub(super) fn ensure_cloud_workspace(
 }
 /// True when the bot's `.gbdialog` is owned by its git repository (reform
 /// #1501/#1502), i.e. the git-pull monitor feeds it and Drive must not.
-pub(super) async fn is_git_owned_bot(pool: &botcore::shared::utils::DbPool, branch_slug: &str, bot_name: &str) -> bool {
+pub(super) async fn is_git_owned_bot(
+    pool: &botcore::shared::utils::DbPool,
+    branch_slug: &str,
+    bot_name: &str,
+) -> bool {
     let pool = pool.clone();
     let branch = branch_slug.trim().to_string();
     let bot = bot_name.to_string();
@@ -253,24 +315,44 @@ pub(super) async fn sync_tables_for_org_bot(
 
     let content = match &state.drive {
         Some(s3) => {
-            match s3.get_object_direct(bucket_name, &format!("{}{}.gbdialog/tables.bas", s3_prefix, bot_name)).await {
+            match s3
+                .get_object_direct(
+                    bucket_name,
+                    &format!("{}{}.gbdialog/tables.bas", s3_prefix, bot_name),
+                )
+                .await
+            {
                 Ok(data) => String::from_utf8(data).map_err(|e| format!("UTF-8 error: {e}"))?,
                 Err(_) => {
-                    trace!("tables.bas not found in S3 for org bot {}, skipping", bot_name);
+                    trace!(
+                        "tables.bas not found in S3 for org bot {}, skipping",
+                        bot_name
+                    );
                     return Ok(());
                 }
             }
         }
         None => {
-            trace!("S3 client not available, skipping table sync for org bot {}", bot_name);
+            trace!(
+                "S3 client not available, skipping table sync for org bot {}",
+                bot_name
+            );
             return Ok(());
         }
     };
 
-    let runtime: Arc<dyn botbasic_types::BasicRuntime> = Arc::new(AppStateBasicRuntime(state.clone()));
+    let runtime: Arc<dyn botbasic_types::BasicRuntime> =
+        Arc::new(AppStateBasicRuntime(state.clone()));
     match process_table_definitions(runtime, bot_id, &content) {
-        Ok(tables) => info!("Synced {} table definitions for org bot '{}'", tables.len(), bot_name),
-        Err(e) => warn!("Failed to sync table definitions for org bot '{}': {}", bot_name, e),
+        Ok(tables) => info!(
+            "Synced {} table definitions for org bot '{}'",
+            tables.len(),
+            bot_name
+        ),
+        Err(e) => warn!(
+            "Failed to sync table definitions for org bot '{}': {}",
+            bot_name, e
+        ),
     }
     Ok(())
 }
@@ -281,8 +363,8 @@ pub(super) async fn get_bot_id(
     let bn = bot_name.to_string();
     let pool = pool.clone();
     tokio::task::spawn_blocking(move || {
-        use diesel::prelude::*;
         use botcore::shared::models::schema::bots;
+        use diesel::prelude::*;
         let mut conn = match pool.get() {
             Ok(c) => c,
             Err(_) => return None,

@@ -46,10 +46,7 @@ pub async fn connect(
     }
 }
 
-async fn connect_chatgpt(
-    state: &Arc<AppState>,
-    user_id: Uuid,
-) -> Result<Json<Value>, ApiError> {
+async fn connect_chatgpt(state: &Arc<AppState>, user_id: Uuid) -> Result<Json<Value>, ApiError> {
     ai_accounts_chatgpt::start_connect(&state.conn, user_id)
         .await
         .map_err(|(code, message)| err(code, &message))

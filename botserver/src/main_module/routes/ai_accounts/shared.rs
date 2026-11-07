@@ -7,8 +7,8 @@ use diesel::sql_types::Text;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use botcore::shared::state::AppState;
 use crate::security::auth_api::types::AuthenticatedUser;
+use botcore::shared::state::AppState;
 
 use crate::core::ai_accounts;
 
@@ -32,10 +32,7 @@ pub(super) fn agent_service() -> Result<&'static Arc<botagent::AgentService>, Ap
     })
 }
 
-pub(super) fn ensure_user(
-    state: &Arc<AppState>,
-    user: &AuthenticatedUser,
-) -> Result<(), ApiError> {
+pub(super) fn ensure_user(state: &Arc<AppState>, user: &AuthenticatedUser) -> Result<(), ApiError> {
     ai_accounts::ensure_user(&state.conn, user.user_id, user.email.as_deref())
         .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))
 }

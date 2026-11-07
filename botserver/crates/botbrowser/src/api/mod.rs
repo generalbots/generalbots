@@ -1,9 +1,16 @@
+pub(crate) use crate::{agent, BrowserSession, BrowserTab, BrowserTabMeta, SessionMap};
+pub(crate) use axum::{
+    extract::ws::{Message, WebSocket},
+    extract::{Path, Query, State, WebSocketUpgrade},
+    response::IntoResponse,
+    response::Json,
+    routing::{delete, get, post},
+    Router,
+};
+pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::net::IpAddr;
 pub(crate) use std::sync::Arc;
-pub(crate) use axum::{ extract::{Path, Query, State, WebSocketUpgrade}, extract::ws::{Message, WebSocket}, response::IntoResponse, response::Json, routing::{delete, get, post}, Router, };
-pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use tokio::sync::Mutex;
-pub(crate) use crate::{agent, BrowserSession, SessionMap};
 
 #[derive(Deserialize)]
 pub struct ProxyParams {
@@ -12,22 +19,38 @@ pub struct ProxyParams {
 
 #[cfg(test)]
 mod tests {
-use super::*;
+    use super::*;
 
-#[test]
-fn private_ip_detection() {
-    assert!(is_private_ip("127.0.0.1".parse().unwrap()));
-    assert!(is_private_ip("192.168.1.1".parse().unwrap()));
-    assert!(is_private_ip("10.0.0.1".parse().unwrap()));
-    assert!(is_private_ip("::1".parse().unwrap()));
-    assert!(!is_private_ip("8.8.8.8".parse().unwrap()));
-    assert!(!is_private_ip("93.184.216.34".parse().unwrap()));
-}
+    #[test]
+    fn private_ip_detection() {
+        assert!(is_private_ip("127.0.0.1".parse().unwrap()));
+        assert!(is_private_ip("192.168.1.1".parse().unwrap()));
+        assert!(is_private_ip("10.0.0.1".parse().unwrap()));
+        assert!(is_private_ip("::1".parse().unwrap()));
+        assert!(!is_private_ip("8.8.8.8".parse().unwrap()));
+        assert!(!is_private_ip("93.184.216.34".parse().unwrap()));
+    }
 }
 
 #[derive(Deserialize)]
 pub struct CreateSessionRequest {
     pub headless: Option<bool>,
+    #[serde(default)]
+    pub vm: Option<String>,
+    #[serde(default)]
+    pub conversation_id: Option<String>,
+    #[serde(default)]
+    pub vm_controlled: Option<bool>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct AttachTabRequest {
+    #[serde(default)]
+    pub conversation_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -37,7 +60,12 @@ pub struct NavigateRequest {
 
 #[derive(Deserialize)]
 pub struct ClickRequest {
-    pub selector: String,
+    #[serde(default)]
+    pub selector: Option<String>,
+    #[serde(default)]
+    pub x: Option<f64>,
+    #[serde(default)]
+    pub y: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -70,21 +98,23 @@ pub struct WsAgentParams {
 }
 
 mod configure_routes;
-mod handle_proxy;
 mod create_session;
-mod handle_navigate;
-mod handle_click;
-mod handle_fill;
-mod handle_execute;
 mod handle_agent;
 mod handle_agent_ws_stream;
+mod handle_click;
+mod handle_execute;
+mod handle_fill;
+mod handle_navigate;
+mod handle_proxy;
+mod handle_tabs;
 
 pub use configure_routes::*;
-use handle_proxy::*;
 pub use create_session::*;
-pub use handle_navigate::*;
-pub use handle_click::*;
-pub use handle_fill::*;
-pub use handle_execute::*;
 pub use handle_agent::*;
 pub use handle_agent_ws_stream::*;
+pub use handle_click::*;
+pub use handle_execute::*;
+pub use handle_fill::*;
+pub use handle_navigate::*;
+use handle_proxy::*;
+pub use handle_tabs::*;

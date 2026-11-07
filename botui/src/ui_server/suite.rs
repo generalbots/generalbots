@@ -8,9 +8,9 @@ use serde::Deserialize;
 use std::fs;
 
 use crate::shared::AppState;
+use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
-use crate::ui_server::constants::get_ui_root;
 use crate::ui_server::suite_ops::remove_section;
 
 #[derive(Deserialize)]
@@ -20,14 +20,21 @@ pub struct SuiteQueryParams {
 
 /// Resolve a hostname to a bot name via the botserver domain API.
 async fn resolve_bot_from_host(state: &AppState, host: &str) -> Option<String> {
-    let resolve_url = format!("{}/api/domains/resolve?host={}", state.client.base_url(), urlencoding(host));
+    let resolve_url = format!(
+        "{}/api/domains/resolve?host={}",
+        state.client.base_url(),
+        urlencoding(host)
+    );
     let client = crate::ui_server::tls_policy::backend_http_client(state.client.base_url());
     match client.get(&resolve_url).send().await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
                 let found = data.get("found").and_then(|v| v.as_bool()).unwrap_or(false);
                 if found {
-                    return data.get("bot_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    return data
+                        .get("bot_name")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
                 }
             }
             None
@@ -68,8 +75,8 @@ fn platform_subdomain_bot(host: &str) -> Option<String> {
     let d = platform_domain();
     let sub = host.strip_suffix(&format!(".{d}"))?.to_lowercase();
     const RESERVED: &[&str] = &[
-        "chat", "www", "api", "app", "bot", "docs", "store", "cloud", "login",
-        "admin", "mail", "smtp", "imap", "ns1", "ns2",
+        "chat", "www", "api", "app", "bot", "docs", "store", "cloud", "login", "admin", "mail",
+        "smtp", "imap", "ns1", "ns2",
     ];
     if sub.is_empty() || RESERVED.contains(&sub.as_str()) {
         return None;
@@ -131,9 +138,150 @@ pub async fn index(
     }
 
     // Suite directories that can be accessed directly without bot auth
-    let suite_dirs: &[&str] = &["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "minutes", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
-    let known_dirs: &[&str] = &["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "minutes", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
-    let is_suite_dir = bot_name.as_ref().is_some_and(|b| suite_dirs.contains(&b.as_str()));
+    let suite_dirs: &[&str] = &[
+        "drive",
+        "chat",
+        "tasks",
+        "admin",
+        "mail",
+        "calendar",
+        "meet",
+        "docs",
+        "sheet",
+        "slides",
+        "paper",
+        "research",
+        "learn",
+        "analytics",
+        "dashboards",
+        "monitoring",
+        "governance",
+        "people",
+        "crm",
+        "tickets",
+        "billing",
+        "products",
+        "video",
+        "player",
+        "canvas",
+        "social",
+        "project",
+        "goals",
+        "workspace",
+        "designer",
+        "vibe",
+        "integrations",
+        "erp",
+        "fraud",
+        "settings",
+        "about",
+        "tools",
+        "attendant",
+        "banking",
+        "biometry",
+        "brazil",
+        "browser",
+        "campaigns",
+        "compliance",
+        "database",
+        "desktop",
+        "email",
+        "handoff",
+        "hr",
+        "itsm",
+        "kyc",
+        "lists",
+        "o365",
+        "minutes",
+        "plan",
+        "plugins",
+        "pos",
+        "retail",
+        "sales",
+        "tax",
+        "templates",
+        "templates-app",
+        "terminal",
+        "timeclock",
+        "vision",
+    ];
+    let known_dirs: &[&str] = &[
+        "suite",
+        "js",
+        "css",
+        "vendor",
+        "assets",
+        "public",
+        "partials",
+        "settings",
+        "about",
+        "drive",
+        "chat",
+        "tasks",
+        "admin",
+        "mail",
+        "calendar",
+        "meet",
+        "docs",
+        "sheet",
+        "slides",
+        "paper",
+        "research",
+        "learn",
+        "analytics",
+        "dashboards",
+        "monitoring",
+        "governance",
+        "people",
+        "crm",
+        "tickets",
+        "billing",
+        "products",
+        "video",
+        "player",
+        "canvas",
+        "social",
+        "project",
+        "goals",
+        "workspace",
+        "designer",
+        "vibe",
+        "integrations",
+        "erp",
+        "fraud",
+        "attendant",
+        "banking",
+        "biometry",
+        "brazil",
+        "browser",
+        "campaigns",
+        "compliance",
+        "database",
+        "desktop",
+        "email",
+        "handoff",
+        "hr",
+        "itsm",
+        "kyc",
+        "lists",
+        "o365",
+        "minutes",
+        "plan",
+        "plugins",
+        "pos",
+        "retail",
+        "sales",
+        "tax",
+        "templates",
+        "templates-app",
+        "terminal",
+        "timeclock",
+        "tools",
+        "vision",
+    ];
+    let is_suite_dir = bot_name
+        .as_ref()
+        .is_some_and(|b| suite_dirs.contains(&b.as_str()));
 
     // Suite dirs (vibe, project, database, …) are apps, not bots. Resolve the
     // real bot from the domain: platform subdomains ({bot}.{GB_PLATFORM_DOMAIN})
@@ -144,7 +292,8 @@ pub async fn index(
         let mut resolved = None;
         if let Some(ref host) = domain_resolved_bot {
             if is_platform_host(host) {
-                resolved = Some(platform_subdomain_bot(host).unwrap_or_else(|| "default".to_string()));
+                resolved =
+                    Some(platform_subdomain_bot(host).unwrap_or_else(|| "default".to_string()));
             } else {
                 resolved = resolve_bot_from_host(&state, host).await;
                 if resolved.is_none() {
@@ -182,137 +331,144 @@ pub async fn index(
 
     if let Some(ref bot) = bot_name {
         if !is_suite_dir && !no_security {
-        // Check for token from query param (cloud dashboard link)
-        let query_token = uri.query().and_then(|q| {
-            q.split('&').find_map(|p| {
-                let mut parts = p.splitn(2, '=');
-                match (parts.next(), parts.next()) {
-                    (Some("token"), Some(v)) => Some(v.to_string()),
-                    _ => None,
-                }
-            })
-        });
-        let query_token_present = query_token.is_some();
-        let cookie_token = headers
-            .get(axum::http::header::COOKIE)
-            .and_then(|c| c.to_str().ok())
-            .and_then(|c| {
-                c.split(';')
-                    .filter_map(|part| part.trim().split_once('='))
-                    .find(|(name, _)| *name == "gb-access-token")
-                    .map(|(_, value)| value.to_string())
-            })
-            .filter(|value| !value.is_empty());
-        let auth_header = query_token
-            .map(|t| format!("Bearer {}", t))
-            .or_else(|| {
-                headers.get(axum::http::header::AUTHORIZATION)
-                    .and_then(|v| v.to_str().ok())
-                    .map(|s| s.to_string())
-            })
-            .or_else(|| cookie_token.map(|t| format!("Bearer {}", t)));
+            // Check for token from query param (cloud dashboard link)
+            let query_token = uri.query().and_then(|q| {
+                q.split('&').find_map(|p| {
+                    let mut parts = p.splitn(2, '=');
+                    match (parts.next(), parts.next()) {
+                        (Some("token"), Some(v)) => Some(v.to_string()),
+                        _ => None,
+                    }
+                })
+            });
+            let query_token_present = query_token.is_some();
+            let cookie_token = headers
+                .get(axum::http::header::COOKIE)
+                .and_then(|c| c.to_str().ok())
+                .and_then(|c| {
+                    c.split(';')
+                        .filter_map(|part| part.trim().split_once('='))
+                        .find(|(name, _)| *name == "gb-access-token")
+                        .map(|(_, value)| value.to_string())
+                })
+                .filter(|value| !value.is_empty());
+            let auth_header = query_token
+                .map(|t| format!("Bearer {}", t))
+                .or_else(|| {
+                    headers
+                        .get(axum::http::header::AUTHORIZATION)
+                        .and_then(|v| v.to_str().ok())
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| cookie_token.map(|t| format!("Bearer {}", t)));
 
-        let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
-        let client = crate::ui_server::tls_policy::backend_http_client(state.client.base_url());
+            let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
+            let client = crate::ui_server::tls_policy::backend_http_client(state.client.base_url());
 
-        let mut req = client.get(&target_url);
-        if let Some(ref auth) = auth_header {
-            req = req.header(axum::http::header::AUTHORIZATION, auth);
-        }
-        for (k, v) in headers.iter() {
-            if k != axum::http::header::HOST {
-                req = req.header(k, v);
+            let mut req = client.get(&target_url);
+            if let Some(ref auth) = auth_header {
+                req = req.header(axum::http::header::AUTHORIZATION, auth);
             }
-        }
+            for (k, v) in headers.iter() {
+                if k != axum::http::header::HOST {
+                    req = req.header(k, v);
+                }
+            }
 
-        // Only redirect to login when a token was actually supplied but
-        // rejected. Anonymous callers (or sessions stored client-side in
-        // localStorage after the suite-sso hop) must be served the page —
-        // their JS attaches the token to API calls. Redirecting them here
-        // would loop: SSO hop -> clean URL -> access check sees no token ->
-        // login -> ...
-        let has_token = headers
-            .get(axum::http::header::COOKIE)
-            .and_then(|c| c.to_str().ok())
-            .is_some_and(|s| s.contains("gb-access-token"))
-            || query_token_present;
+            // Only redirect to login when a token was actually supplied but
+            // rejected. Anonymous callers (or sessions stored client-side in
+            // localStorage after the suite-sso hop) must be served the page —
+            // their JS attaches the token to API calls. Redirecting them here
+            // would loop: SSO hop -> clean URL -> access check sees no token ->
+            // login -> ...
+            let has_token = headers
+                .get(axum::http::header::COOKIE)
+                .and_then(|c| c.to_str().ok())
+                .is_some_and(|s| s.contains("gb-access-token"))
+                || query_token_present;
 
-        match req.send().await {
-            Ok(resp) => {
-                // #1435 — a 401 with NO token means the bot is PRIVATE and
-                // the caller is anonymous: the desktop/chat shell must not
-                // be served at all (previously only token-holders were
-                // redirected, so anonymous visitors saw the anon-limited
-                // shell of a private bot). A 401 WITH a token is a stale
-                // credential — also redirect. 403 is a signed-in user the
-                // bot does not belong to: clean 403 page, not the shell.
-                if resp.status() == axum::http::StatusCode::UNAUTHORIZED
-                    || resp.status() == axum::http::StatusCode::FORBIDDEN
-                {
-                    if resp.status() == axum::http::StatusCode::FORBIDDEN && !has_token {
-                        return (
+            match req.send().await {
+                Ok(resp) => {
+                    // #1435 — a 401 with NO token means the bot is PRIVATE and
+                    // the caller is anonymous: the desktop/chat shell must not
+                    // be served at all (previously only token-holders were
+                    // redirected, so anonymous visitors saw the anon-limited
+                    // shell of a private bot). A 401 WITH a token is a stale
+                    // credential — also redirect. 403 is a signed-in user the
+                    // bot does not belong to: clean 403 page, not the shell.
+                    if resp.status() == axum::http::StatusCode::UNAUTHORIZED
+                        || resp.status() == axum::http::StatusCode::FORBIDDEN
+                    {
+                        if resp.status() == axum::http::StatusCode::FORBIDDEN && !has_token {
+                            return (
                             axum::http::StatusCode::FORBIDDEN,
                             "<!doctype html><html><body style=\"font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0\"><div style=\"text-align:center\"><h2>403 \u{2014} Access denied</h2><p>You do not have access to this bot.</p></div></body></html>",
                         )
                             .into_response();
+                        }
+                        info!(
+                            "index: Access denied for bot {} (redirecting to login)",
+                            bot
+                        );
+                        let login_url = std::env::var("LOGIN_URL")
+                            .unwrap_or_else(|_| "http://localhost:5000".to_string());
+                        // Return to this exact page after login: the login page
+                        // resolves the absolute `redirect` param and lands back
+                        // here with a fresh token. Strip any stale token/email/name
+                        // params from the return URL to avoid a login loop.
+                        let host = headers
+                            .get(axum::http::header::HOST)
+                            .and_then(|v| v.to_str().ok())
+                            .unwrap_or("");
+                        let scheme = if host.contains("localhost") || host.contains("127.0.0.1") {
+                            "http"
+                        } else {
+                            "https"
+                        };
+                        let clean_query = uri
+                            .query()
+                            .unwrap_or("")
+                            .split('&')
+                            .filter(|p| {
+                                !p.starts_with("token=")
+                                    && !p.starts_with("email=")
+                                    && !p.starts_with("name=")
+                            })
+                            .collect::<Vec<_>>()
+                            .join("&");
+                        let return_url = if clean_query.is_empty() {
+                            format!("{scheme}://{host}{}", uri.path())
+                        } else {
+                            format!("{scheme}://{host}{}?{clean_query}", uri.path())
+                        };
+                        // #1324 — never point the login redirect at an auth page.
+                        // When the gated path is itself /login or /signup the
+                        // redirect chain nests `?redirect=` on every hop until the
+                        // URL explodes and the browser gives up ("can't be
+                        // reached"). Auth pages return to the default destination
+                        // instead of asking to return to themselves.
+                        let path_is_auth = {
+                            let p = uri.path().trim_end_matches('/').to_lowercase();
+                            p.ends_with("/login")
+                                || p.ends_with("/signup")
+                                || p == "/login"
+                                || p == "/signup"
+                        };
+                        if path_is_auth {
+                            return Redirect::to(&login_url).into_response();
+                        }
+                        return Redirect::to(&format!(
+                            "{}?redirect={}",
+                            login_url,
+                            urlencoding(&return_url)
+                        ))
+                        .into_response();
                     }
-                    info!("index: Access denied for bot {} (redirecting to login)", bot);
-                    let login_url = std::env::var("LOGIN_URL")
-                        .unwrap_or_else(|_| "http://localhost:5000".to_string());
-                    // Return to this exact page after login: the login page
-                    // resolves the absolute `redirect` param and lands back
-                    // here with a fresh token. Strip any stale token/email/name
-                    // params from the return URL to avoid a login loop.
-                    let host = headers
-                        .get(axum::http::header::HOST)
-                        .and_then(|v| v.to_str().ok())
-                        .unwrap_or("");
-                    let scheme = if host.contains("localhost") || host.contains("127.0.0.1") {
-                        "http"
-                    } else {
-                        "https"
-                    };
-                    let clean_query = uri
-                        .query()
-                        .unwrap_or("")
-                        .split('&')
-                        .filter(|p| {
-                            !p.starts_with("token=")
-                                && !p.starts_with("email=")
-                                && !p.starts_with("name=")
-                        })
-                        .collect::<Vec<_>>()
-                        .join("&");
-                    let return_url = if clean_query.is_empty() {
-                        format!("{scheme}://{host}{}", uri.path())
-                    } else {
-                        format!("{scheme}://{host}{}?{clean_query}", uri.path())
-                    };
-                    // #1324 — never point the login redirect at an auth page.
-                    // When the gated path is itself /login or /signup the
-                    // redirect chain nests `?redirect=` on every hop until the
-                    // URL explodes and the browser gives up ("can't be
-                    // reached"). Auth pages return to the default destination
-                    // instead of asking to return to themselves.
-                    let path_is_auth = {
-                        let p = uri.path().trim_end_matches('/').to_lowercase();
-                        p.ends_with("/login") || p.ends_with("/signup") || p == "/login" || p == "/signup"
-                    };
-                    if path_is_auth {
-                        return Redirect::to(&login_url).into_response();
-                    }
-                    return Redirect::to(&format!(
-                        "{}?redirect={}",
-                        login_url,
-                        urlencoding(&return_url)
-                    ))
-                    .into_response();
+                }
+                Err(e) => {
+                    warn!("index: Access check failed for bot {}: {}", bot, e);
                 }
             }
-            Err(e) => {
-                warn!("index: Access check failed for bot {}: {}", bot, e);
-            }
-        }
         }
     }
 
@@ -384,14 +540,21 @@ pub async fn index(
 
         let full_path = get_ui_root().join(&fs_path);
 
-        info!("index: Serving static file: {} -> {:?} (fs_path: {})", path, full_path, fs_path);
+        info!(
+            "index: Serving static file: {} -> {:?} (fs_path: {})",
+            path, full_path, fs_path
+        );
 
         #[cfg(feature = "embed-ui")]
         {
             let asset_path = fs_path.trim_start_matches('/');
             if let Some(content) = Assets::get(asset_path) {
                 let mime = mime_guess::from_path(asset_path).first_or_octet_stream();
-                return ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], content.data).into_response();
+                return (
+                    [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                    content.data,
+                )
+                    .into_response();
             }
         }
 
@@ -399,14 +562,23 @@ pub async fn index(
         {
             if let Ok(bytes) = tokio::fs::read(&full_path).await {
                 let mime = mime_guess::from_path(&full_path).first_or_octet_stream();
-                let content_type = if mime.as_ref() == "text/html" { "text/html; charset=utf-8" } else { mime.as_ref() };
+                let content_type = if mime.as_ref() == "text/html" {
+                    "text/html; charset=utf-8"
+                } else {
+                    mime.as_ref()
+                };
                 return (StatusCode::OK, [("content-type", content_type)], bytes).into_response();
             }
             // Directory index: serve index.html for directories
             if full_path.is_dir() {
                 let index_path = full_path.join("index.html");
                 if let Ok(bytes) = tokio::fs::read(&index_path).await {
-                    return (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], bytes).into_response();
+                    return (
+                        StatusCode::OK,
+                        [("content-type", "text/html; charset=utf-8")],
+                        bytes,
+                    )
+                        .into_response();
                 }
             }
         }
@@ -427,8 +599,7 @@ pub async fn index(
 
     info!(
         "index: Extracted bot_name: {:?} from path: {}",
-        bot_name,
-        path
+        bot_name, path
     );
     serve_suite_impl(&state, bot_name, headers.clone()).await
 }

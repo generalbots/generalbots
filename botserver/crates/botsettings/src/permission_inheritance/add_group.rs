@@ -47,7 +47,8 @@ impl GroupHierarchy {
 
         let mut visited = HashSet::new();
         let permissions = self.resolve_permissions_recursive(group_name, &mut visited);
-        self.permission_cache.insert(group_name.to_string(), permissions.clone());
+        self.permission_cache
+            .insert(group_name.to_string(), permissions.clone());
         permissions
     }
 

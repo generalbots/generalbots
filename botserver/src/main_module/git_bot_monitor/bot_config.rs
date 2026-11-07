@@ -78,16 +78,14 @@ pub(crate) fn write_config_files(
     }
     let target = find_source_target(pool, bot_name)?;
     let checkout = prepare_checkout(pool, &target)?;
-    let dir = existing_config_dir(&checkout, bot_name)
-        .unwrap_or_else(|| checkout.join(".gbot"));
+    let dir = existing_config_dir(&checkout, bot_name).unwrap_or_else(|| checkout.join(".gbot"));
     std::fs::create_dir_all(&dir).map_err(|e| format!("mkdir {}: {e}", dir.display()))?;
     let mut written = Vec::new();
     for (name, body) in files {
         if name.contains('/') || name.contains("..") || name.is_empty() {
             return Err(format!("invalid bot config file name: '{name}'"));
         }
-        std::fs::write(dir.join(name), body)
-            .map_err(|e| format!("write .gbot/{name}: {e}"))?;
+        std::fs::write(dir.join(name), body).map_err(|e| format!("write .gbot/{name}: {e}"))?;
         written.push(name.clone());
     }
     commit_and_push(pool, &checkout, &target, message, &written)?;
@@ -107,7 +105,10 @@ async fn drive_config_keys(
         .as_ref()
         .ok_or_else(|| "drive (S3) not available in AppState".to_string())?;
     let live = format!("{branch_prefix}{bot_name}.gbot/");
-    let mut keys = s3.list_objects(bucket, Some(&live)).await.unwrap_or_default();
+    let mut keys = s3
+        .list_objects(bucket, Some(&live))
+        .await
+        .unwrap_or_default();
     if keys.is_empty() {
         // The archive pass moved the prefix under `archive/{bot}-{stamp}/`;
         // recovery must read it back from there, otherwise the bot keeps

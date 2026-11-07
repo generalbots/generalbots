@@ -44,8 +44,7 @@ impl MenuConfig {
             .with_icon("🛡️")
             .with_items(vec![
                 MenuItem::app(AppType::Settings, 1),
-                MenuItem::app(AppType::Admin, 2)
-                    .with_permissions(vec!["admin", "owner"]),
+                MenuItem::app(AppType::Admin, 2).with_permissions(vec!["admin", "owner"]),
             ]);
 
         let footer_items = vec![
@@ -282,11 +281,15 @@ impl MenuConfig {
                 if item.permissions.is_empty() {
                     return true;
                 }
-                item.permissions.iter().any(|p| user_permissions.contains(p))
+                item.permissions
+                    .iter()
+                    .any(|p| user_permissions.contains(p))
             });
         }
 
-        filtered.sections.retain(|section| !section.items.is_empty());
+        filtered
+            .sections
+            .retain(|section| !section.items.is_empty());
 
         filtered
     }

@@ -1322,10 +1322,17 @@ When `desktop-local` is active:
 
 **NSIS:** Portuguese BR + English, language selector, per-machine install.
 **WiX/MSI:** pt-BR + en-US.
-**deb:** depends on `libssl3`, `libwebkit2gtk-4.1-0`.
+**deb:** depends on `libssl3 | libssl3t64`, `libwebkit2gtk-4.1-0`, `libpq5`
+and `libgtk-3-0 | libgtk-3-0t64`.
 **rpm:** depends on `openssl-libs`, `webkit2gtk4.1`, `libpq`.
 Both are built by CI (`--bundles deb,rpm,appimage`); `cargo tauri build` locally
 produces the same set under `botapp/target/release/bundle/`.
+
+**Updater:** neither config registers `tauri-plugin-updater` and there is no
+`plugins.updater` block. Upgrades are replace-file (AppImage: swap the
+executable; deb/rpm: package manager; tarball: re-run `install.sh`); user data
+stays in `~/.local/share/generalbots`. The rationale and the steps to wire the
+updater later are in `botapp/README.md#installing-and-upgrading`.
 
 ### Build Pipeline (CI — `.github/workflows/desktop-binaries.yml`)
 
@@ -1361,7 +1368,8 @@ have never shipped in a release; the Windows side publishes `generalbots.exe`,
 **Single-file run is the supported "grab and go" path:** download `generalbots`,
 `chmod +x`, run. It unpacks itself under `~/.local/share/generalbots` and opens
 the setup wizard; no tarball, no `install.sh`. It is still a glibc binary: it
-needs `libwebkit2gtk-4.1-0`, `libpq5` and `libssl3` on the host.
+needs `libwebkit2gtk-4.1-0`, `libpq5` and OpenSSL 3 (`libssl3t64` on
+Debian 13/Ubuntu 24.04+, `libssl3` on older releases) on the host.
 
 ### Testing the Desktop-Local Edition (Dev Mode)
 

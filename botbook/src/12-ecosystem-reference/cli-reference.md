@@ -740,8 +740,8 @@ lxc exec <tenant>-<component> -- journalctl -xe
 If you see errors like `error while loading shared libraries: libpq.so.5`, install the runtime dependencies:
 
 ```bash
-# Debian/Ubuntu
-sudo apt-get install -y libpq5 libssl3 \
+# Debian/Ubuntu (libssl3t64 on Debian 13/Ubuntu 24.04+, libssl3 on 22.04)
+sudo apt-get install -y libpq5 libssl3t64 \
     libzstd1 liblz4-1 libxml2 libgssapi-krb5-2 libsystemd0 zlib1g \
     ca-certificates curl wget
 

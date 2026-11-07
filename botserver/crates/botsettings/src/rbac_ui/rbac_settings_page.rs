@@ -1,7 +1,8 @@
 use super::*;
 
 pub async fn rbac_settings_page() -> Html<String> {
-    Html(String::from(r##"<div class="rbac-settings">
+    Html(String::from(
+        r##"<div class="rbac-settings">
     <h2>Access Control</h2>
     <p class="text-muted">Manage users, roles, and groups using Role-Based Access Control (RBAC)</p>
 
@@ -69,7 +70,8 @@ pub async fn rbac_settings_page() -> Html<String> {
 
 .create-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 8px; }
 .create-form input { flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-</style>"##))
+</style>"##,
+    ))
 }
 pub(super) fn render_error(context: &str) -> String {
     tracing::warn!(context = %context, "Error occurred in RBAC UI");
@@ -91,7 +93,8 @@ pub async fn rbac_users_list(State(state): State<Arc<AppState>>) -> impl IntoRes
 
     match result {
         Ok(Ok(users)) => {
-            let mut html = String::from(r##"<div class="users-section">
+            let mut html = String::from(
+                r##"<div class="users-section">
                 <div class="section-header">
                     <h3>Users</h3>
                     <p class="text-muted">Select a user to manage their roles and groups</p>
@@ -104,7 +107,8 @@ pub async fn rbac_users_list(State(state): State<Arc<AppState>>) -> impl IntoRes
                            hx-include="this"
                            name="search" />
                 </div>
-                <div class="user-list">"##);
+                <div class="user-list">"##,
+            );
 
             for user in &users {
                 let admin_badge = if user.is_admin {
@@ -159,7 +163,8 @@ pub async fn rbac_roles_list(State(state): State<Arc<AppState>>) -> impl IntoRes
 
     match result {
         Ok(Ok(roles)) => {
-            let mut html = String::from(r##"<div class="roles-section">
+            let mut html = String::from(
+                r##"<div class="roles-section">
                 <div class="section-header">
                     <h3>Roles</h3>
                     <p class="text-muted">Manage roles and their permissions</p>
@@ -170,10 +175,15 @@ pub async fn rbac_roles_list(State(state): State<Arc<AppState>>) -> impl IntoRes
                     <input type="text" name="description" placeholder="Description (optional)" />
                     <button type="submit" class="btn-primary">+ Add Role</button>
                 </form>
-                <div class="role-list">"##);
+                <div class="role-list">"##,
+            );
 
             for role in &roles {
-                let badge_class = if role.is_system { "badge-system" } else { "badge-custom" };
+                let badge_class = if role.is_system {
+                    "badge-system"
+                } else {
+                    "badge-custom"
+                };
                 let badge_text = if role.is_system { "System" } else { "Custom" };
                 let delete_btn = if role.is_system {
                     String::new()
@@ -235,7 +245,8 @@ pub async fn rbac_groups_list(State(state): State<Arc<AppState>>) -> impl IntoRe
 
     match result {
         Ok(Ok(groups)) => {
-            let mut html = String::from(r##"<div class="groups-section">
+            let mut html = String::from(
+                r##"<div class="groups-section">
                 <div class="section-header">
                     <h3>Groups</h3>
                     <p class="text-muted">Organize users into groups for easier role assignment</p>
@@ -246,7 +257,8 @@ pub async fn rbac_groups_list(State(state): State<Arc<AppState>>) -> impl IntoRe
                     <input type="text" name="description" placeholder="Description (optional)" />
                     <button type="submit" class="btn-primary">+ Add Group</button>
                 </form>
-                <div class="group-list">"##);
+                <div class="group-list">"##,
+            );
 
             for group in &groups {
                 let description = group.description.as_deref().unwrap_or("");

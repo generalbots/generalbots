@@ -86,8 +86,10 @@ pub(super) fn html_escape(s: &str) -> String {
 }
 pub(super) fn pool_conn(
     state: &Arc<AppState>,
-) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, String)>
-{
+) -> Result<
+    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    (StatusCode, String),
+> {
     state
         .conn
         .get()
@@ -105,10 +107,7 @@ fn requesting_user(req: &axum::extract::Request) -> Option<Uuid> {
 /// Platform admins (explicit superadmin, or a member of the reserved root org
 /// `default`) may see every bot. Everyone else is confined to the bots of the
 /// organizations they belong to (plus public bots).
-fn caller_is_platform_admin(
-    req: &axum::extract::Request,
-    state: &Arc<AppState>,
-) -> bool {
+fn caller_is_platform_admin(req: &axum::extract::Request, state: &Arc<AppState>) -> bool {
     let Some(user) = req
         .extensions()
         .get::<crate::security::auth_api::types::AuthenticatedUser>()
@@ -173,11 +172,9 @@ pub async fn handle_bots_list(
     }
 
     let rows: Vec<BotRow> = if caller_is_platform_admin(&req, &state) {
-        diesel::sql_query(
-            "SELECT id, name FROM bots ORDER BY name ASC LIMIT 100",
-        )
-        .load::<BotRow>(&mut conn)
-        .unwrap_or_default()
+        diesel::sql_query("SELECT id, name FROM bots ORDER BY name ASC LIMIT 100")
+            .load::<BotRow>(&mut conn)
+            .unwrap_or_default()
     } else {
         diesel::sql_query(
             "SELECT b.id, b.name FROM bots b \
@@ -249,16 +246,9 @@ pub async fn handle_bots_tree(
         );
     }
 
-    let roots: Vec<&BotRow> = rows
-        .iter()
-        .filter(|b| b.parent_bot_id.is_none())
-        .collect();
+    let roots: Vec<&BotRow> = rows.iter().filter(|b| b.parent_bot_id.is_none()).collect();
 
-    pub(super) fn render_bot(
-        bot: &BotRow,
-        rows: &[BotRow],
-        depth: usize,
-    ) -> String {
+    pub(super) fn render_bot(bot: &BotRow, rows: &[BotRow], depth: usize) -> String {
         let children: Vec<&BotRow> = rows
             .iter()
             .filter(|b| b.parent_bot_id == Some(bot.id))
@@ -313,7 +303,5 @@ pub async fn handle_bots_tree(
         tree.push_str(&render_bot(root, &rows, 0));
     }
 
-    Html(format!(
-        r##"<div class="bot-tree-view">{tree}</div>"##
-    ))
+    Html(format!(r##"<div class="bot-tree-view">{tree}</div>"##))
 }

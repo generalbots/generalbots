@@ -17,7 +17,12 @@ pub async fn handle_dns_register(
 
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<div class=\"dns-error\">{}</div>", html_escape(&e.1))),
+        Err(e) => {
+            return Html(format!(
+                "<div class=\"dns-error\">{}</div>",
+                html_escape(&e.1)
+            ))
+        }
     };
 
     let _ = diesel::sql_query(

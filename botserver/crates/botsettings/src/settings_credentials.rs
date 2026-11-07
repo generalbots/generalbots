@@ -155,7 +155,12 @@ pub async fn api_keys_create(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -164,7 +169,10 @@ pub async fn api_keys_create(
 
     let name = form.name.unwrap_or_else(|| "API Key".to_string());
     if name.trim().is_empty() {
-        return (StatusCode::BAD_REQUEST, Html("API key name is required".to_string()));
+        return (
+            StatusCode::BAD_REQUEST,
+            Html("API key name is required".to_string()),
+        );
     }
 
     let (secret, hash) = generate_api_key();
@@ -185,7 +193,10 @@ pub async fn api_keys_create(
 
     if let Err(e) = inserted {
         log::error!("api_keys_create insert failed: {e}");
-        return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to create API key".to_string()));
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html("Failed to create API key".to_string()),
+        );
     }
 
     crate::audit_log::record_audit_event(crate::audit_log::AuditEvent {
@@ -224,7 +235,12 @@ pub async fn api_keys_rotate(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -265,10 +281,16 @@ pub async fn api_keys_rotate(
                 )),
             )
         }
-        Ok(_) => (StatusCode::NOT_FOUND, Html("API key not found or already revoked".to_string())),
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Html("API key not found or already revoked".to_string()),
+        ),
         Err(e) => {
             log::error!("api_keys_rotate failed: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to rotate API key".to_string()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to rotate API key".to_string()),
+            )
         }
     }
 }
@@ -281,7 +303,12 @@ pub async fn api_keys_delete(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -313,7 +340,10 @@ pub async fn api_keys_delete(
         Ok(_) => (StatusCode::NOT_FOUND, Html("API key not found".to_string())),
         Err(e) => {
             log::error!("api_keys_delete failed: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to revoke API key".to_string()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to revoke API key".to_string()),
+            )
         }
     }
 }
@@ -377,4 +407,3 @@ fn parse_scopes(raw: Option<&str>) -> serde_json::Value {
         serde_json::Value::Array(scopes.into_iter().map(serde_json::Value::String).collect())
     }
 }
-

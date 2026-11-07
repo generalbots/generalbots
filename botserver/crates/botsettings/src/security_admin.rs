@@ -270,7 +270,10 @@ async fn list_audit_logs(
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
                 .map(|t| t.with_timezone(&Utc))
                 .unwrap_or_else(Utc::now),
-            user_id: ev.get("actor_id").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()),
+            user_id: ev
+                .get("actor_id")
+                .and_then(|v| v.as_str())
+                .and_then(|s| Uuid::parse_str(s).ok()),
             action: ev
                 .get("action")
                 .and_then(|v| v.as_str())
@@ -281,7 +284,10 @@ async fn list_audit_logs(
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string(),
-            resource_id: ev.get("target_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            resource_id: ev
+                .get("target_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
             ip_address: None,
             user_agent: None,
             success: ev.get("success").and_then(|v| v.as_bool()).unwrap_or(true),
@@ -306,7 +312,9 @@ async fn create_api_key(
         id: Uuid::new_v4(),
         name: req.name,
         key: format!("gb_{}", Uuid::new_v4().to_string().replace('-', "")),
-        expires_at: req.expires_in_days.map(|days| Utc::now() + chrono::Duration::days(i64::from(days))),
+        expires_at: req
+            .expires_in_days
+            .map(|days| Utc::now() + chrono::Duration::days(i64::from(days))),
     };
     Ok(Json(response))
 }
@@ -387,7 +395,10 @@ async fn run_security_scan(
 
 pub fn configure_security_admin_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/settings/security/overview", get(get_security_overview))
+        .route(
+            "/api/settings/security/overview",
+            get(get_security_overview),
+        )
         .route("/api/settings/security/scan", post(run_security_scan))
         .route(
             "/api/settings/security/tls",
@@ -406,13 +417,19 @@ pub fn configure_security_admin_routes() -> Router<Arc<AppState>> {
             "/api/settings/security/api-keys",
             get(list_api_keys).post(create_api_key),
         )
-        .route("/api/settings/security/api-keys/:key_id", delete(revoke_api_key))
+        .route(
+            "/api/settings/security/api-keys/:key_id",
+            delete(revoke_api_key),
+        )
         .route(
             "/api/settings/security/mfa",
             get(get_mfa_settings).put(update_mfa_settings),
         )
         .route("/api/settings/security/sessions", get(list_active_sessions))
-        .route("/api/settings/security/sessions/:session_id", delete(revoke_session))
+        .route(
+            "/api/settings/security/sessions/:session_id",
+            delete(revoke_session),
+        )
         .route(
             "/api/settings/security/users/:user_id/sessions",
             delete(revoke_all_user_sessions),

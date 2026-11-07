@@ -71,7 +71,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             status: Status::Built,
             priority: Priority::Nice,
             module: None,
-            official_docs: Some("https://www.newscatcherapi.com/docs/v3/api-reference/overview"),
+            official_docs: Some("https://docs.newscatcherapi.com/"),
             auth: &API_KEY,
             actions: NEWS_ACTIONS,
         },

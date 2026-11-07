@@ -6,9 +6,9 @@ use axum::{
 #[cfg(not(feature = "embed-ui"))]
 use log::info;
 
+use crate::ui_server::constants::get_ui_root;
 #[cfg(feature = "embed-ui")]
 use crate::ui_server::constants::Assets;
-use crate::ui_server::constants::get_ui_root;
 
 fn get_login_url() -> String {
     std::env::var("LOGIN_URL").unwrap_or_else(|_| "http://localhost:5000".to_string())
@@ -94,11 +94,7 @@ async fn serve_cloud_file(file_path: std::path::PathBuf) -> Response {
             } else {
                 content.data
             };
-            return (
-                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                data,
-            )
-                .into_response();
+            return ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response();
         }
         return StatusCode::NOT_FOUND.into_response();
     }
@@ -150,10 +146,12 @@ async fn resolve_and_serve_cloud(path: &str) -> Response {
     serve_cloud_file(file_path).await
 }
 
-pub async fn serve_cloud(
-    axum::extract::Path(path): axum::extract::Path<String>,
-) -> Response {
-    if path == "signup" || path == "login" || path.starts_with("signup/") || path.starts_with("login/") {
+pub async fn serve_cloud(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
+    if path == "signup"
+        || path == "login"
+        || path.starts_with("signup/")
+        || path.starts_with("login/")
+    {
         return Redirect::to(&format!("{}/{}", get_login_url(), path)).into_response();
     }
     resolve_and_serve_cloud(&path).await
@@ -171,7 +169,8 @@ pub async fn serve_cloud_fallback(original_uri: OriginalUri) -> Response {
         return Redirect::to(&format!("{}/signup", get_login_url())).into_response();
     }
     if path == "/chat" || path == "/chat/" {
-        let suite_url = std::env::var("SUITE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+        let suite_url =
+            std::env::var("SUITE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
         return Redirect::to(&format!("{suite_url}/")).into_response();
     }
     resolve_and_serve_cloud(path).await

@@ -39,7 +39,11 @@ pub async fn dashboard_members(State(state): State<Arc<AppState>>) -> Html<Strin
     for user in users {
         let (indicator, status) = if !user.active {
             ("offline", "Inactive")
-        } else if Utc::now().signed_duration_since(user.updated_at).num_minutes() < 30 {
+        } else if Utc::now()
+            .signed_duration_since(user.updated_at)
+            .num_minutes()
+            < 30
+        {
             ("online", "Online")
         } else {
             ("away", "Away")

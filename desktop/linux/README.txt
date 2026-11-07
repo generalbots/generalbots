@@ -10,6 +10,14 @@ Contents
   start.sh                 launcher (also the entry point of the desktop file)
   install.sh               per-user installer, no root required
 
+Release naming
+--------------
+The product line is tagged vMAJOR.MINOR.PATCH (for example v6.7.1) and owns
+the /releases/latest/download/ links below. Windows and macOS builds are
+published as `-windows` / `-macos` pre-releases; component bundles
+(`alm-*`, `pythonbox-*`, `drive-bin-*`) are pre-releases too. They never take
+"latest", so a component build cannot break these links.
+
 Requirements
 ------------
   - Linux x86_64 (glibc 2.35+, e.g. Ubuntu 22.04+) or Linux aarch64
@@ -52,7 +60,7 @@ file instead. When a package is present it is used as follows:
   Any glibc:      chmod +x generalbots-linux-x86_64.AppImage
                   ./generalbots-linux-x86_64.AppImage
                   (arm64: generalbots-linux-aarch64.AppImage)
-  macOS (arm64):  open generalbots-<tag>-macos-arm64.dmg (unsigned; see
+  macOS (arm64):  open generalbots-<version>-macos-arm64.dmg (unsigned; see
                   desktop/macos/README.md for Gatekeeper and runtime caveats)
 
   Single file:    chmod +x generalbots && ./generalbots
@@ -106,9 +114,11 @@ Updating
 --------
 There is no in-app auto-updater in this build. Supported upgrades:
 
-  AppImage  Download the new AppImage, chmod +x it and run it. Data lives in
-            ~/.local/share/generalbots, so it survives; the old AppImage can
-            be deleted after the new one starts.
+  AppImage  Download the new AppImage, verify it against SHA256SUMS-linux,
+            chmod +x it and run it (or move it over the old path). Nothing is
+            installed system-wide; data lives in ~/.local/share/generalbots,
+            so it survives, and the old file can be deleted after the new one
+            starts.
   deb       sudo apt install ./generalbots-linux-x86_64.deb (or apt upgrade
             from a repository); the package manager replaces the files.
   rpm       sudo dnf upgrade ./generalbots-linux-x86_64.rpm (or dnf upgrade
@@ -167,10 +177,11 @@ component matrix is not identical on every platform:
                  arm64 desktop uses llama.cpp b12189 (the x86_64 pin b7345 has
                  no ubuntu-arm64 asset); that release publishes no checksum, so
                  its download is not hash-verified.
-  Windows x64    MinIO/mc, Redis, Qdrant, Zitadel and Caddy are bundled offline.
-                 PostgreSQL, Vault and llama.cpp (plus models) are downloaded
-                 once. There is no Windows BotModels pythonbox, so media stays
-                 unavailable; /api/product reports the reason.
+  Windows x64    MinIO/mc, Redis, Qdrant, Zitadel, Caddy and the BotModels
+                 pythonbox are bundled offline. PostgreSQL, Vault and llama.cpp
+                 (plus models) are downloaded once. The Windows pythonbox uses
+                 an offline win_amd64 wheelhouse, so vision/STT/TTS need no
+                 network access after the first-use venv build.
 
 Optional add-ons that are not part of the first-run stack (Caddy, Stalwart,
 InfluxDB, Vector, Forgejo/runner, NocoDB, LiveKit, CoreDNS) still have x86_64

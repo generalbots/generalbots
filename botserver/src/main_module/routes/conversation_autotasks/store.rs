@@ -25,10 +25,7 @@ pub(super) fn load_rows(
 }
 
 /// Load every conversation autotask owned by `user_id`, across conversations.
-pub(super) fn load_all_rows(
-    state: &AppState,
-    user_id: Uuid,
-) -> Result<Vec<AutotaskRow>, ApiError> {
+pub(super) fn load_all_rows(state: &AppState, user_id: Uuid) -> Result<Vec<AutotaskRow>, ApiError> {
     let mut conn = state
         .conn
         .get()

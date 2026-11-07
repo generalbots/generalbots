@@ -112,10 +112,17 @@ fn bot_name_from_path(path: &str) -> String {
 }
 
 fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
-    let branch_slug = match project.branch_slug.as_deref().filter(|s| !s.trim().is_empty()) {
+    let branch_slug = match project
+        .branch_slug
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+    {
         Some(slug) => slug.trim().to_string(),
         None => {
-            log::debug!("[git_monitor] project {} has no branch slug — skipped", project.name);
+            log::debug!(
+                "[git_monitor] project {} has no branch slug — skipped",
+                project.name
+            );
             return;
         }
     };
@@ -152,7 +159,11 @@ fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
         log::warn!("[git_monitor] reset {}/{}: {e}", org, project.repo_slug);
         return;
     }
-    log::info!("[git_monitor] {} pulled to {}", project.name, checkout.display());
+    log::info!(
+        "[git_monitor] {} pulled to {}",
+        project.name,
+        checkout.display()
+    );
 
     // PROD layout follows main (git is the deployable truth); the TEST twin
     // mirrors the same content — Run re-materializes from the workspace.
@@ -181,7 +192,9 @@ fn promote_test_to_prod(
     let src = base.join(format!("{}-test.gbdialog", bot_name));
     let dst = base.join(format!("{bot_name}.gbdialog"));
     if !src.is_dir() {
-        return Err(format!("no TEST materialization for {bot_name} — run the project first"));
+        return Err(format!(
+            "no TEST materialization for {bot_name} — run the project first"
+        ));
     }
     // Replace PROD content with the TEST release (mirrors site promote).
     if dst.is_dir() {
@@ -253,7 +266,12 @@ fn run_test_from_workspace(pool: &DbPool, project: &MonitoredBot) -> Result<(), 
     let test_bot = format!("{}-test", project.name);
     let commit = run_git(&workspace, &["rev-parse", "HEAD"]).unwrap_or_else(|_| "work".to_string());
     let paths = materialize_checkout(&workspace, &work_root, branch_slug.trim(), &test_bot)?;
-    mark_for_compile(pool, resolve_branch_id(pool, &branch_slug), &paths, commit.trim());
+    mark_for_compile(
+        pool,
+        resolve_branch_id(pool, &branch_slug),
+        &paths,
+        commit.trim(),
+    );
     log::info!("[git_monitor] {} RUN → TEST twin recompiled", project.name);
     Ok(())
 }
@@ -276,14 +294,18 @@ fn dispatch_bot_op(pool: &DbPool, op: &str, project_id: Uuid) -> Result<(), Stri
             let _ = run_git(
                 &workspace,
                 &[
-                    "-c", "user.name=Vibe Agent",
-                    "-c", "user.email=vibe@gbo.local",
-                    "commit", "-m", &format!("Deploy {}", project.name),
+                    "-c",
+                    "user.name=Vibe Agent",
+                    "-c",
+                    "user.email=vibe@gbo.local",
+                    "commit",
+                    "-m",
+                    &format!("Deploy {}", project.name),
                 ],
             );
             let _ = run_git(&workspace, &["push", "origin", "HEAD:main"]);
-            let etag =
-                run_git(&workspace, &["rev-parse", "HEAD"]).unwrap_or_else(|_| "deploy".to_string());
+            let etag = run_git(&workspace, &["rev-parse", "HEAD"])
+                .unwrap_or_else(|_| "deploy".to_string());
             promote_test_to_prod(pool, branch_slug.trim(), &project.name, etag.trim())
         }
         other => Err(format!("unknown bot project op '{other}'")),

@@ -11,7 +11,11 @@ pub(super) struct ServerLayers {
     pub auth_middleware_state: crate::security::auth::AuthMiddlewareState,
 }
 
-pub(super) fn apply_middleware(app: Router, app_state: Arc<AppState>, layers: ServerLayers) -> Router {
+pub(super) fn apply_middleware(
+    app: Router,
+    app_state: Arc<AppState>,
+    layers: ServerLayers,
+) -> Router {
     let ServerLayers {
         cors,
         csrf_manager,
@@ -179,33 +183,56 @@ pub(super) fn add_plan_routes(r: Router, s: &Arc<AppState>) -> Router {
 }
 #[cfg(feature = "video")]
 pub(super) fn add_video_routes(r: Router, s: &Arc<AppState>) -> Router {
-    r.merge(crate::video::configure_video_routes().with_state(Arc::new(botvideo::routes::AppState { conn: s.conn.clone(), cache: None })))
-        .merge(crate::video::configure_video_ui_routes().with_state(Arc::new(botvideo::routes::AppState { conn: s.conn.clone(), cache: None })))
+    r.merge(crate::video::configure_video_routes().with_state(Arc::new(
+        botvideo::routes::AppState {
+            conn: s.conn.clone(),
+            cache: None,
+        },
+    )))
+    .merge(
+        crate::video::configure_video_ui_routes().with_state(Arc::new(
+            botvideo::routes::AppState {
+                conn: s.conn.clone(),
+                cache: None,
+            },
+        )),
+    )
 }
 #[cfg(feature = "workspaces")]
 pub(super) fn add_workspaces_routes(r: Router, s: &Arc<AppState>) -> Router {
-    let make_state = || Arc::new(botworkspaces::WorkspacesState {
-        pool: Arc::new(s.conn.clone()),
-        get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-    });
+    let make_state = || {
+        Arc::new(botworkspaces::WorkspacesState {
+            pool: Arc::new(s.conn.clone()),
+            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil())
+                as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+        })
+    };
     r.merge(crate::workspaces::configure_workspaces_routes().with_state(make_state()))
         .merge(crate::workspaces::configure_workspaces_ui_routes().with_state(make_state()))
 }
 #[cfg(feature = "products")]
 pub(super) fn add_products_routes(r: Router, s: &Arc<AppState>) -> Router {
-    let make_state = || Arc::new(botproducts::ProductsState {
-        pool: Arc::new(s.conn.clone()),
-        get_default_bot: Some((|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid),
-    });
+    let make_state = || {
+        Arc::new(botproducts::ProductsState {
+            pool: Arc::new(s.conn.clone()),
+            get_default_bot: Some(
+                (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil())
+                    as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+            ),
+        })
+    };
     r.merge(crate::products::configure_products_routes().with_state(make_state()))
         .merge(crate::products::configure_products_api_routes().with_state(make_state()))
 }
 #[cfg(feature = "tickets")]
 pub(super) fn add_tickets_routes(r: Router, s: &Arc<AppState>) -> Router {
-    let make_state = || Arc::new(bottickets::TicketsState {
-        pool: Arc::new(s.conn.clone()),
-        get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-    });
+    let make_state = || {
+        Arc::new(bottickets::TicketsState {
+            pool: Arc::new(s.conn.clone()),
+            get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil())
+                as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+        })
+    };
     r.merge(crate::tickets::configure_tickets_routes().with_state(make_state()))
         .merge(crate::tickets::ui::configure_tickets_ui_routes().with_state(make_state()))
         .merge(crate::tickets::itsm::configure_itsm_routes().with_state(make_state()))
@@ -222,14 +249,24 @@ pub(super) fn add_people_routes(r: Router, s: &Arc<AppState>) -> Router {
 }
 #[cfg(feature = "attendant")]
 pub(super) fn add_attendant_routes(r: Router, s: &Arc<AppState>) -> Router {
-    r.merge(crate::attendant::configure_attendant_routes().with_state(Arc::new(botattendant::AttendantConfig {
-        pool: Arc::new(s.conn.clone()),
-        get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-    })))
-    .merge(crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(botattendant::AttendantConfig {
-        pool: Arc::new(s.conn.clone()),
-        get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil()) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-    })))
+    r.merge(
+        crate::attendant::configure_attendant_routes().with_state(Arc::new(
+            botattendant::AttendantConfig {
+                pool: Arc::new(s.conn.clone()),
+                get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil())
+                    as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+            },
+        )),
+    )
+    .merge(
+        crate::attendant::configure_attendant_ui_routes().with_state(Arc::new(
+            botattendant::AttendantConfig {
+                pool: Arc::new(s.conn.clone()),
+                get_default_bot: (|_conn: &mut diesel::PgConnection| uuid::Uuid::nil())
+                    as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+            },
+        )),
+    )
 }
 pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
     crate::main_module::listen_impl::listen(app, port).await

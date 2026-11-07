@@ -1,11 +1,14 @@
 //! Settings page HTMX fragment handlers (accounts, storage, search, security).
 //! Split out of `lib.rs` to keep that file within the size limit.
 
-pub(crate) use axum::{extract::State, response::{Html, Json}};
+pub(crate) use axum::{
+    extract::State,
+    response::{Html, Json},
+};
+pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::prelude::*;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::sync::Arc;
-pub(crate) use botcore::shared::state::AppState;
 
 /// Social account rows list the integration catalog providers and file them
 /// under those catalog ids, so "Connected" reflects the real
@@ -20,16 +23,16 @@ const SOCIAL_PROVIDERS: &[(&str, &str, &str)] = &[
 
 #[derive(Debug, Deserialize)]
 pub struct SearchSettingsRequest {
-enable_fuzzy_search: Option<bool>,
-search_result_limit: Option<i32>,
-enable_ai_suggestions: Option<bool>,
+    enable_fuzzy_search: Option<bool>,
+    search_result_limit: Option<i32>,
+    enable_ai_suggestions: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SearchSettingsResponse {
-success: bool,
-message: Option<String>,
-error: Option<String>,
+    success: bool,
+    message: Option<String>,
+    error: Option<String>,
 }
 
 mod active_connection_counts;

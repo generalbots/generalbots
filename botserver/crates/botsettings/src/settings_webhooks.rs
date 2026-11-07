@@ -106,7 +106,12 @@ pub async fn webhooks_create(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -129,7 +134,10 @@ pub async fn webhooks_create(
     if let Ok(sm) = SecretsManager::get() {
         if let Err(e) = sm.put_secret(&vault_path, vault_data).await {
             log::warn!("webhooks_create: Vault write failed for {vault_path}: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to store webhook secret".to_string()));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to store webhook secret".to_string()),
+            );
         }
     } else {
         log::warn!("webhooks_create: SecretsManager unavailable; storing vault path only");
@@ -148,7 +156,10 @@ pub async fn webhooks_create(
 
     if let Err(e) = inserted {
         log::error!("webhooks_create insert failed: {e}");
-        return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to register webhook".to_string()));
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html("Failed to register webhook".to_string()),
+        );
     }
 
     crate::audit_log::record_audit_event(crate::audit_log::AuditEvent {
@@ -182,25 +193,30 @@ pub async fn webhooks_delete(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
         Err(e) => return e,
     };
 
-    let deleted = diesel::sql_query(
-        "DELETE FROM webhooks WHERE id = $1 AND user_id = $2",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(webhook_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .execute(&mut conn);
+    let deleted = diesel::sql_query("DELETE FROM webhooks WHERE id = $1 AND user_id = $2")
+        .bind::<diesel::sql_types::Uuid, _>(webhook_id)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .execute(&mut conn);
 
     match deleted {
         Ok(1) => {
             // Best-effort cleanup of the Vault secret.
             if let Ok(sm) = SecretsManager::get() {
-                let _ = sm.delete_secret(&crate::webhook_delivery::webhook_vault_path(webhook_id)).await;
+                let _ = sm
+                    .delete_secret(&crate::webhook_delivery::webhook_vault_path(webhook_id))
+                    .await;
             }
             crate::audit_log::record_audit_event(crate::audit_log::AuditEvent {
                 state: &state,
@@ -217,7 +233,10 @@ pub async fn webhooks_delete(
         Ok(_) => (StatusCode::NOT_FOUND, Html("Webhook not found".to_string())),
         Err(e) => {
             log::error!("webhooks_delete failed: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to delete webhook".to_string()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to delete webhook".to_string()),
+            )
         }
     }
 }
@@ -231,7 +250,12 @@ pub async fn webhooks_test(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -274,7 +298,10 @@ pub async fn webhooks_test(
     };
 
     if secret.is_empty() {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Html("Webhook signing secret unavailable".to_string()));
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html("Webhook signing secret unavailable".to_string()),
+        );
     }
 
     let payload = serde_json::json!({

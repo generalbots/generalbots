@@ -39,11 +39,7 @@ fn err(code: StatusCode, message: &str) -> ApiError {
 /// The bot a session belongs to, only when the caller owns that session.
 /// Column types differ across deployments (uuid vs text), so both sides are
 /// compared and returned as text and parsed here.
-fn session_bot(
-    state: &AppState,
-    session_id: Uuid,
-    user_id: Uuid,
-) -> Result<Uuid, ApiError> {
+fn session_bot(state: &AppState, session_id: Uuid, user_id: Uuid) -> Result<Uuid, ApiError> {
     use diesel::sql_types::Text;
     #[derive(diesel::QueryableByName)]
     struct Row {
@@ -133,12 +129,12 @@ pub async fn save_output(
     for name in selected {
         let path = format!("output/{name}");
         match agent_vm_hook::read_session_file(user_id, req.conversation_id, &path).await {
-            Ok(bytes) => match drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes)
-                .await
-            {
-                Some(drive_path) => saved.push(json!({ "name": name, "path": drive_path })),
-                None => failed.push(name),
-            },
+            Ok(bytes) => {
+                match drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes).await {
+                    Some(drive_path) => saved.push(json!({ "name": name, "path": drive_path })),
+                    None => failed.push(name),
+                }
+            }
             Err(e) => failed.push(format!("{name}: {e}")),
         }
     }
@@ -176,13 +172,10 @@ pub async fn share_output(
     let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
     let bot_uuid = session_bot(&state, req.conversation_id, user_id)?;
     let name = safe_name(&req.file);
-    let bytes = agent_vm_hook::read_session_file(
-        user_id,
-        req.conversation_id,
-        &format!("output/{name}"),
-    )
-    .await
-    .map_err(|_| err(StatusCode::NOT_FOUND, "file not found in output/"))?;
+    let bytes =
+        agent_vm_hook::read_session_file(user_id, req.conversation_id, &format!("output/{name}"))
+            .await
+            .map_err(|_| err(StatusCode::NOT_FOUND, "file not found in output/"))?;
 
     let folder = drive_bridge::conversation_title(&state, req.conversation_id).await;
     let stored = drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes)

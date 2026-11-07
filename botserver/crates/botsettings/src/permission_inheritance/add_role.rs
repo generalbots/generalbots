@@ -37,7 +37,8 @@ impl RoleHierarchy {
 
         let mut visited = HashSet::new();
         let permissions = self.resolve_permissions_recursive(role_name, &mut visited);
-        self.permission_cache.insert(role_name.to_string(), permissions.clone());
+        self.permission_cache
+            .insert(role_name.to_string(), permissions.clone());
         permissions
     }
 
@@ -66,13 +67,25 @@ impl RoleHierarchy {
     }
 
     pub fn can_manage(&self, manager_role: &str, target_role: &str) -> bool {
-        let manager_level = self.roles.get(manager_role).map(|r| r.hierarchy_level).unwrap_or(0);
-        let target_level = self.roles.get(target_role).map(|r| r.hierarchy_level).unwrap_or(0);
+        let manager_level = self
+            .roles
+            .get(manager_role)
+            .map(|r| r.hierarchy_level)
+            .unwrap_or(0);
+        let target_level = self
+            .roles
+            .get(target_role)
+            .map(|r| r.hierarchy_level)
+            .unwrap_or(0);
         manager_level > target_level
     }
 
     pub fn get_manageable_roles(&self, role_name: &str) -> Vec<String> {
-        let manager_level = self.roles.get(role_name).map(|r| r.hierarchy_level).unwrap_or(0);
+        let manager_level = self
+            .roles
+            .get(role_name)
+            .map(|r| r.hierarchy_level)
+            .unwrap_or(0);
         self.roles
             .iter()
             .filter(|(_, node)| node.hierarchy_level < manager_level)

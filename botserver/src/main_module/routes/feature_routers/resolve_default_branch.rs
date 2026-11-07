@@ -7,13 +7,12 @@ use super::*;
 /// handlers stop defaulting to the global shared scope.
 pub(crate) fn resolve_default_branch(conn: &mut diesel::PgConnection) -> uuid::Uuid {
     use diesel::prelude::*;
-    if let Some(branch) = diesel::sql_query(
-        "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1",
-    )
-    .get_result::<DefaultBranchRow>(conn)
-    .optional()
-    .ok()
-    .flatten()
+    if let Some(branch) =
+        diesel::sql_query("SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1")
+            .get_result::<DefaultBranchRow>(conn)
+            .optional()
+            .ok()
+            .flatten()
     {
         return branch.branch_id;
     }

@@ -22,7 +22,10 @@ use botcore::shared::state::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/goals/runs", post(handlers::create).get(handlers::list))
+        .route(
+            "/api/goals/runs",
+            post(handlers::create).get(handlers::list),
+        )
         .route("/api/goals/runs/:id/tick", post(handlers::tick_now))
         .route("/api/goals/runs/:id/stop", post(handlers::stop))
         .route("/api/goals/runs/:id/pause", post(handlers::pause))

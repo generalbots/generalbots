@@ -8,9 +8,7 @@ use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use botcore::shared::models::{
-    NewRbacGroup, NewRbacGroupRole, RbacGroup, RbacGroupRole, RbacRole,
-};
+use botcore::shared::models::{NewRbacGroup, NewRbacGroupRole, RbacGroup, RbacGroupRole, RbacRole};
 use botcore::shared::state::AppState;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
 use diesel::prelude::*;
@@ -32,16 +30,23 @@ pub async fn list_groups(State(state): State<Arc<AppState>>) -> impl IntoRespons
 
     match result {
         Ok(Ok(groups)) => Json(serde_json::json!({ "groups": groups })).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "list_groups", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "list_groups", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "list_groups", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "list_groups", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn get_group(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_group(
+    State(state): State<Arc<AppState>>,
+    Path(group_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<RbacGroup, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -55,16 +60,23 @@ pub async fn get_group(State(state): State<Arc<AppState>>, Path(group_id): Path<
 
     match result {
         Ok(Ok(group)) => Json(group).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::NOT_FOUND, log_and_sanitize_str(&e, "get_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::NOT_FOUND,
+            log_and_sanitize_str(&e, "get_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_group", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn create_group(State(state): State<Arc<AppState>>, Json(req): Json<CreateGroupRequest>) -> impl IntoResponse {
+pub async fn create_group(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateGroupRequest>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let now = Utc::now();
     let new_group = NewRbacGroup {
@@ -104,12 +116,16 @@ pub async fn create_group(State(state): State<Arc<AppState>>, Json(req): Json<Cr
             });
             (StatusCode::CREATED, Json(group)).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "create_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "create_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "create_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "create_group", None),
+        )
+            .into_response(),
     }
 }
 
@@ -142,16 +158,23 @@ pub async fn update_group(
 
     match result {
         Ok(Ok(group)) => Json(group).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "update_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "update_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "update_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "update_group", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn delete_group(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn delete_group(
+    State(state): State<Arc<AppState>>,
+    Path(group_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -166,16 +189,23 @@ pub async fn delete_group(State(state): State<Arc<AppState>>, Path(group_id): Pa
 
     match result {
         Ok(Ok(())) => StatusCode::NO_CONTENT.into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "delete_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "delete_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "delete_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "delete_group", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn get_group_roles(State(state): State<Arc<AppState>>, Path(group_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_group_roles(
+    State(state): State<Arc<AppState>>,
+    Path(group_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -193,12 +223,16 @@ pub async fn get_group_roles(State(state): State<Arc<AppState>>, Path(group_id):
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "get_group_roles", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_group_roles", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "get_group_roles", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_group_roles", None),
+        )
+            .into_response(),
     }
 }
 
@@ -238,12 +272,16 @@ pub async fn assign_role_to_group(
             });
             (StatusCode::CREATED, Json(gr)).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "assign_role_to_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "assign_role_to_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "assign_role_to_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "assign_role_to_group", None),
+        )
+            .into_response(),
     }
 }
 
@@ -280,11 +318,15 @@ pub async fn remove_role_from_group(
             });
             StatusCode::NO_CONTENT.into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "remove_role_from_group", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "remove_role_from_group", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "remove_role_from_group", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "remove_role_from_group", None),
+        )
+            .into_response(),
     }
 }

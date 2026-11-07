@@ -119,7 +119,10 @@ mod tests {
         for section in &filtered.sections {
             for item in &section.items {
                 if !item.permissions.is_empty() {
-                    assert!(item.permissions.iter().any(|p| user_permissions.contains(p)));
+                    assert!(item
+                        .permissions
+                        .iter()
+                        .any(|p| user_permissions.contains(p)));
                 }
             }
         }
@@ -149,10 +152,10 @@ mod tests {
     }
 }
 
-mod display_name;
 mod app;
-mod with_icon;
+mod display_name;
 mod get_all_items;
 mod get_docs_paper_clarification;
+mod with_icon;
 
 pub use get_docs_paper_clarification::*;

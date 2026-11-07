@@ -11,12 +11,28 @@ pub async fn handle_security_command(args: &[String]) {
                     }
                     let report = crate::security::protection::run_security_fix().await;
                     println!("=== Security Fix Report ===");
-                    println!("Firewall : {} — {}", if report.firewall.ok { "OK" } else { "FAIL" }, report.firewall.output.trim());
-                    println!("Fail2ban : {} — {}", if report.fail2ban.ok { "OK" } else { "FAIL" }, report.fail2ban.output.trim());
-                    println!("Caddy    : {} — {}", if report.caddy.ok { "OK" } else { "FAIL" }, report.caddy.output.trim());
-                    println!("Overall  : {}", if report.success { "SUCCESS" } else { "PARTIAL" });
+                    println!(
+                        "Firewall : {} — {}",
+                        if report.firewall.ok { "OK" } else { "FAIL" },
+                        report.firewall.output.trim()
+                    );
+                    println!(
+                        "Fail2ban : {} — {}",
+                        if report.fail2ban.ok { "OK" } else { "FAIL" },
+                        report.fail2ban.output.trim()
+                    );
+                    println!(
+                        "Caddy    : {} — {}",
+                        if report.caddy.ok { "OK" } else { "FAIL" },
+                        report.caddy.output.trim()
+                    );
+                    println!(
+                        "Overall  : {}",
+                        if report.success { "SUCCESS" } else { "PARTIAL" }
+                    );
                     std::process::exit(if report.success { 0 } else { 1 });
-                }            "status" => {
+                }
+                "status" => {
                     let report = crate::security::protection::run_security_status().await;
                     println!("=== Security Status ===");
                     println!("Firewall : {}", report.firewall.output.trim());

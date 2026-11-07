@@ -54,11 +54,24 @@ function syncPreviewToggle() {
 }
 window.addEventListener("gb-preview-changed", syncPreviewToggle);
 
-// #1545: Drive-as-KB setting, persisted locally and sent by the chat client.
+// #1545/#1813: Drive-as-KB setting, persisted locally and sent by the chat
+// client as `index_all_drive`. Default is on; only an explicit "false" disables
+// it, matching chat-send.js.
 window.toggleIndexAllDrive = function (el) {
+  var enabled = !!el.checked;
   try {
-    localStorage.setItem("gb-index-all-drive", el.checked ? "true" : "false");
+    localStorage.setItem("gb-index-all-drive", enabled ? "true" : "false");
   } catch (e) {}
+  showToast(
+    enabled
+      ? "Drive files enabled as chat context"
+      : "Drive files removed from chat context",
+  );
+  window.dispatchEvent(
+    new CustomEvent("gb-index-all-drive-changed", {
+      detail: { enabled: enabled },
+    }),
+  );
 };
 function syncIndexAllDrive() {
   var el = document.getElementById("settings-index-all-drive");

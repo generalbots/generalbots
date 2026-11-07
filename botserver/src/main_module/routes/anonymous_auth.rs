@@ -1,8 +1,8 @@
-use axum::{Json, extract::State, response::IntoResponse};
-use std::sync::Arc;
-use std::collections::HashMap;
-use log::info;
+use axum::{extract::State, response::IntoResponse, Json};
 use botcore::shared::state::AppState;
+use log::info;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub async fn anonymous_auth_handler(
     State(state): State<Arc<AppState>>,
@@ -52,7 +52,11 @@ pub async fn anonymous_auth_handler(
         }
     };
 
-    let role = if is_authenticated && auth_roles.iter().any(|r| r.to_lowercase().contains("admin")) {
+    let role = if is_authenticated
+        && auth_roles
+            .iter()
+            .any(|r| r.to_lowercase().contains("admin"))
+    {
         crate::security::user_role::ROLE_ADMIN.to_string()
     } else {
         crate::security::user_role::resolve_user_role(&state.conn, user_uuid)
@@ -62,15 +66,17 @@ pub async fn anonymous_auth_handler(
     {
         let mut sm = state.session_manager.lock().await;
         sm.get_or_create_anonymous_user(Some(user_uuid)).ok();
-        let session = sm.get_or_create_session_by_id(
-            session_uuid, user_uuid, found_bot_id, "Anonymous Chat"
-        );
+        let session =
+            sm.get_or_create_session_by_id(session_uuid, user_uuid, found_bot_id, "Anonymous Chat");
         if let Ok(sess) = session {
             final_session_id = sess.id.to_string();
         }
     }
 
-    info!("Anonymous auth for bot: {}, session: {}, authenticated: {}", bot_name, final_session_id, is_authenticated);
+    info!(
+        "Anonymous auth for bot: {}, session: {}, authenticated: {}",
+        bot_name, final_session_id, is_authenticated
+    );
 
     (
         axum::http::StatusCode::OK,
@@ -149,7 +155,9 @@ fn repair_poisoned_identity(
     if email.trim().is_empty() {
         return;
     }
-    let Ok(mut conn) = state.conn.get() else { return };
+    let Ok(mut conn) = state.conn.get() else {
+        return;
+    };
     let repaired = diesel::update(
         u::users
             .filter(u::id.eq(user_uuid))
@@ -164,7 +172,8 @@ fn repair_poisoned_identity(
     match repaired {
         Ok(count) if count > 0 => botlog::safe_info!(
             "Repaired guest identity for user {} -> {}",
-            user_uuid, email
+            user_uuid,
+            email
         ),
         _ => {}
     }
@@ -198,7 +207,9 @@ pub(crate) fn resolve_token_user(token: &str) -> Option<(String, Vec<String>)> {
     if token.is_empty() {
         return None;
     }
-    let cache = botcoredirectory::auth_routes::SESSION_CACHE.try_read().ok()?;
+    let cache = botcoredirectory::auth_routes::SESSION_CACHE
+        .try_read()
+        .ok()?;
     if let Some(user_data) = cache.get(token) {
         return Some((user_data.user_id.clone(), user_data.roles.clone()));
     }
@@ -319,12 +330,15 @@ fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
     if sub.is_empty() {
         return (String::new(), Vec::new(), false);
     }
-    info!("Cloud JWT verified for chat session: sub={}...", botlib::text::truncate_at_char_boundary(sub, 24));
+    info!(
+        "Cloud JWT verified for chat session: sub={}...",
+        botlib::text::truncate_at_char_boundary(sub, 24)
+    );
     (sub.to_string(), Vec::new(), true)
 }
 
 fn base64_url_decode_impl(input: &str) -> Option<Vec<u8>> {
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
     let raw = input.replace('-', "+").replace('_', "/");
     let raw = match raw.len() % 4 {
         2 => format!("{raw}=="),
