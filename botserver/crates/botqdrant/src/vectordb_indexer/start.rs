@@ -118,13 +118,13 @@ impl VectorDBIndexer {
             let workspace = UserWorkspace::new(self.work_root.clone(), &bot_id, &user_id);
             info!("User workspace path: {}", workspace.get_path().display());
 
-        UserIndexingJob {
-            user_id,
-            bot_id,
-            workspace,
-            #[cfg(feature = "mail")]
-            email_db: None,
-            drive_db: None,
+            UserIndexingJob {
+                user_id,
+                bot_id,
+                workspace,
+                #[cfg(feature = "mail")]
+                email_db: None,
+                drive_db: None,
                 stats: IndexingStats {
                     emails_indexed: 0,
                     files_indexed: 0,
@@ -140,21 +140,22 @@ impl VectorDBIndexer {
         if job.status == IndexingStatus::Running {
             botlog::safe_warn!(
                 "Job already running for user {} (bot: {})",
-                job.user_id, job.bot_id
+                job.user_id,
+                job.bot_id
             );
             return Ok(());
         }
 
         job.status = IndexingStatus::Running;
 
-    #[cfg(feature = "mail")]
-    if job.email_db.is_none() {
-            let mut email_db =
-                UserEmailVectorDB::new(user_id, bot_id);
+        #[cfg(feature = "mail")]
+        if job.email_db.is_none() {
+            let mut email_db = UserEmailVectorDB::new(user_id, bot_id);
             if let Err(e) = email_db.initialize(&self.qdrant_url).await {
                 botlog::safe_warn!(
                     "Failed to initialize email vector DB for user {}: {}",
-                    user_id, e
+                    user_id,
+                    e
                 );
             } else {
                 job.email_db = Some(email_db);
@@ -167,7 +168,8 @@ impl VectorDBIndexer {
             if let Err(e) = drive_db.initialize(&self.qdrant_url).await {
                 botlog::safe_warn!(
                     "Failed to initialize drive vector DB for user {}: {}",
-                    user_id, e
+                    user_id,
+                    e
                 );
             } else {
                 job.drive_db = Some(drive_db);
@@ -245,9 +247,10 @@ impl VectorDBIndexer {
                                     }
                                 }
                                 Err(e) => {
-                                    error!(
+                                    log::error!(
                                         "Failed to generate embedding for email {}: {}",
-                                        email.id, e
+                                        email.id,
+                                        e
                                     );
                                 }
                             }
@@ -257,9 +260,10 @@ impl VectorDBIndexer {
                     }
                 }
                 Err(e) => {
-                    error!(
+                    log::error!(
                         "Failed to get unindexed emails for account {}: {}",
-                        account_id, e
+                        account_id,
+                        e
                     );
                 }
             }
