@@ -135,10 +135,7 @@ fn factory_llm_providers_are_in_integrations_catalog() {
             "llm",
             "{id} must be in the llm category"
         );
-        assert!(
-            !provider.actions.is_empty(),
-            "{id} must expose LLM actions"
-        );
+        assert!(!provider.actions.is_empty(), "{id} must expose LLM actions");
     }
 }
 
