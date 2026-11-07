@@ -1,6 +1,6 @@
-use uuid::Uuid;
 use diesel::prelude::*;
 use diesel::sql_query;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct TableSchema {
@@ -16,7 +16,10 @@ pub struct ColumnSchema {
     pub is_key: bool,
 }
 
-pub fn get_bot_table_schemas(conn: &mut PgConnection, bot_id: Uuid) -> Result<Vec<TableSchema>, String> {
+pub fn get_bot_table_schemas(
+    conn: &mut PgConnection,
+    bot_id: Uuid,
+) -> Result<Vec<TableSchema>, String> {
     #[derive(QueryableByName, Debug)]
     struct TableRow {
         #[diesel(sql_type = diesel::sql_types::Text)]
@@ -41,7 +44,7 @@ pub fn get_bot_table_schemas(conn: &mut PgConnection, bot_id: Uuid) -> Result<Ve
         "SELECT table_name \
          FROM dynamic_table_definitions \
          WHERE bot_id = $1 AND is_active = true \
-         ORDER BY table_name"
+         ORDER BY table_name",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .load(conn)
@@ -61,7 +64,7 @@ pub fn get_bot_table_schemas(conn: &mut PgConnection, bot_id: Uuid) -> Result<Ve
                  FROM dynamic_table_fields dtf \
                  JOIN dynamic_table_definitions dtd ON dtf.table_definition_id = dtd.id \
                  WHERE dtd.bot_id = $1 AND dtd.table_name = $2 \
-                 ORDER BY dtf.field_order"
+                 ORDER BY dtf.field_order",
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Varchar, _>(&table.table_name)
@@ -110,7 +113,8 @@ pub fn format_schemas_as_prompt(tables: &[TableSchema]) -> String {
     let mut result = String::new();
     result.push_str("Database tables defined in tables.bas (materialized):\n\n");
     for table in tables {
-        let key_cols: Vec<&str> = table.columns
+        let key_cols: Vec<&str> = table
+            .columns
             .iter()
             .filter(|c| c.is_key)
             .map(|c| c.name.as_str())

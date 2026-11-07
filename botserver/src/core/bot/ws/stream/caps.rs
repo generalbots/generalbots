@@ -21,23 +21,19 @@ pub(super) fn resolve(state: &Arc<AppState>, bot_uuid: Uuid, user_id: Uuid) -> R
             #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
             max_seconds: Option<i64>,
         }
-        state
-            .conn
-            .get()
-            .ok()
-            .and_then(|mut conn| {
-                diesel::sql_query(
-                    "SELECT min(NULLIF(p.max_tokens, 0))::bigint AS max_tokens, \
+        state.conn.get().ok().and_then(|mut conn| {
+            diesel::sql_query(
+                "SELECT min(NULLIF(p.max_tokens, 0))::bigint AS max_tokens, \
                             min(NULLIF(p.max_seconds, 0))::bigint AS max_seconds \
                      FROM group_cap_policies p \
                      JOIN rbac_groups g ON g.name = p.group_name \
                      JOIN rbac_user_groups ug ON ug.group_id = g.id \
                      WHERE ug.user_id = $1",
-                )
-                .bind::<diesel::sql_types::Uuid, _>(user_id)
-                .get_result::<PolicyRow>(&mut conn)
-                .ok()
-            })
+            )
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<PolicyRow>(&mut conn)
+            .ok()
+        })
     };
     let group_caps = RunCaps::from_env().restrict_to(
         group_policy

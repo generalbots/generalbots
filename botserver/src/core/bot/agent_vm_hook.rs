@@ -34,7 +34,8 @@ pub async fn run_shell_in_conversation(
 ) -> Option<(bool, String, String)> {
     let service = SERVICE.get()?;
     let conversation = conversation_id.to_string();
-    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await {
+    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await
+    {
         Ok(row) => row,
         Err((status, error)) => {
             log::warn!("autotask: could not ensure the workspace ({status}): {error}");
@@ -72,7 +73,8 @@ pub async fn run_shell_in_conversation_as_root(
 ) -> Option<(bool, String, String)> {
     let service = SERVICE.get()?;
     let conversation = conversation_id.to_string();
-    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await {
+    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await
+    {
         Ok(row) => row,
         Err((status, error)) => {
             log::warn!("autotask: could not ensure the workspace ({status}): {error}");
@@ -100,8 +102,13 @@ pub async fn handle_frame(
     if parsed.get("type").and_then(|v| v.as_str()) != Some("agent_mode") {
         return None;
     }
-    let Some(service) = SERVICE.get() else { return None };
-    let enabled = parsed.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
+    let Some(service) = SERVICE.get() else {
+        return None;
+    };
+    let enabled = parsed
+        .get("enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
 
     if !enabled {
         return Some("Agent mode is always active. Your workspace remains available.".to_string());
@@ -140,7 +147,9 @@ pub async fn ensure_agent_vm(
 
     match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation_id)).await {
         Ok(row) => {
-            if let Err(e) = botagent::vm::switch_conversation(service, &user_id, &conversation_id).await {
+            if let Err(e) =
+                botagent::vm::switch_conversation(service, &user_id, &conversation_id).await
+            {
                 botlog::safe_warn!("conversation switch for {session_id}: {}", e.1);
             }
             Some(row)
@@ -156,12 +165,8 @@ pub async fn ensure_agent_vm(
 /// from history. Best-effort: a missing VM or service is not an error.
 pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::Uuid) {
     let Some(service) = SERVICE.get() else { return };
-    if let Err((code, err)) = botagent::vm::delete_conversation_folder(
-        service,
-        &user_id,
-        &session_id.to_string(),
-    )
-    .await
+    if let Err((code, err)) =
+        botagent::vm::delete_conversation_folder(service, &user_id, &session_id.to_string()).await
     {
         botlog::safe_warn!("delete conversation folder for {session_id} failed ({code}): {err}");
     }
@@ -290,11 +295,7 @@ pub async fn exec_with_wake_result(
     timeout_ms: u64,
     packages: &[String],
 ) -> Result<Option<(bool, String, String)>, WorkspaceError> {
-    match exec_in_user_vm_result(
-        user_id, session_id, language, code, timeout_ms, packages,
-    )
-    .await
-    {
+    match exec_in_user_vm_result(user_id, session_id, language, code, timeout_ms, packages).await {
         Ok(Some(outcome)) => return Ok(Some(outcome)),
         Ok(None) => {}
         Err((status, error)) => {
@@ -349,13 +350,9 @@ pub async fn list_user_vm_output(
     if row.status != botagent::vm::STATUS_RUNNING {
         return None;
     }
-    botagent::vm::list_conversation_output(
-        service,
-        &row.vm_name,
-        &session_id.to_string(),
-    )
-    .await
-    .ok()
+    botagent::vm::list_conversation_output(service, &row.vm_name, &session_id.to_string())
+        .await
+        .ok()
 }
 
 /// Reads a file from the conversation folder (#1584 drive_fetch target check).
@@ -365,21 +362,18 @@ pub async fn read_session_file(
     session_id: uuid::Uuid,
     rel_path: &str,
 ) -> Result<Vec<u8>, String> {
-    let service = SERVICE.get().ok_or_else(|| "workspace unavailable".to_string())?;
+    let service = SERVICE
+        .get()
+        .ok_or_else(|| "workspace unavailable".to_string())?;
     let row = botagent::vm::get_user_vm(service, &user_id)
         .map_err(|(_, e)| e)?
         .ok_or_else(|| "no workspace".to_string())?;
     if row.status != botagent::vm::STATUS_RUNNING {
         return Err("workspace is not running".to_string());
     }
-    botagent::transfer::read_file(
-        service,
-        &row.vm_name,
-        &session_id.to_string(),
-        rel_path,
-    )
-    .await
-    .map_err(|(_, e)| e)
+    botagent::transfer::read_file(service, &row.vm_name, &session_id.to_string(), rel_path)
+        .await
+        .map_err(|(_, e)| e)
 }
 
 /// Writes a file into the conversation folder (#1584 Drive → VM).
@@ -390,7 +384,9 @@ pub async fn write_session_file(
     rel_path: &str,
     bytes: &[u8],
 ) -> Result<usize, String> {
-    let service = SERVICE.get().ok_or_else(|| "workspace unavailable".to_string())?;
+    let service = SERVICE
+        .get()
+        .ok_or_else(|| "workspace unavailable".to_string())?;
     let row = botagent::vm::get_user_vm(service, &user_id)
         .map_err(|(_, e)| e)?
         .ok_or_else(|| "no workspace".to_string())?;
@@ -419,13 +415,8 @@ pub async fn list_session_folder(
     if row.status != botagent::vm::STATUS_RUNNING {
         return None;
     }
-    botagent::transfer::list_folder(
-        service,
-        &row.vm_name,
-        &session_id.to_string(),
-        folder,
-    )
-    .await
-    .ok()
-    .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
+    botagent::transfer::list_folder(service, &row.vm_name, &session_id.to_string(), folder)
+        .await
+        .ok()
+        .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
 }

@@ -1,8 +1,8 @@
-use botlib::message_types::MessageType;
-use botlib::models::{BotResponse, UserMessage};
-use botcore::shared::state::AppState;
 use anyhow::Result;
 use async_trait::async_trait;
+use botcore::shared::state::AppState;
+use botlib::message_types::MessageType;
+use botlib::models::{BotResponse, UserMessage};
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, ToSocketAddrs};
 use std::sync::Arc;
@@ -50,14 +50,48 @@ fn is_safe_url(url: &str) -> bool {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MultimediaMessage {
-    Text { content: String },
-    Image { url: String, caption: Option<String>, mime_type: String },
-    Video { url: String, thumbnail_url: Option<String>, caption: Option<String>, duration: Option<u32>, mime_type: String },
-    Audio { url: String, duration: Option<u32>, mime_type: String },
-    Document { url: String, filename: String, mime_type: String },
-    WebSearch { query: String, results: Vec<SearchResult> },
-    Location { latitude: f64, longitude: f64, name: Option<String>, address: Option<String> },
-    MeetingInvite { meeting_id: String, meeting_url: String, start_time: Option<String>, duration: Option<u32>, participants: Vec<String> },
+    Text {
+        content: String,
+    },
+    Image {
+        url: String,
+        caption: Option<String>,
+        mime_type: String,
+    },
+    Video {
+        url: String,
+        thumbnail_url: Option<String>,
+        caption: Option<String>,
+        duration: Option<u32>,
+        mime_type: String,
+    },
+    Audio {
+        url: String,
+        duration: Option<u32>,
+        mime_type: String,
+    },
+    Document {
+        url: String,
+        filename: String,
+        mime_type: String,
+    },
+    WebSearch {
+        query: String,
+        results: Vec<SearchResult>,
+    },
+    Location {
+        latitude: f64,
+        longitude: f64,
+        name: Option<String>,
+        address: Option<String>,
+    },
+    MeetingInvite {
+        meeting_id: String,
+        meeting_url: String,
+        start_time: Option<String>,
+        duration: Option<u32>,
+        participants: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -86,7 +120,12 @@ pub struct MediaUploadResponse {
 
 #[async_trait]
 pub trait MultimediaHandler: Send + Sync {
-    async fn process_multimedia(&self, message: MultimediaMessage, user_id: &str, session_id: &str) -> Result<BotResponse>;
+    async fn process_multimedia(
+        &self,
+        message: MultimediaMessage,
+        user_id: &str,
+        session_id: &str,
+    ) -> Result<BotResponse>;
     async fn upload_media(&self, request: MediaUploadRequest) -> Result<MediaUploadResponse>;
     async fn download_media(&self, url: &str) -> Result<Vec<u8>>;
     async fn web_search(&self, query: &str, max_results: usize) -> Result<Vec<SearchResult>>;
@@ -110,32 +149,38 @@ impl DefaultMultimediaHandler {
 
 #[async_trait]
 impl MultimediaHandler for DefaultMultimediaHandler {
-    async fn process_multimedia(&self, message: MultimediaMessage, user_id: &str, session_id: &str) -> Result<BotResponse> {
+    async fn process_multimedia(
+        &self,
+        message: MultimediaMessage,
+        user_id: &str,
+        session_id: &str,
+    ) -> Result<BotResponse> {
         match message {
-            MultimediaMessage::Text { content } => {
-                Ok(BotResponse {
-                    bot_id: "default".to_string(),
-                    user_id: user_id.to_string(),
-                    session_id: session_id.to_string(),
-                    channel: "multimedia".to_string(),
-                    content,
-                    message_type: MessageType::EXTERNAL,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions: Vec::new(),
-                    switchers: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-            reasoning: String::new(),
-                })
-            }
+            MultimediaMessage::Text { content } => Ok(BotResponse {
+                bot_id: "default".to_string(),
+                user_id: user_id.to_string(),
+                session_id: session_id.to_string(),
+                channel: "multimedia".to_string(),
+                content,
+                message_type: MessageType::EXTERNAL,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+                switchers: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+                reasoning: String::new(),
+            }),
             MultimediaMessage::Image { url, caption, .. } => {
                 log::debug!("Processing image from URL: {}", url);
                 let response_content = format!(
                     "I see you've shared an image from {}{}.",
                     url,
-                    caption.as_ref().map(|c| format!(" with caption: {}", c)).unwrap_or_default()
+                    caption
+                        .as_ref()
+                        .map(|c| format!(" with caption: {}", c))
+                        .unwrap_or_default()
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -151,16 +196,24 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
-            reasoning: String::new(),
+                    reasoning: String::new(),
                 })
             }
-            MultimediaMessage::Video { url, caption, duration, .. } => {
+            MultimediaMessage::Video {
+                url,
+                caption,
+                duration,
+                ..
+            } => {
                 log::debug!("Processing video from URL: {}", url);
                 let response_content = format!(
                     "You've shared a video from {}{}{}.",
                     url,
                     duration.map(|d| format!(" ({}s)", d)).unwrap_or_default(),
-                    caption.as_ref().map(|c| format!(" - {}", c)).unwrap_or_default()
+                    caption
+                        .as_ref()
+                        .map(|c| format!(" - {}", c))
+                        .unwrap_or_default()
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -176,7 +229,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
-            reasoning: String::new(),
+                    reasoning: String::new(),
                 })
             }
             MultimediaMessage::WebSearch { query, .. } => {
@@ -184,9 +237,14 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 let response_content = if results.is_empty() {
                     format!("No results found for: {}", query)
                 } else {
-                    let results_text = results.iter().enumerate()
-                        .map(|(i, r)| format!("{}. [{}]({})\n   {}", i + 1, r.title, r.url, r.snippet))
-                        .collect::<Vec<_>>().join("\n\n");
+                    let results_text = results
+                        .iter()
+                        .enumerate()
+                        .map(|(i, r)| {
+                            format!("{}. [{}]({})\n   {}", i + 1, r.title, r.url, r.snippet)
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n\n");
                     format!("Search results for \"{}\":\n\n{}", query, results_text)
                 };
                 Ok(BotResponse {
@@ -203,14 +261,21 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
-            reasoning: String::new(),
+                    reasoning: String::new(),
                 })
             }
-            MultimediaMessage::MeetingInvite { meeting_url, start_time, .. } => {
+            MultimediaMessage::MeetingInvite {
+                meeting_url,
+                start_time,
+                ..
+            } => {
                 let response_content = format!(
                     "Meeting invite received. Join at: {}{}",
                     meeting_url,
-                    start_time.as_ref().map(|t| format!("\nScheduled for: {}", t)).unwrap_or_default()
+                    start_time
+                        .as_ref()
+                        .map(|t| format!("\nScheduled for: {}", t))
+                        .unwrap_or_default()
                 );
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
@@ -226,27 +291,25 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     context_name: None,
                     context_length: 0,
                     context_max_length: 0,
-            reasoning: String::new(),
+                    reasoning: String::new(),
                 })
             }
-            _ => {
-                Ok(BotResponse {
-                    bot_id: "default".to_string(),
-                    user_id: user_id.to_string(),
-                    session_id: session_id.to_string(),
-                    channel: "multimedia".to_string(),
-                    content: "Message received and processing...".to_string(),
-                    message_type: MessageType::EXTERNAL,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions: Vec::new(),
-                    switchers: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-            reasoning: String::new(),
-                })
-            }
+            _ => Ok(BotResponse {
+                bot_id: "default".to_string(),
+                user_id: user_id.to_string(),
+                session_id: session_id.to_string(),
+                channel: "multimedia".to_string(),
+                content: "Message received and processing...".to_string(),
+                message_type: MessageType::EXTERNAL,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+                switchers: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+                reasoning: String::new(),
+            }),
         }
     }
 
@@ -316,13 +379,19 @@ pub trait UserMessageMultimedia {
 impl UserMessageMultimedia for UserMessage {
     fn to_multimedia(&self) -> MultimediaMessage {
         if self.content.starts_with("http") {
-            if self.content.contains(".jpg") || self.content.contains(".png") || self.content.contains(".gif") {
+            if self.content.contains(".jpg")
+                || self.content.contains(".png")
+                || self.content.contains(".gif")
+            {
                 MultimediaMessage::Image {
                     url: self.content.clone(),
                     caption: None,
                     mime_type: "image/jpeg".to_string(),
                 }
-            } else if self.content.contains(".mp4") || self.content.contains(".webm") || self.content.contains(".mov") {
+            } else if self.content.contains(".mp4")
+                || self.content.contains(".webm")
+                || self.content.contains(".mov")
+            {
                 MultimediaMessage::Video {
                     url: self.content.clone(),
                     thumbnail_url: None,
@@ -331,13 +400,23 @@ impl UserMessageMultimedia for UserMessage {
                     mime_type: "video/mp4".to_string(),
                 }
             } else {
-                MultimediaMessage::Text { content: self.content.clone() }
+                MultimediaMessage::Text {
+                    content: self.content.clone(),
+                }
             }
         } else if self.content.starts_with("/search ") {
-            let query = self.content.strip_prefix("/search ").unwrap_or(&self.content);
-            MultimediaMessage::WebSearch { query: query.to_string(), results: Vec::new() }
+            let query = self
+                .content
+                .strip_prefix("/search ")
+                .unwrap_or(&self.content);
+            MultimediaMessage::WebSearch {
+                query: query.to_string(),
+                results: Vec::new(),
+            }
         } else {
-            MultimediaMessage::Text { content: self.content.clone() }
+            MultimediaMessage::Text {
+                content: self.content.clone(),
+            }
         }
     }
 }
@@ -348,7 +427,10 @@ pub async fn upload_media_handler(
 ) -> impl axum::response::IntoResponse {
     let handler = DefaultMultimediaHandler::new();
     match handler.upload_media(request).await {
-        Ok(response) => (axum::http::StatusCode::OK, axum::Json(serde_json::json!(response))),
+        Ok(response) => (
+            axum::http::StatusCode::OK,
+            axum::Json(serde_json::json!(response)),
+        ),
         Err(e) => (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(crate::security::error_sanitizer::log_and_sanitize_json(
@@ -375,11 +457,17 @@ pub async fn web_search_handler(
     axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> impl axum::response::IntoResponse {
     let query = payload.get("query").and_then(|q| q.as_str()).unwrap_or("");
-    let max_results = payload.get("max_results").and_then(|m| m.as_u64()).unwrap_or(10) as usize;
+    let max_results = payload
+        .get("max_results")
+        .and_then(|m| m.as_u64())
+        .unwrap_or(10) as usize;
 
     let handler = DefaultMultimediaHandler::new();
     match handler.web_search(query, max_results).await {
-        Ok(results) => (axum::http::StatusCode::OK, axum::Json(serde_json::json!({"query": query, "results": results}))),
+        Ok(results) => (
+            axum::http::StatusCode::OK,
+            axum::Json(serde_json::json!({"query": query, "results": results})),
+        ),
         Err(e) => (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(crate::security::error_sanitizer::log_and_sanitize_json(

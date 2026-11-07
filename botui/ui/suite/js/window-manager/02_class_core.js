@@ -5,7 +5,7 @@
   if (!WM) return;
   var APPS_REGISTRY = WM.APPS_REGISTRY;
   var CATEGORY_LABELS = WM.CATEGORY_LABELS;
-  var isAlwaysAppId = WM.isAlwaysAppId;
+  var isCoreAppId = WM.isCoreAppId;
   var isPreviewId = WM.isPreviewId;
 
 class WindowManager {

@@ -119,7 +119,12 @@ pub async fn complete(id: Uuid, user_id: Uuid, result: Value) -> Option<Computer
         .and_then(Value::as_str)
         .unwrap_or("completed")
         .to_string();
-    entry.status = if status == "denied" { "denied" } else { "completed" }.to_string();
+    entry.status = if status == "denied" {
+        "denied"
+    } else {
+        "completed"
+    }
+    .to_string();
     entry.result = Some(result);
     Some(entry.clone())
 }
@@ -165,10 +170,7 @@ pub async fn is_approved(id: Uuid, user_id: Uuid) -> bool {
 
 /// Completed outcomes not yet shown to the model, oldest first. Marks them
 /// reported so one result never leaks into two turns (#1644).
-pub async fn take_completed_for_prompt(
-    session_id: &str,
-    user_id: Uuid,
-) -> Vec<ComputerAction> {
+pub async fn take_completed_for_prompt(session_id: &str, user_id: Uuid) -> Vec<ComputerAction> {
     let mut map = registry().lock().await;
     prune(&mut map);
     let mut collected = Vec::new();
@@ -192,8 +194,16 @@ pub async fn take_completed_for_prompt(
 pub fn propose_from_text(text: &str) -> Option<Value> {
     let lower = text.to_lowercase();
     let intent = [
-        "open ", "abrir ", "read ", "leia ", "extract ", "extraia ", "visit ", "aceda ",
-        "navigate to ", "acesse ",
+        "open ",
+        "abrir ",
+        "read ",
+        "leia ",
+        "extract ",
+        "extraia ",
+        "visit ",
+        "aceda ",
+        "navigate to ",
+        "acesse ",
     ]
     .iter()
     .any(|verb| lower.contains(verb));
@@ -240,16 +250,17 @@ pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
         "executa ",
     ];
     let rest = prefixes.iter().find_map(|prefix| {
-        lower
-            .starts_with(prefix)
-            .then(|| trimmed.chars().skip(prefix.chars().count()).collect::<String>())
+        lower.starts_with(prefix).then(|| {
+            trimmed
+                .chars()
+                .skip(prefix.chars().count())
+                .collect::<String>()
+        })
     })?;
     let rest = rest.trim();
     let command = if let Some(start) = rest.find('`') {
         let after = &rest[start + 1..];
-        after
-            .find('`')
-            .map(|end| after[..end].trim().to_string())?
+        after.find('`').map(|end| after[..end].trim().to_string())?
     } else {
         // "Run this shell command with vm_exec: ls /nope. Report the exit
         // code" used to propose the whole sentence as the command. When the
@@ -258,8 +269,7 @@ pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
         let candidate = match rest.split_once(':') {
             Some((head, after)) => {
                 let head = head.to_lowercase();
-                if head.contains("command") || head.contains("vm_exec") || head.contains("shell")
-                {
+                if head.contains("command") || head.contains("vm_exec") || head.contains("shell") {
                     after
                 } else {
                     rest
@@ -331,9 +341,17 @@ mod tests {
     async fn results_are_scoped_to_the_owner() {
         let owner = user();
         let session = format!("s-{}", Uuid::new_v4());
-        let action = create(&session, owner, "browser", json!({"action": "extract_text"})).await;
+        let action = create(
+            &session,
+            owner,
+            "browser",
+            json!({"action": "extract_text"}),
+        )
+        .await;
 
-        assert!(complete(action.id, user(), json!({"status": "ok"})).await.is_none());
+        assert!(complete(action.id, user(), json!({"status": "ok"}))
+            .await
+            .is_none());
         assert!(get(action.id, user()).await.is_none());
 
         let done = complete(action.id, owner, json!({"status": "ok", "text": "hello"}))
@@ -342,7 +360,13 @@ mod tests {
         assert_eq!(done.status, "completed");
         assert_eq!(done.result.unwrap()["text"], "hello");
 
-        let denied = create(&session, owner, "browser", json!({"action": "click_element"})).await;
+        let denied = create(
+            &session,
+            owner,
+            "browser",
+            json!({"action": "click_element"}),
+        )
+        .await;
         let denied = complete(denied.id, owner, json!({"status": "denied"}))
             .await
             .expect("denial is recorded");
@@ -362,7 +386,9 @@ mod tests {
         .await;
         assert_eq!(recorded.status, "completed");
         assert_eq!(recorded.kind, "terminal_exec");
-        let found = get(recorded.id, owner).await.expect("recorded action is readable");
+        let found = get(recorded.id, owner)
+            .await
+            .expect("recorded action is readable");
         assert_eq!(found.result.unwrap()["stdout"], "hi\n");
     }
 
@@ -395,7 +421,12 @@ mod tests {
         let owner = user();
         let session = format!("s-{}", Uuid::new_v4());
         let action = create(&session, owner, "browser", json!({"action": "open_url"})).await;
-        complete(action.id, owner, json!({"status": "ok", "title": "Example"})).await;
+        complete(
+            action.id,
+            owner,
+            json!({"status": "ok", "title": "Example"}),
+        )
+        .await;
         let first = take_completed_for_prompt(&session, owner).await;
         assert_eq!(first.len(), 1);
         assert!(
@@ -433,10 +464,9 @@ mod tests {
         .expect("a named command must propose a terminal action");
         assert_eq!(proposal["command"], "ls /nope");
 
-        let chained = propose_terminal_from_text(
-            "Use vm_exec to run the shell command: date; ls -la",
-        )
-        .expect("a chained command must be preserved");
+        let chained =
+            propose_terminal_from_text("Use vm_exec to run the shell command: date; ls -la")
+                .expect("a chained command must be preserved");
         assert_eq!(chained["command"], "date; ls -la");
     }
 }

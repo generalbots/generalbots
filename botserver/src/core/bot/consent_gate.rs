@@ -45,7 +45,12 @@ pub async fn check_with_context(
     run_id: Option<String>,
 ) -> GateOutcome {
     let Some(service) = service() else {
-        return GateOutcome { allowed: true, request_id: None, pending_request: None, card_html: None };
+        return GateOutcome {
+            allowed: true,
+            request_id: None,
+            pending_request: None,
+            card_html: None,
+        };
     };
     let context = botconsent::enforce::ConsentContext {
         thread_id,
@@ -103,8 +108,8 @@ pub fn marker_content(request: &botconsent::PendingRequest) -> String {
         "action_class": request.action_class,
         "detail": request.detail,
     });
-    let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .encode(payload.to_string().as_bytes());
+    let encoded =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(payload.to_string().as_bytes());
     format!(
         "Permission needed: the assistant wants to run '{class}' on '{app}'. Reply via the buttons or Settings.\nGB-CONSENT-REQUEST:{encoded}",
         class = request.action_class,

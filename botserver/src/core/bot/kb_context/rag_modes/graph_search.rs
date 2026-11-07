@@ -21,7 +21,11 @@ pub(super) async fn graph_search(
     let mut all_results: Vec<KbSearchResult> = Vec::new();
     for entity in &entities {
         let entity_results = entity_search_term(collection, entity, limit, bot_id, db_pool).await;
-        debug!("Graph RAG: entity '{}' returned {} results", entity, entity_results.len());
+        debug!(
+            "Graph RAG: entity '{}' returned {} results",
+            entity,
+            entity_results.len()
+        );
         all_results.extend(entity_results);
     }
 
@@ -30,11 +34,18 @@ pub(super) async fn graph_search(
         .unwrap_or_default();
     all_results.extend(original);
 
-    all_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     all_results.dedup_by(|a, b| a.content == b.content);
     all_results.truncate(limit);
 
-    info!("Graph RAG: {} results after entity merge", all_results.len());
+    info!(
+        "Graph RAG: {} results after entity merge",
+        all_results.len()
+    );
     all_results
 }
 pub(super) fn decompose_query(query: &str) -> Vec<String> {
@@ -71,7 +82,11 @@ pub(super) fn decompose_query(query: &str) -> Vec<String> {
     sub_queries.dedup();
     sub_queries
 }
-pub(super) async fn llm_decompose_query(query: &str, bot_id: Uuid, db_pool: &DbPool) -> Vec<String> {
+pub(super) async fn llm_decompose_query(
+    query: &str,
+    bot_id: Uuid,
+    db_pool: &DbPool,
+) -> Vec<String> {
     let provider = match create_llm_for_bot(bot_id, db_pool).await {
         Some(p) => p,
         None => {
@@ -88,7 +103,12 @@ pub(super) async fn llm_decompose_query(query: &str, bot_id: Uuid, db_pool: &DbP
         Ok(response) => {
             let sub_queries: Vec<String> = response
                 .lines()
-                .map(|l| l.trim().trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit()).trim().to_string())
+                .map(|l| {
+                    l.trim()
+                        .trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit())
+                        .trim()
+                        .to_string()
+                })
                 .filter(|l| !l.is_empty() && l.len() > 5)
                 .collect();
 
@@ -98,7 +118,10 @@ pub(super) async fn llm_decompose_query(query: &str, bot_id: Uuid, db_pool: &DbP
             let mut result = vec![query.to_string()];
             result.extend(sub_queries);
             result.dedup();
-            info!("Agentic RAG: LLM decomposed query into {} sub-queries", result.len());
+            info!(
+                "Agentic RAG: LLM decomposed query into {} sub-queries",
+                result.len()
+            );
             result
         }
         Err(_) => decompose_query(query),
@@ -127,14 +150,25 @@ pub(super) async fn agentic_search(
         return kb_context_search::search_keyword_only(collection, query, limit).await;
     }
 
-    all_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     all_results.dedup_by(|a, b| a.content == b.content);
     all_results.truncate(limit);
 
-    info!("Agentic RAG: {} results after sub-query merge", all_results.len());
+    info!(
+        "Agentic RAG: {} results after sub-query merge",
+        all_results.len()
+    );
     all_results
 }
-pub(super) async fn llm_expand_multimodal(query: &str, bot_id: Uuid, db_pool: &DbPool) -> Vec<String> {
+pub(super) async fn llm_expand_multimodal(
+    query: &str,
+    bot_id: Uuid,
+    db_pool: &DbPool,
+) -> Vec<String> {
     let provider = match create_llm_for_bot(bot_id, db_pool).await {
         Some(p) => p,
         None => {
@@ -153,22 +187,38 @@ pub(super) async fn llm_expand_multimodal(query: &str, bot_id: Uuid, db_pool: &D
         Ok(response) => {
             let expanded: Vec<String> = response
                 .lines()
-                .map(|l| l.trim().trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit()).trim().to_string())
+                .map(|l| {
+                    l.trim()
+                        .trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit())
+                        .trim()
+                        .to_string()
+                })
                 .filter(|l| !l.is_empty() && l.len() > 5)
                 .collect();
 
             if expanded.is_empty() {
-                return vec![query.to_string(), format!("{query} image diagram chart"), format!("{query} visual graph")];
+                return vec![
+                    query.to_string(),
+                    format!("{query} image diagram chart"),
+                    format!("{query} visual graph"),
+                ];
             }
             let mut result = vec![query.to_string()];
             result.extend(expanded);
             result.dedup();
             result.truncate(3);
-            info!("Multimodal RAG: expanded query into {} variants", result.len());
+            info!(
+                "Multimodal RAG: expanded query into {} variants",
+                result.len()
+            );
             result
         }
         Err(_) => {
-            vec![query.to_string(), format!("{query} image diagram chart"), format!("{query} visual graph")]
+            vec![
+                query.to_string(),
+                format!("{query} image diagram chart"),
+                format!("{query} visual graph"),
+            ]
         }
     }
 }
@@ -195,23 +245,47 @@ pub(super) async fn multimodal_search(
         return kb_context_search::search_keyword_only(collection, query, limit).await;
     }
 
-    all_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     all_results.dedup_by(|a, b| a.content == b.content);
     all_results.truncate(limit);
 
-    let has_image_terms: Vec<&str> = vec!["image", "diagram", "chart", "graph", "figure", "table", "visual", "drawing", "photo", "screenshot"];
+    let has_image_terms: Vec<&str> = vec![
+        "image",
+        "diagram",
+        "chart",
+        "graph",
+        "figure",
+        "table",
+        "visual",
+        "drawing",
+        "photo",
+        "screenshot",
+    ];
     for result in &mut all_results {
         let content_lower = result.content.to_lowercase();
-        let image_boost = has_image_terms.iter()
+        let image_boost = has_image_terms
+            .iter()
             .filter(|&&t| content_lower.contains(t))
-            .count() as f32 * 0.1;
+            .count() as f32
+            * 0.1;
         if image_boost > 0.0 {
             result.score = (result.score + image_boost).min(1.0);
         }
     }
 
-    all_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
-    info!("Multimodal RAG: {} results after multi-variant search", all_results.len());
+    info!(
+        "Multimodal RAG: {} results after multi-variant search",
+        all_results.len()
+    );
     all_results
 }

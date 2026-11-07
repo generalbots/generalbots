@@ -72,6 +72,7 @@ var featureFiles = [
   "drive/modules/12_offline_sync.js",
   "drive/modules/98_actions.js",
   "js/auto-update.js",
+  "js/auto-update-settings.js",
   "js/data-export.js",
   "js/usage-stats.js",
   "js/privacy-controls.js",

@@ -201,7 +201,7 @@
   function start() {
     if (state.recording || state.starting) return;
     if (!supported()) {
-      notify(tr("chat-voice-unsupported", "Voice input needs microphone access, which this browser does not provide."), "error");
+      notify(tr("chat-voice-unsupported", "Voice input needs microphone access, which the desktop app does not provide."), "error");
       return;
     }
     state.starting = true;
@@ -219,7 +219,7 @@
             ? new MediaRecorder(stream, { mimeType: state.mime })
             : new MediaRecorder(stream);
         } catch (e) {
-          notify(tr("chat-voice-unsupported", "This browser cannot record audio."), "error");
+          notify(tr("chat-voice-unsupported", "This desktop app cannot record audio."), "error");
           cleanupStream();
           state.starting = false;
           return;
@@ -255,7 +255,7 @@
         var denied = error && (error.name === "NotAllowedError" || error.name === "SecurityError");
         notify(
           denied
-            ? tr("chat-voice-denied", "Microphone permission was denied. Allow it in the browser to use voice.")
+            ? tr("chat-voice-denied", "Microphone permission was denied. Allow microphone access for the desktop app in your system settings to use voice.")
             : tr("chat-voice-error", "Could not start the microphone."),
           "error",
         );

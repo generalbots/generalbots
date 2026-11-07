@@ -195,7 +195,9 @@ pub async fn websocket_handler(
     let bot_uuid = lookup_bot_id(&state, &bot_name);
     botlog::safe_info!(
         "WebSocket: bot={}, session={}, user={}",
-        bot_name, session_id, user_id
+        bot_name,
+        session_id,
+        user_id
     );
     ws.on_upgrade(move |socket| {
         super::session::handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)

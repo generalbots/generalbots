@@ -8,10 +8,25 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .map(|s| s.to_string());
     let apps = registry::all_apps();
 
-    let enabled: std::collections::HashSet<String> = botcore::product::PRODUCT_CONFIG
+    // #1811 — the product file is the single source of the always/preview/
+    // hidden split. `enabled` comes from `apps`, `preview` from `preview_apps`
+    // and `hidden` from `hidden_apps`; Cargo only decides whether the app
+    // exists. Core surfaces remain available without being listed.
+    let (enabled, preview, hidden): (
+        std::collections::HashSet<String>,
+        std::collections::HashSet<String>,
+        std::collections::HashSet<String>,
+    ) = botcore::product::PRODUCT_CONFIG
         .read()
         .map(|c| {
-            normalize_email_app_alias(c.get_enabled_apps().into_iter().collect())
+            let hidden: std::collections::HashSet<String> =
+                c.get_hidden_apps().into_iter().collect();
+            let enabled = normalize_email_app_alias(c.get_enabled_apps().into_iter().collect())
+                .into_iter()
+                .filter(|id| !hidden.contains(id))
+                .collect();
+            let preview = c.get_preview_apps().into_iter().collect();
+            (enabled, preview, hidden)
         })
         .unwrap_or_default();
 
@@ -31,15 +46,14 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .iter()
         .map(|a| {
             let id = a.id.as_str();
-            // #1409 — permanently-visible apps are compiled and enabled no
-            // matter what the product file (or feature map) says.
-            let always = ALWAYS_APPS.contains(&id);
-            let compiled = always || is_app_compiled(id) || CORE_APPS.contains(&id);
-            let is_enabled = always || enabled.contains(id) || CORE_APPS.contains(&id);
-            // #1539/#1540 — any app not explicitly enabled by `.product`'s
-            // `apps=` list is preview: hidden until the user turns Preview
-            // mode on. The always-visible core set is exempt.
-            let is_preview = !always && !is_enabled;
+            // #1811 — compiled answers "does this binary ship the app?" and is
+            // independent of the product profile. The visibility split lives
+            // entirely in `.product`: apps / preview_apps / hidden_apps.
+            let core = CORE_APPS.contains(&id);
+            let compiled = core || is_app_compiled(id);
+            let is_hidden = hidden.contains(id);
+            let is_enabled = !is_hidden && (core || enabled.contains(id));
+            let is_preview = !core && !is_hidden && !is_enabled && preview.contains(id);
             // Merge curated commands with the harvested on-the-fly surface.
             let app_derived: Vec<serde_json::Value> = derived
                 .iter()
@@ -73,13 +87,12 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "icon": a.icon,
                 "kind": a.kind,
                 "widget": a.widget,
-                // #1409 — permanently-visible apps are pinned for the
-                // launcher too, so they show in the start menu and the
-                // sidebar rail even though they are not in `.product`'s
-                // `apps=` list.
-                "launcher_default": always || a.launcher_default,
+                // Core surfaces stay pinned so about/admin/settings are
+                // reachable even though they are not in `apps=`.
+                "launcher_default": core || a.launcher_default,
                 "enabled": is_enabled,
                 "preview": is_preview,
+                "hidden": is_hidden,
                 "compiled": compiled,
                 "commands": commands,
                 "deep_link_params": commands::deep_link_params_for_app(id),

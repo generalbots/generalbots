@@ -3,66 +3,75 @@ use super::*;
 impl Default for ProductConfig {
     fn default() -> Self {
         let mut apps = HashSet::new();
-        // All apps enabled by default (docs/slides excluded — OOXML SDK gate)
+        // #1811 — without a `.product` file every registry app is enabled. The
+        // core surfaces (about/admin/settings) stay implicit and are handled by
+        // the catalog, while product files override this list explicitly.
         for app in &[
-            "chat",
-            "mail",
-            "calendar",
-            "drive",
-            "tasks",
-            "paper",
-            "sheet",
-            "meet",
-            "research",
-            "sources",
             "analytics",
-            "admin",
-            "monitoring",
-            "settings",
             "attendant",
-            "tools",
-            "video",
-            "player",
-            "canvas",
-            "social",
-            "people",
-            "crm",
-            "tickets",
+            "automations",
+            "banking",
             "billing",
-            "products",
-            "designer",
-            "workspace",
-            "project",
-            "goals",
-            "editor",
-            "learn",
-            "vibe",
+            "browser",
+            "calculator",
+            "calendar",
             "campaigns",
+            "canvas",
+            "chat",
+            "clock-widget",
+            "compliance",
+            "concierge",
+            "crm",
+            "database",
+            "designer",
+            "desktop",
+            "docs",
+            "drive",
+            "editor",
+            "fraud",
+            "goals",
+            "handoff",
+            "hr",
+            "integrations",
+            "jukebox",
+            "kyc",
+            "learn",
             "lists",
+            "mail",
+            "meet",
+            "memory",
+            "minutes",
+            "monitoring",
+            "notes",
+            "o365",
+            "paper",
+            "people",
+            "photos",
+            "plan",
+            "player",
+            "plugins",
+            "pos",
+            "products",
+            "project",
+            "recycle",
+            "research",
+            "retail",
+            "sheet",
+            "slides",
+            "social",
+            "store",
+            "tasks",
+            "tax",
             "templates",
             "terminal",
-            "browser",
-            "database",
-            "plan",
-            "compliance",
-            "tax",
-            "vision",
-            "fraud",
-            "erp",
-            "integrations",
-            "itsm",
-            "hr",
-            "banking",
-            "sales",
-            "pos",
-            "retail",
-            "handoff",
-            "kyc",
-            "biometry",
+            "tickets",
             "timeclock",
-            "m365",
-            "office365",
-            "minutes",
+            "timer",
+            "vibe",
+            "video",
+            "vision",
+            "weather",
+            "workspace",
         ] {
             apps.insert(app.to_string());
         }
@@ -85,6 +94,7 @@ impl Default for ProductConfig {
             hidden_apps: HashSet::new(),
             no_security: false,
             shell_mode: false,
+            public_base_url: None,
         }
     }
 }
@@ -241,6 +251,12 @@ impl ProductConfig {
                         config.shell_mode = value.eq_ignore_ascii_case("true")
                             || value == "1"
                             || value.eq_ignore_ascii_case("yes");
+                    }
+                    "public_base_url" => {
+                        if !value.is_empty() {
+                            config.public_base_url =
+                                Some(value.trim().trim_end_matches('/').to_string());
+                        }
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);

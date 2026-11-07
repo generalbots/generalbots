@@ -112,6 +112,9 @@ pub async fn run_axum_server(
             "/api/manifest".into(),
             "/api/i18n".into(),
             "/api/client-errors".into(),
+            // Peer registration is machine-to-machine and authenticates with
+            // the optional GB_PEER_TOKEN bearer header, not a CSRF cookie.
+            "/api/peer/*".into(),
             "/api/cloud/auth*".into(),
             "/api/sheet*".into(),
             "/suite/sheet*".into(),

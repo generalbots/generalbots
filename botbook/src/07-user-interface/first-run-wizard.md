@@ -160,6 +160,7 @@ marketing copy:
 | API keys, OAuth tokens | the local vault in the stack folder | on save |
 | Prompts and answers | the model chosen in step 2 — *nothing* when the bundled local model is selected | every message |
 | Mail and files | connected providers, only for requested actions | per request |
+| Shared links | this network, your own domain, or a free General Bots address — only when the recipient can reach the host | per link, until revoked or expired |
 | Crash reports | nowhere unless the opt-in checkbox is on | opt-in |
 
 ## Assistant model options

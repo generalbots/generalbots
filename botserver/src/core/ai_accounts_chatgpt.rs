@@ -101,13 +101,17 @@ fn decode_jwt_payload(token: &str) -> Option<Value> {
 }
 
 fn claim_string(payload: &Value, key: &str) -> Option<String> {
-    payload.get(key).and_then(Value::as_str).map(str::to_string).or_else(|| {
-        payload
-            .get("https://api.openai.com/auth")
-            .and_then(|auth| auth.get(key))
-            .and_then(Value::as_str)
-            .map(str::to_string)
-    })
+    payload
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| {
+            payload
+                .get("https://api.openai.com/auth")
+                .and_then(|auth| auth.get(key))
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
 }
 
 /// Starts the loopback listener and returns the authorization URL.
@@ -125,13 +129,21 @@ pub async fn start_connect(
         pending.retain(|_, entry| now_secs().saturating_sub(entry.created) < 900);
         pending.insert(
             state.clone(),
-            Pending { verifier, created: now_secs(), user_id },
+            Pending {
+                verifier,
+                created: now_secs(),
+                user_id,
+            },
         );
     }
 
     let redirect = redirect_uri();
-    let mut url = url::Url::parse(AUTHORIZE_URL)
-        .map_err(|error| bad(StatusCode::INTERNAL_SERVER_ERROR, &format!("authorize URL: {error}")))?;
+    let mut url = url::Url::parse(AUTHORIZE_URL).map_err(|error| {
+        bad(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("authorize URL: {error}"),
+        )
+    })?;
     url.query_pairs_mut()
         .append_pair("response_type", "code")
         .append_pair("client_id", &client_id())
@@ -174,11 +186,8 @@ async fn spawn_listener(pool: DbPool, state: String) -> Result<(), (StatusCode, 
         let server = axum::serve(listener, router);
         // An abandoned sign-in used to hold the fixed loopback port forever,
         // so nobody could start a new one (#1651).
-        match tokio::time::timeout(
-            std::time::Duration::from_secs(900),
-            async { server.await },
-        )
-        .await
+        match tokio::time::timeout(std::time::Duration::from_secs(900), async { server.await })
+            .await
         {
             Ok(Ok(())) => {}
             Ok(Err(error)) => log::warn!("chatgpt oauth listener stopped: {error}"),
@@ -197,8 +206,10 @@ async fn callback(
             .into_response();
     }
     let Some(code) = params.get("code").filter(|code| !code.is_empty()) else {
-        return Html("<h2>ChatGPT sign-in failed</h2><p>No authorization code was returned.</p>".to_string())
-            .into_response();
+        return Html(
+            "<h2>ChatGPT sign-in failed</h2><p>No authorization code was returned.</p>".to_string(),
+        )
+        .into_response();
     };
     let pending = {
         match PENDING.lock() {
@@ -207,8 +218,10 @@ async fn callback(
         }
     };
     let Some(pending) = pending else {
-        return Html("<h2>ChatGPT sign-in expired</h2><p>Start again from Settings.</p>".to_string())
-            .into_response();
+        return Html(
+            "<h2>ChatGPT sign-in expired</h2><p>Start again from Settings.</p>".to_string(),
+        )
+        .into_response();
     };
     match exchange(&pool, code, &pending.verifier, pending.user_id).await {
         Ok(()) => Html("<h2>ChatGPT plan connected</h2><p>You can close this window and return to General Bots.</p>".to_string())
@@ -255,14 +268,20 @@ async fn exchange(pool: &DbPool, code: &str, verifier: &str, user_id: Uuid) -> R
         .get("access_token")
         .and_then(Value::as_str)
         .ok_or_else(|| "the token endpoint returned no access token".to_string())?;
-    let refresh = body.get("refresh_token").and_then(Value::as_str).unwrap_or("");
+    let refresh = body
+        .get("refresh_token")
+        .and_then(Value::as_str)
+        .unwrap_or("");
     let id_token = body.get("id_token").and_then(Value::as_str).unwrap_or("");
     let expires_in = body
         .get("expires_in")
         .and_then(Value::as_u64)
         .unwrap_or(3600);
     let claims = decode_jwt_payload(id_token).unwrap_or(Value::Null);
-    let email = claims.get("email").and_then(Value::as_str).map(str::to_string);
+    let email = claims
+        .get("email")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     let account_id = claim_string(&claims, "chatgpt_account_id");
     let plan = claim_string(&claims, "chatgpt_plan_type");
 
@@ -270,7 +289,10 @@ async fn exchange(pool: &DbPool, code: &str, verifier: &str, user_id: Uuid) -> R
     data.insert("access_token".to_string(), access.to_string());
     data.insert("refresh_token".to_string(), refresh.to_string());
     data.insert("id_token".to_string(), id_token.to_string());
-    data.insert("expires_at".to_string(), (now_secs() + expires_in).to_string());
+    data.insert(
+        "expires_at".to_string(),
+        (now_secs() + expires_in).to_string(),
+    );
     data.insert(
         "base_url".to_string(),
         std::env::var("OPENAI_RESPONSES_BASE_URL")
@@ -308,9 +330,7 @@ async fn exchange(pool: &DbPool, code: &str, verifier: &str, user_id: Uuid) -> R
 }
 
 /// Reads the stored token, refreshing it when it is close to expiry.
-pub async fn access_token(
-    user_id: Uuid,
-) -> Result<(String, Option<String>), String> {
+pub async fn access_token(user_id: Uuid) -> Result<(String, Option<String>), String> {
     let manager = botcoresecrets::SecretsManager::get()
         .map_err(|error| format!("Vault is unavailable: {error}"))?;
     let path = crate::llm::subscription::chatgpt_vault_path(user_id);
@@ -357,10 +377,16 @@ pub async fn access_token(
         .get("access_token")
         .and_then(Value::as_str)
         .ok_or_else(|| "the refresh response returned no access token".to_string())?;
-    let expires_in = body.get("expires_in").and_then(Value::as_u64).unwrap_or(3600);
+    let expires_in = body
+        .get("expires_in")
+        .and_then(Value::as_u64)
+        .unwrap_or(3600);
     let mut updated = secret;
     updated.insert("access_token".to_string(), access.to_string());
-    updated.insert("expires_at".to_string(), (now_secs() + expires_in).to_string());
+    updated.insert(
+        "expires_at".to_string(),
+        (now_secs() + expires_in).to_string(),
+    );
     if let Some(refresh) = body.get("refresh_token").and_then(Value::as_str) {
         if !refresh.is_empty() {
             updated.insert("refresh_token".to_string(), refresh.to_string());

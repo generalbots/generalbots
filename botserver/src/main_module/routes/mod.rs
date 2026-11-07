@@ -21,6 +21,7 @@ pub mod goal_runs;
 pub mod group_budgets;
 pub mod misc_handlers;
 pub mod org_handlers;
+pub mod peer_network;
 pub mod product_handlers;
 pub mod security_setup;
 pub mod speech_duplex;

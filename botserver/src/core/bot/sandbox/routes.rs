@@ -18,8 +18,8 @@ use axum::{
 use botcore::shared::state::AppState;
 
 use super::csp::UiCsp;
-use super::store::read_resource;
 use super::sign::verify_resource;
+use super::store::read_resource;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -39,7 +39,11 @@ async fn serve_resource(
         return (StatusCode::UNAUTHORIZED, "missing resource token").into_response();
     };
     if verify_resource(&hash, token).is_err() {
-        return (StatusCode::UNAUTHORIZED, "invalid or expired resource token").into_response();
+        return (
+            StatusCode::UNAUTHORIZED,
+            "invalid or expired resource token",
+        )
+            .into_response();
     }
     let bucket = query
         .get("b")
@@ -68,7 +72,10 @@ fn resource_response(html: &str, csp: &UiCsp) -> Response {
         header::CONTENT_TYPE,
         HeaderValue::from_static("text/html; charset=utf-8"),
     );
-    headers.insert("x-content-type-options", HeaderValue::from_static("nosniff"));
+    headers.insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
     headers.insert("referrer-policy", HeaderValue::from_static("no-referrer"));
     headers.insert(
         header::CACHE_CONTROL,

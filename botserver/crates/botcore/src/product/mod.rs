@@ -83,6 +83,13 @@ pub struct ProductConfig {
     /// low-level "Operating System" panel, and the OS API refuses
     /// requests when it is false.
     pub shell_mode: bool,
+
+    /// Public base URL used to compose share links (#1863).
+    /// When set (or when `PUBLIC_BASE_URL` is present in the environment),
+    /// `/api/files/share-link` returns an absolute URL instead of the
+    /// path-relative `/api/files/public/{token}`. The desktop keeps this
+    /// optional: without it, links still work on the local machine.
+    pub public_base_url: Option<String>,
 }
 
 /// Error type for product configuration
@@ -153,6 +160,18 @@ theme=dark
         // the profile never advertises it.
         assert!(!config.is_app_enabled("integrations"));
         assert!(!config.is_app_enabled("automations"));
+    }
+
+    #[test]
+    fn test_public_base_url_is_parsed_without_trailing_slash() {
+        let config =
+            ProductConfig::parse("apps=chat,drive\npublic_base_url=https://files.example.com/")
+                .unwrap();
+
+        assert_eq!(
+            config.public_base_url.as_deref(),
+            Some("https://files.example.com")
+        );
     }
 
     #[test]

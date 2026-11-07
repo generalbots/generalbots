@@ -46,13 +46,12 @@ fn user_email(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
         email: String,
     }
     let mut conn = state.conn.get().ok()?;
-    let row: Option<EmailRow> =
-        diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
-            .bind::<SqlUuid, _>(user_id)
-            .get_result(&mut conn)
-            .optional()
-            .ok()
-            .flatten();
+    let row: Option<EmailRow> = diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
+        .bind::<SqlUuid, _>(user_id)
+        .get_result(&mut conn)
+        .optional()
+        .ok()
+        .flatten();
     let email = row?.email;
     if email.trim().is_empty() {
         return None;
@@ -70,8 +69,7 @@ pub fn scope(state: &Arc<AppState>, bot_uuid: &Uuid, user_id: Uuid) -> Option<Dr
     Some(DriveScope {
         bucket: location.bucket,
         bot_prefix: location.key_prefix,
-        user_prefix: user_email(state, user_id)
-            .map(|email| format!("users/{email}/")),
+        user_prefix: user_email(state, user_id).map(|email| format!("users/{email}/")),
     })
 }
 
@@ -96,10 +94,7 @@ pub async fn find_object(
             .ok()?;
         for object in listed {
             let key = object.key;
-            let relative = key
-                .strip_prefix(prefix)
-                .unwrap_or(&key)
-                .to_string();
+            let relative = key.strip_prefix(prefix).unwrap_or(&key).to_string();
             let lower = relative.to_lowercase();
             let name = lower.rsplit('/').next().unwrap_or(&lower);
             if lower == wanted {
@@ -113,11 +108,7 @@ pub async fn find_object(
     fallback
 }
 
-pub async fn read_object(
-    state: &Arc<AppState>,
-    scope: &DriveScope,
-    key: &str,
-) -> Option<Vec<u8>> {
+pub async fn read_object(state: &Arc<AppState>, scope: &DriveScope, key: &str) -> Option<Vec<u8>> {
     let drive = state.drive.clone()?;
     match drive.get_object(&scope.bucket, key).await {
         Ok(bytes) => Some(bytes),
@@ -129,7 +120,13 @@ pub async fn read_object(
 }
 
 fn content_type(name: &str) -> &'static str {
-    match name.rsplit('.').next().unwrap_or("").to_lowercase().as_str() {
+    match name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
         "pdf" => "application/pdf",
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",

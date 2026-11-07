@@ -200,7 +200,7 @@ function shareFile(path) {
         '<button onclick="DriveModule.copyShareLink()" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Copy</button>' +
         '<button onclick="DriveModule.revokeShareLinkFromModal(\'' + escapeJs(path) + '\')" style="background:#dc2626; border:none; border-radius:6px; color:#fff; padding:0 16px; cursor:pointer; font-weight:500; font-size:13px;">Revoke</button>' +
         '</div>' +
-        '<div style="border-top:1px solid #334155; padding-top:14px;">' +
+        '<div id="share-person-section" style="border-top:1px solid #334155; padding-top:14px;">' +
         '<h4 style="margin:0 0 8px; color:#f8fafc; font-size:14px;">Share with a person</h4>' +
         '<div style="display:flex; gap:8px;">' +
         '<input id="share-recipient-input" type="search" placeholder="Email or username" autocomplete="off" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px;" />' +
@@ -231,6 +231,18 @@ function shareFile(path) {
         '</div>';
     modal.appendChild(container);
     document.body.appendChild(modal);
+
+    // #1863 — desktop-local is a single-user install: "share with a person"
+    // has no recipient directory to resolve, so the section is not offered.
+    var product = window.productConfig || {};
+    var desktopLocal = product.shell_mode === true ||
+        product.desktop_local === true ||
+        product.is_desktop === true ||
+        product.no_security === true;
+    if (desktopLocal) {
+        var personSection = document.getElementById("share-person-section");
+        if (personSection) personSection.style.display = "none";
+    }
 
     bindShareRecipientSearch(path);
     loadExistingShareLink(path);
@@ -267,22 +279,39 @@ function isExpired(value) {
     return isFinite(when) && when <= Date.now();
 }
 
+function shareLinkReach(url) {
+    try {
+        var host = new URL(url, window.location.href).hostname.toLowerCase();
+        if (host === "localhost" || host === "127.0.0.1" || host === "::1" ||
+            host === "[::1]" || host.endsWith(".localhost")) {
+            return "Only this machine can open this link.";
+        }
+        return "Anyone who can reach " + host + " can open this link.";
+    } catch (e) {
+        return "";
+    }
+}
+
 function showShareLink(result) {
     var status = document.getElementById("share-status");
     var row = document.getElementById("share-link-row");
     var input = document.getElementById("share-link-input");
     if (!row || !input) return;
-    input.value = window.location.origin + result.url;
+    // The server returns an absolute URL when PUBLIC_BASE_URL is configured
+    // (#1863); a relative URL is kept working on the machine that minted it.
+    var rawUrl = String(result.url || "");
+    input.value = /^https?:\/\//i.test(rawUrl) ? rawUrl : window.location.origin + rawUrl;
+    var reach = shareLinkReach(input.value);
     row.style.display = "flex";
     row.dataset.token = result.token || "";
     if (status) {
         if (!result.expires_at) {
-            status.textContent = "Anyone with this link can download the file until it is revoked (no expiry).";
+            status.textContent = "Anyone with this link can download the file until it is revoked (no expiry). " + reach;
         } else if (isExpired(result.expires_at)) {
             status.textContent = "This link expired on " + new Date(result.expires_at).toLocaleString() + ".";
         } else {
             status.textContent = "Anyone with this link can download the file until " +
-                new Date(result.expires_at).toLocaleString() + ". Revoke it at any time.";
+                new Date(result.expires_at).toLocaleString() + ". Revoke it at any time. " + reach;
         }
     }
     var createBtn = document.getElementById("share-create-btn");

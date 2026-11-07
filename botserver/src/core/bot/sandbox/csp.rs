@@ -30,10 +30,7 @@ impl UiCsp {
             connect_domains: domains(csp.get("connectDomains")),
             resource_domains: domains(csp.get("resourceDomains")),
             permissions: permission_names(ui.get("permissions")),
-            domain: ui
-                .get("domain")
-                .and_then(Value::as_str)
-                .map(str::to_string),
+            domain: ui.get("domain").and_then(Value::as_str).map(str::to_string),
         }
     }
 
@@ -145,10 +142,7 @@ fn sources(domains: &[String]) -> String {
     if domains.is_empty() {
         return String::new();
     }
-    domains
-        .iter()
-        .map(|domain| format!(" {domain}"))
-        .collect()
+    domains.iter().map(|domain| format!(" {domain}")).collect()
 }
 
 #[cfg(test)]

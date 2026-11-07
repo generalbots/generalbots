@@ -35,7 +35,10 @@ pub async fn get_public_bot_config(
     };
 
     map.insert("name".to_string(), name.clone());
-    map.insert("is_public".to_string(), if is_public { "true" } else { "false" }.to_string());
+    map.insert(
+        "is_public".to_string(),
+        if is_public { "true" } else { "false" }.to_string(),
+    );
     if !is_public {
         // Private bot: anonymous callers learn nothing beyond the visibility
         // flag (the chat page uses it to force the login redirect).

@@ -43,7 +43,10 @@ async fn run_quality(
         }
     };
 
-    let frames = count(&mut conn, "SELECT count(*)::bigint AS count FROM run_events");
+    let frames = count(
+        &mut conn,
+        "SELECT count(*)::bigint AS count FROM run_events",
+    );
     let ui_frames = count(
         &mut conn,
         "SELECT count(*)::bigint AS count FROM run_events WHERE event_type = 'CUSTOM' AND payload->>'name' LIKE 'gb.%'",

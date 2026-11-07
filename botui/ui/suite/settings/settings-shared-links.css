@@ -1,0 +1,225 @@
+/* #1863 — Settings → Shared Links (desktop-local / shell mode only). */
+
+.shared-links-reach-note {
+    margin: 0 0 18px;
+    padding: 14px 16px;
+    border: 1px solid #f59e0b;
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--text, #e5e7eb);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.shared-links-reach-note strong {
+    color: #fbbf24;
+}
+
+.shared-links-tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.shared-tier {
+    padding: 20px 22px;
+}
+
+.shared-tier-disabled {
+    opacity: 0.78;
+}
+
+.shared-tier-header {
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.shared-tier-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.shared-tier-title h2 {
+    margin: 0 0 4px;
+    font-size: 17px;
+    color: var(--text, #e5e7eb);
+}
+
+.shared-tier-title p {
+    margin: 0;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 13px;
+}
+
+.shared-tier-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--surface-2, #2a2a2a);
+    border: 1px solid var(--border, #334155);
+    color: var(--text-secondary, #9ca3af);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.shared-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border, #334155);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.shared-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.shared-status-ready {
+    border-color: rgba(34, 197, 94, 0.45);
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ade80;
+}
+
+.shared-status-pending {
+    color: var(--text-secondary, #9ca3af);
+}
+
+.shared-status-warn {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+}
+
+.shared-status-off {
+    color: var(--text-secondary, #9ca3af);
+}
+
+.shared-url-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border, #334155);
+    border-radius: 8px;
+    background: var(--bg, #0f172a);
+}
+
+.shared-url-label {
+    flex: 0 0 110px;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 12px;
+}
+
+.shared-url-row code,
+.shared-config code {
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+    color: var(--text, #e5e7eb);
+    overflow-wrap: anywhere;
+}
+
+.shared-url-row code {
+    flex: 1;
+    min-width: 0;
+}
+
+.shared-url-row .btn-secondary {
+    flex: 0 0 auto;
+}
+
+.shared-tier-detail {
+    margin: 12px 0 0;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.shared-config {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border, #334155);
+}
+
+.shared-config h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text, #e5e7eb);
+}
+
+.shared-config p,
+.shared-steps {
+    margin: 0 0 10px;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.shared-steps {
+    padding-left: 20px;
+}
+
+.shared-steps li {
+    margin-bottom: 8px;
+}
+
+.shared-config pre {
+    margin: 8px 0 0;
+    padding: 9px 12px;
+    border: 1px solid var(--border, #334155);
+    border-radius: 6px;
+    background: #0b0f14;
+    overflow-x: auto;
+}
+
+.shared-hint {
+    margin-top: 10px;
+    font-size: 12px !important;
+}
+
+.shared-links-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.shared-links-checked {
+    color: var(--text-secondary, #9ca3af);
+    font-size: 12px;
+}
+
+@media (max-width: 640px) {
+    .shared-tier-header {
+        flex-direction: column;
+    }
+
+    .shared-url-row {
+        flex-wrap: wrap;
+    }
+
+    .shared-url-label {
+        flex-basis: 100%;
+    }
+
+    .shared-url-row code {
+        flex-basis: 100%;
+    }
+}

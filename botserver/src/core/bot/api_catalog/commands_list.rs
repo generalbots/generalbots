@@ -223,7 +223,9 @@ pub fn api_command_instructions(role: &str) -> String {
          with no command."
             .to_string(),
     );
-    lines.push(format!("Your role: {role}. Only issue commands you are allowed to use."));
+    lines.push(format!(
+        "Your role: {role}. Only issue commands you are allowed to use."
+    ));
     lines.push("To call one, make the FIRST line of your reply exactly a JSON object:".to_string());
     lines.push("{\"__api_call__\": {\"name\": \"<command>\", \"params\": {<named params>}, \"compose\": true}}".to_string());
     lines.push("then add a short user-facing note after it.".to_string());
@@ -236,8 +238,16 @@ pub fn api_command_instructions(role: &str) -> String {
     // Only the most common commands are named explicitly to avoid prompt bloat.
     lines.push("Common commands you may call directly:".to_string());
     for name in [
-        "apps.find", "api.find", "api.exec", "tasks.autotask.create", "tasks.autotask.list",
-        "vibe.project.change", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list",
+        "apps.find",
+        "api.find",
+        "api.exec",
+        "tasks.autotask.create",
+        "tasks.autotask.list",
+        "vibe.project.change",
+        "integrations.actions.list",
+        "service.tax",
+        "banking.diagnosis",
+        "drive.list",
     ] {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
@@ -246,7 +256,10 @@ pub fn api_command_instructions(role: &str) -> String {
                 .map(|(n, d)| format!("{n}: {d}"))
                 .collect::<Vec<_>>()
                 .join("; ");
-            lines.push(format!("- {name}: {summary} (params: {params})", summary = cmd.summary));
+            lines.push(format!(
+                "- {name}: {summary} (params: {params})",
+                summary = cmd.summary
+            ));
         }
     }
     lines.push(

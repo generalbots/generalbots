@@ -35,7 +35,11 @@ impl RunCaps {
     /// Empty, missing or unparsable bot values keep the environment value, so
     /// an existing deployment is unchanged until a limit is configured.
     #[must_use]
-    pub fn merge(bot_max_tokens: Option<&str>, bot_max_seconds: Option<&str>, defaults: Self) -> Self {
+    pub fn merge(
+        bot_max_tokens: Option<&str>,
+        bot_max_seconds: Option<&str>,
+        defaults: Self,
+    ) -> Self {
         Self {
             max_tokens: parse_positive(bot_max_tokens).unwrap_or(defaults.max_tokens),
             max_seconds: parse_positive(bot_max_seconds).unwrap_or(defaults.max_seconds),
@@ -46,10 +50,11 @@ impl RunCaps {
     /// Group limits can only tighten the current caps, never raise them.
     #[must_use]
     pub fn restrict_to(self, max_tokens: Option<u64>, max_seconds: Option<u64>) -> Self {
-        let tighten = |current: u64, candidate: Option<u64>| match candidate.filter(|value| *value > 0) {
-            Some(value) if current == 0 || value < current => value,
-            _ => current,
-        };
+        let tighten =
+            |current: u64, candidate: Option<u64>| match candidate.filter(|value| *value > 0) {
+                Some(value) if current == 0 || value < current => value,
+                _ => current,
+            };
         Self {
             max_tokens: tighten(self.max_tokens, max_tokens),
             max_seconds: tighten(self.max_seconds, max_seconds),
@@ -246,7 +251,10 @@ mod tests {
             max_seconds: 60,
         };
         assert_eq!(RunCaps::merge(None, None, defaults), defaults);
-        assert_eq!(RunCaps::merge(Some(""), Some("not-a-number"), defaults), defaults);
+        assert_eq!(
+            RunCaps::merge(Some(""), Some("not-a-number"), defaults),
+            defaults
+        );
         assert_eq!(RunCaps::merge(Some("0"), Some("-5"), defaults), defaults);
     }
 

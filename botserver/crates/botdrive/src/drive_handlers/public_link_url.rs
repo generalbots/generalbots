@@ -1,7 +1,14 @@
 use super::*;
 
+/// Absolute URL when the installation declares a public base, otherwise the
+/// path-relative link this API has always returned. Token minting, expiry and
+/// revocation are untouched (#1863).
 pub(super) fn public_link_url(token: &str) -> String {
-    format!("/api/files/public/{token}")
+    let path = format!("/api/files/public/{token}");
+    match botcore::product::get_public_base_url() {
+        Some(base) => format!("{base}{path}"),
+        None => path,
+    }
 }
 pub(super) fn format_link_time(dt: Option<chrono::DateTime<chrono::Utc>>) -> Option<String> {
     dt.map(|d| d.to_rfc3339())
@@ -70,7 +77,10 @@ pub(super) async fn mint_public_link(
     .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to create link: {e}")))?;
 
     if inserted == 0 {
-        return Err(err(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create link"));
+        return Err(err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to create link",
+        ));
     }
 
     botlog::safe_info!("Public link created for {path} in {bucket} by {uid}");
@@ -89,8 +99,14 @@ pub async fn create_public_link(
 ) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket =
-        resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let expires_at = match req.expires_at.as_deref() {
         None | Some("") => None,
@@ -100,13 +116,7 @@ pub async fn create_public_link(
         },
     };
     let minted = mint_public_link(
-        &state,
-        &uid,
-        &bucket,
-        &scope,
-        &prefix,
-        &req.path,
-        expires_at,
+        &state, &uid, &bucket, &scope, &prefix, &req.path, expires_at,
     )
     .await?;
     Ok(Json(CreatePublicLinkResponse {
@@ -192,7 +202,12 @@ pub async fn revoke_public_link(
         .bind::<Text, _>(token)
         .bind::<Text, _>(&uid)
         .execute(&mut conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to revoke link: {e}")))?
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to revoke link: {e}"),
+            )
+        })?
     } else if let Some(path) = req.path.as_deref().filter(|p| !p.is_empty()) {
         let bucket = req
             .bucket
@@ -206,7 +221,12 @@ pub async fn revoke_public_link(
         .bind::<Text, _>(&bucket)
         .bind::<Text, _>(path)
         .execute(&mut conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to revoke link: {e}")))?
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to revoke link: {e}"),
+            )
+        })?
     } else {
         return Err(err(StatusCode::BAD_REQUEST, "token or path is required"));
     };
@@ -264,7 +284,12 @@ pub async fn public_link_download(
         .await
         .map_err(|_| err(StatusCode::NOT_FOUND, "Link not found"))?;
 
-    let file_name = row.path.rsplit('/').next().unwrap_or("download").to_string();
+    let file_name = row
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or("download")
+        .to_string();
     let mime = guess_mime(&file_name);
 
     use axum::response::IntoResponse;
@@ -275,8 +300,14 @@ pub async fn public_link_download(
             format!("attachment; filename=\"{}\"", file_name),
         ),
         (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
-        (axum::http::header::CACHE_CONTROL, "private, no-store".to_string()),
-        (axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_string()),
+        (
+            axum::http::header::CACHE_CONTROL,
+            "private, no-store".to_string(),
+        ),
+        (
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            "nosniff".to_string(),
+        ),
     ];
     Ok((headers, data).into_response())
 }

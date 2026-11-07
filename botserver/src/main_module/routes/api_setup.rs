@@ -8,6 +8,9 @@ use std::sync::Arc;
 
 pub fn setup_api_routes() -> Router<Arc<AppState>> {
     let mut api_router = Router::new()
+        // Opt-in peer-network foundation (#1864). The handlers themselves
+        // return `peer_network_disabled` until GB_PEER_NETWORK opts in.
+        .merge(super::peer_network::configure_peer_routes())
         .route("/health", get(crate::health_check_simple))
         .route(ApiUrls::HEALTH, get(crate::health_check))
         .route(

@@ -72,9 +72,7 @@ pub fn validate_tasks(tasks: &[(String, String)]) -> Result<(), String> {
         return Err("at least one sub-agent task is required".to_string());
     }
     if tasks.len() > MAX_SUBAGENTS {
-        return Err(format!(
-            "at most {MAX_SUBAGENTS} sub-agents per request"
-        ));
+        return Err(format!("at most {MAX_SUBAGENTS} sub-agents per request"));
     }
     for (index, (title, prompt)) in tasks.iter().enumerate() {
         if title.trim().is_empty() {

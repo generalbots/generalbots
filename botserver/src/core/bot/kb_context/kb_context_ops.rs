@@ -4,9 +4,7 @@ use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
 
-use super::{
-    KbContext, RagMode, SessionKbAssociation, SessionWebsiteAssociation,
-};
+use super::{KbContext, RagMode, SessionKbAssociation, SessionWebsiteAssociation};
 
 pub fn get_active_kbs(db_pool: &DbPool, session_id: Uuid) -> Vec<SessionKbAssociation> {
     let mut conn = match db_pool.get() {
@@ -150,17 +148,19 @@ pub async fn inject_kb_context(
     messages: &mut serde_json::Value,
     max_context_tokens: usize,
 ) {
-    use botcore::config::ConfigManager;
     use crate::basic::keywords::mention_config::MentionConfig;
+    use botcore::config::ConfigManager;
 
     let cfg = ConfigManager::new(db_pool.clone());
 
-    let mention_class_str = cfg.get_config(&bot_id, "mention-class", Some("all"))
+    let mention_class_str = cfg
+        .get_config(&bot_id, "mention-class", Some("all"))
         .unwrap_or_else(|_| "all".to_string());
 
     let mention_config = MentionConfig::from_string(&mention_class_str);
 
-    let rag_mode_str = cfg.get_config(&bot_id, "rag-mode", Some("standard"))
+    let rag_mode_str = cfg
+        .get_config(&bot_id, "rag-mode", Some("standard"))
         .unwrap_or_else(|_| "standard".to_string());
     let rag_mode = RagMode::from_label(&rag_mode_str);
 
@@ -170,8 +170,16 @@ pub async fn inject_kb_context(
         rag_mode.as_str()
     );
 
-    let active_kbs = if mention_config.kbs { get_active_kbs(db_pool, session_id) } else { Vec::new() };
-    let active_websites = if mention_config.websites { get_active_websites(db_pool, session_id) } else { Vec::new() };
+    let active_kbs = if mention_config.kbs {
+        get_active_kbs(db_pool, session_id)
+    } else {
+        Vec::new()
+    };
+    let active_websites = if mention_config.websites {
+        get_active_websites(db_pool, session_id)
+    } else {
+        Vec::new()
+    };
 
     if active_kbs.is_empty() && active_websites.is_empty() {
         debug!("No active KBs or websites for session {}", session_id);
@@ -189,35 +197,67 @@ pub async fn inject_kb_context(
 
     for kb in &active_kbs {
         let results = super::rag_modes::search_by_mode(
-            rag_mode, &kb.qdrant_collection, user_query, 10, bot_id, db_pool,
-        ).await;
+            rag_mode,
+            &kb.qdrant_collection,
+            user_query,
+            10,
+            bot_id,
+            db_pool,
+        )
+        .await;
         if !results.is_empty() {
             let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
-            info!("Found {} results from KB '{}' using {} mode ({} tokens)", results.len(), kb.kb_name, rag_mode.as_str(), total_tokens);
+            info!(
+                "Found {} results from KB '{}' using {} mode ({} tokens)",
+                results.len(),
+                kb.kb_name,
+                rag_mode.as_str(),
+                total_tokens
+            );
             all_contexts.push(KbContext {
                 kb_name: kb.kb_name.clone(),
                 total_tokens,
                 search_results: results,
             });
         } else {
-            debug!("No results from KB '{}' using {} mode", kb.kb_name, rag_mode.as_str());
+            debug!(
+                "No results from KB '{}' using {} mode",
+                kb.kb_name,
+                rag_mode.as_str()
+            );
         }
     }
 
     for website in &active_websites {
         let results = super::rag_modes::search_by_mode(
-            rag_mode, &website.collection_name, user_query, 10, bot_id, db_pool,
-        ).await;
+            rag_mode,
+            &website.collection_name,
+            user_query,
+            10,
+            bot_id,
+            db_pool,
+        )
+        .await;
         if !results.is_empty() {
             let total_tokens: usize = results.iter().map(|r| estimate_tokens(&r.content)).sum();
-            info!("Found {} results from website '{}' using {} mode ({} tokens)", results.len(), website.website_url, rag_mode.as_str(), total_tokens);
+            info!(
+                "Found {} results from website '{}' using {} mode ({} tokens)",
+                results.len(),
+                website.website_url,
+                rag_mode.as_str(),
+                total_tokens
+            );
             all_contexts.push(KbContext {
                 kb_name: website.website_url.clone(),
                 total_tokens,
                 search_results: results,
             });
         } else {
-            debug!("No results from website '{}' using {} mode", website.website_url, rag_mode.as_str());
+            debug!(
+                "No results from website '{}' using {} mode",
+                website.website_url,
+                rag_mode.as_str()
+            );
         }
     }
 
@@ -243,13 +283,17 @@ pub async fn inject_kb_context(
     if let Some(msgs_array) = messages.as_array_mut() {
         if let Some(idx) = msgs_array.iter().position(|m| m["role"] == "system") {
             if let Some(content) = msgs_array[idx]["content"].as_str() {
-                msgs_array[idx]["content"] = serde_json::Value::String(format!("{}\n{}", content, truncated));
+                msgs_array[idx]["content"] =
+                    serde_json::Value::String(format!("{}\n{}", content, truncated));
             }
         } else {
-            msgs_array.insert(0, serde_json::json!({
-                "role": "system",
-                "content": truncated
-            }));
+            msgs_array.insert(
+                0,
+                serde_json::json!({
+                    "role": "system",
+                    "content": truncated
+                }),
+            );
         }
     }
 }

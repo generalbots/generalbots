@@ -38,11 +38,10 @@ pub(super) async fn hybrid_search(
 ) -> Vec<KbSearchResult> {
     info!("Hybrid RAG search for '{}' in '{}'", query, collection);
 
-    let vector_results = kb_context_search::search_qdrant(
-        collection, query, limit, bot_id, db_pool,
-    )
-    .await
-    .unwrap_or_default();
+    let vector_results =
+        kb_context_search::search_qdrant(collection, query, limit, bot_id, db_pool)
+            .await
+            .unwrap_or_default();
 
     let keyword_results = kb_context_search::search_keyword_only(collection, query, limit).await;
 
@@ -59,7 +58,12 @@ pub(super) async fn hybrid_search(
     }
 
     let fused = reciprocal_rank_fusion(vector_results, keyword_results, limit);
-    info!("Hybrid RAG: {} vector + {} keyword -> {} fused", vlen, klen, fused.len());
+    info!(
+        "Hybrid RAG: {} vector + {} keyword -> {} fused",
+        vlen,
+        klen,
+        fused.len()
+    );
     fused
 }
 pub(super) fn expand_query(query: &str) -> Vec<String> {
@@ -88,11 +92,27 @@ pub(super) async fn llm_rewrite_query(query: &str, bot_id: Uuid, db_pool: &DbPoo
     let system_prompt = "You are a query expansion assistant. Given a user query, rewrite it into 2-3 search queries that will help retrieve relevant documents from a knowledge base. Return ONLY the queries, one per line, with no numbering or explanation.";
     let prompt = format!("User query: {}\n\nExpanded search queries:", query);
 
-    match provider.generate_simple(&format!("{}\n\n{}", system_prompt, prompt)).await {
+    match provider
+        .generate_simple(&format!("{}\n\n{}", system_prompt, prompt))
+        .await
+    {
         Ok(response) => {
             let rewritten: Vec<String> = response
                 .lines()
-                .map(|l| l.trim().trim_matches(|c: char| c == '-' || c == '*' || c == '1' || c == '2' || c == '3' || c == '.' || c == ')' || c == ' ').to_string())
+                .map(|l| {
+                    l.trim()
+                        .trim_matches(|c: char| {
+                            c == '-'
+                                || c == '*'
+                                || c == '1'
+                                || c == '2'
+                                || c == '3'
+                                || c == '.'
+                                || c == ')'
+                                || c == ' '
+                        })
+                        .to_string()
+                })
                 .filter(|l| !l.is_empty() && l.len() > 5)
                 .collect();
             if rewritten.is_empty() {
@@ -102,11 +122,18 @@ pub(super) async fn llm_rewrite_query(query: &str, bot_id: Uuid, db_pool: &DbPoo
             let mut result = vec![query.to_string()];
             result.extend(rewritten);
             result.dedup();
-            info!("Corrective RAG: LLM expanded '{}' into {} queries", query, result.len());
+            info!(
+                "Corrective RAG: LLM expanded '{}' into {} queries",
+                query,
+                result.len()
+            );
             result
         }
         Err(e) => {
-            debug!("Corrective RAG: LLM rewrite failed ({}), using heuristic expansion", e);
+            debug!(
+                "Corrective RAG: LLM rewrite failed ({}), using heuristic expansion",
+                e
+            );
             expand_query(query)
         }
     }
@@ -124,11 +151,10 @@ pub(super) async fn corrective_search(
 
     let mut all_results: Vec<KbSearchResult> = Vec::new();
     for sub_query in &expanded {
-        let results = kb_context_search::search_qdrant(
-            collection, sub_query, limit, bot_id, db_pool,
-        )
-        .await
-        .unwrap_or_default();
+        let results =
+            kb_context_search::search_qdrant(collection, sub_query, limit, bot_id, db_pool)
+                .await
+                .unwrap_or_default();
         all_results.extend(results);
     }
 
@@ -138,7 +164,10 @@ pub(super) async fn corrective_search(
             info!("Corrective RAG: vector search empty, falling back to keyword");
             return keyword;
         }
-        info!("Corrective RAG: local search empty, falling back to web crawl for '{}'", query);
+        info!(
+            "Corrective RAG: local search empty, falling back to web crawl for '{}'",
+            query
+        );
         let config = botcore::kb::web_crawler::WebsiteCrawlConfig {
             url: query.to_string(),
             max_depth: 1,
@@ -152,13 +181,19 @@ pub(super) async fn corrective_search(
         let mut crawler = WebCrawler::new(config);
         match crawler.crawl().await {
             Ok(pages) => {
-                    let web_results: Vec<KbSearchResult> = pages.into_iter().map(|p| KbSearchResult {
+                let web_results: Vec<KbSearchResult> = pages
+                    .into_iter()
+                    .map(|p| KbSearchResult {
                         content: p.content,
                         document_path: p.url,
                         score: 0.5,
-                    }).collect();
+                    })
+                    .collect();
                 if !web_results.is_empty() {
-                    info!("Corrective RAG: web crawl returned {} results", web_results.len());
+                    info!(
+                        "Corrective RAG: web crawl returned {} results",
+                        web_results.len()
+                    );
                     return web_results;
                 }
             }
@@ -167,7 +202,11 @@ pub(super) async fn corrective_search(
         return Vec::new();
     }
 
-    all_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     all_results.dedup_by(|a, b| a.content == b.content);
 
     let graded = llm_grade_chunks(query, all_results, bot_id, db_pool).await;
@@ -191,7 +230,10 @@ pub(super) async fn llm_grade_chunks(
     };
 
     if results.len() > 10 {
-        debug!("Corrective RAG: grading {} chunks individually via LLM", results.len());
+        debug!(
+            "Corrective RAG: grading {} chunks individually via LLM",
+            results.len()
+        );
     }
 
     let mut graded = Vec::new();
@@ -202,9 +244,14 @@ pub(super) async fn llm_grade_chunks(
         );
         let system_grade = "You are a relevance grader. Rate how relevant this document chunk is to the query on a scale of 0 (completely irrelevant) to 10 (perfectly relevant). Return ONLY a single number.";
 
-        match provider.generate_simple(&format!("{}\n\n{}", system_grade, grade_prompt)).await {
+        match provider
+            .generate_simple(&format!("{}\n\n{}", system_grade, grade_prompt))
+            .await
+        {
             Ok(response) => {
-                let grade: f32 = response.trim().chars()
+                let grade: f32 = response
+                    .trim()
+                    .chars()
                     .filter(|c| c.is_ascii_digit() || *c == '.')
                     .collect::<String>()
                     .parse()
@@ -222,7 +269,11 @@ pub(super) async fn llm_grade_chunks(
         }
     }
 
-    graded.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    graded.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     graded
 }
 pub(super) fn extract_entities(query: &str) -> Vec<String> {
@@ -235,7 +286,8 @@ pub(super) fn extract_entities(query: &str) -> Vec<String> {
         }
     }
 
-    let multi_word: Vec<&str> = query.split([',', ';', '!'])
+    let multi_word: Vec<&str> = query
+        .split([',', ';', '!'])
         .map(|s| s.trim())
         .filter(|s| s.chars().filter(|&c| c == ' ').count() >= 1 && s.len() > 5)
         .collect();
@@ -251,7 +303,11 @@ pub(super) fn extract_entities(query: &str) -> Vec<String> {
     entities.truncate(5);
     entities
 }
-pub(super) async fn llm_extract_entities(query: &str, bot_id: Uuid, db_pool: &DbPool) -> Vec<String> {
+pub(super) async fn llm_extract_entities(
+    query: &str,
+    bot_id: Uuid,
+    db_pool: &DbPool,
+) -> Vec<String> {
     let provider = match create_llm_for_bot(bot_id, db_pool).await {
         Some(p) => p,
         None => {
@@ -268,14 +324,23 @@ pub(super) async fn llm_extract_entities(query: &str, bot_id: Uuid, db_pool: &Db
         Ok(response) => {
             let entities: Vec<String> = response
                 .lines()
-                .map(|l| l.trim().trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit()).trim().to_string())
+                .map(|l| {
+                    l.trim()
+                        .trim_matches(|c: char| c == '-' || c == '*' || c.is_ascii_digit())
+                        .trim()
+                        .to_string()
+                })
                 .filter(|l| !l.is_empty() && l.len() > 2)
                 .collect();
 
             if entities.is_empty() {
                 return extract_entities(query);
             }
-            debug!("Graph RAG: LLM extracted {} entities: {:?}", entities.len(), entities);
+            debug!(
+                "Graph RAG: LLM extracted {} entities: {:?}",
+                entities.len(),
+                entities
+            );
             entities.into_iter().take(5).collect()
         }
         Err(_) => extract_entities(query),

@@ -152,8 +152,7 @@ pub(super) async fn run(
     let mut steering_rounds: u8 = 0;
     let mut cap_breach: Option<CapBreach> = None;
 
-    let mut keepalive_interval =
-        tokio::time::interval(std::time::Duration::from_millis(800));
+    let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
     keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! {

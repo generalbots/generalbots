@@ -3571,6 +3571,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "botcoresecrets",
+ "botemail",
  "botlib",
  "botschema",
  "botsecurity-core",

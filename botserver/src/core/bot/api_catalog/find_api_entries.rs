@@ -40,7 +40,12 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
         .iter()
         .filter(|c| {
             if role != crate::security::user_role::ROLE_ADMIN
-                && crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, c.method, &c.path)
+                && crate::security::user_role::is_admin_only_endpoint(
+                    &state.conn,
+                    user_id,
+                    c.method,
+                    &c.path,
+                )
             {
                 return false;
             }
@@ -49,7 +54,11 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
         .filter_map(|c| {
             let hay = format!("{} {}", c.name.to_lowercase(), c.summary.to_lowercase());
             let score = score_tokens(&hay, &q);
-            if score > 0 { Some((score, c)) } else { None }
+            if score > 0 {
+                Some((score, c))
+            } else {
+                None
+            }
         })
         .collect();
     scored_dc.sort_by_key(|a| std::cmp::Reverse(a.0));
@@ -67,10 +76,20 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
         .iter()
         .chain(crate::core::bot::endpoint_inventory::all_routes())
         .filter_map(|ep| {
-            if crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, ep.method, ep.path) {
+            if crate::security::user_role::is_admin_only_endpoint(
+                &state.conn,
+                user_id,
+                ep.method,
+                ep.path,
+            ) {
                 return None;
             }
-            let hay = format!("{} {} {}", ep.method.to_lowercase(), ep.path.to_lowercase(), ep.summary.to_lowercase());
+            let hay = format!(
+                "{} {} {}",
+                ep.method.to_lowercase(),
+                ep.path.to_lowercase(),
+                ep.summary.to_lowercase()
+            );
             let score = score_tokens(&hay, &q);
             if score > 0 {
                 Some((score, ep))
@@ -96,7 +115,9 @@ pub(super) fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str
     if out.is_empty() {
         // An empty list is a dead end: the model repeats api.find or gives up.
         // Hand back the vocabulary that actually matches this catalog.
-        out.push(find_hint("no command, endpoint or derived action matched the query words"));
+        out.push(find_hint(
+            "no command, endpoint or derived action matched the query words",
+        ));
     }
     out
 }

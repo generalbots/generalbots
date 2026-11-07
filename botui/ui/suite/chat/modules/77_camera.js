@@ -120,7 +120,7 @@
     var fallback = document.getElementById("cameraFileInput");
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       if (fallback) fallback.click();
-      else notify(tr("chat-camera-unsupported", "This browser does not provide camera access."), "error");
+      else notify(tr("chat-camera-unsupported", "This desktop app does not provide camera access."), "error");
       return;
     }
     var video = buildPreview();
@@ -140,7 +140,7 @@
         var missing = error && error.name === "NotFoundError";
         notify(
           denied
-            ? tr("chat-camera-denied", "Camera permission was denied. Allow it in the browser to take photos.")
+            ? tr("chat-camera-denied", "Camera permission was denied. Allow camera access for the desktop app in your system settings to take photos.")
             : missing
               ? tr("chat-camera-missing", "No camera was found on this device.")
               : tr("chat-camera-error", "Could not start the camera."),

@@ -16,14 +16,14 @@
 //! JSON block as the first line of its reply. General-knowledge questions
 //! must be answered directly — no api call.
 
-pub(crate) use std::sync::Arc;
+pub(crate) use crate::apps::registry;
 pub(crate) use base64::Engine;
 pub(crate) use bigdecimal::BigDecimal;
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::RunQueryDsl;
 pub(crate) use serde_json::{json, Value};
+pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
-pub(crate) use crate::apps::registry;
 
 pub const API_CALL_TRIGGER: &str = "\"__api_call__\":";
 
@@ -104,18 +104,18 @@ struct TicketRow {
     priority: String,
 }
 
-mod is_api_call_trigger;
-mod commands_list;
-mod find_api_entries;
-mod execute_command;
-mod branch_scope;
-mod list_people;
 mod archive_drive_files;
+mod branch_scope;
+mod commands_list;
+mod execute_command;
+mod find_api_entries;
+mod is_api_call_trigger;
+mod list_people;
 
-pub use is_api_call_trigger::*;
-pub use commands_list::*;
-use find_api_entries::*;
-pub use execute_command::*;
-pub(crate) use branch_scope::*;
-use list_people::*;
 use archive_drive_files::*;
+pub(crate) use branch_scope::*;
+pub use commands_list::*;
+pub use execute_command::*;
+use find_api_entries::*;
+pub use is_api_call_trigger::*;
+use list_people::*;

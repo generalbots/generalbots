@@ -39,6 +39,27 @@ pub fn is_shell_mode() -> bool {
     PRODUCT_CONFIG.read().map(|c| c.shell_mode).unwrap_or(false)
 }
 
+/// Public base URL for composed share links (#1863).
+///
+/// `PUBLIC_BASE_URL` in the environment wins so a deployment can pin one value
+/// without touching the product file; otherwise `public_base_url=` from the
+/// `.product` file is used. An empty value means "no public base" and callers
+/// keep returning a path-relative link.
+pub fn get_public_base_url() -> Option<String> {
+    std::env::var("PUBLIC_BASE_URL")
+        .ok()
+        .map(|value| value.trim().trim_end_matches('/').to_string())
+        .filter(|value| !value.is_empty())
+        .or_else(|| {
+            PRODUCT_CONFIG
+                .read()
+                .ok()
+                .and_then(|config| config.public_base_url.clone())
+                .map(|value| value.trim().trim_end_matches('/').to_string())
+                .filter(|value| !value.is_empty())
+        })
+}
+
 /// Helper function to get default theme
 pub fn get_default_theme() -> String {
     PRODUCT_CONFIG
@@ -91,6 +112,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "hidden_apps": c.get_hidden_apps(),
             "no_security": c.no_security,
             "shell_mode": c.shell_mode || cfg!(feature = "desktop-local"),
+            "public_base_url": get_public_base_url(),
         }),
         None => serde_json::json!({
             "name": "General Bots",
@@ -105,6 +127,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "hidden_apps": Vec::<String>::new(),
             "no_security": false,
             "shell_mode": false,
+            "public_base_url": get_public_base_url(),
         }),
     }
 }

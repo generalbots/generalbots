@@ -33,11 +33,7 @@ pub async fn check_bot_access_typed(
     // older rows carry a display name with spaces ("Helper Bot"). Accept
     // either: name first, then slug.
     let bot_record = bots_dsl::bots
-        .filter(
-            bots_dsl::name
-                .eq(bot_name)
-                .or(bots_dsl::slug.eq(bot_name)),
-        )
+        .filter(bots_dsl::name.eq(bot_name).or(bots_dsl::slug.eq(bot_name)))
         .select((bots_dsl::is_public, bots_dsl::org_id))
         .first::<(bool, Uuid)>(&mut *conn)
         .optional()
@@ -58,7 +54,8 @@ pub async fn check_bot_access_typed(
             .filter(uo_dsl::org_id.eq(org_id))
             .count()
             .get_result::<i64>(&mut *conn)
-            .map_err(|e| BotAccessDenial::Internal(format!("DB query error: {}", e)))? > 0;
+            .map_err(|e| BotAccessDenial::Internal(format!("DB query error: {}", e)))?
+            > 0;
 
         if is_member {
             return Ok(());
@@ -71,7 +68,8 @@ pub async fn check_access_handler(
     axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     req: axum::extract::Request,
-) -> impl axum::response::IntoResponse {        let is_public = {
+) -> impl axum::response::IntoResponse {
+    let is_public = {
         use botcore::shared::schema::bots::dsl as bots_dsl;
         if let Ok(mut conn) = state.conn.get() {
             // #1289 — accept slug as well as name (launcher/URL use slugs).
@@ -93,7 +91,9 @@ pub async fn check_access_handler(
         return axum::http::StatusCode::OK.into_response();
     }
 
-    let user = req.extensions().get::<crate::security::auth_api::types::AuthenticatedUser>();
+    let user = req
+        .extensions()
+        .get::<crate::security::auth_api::types::AuthenticatedUser>();
     let user_id = match user {
         Some(u) if u.is_authenticated() => u.user_id,
         _ => return axum::http::StatusCode::UNAUTHORIZED.into_response(),

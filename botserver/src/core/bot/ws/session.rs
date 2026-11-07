@@ -44,7 +44,10 @@ pub async fn handle_ws(
         // the map only routes async/pushed frames.
         channels.entry(key.clone()).or_insert(tx);
     }
-    botlog::safe_info!("WebSocket connected: bot={bot}, session={session_id}", bot = bot_name);
+    botlog::safe_info!(
+        "WebSocket connected: bot={bot}, session={session_id}",
+        bot = bot_name
+    );
 
     let welcome = serde_json::json!({
         "type": "connected", "session_id": session_id, "user_id": user_id,
@@ -59,7 +62,10 @@ pub async fn handle_ws(
     {
         let mut pending = state.pending_stream_responses.lock().await;
         if let Some(content) = pending.remove(&session_id.to_string()) {
-            botlog::safe_info!("Delivering pending stream response for session {session_id} ({len} bytes)", len = content.len());
+            botlog::safe_info!(
+                "Delivering pending stream response for session {session_id} ({len} bytes)",
+                len = content.len()
+            );
             let resp = serde_json::json!({
                 "bot_id": bot_uuid.to_string(),
                 "user_id": user_id.to_string(),

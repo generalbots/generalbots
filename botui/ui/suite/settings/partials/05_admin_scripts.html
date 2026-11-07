@@ -125,6 +125,46 @@
             </div>
         </section>
 
+        <!-- Desktop Updates Section (#1862) — shell-mode only and hidden in
+             browser/cloud deployments by settings/main/02_edition.js. -->
+        <section id="updates-section" class="settings-section" data-shell-only="true" hidden>
+            <div class="section-header">
+                <h1>Updates</h1>
+                <p class="subtitle">Check the latest GitHub release and jump to the official download</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Desktop updates</h2>
+                    <p>The app checks <code>github.com/generalbots/generalbots/releases/latest</code>. Installing is always opt-in.</p>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Check for updates at startup</span>
+                        <span class="setting-desc">Runs at most once a day and only shows a notification. You can still use “Check now” when this is off.</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="update-check-startup"
+                            onchange="window.GBUpdate && GBUpdate.setStartupCheck(this.checked)" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Current version</span>
+                        <span class="setting-desc">Last check: <span id="updates-last-check">Never</span></span>
+                    </div>
+                    <span id="updates-current-version" class="version-number">v6.7.0</span>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" id="updates-check-now"
+                        onclick="window.GBUpdate && GBUpdate.checkNow()">Check now</button>
+                    <button type="button" class="btn-secondary" id="updates-notes-button" disabled
+                        onclick="window.GBUpdate && GBUpdate.showReleaseNotes()">View release notes</button>
+                </div>
+                <p id="updates-status" class="setting-desc" role="status">Not checked yet.</p>
+            </div>
+        </section>
+
         <!-- Versions Section -->
         <section id="versions-section" class="settings-section">
             <div class="section-header">

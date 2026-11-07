@@ -40,27 +40,37 @@ const composerCss = read("botui/ui/suite/chat/chat-composer.css");
 const windowManager = read("botui/ui/suite/js/window-manager.js");
 const sidebarSections = read("botui/ui/suite/js/sidebar-sections.js");
 
-// #1614/#1615 — the profile ships chat+drive plus the everyday tools the
-// desktop edition deliberately keeps (clock, player, sheet, docs, …). Out of
-// scope domains must never be advertised.
+// #1811 — the desktop build compiles every app; this profile only classifies
+// what is always visible, what needs Preview mode and what is hidden.
 const productApps = ((product.match(/^apps=(.*)$/m) || [])[1] || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-check(productApps.indexOf("chat") !== -1 && productApps.indexOf("drive") !== -1,
-  "desktop profile ships chat and drive");
-check(["mail", "calendar", "people", "tickets", "billing", "meet", "social", "marketing", "hr", "integrations"]
-  .every((app) => productApps.indexOf(app) === -1),
-  "desktop profile ships no out-of-scope domain app");
-check(/^hidden_apps=integrations,automations,research,sources\s*$/m.test(product),
-  "desktop profile hides integrations, automations, research and sources");
+const expectedAlways = [
+  "chat", "drive", "clock-widget", "jukebox", "sheet", "player",
+  "calculator", "notes", "photos", "timer", "weather", "integrations",
+];
+check(expectedAlways.every((app) => productApps.indexOf(app) !== -1) &&
+  productApps.length === expectedAlways.length,
+  "desktop profile always list matches the #1811 split");
+check(/^hidden_apps=research,sources\s*$/m.test(product),
+  "desktop profile hides Research and the sources surface");
+const productPreview = ((product.match(/^preview_apps=(.*)$/m) || [])[1] || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+check(["docs", "slides", "canvas", "goals", "mail", "calendar", "people", "automations"]
+  .every((app) => productPreview.indexOf(app) !== -1),
+  "desktop profile moves non-essential apps to Preview mode");
+check(productPreview.indexOf("sheet") === -1,
+  "sheet stays always visible, not preview");
 check(baseJs.indexOf("function isAppHidden") !== -1, "hidden_apps has a client helper");
 check(/!isAppHidden\(a\)/.test(baseJs), "enabled apps are filtered through hidden_apps");
 check(/isAppHidden\(appName\)/.test(baseJs), "nav items are filtered through hidden_apps");
 check(/if \(!Array\.isArray\(window\.productConfig\.apps\)\)/.test(baseJs),
   "a declared product app set is authoritative (no forced editor/sheet)");
-check(/apps\.length === 0/.test(baseJs),
-  "legacy core apps only fill an empty/default app set");
+check(baseJs.indexOf("coreApps") === -1,
+  "the client never injects apps the product file did not list");
 check(/window\.isAppHidden\(id\)/.test(windowManager),
   "the window manager refuses to open a hidden app");
 check(/This application is not part of this edition/.test(windowManager),
@@ -139,9 +149,10 @@ check(/window\.setTheme = function/.test(settingsJs), "theme switch is wired");
 check(/function bindToggles/.test(settingsJs) && /function loadSavedSettings/.test(settingsJs),
   "preference toggles load and persist");
 
-// #1631 — the web-search switch reaches the pipeline in the slim build.
+// #1631/#1811 — web-search remains a slim-build feature; the full desktop
+// bundle gets Research through `all-apps`.
 check(/web-search = \[[^\]]*dep:botresearch/.test(cargoToml), "web-search feature compiles botresearch");
-check(/desktop-local = \[[\s\S]*?"web-search"/.test(cargoToml), "desktop-local enables web-search");
+check(/desktop-local = \[[\s\S]*?"all-apps"/.test(cargoToml), "desktop-local compiles every app");
 check(/any\(feature = "research", feature = "web-search"\)/.test(pipelineExec), "pipeline honours web-search without the Research app");
 
 // #1680 — accessibility contracts that the Lighthouse gate checks. The widget

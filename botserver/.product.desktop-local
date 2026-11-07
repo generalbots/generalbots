@@ -1,24 +1,24 @@
-# Product Configuration — Desktop Local Edition (Chat + Drive)
+# Product Configuration — Desktop Local Edition
 # This file is loaded instead of .product when botserver is compiled
 # with --features desktop-local.
+#
+# #1811 — the desktop bundle embeds every application. This file is the only
+# always/preview/hidden split; it never decides what is compiled.
 
 name=General Bots
 
-# Desktop-local edition: Chat + Drive plus the everyday tools. Office editors
-# (Docs, Sheets, Slides) and Canvas ship so chat attachments can open in their
-# editor; everything else stays behind `preview_apps` (empty here, so the
-# profile shows exactly this list).
-apps=chat,drive,terminal,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather,docs,slides,canvas,goals
+# Always visible: the desktop essentials. Core surfaces (about, admin,
+# settings, auth) are always available without being listed here.
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
 
-# #1614/#1615 — surfaces that stay compiled and routed but are never advertised
-# in this profile. Integrations owns the Data Sources tab, so hiding the app
-# hides that tab too; direct navigation is refused by the suite shell. Research
-# (and its Data Sources surface) is not part of the chat+drive edition either,
-# so it is denied explicitly instead of relying on the product app list alone.
-hidden_apps=integrations,automations,research,sources
+# Preview applications: revealed only while Preview mode is on. Every registry
+# app is classified exactly once across apps/preview_apps/hidden_apps.
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace
 
-# No preview apps in the local edition.
-preview_apps=
+# Hidden: compiled and routed, but never advertised and refused by the suite
+# shell. Research stays out of the desktop product (#1626); `sources` is the
+# matching non-app Data Sources surface.
+hidden_apps=research,sources
 
 # Chat opens automatically when the suite loads.
 suite_default_app=chat
@@ -41,6 +41,11 @@ no_security=false
 # this product file. Settings then exposes the low-level "Operating System"
 # panel, and /api/system/os serves host data only in this mode.
 shell_mode=true
+
+# Shared links (#1863): leave empty to compose path-relative links that only
+# work on this machine. Set a public origin to hand out absolute links that
+# anyone who can reach the domain may download:
+# public_base_url=https://files.example.com
 
 # Default theme
 theme=sentient

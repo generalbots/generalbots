@@ -9,8 +9,8 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use botevents::{Envelope, EventSource, EventType};
-use botschema::run_events;
 use botlib::db_pool::DbPool;
+use botschema::run_events;
 
 /// The durable projection of one envelope. Column order matches the table
 /// definition in `botschema::runs`.
@@ -127,9 +127,7 @@ pub fn cleanup_expired(pool: &DbPool) -> Result<usize, String> {
         return Ok(0);
     }
     let cutoff = Utc::now() - chrono::Duration::days(days);
-    let mut conn = pool
-        .get()
-        .map_err(|error| format!("pool error: {error}"))?;
+    let mut conn = pool.get().map_err(|error| format!("pool error: {error}"))?;
     diesel::delete(run_events::table.filter(run_events::created_at.lt(cutoff)))
         .execute(&mut conn)
         .map_err(|error| format!("run_events retention failed: {error}"))

@@ -9,5 +9,6 @@ pub mod sidecar;
 pub mod splash;
 pub mod sync;
 pub mod tray;
+pub mod update;
 #[cfg(feature = "desktop-local")]
 pub mod wizard;

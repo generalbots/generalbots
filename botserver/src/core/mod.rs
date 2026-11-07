@@ -30,6 +30,7 @@ pub mod computer_use;
 pub mod desktop_activity;
 pub mod directory;
 pub mod oauth;
+pub mod peer_network;
 pub mod secrets;
 pub mod session;
 pub mod state;
