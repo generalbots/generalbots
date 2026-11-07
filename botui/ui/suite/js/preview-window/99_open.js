@@ -138,7 +138,7 @@
     fetch("/api/agent/drive/share", {
       method: "POST",
       headers: headers,
-      body: JSON.stringify({ conversation_id: state.conversation, file: name }),
+      body: JSON.stringify({ conversation_id: state.conversation, file: "output/" + name }),
     })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -181,9 +181,14 @@
       download.disabled = !url;
       download.onclick = function () {
         if (!url) return;
+        var downloadName = String(state.path).split("/").pop() || "file";
+        if (window.GBShared && typeof window.GBShared.download === "function") {
+          window.GBShared.download(url, downloadName);
+          return;
+        }
         var link = document.createElement("a");
         link.href = url;
-        link.download = String(state.path).split("/").pop() || "file";
+        link.download = downloadName;
         document.body.appendChild(link);
         link.click();
         link.remove();
