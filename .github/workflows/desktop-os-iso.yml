@@ -16,9 +16,10 @@ name: General Bots OS (kiosk appliance image)
 #   generalbots-os.iso — hybrid ISO (El Torito, UEFI bootable)
 #   SHA256SUMS-os, vm-smoke.log
 #
-# The recipe pins mkosi 27.1 from the Debian pool and a Debian sid build-time
-# tools tree, because El Torito output needs systemd-repart ≥ 261 (trixie
-# ships 257). The produced system is still pure Debian 13 (trixie).
+# The recipe pins mkosi 27.1 by building inside a Debian sid toolchain
+# container and a Debian sid build-time tools tree, because El Torito output
+# needs systemd-repart ≥ 261 (trixie ships 257). The produced system is still
+# pure Debian 13 (trixie).
 #
 # Release attachment is deliberately OFF until the ISO path and the boot
 # smoke are validated on the first set of builds; the artifact above is the
@@ -84,7 +85,7 @@ jobs:
             -v "$PWD/desktop/os:/work" \
             -v "$PWD/dist:/out" \
             -w /work \
-            debian:trixie bash -c '
+            debian:sid bash -c '
               set -uxo pipefail
               export DEBIAN_FRONTEND=noninteractive
               # mkosi sandbox uses unprivileged user namespaces; the Ubuntu
@@ -92,13 +93,10 @@ jobs:
               # allowed to lift the restriction for the build.
               sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
               apt-get update
-              apt-get install -y --no-install-recommends curl ca-certificates
-              # mkosi 27.1 from the Debian pool: trixie ships 25.3, which has
-              # neither El Torito output nor the ToolsTreeDistribution knobs
-              # this recipe needs. Dependencies resolve from trixie.
-              curl -fsSL -o /tmp/mkosi.deb \
-                https://deb.debian.org/debian/pool/main/m/mkosi/mkosi_27.1-1_all.deb
-              apt-get install -y --no-install-recommends /tmp/mkosi.deb
+              # Toolchain container is sid only because trixie ships mkosi
+              # 25.3 (no El Torito) and its dependency systemd-tpm is not
+              # installable there; the image built below stays Debian 13.
+              apt-get install -y --no-install-recommends mkosi
               mkosi --version
               mkosi --output-dir /out build
               RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1)

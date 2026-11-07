@@ -41,10 +41,11 @@ Why the **tarball** and not the `.deb`: the distro package step in
    `generalbots-linux-x86_64.tar.gz` (`latest` or an explicit tag) and
    unpacks it under `desktop/os/mkosi.extra/opt/general-bots/` — **no source
    build, binaries come from the release channel**;
-2. runs `mkosi build` inside a **privileged `debian:trixie` container**
-   (mkosi 27.1 straight from Debian's repos, full toolchain self-consistent;
-   the privileged container lifts the host's unprivileged-userns AppArmor
-   restriction);
+2. runs `mkosi build` inside a **privileged `debian:sid` toolchain
+   container** (mkosi 27.1 + a sid tools tree; the *image* stays trixie —
+   El Torito needs systemd-repart ≥ 261 and trixie ships 257); the
+   privileged container lifts the host's unprivileged-userns AppArmor
+   restriction;
 3. names the artifact `generalbots-os.iso` — a hybrid ISO via El Torito
    (mkosi 27.1 from the Debian pool plus a Debian **sid** build-time tools
    tree, since El Torito needs systemd-repart ≥ 261 and trixie ships 257;
