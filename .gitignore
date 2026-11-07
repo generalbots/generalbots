@@ -24,6 +24,7 @@ work/
 dump.rdb
 *.orig
 .antigravitycli/
+.claude/settings.local.json
 .playwright-mcp/
 test-results/
 opt/
