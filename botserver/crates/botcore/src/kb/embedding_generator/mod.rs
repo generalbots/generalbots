@@ -1,7 +1,7 @@
+pub(crate) use crate::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use log::{info, trace, warn};
 pub(crate) use serde::{Deserialize, Serialize};
-pub(crate) use crate::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 pub(crate) use std::sync::atomic::{AtomicBool, Ordering};
 
 static EMBEDDING_SERVER_READY: AtomicBool = AtomicBool::new(false);
@@ -110,12 +110,12 @@ struct CloudflareError {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum EmbeddingResponse {
-    Scaleway(ScalewayEmbeddingResponse),       // Scaleway/OpenAI-compatible format
-    OpenAI(OpenAIEmbeddingResponse),           // Most common: OpenAI, Claude, etc.
-    LlamaCpp(Vec<LlamaCppEmbeddingItem>),      // llama.cpp server
+    Scaleway(ScalewayEmbeddingResponse), // Scaleway/OpenAI-compatible format
+    OpenAI(OpenAIEmbeddingResponse),     // Most common: OpenAI, Claude, etc.
+    LlamaCpp(Vec<LlamaCppEmbeddingItem>), // llama.cpp server
     HuggingFace(HuggingFaceEmbeddingResponse), // Simple array format
-    Generic(GenericEmbeddingResponse),         // Generic services
-    Cloudflare(CloudflareEmbeddingResponse),   // Cloudflare AI Workers
+    Generic(GenericEmbeddingResponse),   // Generic services
+    Cloudflare(CloudflareEmbeddingResponse), // Cloudflare AI Workers
 }
 
 #[derive(Debug, Deserialize)]
@@ -162,21 +162,23 @@ pub struct SimpleEmail {
     pub body: String,
 }
 
+use super::document_processor::TextChunk;
+use crate::shared::DbPool;
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
-use crate::shared::DbPool;
-use super::document_processor::TextChunk;
 
-mod set_embedding_server_ready;
-mod from_env;
-mod kb_embedding_generator;
 mod config_read;
+mod from_env;
+mod generate_embedding;
 mod generate_local_embeddings;
 mod generate_single_embedding;
 mod generate_text_embedding;
-mod generate_embedding;
+mod kb_embedding_generator;
+mod local_embedding;
+mod set_embedding_server_ready;
 mod subject;
 
+pub use local_embedding::hash_embedding;
 pub use set_embedding_server_ready::*;

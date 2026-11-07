@@ -12,6 +12,17 @@ pub(super) fn extract_base_url(url: &str) -> String {
         url.to_string()
     }
 }
+
+/// True for the loopback endpoints the managed llama.cpp servers bind to.
+pub fn is_loopback_url(url: &str) -> bool {
+    match url::Url::parse(url) {
+        Ok(parsed) => matches!(
+            parsed.host_str(),
+            Some("localhost") | Some("127.0.0.1") | Some("::1")
+        ),
+        Err(_) => false,
+    }
+}
 pub async fn is_server_running(url: &str) -> bool {
     let base_url = extract_base_url(url);
     let client = reqwest::Client::builder()
@@ -52,9 +63,9 @@ pub fn start_llm_server(
     let conn = app_state.conn.clone();
     let config_manager = ConfigManager::new(conn.clone());
     let mut conn = conn.get().map_err(|e| {
-        Box::new(std::io::Error::other(
-            format!("failed to get db connection: {e}"),
-        )) as Box<dyn std::error::Error + Send + Sync>
+        Box::new(std::io::Error::other(format!(
+            "failed to get db connection: {e}"
+        ))) as Box<dyn std::error::Error + Send + Sync>
     })?;
     let default_bot_id = bots
         .filter(name.eq("default"))
@@ -64,32 +75,56 @@ pub fn start_llm_server(
     let n_moe = config_manager
         .get_config(&default_bot_id, "llm-server-n-moe", None)
         .unwrap_or_else(|_| "4".to_string());
-    let n_moe = if n_moe.is_empty() { "4".to_string() } else { n_moe };
+    let n_moe = if n_moe.is_empty() {
+        "4".to_string()
+    } else {
+        n_moe
+    };
 
     let parallel = config_manager
         .get_config(&default_bot_id, "llm-server-parallel", None)
         .unwrap_or_else(|_| "1".to_string());
-    let parallel = if parallel.is_empty() { "1".to_string() } else { parallel };
+    let parallel = if parallel.is_empty() {
+        "1".to_string()
+    } else {
+        parallel
+    };
 
     let cont_batching = config_manager
         .get_config(&default_bot_id, "llm-server-cont-batching", None)
         .unwrap_or_else(|_| "true".to_string());
-    let cont_batching = if cont_batching.is_empty() { "true".to_string() } else { cont_batching };
+    let cont_batching = if cont_batching.is_empty() {
+        "true".to_string()
+    } else {
+        cont_batching
+    };
 
     let mlock = config_manager
         .get_config(&default_bot_id, "llm-server-mlock", None)
         .unwrap_or_else(|_| "true".to_string());
-    let mlock = if mlock.is_empty() { "true".to_string() } else { mlock };
+    let mlock = if mlock.is_empty() {
+        "true".to_string()
+    } else {
+        mlock
+    };
 
     let no_mmap = config_manager
         .get_config(&default_bot_id, "llm-server-no-mmap", None)
         .unwrap_or_else(|_| "true".to_string());
-    let no_mmap = if no_mmap.is_empty() { "true".to_string() } else { no_mmap };
+    let no_mmap = if no_mmap.is_empty() {
+        "true".to_string()
+    } else {
+        no_mmap
+    };
 
     let gpu_layers = config_manager
         .get_config(&default_bot_id, "llm-server-gpu-layers", None)
         .unwrap_or_else(|_| "0".to_string());
-    let gpu_layers = if gpu_layers.is_empty() { "0".to_string() } else { gpu_layers };
+    let gpu_layers = if gpu_layers.is_empty() {
+        "0".to_string()
+    } else {
+        gpu_layers
+    };
 
     let reasoning_format = config_manager
         .get_config(&default_bot_id, "llm-server-reasoning-format", None)
@@ -97,13 +132,21 @@ pub fn start_llm_server(
 
     let n_predict = config_manager
         .get_config(&default_bot_id, "llm-server-n-predict", None)
-        .unwrap_or_else(|_| "512".to_string());  // Increased default for DeepSeek R1 reasoning
-    let n_predict = if n_predict.is_empty() { "512".to_string() } else { n_predict };
+        .unwrap_or_else(|_| "512".to_string()); // Increased default for DeepSeek R1 reasoning
+    let n_predict = if n_predict.is_empty() {
+        "512".to_string()
+    } else {
+        n_predict
+    };
 
     let n_ctx_size = config_manager
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or_else(|_| "32000".to_string());
-    let n_ctx_size = if n_ctx_size.is_empty() { "32000".to_string() } else { n_ctx_size };
+    let n_ctx_size = if n_ctx_size.is_empty() {
+        "32000".to_string()
+    } else {
+        n_ctx_size
+    };
 
     let cmd_path = if cfg!(windows) {
         format!("{}\\llama-server.exe", llama_cpp_path)
@@ -115,17 +158,29 @@ pub fn start_llm_server(
     let ubatch_size = config_manager
         .get_config(&default_bot_id, "llm-server-ubatch-size", Some("512"))
         .unwrap_or_else(|_| "512".to_string());
-    let ubatch_size = if ubatch_size.is_empty() { "512".to_string() } else { ubatch_size };
+    let ubatch_size = if ubatch_size.is_empty() {
+        "512".to_string()
+    } else {
+        ubatch_size
+    };
 
     let mut args_vec = vec![
-        "-m", &model_path,
-        "--host", "127.0.0.1",
-        "--port", port,
-        "--top_p", "0.95",
-        "--temp", "0.6",
-        "--repeat-penalty", "1.2",
-        "--n-gpu-layers", &gpu_layers,
-        "--ubatch-size", &ubatch_size,
+        "-m",
+        &model_path,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        port,
+        "--top_p",
+        "0.95",
+        "--temp",
+        "0.6",
+        "--repeat-penalty",
+        "1.2",
+        "--n-gpu-layers",
+        &gpu_layers,
+        "--ubatch-size",
+        &ubatch_size,
     ];
 
     if !reasoning_format.is_empty() {
@@ -183,8 +238,11 @@ pub fn start_llm_server(
         }
     }
 
-    info!("Executing LLM server command: llama-server with {} args", args_vec.len());
-    
+    info!(
+        "Executing LLM server command: llama-server with {} args",
+        args_vec.len()
+    );
+
     command.spawn().map_err(|e| {
         Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>
     })?;
@@ -223,13 +281,19 @@ pub async fn start_embedding_server(
     };
 
     let mut args_vec = vec![
-        "-m", &full_model_path,
-        "--host", "127.0.0.1",
-        "--port", port,
+        "-m",
+        &full_model_path,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        port,
         "--embeddings",
-        "--pooling", "mean",
-        "--n-gpu-layers", "0",
-        "--ctx-size", "512",
+        "--pooling",
+        "mean",
+        "--n-gpu-layers",
+        "0",
+        "--ctx-size",
+        "512",
     ];
 
     if !cfg!(windows) {
@@ -269,8 +333,11 @@ pub async fn start_embedding_server(
         }
     }
 
-    info!("Executing embedding server command: llama-server with {} args", args_vec.len());
-    
+    info!(
+        "Executing embedding server command: llama-server with {} args",
+        args_vec.len()
+    );
+
     command.spawn().map_err(|e| {
         Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error + Send + Sync>
     })?;

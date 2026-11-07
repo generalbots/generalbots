@@ -1,20 +1,46 @@
 use super::*;
 
 impl KbEmbeddingGenerator {
-    pub(crate) async fn generate_local_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
+    pub(crate) async fn generate_local_embeddings(
+        &self,
+        texts: &[String],
+    ) -> Result<Vec<Embedding>> {
         // Apply token-aware truncation to each text before creating request
-        let truncated_texts: Vec<String> = texts.iter()
-            .map(|text| crate::shared::utils::truncate_text_for_model(text, &self.config_read().embedding_model.clone(), 600))
+        let truncated_texts: Vec<String> = texts
+            .iter()
+            .map(|text| {
+                crate::shared::utils::truncate_text_for_model(
+                    text,
+                    &self.config_read().embedding_model.clone(),
+                    600,
+                )
+            })
             .collect();
 
         // Detect API format based on URL pattern
         // Cloudflare AI: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/baai/bge-m3
         // Scaleway (OpenAI-compatible): https://router.huggingface.co/scaleway/v1/embeddings
         // HuggingFace Inference (old): https://router.huggingface.co/hf-inference/models/.../pipeline/feature-extraction
-        let is_cloudflare = self.config_read().embedding_url.clone().contains("api.cloudflare.com/client/v4/accounts");
-        let is_scaleway = self.config_read().embedding_url.clone().contains("/scaleway/v1/embeddings");
-        let is_hf_inference = self.config_read().embedding_url.clone().contains("/hf-inference/") ||
-                             self.config_read().embedding_url.clone().contains("/pipeline/feature-extraction");
+        let is_cloudflare = self
+            .config_read()
+            .embedding_url
+            .clone()
+            .contains("api.cloudflare.com/client/v4/accounts");
+        let is_scaleway = self
+            .config_read()
+            .embedding_url
+            .clone()
+            .contains("/scaleway/v1/embeddings");
+        let is_hf_inference = self
+            .config_read()
+            .embedding_url
+            .clone()
+            .contains("/hf-inference/")
+            || self
+                .config_read()
+                .embedding_url
+                .clone()
+                .contains("/pipeline/feature-extraction");
 
         let response = if is_cloudflare {
             // Cloudflare AI Workers API format: {"text": ["text1", "text2", ...]}
@@ -25,10 +51,14 @@ impl KbEmbeddingGenerator {
             let request_size = serde_json::to_string(&cf_request)
                 .map(|s| s.len())
                 .unwrap_or(0);
-            trace!("Sending Cloudflare AI request to {} (size: {} bytes)",
-                  self.config_read().embedding_url.clone(), request_size);
+            trace!(
+                "Sending Cloudflare AI request to {} (size: {} bytes)",
+                self.config_read().embedding_url.clone(),
+                request_size
+            );
 
-            let mut request_builder = self.client
+            let mut request_builder = self
+                .client
                 .post(self.config_read().embedding_url.clone())
                 .json(&cf_request);
 
@@ -38,7 +68,8 @@ impl KbEmbeddingGenerator {
                     "Using Cloudflare embedding API key ({} chars)",
                     api_key.len()
                 );
-                request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                request_builder =
+                    request_builder.header("Authorization", format!("Bearer {}", api_key));
             } else {
                 warn!("Cloudflare API key is NOT SET — embeddings will fail with 401");
             }
@@ -60,16 +91,21 @@ impl KbEmbeddingGenerator {
                 let request_size = serde_json::to_string(&hf_request)
                     .map(|s| s.len())
                     .unwrap_or(0);
-                trace!("Sending HuggingFace Inference request to {} (size: {} bytes)",
-                      self.config_read().embedding_url.clone(), request_size);
+                trace!(
+                    "Sending HuggingFace Inference request to {} (size: {} bytes)",
+                    self.config_read().embedding_url.clone(),
+                    request_size
+                );
 
-                let mut request_builder = self.client
+                let mut request_builder = self
+                    .client
                     .post(self.config_read().embedding_url.clone())
                     .json(&hf_request);
 
                 // Add Authorization header if API key is provided
                 if let Some(ref api_key) = self.config_read().embedding_key.clone() {
-                    request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                    request_builder =
+                        request_builder.header("Authorization", format!("Bearer {}", api_key));
                 }
 
                 let resp = request_builder
@@ -80,7 +116,8 @@ impl KbEmbeddingGenerator {
                 let status = resp.status();
                 if !status.is_success() {
                     let error_bytes = resp.bytes().await.unwrap_or_default();
-                    let error_text = String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
+                    let error_text =
+                        String::from_utf8_lossy(&error_bytes[..error_bytes.len().min(1024)]);
                     return Err(anyhow::anyhow!(
                         "HuggingFace Inference embedding service error {}: {}",
                         status,
@@ -88,10 +125,15 @@ impl KbEmbeddingGenerator {
                     ));
                 }
 
-                let response_bytes = resp.bytes().await
+                let response_bytes = resp
+                    .bytes()
+                    .await
                     .context("Failed to read HuggingFace Inference embedding response bytes")?;
 
-                trace!("Received HuggingFace Inference response: {} bytes", response_bytes.len());
+                trace!(
+                    "Received HuggingFace Inference response: {} bytes",
+                    response_bytes.len()
+                );
 
                 if response_bytes.len() > 50 * 1024 * 1024 {
                     return Err(anyhow::anyhow!(
@@ -106,7 +148,10 @@ impl KbEmbeddingGenerator {
                         let preview = std::str::from_utf8(&response_bytes)
                             .map(|s| botlib::text::truncate_at_char_boundary(s, 200))
                             .unwrap_or("<invalid utf8>");
-                        format!("Failed to parse HuggingFace Inference embedding response. Preview: {}", preview)
+                        format!(
+                            "Failed to parse HuggingFace Inference embedding response. Preview: {}",
+                            preview
+                        )
                     })?;
 
                 all_embeddings.push(Embedding {
@@ -132,21 +177,29 @@ impl KbEmbeddingGenerator {
 
             // Log the API format being used
             if is_scaleway {
-                trace!("Sending Scaleway (OpenAI-compatible) request to {} (size: {} bytes)",
-                      self.config_read().embedding_url.clone(), request_size);
+                trace!(
+                    "Sending Scaleway (OpenAI-compatible) request to {} (size: {} bytes)",
+                    self.config_read().embedding_url.clone(),
+                    request_size
+                );
             } else {
-                trace!("Sending standard embedding request to {} (size: {} bytes)",
-                      self.config_read().embedding_url.clone(), request_size);
+                trace!(
+                    "Sending standard embedding request to {} (size: {} bytes)",
+                    self.config_read().embedding_url.clone(),
+                    request_size
+                );
             }
 
             // Build request
-            let mut request_builder = self.client
+            let mut request_builder = self
+                .client
                 .post(self.config_read().embedding_url.clone())
                 .json(&request);
 
             // Add Authorization header if API key is provided (for Scaleway, OpenAI, etc.)
             if let Some(ref api_key) = self.config_read().embedding_key.clone() {
-                request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+                request_builder =
+                    request_builder.header("Authorization", format!("Bearer {}", api_key));
             }
 
             request_builder
@@ -166,7 +219,9 @@ impl KbEmbeddingGenerator {
             ));
         }
 
-        let response_bytes = response.bytes().await
+        let response_bytes = response
+            .bytes()
+            .await
             .context("Failed to read embedding response bytes")?;
 
         trace!("Received response: {} bytes", response_bytes.len());
@@ -233,7 +288,10 @@ impl KbEmbeddingGenerator {
                     embeddings.push(Embedding {
                         vector: embedding_vec,
                         dimensions: self.config_read().dimensions,
-                        model: generic_response.model.clone().unwrap_or_else(|| self.config_read().embedding_model.clone()),
+                        model: generic_response
+                            .model
+                            .clone()
+                            .unwrap_or_else(|| self.config_read().embedding_model.clone()),
                         tokens_used: generic_response.usage.as_ref().map(|u| u.total_tokens),
                     });
                 }
@@ -245,7 +303,10 @@ impl KbEmbeddingGenerator {
                     embeddings.push(Embedding {
                         vector: data.embedding,
                         dimensions: self.config_read().dimensions,
-                        model: scaleway_response.model.clone().unwrap_or_else(|| self.config_read().embedding_model.clone()),
+                        model: scaleway_response
+                            .model
+                            .clone()
+                            .unwrap_or_else(|| self.config_read().embedding_model.clone()),
                         tokens_used: scaleway_response.usage.as_ref().map(|u| u.total_tokens),
                     });
                 }
@@ -253,7 +314,9 @@ impl KbEmbeddingGenerator {
             }
             EmbeddingResponse::Cloudflare(cf_response) => {
                 if !cf_response.success {
-                    let error_msg = cf_response.errors.first()
+                    let error_msg = cf_response
+                        .errors
+                        .first()
                         .map(|e| format!("{}: {}", e.code, e.message))
                         .unwrap_or_else(|| "Unknown Cloudflare error".to_string());
                     return Err(anyhow::anyhow!("Cloudflare AI error: {}", error_msg));
@@ -264,9 +327,11 @@ impl KbEmbeddingGenerator {
                         vector: embedding_vec,
                         dimensions: self.config_read().dimensions,
                         model: self.config_read().embedding_model.clone(),
-                        tokens_used: cf_response.result.meta.as_ref().and_then(|m| {
-                            m.cost_metric_value_1.map(|v| v as usize)
-                        }),
+                        tokens_used: cf_response
+                            .result
+                            .meta
+                            .as_ref()
+                            .and_then(|m| m.cost_metric_value_1.map(|v| v as usize)),
                     });
                 }
                 embeddings

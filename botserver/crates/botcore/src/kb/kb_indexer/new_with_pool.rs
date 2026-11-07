@@ -16,7 +16,11 @@ impl KbIndexer {
         }
     }
 
-    pub fn new_with_pool(embedding_config: EmbeddingConfig, qdrant_config: QdrantConfig, db_pool: DbPool) -> Self {
+    pub fn new_with_pool(
+        embedding_config: EmbeddingConfig,
+        qdrant_config: QdrantConfig,
+        db_pool: DbPool,
+    ) -> Self {
         let document_processor = DocumentProcessor::default();
         let embedding_generator = KbEmbeddingGenerator::new(embedding_config);
 
@@ -58,8 +62,12 @@ impl KbIndexer {
         kb_path: &Path,
     ) -> Result<IndexingResult> {
         let start_mem = MemoryStats::current();
-        info!("Indexing KB folder: {} for bot {} [START RSS={}]",
-              kb_name, bot_name, MemoryStats::format_bytes(start_mem.rss_bytes));
+        info!(
+            "Indexing KB folder: {} for bot {} [START RSS={}]",
+            kb_name,
+            bot_name,
+            MemoryStats::format_bytes(start_mem.rss_bytes)
+        );
         log_jemalloc_stats();
 
         // Reload embedding config from database to detect config.csv changes
@@ -67,7 +75,12 @@ impl KbIndexer {
             self.embedding_generator.reload_config(pool, &bot_id);
         }
 
-        if !is_embedding_server_ready() {
+        if !self.embedding_generator.has_embedding_endpoint() {
+            info!(
+                "No embedding endpoint configured for bot {}; indexing with the local hash fallback",
+                bot_id
+            );
+        } else if !is_embedding_server_ready() {
             info!("Embedding server not ready yet, waiting up to 60s...");
             if !self.embedding_generator.wait_for_server(60).await {
                 info!(
@@ -98,16 +111,20 @@ impl KbIndexer {
         self.ensure_collection_exists(&collection_name).await?;
 
         let before_docs = MemoryStats::current();
-        trace!("Before process_kb_folder RSS={}",
-              MemoryStats::format_bytes(before_docs.rss_bytes));
+        trace!(
+            "Before process_kb_folder RSS={}",
+            MemoryStats::format_bytes(before_docs.rss_bytes)
+        );
 
         let documents = self.document_processor.process_kb_folder(kb_path).await?;
 
         let after_docs = MemoryStats::current();
-        trace!("After process_kb_folder: {} documents, RSS={} (delta={})",
-              documents.len(),
-              MemoryStats::format_bytes(after_docs.rss_bytes),
-              MemoryStats::format_bytes(after_docs.rss_bytes.saturating_sub(before_docs.rss_bytes)));
+        trace!(
+            "After process_kb_folder: {} documents, RSS={} (delta={})",
+            documents.len(),
+            MemoryStats::format_bytes(after_docs.rss_bytes),
+            MemoryStats::format_bytes(after_docs.rss_bytes.saturating_sub(before_docs.rss_bytes))
+        );
 
         let mut total_chunks = 0;
         let mut indexed_documents = 0;
@@ -127,7 +144,9 @@ impl KbIndexer {
 
             // Process batch when full
             if batch_docs.len() >= BATCH_SIZE {
-                let (processed, chunks_count) = self.process_document_batch(&collection_name, &mut batch_docs).await?;
+                let (processed, chunks_count) = self
+                    .process_document_batch(&collection_name, &mut batch_docs)
+                    .await?;
                 indexed_documents += processed;
                 total_chunks += chunks_count;
 
@@ -140,9 +159,12 @@ impl KbIndexer {
 
                 // Memory pressure check - more aggressive
                 let current_mem = MemoryStats::current();
-                if current_mem.rss_bytes > 1_500_000_000 { // 1.5GB threshold (reduced)
-                    warn!("High memory usage detected: {}, forcing cleanup",
-                          MemoryStats::format_bytes(current_mem.rss_bytes));
+                if current_mem.rss_bytes > 1_500_000_000 {
+                    // 1.5GB threshold (reduced)
+                    warn!(
+                        "High memory usage detected: {}, forcing cleanup",
+                        MemoryStats::format_bytes(current_mem.rss_bytes)
+                    );
 
                     // Force garbage collection hint
                     std::hint::black_box(&batch_docs);
@@ -155,7 +177,9 @@ impl KbIndexer {
 
         // Process remaining documents in final batch
         if !batch_docs.is_empty() {
-            let (processed, chunks_count) = self.process_document_batch(&collection_name, &mut batch_docs).await?;
+            let (processed, chunks_count) = self
+                .process_document_batch(&collection_name, &mut batch_docs)
+                .await?;
             indexed_documents += processed;
             total_chunks += chunks_count;
         }
@@ -163,10 +187,13 @@ impl KbIndexer {
         self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)?;
 
         let end_mem = MemoryStats::current();
-        trace!("Indexing complete: {} docs, {} chunks, RSS={} (total delta={})",
-              indexed_documents, total_chunks,
-              MemoryStats::format_bytes(end_mem.rss_bytes),
-              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        trace!(
+            "Indexing complete: {} docs, {} chunks, RSS={} (total delta={})",
+            indexed_documents,
+            total_chunks,
+            MemoryStats::format_bytes(end_mem.rss_bytes),
+            MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes))
+        );
         log_jemalloc_stats();
 
         Ok(IndexingResult {
@@ -230,9 +257,13 @@ impl KbIndexer {
             }
 
             let after_embed = MemoryStats::current();
-            trace!("After processing document: RSS={} (delta={})",
-                  MemoryStats::format_bytes(after_embed.rss_bytes),
-                  MemoryStats::format_bytes(after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)));
+            trace!(
+                "After processing document: RSS={} (delta={})",
+                MemoryStats::format_bytes(after_embed.rss_bytes),
+                MemoryStats::format_bytes(
+                    after_embed.rss_bytes.saturating_sub(before_embed.rss_bytes)
+                )
+            );
 
             total_chunks += chunks.len();
             processed_count += 1;

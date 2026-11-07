@@ -89,7 +89,9 @@ impl KbIndexer {
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
         // Get the collection's actual vector dimension to handle dimension mismatch
-        let collection_dimension = self.get_collection_vector_dimension(collection_name).await?;
+        let collection_dimension = self
+            .get_collection_vector_dimension(collection_name)
+            .await?;
 
         let embedding = self
             .embedding_generator
@@ -101,14 +103,18 @@ impl KbIndexer {
             if embedding.vector.len() > target_dim {
                 debug!(
                     "Truncating embedding from {} to {} dimensions for collection '{}'",
-                    embedding.vector.len(), target_dim, collection_name
+                    embedding.vector.len(),
+                    target_dim,
+                    collection_name
                 );
                 embedding.vector[..target_dim].to_vec()
             } else if embedding.vector.len() < target_dim {
                 warn!(
                     "Embedding dimension ({}) is smaller than collection dimension ({}). \
                     Search may return poor results for collection '{}'.",
-                    embedding.vector.len(), target_dim, collection_name
+                    embedding.vector.len(),
+                    target_dim,
+                    collection_name
                 );
                 // Pad with zeros (not ideal but allows search to proceed)
                 let mut padded = embedding.vector.clone();
@@ -121,7 +127,8 @@ impl KbIndexer {
             embedding.vector
         };
 
-        self.execute_search(collection_name, search_vector, limit).await
+        self.execute_search(collection_name, search_vector, limit)
+            .await
     }
 
     pub async fn search_with_config(
@@ -131,7 +138,9 @@ impl KbIndexer {
         limit: usize,
         embedding_config: &EmbeddingConfig,
     ) -> Result<Vec<SearchResult>> {
-        let collection_dimension = self.get_collection_vector_dimension(collection_name).await?;
+        let collection_dimension = self
+            .get_collection_vector_dimension(collection_name)
+            .await?;
 
         let embedding_generator = KbEmbeddingGenerator::new(embedding_config.clone());
         let embedding = embedding_generator.generate_single_embedding(query).await?;
@@ -140,14 +149,18 @@ impl KbIndexer {
             if embedding.vector.len() > target_dim {
                 debug!(
                     "Truncating embedding from {} to {} dimensions for collection '{}'",
-                    embedding.vector.len(), target_dim, collection_name
+                    embedding.vector.len(),
+                    target_dim,
+                    collection_name
                 );
                 embedding.vector[..target_dim].to_vec()
             } else if embedding.vector.len() < target_dim {
                 warn!(
                     "Embedding dimension ({}) is smaller than collection dimension ({}). \
                     Search may return poor results for collection '{}'.",
-                    embedding.vector.len(), target_dim, collection_name
+                    embedding.vector.len(),
+                    target_dim,
+                    collection_name
                 );
                 let mut padded = embedding.vector.clone();
                 padded.resize(target_dim, 0.0);
@@ -159,7 +172,8 @@ impl KbIndexer {
             embedding.vector
         };
 
-        self.execute_search(collection_name, search_vector, limit).await
+        self.execute_search(collection_name, search_vector, limit)
+            .await
     }
 
     async fn execute_search(
@@ -243,7 +257,10 @@ impl KbIndexer {
     }
 
     /// Get the vector dimension of a collection from Qdrant
-    async fn get_collection_vector_dimension(&self, collection_name: &str) -> Result<Option<usize>> {
+    async fn get_collection_vector_dimension(
+        &self,
+        collection_name: &str,
+    ) -> Result<Option<usize>> {
         let info_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
 
         let response = match self.http_client.get(&info_url).send().await {
@@ -255,7 +272,10 @@ impl KbIndexer {
         };
 
         if !response.status().is_success() {
-            debug!("Collection '{}' not found or error, using default dimension", collection_name);
+            debug!(
+                "Collection '{}' not found or error, using default dimension",
+                collection_name
+            );
             return Ok(None);
         }
 

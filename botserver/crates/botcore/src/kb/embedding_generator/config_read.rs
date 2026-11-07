@@ -4,12 +4,16 @@ impl KbEmbeddingGenerator {
     /// Poison-recovering read lock: a panicked writer must not take the
     /// whole server down (#1368). The guard data is still usable.
     pub(super) fn config_read(&self) -> std::sync::RwLockReadGuard<'_, EmbeddingConfig> {
-        self.config.read().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.config
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// Poison-recovering write lock — same rationale as `config_read`.
     pub(super) fn config_write(&self) -> std::sync::RwLockWriteGuard<'_, EmbeddingConfig> {
-        self.config.write().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.config
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn new(config: EmbeddingConfig) -> Self {
@@ -22,7 +26,10 @@ impl KbEmbeddingGenerator {
             .tcp_nodelay(true)
             .build()
             .unwrap_or_else(|e| {
-                info!("Failed to create HTTP client with timeout: {}, using default", e);
+                info!(
+                    "Failed to create HTTP client with timeout: {}, using default",
+                    e
+                );
                 Client::new()
             });
 
@@ -57,8 +64,16 @@ impl KbEmbeddingGenerator {
         // Remote HTTPS APIs (Cloudflare Workers AI, OpenAI, etc.) are assumed available
         // — they don't have /health endpoints and return 401/403/301 on probe.
         // Only local servers need TCP health checks.
-        if self.config_read().embedding_url.clone().starts_with("https://") {
-            info!("Embedding server is remote HTTPS API ({}), assuming available", self.config_read().embedding_url.clone());
+        if self
+            .config_read()
+            .embedding_url
+            .clone()
+            .starts_with("https://")
+        {
+            info!(
+                "Embedding server is remote HTTPS API ({}), assuming available",
+                self.config_read().embedding_url.clone()
+            );
             set_embedding_server_ready(true);
             return true;
         }
@@ -77,58 +92,81 @@ impl KbEmbeddingGenerator {
 
         match tokio::time::timeout(
             Duration::from_secs(connect_timeout),
-            self.client.get(&health_url).send()
-        ).await {
-        Ok(Ok(response)) => {
-            let status = response.status();
-            if status.is_success() {
-                info!("Embedding server health check passed ({})", self.config_read().embedding_url.clone());
-                set_embedding_server_ready(true);
-                true
-            } else if status.as_u16() == 404 || status.as_u16() == 405 {
-                // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
-                // Try a HEAD request to the base URL to confirm it's up
-                info!("No /health endpoint at {} (status {}), probing base URL", base_url, status);
-                match tokio::time::timeout(
-                    Duration::from_secs(connect_timeout),
-                    self.client.head(&base_url).send()
-                ).await {
-                    Ok(Ok(_)) => {
-                        info!("Embedding server reachable at {}, marking as ready", base_url);
-                        set_embedding_server_ready(true);
-                        true
+            self.client.get(&health_url).send(),
+        )
+        .await
+        {
+            Ok(Ok(response)) => {
+                let status = response.status();
+                if status.is_success() {
+                    info!(
+                        "Embedding server health check passed ({})",
+                        self.config_read().embedding_url.clone()
+                    );
+                    set_embedding_server_ready(true);
+                    true
+                } else if status.as_u16() == 404 || status.as_u16() == 405 {
+                    // Server is reachable but has no /health endpoint (remote API, llama.cpp /embedding-only)
+                    // Try a HEAD request to the base URL to confirm it's up
+                    info!(
+                        "No /health endpoint at {} (status {}), probing base URL",
+                        base_url, status
+                    );
+                    match tokio::time::timeout(
+                        Duration::from_secs(connect_timeout),
+                        self.client.head(&base_url).send(),
+                    )
+                    .await
+                    {
+                        Ok(Ok(_)) => {
+                            info!(
+                                "Embedding server reachable at {}, marking as ready",
+                                base_url
+                            );
+                            set_embedding_server_ready(true);
+                            true
+                        }
+                        Ok(Err(e)) => {
+                            info!("Embedding server unreachable at {}: {}", base_url, e);
+                            set_embedding_server_ready(false);
+                            false
+                        }
+                        Err(_) => {
+                            info!("Embedding server probe timed out for {}", base_url);
+                            set_embedding_server_ready(false);
+                            false
+                        }
                     }
-                    Ok(Err(e)) => {
-                        info!("Embedding server unreachable at {}: {}", base_url, e);
-                        set_embedding_server_ready(false);
-                        false
-                    }
-                    Err(_) => {
-                        info!("Embedding server probe timed out for {}", base_url);
-                        set_embedding_server_ready(false);
-                        false
-                    }
+                } else if status.is_redirection()
+                    || status.as_u16() == 401
+                    || status.as_u16() == 403
+                {
+                    // Redirect (301/302) or auth-required (401/403) means the server IS reachable
+                    // This is typical for remote APIs like Cloudflare Workers AI
+                    info!("Embedding server reachable at {} (status {} indicates external API), marking as ready", base_url, status);
+                    set_embedding_server_ready(true);
+                    true
+                } else {
+                    info!("Embedding server health check returned status {}", status);
+                    set_embedding_server_ready(false);
+                    false
                 }
-            } else if status.is_redirection() || status.as_u16() == 401 || status.as_u16() == 403 {
-                // Redirect (301/302) or auth-required (401/403) means the server IS reachable
-                // This is typical for remote APIs like Cloudflare Workers AI
-                info!("Embedding server reachable at {} (status {} indicates external API), marking as ready", base_url, status);
-                set_embedding_server_ready(true);
-                true
-            } else {
-                info!("Embedding server health check returned status {}", status);
-                set_embedding_server_ready(false);
-                false
-            }
             }
             Ok(Err(e)) => {
                 // Connection failed entirely — server not running or network issue
-                info!("Embedding server connection failed for {}: {}", self.config_read().embedding_url.clone(), e);
+                info!(
+                    "Embedding server connection failed for {}: {}",
+                    self.config_read().embedding_url.clone(),
+                    e
+                );
                 set_embedding_server_ready(false);
                 false
             }
             Err(_) => {
-                info!("Embedding server health check timed out for {}", self.config_read().embedding_url.clone());
+                info!(
+                    "Embedding server health check timed out for {}",
+                    self.config_read().embedding_url.clone()
+                );
                 set_embedding_server_ready(false);
                 false
             }
@@ -139,8 +177,11 @@ impl KbEmbeddingGenerator {
         let start = std::time::Instant::now();
         let max_wait = Duration::from_secs(max_wait_secs);
 
-        info!("Waiting for embedding server at {} (max {}s)...",
-              self.config_read().embedding_url.clone(), max_wait_secs);
+        info!(
+            "Waiting for embedding server at {} (max {}s)...",
+            self.config_read().embedding_url.clone(),
+            max_wait_secs
+        );
 
         while start.elapsed() < max_wait {
             if self.check_health().await {
@@ -157,13 +198,40 @@ impl KbEmbeddingGenerator {
         self.config_read().dimensions
     }
 
-    pub async fn generate_embeddings(
+    /// False when no embedding endpoint is configured (local model missing and
+    /// no remote provider). Callers then use the deterministic hash fallback
+    /// instead of waiting for a server that will never start (#1799).
+    pub fn has_embedding_endpoint(&self) -> bool {
+        !self.config_read().embedding_url.trim().is_empty()
+    }
 
+    pub(crate) fn hash_embedding_for(&self, text: &str) -> Embedding {
+        let config = self.config_read();
+        Embedding {
+            vector: super::local_embedding::hash_embedding(text, config.dimensions),
+            dimensions: config.dimensions,
+            model: config.embedding_model.clone(),
+            tokens_used: None,
+        }
+    }
+
+    pub async fn generate_embeddings(
         &self,
         chunks: &[TextChunk],
     ) -> Result<Vec<(TextChunk, Embedding)>> {
         if chunks.is_empty() {
             return Ok(Vec::new());
+        }
+
+        if !self.has_embedding_endpoint() {
+            info!(
+                "No embedding endpoint configured; indexing with the local hash fallback ({} chunks)",
+                chunks.len()
+            );
+            return Ok(chunks
+                .iter()
+                .map(|chunk| (chunk.clone(), self.hash_embedding_for(&chunk.content)))
+                .collect());
         }
 
         if !self.wait_for_server(30).await {
@@ -174,8 +242,11 @@ impl KbEmbeddingGenerator {
         }
 
         let start_mem = MemoryStats::current();
-        trace!("Generating embeddings for {} chunks, RSS={}",
-              chunks.len(), MemoryStats::format_bytes(start_mem.rss_bytes));
+        trace!(
+            "Generating embeddings for {} chunks, RSS={}",
+            chunks.len(),
+            MemoryStats::format_bytes(start_mem.rss_bytes)
+        );
 
         let batch_size = self.config_read().batch_size;
         let timeout_seconds = self.config_read().timeout_seconds;
@@ -184,16 +255,20 @@ impl KbEmbeddingGenerator {
 
         for (batch_num, batch) in chunks.chunks(batch_size).enumerate() {
             let batch_start = MemoryStats::current();
-            trace!("Processing batch {}/{} ({} items), RSS={}",
-                  batch_num + 1,
-                  total_batches,
-                  batch.len(),
-                  MemoryStats::format_bytes(batch_start.rss_bytes));
+            trace!(
+                "Processing batch {}/{} ({} items), RSS={}",
+                batch_num + 1,
+                total_batches,
+                batch.len(),
+                MemoryStats::format_bytes(batch_start.rss_bytes)
+            );
 
             let batch_embeddings = match tokio::time::timeout(
                 Duration::from_secs(timeout_seconds),
-                self.generate_batch_embeddings(batch)
-            ).await {
+                self.generate_batch_embeddings(batch),
+            )
+            .await
+            {
                 Ok(Ok(embeddings)) => embeddings,
                 Ok(Err(e)) => {
                     warn!("Batch {} failed: {}", batch_num + 1, e);
@@ -201,8 +276,11 @@ impl KbEmbeddingGenerator {
                     continue;
                 }
                 Err(_) => {
-                    warn!("Batch {} timed out after {}s",
-                          batch_num + 1, self.config_read().timeout_seconds);
+                    warn!(
+                        "Batch {} timed out after {}s",
+                        batch_num + 1,
+                        self.config_read().timeout_seconds
+                    );
                     // Continue with next batch instead of breaking completely
                     continue;
                 }
@@ -210,15 +288,19 @@ impl KbEmbeddingGenerator {
 
             let batch_end = MemoryStats::current();
             let delta = batch_end.rss_bytes.saturating_sub(batch_start.rss_bytes);
-            trace!("Batch {} complete: {} embeddings, RSS={} (delta={})",
-                  batch_num + 1,
-                  batch_embeddings.len(),
-                  MemoryStats::format_bytes(batch_end.rss_bytes),
-                  MemoryStats::format_bytes(delta));
+            trace!(
+                "Batch {} complete: {} embeddings, RSS={} (delta={})",
+                batch_num + 1,
+                batch_embeddings.len(),
+                MemoryStats::format_bytes(batch_end.rss_bytes),
+                MemoryStats::format_bytes(delta)
+            );
 
             if delta > 100 * 1024 * 1024 {
-                warn!("Excessive memory growth detected ({}), stopping early",
-                      MemoryStats::format_bytes(delta));
+                warn!(
+                    "Excessive memory growth detected ({}), stopping early",
+                    MemoryStats::format_bytes(delta)
+                );
                 for (chunk, embedding) in batch.iter().zip(batch_embeddings.iter()) {
                     results.push((chunk.clone(), embedding.clone()));
                 }
@@ -235,24 +317,35 @@ impl KbEmbeddingGenerator {
         }
 
         let end_mem = MemoryStats::current();
-        trace!("Generated {} embeddings, RSS={} (total delta={})",
-              results.len(),
-              MemoryStats::format_bytes(end_mem.rss_bytes),
-              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        trace!(
+            "Generated {} embeddings, RSS={} (total delta={})",
+            results.len(),
+            MemoryStats::format_bytes(end_mem.rss_bytes),
+            MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes))
+        );
         log_jemalloc_stats();
 
         Ok(results)
     }
 
-    pub(crate) async fn generate_batch_embeddings(&self, chunks: &[TextChunk]) -> Result<Vec<Embedding>> {
-        let _permit = self.semaphore.acquire().await
+    pub(crate) async fn generate_batch_embeddings(
+        &self,
+        chunks: &[TextChunk],
+    ) -> Result<Vec<Embedding>> {
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to acquire semaphore: {}", e))?;
 
         let texts: Vec<String> = chunks.iter().map(|c| c.content.clone()).collect();
         let total_chars: usize = texts.iter().map(|t| t.len()).sum();
 
-        trace!("generate_batch_embeddings: {} texts, {} total chars",
-              texts.len(), total_chars);
+        trace!(
+            "generate_batch_embeddings: {} texts, {} total chars",
+            texts.len(),
+            total_chars
+        );
 
         match self.generate_local_embeddings(&texts).await {
             Ok(embeddings) => {

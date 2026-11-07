@@ -16,7 +16,11 @@ impl KbIndexer {
 
             match existing_dims {
                 Some(dims) if dims == required_dims => {
-                    trace!("Collection {} already exists with correct dims ({})", collection_name, required_dims);
+                    trace!(
+                        "Collection {} already exists with correct dims ({})",
+                        collection_name,
+                        required_dims
+                    );
                     return Ok(());
                 }
                 Some(dims) => {
@@ -26,27 +30,39 @@ impl KbIndexer {
                         collection_name, dims, required_dims
                     );
                     // Delete the stale collection so we can recreate it
-                    let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
+                    let delete_url =
+                        format!("{}/collections/{}", self.qdrant_config.url, collection_name);
                     let del_resp = self.http_client.delete(&delete_url).send().await?;
                     if !del_resp.status().is_success() {
                         let err = del_resp.text().await.unwrap_or_default();
                         return Err(anyhow::anyhow!(
                             "Failed to delete stale collection {}: {}",
-                            collection_name, err
+                            collection_name,
+                            err
                         ));
                     }
-                    info!("Deleted stale collection {} (was dim={})", collection_name, dims);
+                    info!(
+                        "Deleted stale collection {} (was dim={})",
+                        collection_name, dims
+                    );
                 }
                 None => {
                     // Could not read dims – recreate to be safe
-                    info!("Could not read dims for collection {}, recreating", collection_name);
-                    let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
+                    info!(
+                        "Could not read dims for collection {}, recreating",
+                        collection_name
+                    );
+                    let delete_url =
+                        format!("{}/collections/{}", self.qdrant_config.url, collection_name);
                     let _ = self.http_client.delete(&delete_url).send().await;
                 }
             }
         }
 
-        info!("Creating collection {} with dim={}", collection_name, required_dims);
+        info!(
+            "Creating collection {} with dim={}",
+            collection_name, required_dims
+        );
 
         let config = CollectionConfig {
             vectors: VectorConfig {
@@ -159,7 +175,11 @@ impl KbIndexer {
         Ok(points)
     }
 
-    pub(crate) async fn upsert_points(&self, collection_name: &str, points: Vec<QdrantPoint>) -> Result<()> {
+    pub(crate) async fn upsert_points(
+        &self,
+        collection_name: &str,
+        points: Vec<QdrantPoint>,
+    ) -> Result<()> {
         if points.is_empty() {
             return Ok(());
         }

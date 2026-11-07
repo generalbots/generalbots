@@ -4,11 +4,11 @@ impl KbFolderMonitor {
     pub fn new(work_root: PathBuf, embedding_config: EmbeddingConfig) -> Self {
         let qdrant_config = if let Ok(sm) = crate::shared::utils::get_secrets_manager_sync() {
             let (url, api_key, _collection) = get_vectordb_config_from_value(&sm);
-                QdrantConfig {
-                    url,
-                    api_key: Some(api_key),
-                    timeout_secs: 30,
-                }
+            QdrantConfig {
+                url,
+                api_key: Some(api_key),
+                timeout_secs: 30,
+            }
         } else {
             QdrantConfig::default()
         };
@@ -17,7 +17,12 @@ impl KbFolderMonitor {
         Self { indexer, work_root }
     }
 
-    pub async fn process_gbkb_folder(&self, bot_id: Uuid, bot_name: &str, kb_folder: &Path) -> Result<IndexingResult> {
+    pub async fn process_gbkb_folder(
+        &self,
+        bot_id: Uuid,
+        bot_name: &str,
+        kb_folder: &Path,
+    ) -> Result<IndexingResult> {
         let kb_name = kb_folder
             .file_name()
             .and_then(|n| n.to_str())
