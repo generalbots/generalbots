@@ -106,6 +106,9 @@ sha256 = "2e99a33409ffe0a527ea640d157c6c1e3f74823f3cffc6b538fd1c5cef4cfc9c"
 name = "Forgejo Git Server"
 url = "https://codeberg.org/forgejo/forgejo/releases/download/v17.0.1/forgejo-17.0.1-linux-amd64"
 filename = "forgejo-17.0.1-linux-amd64"
+# Forgejo 17.0.1 publishes no Windows binary; this is the last published
+# Windows asset. Windows installs should build from the source tag or use the
+# official container image until upstream ships a Windows build.
 url_win = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-windows-amd64.exe"
 filename_win = "forgejo-10.0.1-windows-amd64.exe"
 sha256 = "51a8cdf4a1252e79f4b3855d7a7891af6c6635105420768c460e2f0690385d6f"
@@ -161,7 +164,7 @@ sha256 = ""
 name = "Qdrant Vector Database"
 url = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-unknown-linux-gnu.tar.gz"
 filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz"
-url_win = "https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-pc-windows-msvc.zip"
+url_win = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip"
 filename_win = "qdrant-x86_64-pc-windows-msvc.zip"
 sha256 = "2361f3df0dedfef31f5444f9f15bd15d6b4a6cba6ad952daecc5fbe3867c5ee6"
 
