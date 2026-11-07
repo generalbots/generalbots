@@ -4,6 +4,7 @@
 const AutoState = {
     schedules: [],
     runs: {},
+    conversationJobs: [],
     expandedRun: null,
     eventSources: {},
     editingId: null,

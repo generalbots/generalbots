@@ -40,7 +40,10 @@ Choose ARCH=x86_64 on Intel/AMD or ARCH=aarch64 on arm64:
 
 Distro packages
 ---------------
-The release also ships the same binaries packaged per distro (no unpacking):
+The Tauri bundler also attempts to produce per-distro packages, but that step is
+best effort and has never shipped a .deb/.rpm/.AppImage in a release. Do not
+rely on these names being present; use the tarball or the single self-extracting
+file instead. When a package is present it is used as follows:
 
   Debian/Ubuntu:  sudo apt install ./generalbots-linux-x86_64.deb
                   (arm64: generalbots-linux-aarch64.deb)

@@ -101,34 +101,30 @@ reminder.
 
 ## Distribution Packages
 
-Each release publishes the same desktop edition (Chat + Drive) in these shapes,
-built from the same binaries by `.github/workflows/desktop-binaries.yml`,
-`.github/workflows/desktop-linux-arm64.yml` and
-`.github/workflows/desktop-macos.yml`:
+The supported, always-published artifacts are the tarball and the single
+self-extracting executable; the `.deb`, `.rpm` and `.AppImage` produced by the
+Tauri bundler are best effort and have never shipped in a release:
 
-| Package | Install |
-|---------|---------|
-| `generalbots-linux-x86_64.deb` | `sudo apt install ./generalbots-linux-x86_64.deb` |
-| `generalbots-linux-x86_64.rpm` | `sudo dnf install ./generalbots-linux-x86_64.rpm` |
-| `generalbots-linux-x86_64.AppImage` | `chmod +x generalbots-linux-x86_64.AppImage && ./generalbots-linux-x86_64.AppImage` |
-| `generalbots-linux-aarch64.tar.gz` | Linux arm64 (preview): unpack, then `./install.sh` |
-| `generalbots-linux-aarch64.deb` / `.rpm` / `.AppImage` | Linux arm64 packages, built best effort by the arm64 workflow |
-| `generalbots-x64.msi` / `generalbots-x64-setup.exe` | Windows: double-click |
-| `generalbots-<tag>-macos-arm64.dmg` | macOS 11+ (Apple silicon), unsigned: open the dmg, drag to Applications, then bypass Gatekeeper with `xattr -dr com.apple.quarantine "/Applications/General Bots.app"` |
+| Package | Status |
+|---------|--------|
+| `generalbots-linux-<arch>.tar.gz` | Published for x86_64 and arm64 (preview): unpack, then `./install.sh` |
+| `generalbots` (single file) | Published for x86_64: `chmod +x generalbots && ./generalbots` |
+| `generalbots-linux-<arch>.deb` / `.rpm` / `.AppImage` | Best effort only — the bundler step is `continue-on-error` and has never produced an artifact in a release; do not rely on these names being present |
+| `generalbots-x64.msi` / `generalbots-x64-setup.exe` | Windows, best effort |
+| `generalbots-<tag>-macos-arm64.dmg` | macOS 11+ (Apple silicon), unsigned, best effort |
 
-The `.deb` declares dependencies on `libssl3 | libssl3t64`,
-`libwebkit2gtk-4.1-0`, `libpq5` and `libgtk-3-0 | libgtk-3-0t64`; the `.rpm`
-declares `openssl-libs`, `webkit2gtk4.1` and `libpq` (see
-`botapp/tauri.desktop-local.conf.json`). The AppImage still uses the host
-WebKitGTK — it does not bundle it — and needs FUSE 2 (`libfuse2t64` on
-Debian 13 and Ubuntu 24.04); where FUSE is unavailable, start it with
+The `.deb`/`.rpm` dependency declarations live in
+`botapp/tauri.desktop-local.conf.json` for reference, but those packages are not
+currently published. The AppImage, when produced, still uses the host WebKitGTK
+— it does not bundle it — and needs FUSE 2 (`libfuse2t64` on Debian 13 and
+Ubuntu 24.04); where FUSE is unavailable, start it with
 `APPIMAGE_EXTRACT_AND_RUN=1` or `--appimage-extract-and-run`.
 
-There is no in-app auto-updater in this build. AppImage upgrades replace the
-file (user data stays in `~/.local/share/generalbots`, and the old file can be
-deleted after the new one runs); deb/rpm upgrade through the package manager.
-`GET http://127.0.0.1:8080/api/health` reports the running version, and a
-Settings -> About surface is follow-up UI work.
+There is no in-app auto-updater in this build. Tarball upgrades run
+`./install.sh` again (user data stays in `~/.local/share/generalbots`); a
+present AppImage is replaced in place. `GET http://127.0.0.1:8080/api/health`
+reports the running version, and a Settings -> About surface is follow-up UI
+work.
 
 The macOS bundle is best effort and unsigned. It cannot run the Linux service
 stack natively: PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
@@ -161,9 +157,6 @@ but there is no aarch64 BotModels pythonbox: vision/STT/TTS are reported
 unavailable, and `/api/product` exposes the reason. Optional add-ons outside the
 first-run stack (Caddy, Stalwart, InfluxDB, Vector, Forgejo/runner, NocoDB,
 LiveKit, CoreDNS) remain x86_64-only.
-
-The single self-extracting `generalbots` executable is also published: one file,
-no package manager, no unpack step.
 
 ## Quick Start
 

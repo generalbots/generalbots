@@ -64,12 +64,28 @@ function addMessage(sender, content, msgId, reasoning) {
       // Several files in one turn were joined as `📎 a.pdf, b.png`; show one
       // chip per file so each one can be previewed on its own.
       var attachmentNames = userAttachmentName.split(/,\s+/).filter(Boolean);
-      attachmentNames.forEach(function (singleName) {
+      attachmentNames.forEach(function (singleName, index) {
         var restored = document.createElement("div");
         restored.className = "gb-attachment-restored";
         var restoredLabel = document.createElement("span");
         restoredLabel.textContent = "📎 " + singleName;
         restored.appendChild(restoredLabel);
+        var order = document.createElement("span");
+        order.className = "gb-attachment-order";
+        order.textContent = String(index + 1);
+        restored.appendChild(order);
+        var badge = document.createElement("span");
+        badge.className = "gb-content-type-badge gb-type-badge";
+        badge.textContent = (typeof vmContentTypeBadge === "function")
+          ? vmContentTypeBadge(singleName)
+          : String(singleName).split(".").pop().toUpperCase();
+        restored.appendChild(badge);
+        var desc = document.createElement("span");
+        desc.className = "gb-attachment-desc gb-attachment-minor";
+        desc.textContent = (typeof vmAttachmentDescription === "function")
+          ? vmAttachmentDescription(singleName)
+          : "Uploaded file";
+        restored.appendChild(desc);
         if (/(\.docx|\.xlsx|\.pptx|\.pdf|\.png|\.jpe?g|\.gif|\.webp|\.txt|\.md|\.csv|\.json|\.log)$/i.test(singleName)) {
           var previewButton = document.createElement("button");
           previewButton.type = "button";

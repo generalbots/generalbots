@@ -31,6 +31,8 @@ async function loadSchedulesAndRender() {
         autoSetState("Failed to load schedules: " + err.message, true);
         renderBoard();
     }
+    await loadConversationJobs();
+    renderConversationJobs();
 }
 
 async function loadRuns() {
@@ -49,6 +51,46 @@ async function loadRuns() {
         autoSetState("Failed to load runs: " + err.message, true);
         renderBoard();
     }
+}
+
+async function loadConversationJobs() {
+    try {
+        const data = await autoApi("/api/conversation-autotasks");
+        AutoState.conversationJobs = data.autotasks || data.items || [];
+    } catch (err) {
+        AutoState.conversationJobs = [];
+    }
+}
+
+function autoConversationJobHtml(job) {
+    const status = job.status || "pending";
+    const isActive = status === "running" || status === "scheduled" || status === "pending";
+    let html = '<div class="auto-run-card ' + autoStatusClass(status) + '" data-job-id="' + autoEsc(job.id) + '">';
+    html += '<div class="auto-run-top">';
+    html += '<span class="auto-run-status">' + autoEsc(status) + "</span>";
+    html += '<span class="auto-run-trigger">' + autoEsc(job.kind || "") + " · " + autoEsc(job.title || "") + "</span>";
+    html += "</div>";
+    if (job.schedule) html += '<div class="auto-run-summary">' + autoEsc(job.schedule) + (job.schedule_human ? " — " + autoEsc(job.schedule_human) : "") + "</div>";
+    if (job.last_error) html += '<div class="auto-run-error">' + autoEsc(job.last_error) + "</div>";
+    html += '<div class="auto-run-actions">';
+    if (isActive) {
+        html += '<button type="button" class="auto-link-btn danger" data-auto-cancel-job="' + autoEsc(job.id) + '">Cancel</button>';
+    }
+    html += '<button type="button" class="auto-link-btn" data-auto-open-conversation="' + autoEsc(job.conversation_id) + '">Open conversation</button>';
+    html += '<button type="button" class="auto-link-btn danger" data-auto-delete-job="' + autoEsc(job.id) + '">Delete</button>';
+    html += "</div></div>";
+    return html;
+}
+
+function renderConversationJobs() {
+    const container = document.getElementById("auto-conversation-jobs");
+    if (!container) return;
+    const jobs = AutoState.conversationJobs || [];
+    if (!jobs.length) {
+        container.innerHTML = '<div class="auto-empty">No conversation jobs.</div>';
+        return;
+    }
+    container.innerHTML = jobs.map(autoConversationJobHtml).join("");
 }
 
 function renderBoard() {
@@ -213,6 +255,42 @@ async function cancelRun(runId) {
     }
 }
 
+async function cancelConversationJob(jobId) {
+    try {
+        await autoApi("/api/conversation-autotasks/" + encodeURIComponent(jobId) + "/cancel", { method: "POST", body: "{}" });
+        await loadConversationJobs();
+        renderConversationJobs();
+    } catch (err) {
+        autoSetState("Cancel failed: " + err.message, true);
+    }
+}
+
+async function deleteConversationJob(jobId) {
+    if (!(window.GBModal || { confirm: confirm }).confirm("Delete this conversation job?")) return;
+    try {
+        await autoApi("/api/conversation-autotasks/" + encodeURIComponent(jobId), { method: "DELETE" });
+        await loadConversationJobs();
+        renderConversationJobs();
+    } catch (err) {
+        autoSetState("Delete failed: " + err.message, true);
+    }
+}
+
+function openConversationJob(conversationId) {
+    if (!conversationId) return;
+    if (window.GBSidebarConvos && typeof window.GBSidebarConvos.openConversation === "function") {
+        window.GBSidebarConvos.openConversation(conversationId);
+        return;
+    }
+    if (window.GBSidebar && typeof window.GBSidebar.openConversation === "function") {
+        window.GBSidebar.openConversation(conversationId);
+        return;
+    }
+    if (typeof window.openDeepLink === "function") {
+        window.openDeepLink("chat", { session: conversationId });
+    }
+}
+
 async function runScheduleNow(scheduleId) {
     try {
         await autoApi("/api/automations/schedules/" + encodeURIComponent(scheduleId) + "/run", { method: "POST", body: "{}" });
@@ -261,7 +339,7 @@ function stopPolling() {
 }
 
 document.addEventListener("click", function (event) {
-    const target = event.target.closest("[data-auto-close],[data-auto-edit],[data-auto-expand],[data-auto-cancel],[data-auto-run-now],[data-auto-toggle-enable]");
+    const target = event.target.closest("[data-auto-close],[data-auto-edit],[data-auto-expand],[data-auto-cancel],[data-auto-run-now],[data-auto-toggle-enable],[data-auto-cancel-job],[data-auto-open-conversation],[data-auto-delete-job]");
     if (!target) return;
     if (target.hasAttribute("data-auto-close")) { closeScheduleModal(); return; }
     if (target.hasAttribute("data-auto-edit")) { openScheduleModal(target.getAttribute("data-auto-edit")); return; }
@@ -269,6 +347,9 @@ document.addEventListener("click", function (event) {
     if (target.hasAttribute("data-auto-cancel")) { cancelRun(target.getAttribute("data-auto-cancel")); return; }
     if (target.hasAttribute("data-auto-run-now")) { runScheduleNow(target.getAttribute("data-auto-run-now")); return; }
     if (target.hasAttribute("data-auto-toggle-enable")) { toggleScheduleEnabled(target.getAttribute("data-auto-toggle-enable")); return; }
+    if (target.hasAttribute("data-auto-cancel-job")) { cancelConversationJob(target.getAttribute("data-auto-cancel-job")); return; }
+    if (target.hasAttribute("data-auto-open-conversation")) { openConversationJob(target.getAttribute("data-auto-open-conversation")); return; }
+    if (target.hasAttribute("data-auto-delete-job")) { deleteConversationJob(target.getAttribute("data-auto-delete-job")); return; }
 });
 
 (function initAutomationsApp() {

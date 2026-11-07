@@ -8,7 +8,7 @@ use diesel::prelude::*;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use super::store::{conversation_bot, load_rows};
+use super::store::{conversation_bot, load_all_rows, load_rows};
 use super::types::{next_run_for, respond, AutotaskRow, CreateAutotaskRequest, NewAutotask};
 use super::{
     api_error, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED,
@@ -39,6 +39,27 @@ pub async fn list(
     }
     let rows = load_rows(&state, conversation_id, user_id)?;
     Ok(Json(respond(&rows)))
+}
+
+/// GET /api/conversation-autotasks — list every cron/systemd job owned by the
+/// current user, across conversations, for the automations dashboard.
+pub async fn list_all(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    let user_id = resolve_user(&headers)?;
+    let rows = load_all_rows(&state, user_id)?;
+    // Lazy reconciliation keeps the displayed status honest.
+    for row in &rows {
+        if row.status == STATUS_RUNNING
+            || row.status == STATUS_SCHEDULED
+            || row.status == STATUS_ORPHANED
+        {
+            workspace::refresh(&state, row).await;
+        }
+    }
+    let rows = load_all_rows(&state, user_id)?;
+    Ok(Json(json!({ "autotasks": rows })))
 }
 
 /// POST /api/conversations/:conversation_id/autotasks
@@ -168,4 +189,36 @@ pub async fn cancel(
         .get_result::<AutotaskRow>(&mut conn)
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
     Ok(Json(json!({ "autotask": updated })))
+}
+
+/// DELETE /api/conversation-autotasks/:id — remove the job from the workspace
+/// and delete the row.
+pub async fn delete(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Value>, ApiError> {
+    let user_id = resolve_user(&headers)?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+    let row = table::table
+        .filter(table::id.eq(id))
+        .filter(table::user_id.eq(user_id))
+        .first::<AutotaskRow>(&mut conn)
+        .optional()
+        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
+        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "autotask not found"))?;
+    drop(conn);
+
+    let _ = workspace::remove(&row).await;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+    diesel::delete(table::table.filter(table::id.eq(id)))
+        .execute(&mut conn)
+        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+    Ok(Json(json!({ "deleted": true })))
 }

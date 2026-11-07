@@ -207,6 +207,7 @@ function vmGroupAttachments(anchor) {
   var count = grid.querySelectorAll(".gb-attachment").length;
   folder.querySelector(".gb-folder-count").textContent =
     count + " file" + (count === 1 ? "" : "s");
+  vmLabelAttachments(grid);
   vmOrderFolder(grid);
   var saveAll = folder.querySelector(".gb-folder-save");
   if (saveAll && !saveAll.dataset.bound) {

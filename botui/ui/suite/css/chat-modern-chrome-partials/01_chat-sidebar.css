@@ -160,7 +160,7 @@
     font-weight: 600;
 }
 .gb-folder-grid .gb-attachment:first-child:not(:only-child)::after {
-    content: "Latest";
+    content: none; /* Latest */
     margin-left: auto;
     padding: 1px 7px;
     border-radius: 999px;
@@ -169,6 +169,63 @@
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.3px;
+}
+
+/* #1831 — latest chip, content-type badges, order labels and italic minor text. */
+.gb-folder-grid .gb-attachment .gb-latest-chip,
+.gb-folder-grid .gb-attachment .gb-attachment-latest {
+    display: none;
+}
+.gb-folder-grid .gb-attachment.is-latest .gb-latest-chip,
+.gb-folder-grid .gb-attachment.is-latest .gb-attachment-latest,
+.gb-folder-grid .gb-attachment:first-child:not(:only-child) .gb-latest-chip,
+.gb-folder-grid .gb-attachment:first-child:not(:only-child) .gb-attachment-latest {
+    display: inline-flex;
+    margin-left: auto;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, #4f46e5 10%, var(--surface, #fff));
+    color: #4f46e5;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.gb-folder-grid .gb-attachment .gb-attachment-order {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--surface, #f4f4f5);
+    border: 1px solid color-mix(in srgb, var(--text, #18181b) 10%, transparent);
+    color: var(--text, #71717a);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+.gb-folder-grid .gb-attachment .gb-content-type-badge,
+.gb-folder-grid .gb-attachment .gb-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent, #7c5cff) 12%, transparent);
+    color: var(--accent, #7c5cff);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+.gb-folder-grid .gb-attachment .gb-attachment-desc,
+.gb-folder-grid .gb-attachment .gb-attachment-minor {
+    flex-basis: 100%;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--text, #71717a);
+    margin-top: 2px;
 }
 
 /* Epic acceptance: 44 px touch targets on a 390 px viewport. */

@@ -1352,9 +1352,10 @@ release job warns about a missing package instead of failing.
 
 Published Linux assets: `generalbots-linux-x86_64.tar.gz` (stable alias),
 `generalbots-<tag>-linux-x86_64.tar.gz`, `generalbots` (self-extracting single
-file), `generalbots-linux-x86_64.deb`, `.rpm`, `.AppImage`,
-`generalbots-linux-x86_64` (app), `botserver-linux-x86_64`, and
-`SHA256SUMS-linux`. Windows publishes `generalbots.exe`, `.msi` and
+file), `generalbots-linux-x86_64` (app), `botserver-linux-x86_64`, and
+`SHA256SUMS-linux`. The `.deb`, `.rpm` and `.AppImage` are best effort and
+have never shipped in a release; the Windows side publishes `generalbots.exe`,
+`.msi` and
 `-setup.exe` (NSIS) plus the raw exes.
 
 **Single-file run is the supported "grab and go" path:** download `generalbots`,

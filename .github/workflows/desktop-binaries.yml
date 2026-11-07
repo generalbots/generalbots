@@ -615,18 +615,12 @@ jobs:
             with `--extract-only`), `SHA256SUMS-linux`, and the raw
             `generalbots`/`botserver` binaries for debugging.
 
-            Distro packages (same binaries, bundled by Tauri):
-
-            - `generalbots-linux-x86_64.deb` — Debian/Ubuntu:
-              `sudo apt install ./generalbots-linux-x86_64.deb`
-            - `generalbots-linux-x86_64.rpm` — Fedora/RHEL:
-              `sudo dnf install ./generalbots-linux-x86_64.rpm`
-            - `generalbots-linux-x86_64.AppImage` — any glibc distro:
-              `chmod +x generalbots-linux-x86_64.AppImage && ./generalbots-linux-x86_64.AppImage`
-              (needs FUSE 2; otherwise run it with `--appimage-extract-and-run`)
-
-            The packages depend on WebKitGTK 4.1 and libpq on the host, exactly
-            like the tarball.
+            Distro packages (best effort): the Tauri bundler step is
+            `continue-on-error` and has never produced a `.deb`/`.rpm`/
+            `.AppImage` in a release. If any of `generalbots-linux-x86_64.deb`,
+            `generalbots-linux-x86_64.rpm` or `generalbots-linux-x86_64.AppImage`
+            are attached, they carry the same binaries; otherwise use the tarball
+            or the self-extracting `generalbots` executable above.
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS-linux
