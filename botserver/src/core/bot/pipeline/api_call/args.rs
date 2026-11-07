@@ -31,7 +31,10 @@ pub(super) fn extract_deep_links(value: &serde_json::Value) -> Vec<String> {
 
 /// Injects a `value` param for tax commands when the model omitted it but the
 /// user's message contains a monetary amount ("R$ 10.000", "10000 reais").
-pub(super) fn inject_tax_value_from_user(params: &serde_json::Value, user_text: &str) -> serde_json::Value {
+pub(super) fn inject_tax_value_from_user(
+    params: &serde_json::Value,
+    user_text: &str,
+) -> serde_json::Value {
     let has_value = params
         .get("value")
         .and_then(|v| v.as_str())
@@ -66,7 +69,6 @@ fn money_amount_re() -> Option<&'static regex::Regex> {
     .as_ref()
 }
 
-
 /// Extracts a BRL amount from free text, e.g. "R$ 10.000,50" or "10.000 reais".
 /// Returns a normalized decimal string ("10000.50").
 fn extract_money_amount(text: &str) -> Option<String> {
@@ -93,8 +95,14 @@ mod money_tests {
     /// The cached accessor must extract exactly what the per-call compile did.
     #[test]
     fn extracts_the_same_amounts_as_before() {
-        assert_eq!(extract_money_amount("custa R$ 10.000,50 hoje"), Some("10000.50".into()));
-        assert_eq!(extract_money_amount("pague 10.000 reais"), Some("10000".into()));
+        assert_eq!(
+            extract_money_amount("custa R$ 10.000,50 hoje"),
+            Some("10000.50".into())
+        );
+        assert_eq!(
+            extract_money_amount("pague 10.000 reais"),
+            Some("10000".into())
+        );
         assert_eq!(extract_money_amount("R$ 250"), Some("250".into()));
         assert_eq!(extract_money_amount("sem valor aqui"), None);
     }

@@ -1,10 +1,11 @@
 //! `vm_exec`: runs a program in the user's agent VM, including the background
 //! path, the one-shot syntax repair and the visible status frames.
 
+use super::super::types::SessionIdentity;
+use super::super::workspace_progress::{WorkspaceProgress, PHASE_TOOL};
 use super::program_repair::repair_program;
 use super::render::render_result;
 use super::send;
-use super::super::types::SessionIdentity;
 
 /// The truthful replacement for the dead-end "workspace is not available"
 /// phrase: show the concrete reason the VM subsystem reports (status is
@@ -109,13 +110,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         let language = language.to_string();
         tokio::spawn(async move {
             let result = crate::core::bot::agent_vm_hook::exec_with_wake_result(
-                user_id,
-                session_id,
-                bot_uuid,
-                &language,
-                &code,
-                timeout_ms,
-                &packages,
+                user_id, session_id, bot_uuid, &language, &code, timeout_ms, &packages,
             )
             .await;
             let message = match result {
@@ -123,7 +118,10 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                     botlog::safe_warn!("background job workspace failure ({status}): {reason}");
                     workspace_failure_message(&reason)
                 }
-                Ok(None) => "The workspace became unavailable and the background job could not finish.".to_string(),
+                Ok(None) => {
+                    "The workspace became unavailable and the background job could not finish."
+                        .to_string()
+                }
                 Ok(Some((ok, stdout, stderr))) => {
                     render_result(user_id, session_id, ok, &stdout, &stderr).await
                 }
@@ -157,6 +155,26 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         );
     }
 
+    // #1807 — split the long workspace call into visible stages. The pure
+    // program execution is one step; declared dependency installation is its
+    // own step so a slow pip/apt run is distinguishable from slow code.
+    let progress = WorkspaceProgress::new(identity);
+    if let Some(progress) = progress.as_ref() {
+        if !packages.is_empty() {
+            progress
+                .start(
+                    PHASE_TOOL,
+                    "package_install",
+                    "Installing packages",
+                    &packages.join(", "),
+                )
+                .await;
+        }
+        progress
+            .start(PHASE_TOOL, "execute", "Running the program", language)
+            .await;
+    }
+
     // Every run gets a visible status in the chat: the turn otherwise looks
     // frozen while the program executes, and users cannot tell whether the bot
     // is working or stuck.
@@ -181,13 +199,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let result = match tokio::time::timeout(
         budget,
         crate::core::bot::agent_vm_hook::exec_with_wake_result(
-            user_id,
-            session_id,
-            bot_uuid,
-            language,
-            code,
-            timeout_ms,
-            &packages,
+            user_id, session_id, bot_uuid, language, code, timeout_ms, &packages,
         ),
     )
     .await
@@ -201,8 +213,38 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             ))
         }
     };
+    let succeeded = matches!(&result, Ok(Some((true, _, _))));
+    if let Some(progress) = progress.as_ref() {
+        let status = if succeeded { "ok" } else { "error" };
+        if !packages.is_empty() {
+            progress
+                .finish(
+                    PHASE_TOOL,
+                    "package_install",
+                    status,
+                    if succeeded {
+                        "Packages ready"
+                    } else {
+                        "Package install failed"
+                    },
+                )
+                .await;
+        }
+        progress
+            .finish(
+                PHASE_TOOL,
+                "execute",
+                status,
+                if succeeded {
+                    "Program finished"
+                } else {
+                    "Program failed"
+                },
+            )
+            .await;
+    }
     if !progress_run.is_empty() {
-        let ok = matches!(&result, Ok(Some((true, _, _))));
+        let ok = succeeded;
         crate::core::bot::runs::bus::bus().publish(
             &progress_thread,
             serde_json::json!({
@@ -233,7 +275,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             super::persist(state, session_id, user_id, &message).await;
         }
         Ok(None) => {
-            let message = "The workspace is not available right now. Start a new message and try again.";
+            let message =
+                "The workspace is not available right now. Start a new message and try again.";
             send(identity, message).await;
             super::persist(state, session_id, user_id, message).await;
         }
@@ -247,29 +290,51 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 // One repair pass: long generated programs occasionally carry a
                 // broken string/indent and the user should not have to retype
                 // the request.
-                if let Some(fixed) = repair_program(
-                    state, bot_uuid, language, code, &stderr,
-                )
-                .await
+                if let Some(fixed) = repair_program(state, bot_uuid, language, code, &stderr).await
                 {
                     let retry = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
                         user_id, session_id, language, &fixed, timeout_ms, &packages,
                     )
                     .await;
                     if let Some((true, fixed_out, _)) = retry {
-                        let message = render_result(
-                            user_id, session_id, true, &fixed_out, "",
-                        )
-                        .await;
+                        if let Some(progress) = progress.as_ref() {
+                            progress
+                                .start(
+                                    PHASE_TOOL,
+                                    "save",
+                                    "Saving the output",
+                                    "Collecting the generated files",
+                                )
+                                .await;
+                        }
+                        let message =
+                            render_result(user_id, session_id, true, &fixed_out, "").await;
                         send(identity, &message).await;
                         super::persist(state, session_id, user_id, &message).await;
+                        if let Some(progress) = progress.as_ref() {
+                            progress.finish(PHASE_TOOL, "save", "ok", "").await;
+                        }
                         return;
                     }
                 }
             }
+            if let Some(progress) = progress.as_ref() {
+                progress
+                    .start(
+                        PHASE_TOOL,
+                        "save",
+                        "Saving the output",
+                        "Collecting the generated files",
+                    )
+                    .await;
+            }
             let message = render_result(user_id, session_id, ok, &stdout, &stderr).await;
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
+            if let Some(progress) = progress.as_ref() {
+                let status = if ok { "ok" } else { "error" };
+                progress.finish(PHASE_TOOL, "save", status, "").await;
+            }
         }
     }
 }

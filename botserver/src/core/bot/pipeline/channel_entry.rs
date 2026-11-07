@@ -86,8 +86,8 @@ pub async fn run_pipeline_for_channel(
         user_id,
         bot_name: &bot_name,
     };
-    let result = process_message_internal(&identity, &mut rx_internal, &mut start_bas_ran, &json_msg)
-        .await;
+    let result =
+        process_message_internal(&identity, &mut rx_internal, &mut start_bas_ran, &json_msg).await;
 
     {
         let mut channels = state.response_channels.lock().await;
@@ -170,7 +170,12 @@ fn publish_channel_event(
     let text = user_text.trim();
     if !text.is_empty() && !text.starts_with('[') {
         let payload = serde_json::json!({ "text": text, "channel": channel });
-        if let Err(e) = basic_events::publish(&state.conn, bot_uuid, basic_events::MESSAGE_RECEIVED, &payload) {
+        if let Err(e) = basic_events::publish(
+            &state.conn,
+            bot_uuid,
+            basic_events::MESSAGE_RECEIVED,
+            &payload,
+        ) {
             botlog::safe_debug!("message_received not queued for bot {bot_uuid}: {e}");
         }
     }
@@ -202,10 +207,7 @@ pub fn channel_user_uuid(channel: &str, external_user_id: &str) -> Uuid {
 
 /// Reverse lookup for callers that pass a bot UUID where a name is
 /// expected. Returns `None` when the value is not a known bot id.
-async fn resolve_bot_name(
-    pool: &botcore::shared::utils::DbPool,
-    bot_uuid: &str,
-) -> Option<String> {
+async fn resolve_bot_name(pool: &botcore::shared::utils::DbPool, bot_uuid: &str) -> Option<String> {
     let uuid = Uuid::parse_str(bot_uuid).ok()?;
     use diesel::prelude::*;
     if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(3)) {
@@ -258,7 +260,10 @@ mod tests {
         let whatsapp = channel_user_uuid("whatsapp", "6676512312");
         assert_eq!(a, b, "same sender must keep one identity across turns");
         assert_ne!(a, other, "different senders must not collide");
-        assert_ne!(a, whatsapp, "the same id on another channel is another user");
+        assert_ne!(
+            a, whatsapp,
+            "the same id on another channel is another user"
+        );
         assert_ne!(a, uuid::Uuid::nil(), "must not collapse to the nil user");
     }
 

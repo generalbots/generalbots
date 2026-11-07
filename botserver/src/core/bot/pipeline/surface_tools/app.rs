@@ -45,7 +45,16 @@ pub(super) async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
             items
                 .iter()
                 .filter_map(Value::as_str)
-                .filter(|value| matches!(*value, "camera" | "microphone" | "geolocation" | "clipboard-read" | "clipboard-write"))
+                .filter(|value| {
+                    matches!(
+                        *value,
+                        "camera"
+                            | "microphone"
+                            | "geolocation"
+                            | "clipboard-read"
+                            | "clipboard-write"
+                    )
+                })
                 .map(str::to_string)
                 .collect()
         })

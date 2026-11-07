@@ -1,10 +1,10 @@
 //! Executes a command call and answers the user: composed text or a one-line
 //! description of the result.
 
+use super::super::types::{LlmTarget, SessionIdentity};
 use super::args::{extract_deep_links, inject_tax_value_from_user};
 use super::humanize::humanize_result;
 use super::parse::{extract_api_call_payload, strip_api_call_block};
-use super::super::types::{LlmTarget, SessionIdentity};
 
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
 /// in the LLM reply. Returns true when the call was handled (even on error),
@@ -24,18 +24,32 @@ pub(crate) async fn handle_api_call(
         user_id,
         bot_name,
     } = *identity;
-    let LlmTarget { provider: llm, model, key } = *target;
+    let LlmTarget {
+        provider: llm,
+        model,
+        key,
+    } = *target;
     use crate::core::bot::api_catalog;
     let payload = match extract_api_call_payload(full_response) {
         Some(p) => p,
         None => return false,
     };
-    let name = payload.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let name = payload
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     if name.is_empty() {
         return false;
     }
-    let params = payload.get("params").cloned().unwrap_or(serde_json::Value::Null);
-    let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
+    let params = payload
+        .get("params")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    let compose = payload
+        .get("compose")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
     let channel = sink.channel_type().to_string();
 
     // Session tools (USE TOOL / AutoTask, e.g. classify_media) are NOT part
@@ -44,17 +58,23 @@ pub(crate) async fn handle_api_call(
     // When the requested name belongs to the session's tool set, reroute to
     // the regular MCP tool-call executor with equivalent arguments.
     if crate::core::bot::tool_context::is_tool_associated_with_session(
-        &state.conn, &session_id, &name,
+        &state.conn,
+        &session_id,
+        &name,
     ) {
         log::info!("api_call '{name}' is a session tool; rerouting to tool executor");
         // run_llm_tool_call parses a FLAT payload: name + arguments-as-string
         // on the same level as the __tool_call__ marker.
         let args_str = serde_json::to_string(&params).unwrap_or_else(|_| "{}".to_string());
-        let args_escaped = serde_json::to_string(&args_str).unwrap_or_else(|_| "\"{}\"".to_string());
+        let args_escaped =
+            serde_json::to_string(&args_str).unwrap_or_else(|_| "\"{}\"".to_string());
         let synthetic = format!(
             "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
         );
-        let _ = crate::core::bot::pipeline::tool_exec::run_llm_tool_call(identity, rx, &synthetic, user_text).await;
+        let _ = crate::core::bot::pipeline::tool_exec::run_llm_tool_call(
+            identity, rx, &synthetic, user_text,
+        )
+        .await;
         return true;
     }
 
@@ -66,8 +86,11 @@ pub(crate) async fn handle_api_call(
     let leading = stripped.trim();
     if !leading.is_empty() {
         let progress = botlib::models::BotResponse::new(
-            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-            leading, &channel,
+            bot_uuid.to_string(),
+            session_id.to_string(),
+            user_id.to_string(),
+            leading,
+            &channel,
         );
         let _ = sink.send_bot_response(&progress).await;
     }
@@ -96,14 +119,15 @@ pub(crate) async fn handle_api_call(
         .await;
         if !gate.allowed {
             let message = match gate.pending_request {
-                Some(ref request) => {
-                    crate::core::bot::consent_gate::marker_content(request)
-                }
+                Some(ref request) => crate::core::bot::consent_gate::marker_content(request),
                 None => crate::core::bot::consent_gate::deny_message(&app_id),
             };
             let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(),
-                user_id.to_string(), &message, &channel,
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                &message,
+                &channel,
             );
             let _ = sink.send_bot_response(&resp).await;
             return true;
@@ -118,8 +142,16 @@ pub(crate) async fn handle_api_call(
                 if let Some(results) = result.get("results").and_then(|v| v.as_array()) {
                     let mut citations = Vec::new();
                     for r in results {
-                        let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                        let url = r.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let title = r
+                            .get("title")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let url = r
+                            .get("url")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
                         if url.is_empty() {
                             continue;
                         }
@@ -154,9 +186,11 @@ pub(crate) async fn handle_api_call(
                     .get("created_resources")
                     .and_then(|c| c.as_array())
                     .is_some_and(|a| !a.is_empty());
-                let performed_action =
-                    result.get("success").and_then(|s| s.as_bool()).unwrap_or(false)
-                        || created_something;
+                let performed_action = result
+                    .get("success")
+                    .and_then(|s| s.as_bool())
+                    .unwrap_or(false)
+                    || created_something;
                 let grounding = if performed_action {
                     "The data confirms the action was carried out: report it as done.\n"
                 } else {
@@ -197,14 +231,20 @@ pub(crate) async fn handle_api_call(
                 // A rerouted tool call may arrive before a provider is resolved
                 // for this bot; the command result is then reported raw.
                 let composed = match llm {
-                    Some(llm) => llm.generate(&prompt, &serde_json::json!({}), model, key).await.ok(),
+                    Some(llm) => llm
+                        .generate(&prompt, &serde_json::json!({}), model, key)
+                        .await
+                        .ok(),
                     None => None,
                 };
                 match composed {
                     Some(text) => {
                         let resp = botlib::models::BotResponse::new(
-                            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-                            &text, &channel,
+                            bot_uuid.to_string(),
+                            session_id.to_string(),
+                            user_id.to_string(),
+                            &text,
+                            &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
                     }
@@ -220,17 +260,20 @@ pub(crate) async fn handle_api_call(
                             .map(str::to_string);
                         let fallback = match (command_message, deep_links.first()) {
                             (Some(message), _) => message,
-                            (None, Some(link)) => format!(
-                                "Here is the record you asked about: {link}"
-                            ),
+                            (None, Some(link)) => {
+                                format!("Here is the record you asked about: {link}")
+                            }
                             (None, None) => format!(
                                 "I ran `{name}` but could not write the answer from its result. \
                                  Ask me again and I will retry."
                             ),
                         };
                         let resp = botlib::models::BotResponse::new(
-                            bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-                            &fallback, &channel,
+                            bot_uuid.to_string(),
+                            session_id.to_string(),
+                            user_id.to_string(),
+                            &fallback,
+                            &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
                     }
@@ -241,8 +284,11 @@ pub(crate) async fn handle_api_call(
                 // page. Speak about the result instead.
                 let text = humanize_result(&name, &result);
                 let resp = botlib::models::BotResponse::new(
-                    bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-                    &text, &channel,
+                    bot_uuid.to_string(),
+                    session_id.to_string(),
+                    user_id.to_string(),
+                    &text,
+                    &channel,
                 );
                 let _ = sink.send_bot_response(&resp).await;
             }
@@ -251,8 +297,11 @@ pub(crate) async fn handle_api_call(
         Err(e) => {
             log::warn!("api_call '{name}' failed: {e}");
             let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
-                format!("Falha ao executar {name}: {e}"), &channel,
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                format!("Falha ao executar {name}: {e}"),
+                &channel,
             );
             let _ = sink.send_bot_response(&resp).await;
             true

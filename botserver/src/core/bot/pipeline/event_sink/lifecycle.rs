@@ -9,7 +9,9 @@ use super::context::RunContext;
 use super::emit::emit;
 
 pub async fn run_started(sink: &dyn ChannelSink, context: &RunContext, title: Option<&str>) {
-    crate::core::bot::runs::bus::bus().thread(&context.thread_id).set_state(RunState::Running);
+    crate::core::bot::runs::bus::bus()
+        .thread(&context.thread_id)
+        .set_state(RunState::Running);
     if let Some(state) = context.state.as_ref() {
         observability::begin_run_row(&state.conn, &context.run_id, context.bot_id, &context.agent);
     }

@@ -33,7 +33,12 @@ pub fn find_staged_attachment(user_text: &str) -> Option<StagedAttachment> {
         return Some(StagedAttachment { path, caption });
     }
     const CHANNEL_MARKERS: [&str; 6] = [
-        "[image] ", "[document] ", "[voice] ", "[audio] ", "[video] ", "[sticker] ",
+        "[image] ",
+        "[document] ",
+        "[voice] ",
+        "[audio] ",
+        "[video] ",
+        "[sticker] ",
     ];
     for marker in CHANNEL_MARKERS {
         let Some(start) = user_text.find(marker) else {
@@ -73,7 +78,10 @@ mod tests {
     fn channel_marker_without_caption_yields_empty_caption() {
         let text = "[image] inbox/40d1b057-505b-4042-813a-c084196d323e.jpg";
         let staged = find_staged_attachment(text).expect("attachment must be found");
-        assert_eq!(staged.path, "inbox/40d1b057-505b-4042-813a-c084196d323e.jpg");
+        assert_eq!(
+            staged.path,
+            "inbox/40d1b057-505b-4042-813a-c084196d323e.jpg"
+        );
         assert_eq!(staged.caption, "");
     }
 

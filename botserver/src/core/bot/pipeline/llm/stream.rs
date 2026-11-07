@@ -44,33 +44,46 @@ async fn stream_llm_response_inner(
         user_id,
         bot_name,
     } = *identity;
-    let bot_llm_provider =
-        match super::super::enriched_llm::resolve_bot_llm_provider(
-            state, bot_uuid, user_id, session_id, model_preference,
-        ).await {
-            Ok(provider) => provider,
-            Err(message) => {
-                // #1654 — a requested subscription without a linked account is
-                // an actionable error, never a silent fallback to another key.
-                sink.send_error(&session_id.to_string(), &message).await?;
-                return Ok(());
-            }
-        };
+    let bot_llm_provider = match super::super::enriched_llm::resolve_bot_llm_provider(
+        state,
+        bot_uuid,
+        user_id,
+        session_id,
+        model_preference,
+    )
+    .await
+    {
+        Ok(provider) => provider,
+        Err(message) => {
+            // #1654 — a requested subscription without a linked account is
+            // an actionable error, never a silent fallback to another key.
+            sink.send_error(&session_id.to_string(), &message).await?;
+            return Ok(());
+        }
+    };
 
     if super::super::enriched_llm::respond_in_answer_mode(
         sink, state, user_text, bot_uuid, bot_name, session_id, user_id,
-    ).await? {
+    )
+    .await?
+    {
         return Ok(());
     }
-
 
     let env_key = std::env::var("LLM_KEY").unwrap_or_default();
     let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
     match bot_llm_provider.or_else(|| {
-        state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone()))
+        state
+            .llm_provider
+            .clone()
+            .map(move |p| (p, env_key.clone(), env_model.clone()))
     }) {
         Some((ref llm, ref llm_key, ref llm_model)) => {
-            log::info!("LLM REQUEST: {} messages, model={}", messages.as_array().map(|a| a.len()).unwrap_or(0), llm_model);
+            log::info!(
+                "LLM REQUEST: {} messages, model={}",
+                messages.as_array().map(|a| a.len()).unwrap_or(0),
+                llm_model
+            );
 
             let prompt_clone = user_text.to_string();
             let messages_clone = messages.clone();
@@ -89,13 +102,16 @@ async fn stream_llm_response_inner(
                 session_tools.extend(super::super::surface_catalog::llm_tools());
             }
 
-            let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
+            let tools_arg = if session_tools.is_empty() {
+                None
+            } else {
+                Some(session_tools)
+            };
 
             // #1696 — per-run caps must gate THIS path too: the web chat
             // streams through the pipeline, not the legacy ws loop.
-            let caps = crate::core::bot::runs::caps_resolve::resolve_for_run(
-                state, bot_uuid, user_id,
-            );
+            let caps =
+                crate::core::bot::runs::caps_resolve::resolve_for_run(state, bot_uuid, user_id);
             let mut budget = crate::core::bot::runs::caps::RunBudget::start(caps);
 
             for attempt in 0..=LLM_RETRY_MAX {
@@ -128,8 +144,10 @@ async fn stream_llm_response_inner(
                 };
 
                 let has_tool_call = full_response.contains("\"__tool_call__\":");
-                let has_ui_plan = full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
-                let has_api_call = crate::core::bot::api_catalog::is_api_call_trigger(&full_response);
+                let has_ui_plan =
+                    full_response.contains(crate::main_module::ui_plan::UI_PLAN_TRIGGER);
+                let has_api_call =
+                    crate::core::bot::api_catalog::is_api_call_trigger(&full_response);
                 log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
 
                 let llm_target = LlmTarget {
@@ -137,9 +155,9 @@ async fn stream_llm_response_inner(
                     model: llm_model,
                     key: llm_key,
                 };
-                if has_api_call && handle_api_call(
-                    identity, &llm_target, &full_response, user_text, rx,
-                ).await {
+                if has_api_call
+                    && handle_api_call(identity, &llm_target, &full_response, user_text, rx).await
+                {
                     {
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
@@ -152,7 +170,9 @@ async fn stream_llm_response_inner(
                     content_buffer = crate::main_module::ui_plan::scrub_plan_fragments(
                         &crate::main_module::ui_plan::strip_plan_json(&content_buffer),
                     );
-                    if let Some(plan) = crate::main_module::ui_plan::extract_and_validate_plan(&full_response) {
+                    if let Some(plan) =
+                        crate::main_module::ui_plan::extract_and_validate_plan(&full_response)
+                    {
                         match plan {
                             Ok(validated) => {
                                 log::info!(
@@ -185,15 +205,26 @@ async fn stream_llm_response_inner(
 
                 if !has_tool_call && content_buffer.is_empty() {
                     if attempt < LLM_RETRY_MAX {
-                        log::warn!("LLM empty response on attempt {}/{}, retrying in {}s", attempt + 1, LLM_RETRY_MAX, LLM_RETRY_DELAY);
+                        log::warn!(
+                            "LLM empty response on attempt {}/{}, retrying in {}s",
+                            attempt + 1,
+                            LLM_RETRY_MAX,
+                            LLM_RETRY_DELAY
+                        );
                         tokio::time::sleep(Duration::from_secs(LLM_RETRY_DELAY)).await;
                         continue;
                     }
-                    log::warn!("LLM empty response after {} retries, sending fallback", LLM_RETRY_MAX);
+                    log::warn!(
+                        "LLM empty response after {} retries, sending fallback",
+                        LLM_RETRY_MAX
+                    );
                     let err_msg = llm_empty_message();
                     let err_resp = botlib::models::BotResponse::new(
-                        &bot_uuid_s, &session_id_s, user_id.to_string(),
-                        &err_msg, "web",
+                        &bot_uuid_s,
+                        &session_id_s,
+                        user_id.to_string(),
+                        &err_msg,
+                        "web",
                     );
                     let _ = sink.send_bot_response(&err_resp).await;
                     {
@@ -225,9 +256,12 @@ async fn stream_llm_response_inner(
                     let _ = sink.send_bot_response(&final_resp).await;
                 }
 
-            if has_tool_call {
-                let is_deep = messages.as_array().map(|a| a.len() > 3).unwrap_or(false);
-                if is_web_channel(sink) && !is_deep && super::super::tool_exec::is_generic_greeting(user_text) {
+                if has_tool_call {
+                    let is_deep = messages.as_array().map(|a| a.len() > 3).unwrap_or(false);
+                    if is_web_channel(sink)
+                        && !is_deep
+                        && super::super::tool_exec::is_generic_greeting(user_text)
+                    {
                         if !content_buffer.is_empty() {
                             log::info!("Greeting guard: skipping tool_call, sending buffered content instead");
                             let final_resp = botlib::models::BotResponse {
@@ -248,10 +282,16 @@ async fn stream_llm_response_inner(
                             };
                             let _ = sink.send_bot_response(&final_resp).await;
                         } else {
-                            log::info!("Greeting guard: tool_call-only response, sending generic greeting");
+                            log::info!(
+                                "Greeting guard: tool_call-only response, sending generic greeting"
+                            );
                             let msg = "Ola! Como posso ajudar voce hoje?";
                             let final_resp = botlib::models::BotResponse::new(
-                                &bot_uuid_s, &session_id_s, user_id.to_string(), msg, "web",
+                                &bot_uuid_s,
+                                &session_id_s,
+                                user_id.to_string(),
+                                msg,
+                                "web",
                             );
                             let _ = sink.send_bot_response(&final_resp).await;
                         }
@@ -271,14 +311,19 @@ async fn stream_llm_response_inner(
                                 parts.push(
                                     super::super::tool_exec::run_llm_tool_call(
                                         identity, rx, call_chunk, user_text,
-                                    ).await,
+                                    )
+                                    .await,
                                 );
                             }
                             parts.join("\n\n")
                         } else {
                             super::super::tool_exec::run_llm_tool_call(
-                                identity, rx, &full_response, user_text,
-                            ).await
+                                identity,
+                                rx,
+                                &full_response,
+                                user_text,
+                            )
+                            .await
                         };
                         if tool_depth < MAX_TOOL_FOLLOWUPS && !tool_output.trim().is_empty() {
                             // Keep the follow-up inside a sane prompt budget;
@@ -289,12 +334,13 @@ async fn stream_llm_response_inner(
                             // honored at the step boundary in THIS path too
                             // (web chat streams through the pipeline, so the
                             // ws-loop steering queue alone was dead code).
-                            if let Some(steer) = crate::core::bot::runs::bus::bus()
-                                .take_steering(&session_id_s)
+                            if let Some(steer) =
+                                crate::core::bot::runs::bus::bus().take_steering(&session_id_s)
                             {
                                 botlog::safe_warn!(
                                     "steering applied before follow-up (session {}, {} chars)",
-                                    session_id_s, steer.chars().count()
+                                    session_id_s,
+                                    steer.chars().count()
                                 );
                                 let notice = serde_json::json!({
                                     "type": "gb.steer",
@@ -347,8 +393,11 @@ async fn stream_llm_response_inner(
                 }
                 #[cfg(feature = "memory-os")]
                 crate::core::bot::memory_hook::extract_from_turn(
-                    user_id, uuid::Uuid::nil(), session_id,
-                    user_text, &full_response,
+                    user_id,
+                    uuid::Uuid::nil(),
+                    session_id,
+                    user_text,
+                    &full_response,
                 )
                 .await;
                 break;
@@ -361,8 +410,11 @@ async fn stream_llm_response_inner(
                 let _ = sm.save_message(session_id, user_id, 2, &fallback, 2);
             }
             let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(),
-                user_id.to_string(), &fallback, "web",
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                &fallback,
+                "web",
             );
             let _ = sink.send_bot_response(&resp).await;
         }

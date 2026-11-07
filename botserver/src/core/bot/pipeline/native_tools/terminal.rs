@@ -2,8 +2,8 @@
 //! `terminal_output` / `gb.command_output` frames to the chat run so the run
 //! card can expose Take over.
 
-use super::send;
 use super::super::types::SessionIdentity;
+use super::send;
 
 /// A live terminal run: spawns a real PTY inside the user's agent VM and
 /// streams `terminal_output` / `gb.command_output` frames to the chat run so
@@ -15,7 +15,11 @@ pub(super) async fn run_terminal_run(identity: &SessionIdentity<'_>, args: &str)
     let parsed = match super::super::native_args::parse_args(args) {
         Ok(value) => value,
         Err(error) => {
-            send(identity, &format!("Could not read the terminal request: {error}")).await;
+            send(
+                identity,
+                &format!("Could not read the terminal request: {error}"),
+            )
+            .await;
             return;
         }
     };
@@ -42,7 +46,11 @@ pub(super) async fn run_terminal_run(identity: &SessionIdentity<'_>, args: &str)
         ..
     } = *identity;
     let Some(vm_name) = crate::core::bot::agent_vm_hook::user_vm_name(user_id).await else {
-        send(identity, "No running workspace VM. Open the workspace first.").await;
+        send(
+            identity,
+            "No running workspace VM. Open the workspace first.",
+        )
+        .await;
         return;
     };
     let thread_id = session_id.to_string();

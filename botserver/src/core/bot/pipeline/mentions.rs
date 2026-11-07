@@ -221,7 +221,10 @@ mod tests {
         assert!(block.contains("integrations.invoke"));
         // Credential material must never reach the prompt.
         for banned in ["token", "secret", "vault"] {
-            assert!(!block.to_lowercase().contains(banned), "block leaked {banned}");
+            assert!(
+                !block.to_lowercase().contains(banned),
+                "block leaked {banned}"
+            );
         }
     }
 

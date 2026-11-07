@@ -61,11 +61,20 @@ pub(super) async fn run_propose_plan(identity: &SessionIdentity<'_>, args: &str)
             issues.push(format!("questions[{index}] must be an object"));
             continue;
         };
-        if object.get("id").and_then(Value::as_str).map(str::trim).unwrap_or("").is_empty() {
+        if object
+            .get("id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+        {
             issues.push(format!("questions[{index}].id is required"));
         }
         let kind = object.get("type").and_then(Value::as_str).unwrap_or("text");
-        if !matches!(kind, "text" | "textarea" | "select" | "number" | "date" | "email") {
+        if !matches!(
+            kind,
+            "text" | "textarea" | "select" | "number" | "date" | "email"
+        ) {
             issues.push(format!("questions[{index}].type '{kind}' is not supported"));
         }
     }
@@ -137,7 +146,12 @@ pub(super) async fn run_propose_plan(identity: &SessionIdentity<'_>, args: &str)
         .unwrap_or("Before we start");
     let labels: Vec<String> = question_fields
         .iter()
-        .filter_map(|field| field.get("label").and_then(Value::as_str).map(str::to_string))
+        .filter_map(|field| {
+            field
+                .get("label")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .collect();
     let question_fallback = format!("{question_title}: {}", labels.join("; "));
     {

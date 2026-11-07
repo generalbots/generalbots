@@ -139,10 +139,7 @@ pub fn prompt_block() -> String {
         args_text.push('}');
         let _ = std::fmt::Write::write_fmt(
             &mut block,
-            format_args!(
-                "- {}: {}.\n",
-                entry.name, &entry.summary
-            ),
+            format_args!("- {}: {}.\n", entry.name, &entry.summary),
         );
         if entry.name == "show_surface" {
             block.push_str("  ");
@@ -151,10 +148,7 @@ pub fn prompt_block() -> String {
             block.push_str(RENDERER_COMPONENTS);
             block.push_str(". Always include a fallback. Never send HTML.\n");
         } else {
-            let _ = std::fmt::Write::write_fmt(
-                &mut block,
-                format_args!("  {}\n", &args_text),
-            );
+            let _ = std::fmt::Write::write_fmt(&mut block, format_args!("  {}\n", &args_text));
         }
     }
     block.push_str(
@@ -171,10 +165,8 @@ pub fn prompt_block() -> String {
     );
     for entry in SURFACE_TOOLS {
         for (user, call) in entry.few_shots {
-            let _ = std::fmt::Write::write_fmt(
-                &mut block,
-                format_args!("user: {user} -> {call}.\n"),
-            );
+            let _ =
+                std::fmt::Write::write_fmt(&mut block, format_args!("user: {user} -> {call}.\n"));
         }
     }
     block.push_str(

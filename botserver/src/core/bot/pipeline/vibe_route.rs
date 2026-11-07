@@ -55,10 +55,19 @@ pub(super) async fn route_vibe_project(
     if let Some(pid) = routed_project_id {
         let project_name = routed_project_name;
         let mut run_params = serde_json::Map::new();
-        run_params.insert("intent".to_string(), serde_json::Value::String(user_text.to_string()));
-        run_params.insert("project_id".to_string(), serde_json::Value::String(pid.clone()));
+        run_params.insert(
+            "intent".to_string(),
+            serde_json::Value::String(user_text.to_string()),
+        );
+        run_params.insert(
+            "project_id".to_string(),
+            serde_json::Value::String(pid.clone()),
+        );
         if !project_name.is_empty() {
-            run_params.insert("project_name".to_string(), serde_json::Value::String(project_name.clone()));
+            run_params.insert(
+                "project_name".to_string(),
+                serde_json::Value::String(project_name.clone()),
+            );
         }
         run_params.insert(
             "use_case".to_string(),
@@ -78,7 +87,11 @@ pub(super) async fn route_vibe_project(
                 // #1286 — a lock conflict (another session is modifying the
                 // same project) must be reported honestly, never as success:
                 // the API returns success=false + lock_conflict=true.
-                if value.get("lock_conflict").and_then(|v| v.as_bool()).unwrap_or(false) {
+                if value
+                    .get("lock_conflict")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                {
                     let detail = value
                         .get("error")
                         .and_then(|v| v.as_str())

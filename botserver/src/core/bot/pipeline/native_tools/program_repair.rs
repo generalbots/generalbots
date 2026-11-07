@@ -16,8 +16,7 @@ pub(super) async fn repair_program(
             return None;
         }
     };
-    let (model, key) =
-        super::super::tool_exec::bot_llm_credentials(&state.conn, bot_uuid);
+    let (model, key) = super::super::tool_exec::bot_llm_credentials(&state.conn, bot_uuid);
     // Keyless gateways (Kilo free tier) legitimately carry an empty key; only
     // a missing model makes the repair call impossible.
     if model.is_empty() {

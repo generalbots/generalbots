@@ -48,7 +48,12 @@ pub(super) async fn run_show_surface(identity: &SessionIdentity<'_>, args: &str)
                 "components[{index}].type '{kind}' is not in the catalog"
             ));
         }
-        if object.get("id").and_then(Value::as_str).unwrap_or("").is_empty() {
+        if object
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .is_empty()
+        {
             issues.push(format!("components[{index}].id is required"));
         }
     }

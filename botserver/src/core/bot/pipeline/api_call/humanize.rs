@@ -56,6 +56,9 @@ mod humanize_tests {
     #[test]
     fn a_command_message_wins() {
         let result = serde_json::json!({"message": "Saved 2 files to Drive", "count": 2});
-        assert_eq!(humanize_result("drive.save", &result), "Saved 2 files to Drive");
+        assert_eq!(
+            humanize_result("drive.save", &result),
+            "Saved 2 files to Drive"
+        );
     }
 }

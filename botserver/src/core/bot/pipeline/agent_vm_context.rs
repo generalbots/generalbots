@@ -5,21 +5,72 @@
 //! blocks around the prompt assembly.
 
 use serde_json::Value;
-use uuid::Uuid;
+
+use super::types::SessionIdentity;
+use super::workspace_progress::{WorkspaceProgress, PHASE_INFRA};
 
 /// Injects the workspace contract for the user's VM when one is running.
-pub(super) async fn inject(
-    session_id: Uuid,
-    user_id: Uuid,
-    bot_uuid: Uuid,
-    messages: &mut Vec<Value>,
-) {
+///
+/// #1807 — provisioning is visible in the chat run timeline. A cold Incus
+/// start can take minutes before the model is even called; this is the first
+/// stage the user needs to see, not a silent spinner.
+pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Value>) {
     #[cfg(feature = "agent-vm")]
     {
-        if let Some(vm_session) =
-            crate::core::bot::agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid).await
-        {
-            let conv_id = vm_session.active_conversation_id.as_deref().unwrap_or("default");
+        let SessionIdentity {
+            session_id,
+            user_id,
+            bot_uuid,
+            ..
+        } = *identity;
+        let progress = WorkspaceProgress::new(identity);
+        if let Some(progress) = progress.as_ref() {
+            progress
+                .start(
+                    PHASE_INFRA,
+                    "queued",
+                    "Workspace queued",
+                    "Checking your workspace",
+                )
+                .await;
+            progress.finish(PHASE_INFRA, "queued", "ok", "").await;
+            progress
+                .start(
+                    PHASE_INFRA,
+                    "container_start",
+                    "Starting the workspace",
+                    "Image pull, container boot and bootstrap can take minutes on a cold machine",
+                )
+                .await;
+        }
+
+        let vm =
+            crate::core::bot::agent_vm_hook::ensure_agent_vm_result(session_id, user_id, bot_uuid)
+                .await;
+        if let Some(progress) = progress.as_ref() {
+            match &vm {
+                Ok(_) => {
+                    progress
+                        .finish(PHASE_INFRA, "container_start", "ok", "Workspace ready")
+                        .await;
+                }
+                Err((_, error)) => {
+                    progress
+                        .finish(PHASE_INFRA, "container_start", "error", error)
+                        .await;
+                }
+            }
+        }
+
+        if let Err((_, error)) = &vm {
+            botlog::safe_warn!("auto-provision VM for user {user_id}: {error}");
+        }
+
+        if let Ok(vm_session) = vm {
+            let conv_id = vm_session
+                .active_conversation_id
+                .as_deref()
+                .unwrap_or("default");
             let vm_name = &vm_session.vm_name;
             let status = &vm_session.status;
             messages.push(serde_json::json!({
@@ -88,6 +139,6 @@ pub(super) async fn inject(
     }
     #[cfg(not(feature = "agent-vm"))]
     {
-        let _ = (session_id, user_id, bot_uuid, messages);
+        let _ = (identity, messages);
     }
 }

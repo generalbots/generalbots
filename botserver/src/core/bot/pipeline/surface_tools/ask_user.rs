@@ -27,7 +27,9 @@ pub(super) async fn run_ask_user(identity: &SessionIdentity<'_>, args: &str) {
     };
     if fields.is_empty() {
         if let Some(question) = parsed.get("question").and_then(Value::as_str) {
-            fields.push(json!({ "id": "answer", "label": question, "type": "text", "required": true }));
+            fields.push(
+                json!({ "id": "answer", "label": question, "type": "text", "required": true }),
+            );
         } else {
             issues.push("data.fields: at least one field (or a question) is required".to_string());
         }
@@ -37,11 +39,20 @@ pub(super) async fn run_ask_user(identity: &SessionIdentity<'_>, args: &str) {
             issues.push(format!("fields[{index}] must be an object"));
             continue;
         };
-        if object.get("id").and_then(Value::as_str).map(str::trim).unwrap_or("").is_empty() {
+        if object
+            .get("id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+        {
             issues.push(format!("fields[{index}].id is required"));
         }
         let kind = object.get("type").and_then(Value::as_str).unwrap_or("text");
-        if !matches!(kind, "text" | "textarea" | "select" | "number" | "date" | "email") {
+        if !matches!(
+            kind,
+            "text" | "textarea" | "select" | "number" | "date" | "email"
+        ) {
             issues.push(format!("fields[{index}].type '{kind}' is not supported"));
         }
     }
@@ -89,7 +100,12 @@ pub(super) async fn run_ask_user(identity: &SessionIdentity<'_>, args: &str) {
         .unwrap_or_else(|| {
             let labels: Vec<String> = fields
                 .iter()
-                .filter_map(|field| field.get("label").and_then(Value::as_str).map(str::to_string))
+                .filter_map(|field| {
+                    field
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
+                })
                 .collect();
             format!("{title}: {}", labels.join("; "))
         });

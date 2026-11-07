@@ -34,8 +34,11 @@ pub(super) async fn gate_turn(
 
     let runtime: Arc<dyn botbasic_types::BasicRuntime> =
         Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
-    let delivered =
-        crate::basic::keywords::hearing::deliver_hear_input(&runtime, session_id, user_text.to_string());
+    let delivered = crate::basic::keywords::hearing::deliver_hear_input(
+        &runtime,
+        session_id,
+        user_text.to_string(),
+    );
     if delivered {
         return Ok(true);
     }

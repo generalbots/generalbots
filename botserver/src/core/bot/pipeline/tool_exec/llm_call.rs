@@ -1,13 +1,13 @@
 //! LLM tool-call execution: parse the model's call, gate it, then hand the
 //! compiled script to `script::run_script_tool`.
 
+use super::super::types::SessionIdentity;
 use super::is_placeholder_value::all_args_are_placeholder;
 use super::parse::{
     extract_tool_call, parse_dsml_tool_call, parse_xml_tool_use, recover_tool_name,
     salvage_tool_call,
 };
 use super::script::run_script_tool;
-use super::super::types::SessionIdentity;
 
 pub async fn run_llm_tool_call(
     identity: &SessionIdentity<'_>,
@@ -29,8 +29,8 @@ pub async fn run_llm_tool_call(
     // Some providers wrap function calls in an XML dialect (DSML) instead of
     // the JSON protocol. Convert it to the wrapper this function understands.
     if !full_response.contains("\"__tool_call__\":") {
-        if let Some(synthetic) = parse_dsml_tool_call(full_response)
-            .or_else(|| parse_xml_tool_use(full_response))
+        if let Some(synthetic) =
+            parse_dsml_tool_call(full_response).or_else(|| parse_xml_tool_use(full_response))
         {
             let text = synthetic.to_string();
             return Box::pin(run_llm_tool_call(identity, rx, &text, user_text)).await;
@@ -95,7 +95,9 @@ pub async fn run_llm_tool_call(
         // tool operates on an already-filed object and fails with a confusing
         // 404. Only when the current message carries no attachment marker do
         // the model's arguments stand.
-        if let Some(staged) = crate::core::bot::pipeline::attachments::find_staged_attachment(user_text) {
+        if let Some(staged) =
+            crate::core::bot::pipeline::attachments::find_staged_attachment(user_text)
+        {
             let mut parsed: serde_json::Value =
                 serde_json::from_str(&tool_args_owned).unwrap_or_else(|_| serde_json::json!({}));
             match parsed.as_object_mut() {
@@ -107,8 +109,14 @@ pub async fn run_llm_tool_call(
                         .trim()
                         .to_string();
                     let stale = !model_path.is_empty() && model_path != staged.path;
-                    obj.insert("path".to_string(), serde_json::Value::String(staged.path.clone()));
-                    obj.insert("caption".to_string(), serde_json::Value::String(staged.caption));
+                    obj.insert(
+                        "path".to_string(),
+                        serde_json::Value::String(staged.path.clone()),
+                    );
+                    obj.insert(
+                        "caption".to_string(),
+                        serde_json::Value::String(staged.caption),
+                    );
                     if stale {
                         log::info!(
                             "Tool '{raw_tool_name}': model echoed path '{model_path}' from history; overridden with current message attachment '{}'",
@@ -149,18 +157,25 @@ pub async fn run_llm_tool_call(
         }
 
         if all_args_are_placeholder(tool_args) {
-            log::info!("All tool args are placeholder - asking user for real data instead of executing");
+            log::info!(
+                "All tool args are placeholder - asking user for real data instead of executing"
+            );
             let msg = "I need the actual values before I can run that tool. Please provide the requested details.".to_string();
             let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(),
-                user_id.to_string(), &msg, sink.channel_type(),
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                &msg,
+                sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
             return String::new();
         }
 
         if crate::core::bot::pipeline::tool_exec::is_generic_greeting(user_text) {
-            log::info!("Blocking tool '{raw_tool_name}' on short generic user message: '{user_text}'");
+            log::info!(
+                "Blocking tool '{raw_tool_name}' on short generic user message: '{user_text}'"
+            );
             return String::new();
         }
 
@@ -169,7 +184,9 @@ pub async fn run_llm_tool_call(
         // Their output goes straight to the sink, so capture it for the
         // model follow-up before running.
         crate::core::bot::pipeline::native_tools::begin_capture(session_id);
-        if crate::core::bot::pipeline::native_tools::try_run(identity, &raw_tool_name, tool_args).await {
+        if crate::core::bot::pipeline::native_tools::try_run(identity, &raw_tool_name, tool_args)
+            .await
+        {
             return crate::core::bot::pipeline::native_tools::take_capture(session_id);
         }
 
@@ -182,7 +199,8 @@ pub async fn run_llm_tool_call(
         };
 
         let work_path = get_work_path();
-        let rel_tool_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
+        let rel_tool_path =
+            format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
         if !verify_path_within_workdir(&rel_tool_path) {
             log::error!("Path traversal detected in LLM tool_call for tool: {tool_name}");
             return String::new();
@@ -191,13 +209,19 @@ pub async fn run_llm_tool_call(
         // The org directory is named after the org id (`<uuid>.gborg`), not the
         // bot: assuming `{bot}.gborg` meant every tool call resolved to a
         // missing file and was dropped as "no compiled script".
-        let ast_path = crate::core::bot::pipeline::tool_paths::resolve_bot_file(&work_path, &bot_name, &format!("{tool_name}.ast"));
+        let ast_path = crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+            &work_path,
+            &bot_name,
+            &format!("{tool_name}.ast"),
+        );
         let ast_content = match ast_path.as_ref() {
             Some(path) => match tokio::fs::read_to_string(path).await {
                 Ok(c) if !c.is_empty() => c,
                 _ => {
                     let bas_path = path.with_extension("bas");
-                    tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+                    tokio::fs::read_to_string(&bas_path)
+                        .await
+                        .unwrap_or_default()
                 }
             },
             None => String::new(),
@@ -224,7 +248,8 @@ pub async fn run_llm_tool_call(
                 // redigir a resposta" instead of the command's result.
                 let provider = state.llm_provider.clone();
                 let provider = provider.as_ref();
-                let (model, key) = super::is_placeholder_value::bot_llm_credentials(&state.conn, bot_uuid);
+                let (model, key) =
+                    super::is_placeholder_value::bot_llm_credentials(&state.conn, bot_uuid);
                 // Boxed: the command path can reroute a session tool back
                 // into this executor, so the two futures are mutually
                 // recursive.
@@ -234,7 +259,11 @@ pub async fn run_llm_tool_call(
                     key: &key,
                 };
                 Box::pin(crate::core::bot::pipeline::api_call::handle_api_call(
-                    identity, &llm_target, &api_call, user_text, rx,
+                    identity,
+                    &llm_target,
+                    &api_call,
+                    user_text,
+                    rx,
                 ))
                 .await;
                 return String::new();

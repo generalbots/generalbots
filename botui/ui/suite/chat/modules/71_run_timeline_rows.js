@@ -11,20 +11,43 @@
     var MAX_LOG_LINES = 200;
     var elapsedLabel = RT._elapsedLabel;
 
-    function row(entry, key, name, status) {
+    // #1807 — rows carry the workspace phase, a human detail line and an
+    // elapsed timer while they run. A slow stage must look alive ("still
+    // working · 2m 40s"), not like a frozen spinner.
+    function row(entry, key, name, status, meta) {
+        meta = meta || {};
         var existing = entry.rows.querySelector('[data-row-key="' + key + '"]');
         if (existing) {
             existing.setAttribute("data-status", status);
+            if (meta.phase) existing.setAttribute("data-phase", meta.phase);
             var badge = existing.querySelector(".run-row-status");
             if (badge) badge.textContent = status;
             var existingLabel = existing.querySelector(".run-row-name");
             if (existingLabel && name) existingLabel.textContent = name;
+            var existingDetail = existing.querySelector(".run-row-detail");
+            if (existingDetail && meta.detail !== undefined) {
+                existingDetail.textContent = meta.detail || "";
+                existingDetail.hidden = !meta.detail;
+            }
+            var existingMeta = existing.querySelector(".run-row-meta");
+            if (existingMeta && meta.elapsedMs !== undefined && meta.elapsedMs !== null) {
+                existingMeta.textContent = elapsedLabel(Date.now() - Number(meta.elapsedMs));
+            }
+            if (status !== "running") {
+                existing.removeAttribute("data-started-at");
+            } else if (meta.startedAt) {
+                existing.setAttribute("data-started-at", String(meta.startedAt));
+            }
             return existing;
         }
         var item = document.createElement("div");
         item.className = "run-row";
         item.setAttribute("data-row-key", key);
         item.setAttribute("data-status", status);
+        if (meta.phase) item.setAttribute("data-phase", meta.phase);
+        if (status === "running") {
+            item.setAttribute("data-started-at", String(meta.startedAt || Date.now()));
+        }
 
         var badge = document.createElement("span");
         badge.className = "run-row-status";
@@ -34,8 +57,22 @@
         label.className = "run-row-name";
         label.textContent = name;
 
+        var detail = document.createElement("span");
+        detail.className = "run-row-detail";
+        detail.textContent = meta.detail || "";
+        detail.hidden = !meta.detail;
+
+        var metaLabel = document.createElement("span");
+        metaLabel.className = "run-row-meta";
+        metaLabel.textContent = "";
+        if (meta.elapsedMs !== undefined && meta.elapsedMs !== null) {
+            metaLabel.textContent = elapsedLabel(Date.now() - Number(meta.elapsedMs));
+        }
+
         item.appendChild(badge);
         item.appendChild(label);
+        item.appendChild(detail);
+        item.appendChild(metaLabel);
         entry.rows.appendChild(item);
         return item;
     }
@@ -106,6 +143,15 @@
             cancelled: "Cancelled",
         }[state] || state;
         entry.summary.textContent = label;
+        // #1807 — a step that was still running when the run ended must not
+        // keep ticking as "running" after the card is terminal.
+        var endedStatus = state === "succeeded" ? "ok" : (state === "cancelled" ? "cancelled" : "error");
+        entry.rows.querySelectorAll('.run-row[data-status="running"]').forEach(function (stepRow) {
+            stepRow.setAttribute("data-status", endedStatus);
+            stepRow.removeAttribute("data-started-at");
+            var stepBadge = stepRow.querySelector(".run-row-status");
+            if (stepBadge) stepBadge.textContent = endedStatus;
+        });
         if (state === "succeeded") {
             entry.collapsed = true;
             entry.card.classList.add("collapsed");

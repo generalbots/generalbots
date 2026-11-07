@@ -121,7 +121,9 @@ pub(super) fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
             repaired.push(ch);
         }
     }
-    serde_json::from_str(&repaired).ok().map(normalize_tool_call)
+    serde_json::from_str(&repaired)
+        .ok()
+        .map(normalize_tool_call)
 }
 
 /// Providers do not always follow the documented envelope
@@ -236,7 +238,10 @@ pub(super) fn parse_xml_tool_use(raw: &str) -> Option<serde_json::Value> {
     let header = &raw[after_tag..tag_end];
     let attribute_name = header
         .split_once("name=")
-        .map(|(_, rest)| rest.trim_matches(|c| c == '"' || c == '\'' || c == ' ').to_string())
+        .map(|(_, rest)| {
+            rest.trim_matches(|c| c == '"' || c == '\'' || c == ' ')
+                .to_string()
+        })
         .filter(|n| !n.is_empty());
     let body_start = tag_end + 1;
     let close = raw[body_start..].find("</tool_use>")?;

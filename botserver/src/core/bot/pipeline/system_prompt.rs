@@ -94,7 +94,10 @@ pub(super) fn build(
             crate::core::bot::api_catalog::api_command_instructions(&role),
         )
     };
-    format!("{channel_prompt}\n\n{}", capability_block(channel, client_caps))
+    format!(
+        "{channel_prompt}\n\n{}",
+        capability_block(channel, client_caps)
+    )
 }
 
 /// Per-session capability block (#1678). The model must not offer a surface

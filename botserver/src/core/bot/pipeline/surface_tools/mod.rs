@@ -21,15 +21,19 @@ mod surface;
 /// Component kinds the Tier 1 renderer understands. Unknown kinds are rejected
 /// at the tool edge instead of silently degrading a whole surface.
 const SURFACE_COMPONENTS: [&str; 12] = [
-    "text", "callout", "table", "metrics", "bars", "lines", "flow", "timeline",
-    "form", "plan", "diff", "tabs",
+    "text", "callout", "table", "metrics", "bars", "lines", "flow", "timeline", "form", "plan",
+    "diff", "tabs",
 ];
 
 /// Field values already answered in a thread. In-memory is enough for the
 /// active conversation; the durable record is the persisted question turn.
-fn answers() -> &'static std::sync::Mutex<std::collections::HashMap<String, std::collections::HashMap<String, String>>> {
+fn answers() -> &'static std::sync::Mutex<
+    std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+> {
     static ANSWERS: std::sync::OnceLock<
-        std::sync::Mutex<std::collections::HashMap<String, std::collections::HashMap<String, String>>>,
+        std::sync::Mutex<
+            std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+        >,
     > = std::sync::OnceLock::new();
     ANSWERS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }

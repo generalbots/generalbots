@@ -4,8 +4,8 @@
 //! for a follow-up turn. Without it the chat ended on the raw tool output
 //! (e.g. an `ls -la` listing, a JSON blob, …) instead of an answer.
 
-use super::is_placeholder_value::is_placeholder_value;
 use super::super::types::SessionIdentity;
+use super::is_placeholder_value::is_placeholder_value;
 
 pub(super) async fn run_script_tool(
     identity: &SessionIdentity<'_>,
@@ -28,7 +28,9 @@ pub(super) async fn run_script_tool(
     // Declarative gate: only execute tools the bot script associated
     // with this session via USE TOOL (e.g. inside IF role = "admin").
     if !crate::core::bot::tool_context::is_tool_associated_with_session(
-        &state.conn, &session_id, tool_name,
+        &state.conn,
+        &session_id,
+        tool_name,
     ) {
         botlog::safe_info!(
             "LLM tool_call: tool '{tool_name}' not associated with session {session_id}, skipping"
@@ -41,7 +43,8 @@ pub(super) async fn run_script_tool(
     let tool_name_for_mcp = tool_name.to_string();
     let script_source = ast_content.to_string();
 
-    let parsed_args: serde_json::Value = serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
+    let parsed_args: serde_json::Value =
+        serde_json::from_str(tool_args).unwrap_or(serde_json::Value::Null);
     let injected_args = parsed_args.clone();
     let channel_name = sink.channel_type();
     let mut context_data = if parsed_args.is_object() {
@@ -50,17 +53,25 @@ pub(super) async fn run_script_tool(
         serde_json::json!({})
     };
     if let Some(obj) = context_data.as_object_mut() {
-        obj.insert("channel".to_string(), serde_json::Value::String(channel_name.to_string()));
+        obj.insert(
+            "channel".to_string(),
+            serde_json::Value::String(channel_name.to_string()),
+        );
     }
 
     let session_for_tool = botlib::models::UserSession {
-        id: session_id, user_id, branch_id: uuid::Uuid::nil(), bot_id: bot_uuid,
+        id: session_id,
+        user_id,
+        branch_id: uuid::Uuid::nil(),
+        bot_id: bot_uuid,
         title: String::new(),
         context_data,
         current_tool: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-    locked: false, lock_pin_hash: None, };
+        locked: false,
+        lock_pin_hash: None,
+    };
     let tool_name_err = tool_name_for_mcp.clone();
     let tool_run = tokio::task::spawn_blocking(move || {
         let mut svc = crate::basic::ScriptService::new(
@@ -111,9 +122,8 @@ pub(super) async fn run_script_tool(
     // log; the user is told which action failed.
     if let Ok(Err(detail)) = tool_run {
         log::warn!("Tool '{tool_name_err}' execution error: {detail}");
-        let message = format!(
-            "Não consegui executar '{tool_name_err}'. Tente novamente em instantes."
-        );
+        let message =
+            format!("Não consegui executar '{tool_name_err}'. Tente novamente em instantes.");
         let resp = botlib::models::BotResponse::new(
             bot_uuid.to_string(),
             session_id.to_string(),

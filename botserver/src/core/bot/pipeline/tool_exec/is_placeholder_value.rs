@@ -91,8 +91,12 @@ pub(crate) fn bot_llm_credentials(
 ) -> (String, String) {
     use botcore::config::ConfigManager;
     let cfg = ConfigManager::new(conn.clone());
-    let mut key = cfg.get_config(&bot_id, "llm-key", Some("")).unwrap_or_default();
-    let mut model = cfg.get_config(&bot_id, "llm-model", Some("")).unwrap_or_default();
+    let mut key = cfg
+        .get_config(&bot_id, "llm-key", Some(""))
+        .unwrap_or_default();
+    let mut model = cfg
+        .get_config(&bot_id, "llm-model", Some(""))
+        .unwrap_or_default();
     if let Ok(v) = std::env::var("LLM_KEY") {
         if !v.is_empty() {
             key = v;

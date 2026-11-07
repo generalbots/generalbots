@@ -113,6 +113,26 @@
     overflow-wrap: anywhere;
 }
 
+/* #1807 — workspace stage detail and live elapsed timer. */
+.run-row-detail {
+    color: var(--gb-text-muted, #57606a);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+.run-row-detail[hidden] { display: none; }
+.run-row-meta {
+    margin-left: auto;
+    color: var(--gb-text-muted, #57606a);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.run-row[data-phase="infra"] .run-row-name::before { content: "⚙ "; }
+.run-row[data-phase="agent"] .run-row-name::before { content: "✦ "; }
+.run-row[data-phase="tool"] .run-row-name::before { content: "▸ "; }
+.run-row[data-phase="infra"] .run-row-status { color: #6e7781; }
+.run-row[data-phase="agent"] .run-row-status { color: #8250df; }
+
 .run-row.run-error .run-row-name { color: #cf222e; }
 
 .run-log {
@@ -140,6 +160,8 @@
     .run-card-head { flex-wrap: wrap; }
     .run-elapsed { margin-left: auto; }
     .run-log { max-height: 160px; }
+    .run-row { flex-wrap: wrap; }
+    .run-row-meta { margin-left: 0; }
 }
 
 /* #1677 — takeover bar: the user holds the terminal/browser session. */

@@ -18,11 +18,17 @@ pub(super) fn extract_api_call_payload(full_response: &str) -> Option<serde_json
                 depth -= 1;
                 if depth == 0 {
                     let end = obj_start + i + 1;
-                    let parsed: serde_json::Value = match serde_json::from_str(&full_response[obj_start..end]) {
-                        Ok(v) => v,
-                        Err(_) => return None,
-                    };
-                    let inner = parsed.get("__api_call__").or_else(|| parsed.get("api_call")).or_else(|| parsed.get("_api_call_")).cloned().unwrap_or(parsed);
+                    let parsed: serde_json::Value =
+                        match serde_json::from_str(&full_response[obj_start..end]) {
+                            Ok(v) => v,
+                            Err(_) => return None,
+                        };
+                    let inner = parsed
+                        .get("__api_call__")
+                        .or_else(|| parsed.get("api_call"))
+                        .or_else(|| parsed.get("_api_call_"))
+                        .cloned()
+                        .unwrap_or(parsed);
                     return Some(inner);
                 }
             }
