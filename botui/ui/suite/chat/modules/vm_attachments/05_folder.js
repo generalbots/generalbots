@@ -8,12 +8,20 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   card.className = "gb-attachment";
   card.dataset.path = path;
   card.dataset.conversationId = conversationId || "";
+  card.dataset.contentType = vmFileMimeType(path);
+  card.dataset.order = "0";
   card.innerHTML =
     '<span class="gb-attachment-icon"></span>' +
+    '<span class="gb-attachment-order">0</span>' +
     '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
+    '<span class="gb-content-type-badge gb-type-badge"></span>' +
+    '<span class="gb-attachment-desc gb-attachment-minor"></span>' +
+    '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +
     vmAttachmentButtons(path);
   card.querySelector(".gb-attachment-icon").textContent = vmFileIcon(path);
   card.querySelector(".gb-attachment-name").textContent = name;
+  card.querySelector(".gb-content-type-badge").textContent = vmContentTypeBadge(path);
+  card.querySelector(".gb-attachment-desc").textContent = vmAttachmentDescription(path);
   wrapper.appendChild(card);
   vmBindAttachment(card);
   return card;
@@ -106,6 +114,29 @@ function vmApplyFolderOrder(grid, rank) {
     return ar - br;
   });
   items.forEach(function (el) { grid.appendChild(el); });
+  vmLabelAttachments(grid);
+}
+
+function vmLabelAttachments(grid) {
+  if (!grid) return;
+  var items = grid.querySelectorAll(".gb-attachment");
+  for (var i = 0; i < items.length; i++) {
+    var card = items[i];
+    card.dataset.order = String(i + 1);
+    var order = card.querySelector(".gb-attachment-order");
+    if (order) order.textContent = String(i + 1);
+    if (i === 0 && items.length > 1) {
+      card.classList.add("is-latest");
+    } else {
+      card.classList.remove("is-latest");
+    }
+    var badge = card.querySelector(".gb-content-type-badge");
+    if (badge && !badge.textContent) {
+      var path = card.dataset.path || "";
+      badge.textContent = vmContentTypeBadge(path);
+    }
+    if (badge) badge.dataset.contentType = card.dataset.contentType || vmFileMimeType(card.dataset.path || "");
+  }
 }
 var vmFolderPending = {};
 function vmOrderFolder(grid) {
