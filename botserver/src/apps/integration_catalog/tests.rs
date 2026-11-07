@@ -103,6 +103,46 @@ fn github_and_stripe_advertise_no_implemented_actions_without_the_registry() {
 }
 
 #[test]
+fn factory_llm_providers_are_in_integrations_catalog() {
+    // #1818: every provider the Rust factory can construct must appear in the
+    // Integrations LLM catalog with a stable id and LLM availability.
+    for id in [
+        "openai",
+        "claude",
+        "azure-claude",
+        "azure-gpt5",
+        "glm",
+        "bedrock",
+        "vertex",
+        "kiro",
+        "deepinfra",
+        "cerebras",
+        "fireworks",
+        "together",
+        "openrouter",
+        "requesty",
+        "openai-compatible",
+    ] {
+        let Some(provider) = provider_by_id(id) else {
+            panic!("factory LLM provider missing from catalog: {id}");
+        };
+        assert!(
+            provider.llm_available,
+            "{id} must be LLM-available in Integrations"
+        );
+        assert_eq!(
+            provider.category.as_str(),
+            "llm",
+            "{id} must be in the llm category"
+        );
+        assert!(
+            !provider.actions.is_empty(),
+            "{id} must expose LLM actions"
+        );
+    }
+}
+
+#[test]
 fn expanded_action_names_are_unique() {
     let catalog = search(None, None, None);
     let mut names = HashSet::new();

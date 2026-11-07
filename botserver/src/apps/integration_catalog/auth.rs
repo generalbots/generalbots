@@ -283,8 +283,7 @@ pub(crate) static WHATSAPP: AuthProfile = AuthProfile {
 pub(crate) static KEYLESS: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: &[],
-    instructions:
-        "This provider requires no API key — free gateway models are used as-is.",
+    instructions: "This provider requires no API key — free gateway models are used as-is.",
     least_privilege: "No credentials are collected or stored for this provider.",
 };
 
@@ -350,4 +349,31 @@ pub(crate) static UNSUPPORTED: AuthProfile = AuthProfile {
     instructions:
         "No supported official public API authentication flow is available for this catalog entry.",
     least_privilege: "Do not request or store credentials for unsupported providers.",
+};
+
+const OPENAI_COMPATIBLE_FIELDS: &[AuthField] = &[
+    field(
+        "endpoint",
+        "Endpoint URL",
+        InputType::Text,
+        false,
+        true,
+        "https://api.example.com/v1/chat/completions",
+    ),
+    field("model", "Model", InputType::Text, false, true, "model-name"),
+    field(
+        "api_key",
+        "API Key",
+        InputType::Password,
+        true,
+        false,
+        "Stored in the secrets vault (optional for keyless endpoints)",
+    ),
+];
+
+pub(crate) static OPENAI_COMPATIBLE: AuthProfile = AuthProfile {
+    method: AuthMethod::ApiKey,
+    fields: OPENAI_COMPATIBLE_FIELDS,
+    instructions: "Configure any OpenAI-compatible chat-completions endpoint (base URL + model) and store its API key in the secrets vault.",
+    least_privilege: "Use a dedicated restricted key and the narrowest endpoint access required.",
 };

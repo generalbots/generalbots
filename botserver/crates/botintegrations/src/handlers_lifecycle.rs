@@ -229,21 +229,62 @@ pub async fn use_for_vibe(
         repo::get(&mut conn, &scope, connection_uuid)?.ok_or(IntegrationError::NotFound)?
     };
 
-    let (default_url, default_model) =
-        crate::llm_providers::llm_provider_defaults(&row.provider_slug).ok_or_else(|| {
-            IntegrationError::Validation(format!(
-                "connection is not an LLM provider: {}",
-                row.provider_slug
-            ))
-        })?;
+    // OpenAI-compatible endpoints are configured by the operator (base URL +
+    // model live in the connection configuration) rather than defaulted.
+    let openai_compatible = row.provider_slug == crate::llm_providers::OPENAI_COMPATIBLE_SLUG;
+
+    // Resolve the default endpoint/model, allowing per-connection overrides
+    // from the stored configuration (used by OpenAI-compatible providers).
+    let config_obj = row.configuration.as_object();
+    let override_url = config_obj
+        .and_then(|o| {
+            o.get("endpoint")
+                .or_else(|| o.get("base_url"))
+                .or_else(|| o.get("url"))
+        })
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let override_model = config_obj
+        .and_then(|o| o.get("model"))
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    let (mut default_url, mut default_model) = if openai_compatible {
+        (
+            override_url.map(str::to_string),
+            override_model.map(str::to_string),
+        )
+    } else {
+        let (url, model) = crate::llm_providers::llm_provider_defaults(&row.provider_slug)
+            .ok_or_else(|| {
+                IntegrationError::Validation(format!(
+                    "connection is not an LLM provider: {}",
+                    row.provider_slug
+                ))
+            })?;
+        (
+            Some(override_url.unwrap_or(url).to_string()),
+            Some(override_model.unwrap_or(model).to_string()),
+        )
+    };
+
+    if default_url.as_deref().unwrap_or("").trim().is_empty()
+        || default_model.as_deref().unwrap_or("").trim().is_empty()
+    {
+        return Err(IntegrationError::Validation(
+            "OpenAI-compatible connection requires an endpoint and a model".to_string(),
+        ));
+    }
+    let default_url = default_url.unwrap();
+    let default_model = default_model.unwrap();
 
     // #1654/#1656 — subscription providers are per-user accounts. They are
     // never copied into the bot's shared Vibe config: require a linked account
     // and persist only provider + model; the account token is resolved per run.
     let subscription = crate::llm_providers::is_subscription_provider(&row.provider_slug);
-    if subscription
-        && !subscription_account_linked(&state.pool, user.user_id, &row.provider_slug)
-    {
+    if subscription && !subscription_account_linked(&state.pool, user.user_id, &row.provider_slug) {
         return Err(IntegrationError::Validation(format!(
             "Connect your {} account in Settings \u{2192} AI accounts first.",
             if row.provider_slug == crate::llm_providers::CLAUDE_CODE_SLUG {

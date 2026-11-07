@@ -10,13 +10,24 @@
 pub const CLAUDE_CODE_SLUG: &str = "claude-code";
 pub const CHATGPT_PLAN_SLUG: &str = "chatgpt-plan";
 
+/// Synthetic slug for an arbitrary OpenAI-compatible endpoint configured by
+/// the operator (base URL + model come from the connection configuration).
+pub const OPENAI_COMPATIBLE_SLUG: &str = "openai-compatible";
+
 pub fn is_subscription_provider(provider_slug: &str) -> bool {
     matches!(provider_slug, CLAUDE_CODE_SLUG | CHATGPT_PLAN_SLUG)
 }
 
-/// Default (chat-completions url, model) for an LLM provider slug.
-/// Returns `None` for unknown slugs so callers can reject non-LLM
-/// connections.
+/// True when `provider_slug` names an LLM provider this control plane can
+/// resolve defaults for (factory providers, Kilo variants, subscription
+/// providers, or an operator-configured OpenAI-compatible endpoint).
+pub fn is_llm_provider(provider_slug: &str) -> bool {
+    if is_subscription_provider(provider_slug) || provider_slug == OPENAI_COMPATIBLE_SLUG {
+        return true;
+    }
+    llm_provider_defaults(provider_slug).is_some()
+}
+
 /// The Kilo gateway — keyless free-tier OpenAI-compatible models.
 pub const KILO_BASE_URL: &str = "https://api.kilo.ai/api/gateway/chat/completions";
 
@@ -25,15 +36,59 @@ pub const KILO_BASE_URL: &str = "https://api.kilo.ai/api/gateway/chat/completion
 /// connections.
 pub fn llm_provider_defaults(provider_slug: &str) -> Option<(&'static str, &'static str)> {
     let url_model = match provider_slug {
+        // Kilo gateway variants.
         "kilo-dots" => (KILO_BASE_URL, "dots-studio/dots-3-note-preview:free"),
         "kilo-openrouter" => (KILO_BASE_URL, "openrouter/free"),
         "kilo-nemotron-ultra" => (KILO_BASE_URL, "nvidia/nemotron-3-ultra-550b-a55b:free"),
         "kilo-nemotron-super" => (KILO_BASE_URL, "nvidia/nemotron-3.5-super-vl:free"),
         "kilo-nemotron-lightning" => (KILO_BASE_URL, "nvidia/nemotron-3.5-lightning:free"),
-        "kilo-nano" => (KILO_BASE_URL, "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"),
+        "kilo-nano" => (
+            KILO_BASE_URL,
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        ),
         "kilo-cohere" => (KILO_BASE_URL, "cohere/north-mini-code:free"),
         "kilo-flint" => (KILO_BASE_URL, "recursive/flint-v1.0:free"),
         "kilo-xing" => (KILO_BASE_URL, "xingchen-agi/xing4.0-29b-a4b:free"),
+        // Rust factory providers (#1818).
+        "openai" => ("https://api.openai.com/v1/chat/completions", "gpt-5.6-sol"),
+        "claude" => ("https://api.anthropic.com/v1/messages", "claude-sonnet-5-5"),
+        "azure-claude" => ("https://api.anthropic.com/v1/messages", "claude-sonnet-5-5"),
+        "azure-gpt5" => ("https://api.openai.com/v1/chat/completions", "gpt-5.6-sol"),
+        "glm" => ("https://api.z.ai/api/paas/v4/chat/completions", "glm-5.2"),
+        "bedrock" => (
+            "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1/chat/completions",
+            "anthropic.claude-sonnet-5-5",
+        ),
+        "vertex" => (
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            "gemini-3.5-flash",
+        ),
+        "kiro" => (
+            "https://q.us-east-1.amazonaws.com/generateAssistantResponse",
+            "claude-sonnet-5-5",
+        ),
+        "deepinfra" => (
+            "https://api.deepinfra.com/v1/openai/chat/completions",
+            "deepseek-v4-flash",
+        ),
+        "cerebras" => (
+            "https://api.cerebras.ai/v1/chat/completions",
+            "llama-4-maverick",
+        ),
+        "fireworks" => (
+            "https://api.fireworks.ai/inference/v1/chat/completions",
+            "llama-4-maverick",
+        ),
+        "together" => (
+            "https://api.together.xyz/v1/chat/completions",
+            "llama-4-maverick",
+        ),
+        "openrouter" => (
+            "https://openrouter.ai/api/v1/chat/completions",
+            "llama-4-maverick",
+        ),
+        "requesty" => ("https://router.requesty.ai/v1/chat/completions", "gateway"),
+        // Subscription providers.
         CLAUDE_CODE_SLUG => ("https://api.anthropic.com/v1/messages", "claude-sonnet-5-5"),
         CHATGPT_PLAN_SLUG => ("https://chatgpt.com/backend-api/codex", "gpt-5-codex"),
         _ => return None,
@@ -66,9 +121,29 @@ mod tests {
     #[test]
     fn known_providers_have_defaults() {
         for slug in [
-            "kilo-dots", "kilo-openrouter", "kilo-nemotron-ultra",
-            "kilo-nemotron-super", "kilo-nemotron-lightning", "kilo-nano",
-            "kilo-cohere", "kilo-flint", "kilo-xing",
+            "kilo-dots",
+            "kilo-openrouter",
+            "kilo-nemotron-ultra",
+            "kilo-nemotron-super",
+            "kilo-nemotron-lightning",
+            "kilo-nano",
+            "kilo-cohere",
+            "kilo-flint",
+            "kilo-xing",
+            "openai",
+            "claude",
+            "azure-claude",
+            "azure-gpt5",
+            "glm",
+            "bedrock",
+            "vertex",
+            "kiro",
+            "deepinfra",
+            "cerebras",
+            "fireworks",
+            "together",
+            "openrouter",
+            "requesty",
         ] {
             let (url, model) =
                 llm_provider_defaults(slug).unwrap_or_else(|| panic!("{slug} must have defaults"));
@@ -78,21 +153,53 @@ mod tests {
     }
 
     #[test]
+    fn every_factory_provider_type_has_defaults() {
+        for slug in [
+            "openai",
+            "claude",
+            "azure-claude",
+            "azure-gpt5",
+            "glm",
+            "bedrock",
+            "vertex",
+            "kiro",
+            "deepinfra",
+            "cerebras",
+            "fireworks",
+            "together",
+            "openrouter",
+            "requesty",
+        ] {
+            assert!(llm_provider_defaults(slug).is_some(), "{slug}");
+        }
+    }
+
+    #[test]
     fn verified_providers_are_keyless() {
         for slug in [
-            "kilo-dots", "kilo-openrouter", "kilo-nemotron-ultra",
-            "kilo-nemotron-super", "kilo-nemotron-lightning", "kilo-nano",
-            "kilo-cohere", "kilo-flint", "kilo-xing",
+            "kilo-dots",
+            "kilo-openrouter",
+            "kilo-nemotron-ultra",
+            "kilo-nemotron-super",
+            "kilo-nemotron-lightning",
+            "kilo-nano",
+            "kilo-cohere",
+            "kilo-flint",
+            "kilo-xing",
         ] {
             assert!(llm_provider_keyless(slug), "{slug} must be keyless");
         }
         assert!(!llm_provider_keyless("github"));
+        assert!(!llm_provider_keyless("openai"));
     }
 
     #[test]
     fn unknown_providers_have_no_defaults() {
         assert!(llm_provider_defaults("github").is_none());
         assert!(llm_provider_defaults("").is_none());
+        assert!(llm_provider_defaults("totally-unknown").is_none());
+        // OpenAI-compatible custom endpoints are configured, not defaulted.
+        assert!(llm_provider_defaults(OPENAI_COMPATIBLE_SLUG).is_none());
     }
 
     #[test]
@@ -102,7 +209,32 @@ mod tests {
             assert!(!model.is_empty());
             assert!(llm_provider_keyless(slug));
             assert!(is_subscription_provider(slug));
+            assert!(is_llm_provider(slug));
         }
         assert!(!is_subscription_provider("kilo-dots"));
+    }
+
+    #[test]
+    fn factory_providers_are_llm_providers() {
+        for slug in [
+            "openai",
+            "claude",
+            "azure-claude",
+            "azure-gpt5",
+            "glm",
+            "bedrock",
+            "vertex",
+            "kiro",
+            "deepinfra",
+            "cerebras",
+            "fireworks",
+            "together",
+            "openrouter",
+            "requesty",
+        ] {
+            assert!(is_llm_provider(slug), "{slug}");
+        }
+        assert!(!is_llm_provider("github"));
+        assert!(!is_llm_provider(""));
     }
 }
