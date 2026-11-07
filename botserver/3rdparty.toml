@@ -162,11 +162,14 @@ sha256 = ""
 
 [components.vector_db]
 name = "Qdrant Vector Database"
-url = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-unknown-linux-gnu.tar.gz"
-filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz"
+# The musl build is statically linked. The gnu build of 1.20.0 needs
+# GLIBC_2.39, so it cannot start on Ubuntu 22.04 (glibc 2.35), which this
+# desktop edition still supports.
+url = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-unknown-linux-musl.tar.gz"
+filename = "qdrant-x86_64-unknown-linux-musl.tar.gz"
 url_win = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip"
 filename_win = "qdrant-x86_64-pc-windows-msvc.zip"
-sha256 = "2361f3df0dedfef31f5444f9f15bd15d6b4a6cba6ad952daecc5fbe3867c5ee6"
+sha256 = "b03a64616a1f41ddab78b480a318466541765f19835318113b1821cbea8df52c"
 
 [components.timeseries_db]
 name = "InfluxDB Time Series Database"
