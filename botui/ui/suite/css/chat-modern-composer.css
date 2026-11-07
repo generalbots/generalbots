@@ -29,7 +29,7 @@
 }
 
 #chat-app .gb-attachment {
-    background: #f4f4f5 !important;
+    background: var(--surface, #f4f4f5) !important;
     border: 1px solid var(--gb-border);
     border-radius: 10px;
     padding: 4px 8px;
@@ -41,7 +41,7 @@
 }
 
 #chat-app .gb-attachment-btn {
-    color: #3f3f46 !important;
+    color: var(--text, #3f3f46) !important;
 }
 
 #chat-app .gb-attachment-btn:hover {
@@ -81,7 +81,7 @@
     resize: none;
 }
 
-#chat-app #messageInput::placeholder { color: #a1a1aa; }
+#chat-app #messageInput::placeholder { color: var(--text, #a1a1aa); }
 #chat-app #messageInput:focus { outline: none; }
 
 #chat-app #sendBtn {
@@ -91,7 +91,7 @@
     border: 0;
     border-radius: 50%;
     background: var(--gb-accent);
-    color: #fff;
+    color: var(--surface, #fff);
     font-size: 16px;
     display: grid;
     place-items: center;
@@ -112,7 +112,7 @@
     cursor: pointer;
 }
 
-#chat-app .file-btn:hover { background: rgba(24, 24, 27, 0.05); }
+#chat-app .file-btn:hover { background: color-mix(in srgb, var(--text, #18181b) 5%, transparent); }
 
 /* ── Suggestions ───────────────────────────────────────────────────── */
 
@@ -127,7 +127,7 @@
     border-radius: 999px;
     border: 1px solid var(--gb-border);
     background: var(--gb-surface);
-    color: #52525b;
+    color: var(--text, #52525b);
     font-size: 12.5px;
     line-height: 1.2;
     box-shadow: none;
@@ -175,7 +175,7 @@
     border: 1px solid transparent;
 }
 
-#chat-app .gb-tab:hover { background: rgba(24, 24, 27, 0.05); }
+#chat-app .gb-tab:hover { background: color-mix(in srgb, var(--text, #18181b) 5%, transparent); }
 
 #chat-app .gb-tab.active {
     background: var(--gb-accent-soft);
@@ -189,7 +189,7 @@
     height: 26px;
     border-radius: 8px;
     color: var(--gb-muted);
-    border: 1px dashed rgba(24, 24, 27, 0.18);
+    border: 1px dashed color-mix(in srgb, var(--text, #18181b) 18%, transparent);
 }
 
 #chat-app .gb-tab-new:hover {
@@ -228,7 +228,7 @@
 }
 
 #chat-app .gb-tab-overflow:hover {
-    background: rgba(24, 24, 27, 0.05);
+    background: color-mix(in srgb, var(--text, #18181b) 5%, transparent);
     color: var(--gb-text);
 }
 
@@ -247,8 +247,8 @@
     overflow-y: auto;
     padding: 5px;
     border-radius: 12px;
-    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.14));
-    background: var(--gb-surface, #fff);
+    border: 1px solid var(--gb-border, color-mix(in srgb, var(--text, #18181b) 14%, transparent));
+    background: var(--gb-surface, var(--surface, #fff));
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
 }
 
@@ -261,7 +261,7 @@
     border: 0;
     border-radius: 8px;
     background: transparent;
-    color: var(--gb-text, #18181b);
+    color: var(--gb-text, var(--text, #18181b));
     font-size: 12.5px;
     text-align: left;
     cursor: pointer;

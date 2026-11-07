@@ -3,7 +3,7 @@
 /* ── Rail ──────────────────────────────────────────────────────────── */
 
 .chat-sidebar {
-    background: #fafafa !important;
+    background: var(--bg, #fafafa) !important;
     border-right: 1px solid var(--gb-border);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
         "Helvetica Neue", Arial, sans-serif;
@@ -13,7 +13,7 @@
     font-size: 10.5px;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #a1a1aa;
+    color: var(--text, #a1a1aa);
     padding: 16px 14px 6px;
 }
 
@@ -26,7 +26,7 @@
 
 .chat-sidebar-conv-item:hover,
 .chat-sidebar-conv-item.active {
-    background: rgba(24, 24, 27, 0.05);
+    background: color-mix(in srgb, var(--text, #18181b) 5%, transparent);
 }
 
 .chat-sidebar-conv-name {
@@ -37,7 +37,7 @@
 
 .chat-sidebar-conv-time {
     font-size: 10.5px;
-    color: #a1a1aa;
+    color: var(--text, #a1a1aa);
 }
 
 .chat-sidebar-new-chat {
@@ -62,7 +62,7 @@
    otherwise a stripe of the desktop theme shows at the right edge. */
 .window-element-glass .window-body,
 .window-element .window-body {
-    background: #fafafa;
+    background: var(--bg, #fafafa);
 }
 
 /* ── Window chrome ─────────────────────────────────────────────────── */
@@ -71,8 +71,8 @@
 .window-element .window-header {
     height: 42px;
     padding: 0 14px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
-    background: #fff;
+    border-bottom: 1px solid color-mix(in srgb, var(--text, #18181b) 7%, transparent);
+    background: var(--surface, #fff);
 }
 
 .window-element-glass .window-title,
@@ -80,7 +80,7 @@
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.01em;
-    color: #3f3f46;
+    color: var(--text, #3f3f46);
 }
 
 .window-element-glass .window-dot,
@@ -92,10 +92,10 @@
 /* #1584 — output/ as one folder card with a grid of generated files. */
 .gb-attachment-folder {
     margin: 10px 0 4px;
-    border: 1px solid rgba(24, 24, 27, 0.09);
+    border: 1px solid color-mix(in srgb, var(--text, #18181b) 9%, transparent);
     border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-    box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05);
+    background: linear-gradient(180deg, var(--surface, #ffffff) 0%, var(--bg, #fafafa) 100%);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text, #18181b) 5%, transparent);
     overflow: hidden;
     max-width: 560px;
 }
@@ -105,8 +105,8 @@
     align-items: center;
     gap: 8px;
     padding: 9px 12px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
-    background: #f7f7f8;
+    border-bottom: 1px solid color-mix(in srgb, var(--text, #18181b) 6%, transparent);
+    background: var(--surface, #f7f7f8);
 }
 
 .gb-folder-icon {
@@ -117,13 +117,13 @@
 .gb-folder-title {
     font-size: 13px;
     font-weight: 600;
-    color: #27272a;
+    color: var(--text, #27272a);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .gb-folder-count {
     font-size: 11.5px;
-    color: #71717a;
+    color: var(--text, #71717a);
 }
 
 .gb-folder-head .gb-folder-save {
@@ -144,14 +144,14 @@
 }
 
 .gb-folder-grid .gb-attachment:hover {
-    background: #f4f4f5;
+    background: var(--surface, #f4f4f5);
 }
 
 /* #1693 — the newest generation leads the folder: slightly stronger surface
    and a "Latest" badge; older files remain below as history. */
 .gb-folder-grid .gb-attachment:first-child:not(:only-child) {
-    background: linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%);
-    border: 1px solid rgba(24, 24, 27, 0.08);
+    background: linear-gradient(180deg, var(--surface, #ffffff) 0%, var(--surface, #f7f8fb) 100%);
+    border: 1px solid color-mix(in srgb, var(--text, #18181b) 8%, transparent);
     border-radius: 10px;
     padding: 8px 10px;
     margin-bottom: 4px;
@@ -164,7 +164,7 @@
     margin-left: auto;
     padding: 1px 7px;
     border-radius: 999px;
-    background: #eef2ff;
+    background: color-mix(in srgb, #4f46e5 10%, var(--surface, #fff));
     color: #4f46e5;
     font-size: 10px;
     font-weight: 600;
@@ -199,9 +199,9 @@
     margin: 6px 4px 2px;
     padding: 6px 10px;
     font-size: 12.5px;
-    color: #52525b;
-    background: #f8f8f9;
-    border: 1px solid rgba(24, 24, 27, 0.06);
+    color: var(--text, #52525b);
+    background: var(--surface, #f8f8f9);
+    border: 1px solid color-mix(in srgb, var(--text, #18181b) 6%, transparent);
     border-radius: 999px;
     width: fit-content;
     max-width: min(100%, 640px);
@@ -228,7 +228,7 @@
     margin: 4px 0;
     border: 1px solid var(--gb-border-soft);
     border-radius: 12px;
-    background: #fcfcfd;
+    background: var(--surface, #fcfcfd);
     box-shadow: none;
     font-size: 12.5px;
 }
@@ -241,12 +241,12 @@
 
 #chat-app .run-title {
     font-weight: 500;
-    color: #52525b;
+    color: var(--text, #52525b);
     font-size: 12.5px;
 }
 
 #chat-app .run-elapsed {
-    color: #a1a1aa;
+    color: var(--text, #a1a1aa);
     font-size: 11.5px;
 }
 
@@ -255,7 +255,7 @@
     border: 1px solid transparent;
     border-radius: 7px;
     padding: 2px 7px;
-    color: #71717a;
+    color: var(--text, #71717a);
     background: transparent;
     font-size: 11.5px;
 }
@@ -292,7 +292,7 @@
 .window-element,
 .window-element-glass {
     /* The light theme used a 72% navy border, which reads as black. */
-    border: 1px solid var(--gb-border-strong, #d4d4d8);
+    border: 1px solid var(--gb-border-strong, var(--border, #d4d4d8));
     border-radius: 12px;
     box-shadow: 0 18px 48px rgba(16, 24, 40, 0.12);
 }
