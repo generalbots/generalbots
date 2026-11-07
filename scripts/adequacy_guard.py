@@ -16,8 +16,8 @@ commented-out code.
 Production Rust excludes `bottest/`, test paths (`tests/`, `*_test.rs`,
 `*_tests.rs`, `test(s).rs`) and anything inside a `#[cfg(test)]` item. Comments
 are stripped first, so documentation is never counted. Generated `botbook`,
-`target/`, `node_modules/`, `vendor/` and the vendored `last30days` skill are
-not first-party and are skipped.
+`target/`, `node_modules/`, `vendor/`, the vendored `3rdparty/` crates and the
+vendored `last30days` skill are not first-party and are skipped.
 
 The baseline is a ceiling, not a snapshot: a count may stay equal or fall, never
 rise. When a change removes a deviation, lower the number in the same change
@@ -47,9 +47,9 @@ DEFAULT_BASELINE = os.path.join(ROOT, "issues", "adequacy", "baseline.json")
 
 # Generated/vendored trees are not first-party.
 SKIP_DIRS = {
-    ".cache", ".git", ".venv", "__pycache__", "botbook", "botserver-installers",
-    "botserver-stack", "build", "dist", "node_modules", "target", "vendor",
-    "venv", "work",
+    ".cache", ".git", ".venv", "__pycache__", "3rdparty", "botbook",
+    "botserver-installers", "botserver-stack", "build", "dist", "node_modules",
+    "target", "vendor", "venv", "work",
 }
 SKIP_PREFIXES = ("botskills/research/last30days",)
 SCAN_EXTENSIONS = {".rs", ".js", ".html", ".css"}
