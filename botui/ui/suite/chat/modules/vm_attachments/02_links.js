@@ -5,6 +5,38 @@
 // Plain global script: every function stays a page-level global, exactly
 // as before the split. Load order follows this directory's name order.
 
+// #1834 — Tauri/WebKitGTK silently ignores anchor.click(); use shell.open()
+// when running inside the desktop wrapper instead.
+// Blob URLs are internal to the WebView and cannot be handed to the OS
+// directly: they are fetched and written to a temp file first.
+async function downloadViaDesktop(url, fileName) {
+  if (window.__TAURI__) {
+    if (url.startsWith("blob:")) {
+      var resp = await fetch(url);
+      var buf = await resp.arrayBuffer();
+      var tmp = "";
+      try {
+        if (window.__TAURI__.path && window.__TAURI__.path.tempDir) {
+          tmp = await window.__TAURI__.path.tempDir();
+        }
+      } catch (_) {}
+      var sep = tmp && tmp.slice(-1) !== "/" && tmp.slice(-1) !== "\\" ? "/" : "";
+      var dest = tmp + sep + fileName;
+      await window.__TAURI__.fs.writeBinaryFile(dest, new Uint8Array(buf));
+      await window.__TAURI__.shell.open(dest);
+    } else {
+      await window.__TAURI__.shell.open(url);
+    }
+  } else {
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+
 // Replace <a href="vmfile:..."> anchors produced by marked with attachment
 // cards. Runs on the rendered HTML before it is inserted in the message.
 function renderVmFileLinks(html) {
