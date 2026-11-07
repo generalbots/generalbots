@@ -13,11 +13,12 @@ name: General Bots OS (kiosk appliance image)
 # target; the host runner's mkosi is not used).
 #
 # Artifacts (workflow-level):
-#   generalbots-os.iso — hybrid ISO (El Torito), when the build env's
-#                        systemd-repart is ≥ 261 (mkosi.conf.d gate)
-#   generalbots-os.img — GPT disk image, UEFI-bootable (dd), produced when
-#                        the ISO gate does not match
+#   generalbots-os.iso — hybrid ISO (El Torito, UEFI bootable)
 #   SHA256SUMS-os, vm-smoke.log
+#
+# The recipe pins mkosi 27.1 from the Debian pool and a Debian sid build-time
+# tools tree, because El Torito output needs systemd-repart ≥ 261 (trixie
+# ships 257). The produced system is still pure Debian 13 (trixie).
 #
 # Release attachment is deliberately OFF until the ISO path and the boot
 # smoke are validated on the first set of builds; the artifact above is the
@@ -91,22 +92,20 @@ jobs:
               # allowed to lift the restriction for the build.
               sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 2>/dev/null || true
               apt-get update
-              apt-get install -y --no-install-recommends mkosi
+              apt-get install -y --no-install-recommends curl ca-certificates
+              # mkosi 27.1 from the Debian pool: trixie ships 25.3, which has
+              # neither El Torito output nor the ToolsTreeDistribution knobs
+              # this recipe needs. Dependencies resolve from trixie.
+              curl -fsSL -o /tmp/mkosi.deb \
+                https://deb.debian.org/debian/pool/main/m/mkosi/mkosi_27.1-1_all.deb
+              apt-get install -y --no-install-recommends /tmp/mkosi.deb
               mkosi --version
-              # Same gate as mkosi.conf.d/10-eltorito.conf: name the artifact
-              # for what it will contain. The [Match] rule keys on the same
-              # systemd-repart version (>= 261 = El Torito support).
-              SYSTEMDVER=$(systemctl --version | awk "NR==1{print \$2}")
-              if awk "BEGIN{exit !($SYSTEMDVER >= 261)}"; then
-                DEST=generalbots-os.iso
-              else
-                DEST=generalbots-os.img
-              fi
-              echo "systemd $SYSTEMDVER -> $DEST"
               mkosi --output-dir /out build
               RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1)
               test -n "$RAW" || { echo "mkosi produced no .raw output" >&2; exit 1; }
-              mv "$RAW" "/out/$DEST"
+              # El Torito is always on (mkosi.conf), so the raw file is a
+              # hybrid ISO image; give it the name people expect.
+              mv "$RAW" /out/generalbots-os.iso
               # Boot smoke (best effort): the plain vm verb boots with a text
               # console — kernel, systemd journal and (if everything works)
               # the kiosk shell start line land in the log.
@@ -121,8 +120,8 @@ jobs:
       - name: Checksums
         run: |
           set -euo pipefail
-          test -f dist/generalbots-os.iso || test -f dist/generalbots-os.img
-          (cd dist && sha256sum generalbots-os* > SHA256SUMS-os)
+          test -f dist/generalbots-os.iso
+          (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os)
           ls -lh dist
 
       - name: Upload image artifacts
@@ -131,7 +130,6 @@ jobs:
           name: generalbots-os-image
           path: |
             dist/generalbots-os.iso
-            dist/generalbots-os.img
             dist/SHA256SUMS-os
             dist/vm-smoke.log
           if-no-files-found: warn

@@ -22,8 +22,7 @@ When comparing the two shell-replacement options, option **B** won:
 
 | File | Purpose |
 |---|---|
-| `mkosi.conf` | Debian trixie appliance: GPT disk image, bootable, 16G grow-on-boot |
-| `mkosi.conf.d/10-eltorito.conf` | auto-upgrades the artifact to a **real hybrid .iso** (El Torito) when the build env's systemd-repart is ≥ 261; skipped cleanly otherwise |
+| `mkosi.conf` | Debian trixie appliance: hybrid ISO (El Torito), bootable, 16G grow-on-boot; build-time tools tree pinned to Debian sid for repart ≥ 261 |
 | `mkosi.extra/opt/general-bots/` | the release tarball payload, unpacked by CI (gitignored) |
 | `mkosi.extra/etc/sysusers.d/generalbots-kiosk.conf` | creates `gbdesk` (nologin, video/render groups) |
 | `mkosi.extra/usr/lib/systemd/system/generalbots-shell.service` | the OS "shell": dbus run-session → cage → `/opt/general-bots/start.sh` |
@@ -46,10 +45,10 @@ Why the **tarball** and not the `.deb`: the distro package step in
    (mkosi 27.1 straight from Debian's repos, full toolchain self-consistent;
    the privileged container lifts the host's unprivileged-userns AppArmor
    restriction);
-3. names the artifact `generalbots-os.iso` (hybrid ISO via El Torito, when
-   trixie's systemd-repart ≥ 261 — the current case) or `generalbots-os.img`
-   (UEFI bootable GPT image otherwise), bracketed to the same gate as
-   `mkosi.conf.d/10-eltorito.conf`;
+3. names the artifact `generalbots-os.iso` — a hybrid ISO via El Torito
+   (mkosi 27.1 from the Debian pool plus a Debian **sid** build-time tools
+   tree, since El Torito needs systemd-repart ≥ 261 and trixie ships 257;
+   the produced system remains Debian 13 trixie);
 4. runs the best-effort **QEMU boot smoke** (`mkosi vm`, text serial console
    — logs kernel, systemd journal and the kiosk shell startup; never blocks
    publication, log always uploaded);
@@ -58,10 +57,8 @@ Why the **tarball** and not the `.deb`: the distro package step in
 ## Install / run
 
 ```bash
-# from the artifact — hybrid ISO when the build env had systemd ≥ 261:
+# from the artifact (hybrid ISO, UEFI bootable):
 dd if=generalbots-os.iso of=/dev/sdX bs=4M oflag=direct status=progress
-# older build env → GPT disk image, same content:
-dd if=generalbots-os.img of=/dev/sdX bs=4M oflag=direct status=progress
 # or boot it in a VM without writing to a real disk:
 qemu-system-x86_64 -m 4G -drive file=generalbots-os.iso,format=raw \
   -bios /usr/share/ovmf/OVMF.fd
