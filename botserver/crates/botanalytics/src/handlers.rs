@@ -1,4 +1,3 @@
-use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
 
 use axum::{extract::State, response::Html, response::IntoResponse};
@@ -157,10 +156,43 @@ pub async fn handle_llm_tokens(State(pool): State<Arc<DbPool>>) -> impl IntoResp
     Html(html)
 }
 
-pub async fn handle_storage_usage(State(_pool): State<Arc<DbPool>>) -> impl IntoResponse {
-    let usage_gb = 2.4f64;
-    let total_gb = 10.0f64;
-    let percentage = (usage_gb / total_gb * 100.0) as i32;
+pub async fn handle_storage_usage(State(pool): State<Arc<DbPool>>) -> impl IntoResponse {
+    let conn = pool.clone();
+
+    let db_size = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("DB connection error: {}", e);
+                return 0i64;
+            }
+        };
+
+        #[derive(diesel::QueryableByName)]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct SizeRow {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            size: i64,
+        }
+
+        diesel::sql_query(
+            "SELECT pg_database_size(current_database())::bigint AS size",
+        )
+        .get_result::<SizeRow>(&mut db_conn)
+        .map(|r| r.size)
+        .unwrap_or(0)
+    })
+    .await
+    .unwrap_or(0);
+
+    let usage_gb = db_size as f64 / (1024.0 * 1024.0 * 1024.0);
+
+    let display = if usage_gb >= 1.0 {
+        format!("{:.1} GB", usage_gb)
+    } else {
+        let usage_mb = db_size as f64 / (1024.0 * 1024.0);
+        format!("{:.1} MB", usage_mb)
+    };
 
     let mut html = String::new();
     html.push_str("<div class=\"metric-icon storage\">");
@@ -168,11 +200,9 @@ pub async fn handle_storage_usage(State(_pool): State<Arc<DbPool>>) -> impl Into
     html.push_str("</div>");
     html.push_str("<div class=\"metric-content\">");
     html.push_str("<span class=\"metric-value\">");
-    let _ = write!(html, "{:.1} GB", usage_gb);
+    html.push_str(&display);
     html.push_str("</span>");
-    html.push_str("<span class=\"metric-label\">Storage (");
-    let _ = write!(html, "{percentage}");
-    html.push_str("%)</span>");
+    html.push_str("<span class=\"metric-label\">DB Storage</span>");
     html.push_str("</div>");
 
     Html(html)
