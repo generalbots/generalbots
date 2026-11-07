@@ -1,10 +1,19 @@
 /* Usage and cost transparency (GB6-25).
  * Tracks message counts, token estimates, and storage usage locally.
- * Shows a usage panel accessible from the sidebar. */
+ * Shows a usage panel accessible from the sidebar.
+ *
+ * Privacy: local tracking is OFF by default. The user must set
+ * localStorage "gb_usage_stats_enabled" to "true" (e.g. via the
+ * privacy-controls panel) before any data is recorded. */
 "use strict";
 
 (function () {
   var STORAGE_KEY = "gb_usage_stats";
+  var ENABLED_KEY = "gb_usage_stats_enabled";
+
+  function isTrackingEnabled() {
+    try { return localStorage.getItem(ENABLED_KEY) === "true"; } catch (e) { return false; }
+  }
 
   function loadStats() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch (e) { return {}; }
@@ -17,6 +26,7 @@
   function getToday() { return new Date().toISOString().split("T")[0]; }
 
   function trackMessage(role, contentLength, model, messageId) {
+    if (!isTrackingEnabled()) return;
     var stats = loadStats();
     var today = getToday();
     if (!stats[today]) stats[today] = { messages_sent: 0, messages_received: 0, tokens_estimated: 0 };

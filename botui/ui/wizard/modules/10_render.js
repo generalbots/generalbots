@@ -245,8 +245,6 @@
   }
 
   function bindPrivacy() {
-    var toggle = document.getElementById("telemetryToggle");
-    if (toggle) { toggle.addEventListener("change", function () { draft.telemetry = toggle.checked; persistDraft(); }); }
     var reveal = document.getElementById("revealVaultBtn");
     if (reveal) { reveal.addEventListener("click", function () { B.openFolder("vault"); }); }
   }

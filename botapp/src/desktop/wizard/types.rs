@@ -120,8 +120,6 @@ pub struct ProvisionRequest {
     #[serde(default)]
     pub workspace: WorkspaceDraft,
     #[serde(default)]
-    pub telemetry: bool,
-    #[serde(default)]
     pub services: std::collections::HashMap<String, ServiceClient>,
     #[serde(default)]
     pub display_name: String,
@@ -141,8 +139,6 @@ pub struct AdminDraft {
 pub struct FinishRequest {
     #[serde(default)]
     pub display_name: String,
-    #[serde(default)]
-    pub telemetry: bool,
     #[serde(default)]
     pub model: ModelDraft,
     #[serde(default)]

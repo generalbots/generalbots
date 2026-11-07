@@ -110,8 +110,7 @@
       // stays available as an explicit choice.
       model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
       workspace: { path: "", size: "standard" },
-      services: {},
-      telemetry: false
+      services: {}
     },
     provisioning: {
       running: false,
