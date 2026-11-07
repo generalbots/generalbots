@@ -261,7 +261,24 @@ def commit_issue_refs(previous: tuple[str, str] | None) -> set[int]:
     return {int(number) for number in ISSUE_REF.findall(raw)}
 
 
-def build_section(version: str, date: str, issues: list[dict]) -> str:
+def commit_subjects(previous: tuple[str, str] | None) -> list[str]:
+    """Commit subjects as a last resort when no issue survives the filters."""
+    if not previous:
+        return []
+    raw = git("log", "--format=%s", f"{previous[0]}..HEAD")
+    return [
+        line.strip()
+        for line in raw.splitlines()
+        if line.strip() and not line.startswith("chore(release)")
+    ]
+
+
+def build_section(
+    version: str,
+    date: str,
+    issues: list[dict],
+    commits: list[str] | None = None,
+) -> str:
     required = os.environ.get("WHATS_NEW_LABEL", "").strip().lower()
     grouped: dict[str, list[dict]] = {key: [] for key, _, _ in GROUPS}
     grouped["other"] = []
@@ -296,6 +313,14 @@ def build_section(version: str, date: str, issues: list[dict]) -> str:
         for item in sorted(other, key=lambda value: value["number"]):
             lines.append(f"- {item['title']} (#{item['number']})")
         lines.append("")
+
+    has_items = any(grouped[key] for key, _, _ in GROUPS) or other
+    if not has_items and commits:
+        lines.append("### Changes")
+        for subject in commits:
+            lines.append(f"- {subject}")
+        lines.append("")
+
     return "\n".join(lines).strip() + "\n"
 
 
@@ -310,21 +335,27 @@ def command_current(_: argparse.Namespace) -> int:
 
 def command_generate(args: argparse.Namespace) -> int:
     version = normalize_version(args.version)
-    since = args.since
-    if not since:
-        previous = previous_tag(version)
-        since = previous[1] if previous else (datetime.now() - timedelta(days=30)).date().isoformat()
+    previous = previous_tag(version)
+    since = args.since or (
+        previous[1]
+        if previous
+        else (datetime.now() - timedelta(days=30)).date().isoformat()
+    )
     date = args.date or datetime.now(timezone.utc).date().isoformat()
 
     if args.from_json:
         issues = json.loads(Path(args.from_json).read_text(encoding="utf-8"))
+        commits: list[str] = []
     else:
         issues = fetch_issues(since)
-        shipped = commit_issue_refs(previous_tag(version))
+        shipped = commit_issue_refs(previous)
         if shipped:
             issues = [issue for issue in issues if issue.get("number") in shipped]
+        # No issue survives the filters (still open, or labelled backlog): fall
+        # back to the commit subjects so the section is never blank.
+        commits = commit_subjects(previous) if not issues else []
 
-    block = build_section(version, date, issues)
+    block = build_section(version, date, issues, commits)
     path = Path(args.file) if args.file else WHATS_NEW
     text = read_text(path)
     updated = replace_section(text, version, block)
