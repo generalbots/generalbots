@@ -48,13 +48,25 @@ in the repository's `SECURITY.md` and the security report.
   Vault 2.2.1 (file-storage migration, unsealed), LiveKit 1.13.11 and
   MinIO 2025-10-15 (built from the official source tag with
   `scripts/build-minio-fixed.sh`).
+- Ran authenticated cross-tenant probes with two disposable DB-only tenants
+  and tokens minted from the persisted SaaS secret. Drive isolation, bucket
+  discovery, RBAC and path traversal all held. Found and fixed a medium
+  cross-tenant disclosure: `/api/bots/list` and `/api/bots/tree` returned
+  every tenant's bots (including private ones) to any authenticated user.
+  Both endpoints now scope to the caller's organizations (public bots stay
+  visible); verified post-deploy that the five private bots are no longer
+  listed.
+- Rotated the Vault unseal keys (5 shares, threshold 3, seal/unseal verified),
+  verified the historical Zitadel and GCP credentials are dead at the
+  providers, and revoked the leaked WhatsApp system-user token. Only the
+  Azure Search/LUIS item remains, with no active consumer and no Azure
+  console access.
 
 ## Open items
 
 | Item | Tracking |
 |------|----------|
-| Rotate the credentials exposed in git history | issue #1761 |
-| Authenticated cross-tenant IDOR/RBAC/stored-XSS/SSRF/CSRF tests | issue #1782 |
+| Rotate the Azure Search/LUIS keys (no active consumer; needs Azure console access) | issue #1761 |
 
 | Apply the parent dependency upgrades (quick-xml, git2, calamine, rsa, zip) | issues #1757, #1762–#1765 |
 
