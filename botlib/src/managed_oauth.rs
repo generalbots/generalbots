@@ -152,7 +152,7 @@ fn compile_time_value(value: Option<&'static str>) -> Option<String> {
     value.and_then(non_empty)
 }
 
-fn non_empty(value: &str) -> Option<String> {
+fn non_empty(value: String) -> Option<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
         None
