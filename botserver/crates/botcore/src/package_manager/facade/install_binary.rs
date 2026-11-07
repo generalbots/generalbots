@@ -123,10 +123,44 @@ impl PackageManager {
                     })?
                 };
                 if !cmd_result.status.success() {
-                    error!(
-                        "Command had non-zero exit: {}",
-                        String::from_utf8_lossy(&cmd_result.stderr)
+                    // A post-install step that fails used to be only logged,
+                    // so the component was still reported as installed and the
+                    // wizard waited for a service that could never start (the
+                    // PostgreSQL cluster stayed without pgdata and pg_ctl only
+                    // printed "directory ... does not exist"). Echo to stderr
+                    // so the provisioning log carries the cause, and fail the
+                    // install unless the registry explicitly tolerates failure
+                    // with a trailing `|| true`.
+                    let stderr = String::from_utf8_lossy(&cmd_result.stderr);
+                    let stderr: String = stderr.trim().chars().take(600).collect();
+                    let display_cmd = redact_secret(&rendered_cmd, &db_password);
+                    eprintln!(
+                        "installer: command failed for component '{}' (exit {:?})\n  command: {}\n  stderr: {}",
+                        component,
+                        cmd_result.status.code(),
+                        display_cmd,
+                        if stderr.is_empty() { "<empty>" } else { stderr.as_str() }
                     );
+                    error!(
+                        "Command failed for component '{}' (exit {:?}): {}\nCommand: {}",
+                        component,
+                        cmd_result.status.code(),
+                        if stderr.is_empty() { "<empty>" } else { stderr.as_str() },
+                        display_cmd
+                    );
+                    // Windows post-install scripts rely on idempotent
+                    // non-zero exits (for example CREATE DATABASE already
+                    // exists); keep their historical behaviour.
+                    #[cfg(not(target_os = "windows"))]
+                    if !rendered_cmd.trim_end().ends_with("|| true") {
+                        return Err(anyhow::anyhow!(
+                            "'{}' failed while installing {} (exit {:?}): {}",
+                            display_cmd,
+                            component,
+                            cmd_result.status.code(),
+                            if stderr.is_empty() { "<no stderr>" } else { stderr.as_str() }
+                        ));
+                    }
                 }
             } else {
                 self.exec_in_container(target, &rendered_cmd)?;
@@ -290,5 +324,15 @@ impl PackageManager {
             component
         );
         Ok(())
+    }
+}
+
+/// Replaces the resolved database password in a command before it is printed
+/// to the provisioning log or returned in an error message.
+fn redact_secret(command: &str, secret: &str) -> String {
+    if secret.is_empty() {
+        command.to_string()
+    } else {
+        command.replace(secret, "***")
     }
 }

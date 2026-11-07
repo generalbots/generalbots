@@ -44,6 +44,15 @@ mode cannot (WSL2, distro, systemd, Incus or its storage pool missing), and `3`
 on another operating system. `-Install` prints the remediation commands and
 performs no download or install.
 
+The database component downloads the theseus-rs PostgreSQL 18 binaries. Their
+bundled `libstdc++` is built against Debian 12 and needs glibc 2.36; on an older
+host C library (Ubuntu 22.04 ships 2.35) the dynamic loader aborts before
+`initdb` runs. The tables post-install therefore probes `initdb --version` and,
+only when the bundled copy fails, removes `lib/libstdc++.so.6` so the host copy
+is used. A missing `pgdata` is created before the wizard starts the database,
+and a failed post-install step is reported with its command and `stderr`
+instead of being counted as installed.
+
 Before starting any bundled service, the wizard runs the matching check read-only
 (`wizard_host_check` in `botapp/src/desktop/wizard/hostcheck/`) and renders
 **Desktop shell / Agent VM / Media tools** readiness plus the exact remediation

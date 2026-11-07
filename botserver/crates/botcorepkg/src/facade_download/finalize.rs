@@ -118,11 +118,52 @@ pub fn run_commands_with_password(
                 })?
             };
             if !cmd_result.status.success() {
-                log::error!("Command had non-zero exit: {}", String::from_utf8_lossy(&cmd_result.stderr));
+                // The wizard reports a component as installed after this
+                // function returns, so a swallowed failure leaves it waiting
+                // for a service that can never start. Echo the reason to
+                // stderr (provisioning logs capture it) and fail unless the
+                // registry marked the command as best-effort (`|| true`).
+                let stderr = String::from_utf8_lossy(&cmd_result.stderr);
+                let stderr: String = stderr.trim().chars().take(600).collect();
+                let display_cmd = redact_secret(&rendered_cmd, &db_password);
+                eprintln!(
+                    "installer: command failed for component '{}' (exit {:?})\n  command: {}\n  stderr: {}",
+                    component,
+                    cmd_result.status.code(),
+                    display_cmd,
+                    if stderr.is_empty() { "<empty>" } else { stderr.as_str() }
+                );
+                log::error!(
+                    "Command failed for component '{}' (exit {:?}): {}\nCommand: {}",
+                    component,
+                    cmd_result.status.code(),
+                    if stderr.is_empty() { "<empty>" } else { stderr.as_str() },
+                    display_cmd
+                );
+                #[cfg(not(target_os = "windows"))]
+                if !rendered_cmd.trim_end().ends_with("|| true") {
+                    return Err(anyhow::anyhow!(
+                        "'{}' failed while installing {} (exit {:?}): {}",
+                        display_cmd,
+                        component,
+                        cmd_result.status.code(),
+                        if stderr.is_empty() { "<no stderr>" } else { stderr.as_str() }
+                    ));
+                }
             }
         } else {
             exec_in_container(target, &rendered_cmd)?;
         }
     }
     Ok(())
+}
+
+/// Replaces the resolved database password in a command before it is printed
+/// to the provisioning log or returned in an error message.
+fn redact_secret(command: &str, secret: &str) -> String {
+    if secret.is_empty() {
+        command.to_string()
+    } else {
+        command.replace(secret, "***")
+    }
 }

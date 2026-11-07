@@ -50,6 +50,15 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
             pre_install_cmds_linux: Vec::new(),
             post_install_cmds_linux: vec![
                 "chmod +x ./bin/*".to_string(),
+                // theseus-rs PostgreSQL 18.x bundles libstdc++ 12 from
+                // Debian 12, whose only newer glibc dependency is
+                // `arc4random` (GLIBC_2.36). Ubuntu 22.04 ships glibc 2.35,
+                // so the dynamic loader aborts before initdb can print its
+                // usage and the database is never initialised. Keep the
+                // bundled copy when it loads; otherwise fall back to the
+                // host libstdc++ (present on every WebKitGTK-capable
+                // desktop, i.e. wherever this edition runs).
+                "if ! ./bin/initdb --version >/dev/null 2>&1; then rm -f ./lib/libstdc++.so.6; fi".to_string(),
                 "id postgres 2>/dev/null || useradd -r -s /bin/false postgres 2>/dev/null; [ \"$(id -u)\" -eq 0 ] && chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null || true".to_string(),
                 // Root-aware wrapper: run as the `postgres` user when root, otherwise directly as the launching user (allows non-root dev stacks where no `postgres` user exists).
                 "cat > {{BIN_PATH}}/pgwrap.sh <<'PGB_WRAP'\n#!/bin/bash\ncmd=\"$*\"\nif [ \"$(id -u)\" -eq 0 ]; then su -s /bin/bash postgres -c \"$cmd\"; else bash -c \"$cmd\"; fi\nPGB_WRAP\nchmod +x {{BIN_PATH}}/pgwrap.sh".to_string(),
@@ -249,4 +258,30 @@ pub fn register_proxy(components: &mut HashMap<String, ComponentConfig>) {
             container: None,
         },
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tables_probes_initdb_before_creating_the_cluster() {
+        let mut components = HashMap::new();
+        register_tables(&mut components);
+        let tables = components.get("tables").expect("tables component");
+        let probe = tables
+            .post_install_cmds_linux
+            .iter()
+            .position(|cmd| cmd.contains("initdb --version"))
+            .expect("libstdc++ compatibility probe");
+        let initdb = tables
+            .post_install_cmds_linux
+            .iter()
+            .position(|cmd| cmd.contains("initdb -D"))
+            .expect("initdb command");
+        assert!(
+            probe < initdb,
+            "the libstdc++ probe must run before initdb creates pgdata"
+        );
+    }
 }
