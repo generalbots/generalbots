@@ -366,7 +366,8 @@ Residual production risks (documented, not fixed here):
   `dl.min.io` is gone — and was deployed after checksum verification with the
   bucket list and botserver Drive access verified.
 - **The HTTP rate limiter was constructed but never called.** The fix is
-  deployed in production (`f151582`): a keyed governor limiter enforces
+  deployed in production (`58645b8`, combined with the bots-list fix): a
+  keyed governor limiter enforces
   `10 req/s` with `burst 20` per client on `/api/auth/*` (keyed by the first
   `X-Forwarded-For` hop). A 150-request burst produced 37 x 429 and the
   botserver restarts stayed at 0. Before the fix, 120/120 burst attempts
