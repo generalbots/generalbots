@@ -169,7 +169,6 @@ advisory still fails the gate.
 | Advisory family | Component | Why accepted | Review |
 |-----------------|-----------|--------------|--------|
 | glib iterator unsoundness | glib on the Tauri Linux desktop stack | Desktop-only; no server runtime exposure. Removed by the GTK4 desktop upgrade. | 2027-11-06 |
-| rkyv | lockfile only | Present in the lock but not selected by any shipping graph. No exposure. | 2027-11-06 |
 | Unmaintained build-time crates | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, pin-utils | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
 

@@ -31,9 +31,6 @@ RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
 
 # --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
 GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429
-# Lockfile-only: rkyv is present in Cargo.lock but never selected by any
-# shipping feature graph (`cargo deny --all-features` does not see it).
-RUSTSEC-2026-0235  # rkyv 0.7.46 - lock-only, not in the build graph
 
 # Python is audited by the `python` job (`pip-audit`), not by this gate:
 # OSV resolves `>=` requirements to their minimum version, which is not what
