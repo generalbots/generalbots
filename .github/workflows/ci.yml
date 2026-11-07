@@ -90,13 +90,13 @@ jobs:
 
   a11y:
     name: Accessibility and performance
-    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.full || inputs.release_tag != '') }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.full == 'true' || github.event.inputs.release_tag != '') }}
     uses: ./.github/workflows/a11y-perf.yml
 
   desktop:
     name: Desktop binaries (no publish)
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
     uses: ./.github/workflows/desktop-binaries.yml
     with:
-      tag: ${{ inputs.release_tag }}
+      tag: ${{ github.event.inputs.release_tag }}
       publish: false
