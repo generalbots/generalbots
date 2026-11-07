@@ -130,7 +130,7 @@ pub const ROOT_FILES: &[&str] = &[
 
 // Site-root static assets (embedded at the `ui/` folder root, served at
 // `/` scope rather than `/suite/`): PWA manifest and offline shell worker.
-pub const SITE_ROOT_FILES: &[&str] = &["manifest.webmanifest", "sw.js"];
+pub const SITE_ROOT_FILES: &[&str] = &["manifest.webmanifest", "sw.js", "logo.svg"];
 
 pub fn get_ui_root() -> PathBuf {
     #[cfg(feature = "embed-ui")]
