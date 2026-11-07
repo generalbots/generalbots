@@ -1,22 +1,34 @@
 #!/usr/bin/env python3
-"""CI guard for the published GB7 feature comparison (#1704).
+# NOTE (#1795): this guard and its fixtures are ready, but the published page
+# at https://sites.pragmatismo.com.br/gb7features/ is the remaining dependency:
+# it still marks collaborative documents as Gap. Update that external page
+# before closing #1795; until then CI treats the live-page check as non-blocking.
+"""CI guard for the published GB7 feature comparison (#1704, #1795).
 
 The comparison page lives on the public site, not in this repository, so
 page/product drift used to be found only by a manual audit. This guard
-validates the live pages (or local copies) against the contract reached on
-2026-11-05:
+validates the live pages (or local fixtures) against the current contract:
 
 - exactly 33 capability rows with a GB7 position;
 - the header counts match the row positions;
-- voice, locked conversations and SKILL.md import are Yes/Parity;
-- collaborative documents is the only remaining Gap, linked to its issue;
+- voice, locked conversations, SKILL.md import and collaborative documents
+  are Yes/Parity;
+- no shipped row is declared Gap;
 - every Follow-up and Gap row carries a tracked issue reference;
+- a voice row that promises interruptions/barge-in also references the
+  duplex/barge-in implementation or #1792;
 - the test-scripts page is rebaselined (one gap negative-tested).
+
+The former requirement that collaborative documents be the only Gap is gone:
+#1695 shipped, so the guard no longer expects any Gap. The fixtures under
+scripts/fixtures/ keep a negative case (legacy page) and the accepted updated
+page for --self-test.
 
 Usage:
     python3 scripts/gb7_features_check.py
     python3 scripts/gb7_features_check.py --index /tmp/index.html \\
         --scripts /tmp/test-scripts.html
+    python3 scripts/gb7_features_check.py --self-test
 
 Exits non-zero on any mismatch so CI fails before a stale page ships.
 """
@@ -27,6 +39,7 @@ import argparse
 import re
 import sys
 import urllib.request
+from pathlib import Path
 
 INDEX_URL = "https://sites.pragmatismo.com.br/gb7features/"
 SCRIPTS_URL = "https://sites.pragmatismo.com.br/gb7features/test-scripts.html"
@@ -36,9 +49,12 @@ SHIPPED_ROWS = {
     "Voice / live conversation mode": "Parity",
     "Locked / hidden conversations": "Parity",
     "Agent Skills packages (SKILL.md)": "Parity",
+    "Collaborative documents and presentations": "Parity",
 }
-LAST_GAP = "Collaborative documents and presentations"
-GAP_ISSUE = "#1695"
+VOICE_ROW = "Voice / live conversation mode"
+VOICE_INTERRUPTION_RE = re.compile(r"\binterrupt|\bbarge[\s-]?in", re.I)
+VOICE_CAVEAT_RE = re.compile(r"\bduplex\b|barge[\s-]?in implementation|#1792", re.I)
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
 ROW_RE = re.compile(r"<tr>(.*?)</tr>", re.S)
 GB7_RE = re.compile(
@@ -119,24 +135,28 @@ def check_index(page: str) -> list[str]:
         row = by_title.get(title)
         if not row:
             errors.append(f"missing row: {title}")
+        elif row["position"] == "Gap":
+            errors.append(f"{title}: shipped row is still declared Gap")
         elif row["position"] != position:
             errors.append(f"{title}: position {row['position']} != {position}")
 
-    gaps = [row for row in rows if row["position"] == "Gap"]
-    if [row["title"] for row in gaps] != [LAST_GAP]:
-        errors.append(
-            "declared gaps are "
-            + (", ".join(row["title"] for row in gaps) or "none")
-            + f" (expected only {LAST_GAP})"
-        )
     for row in rows:
         if row["position"] in ("Follow-up", "Gap") and not re.search(
             r"#\d{3,}", row["text"]
         ):
             errors.append(f"{row['title']}: {row['position']} row has no tracked issue")
-    gap_row = by_title.get(LAST_GAP)
-    if gap_row and GAP_ISSUE not in gap_row["text"]:
-        errors.append(f"{LAST_GAP}: missing {GAP_ISSUE} reference")
+
+    # #1792: the voice row may promise interruptions/barge-in only when it
+    # also names the duplex/barge-in implementation or its tracking issue.
+    voice = by_title.get(VOICE_ROW)
+    if voice:
+        promises_interruptions = bool(VOICE_INTERRUPTION_RE.search(voice["text"]))
+        has_caveat = bool(VOICE_CAVEAT_RE.search(voice["text"]))
+        if promises_interruptions and not has_caveat:
+            errors.append(
+                f"{VOICE_ROW}: interruption/barge-in promise needs a "
+                "duplex/barge-in implementation reference or #1792"
+            )
     return errors
 
 
@@ -153,11 +173,56 @@ def check_scripts(page: str) -> list[str]:
     return errors
 
 
+def self_test() -> int:
+    """Run check_index against the legacy and updated fixtures.
+
+    The legacy page must be rejected (collaborative documents still Gap and
+    no voice caveat); the updated page must be accepted.
+    """
+    cases = [
+        ("legacy", FIXTURES_DIR / "gb7-index-legacy.html", False),
+        ("updated", FIXTURES_DIR / "gb7-index-updated.html", True),
+    ]
+    failed = False
+    for name, path, should_accept in cases:
+        try:
+            page = path.read_text(encoding="utf-8")
+        except OSError as error:
+            print(f"gb7 self-test: cannot read {path}: {error}")
+            failed = True
+            continue
+        errors = check_index(page)
+        accepted = not errors
+        if accepted == should_accept:
+            expected = "accepted" if should_accept else "rejected"
+            print(f"gb7 self-test: {name} fixture {expected} as expected")
+        else:
+            wanted = "acceptance" if should_accept else "rejection"
+            print(f"gb7 self-test: {name} fixture FAILED (expected {wanted})")
+            failed = True
+        if not accepted:
+            for error in errors:
+                print(f"  - {error}")
+    if failed:
+        print("gb7 self-test: FAIL")
+        return 1
+    print("gb7 self-test: PASS (legacy rejected, updated accepted)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--index", help="local index.html copy")
     parser.add_argument("--scripts", help="local test-scripts.html copy")
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="validate the bundled legacy/updated index fixtures",
+    )
     args = parser.parse_args()
+
+    if args.self_test:
+        return self_test()
 
     try:
         index = load(args.index, INDEX_URL)
@@ -172,7 +237,7 @@ def main() -> int:
         for error in errors:
             print(f"  - {error}")
         return 1
-    print("gb7 features check: PASS (33 rows, counts match, one tracked gap)")
+    print("gb7 features check: PASS (33 rows, counts match, no untracked gaps)")
     return 0
 
 

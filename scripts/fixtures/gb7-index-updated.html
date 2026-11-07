@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GB7 — Feature comparison vs leading consumer assistants</title>
+<meta name="description" content="Single-table feature comparison of GB7 Chat + Drive with leading consumer assistants." />
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f7f9fc;
+    --panel-2: #eef2f8;
+    --ink: #1a202c;
+    --muted: #5b6578;
+    --line: #d9e0ea;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px 56px; }
+  header.hero {
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%);
+    padding: 40px 0 26px;
+    margin-bottom: 26px;
+  }
+  header.hero .wrap { padding-bottom: 0; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .brand img { height: 32px; width: auto; }
+  .brand span { color: var(--accent); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+  h1 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; margin: 8px 0 10px; letter-spacing: -.02em; }
+  .lede { color: var(--muted); max-width: 92ch; margin: 0; }
+  .counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .count { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: var(--muted); }
+  .count strong { color: var(--ink); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .compare-table { width: 100%; min-width: 940px; border-collapse: collapse; }
+  .compare-table caption { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .compare-table th, .compare-table td { padding: 12px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; font-size: 13px; }
+  .compare-table thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--panel-2); color: var(--muted);
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+  }
+  .compare-table thead th small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .compare-table th:not(:first-child), .compare-table td:not(:first-child) { text-align: center; }
+  .compare-table tbody td:first-child { font-weight: 650; color: var(--ink); }
+  .compare-table tbody tr:last-child td { border-bottom: none; }
+  .compare-table tbody tr:hover td { background: #ffffff; }
+  .compare-table .gb7-col { background: #eef5ff; }
+  .compare-table tbody tr:hover .gb7-col { background: #e7f0ff; }
+
+  .group-row th {
+    background: #e6edf7; color: var(--ink);
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .1em; padding: 9px 16px; border-bottom: 1px solid var(--line);
+  }
+  .group-row th:not(:first-child) { text-align: left; }
+
+  .st, .pt { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .st-yes { background: #dcfce7; color: #166534; }
+  .st-part { background: #fef3c7; color: #92400e; }
+  .st-no { background: #f1f5f9; color: #64748b; }
+  .pt-adv { background: #dcfce7; color: #166534; }
+  .pt-parity { background: #dbeafe; color: #1e40af; }
+
+  .legend { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
+  .legend strong { color: var(--ink); }
+  .sources { color: var(--muted); font-size: 11.5px; margin: 10px 0 0; }
+  .sources a { color: var(--accent); text-decoration: none; }
+  .sources a:hover { text-decoration: underline; }
+
+  footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px 40px; }
+    header.hero { padding: 28px 0 20px; }
+  }
+
+  .compare-table td:first-child { vertical-align: top; }
+  .desc { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; line-height: 1.4; margin-top: 3px; max-width: 56ch; }
+  .badge-new { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; vertical-align: 1px; }
+  .pt-follow { background: #fde68a; color: #78350f; }
+  .pt-gap { background: #fee2e2; color: #991b1b; }
+  .release-note { margin: 0 0 18px; border: 1px solid var(--line); background: #f8fafc; border-radius: 10px; padding: 12px 16px; font-size: 12.5px; color: var(--muted); }
+  .release-note strong { display: block; color: var(--ink); margin-bottom: 4px; }
+  .release-note ul { margin: 4px 0 0 18px; padding: 0; }
+  .release-note li { margin: 3px 0; }
+
+  /* Test scripts section at the bottom of the comparison page. */
+  .test-scripts { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 22px; }
+  .test-scripts h2 { font-size: 18px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .ts-lede { color: var(--muted); margin: 0 0 14px; max-width: 92ch; }
+  .ts-lede a { color: var(--accent); text-decoration: none; }
+  .ts-lede a:hover { text-decoration: underline; }
+  .ts-grid { display: grid; gap: 8px; }
+  .ts-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 320px; gap: 12px; align-items: baseline;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px;
+    color: var(--ink); text-decoration: none; }
+  .ts-row:hover { border-color: var(--accent); background: #ffffff; }
+  .ts-id { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+  .ts-title { font-weight: 650; font-size: 13px; }
+  .ts-covers { color: var(--muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    .ts-row { grid-template-columns: 56px minmax(0, 1fr); }
+    .ts-covers { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <img src="https://generalbots.org/logo.svg" alt="General Bots" />
+      <span>General Bots · GB7 Chat + Drive</span>
+    </div>
+    <h1>Feature comparison — GB7 vs leading consumer assistants</h1>
+    <p class="lede">
+      A single capability-by-capability comparison of the GB7 Chat + Drive edition with the consumer offerings from
+      leading consumer assistant products. The GB7 column includes the complete Conversation Workspace v2 capability set.
+    </p>
+    <div class="counts" aria-label="Comparison summary">
+      <span class="count"><strong>33</strong> capabilities compared</span>
+      <span class="count"><strong>12</strong> GB7 advantages</span>
+      <span class="count"><strong>17</strong> at parity</span>
+      <span class="count"><strong>4</strong> follow-ups tracked</span>
+      <span class="count"><strong>0</strong> gap not yet available</span>
+      <span class="count"><strong>10</strong> test scripts</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="release-note">
+    <strong>Latest external releases reflected — checked 5 November 2026</strong>
+    <ul>
+      <li><b>16 Oct 2026</b> — parallel sub-agents on one task; collaborative slide decks with comments and export.</li>
+      <li><b>20 Oct 2026</b> — locked conversations: PIN or device authentication, hidden from history, pins and search.</li>
+      <li><b>22 Oct 2026</b> — skills packages standardized and donated to a neutral foundation; 70+ platforms integrated.</li>
+      <li><b>28 Oct 2026</b> — agent reachable over messaging apps with proactive updates; pooled team budgets and usage reports.</li>
+      <li><b>2 Nov 2026</b> — server-held conversation threads: about 35% faster first token on very long sessions.</li>
+      <li><b>3–4 Nov 2026</b> — no consumer-feature releases in the window; all outside columns re-checked.</li>
+      <li><b>5 Nov 2026</b> — internal product audit: voice mode, locked conversations and SKILL.md import are shipped; per-run spend caps are browser-only. GB7 rows updated; remaining work tracked in issues <a href="https://github.com/generalbots/generalbots/issues/1694">#1694</a>–<a href="https://github.com/generalbots/generalbots/issues/1705">#1705</a>.</li>
+    </ul>
+  </div>
+  <div class="table-scroll">
+    <table class="compare-table">
+      <caption>Feature comparison between GB7 Chat + Drive and leading consumer assistants</caption>
+      <thead>
+        <tr>
+          <th scope="col">Capability</th>
+          <th scope="col" class="gb7-col">GB7 Chat + Drive<small>this edition</small></th>
+          <th scope="col">Leading desktop assistant<small>capability reference</small></th>
+          <th scope="col">Mainstream chat platform<small>capability reference</small></th>
+          <th scope="col">Agent platform (open-weight)<small>capability reference</small></th>
+          <th scope="col">GB7 position</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="group-row"><th colspan="6" scope="colgroup">Chat experience</th></tr>
+        <tr>
+          <td>Web search with citations<span class="desc">Answers grounded in sources, with links.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Artifacts, generated documents and inline previews<span class="desc">Documents and files rendered beside the conversation — images, PDF, sanitized HTML and Office documents (server-converted, script-free) render inline; a window preview is also available.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Model picker with plain-language trade-offs<span class="desc">Choose the model by cost, speed and fit, not only by name.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Attachments in chat<span class="desc">Files, images and documents as conversation input.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Audio and video ingestion <span class="badge-new">new</span><span class="desc">Recordings transcribed, summarized and searchable (rolled out Oct 2026).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Memory across conversations<span class="desc">Preferences and context persist between sessions.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Structured questions and editable plans<span class="desc">The assistant asks; the user edits before the work starts.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Trusted generative UI and declarative visuals<span class="desc">Charts, flows and metrics rendered by trusted components — the model emits data, never raw code.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Voice / live conversation mode <span class="badge-new">new</span><span class="desc">Spoken, low-latency back-and-forth with interruptions (duplex/barge-in implementation tracked in <a href="https://github.com/generalbots/generalbots/issues/1792">#1792</a>; rolling out Oct 2026).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Locked / hidden conversations <span class="badge-new">new</span><span class="desc">PIN- or device-auth-protected chats hidden from history, pins and search (rolled out 20 Oct 2026).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Agent Skills packages (SKILL.md) <span class="badge-new">new</span><span class="desc">Portable packages of instructions and resources, importable across platforms (standard adopted by 70+ platforms, Oct 2026).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Collaborative documents and presentations <span class="badge-new">new</span><span class="desc">Real-time co-editing with comments, presenting and export (rolled out 16 Oct 2026; tracked in <a href="https://github.com/generalbots/generalbots/issues/1695">#1695</a>).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr class="group-row"><th colspan="6" scope="colgroup">Runs and automation</th></tr>
+        <tr>
+          <td>Live, durable runs: timeline, streaming and resume<span class="desc">A run is a first-class object: ordered events, replay, resume by sequence.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Steering, background runs and terminal/browser takeover<span class="desc">Correct the agent mid-run; runs outlive the tab; take over live sessions (mid-step steering and takeover tracked in <a href="https://github.com/generalbots/generalbots/issues/1701">#1701</a>).</span></td>
+          <td class="gb7-col"><span class="st st-part">Partial</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-follow">Follow-up</span></td>
+        </tr>
+        <tr>
+          <td>Browser actions (computer use)<span class="desc">The agent drives a real browser with a visible, auditable session.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Terminal actions with an audit trail<span class="desc">Shell commands with exit codes, capture and audit.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Connectors, consent scopes and grants ledger<span class="desc">Per-tool consent, scoped grants and a single audit ledger.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Inline MCP Apps: sandbox, discovery and host bridge<span class="desc">External MCP UI resources and generated apps are listed by discovery and render in an opaque, CSP-locked frame with no host access.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Agents reachable from messaging apps <span class="badge-new">new</span><span class="desc">The same agent over messaging, with proactive updates outside the app (rolled out 28 Oct 2026).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Multiple agents in parallel on one task <span class="badge-new">new</span><span class="desc">Sub-agents take different parts; progress visible; finished parts reviewable (rolled out 16 Oct 2026; tracked in <a href="https://github.com/generalbots/generalbots/issues/1694">#1694</a>).</span></td>
+          <td class="gb7-col"><span class="st st-part">Partial</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-follow">Follow-up</span></td>
+        </tr>
+        <tr>
+          <td>Long-horizon, goal-driven runs <span class="badge-new">new</span><span class="desc">Set a goal; the agent works for hours with checkpoints (open-weight platform ships a goal command; agent-driven steps tracked in <a href="https://github.com/generalbots/generalbots/issues/1706">#1706</a>).</span></td>
+          <td class="gb7-col"><span class="st st-part">Partial</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-follow">Follow-up</span></td>
+        </tr>
+        <tr>
+          <td>Server-held conversation threads <span class="badge-new">new</span><span class="desc">Only new turns are sent per request; about 35% faster first token on very long sessions (API beta, 2 Nov 2026; TTFT metric tracked in <a href="https://github.com/generalbots/generalbots/issues/1700">#1700</a>).</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr class="group-row"><th colspan="6" scope="colgroup">Drive and files</th></tr>
+        <tr>
+          <td>Search across all files<span class="desc">One search over the drive’s documents and media.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>File previews for common formats<span class="desc">Inline viewers for the formats people share most.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Share and export a file<span class="desc">Links, permissions and export in standard formats.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Version history and trash<span class="desc">Restore earlier versions; recover deleted files.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Native drive storage included<span class="desc">Storage owned by the platform, not a third-party drive.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr class="group-row"><th colspan="6" scope="colgroup">Trust and operations</th></tr>
+        <tr>
+          <td>Per-run usage, cost and budget caps<span class="desc">Token and VM-seconds accounting; browser tasks are capped today, per-run chat/VM caps are tracked in <a href="https://github.com/generalbots/generalbots/issues/1696">#1696</a>.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-parity">Parity</span></td>
+        </tr>
+        <tr>
+          <td>Pooled group budgets and usage reports <span class="badge-new">new</span><span class="desc">Shared team budget plus reports of the work being done and what it costs (rolled out 28 Oct 2026; tracked in <a href="https://github.com/generalbots/generalbots/issues/1697">#1697</a>).</span></td>
+          <td class="gb7-col"><span class="st st-part">Partial</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-follow">Follow-up</span></td>
+        </tr>
+        <tr>
+          <td>SSO, RBAC and workspace isolation<span class="desc">Enterprise identity, per-role permissions and tenant-scoped data.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Accessibility, mobile and performance gates<span class="desc">Automated accessibility, responsive and performance checks in CI.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Prompt contracts, tool schemas and eval gates<span class="desc">Declarative manifests, when-to-use rules and CI evals.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+        <tr>
+          <td>Self-hosted / private deployment<span class="desc">Run the whole stack on your own infrastructure.</span></td>
+          <td class="gb7-col"><span class="st st-yes">Yes</span></td>
+          <td><span class="st st-no">No</span></td>
+          <td><span class="st st-no">No</span></td>
+          <td><span class="st st-part">Partial</span></td>
+          <td><span class="pt pt-adv">Advantage</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="legend">
+    <strong>Yes</strong> — capability is included in the current offering.
+    <strong>Partial</strong> — capability exists but is limited by plan, region, connected storage or setup.
+    <strong>No</strong> — not part of the standard consumer offering.<br />
+    <strong>Advantage</strong> — GB7 does it more completely than the reference columns.
+    <strong>Parity</strong> — GB7 matches the best of the reference columns.
+    <strong>Follow-up</strong> — partially available today; the remaining capability is tracked in an open workspace issue.
+    <strong>Gap</strong> — not available in GB7 today; tracked for a future phase.
+  </p>
+  <p class="sources">
+    Outside status reflects publicly documented consumer offerings as of 4 November 2026. Plans and features
+    change frequently; verify current vendor terms. Sources: official vendor product changelogs and release notes (checked 4 November 2026).
+  </p>
+
+  <section class="test-scripts" id="test-scripts">
+    <h2>Test scripts</h2>
+    <p class="ts-lede">
+      Ten plain-text scripts verify the 33 capabilities above. Each lists setup, ordered steps, the expected result
+      and the evidence to capture. TS-05 checks the shipped voice, lock and skills behaviour and verifies the one declared gap (collaborative documents). <a href="test-scripts.html">Open the full scripts</a>.
+    </p>
+    <div class="ts-grid">
+      <a class="ts-row" href="test-scripts.html#ts-01"><span class="ts-id">TS-01</span><span class="ts-title">Grounded answers, model choice, attachments</span><span class="ts-covers">Citations · model picker · attachments</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-02"><span class="ts-id">TS-02</span><span class="ts-title">Media ingestion and inline previews</span><span class="ts-covers">Audio/video · artifacts and previews</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-03"><span class="ts-id">TS-03</span><span class="ts-title">Memory across conversations</span><span class="ts-covers">Memory and personalization</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-04"><span class="ts-id">TS-04</span><span class="ts-title">Editable plans and trusted generative UI</span><span class="ts-covers">Structured plans · generative UI</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-05"><span class="ts-id">TS-05</span><span class="ts-title">Declared gaps fail safe</span><span class="ts-covers">Voice · locked chats · skills · collaborative docs</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-06"><span class="ts-id">TS-06</span><span class="ts-title">Durable runs and long sessions</span><span class="ts-covers">Live runs · steering · long-horizon · server threads</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-07"><span class="ts-id">TS-07</span><span class="ts-title">Computer use and terminal audit</span><span class="ts-covers">Browser actions · terminal actions</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-08"><span class="ts-id">TS-08</span><span class="ts-title">Connectors, MCP apps, messaging, parallel agents</span><span class="ts-covers">Consent · MCP apps · messaging · parallel agents</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-09"><span class="ts-id">TS-09</span><span class="ts-title">Drive: search, previews, sharing, versions</span><span class="ts-covers">Search · previews · share/export · versions · storage</span></a>
+      <a class="ts-row" href="test-scripts.html#ts-10"><span class="ts-id">TS-10</span><span class="ts-title">Trust, cost and operations</span><span class="ts-covers">Caps · budgets · SSO/RBAC · gates · evals · self-hosted</span></a>
+    </div>
+    <p class="legend">
+      <strong>Gap rows</strong> pass only when the absence is explicit and tracked; a hidden or falsely advertised
+      feature is a failure. Partial and Follow-up rows verify the shipped part and record the remainder against its issue.
+    </p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>General Bots — GB7 Chat + Drive feature comparison</span>
+  <span>Updated 2026-11-05 · 33 capabilities · 10 test scripts · GB7 rows re-audited 5 Nov 2026 · outside columns checked 4 Nov 2026 · rows marked <b>new</b> reflect the late-Oct / early-Nov releases</span>
+</footer>
+</body>
+</html>
