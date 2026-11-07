@@ -8,7 +8,10 @@ pub async fn snapshot_version(
     Json(req): Json<SnapshotBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     if req.content.is_empty() {
         return Err(err(StatusCode::BAD_REQUEST, "Content is required"));
@@ -69,7 +72,12 @@ pub async fn snapshot_version(
     .bind::<Text, _>(&content_hash)
     .bind::<Text, _>(&name)
     .get_result::<CreatedVersion>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("insert failed: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("insert failed: {e}"),
+        )
+    })?;
 
     Ok(Json(serde_json::json!({
         "id": created.id,
@@ -90,7 +98,10 @@ pub async fn list_versions(
     Query(params): Query<VersionsQuery>,
 ) -> Result<Json<Vec<VersionItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let mut conn = state
@@ -201,7 +212,12 @@ pub async fn restore_version(
     .bind::<Text, _>(&old.content_hash)
     .bind::<Text, _>(&old.name)
     .get_result::<CreatedVersion>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("insert failed: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("insert failed: {e}"),
+        )
+    })?;
 
     record_activity(
         &mut conn,

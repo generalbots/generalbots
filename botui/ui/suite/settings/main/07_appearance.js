@@ -215,6 +215,40 @@ window.togglePushNotifications = function (checkbox) {
   }
   showToast(enabled ? "Push notifications enabled" : "Push notifications disabled");
 };
+function notificationPreferenceInputs() {
+  var form = document.querySelector(
+    'form[hx-put="/api/user/notifications/preferences"]',
+  );
+  return form
+    ? form.querySelectorAll('input[type="checkbox"][name]')
+    : [];
+}
+
+function applyNotificationPreferences(prefs) {
+  notificationPreferenceInputs().forEach(function (input) {
+    if (Object.prototype.hasOwnProperty.call(prefs, input.name)) {
+      input.checked = !!prefs[input.name];
+    }
+  });
+}
+
+function loadNotificationPreferences() {
+  if (!notificationPreferenceInputs().length) return;
+  var headers = { Accept: "application/json" };
+  var token = getAuthToken();
+  if (token) headers.Authorization = "Bearer " + token;
+  fetch("/api/user/notifications/preferences?format=json", { headers: headers })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (prefs) {
+      if (prefs) applyNotificationPreferences(prefs);
+    })
+    .catch(function () {});
+}
+
+if (document.body) {
+  document.body.addEventListener("htmx:afterSwap", loadNotificationPreferences);
+}
+
 function pushManagerAvailable() {
   return (
     "serviceWorker" in navigator &&
@@ -297,4 +331,5 @@ function unregisterPushSubscription() {
   S.getWallpaper = getWallpaper;
   S.applyWallpaper = applyWallpaper;
   S.initWallpapers = initWallpapers;
+  S.loadNotificationPreferences = loadNotificationPreferences;
 })(window);

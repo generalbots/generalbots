@@ -120,30 +120,21 @@
             </div>
 
             <form hx-put="/api/user/notifications/preferences" hx-swap="none"
-                hx-on::after-request="showToast('Notification preferences saved')">
+                hx-on::after-request="if (event.detail.successful) showToast('Notification preferences saved')">
 
                 <!-- Email Notifications -->
                 <div class="setting-card">
                     <div class="card-header">
                         <h2>Email Notifications</h2>
+                        <p class="setting-desc">Sent by the workspace notification sender, never by a connected Gmail/Outlook mailbox.</p>
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Direct Messages</span>
-                            <span class="setting-desc">Receive email for new direct messages</span>
+                            <span class="setting-title">Mentions and replies</span>
+                            <span class="setting-desc">Receive email when someone mentions you in a comment</span>
                         </div>
                         <label class="toggle">
-                            <input type="checkbox" name="email_dm" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row" style="opacity:0.55;cursor:default;" title="Not yet implemented">
-                        <div class="setting-info">
-                            <span class="setting-title">Mentions <span style="font-size:0.75em;font-weight:normal;color:var(--text-secondary,#888);">(coming soon)</span></span>
-                            <span class="setting-desc">Receive email when someone mentions you</span>
-                        </div>
-                        <label class="toggle">
-                            <input type="checkbox" name="email_mentions" disabled>
+                            <input type="checkbox" name="email_mentions" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>

@@ -7,20 +7,31 @@ pub async fn groups_create(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
         Err(e) => return e,
     };
     if !is_admin_user(&state, user_id) {
-        return (StatusCode::FORBIDDEN, Html("Admin role required".to_string()));
+        return (
+            StatusCode::FORBIDDEN,
+            Html("Admin role required".to_string()),
+        );
     }
 
     let name = form.name.unwrap_or_default();
     let display = form.display_name.clone().unwrap_or_else(|| name.clone());
     if name.trim().is_empty() {
-        return (StatusCode::BAD_REQUEST, Html("Group name is required".to_string()));
+        return (
+            StatusCode::BAD_REQUEST,
+            Html("Group name is required".to_string()),
+        );
     }
 
     let _ = diesel::sql_query(
@@ -34,5 +45,11 @@ pub async fn groups_create(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .execute(&mut conn);
 
-    (StatusCode::OK, Html(format!("Group <strong>{}</strong> created", html_escape(&display))))
+    (
+        StatusCode::OK,
+        Html(format!(
+            "Group <strong>{}</strong> created",
+            html_escape(&display)
+        )),
+    )
 }

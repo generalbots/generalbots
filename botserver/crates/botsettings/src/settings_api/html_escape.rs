@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 pub(super) fn html_escape(input: &str) -> String {
     input
@@ -7,36 +8,106 @@ pub(super) fn html_escape(input: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
 }
-pub(super) fn on_or_true(v: &Option<String>) -> bool {
-    v.as_deref().map(|s| s == "on" || s == "true").unwrap_or(false)
+pub(super) fn form_or_json_bool(value: Option<&serde_json::Value>) -> bool {
+    match value {
+        Some(serde_json::Value::Bool(v)) => *v,
+        Some(serde_json::Value::String(v)) => matches!(v.as_str(), "on" | "true" | "1"),
+        Some(serde_json::Value::Number(v)) => v.as_i64().map(|n| n != 0).unwrap_or(false),
+        _ => false,
+    }
 }
+
+/// Accept both the HTMX form payload (`application/x-www-form-urlencoded`) and
+/// the JSON payload sent by the settings JavaScript helpers. Unchecked
+/// checkboxes are absent from form payloads, which `form_or_json_bool` treats
+/// as `false`.
+fn parse_notification_body(
+    content_type: &str,
+    body: &[u8],
+) -> Result<HashMap<String, serde_json::Value>, String> {
+    if content_type.contains("application/json") {
+        let value: serde_json::Value =
+            serde_json::from_slice(body).map_err(|e| format!("Invalid JSON: {e}"))?;
+        match value {
+            serde_json::Value::Object(map) => Ok(map.into_iter().collect()),
+            _ => Err("Expected a JSON object".to_string()),
+        }
+    } else {
+        let form: HashMap<String, String> =
+            serde_urlencoded::from_bytes(body).map_err(|e| format!("Invalid form: {e}"))?;
+        Ok(form
+            .into_iter()
+            .map(|(key, value)| (key, serde_json::Value::String(value)))
+            .collect())
+    }
+}
+
 pub async fn notif_prefs_get(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
-) -> impl IntoResponse {
+    axum::extract::Query(query): axum::extract::Query<HashMap<String, String>>,
+) -> axum::response::Response {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html(String::new())),
+        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html(String::new())).into_response(),
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
-        Err(e) => return e,
+        Err(e) => return e.into_response(),
     };
 
     let prefs = read_pref(&mut conn, user_id, "notifications");
-    let email_dm = prefs.get("email_dm").and_then(|v| v.as_bool()).unwrap_or(true);
-    let email_mentions = prefs.get("email_mentions").and_then(|v| v.as_bool()).unwrap_or(true);
-    let email_digest = prefs.get("email_digest").and_then(|v| v.as_bool()).unwrap_or(false);
-    let email_marketing = prefs.get("email_marketing").and_then(|v| v.as_bool()).unwrap_or(false);
-    let push_enabled = prefs.get("push_enabled").and_then(|v| v.as_bool()).unwrap_or(false);
-    let push_sound = prefs.get("push_sound").and_then(|v| v.as_bool()).unwrap_or(true);
-    let desktop_notifications = prefs.get("desktop_notifications").and_then(|v| v.as_bool()).unwrap_or(true);
-    let badge_count = prefs.get("badge_count").and_then(|v| v.as_bool()).unwrap_or(true);
+    let email_mentions = prefs
+        .get("email_mentions")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let email_digest = prefs
+        .get("email_digest")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let email_marketing = prefs
+        .get("email_marketing")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let push_enabled = prefs
+        .get("push_enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let push_sound = prefs
+        .get("push_sound")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let desktop_notifications = prefs
+        .get("desktop_notifications")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let badge_count = prefs
+        .get("badge_count")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
+    let wants_json = query.get("format").map(|v| v == "json").unwrap_or(false)
+        || headers
+            .get(axum::http::header::ACCEPT)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.contains("application/json"))
+            .unwrap_or(false);
+    if wants_json {
+        return axum::Json(serde_json::json!({
+            "email_mentions": email_mentions,
+            "email_digest": email_digest,
+            "email_marketing": email_marketing,
+            "push_enabled": push_enabled,
+            "push_sound": push_sound,
+            "desktop_notifications": desktop_notifications,
+            "badge_count": badge_count,
+        }))
+        .into_response();
+    }
 
     (StatusCode::OK, Html(format!(
         r#"<div class="preference-list">
-    <label class="checkbox-label"><input type="checkbox" name="email_dm" {email_dm_ck}> Direct messages</label>
-    <label class="checkbox-label"><input type="checkbox" name="email_mentions" {email_mentions_ck}> Mentions</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_mentions" {email_mentions_ck}> Mentions and replies</label>
     <label class="checkbox-label"><input type="checkbox" name="email_digest" {email_digest_ck}> Weekly digest</label>
     <label class="checkbox-label"><input type="checkbox" name="email_marketing" {email_marketing_ck}> Marketing</label>
     <label class="checkbox-label"><input type="checkbox" name="push_enabled" {push_enabled_ck}> Push notifications</label>
@@ -44,7 +115,6 @@ pub async fn notif_prefs_get(
     <label class="checkbox-label"><input type="checkbox" name="desktop_notifications" {desktop_ck}> Desktop notifications</label>
     <label class="checkbox-label"><input type="checkbox" name="badge_count" {badge_ck}> Badge count</label>
 </div>"#,
-        email_dm_ck = if email_dm { "checked" } else { "" },
         email_mentions_ck = if email_mentions { "checked" } else { "" },
         email_digest_ck = if email_digest { "checked" } else { "" },
         email_marketing_ck = if email_marketing { "checked" } else { "" },
@@ -53,34 +123,52 @@ pub async fn notif_prefs_get(
         desktop_ck = if desktop_notifications { "checked" } else { "" },
         badge_ck = if badge_count { "checked" } else { "" },
     )))
+    .into_response()
 }
+
 pub async fn notif_prefs_put(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
-    axum::extract::Form(form): axum::extract::Form<NotifPrefsForm>,
+    body: axum::body::Bytes,
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
         Err(e) => return e,
     };
 
+    let content_type = headers
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    let fields = match parse_notification_body(content_type, &body) {
+        Ok(fields) => fields,
+        Err(e) => return (StatusCode::BAD_REQUEST, Html(e)),
+    };
+
     let prefs = serde_json::json!({
-        "email_dm": on_or_true(&form.email_dm),
-        "email_mentions": on_or_true(&form.email_mentions),
-        "email_digest": on_or_true(&form.email_digest),
-        "email_marketing": on_or_true(&form.email_marketing),
-        "push_enabled": on_or_true(&form.push_enabled),
-        "push_sound": on_or_true(&form.push_sound),
-        "desktop_notifications": on_or_true(&form.desktop_notifications),
-        "badge_count": on_or_true(&form.badge_count),
+        "email_mentions": form_or_json_bool(fields.get("email_mentions")),
+        "email_digest": form_or_json_bool(fields.get("email_digest")),
+        "email_marketing": form_or_json_bool(fields.get("email_marketing")),
+        "push_enabled": form_or_json_bool(fields.get("push_enabled")),
+        "push_sound": form_or_json_bool(fields.get("push_sound")),
+        "desktop_notifications": form_or_json_bool(fields.get("desktop_notifications")),
+        "badge_count": form_or_json_bool(fields.get("badge_count")),
     });
     write_pref(&mut conn, user_id, "notifications", &prefs);
 
-    (StatusCode::OK, Html("Notification preferences saved".to_string()))
+    (
+        StatusCode::OK,
+        Html("Notification preferences saved".to_string()),
+    )
 }
 /// POST /api/oauth/{provider}/connect — starts the account-linking flow.
 /// Delegates to [`crate::settings_oauth::oauth_connect`], which builds a
@@ -90,10 +178,6 @@ pub(super) async fn oauth_connect_handler(
     headers: axum::http::HeaderMap,
     axum::extract::Path(provider_name): axum::extract::Path<String>,
 ) -> axum::response::Response {
-    crate::settings_oauth::oauth_connect(
-        State(state),
-        headers,
-        axum::extract::Path(provider_name),
-    )
-    .await
+    crate::settings_oauth::oauth_connect(State(state), headers, axum::extract::Path(provider_name))
+        .await
 }

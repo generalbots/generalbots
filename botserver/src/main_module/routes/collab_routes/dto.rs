@@ -373,5 +373,7 @@ pub(crate) fn sanitize_resource(ty: &str, id: &str) -> bool {
         && ty.len() <= 64
         && !id.trim().is_empty()
         && id.len() <= 255
-        && ty.chars().all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '-' || c == '_')
+        && ty
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == ':' || c == '-' || c == '_')
 }

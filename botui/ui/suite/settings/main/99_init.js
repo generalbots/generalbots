@@ -18,6 +18,7 @@
   var initWallpapers = S.initWallpapers;
   var applyWallpaper = S.applyWallpaper;
   var getWallpaper = S.getWallpaper;
+  var loadNotificationPreferences = S.loadNotificationPreferences;
   var showToast = S.showToast;
   var editUser = S.editUser;
   var deleteUser = S.deleteUser;
@@ -46,6 +47,7 @@ function init() {
   initOAuthLinking();
   initWallpapers();
   applyWallpaper(getWallpaper());
+  loadNotificationPreferences();
 }
 
 window.SettingsModule = {

@@ -12,7 +12,10 @@ pub async fn list_comments(
     Query(params): Query<CommentQuery>,
 ) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -72,7 +75,10 @@ pub async fn list_comments(
         reactions
             .entry(r.comment_id)
             .or_default()
-            .push(ReactionItem { emoji: r.emoji, user_id: r.user_id });
+            .push(ReactionItem {
+                emoji: r.emoji,
+                user_id: r.user_id,
+            });
     }
 
     let mut top: Vec<CommentItem> = Vec::new();
@@ -118,11 +124,38 @@ pub async fn list_comments(
     Ok(Json(top))
 }
 
+#[cfg(feature = "mail")]
+fn notification_email_enabled(conn: &mut PgConnection, user_id: &str, flag: &str) -> bool {
+    #[derive(QueryableByName)]
+    struct PrefRow {
+        #[diesel(sql_type = Nullable<Text>)]
+        pub(crate) value: Option<String>,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT preference_value::text AS value FROM user_preferences \
+         WHERE user_id::text = $1 AND preference_key = 'notifications' LIMIT 1",
+    )
+    .bind::<Text, _>(user_id)
+    .get_result::<PrefRow>(conn)
+    .ok();
+    let Some(row) = row else { return true };
+    let Some(value) = row.value else { return true };
+    let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&value) else {
+        return true;
+    };
+    parsed
+        .get(flag)
+        .and_then(|value| value.as_bool())
+        .unwrap_or(true)
+}
+
 /// `POST /api/collab/comments` — create a comment (or reply via parent_id).
-/// Deliver @mention notification emails (compiled only with the `mail`
-/// feature, which pulls in `lettre`). Runs on a blocking thread, is strictly
-/// fire-and-forget, and degrades to a warning log on any failure — never
-/// panics and never blocks the comment write.
+/// Deliver @mention notification emails through the platform notification
+/// sender (compiled only with the `mail` feature, which pulls in `lettre`).
+/// Runs on a blocking thread, is strictly fire-and-forget, and degrades to a
+/// warning log on any failure — never panics and never blocks the comment
+/// write.
 #[cfg(feature = "mail")]
 pub(crate) fn send_mention_emails(
     pool: botcore::shared::utils::DbPool,
@@ -133,25 +166,14 @@ pub(crate) fn send_mention_emails(
     mentions: Vec<String>,
     body: String,
 ) {
-    use base64::{engine::general_purpose, Engine as _};
-    use lettre::transport::smtp::authentication::Credentials;
-    use lettre::{Message, SmtpTransport, Transport};
-
-    #[derive(QueryableByName)]
-    struct AccountRow {
-        #[diesel(sql_type = Text)]
-        pub(crate) email: String,
-        #[diesel(sql_type = Nullable<Text>)]
-        pub(crate) display_name: Option<String>,
-        #[diesel(sql_type = diesel::sql_types::Integer)]
-        pub(crate) smtp_port: i32,
-        #[diesel(sql_type = Text)]
-        pub(crate) smtp_server: String,
-        #[diesel(sql_type = Text)]
-        pub(crate) username: String,
-        #[diesel(sql_type = Text)]
-        pub(crate) password_encrypted: String,
-    }
+    // Platform-owned sender only. Never resolve the author's or the
+    // recipient's `user_email_accounts` mailbox: notification mail must not
+    // leave through a personal Gmail/Outlook account, and delivery is simply
+    // disabled when the workspace has no notification sender configured.
+    let Some(sender) = super::notification_email::NotificationSender::configured() else {
+        warn!("mention email: no platform notification sender configured; delivery disabled");
+        return;
+    };
 
     let mut conn = match pool.get() {
         Ok(c) => c,
@@ -161,71 +183,52 @@ pub(crate) fn send_mention_emails(
         }
     };
 
-    // The comment author's active SMTP account (author_id is their email or
-    // user uuid — see collab_user_id). Prefer the primary account.
-    let account: AccountRow = match diesel::sql_query(
-        "SELECT uea.email, uea.display_name, uea.smtp_port, \
-         uea.smtp_server, uea.username, uea.password_encrypted \
-         FROM user_email_accounts uea \
-         JOIN users u ON u.id = uea.user_id \
-         WHERE (u.email = $1 OR u.id::text = $1) AND uea.is_active = true \
-         ORDER BY uea.is_primary DESC LIMIT 1",
+    #[derive(QueryableByName)]
+    struct UserRow {
+        #[diesel(sql_type = Text)]
+        pub(crate) id: String,
+        #[diesel(sql_type = Text)]
+        pub(crate) email: String,
+    }
+
+    // author_id is either the author's email or their user UUID (see
+    // collab_user_id). Resolve both forms so the author is never emailed
+    // about their own comment.
+    let author = diesel::sql_query(
+        "SELECT id::text AS id, email FROM users \
+         WHERE LOWER(email) = LOWER($1) OR id::text = $1 LIMIT 1",
     )
     .bind::<Text, _>(&author_id)
-    .get_result(&mut conn)
-    {
-        Ok(a) => a,
-        Err(e) => {
-            warn!("mention email: no active SMTP account for author: {e}");
-            return;
-        }
-    };
+    .get_result::<UserRow>(&mut conn)
+    .ok();
+    let author_user_id = author.as_ref().map(|row| row.id.clone());
+    let author_email = author.as_ref().map(|row| row.email.to_lowercase());
 
-    let password = match general_purpose::STANDARD.decode(&account.password_encrypted) {
-        Ok(bytes) => match String::from_utf8(bytes) {
-            Ok(s) => s,
-            Err(_) => {
-                warn!("mention email: invalid password encoding for account");
-                return;
-            }
-        },
-        // Legacy rows may store the password in clear text.
-        Err(_) => account.password_encrypted.clone(),
-    };
-
-    let from = match account.display_name.as_deref().filter(|n| !n.is_empty()) {
-        Some(name) => format!("{name} <{}>", account.email),
-        None => account.email.clone(),
-    };
-
-    // Resolve each mention token to a real user email, dedupe, skip the author.
-    let mut recipients: Vec<String> = Vec::new();
+    let mut recipients: Vec<UserRow> = Vec::new();
     let mut seen = std::collections::HashSet::new();
     for token in &mentions {
         let token = token.trim();
         if token.is_empty() || !seen.insert(token.to_lowercase()) {
             continue;
         }
-        #[derive(QueryableByName)]
-        struct EmailRow {
-            #[diesel(sql_type = Text)]
-            pub(crate) email: String,
-        }
-        let rows: Vec<EmailRow> = diesel::sql_query(
-            "SELECT email FROM users \
+        let rows = diesel::sql_query(
+            "SELECT id::text AS id, email FROM users \
              WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1) LIMIT 1",
         )
         .bind::<Text, _>(token)
-        .get_results(&mut conn)
+        .get_results::<UserRow>(&mut conn)
         .unwrap_or_default();
         if let Some(row) = rows.into_iter().next() {
-            let email = row.email.to_lowercase();
-            if email == account.email.to_lowercase() {
-                continue; // never email the author about their own comment
+            if author_user_id.as_deref() == Some(row.id.as_str()) {
+                continue;
             }
-            if !recipients.iter().any(|r| r.to_lowercase() == email) {
-                recipients.push(row.email);
+            if author_email.as_deref() == Some(row.email.to_lowercase().as_str()) {
+                continue;
             }
+            if recipients.iter().any(|r| r.id == row.id) {
+                continue;
+            }
+            recipients.push(row);
         }
     }
 
@@ -240,45 +243,15 @@ pub(crate) fn send_mention_emails(
     );
 
     for recipient in recipients {
-        let msg = match Message::builder()
-            .from(match from.parse() {
-                Ok(m) => m,
-                Err(e) => {
-                    warn!("mention email: invalid from address: {e}");
-                    continue;
-                }
-            })
-            .to(match recipient.parse() {
-                Ok(m) => m,
-                Err(e) => {
-                    warn!("mention email: invalid recipient: {e}");
-                    continue;
-                }
-            })
-            .subject(subject.clone())
-            .body(text.clone())
-        {
-            Ok(m) => m,
-            Err(e) => {
-                warn!("mention email: build failed: {e}");
-                continue;
-            }
-        };
-
-        let mailer = match SmtpTransport::relay(&account.smtp_server) {
-            Ok(b) => b
-                .port(u16::try_from(account.smtp_port).unwrap_or(587))
-                .credentials(Credentials::new(account.username.clone(), password.clone()))
-                .build(),
-            Err(e) => {
-                warn!("mention email: SMTP relay failed: {e}");
-                continue;
-            }
-        };
-
-        match mailer.send(&msg) {
-            Ok(_) => botlog::safe_info!("mention email sent to {recipient} (from {author_name})"),
-            Err(e) => warn!("mention email: send failed for {recipient}: {e}"),
+        if !notification_email_enabled(&mut conn, &recipient.id, "email_mentions") {
+            continue;
+        }
+        match sender.send(&recipient.email, &subject, &text) {
+            Ok(()) => botlog::safe_info!(
+                "mention email sent to {} (platform sender)",
+                recipient.email
+            ),
+            Err(e) => warn!("mention email: send failed for {}: {e}", recipient.email),
         }
     }
 }
@@ -290,14 +263,20 @@ pub async fn create_comment(
     Json(req): Json<CreateCommentBody>,
 ) -> Result<Json<CommentItem>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let body = req.body.trim().to_string();
     if body.is_empty() {
         return Err(err(StatusCode::BAD_REQUEST, "Comment body is required"));
     }
     if body.chars().count() > 8000 {
-        return Err(err(StatusCode::BAD_REQUEST, "Comment too long (max 8000 chars)"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Comment too long (max 8000 chars)",
+        ));
     }
 
     let author_id = collab_user_id(&user);
@@ -338,9 +317,18 @@ pub async fn create_comment(
     .bind::<Text, _>(&body)
     .bind::<Text, _>(&mentions_json)
     .get_result::<CreatedRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("insert failed: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("insert failed: {e}"),
+        )
+    })?;
 
-    botlog::safe_info!("collab comment created by {author_id} on {}:{}", req.resource_type, req.resource_id);
+    botlog::safe_info!(
+        "collab comment created by {author_id} on {}:{}",
+        req.resource_type,
+        req.resource_id
+    );
     if !mentions.is_empty() {
         info!("collab mentions: {:?}", mentions);
     }
