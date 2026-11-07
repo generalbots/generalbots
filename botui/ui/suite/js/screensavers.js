@@ -3,9 +3,8 @@
  * pipes / blank scenes. Starts after 10 minutes of inactivity on the desktop
  * shell; any input exits. Picker: window.GBScreensaver.use(name).
  *
- * The default scene, "gblogo", is an SVG animation built from the General
- * Bots identity: interlocking gear rings rotate around a robot head that
- * assembles itself, over a drifting deep-space backdrop.
+ * The default scene, "gblogo", shows the official General Bots logo artwork
+ * (served as /logo.svg) over a drifting deep-space backdrop.
  */
 (function () {
   if (window.GBScreensaver) return;
@@ -149,133 +148,21 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* General Bots emblem (SVG)                                           */
+  /* Official General Bots artwork                                       */
   /* ------------------------------------------------------------------ */
 
-  function gearPath(cx, cy, teeth, rOut, rIn) {
-    var d = "", step = Math.PI * 2 / teeth;
-    for (var i = 0; i < teeth; i++) {
-      var a = i * step;
-      var pts = [
-        [rIn, a],
-        [rOut, a + step * 0.20],
-        [rOut, a + step * 0.44],
-        [rIn, a + step * 0.64]
-      ];
-      for (var j = 0; j < pts.length; j++) {
-        var px = cx + pts[j][0] * Math.cos(pts[j][1]);
-        var py = cy + pts[j][0] * Math.sin(pts[j][1]);
-        d += (i === 0 && j === 0 ? "M" : "L") + px.toFixed(2) + " " + py.toFixed(2);
-      }
-    }
-    return d + "Z";
-  }
-
-  function satellite(cx, cy, teeth, rOut, rIn, delay) {
-    return '<g class="gb-ss-sat" style="transform-origin:' + cx + 'px ' + cy + 'px;animation-delay:' + delay + 's">' +
-      '<path d="' + gearPath(cx, cy, teeth, rOut, rIn) + '" fill="none" stroke="url(#gbssEdge)" ' +
-      'stroke-width="1.8" opacity="0.7"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + (rIn * 0.38).toFixed(1) + '" fill="none" ' +
-      'stroke="url(#gbssEdge)" stroke-width="1.5" opacity="0.8"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="2" fill="#8ff0c8" opacity="0.9"/>' +
-      "</g>";
-  }
-
-  function buildEmblem() {
+  function buildOfficialLogo() {
     var stage = document.createElement("div");
     stage.className = "gb-ss-stage";
 
-    var outerGear = gearPath(200, 200, 30, 178, 163);
-    var innerGear = gearPath(200, 200, 20, 148, 136);
-
-    var satMarkup =
-      satellite(200, 24, 10, 30, 20, 1.15) +
-      satellite(376, 200, 10, 30, 20, 1.3) +
-      satellite(200, 376, 10, 30, 20, 1.45) +
-      satellite(24, 200, 10, 30, 20, 1.6);
-
-    stage.innerHTML =
-      '<svg class="gb-ss-emblem" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<defs>' +
-          '<radialGradient id="gbssHalo" cx="50%" cy="50%" r="50%">' +
-            '<stop offset="0%" stop-color="rgba(212,245,5,0.28)"/>' +
-            '<stop offset="55%" stop-color="rgba(90,216,255,0.12)"/>' +
-            '<stop offset="100%" stop-color="rgba(0,0,0,0)"/>' +
-          "</radialGradient>" +
-          '<linearGradient id="gbssEdge" x1="0" y1="0" x2="1" y2="1">' +
-            '<stop offset="0%" stop-color="#d4f505"/>' +
-            '<stop offset="55%" stop-color="#8ff0c8"/>' +
-            '<stop offset="100%" stop-color="#5ad8ff"/>' +
-          "</linearGradient>" +
-          '<filter id="gbssGlow" x="-70%" y="-70%" width="240%" height="240%">' +
-            '<feGaussianBlur stdDeviation="4.5" result="b"/>' +
-            "<feMerge><feMergeNode in=\"b\"/><feMergeNode in=\"SourceGraphic\"/></feMerge>" +
-          "</filter>" +
-        "</defs>" +
-
-        '<circle class="gb-ss-halo" cx="200" cy="200" r="158" fill="url(#gbssHalo)"/>' +
-        '<circle class="gb-ss-orbit" cx="200" cy="200" r="196" fill="none" ' +
-          'stroke="url(#gbssEdge)" stroke-width="0.7" stroke-dasharray="1 9" opacity="0.55"/>' +
-        '<circle class="gb-ss-orbit gb-ss-orbit--inner" cx="200" cy="200" r="188" fill="none" ' +
-          'stroke="url(#gbssEdge)" stroke-width="0.6" stroke-dasharray="1 15" opacity="0.32"/>' +
-
-        '<g class="gb-ss-gear gb-ss-gear--outer">' +
-          '<path d="' + outerGear + '" fill="none" stroke="url(#gbssEdge)" stroke-width="1.5" opacity="0.5"/>' +
-        "</g>" +
-        '<g class="gb-ss-gear gb-ss-gear--inner">' +
-          '<path d="' + innerGear + '" fill="none" stroke="url(#gbssEdge)" stroke-width="1.3" opacity="0.42"/>' +
-        "</g>" +
-        satMarkup +
-
-        '<g class="gb-ss-robot">' +
-          '<g class="gb-ss-part gb-ss-part--antenna" style="animation-delay:0.15s">' +
-            '<line x1="200" y1="132" x2="200" y2="106" stroke="url(#gbssEdge)" stroke-width="3" stroke-linecap="round"/>' +
-            '<circle class="gb-ss-bulb" cx="200" cy="99" r="7" fill="#d4f505" filter="url(#gbssGlow)"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--ears" style="animation-delay:0.28s">' +
-            '<rect x="124" y="178" width="12" height="34" rx="6" fill="#0b1118" stroke="url(#gbssEdge)" stroke-width="2"/>' +
-            '<rect x="264" y="178" width="12" height="34" rx="6" fill="#0b1118" stroke="url(#gbssEdge)" stroke-width="2"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--head" style="animation-delay:0.45s">' +
-            '<rect x="138" y="132" width="124" height="124" rx="30" fill="rgba(8,12,18,0.9)" ' +
-              'stroke="url(#gbssEdge)" stroke-width="2.4"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--visor" style="animation-delay:0.7s">' +
-            '<rect x="150" y="156" width="100" height="58" rx="18" fill="#04070d" ' +
-              'stroke="rgba(212,245,5,0.35)" stroke-width="1.2"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--eyes" style="animation-delay:0.92s">' +
-            '<rect class="gb-ss-eye" x="164" y="174" width="24" height="20" rx="7" fill="#d4f505" filter="url(#gbssGlow)"/>' +
-            '<rect class="gb-ss-eye" x="212" y="174" width="24" height="20" rx="7" fill="#d4f505" filter="url(#gbssGlow)"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--mouth" style="animation-delay:1.08s">' +
-            '<rect x="168" y="224" width="64" height="18" rx="9" fill="none" ' +
-              'stroke="url(#gbssEdge)" stroke-width="1.6" opacity="0.85"/>' +
-            '<rect class="gb-ss-scanbar" x="186" y="228" width="10" height="10" rx="3" fill="#5ad8ff"/>' +
-          "</g>" +
-          '<g class="gb-ss-part gb-ss-part--bolts" style="animation-delay:1.22s">' +
-            '<circle cx="151" cy="145" r="2.4" fill="#8ff0c8"/>' +
-            '<circle cx="249" cy="145" r="2.4" fill="#8ff0c8"/>' +
-            '<circle cx="151" cy="243" r="2.4" fill="#8ff0c8"/>' +
-            '<circle cx="249" cy="243" r="2.4" fill="#8ff0c8"/>' +
-          "</g>" +
-        "</g>" +
-      "</svg>";
+    var img = document.createElement("img");
+    img.className = "gb-ss-emblem gb-ss-logo";
+    img.src = "/logo.svg";
+    img.alt = "General Bots";
+    img.decoding = "async";
+    stage.appendChild(img);
 
     return stage;
-  }
-
-  /* Measure each gear so the draw-in animation never leaves a dash gap. */
-  function primeDraw(root) {
-    var paths = root.querySelectorAll("path");
-    for (var i = 0; i < paths.length; i++) {
-      var len = 0;
-      try { len = paths[i].getTotalLength(); } catch (e) { len = 0; }
-      if (len > 0) {
-        paths[i].style.strokeDasharray = len + " " + len;
-        paths[i].style.setProperty("--gbss-len", String(len));
-      }
-    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -362,10 +249,9 @@
 
     var t0 = performance.now(), frame = null;
     if (current === "gblogo") {
-      var stage = buildEmblem();
+      var stage = buildOfficialLogo();
       var hint = overlay.querySelector(".gb-screensaver-hint");
       overlay.insertBefore(stage, hint);
-      primeDraw(stage);
       var mark = document.createElement("div");
       mark.className = "gb-screensaver-wordmark";
       mark.innerHTML = "<span>General Bots</span><small>system idle</small>";
