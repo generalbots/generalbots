@@ -37,17 +37,20 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Serve and audit the static desktop markup
         run: |
           set -euo pipefail
           # The auth gate is a runtime script: without its /api endpoints it
           # fail-closes and redirects to login. The static pre-check therefore
-          # removes only that script from a throwaway copy; the served-desktop
-          # job below audits the real gate against botserver.
+          # removes only that script from a throwaway copy and overrides the
+          # boot-time visibility:hidden gate; the served-desktop job below
+          # audits the real gate against botserver.
           rm -rf /tmp/a11y-static
           cp -a botui/ui /tmp/a11y-static
           sed -i 's#<script src="/suite/desktop-inline/04_auth_fullscreen.js"></script>##' \
+            /tmp/a11y-static/suite/desktop.html
+          sed -i 's#</head>#<style>html.gb-auth-gate body > * { visibility: visible !important; } html.gb-auth-gate::after { display: none !important; }</style></head>#' \
             /tmp/a11y-static/suite/desktop.html
           python3 -m http.server 3000 --directory /tmp/a11y-static >/tmp/suite-http.log 2>&1 &
           SERVER=$!
@@ -107,7 +110,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
