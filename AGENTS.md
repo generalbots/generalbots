@@ -14,8 +14,9 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
 | **Todos** | 📋 Update the todo list REGULARLY — after every completed step, when starting a new phase, and whenever priorities change. Long stretches without todo updates are forbidden |
 | **CDP control** | 🖥️ Browser automation MUST be fragmented: one short script = ONE action, print state, STOP. NEVER generate long all-in-one CDP scripts that batch many steps silently |
+| **Containers** | 🧱 Everything runs on **Incus** (`incus` CLI, `images:ubuntu/24.04`). ❌ NEVER document or script `lxc`/`lxd` as the container layer — LXC is not a supported runtime for us (`raw.lxc` in an `incus config set` is an Incus config key and stays). |
 | **License** | The project is **MIT** and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
-| **Diesel schema** | 🗄️ `table!`/`joinable!` live ONLY in the `botschema` crate (#1497). NEVER copy a table into a feature crate — re-export `pub use botschema::<table>;`. Change schema via a migration → `diesel migration run` → `diesel print-schema` → update `botschema` → commit. CI guard: `scripts/schema_guard.py` fails on any new non-canonical `table!`. |
+| **Diesel schema** | 🗄️ `table!`/`joinable!` live ONLY in the `botschema` crate (#1497). NEVER copy a table into a feature crate — re-export `pub use botschema::<table>;`. Change schema via a migration → `diesel migration run` → `diesel print-schema` → update `botschema` → commit. There is no guard script for this today: the rule is enforced in review. |
 
 ### Ports (quick reference)
 8080 = botserver API · 3000 = suite · 4000 = cloud · 5000 = login
@@ -41,7 +42,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 - ✅ `bottemplates/` ships source templates in the monorepo (reference material, not a bot's runtime source)
 - ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
 - 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
-- The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
+- The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors/`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
 
 ---
 
@@ -72,7 +73,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 
 ### Key Paths
 - **Binary:** `target/debug/botserver` (run from `botserver/` directory)
-- **Env file:** `botserver/.env`
+- **Env file:** `.env` at the repository root (git-ignored)
 - **Suite UI:** `botui/ui/suite/` · **Cloud UI:** `botui/ui/cloud/` · **Login UI:** `botui/ui/login/`
 - **Cloud API:** botserver `/api/cloud/*` · **Cloud fragment:** botserver `/cloud/partials/sidebar.html`
 
@@ -213,12 +214,12 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
     └── otro.gbdialog/                 # ...several .gbot inside one .gbai
 ```
 
-- **Discovery:** `botserver/src/main_module/drive_monitors.rs` scans `.gborg` buckets → lists `.gbai/` prefixes (workspaces) → extracts bot names from object keys `{workspace}.gbai/{bot}.gbdialog/file.bas` → creates `bots` rows (one per bot).
+- **Discovery:** `botserver/src/main_module/drive_monitors/` scans `.gborg` buckets → lists `.gbai/` prefixes (workspaces) → extracts bot names from object keys `{workspace}.gbai/{bot}.gbdialog/file.bas` → creates `bots` rows (one per bot).
 - **Workspace ↔ Drive mismatch:** the SaaS cloud UI (`cloud_workspaces` table) is populated only by signup (`create_cloud_workspace_inner`) or the "New Workspace" API. A `.gborg` uploaded directly via `mc` gets its org + bots auto-created by drive_monitor but has **no `cloud_workspaces` row** (e.g. `salesianos.gborg` exists in Drive but salesianos does not appear in the cloud orgs page). Renaming a workspace row does NOT rename Drive bots.
 
 ### Vault credential retrieval (canonical — reuse everywhere)
 ```bash
-source <(grep -E '^VAULT_' ${WORKSPACE}/botserver/.env)   # ONLY VAULT_* variables
+source <(grep -E '^VAULT_' ${WORKSPACE}/.env)   # ONLY VAULT_* variables
 export VAULT_ADDR=$VAULT_ADDR
 export VAULT_CACERT=${WORKSPACE}/botserver-stack/conf/system/certificates/ca/ca.crt
 export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || echo $VAULT_TOKEN)
@@ -405,7 +406,7 @@ cat /opt/gbo/data/default.gbai/default.gbdialog/start.bas
 grep -E "Registered tool|Compiled.*start" botserver.log
 # Clean reset from scratch
 killall -9 botserver vault postgres valkey minio qdrant zitadel 2>/dev/null; sleep 2
-rm -rf botserver-stack/ botserver/botserver-stack/ .env botserver/.env botserver.log 2>/dev/null
+rm -rf botserver-stack/ botserver/botserver-stack/ ./work/ botserver/work/ .env botserver.log botserver/botserver.log botui.log botserver/botui.log botmodels.log botserver/botmodels.log
 BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info \
   nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 ```
@@ -519,15 +520,13 @@ under mutually incompatible Rust types.
 DB → commit the migration and the `botschema` change together. See
 `botschema/README.md` for the full walkthrough.
 
-**Enforcement:** `scripts/schema_guard.py` runs in CI and fails on any new
-`table!` outside `botschema` (baseline: `issues/schema/table_baseline.json`,
-which only moves down). `scripts/schema_drift_inventory.py` regenerates the
-checked-in classification at `issues/schema/schema_drift.md`.
+**Enforcement:** no automated guard exists. `table!` outside `botschema` is
+caught in review; if you find one, move it and re-export.
 
 ## Absolute Prohibitions
 
 - NEVER search the `/target` folder — it is binary compiled
-- ❌ NEVER build in release mode / use `--release` — ONLY debug builds
+- ❌ NEVER build in release mode for local development / server work — use debug builds. The **only** exception is the desktop packaging pipeline (`.github/workflows/desktop-binaries.yml`), which builds `--release` for the installers.
 - ❌ NEVER run `cargo build` — use `cargo check` for syntax verification
 - ❌ NEVER run `cargo check` synchronously — always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ NEVER compile directly for production / copy binaries manually — ALWAYS push + CI/CD
@@ -701,7 +700,7 @@ grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 ```
 
 ### Vibe Testing — REUSE the Same Project (VM disk space)
-Each Vibe project raises its own Incus VM (`incus launch images:ubuntu/24.04`, see `botserver/crates/botvibe/src/vm_incus.rs`). Every new project spawns a fresh Ubuntu container that consumes host disk — repeated "New Project" runs during testing stack up VMs and can exhaust the disk (this machine hit **100% full**). **When testing Vibe, reuse an existing project instead of creating a new one.** Only create a new project when a clean, isolated VM is genuinely required, and clean up after: `incus delete --force <container>` (or reuse the VM). Before spawning more VMs check `df -h /` and `incus list`.
+Each Vibe project raises its own Incus VM (`incus launch images:ubuntu/24.04`, see `botserver/crates/botvibe/src/vm_incus/`). Every new project spawns a fresh Ubuntu container that consumes host disk — repeated "New Project" runs during testing stack up VMs and can exhaust the disk (this machine hit **100% full**). **When testing Vibe, reuse an existing project instead of creating a new one.** Only create a new project when a clean, isolated VM is genuinely required, and clean up after: `incus delete --force <container>` (or reuse the VM). Before spawning more VMs check `df -h /` and `incus list`.
 
 ---
 
@@ -798,11 +797,11 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 **Design checklist:** fits existing patterns? migrations? new API endpoints? affects existing features? error cases?
 
 ### Step 2: Implement (pattern)
-1. **Types** in `botlib/src/models.rs` if shared across crates (`#[derive(Debug, Clone, Serialize, Deserialize)]`)
-2. **Migration** `botserver/migrations/YYYY-MM-DD-HHMMSS_feature_name/up.sql` (`id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`)
-3. **Diesel model** in `botserver/src/core/shared/models/core.rs` (`#[derive(Queryable, Insertable)] #[diesel(table_name = ...)]`)
+1. **Types** in `botlib/src/models/` (one module per domain) if shared across crates (`#[derive(Debug, Clone, Serialize, Deserialize)]`)
+2. **Migration** `botserver/migrations/{version}-{feature_name}/up.sql`, following the existing numbering (`6.8.9-browser-audit`) (`id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`)
+3. **Diesel model** in `botserver/crates/botcore/src/shared/models/core.rs` (`#[derive(Queryable, Insertable)] #[diesel(table_name = ...)]`)
 4. **Business logic** `pub async fn create_feature(state: &AppState, ...) -> Result<NewFeature, Error>`
-5. **API endpoint** in `botserver/src/api/routes.rs` (handler with `Extension<Arc<AppState>>` + `Json` payload)
+5. **API endpoint** in `botserver/src/main_module/routes/` (handler with `Extension<Arc<AppState>>` + `Json` payload, registered next to its siblings)
 
 **Security checklist:** input validation (`sanitize_identifier`) · auth required? · authorization checks? · rate limiting? · errors sanitized (`log_and_sanitize`)? · no `unwrap()`/`expect()`?
 
@@ -836,7 +835,7 @@ Requirements when adding/changing an endpoint or feature:
 6. **RBAC-aware exposure:** mark admin-only capabilities (`admin_only: true` on the command, or a row in `rbac_api_permissions` for endpoint prefixes). The catalog filters admin-only entries for non-admin users via `resolve_user_role` — the injected manifest shortens per role, and the executor enforces the same rule server-side. Never rely on prompt text alone for authorization.
 
 ### Step 6: Document
-Add to `botbook/src/features/` if user-facing; module README if developer-facing; inline comments; update API docs.
+Add to the matching chapter under `botbook/src/` if user-facing; module README if developer-facing; inline comments; update API docs.
 
 ### Step 7: Commit & Deploy
 ```bash
@@ -1065,7 +1064,7 @@ sshpass -p "$PASS" ssh root@<SRV1_HOST> "sudo incus exec bot -- systemctl stop b
 3. **ALWAYS backup files to `/tmp` before editing** — `cp /path/to/file /tmp/$(basename /path/to/file).bak-$(date +%Y%m%d%H%M%S)`
 
 ### Infrastructure Overview
-Ubuntu LTS host · **Incus** (LXC) containers · Base `/opt/gbo/` · Data `/opt/gbo/data` · Bin `/opt/gbo/bin` · Conf `/opt/gbo/conf` · Logs `/opt/gbo/logs`
+Ubuntu LTS host · **Incus** containers (never LXC/LXD directly) · Base `/opt/gbo/` · Data `/opt/gbo/data` · Bin `/opt/gbo/bin` · Conf `/opt/gbo/conf` · Logs `/opt/gbo/logs`
 
 ### Container Management
 ```bash
@@ -1141,7 +1140,7 @@ sudo incus file push /tmp/config.toml email/opt/gbo/conf/config.toml
 ```bash
 export VAULT_ADDR=https://localhost:8200
 export VAULT_CACERT=${WORKSPACE}/botserver-stack/conf/system/certificates/ca/ca.crt
-export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || grep VAULT_TOKEN ${WORKSPACE}/botserver/.env | cut -d= -f2)
+export VAULT_TOKEN=$(cat /tmp/vault-token-gb 2>/dev/null || grep VAULT_TOKEN ${WORKSPACE}/.env | cut -d= -f2)
 VAULT_BIN=${WORKSPACE}/botserver-stack/bin/vault/vault
 DRIVE_ACCESSKEY=$($VAULT_BIN kv get -field=accesskey secret/gbo/drive)
 DRIVE_SECRET=$($VAULT_BIN kv get -field=secret secret/gbo/drive)
@@ -1291,9 +1290,10 @@ When `desktop-local` is active:
 
 **Preparing offline installers:**
 ```bash
-# Download components and compute SHA256 for 3rdparty.toml
-./scripts/compute-desktop-checksums.sh windows   # or: linux
-# Place downloaded files in botserver/botserver-installers/
+# Checksums live in botserver/3rdparty.toml (sha256 per component).
+# Put the archives in the cache directory the provisioner reads:
+#   ./botserver-installers/  (relative to the working directory)
+# or set BOTSERVER_INSTALLERS_PATH to point elsewhere.
 ```
 
 ### Product Configuration
@@ -1323,20 +1323,44 @@ When `desktop-local` is active:
 **NSIS:** Portuguese BR + English, language selector, per-machine install.
 **WiX/MSI:** pt-BR + en-US.
 **deb:** depends on `libssl3`, `libwebkit2gtk-4.1-0`.
+**rpm:** depends on `openssl-libs`, `webkit2gtk4.1`, `libpq`.
+Both are built by CI (`--bundles deb,rpm,appimage`); `cargo tauri build` locally
+produces the same set under `botapp/target/release/bundle/`.
 
-### Build Script (`scripts/build-desktop-local.sh`)
+### Build Pipeline (CI — `.github/workflows/desktop-binaries.yml`)
 
-```bash
-./scripts/build-desktop-local.sh --target windows   # or: linux, all
-```
+The workflow is the build; the Linux job runs on `ubuntu-22.04` and does:
 
-Steps:
 1. `cargo build -p botserver --release --no-default-features --features desktop-local`
-2. Copy botserver binary to `botapp/binaries/botserver-{triple}.exe`
-3. Verify `botserver/botserver-installers/` has bundled third-party binaries
-4. `cargo tauri build --features desktop-local --config tauri.desktop-local.conf.json`
+2. `cargo build -p botui --release`
+3. `cargo build -p botapp --release --features desktop-local,custom-protocol`
+4. Fetch the vendored drive binaries (`drive-bin-v2` release) and the BotModels
+   pythonbox into `dist/installers/`
+5. `desktop/linux/package.sh <tag> target/release dist dist/installers` → tarball
+6. `scripts/build-self-extractor.py` → one executable `generalbots` with the
+   payload appended as `[payload.tar.zst][magic+offset+length+sha256]`
+7. `cargo tauri build --bundles deb,rpm,appimage` (from `botapp/`, `externalBin`
+   prepared as `binaries/botserver-<triple>`) → `.deb`, `.rpm`, `.AppImage`
+8. First-run smoke test: unpack, `./start.sh --provision` on a clean `$HOME`,
+   assert every component reaches `ready`, then start the sidecar and check
+   `/api/product`, `/suite/desktop.html` and a drive upload
 
-Output: `botapp/target/release/bundle/` (MSI, NSIS .exe, deb, AppImage).
+The Windows job mirrors steps 1–6 and adds `cargo tauri build --bundles msi,nsis`.
+Both packaging steps are `continue-on-error`: a bundler regression must not hide
+the tarball, the single file or the raw binaries from the release, so the
+release job warns about a missing package instead of failing.
+
+Published Linux assets: `generalbots-linux-x86_64.tar.gz` (stable alias),
+`generalbots-<tag>-linux-x86_64.tar.gz`, `generalbots` (self-extracting single
+file), `generalbots-linux-x86_64.deb`, `.rpm`, `.AppImage`,
+`generalbots-linux-x86_64` (app), `botserver-linux-x86_64`, and
+`SHA256SUMS-linux`. Windows publishes `generalbots.exe`, `.msi` and
+`-setup.exe` (NSIS) plus the raw exes.
+
+**Single-file run is the supported "grab and go" path:** download `generalbots`,
+`chmod +x`, run. It unpacks itself under `~/.local/share/generalbots` and opens
+the setup wizard; no tarball, no `install.sh`. It is still a glibc binary: it
+needs `libwebkit2gtk-4.1-0`, `libpq5` and `libssl3` on the host.
 
 ### Testing the Desktop-Local Edition (Dev Mode)
 

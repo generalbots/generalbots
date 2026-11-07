@@ -4,6 +4,7 @@
       "nsis",
       "msi",
       "deb",
+      "rpm",
       "appimage"
     ],
     "resources": {
@@ -42,6 +43,9 @@
         ],
         "section": "net",
         "priority": "optional"
+      },
+      "rpm": {
+        "depends": ["openssl-libs", "webkit2gtk4.1", "libpq"]
       },
       "appimage": {
         "bundleMediaFramework": false

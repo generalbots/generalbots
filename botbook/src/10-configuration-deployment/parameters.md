@@ -456,7 +456,7 @@ rag-mode,hybrid
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
 | `sandbox-enabled` | Enable code sandbox | `true` | Boolean |
-| `sandbox-runtime` | Isolation backend (lxc/docker/firecracker/process) | `lxc` | String |
+| `sandbox-runtime` | Isolation backend (process/lxc/docker/firecracker) | `process` | String |
 | `sandbox-timeout` | Maximum execution time | `30` | Seconds |
 | `sandbox-memory-mb` | Memory limit in megabytes | `256` | MB |
 | `sandbox-cpu-percent` | CPU usage limit | `50` | Percent |
@@ -467,7 +467,7 @@ rag-mode,hybrid
 ### Example: Python Sandbox
 ```csv
 sandbox-enabled,true
-sandbox-runtime,lxc
+sandbox-runtime,process
 sandbox-timeout,60
 sandbox-memory-mb,512
 sandbox-cpu-percent,75
@@ -475,6 +475,9 @@ sandbox-network,false
 sandbox-python-packages,numpy,pandas,requests,matplotlib
 sandbox-allowed-paths,/data,/tmp,/uploads
 ```
+
+Set `sandbox-runtime,lxc` (or `docker`, `firecracker`) only when that backend
+is installed on the host; `process` is the default and needs nothing extra.
 
 ## SSE Streaming Parameters
 
@@ -607,7 +610,7 @@ rag-mode,standard
 ### For Code Execution
 ```csv
 sandbox-enabled,true
-sandbox-runtime,lxc
+sandbox-runtime,process
 sandbox-timeout,30
 sandbox-memory-mb,512
 sandbox-network,false

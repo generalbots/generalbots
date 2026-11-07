@@ -740,21 +740,26 @@ lxc exec <tenant>-<component> -- journalctl -xe
 If you see errors like `error while loading shared libraries: libpq.so.5`, install the runtime dependencies:
 
 ```bash
-# Quick install (recommended) - run on HOST system
-curl -fsSL https://raw.githubusercontent.com/generalbots/generalbots/main/scripts/install-dependencies.sh | sudo bash
+# Debian/Ubuntu
+sudo apt-get install -y libpq5 libssl3 \
+    libzstd1 liblz4-1 libxml2 libgssapi-krb5-2 libsystemd0 zlib1g \
+    ca-certificates curl wget
 
-# Or manual install (Debian/Ubuntu)
-sudo apt-get install -y libpq5 libssl3 liblzma5 zlib1g ca-certificates curl wget
-
-# Or manual install (Fedora/RHEL)
-sudo dnf install -y libpq openssl-libs xz-libs zlib ca-certificates curl wget
+# Fedora/RHEL
+sudo dnf install -y libpq openssl-libs \
+    libzstd lz4-libs libxml2 krb5-libs systemd-libs zlib \
+    ca-certificates curl wget
 ```
+
+The desktop shell additionally needs `libwebkit2gtk-4.1-0` (Debian/Ubuntu) or
+`webkit2gtk4.1` (Fedora/RHEL). LXC/LXD is not required — the code sandbox runs
+in-process by default.
 
 For development/building from source:
 
 ```bash
 # Install development dependencies
-sudo apt-get install -y libpq-dev libssl-dev liblzma-dev
+sudo apt-get install -y libpq-dev libssl-dev
 ```
 
 ---

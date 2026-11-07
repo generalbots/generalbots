@@ -1,4 +1,13 @@
 #!/bin/bash
+# DEV-DEPENDENCIES.sh - Build dependencies for General Bots
+#
+# Superset of DEPENDENCIES.sh: it installs the runtime libraries first (by
+# calling that script) and then adds what is only needed to COMPILE:
+# compiler/linker (clang, lld, mold), -dev headers, protobuf, GTK/WebKitGTK
+# development packages for the desktop shell, Rust, and the cargo audit tools.
+#
+# Running bots from a published binary? DEPENDENCIES.sh alone is enough.
+# Usage: sudo ./DEV-DEPENDENCIES.sh
 set -e
 [ "$EUID" -ne 0 ] && { echo "Run as root (use sudo)"; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

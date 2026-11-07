@@ -22,6 +22,35 @@ Include the affected component, a reproduction and the observed impact. Do not
 test against customer tenants or third-party hosts; tests against our own
 infrastructure follow the rules of engagement in the internal tracker.
 
+## Third-Party Runtime Components
+
+The services botserver provisions on first boot — PostgreSQL, Valkey, MinIO and
+`mc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, LiveKit, NocoDB, llama.cpp — are
+pinned in `botserver/3rdparty.toml` by `version`, `url` and `sha256`. That file
+is a security boundary: it decides which binaries a user's machine downloads and
+then executes. It applies to the server and to the desktop edition alike.
+
+- ✅ **Update a pin as soon as upstream ships a security release**, without
+  waiting for a feature reason to touch the file. Review the file monthly and on
+  every upstream CVE that names one of these components.
+- ✅ Change `url` and `sha256` together, and recompute the checksum from the
+  artifact you actually downloaded (`sha256sum <file>`); a checksum carried over
+  from a previous release silently disables the verification the provisioner
+  performs.
+- ✅ Read the upstream release notes before bumping, and record any residual or
+  accepted risk in this file — the same way the `zip` and `accelerate` entries
+  below do — instead of leaving it undocumented.
+- ✅ Prefer the smallest surface that fixes the issue: bump the component, keep
+  the URL on the vendor's own release page, and keep the pinned release
+  immutable.
+- ❌ Never point a component at `latest`, a branch, or an unpinned URL. A
+  floating tag makes the build unreproducible and unreviewable.
+- ❌ Never bypass a checksum mismatch. The provisioner aborts on mismatch by
+  design; fix the pin, do not work around it.
+
+Desktop components resolved from a cache directory follow the same rule: an
+archive is accepted only when its `sha256` matches the manifest.
+
 ---
 
 ## Supported Versions

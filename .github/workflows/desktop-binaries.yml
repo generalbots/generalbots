@@ -148,6 +148,62 @@ jobs:
           ./dist/generalbots --version
           ./dist/generalbots --verify
 
+      # Distro installers: .deb, .rpm and .AppImage from the same binaries.
+      # Best effort on purpose — a bundler regression must never hide the
+      # tarball and the single-file executable from the release.
+      - name: Install Tauri bundler
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Package deb, rpm and AppImage
+        continue-on-error: true
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends rpm libfuse2
+          # bundle.externalBin resolves with the target-triple suffix, and
+          # bundle.resources globs are relative to botapp/.
+          mkdir -p botapp/binaries botserver/botserver-installers
+          cp target/release/botserver \
+            botapp/binaries/botserver-x86_64-unknown-linux-gnu
+          cp -a dist/installers/. botserver/botserver-installers/
+          cd botapp
+          cargo tauri build \
+            --features desktop-local,custom-protocol \
+            --config tauri.desktop-local.conf.json \
+            --bundles deb,rpm,appimage
+
+      - name: Collect Linux packages
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          shopt -s nullglob
+          collect() {
+            local glob="$1" stable="$2" versioned="$3"
+            for f in $glob; do
+              cp "$f" "dist/$stable"
+              cp "$f" "dist/$versioned"
+              return 0
+            done
+            echo "::warning::no package matched $glob — $stable will not be published"
+            return 0
+          }
+          collect "target/release/bundle/deb/*.deb botapp/target/release/bundle/deb/*.deb" \
+            generalbots-linux-x86_64.deb "generalbots-${TAG}-linux-x86_64.deb"
+          collect "target/release/bundle/rpm/*.rpm botapp/target/release/bundle/rpm/*.rpm" \
+            generalbots-linux-x86_64.rpm "generalbots-${TAG}-linux-x86_64.rpm"
+          collect "target/release/bundle/appimage/*.AppImage botapp/target/release/bundle/appimage/*.AppImage" \
+            generalbots-linux-x86_64.AppImage "generalbots-${TAG}-linux-x86_64.AppImage"
+          cd dist
+          for f in generalbots-linux-x86_64.deb "generalbots-${TAG}-linux-x86_64.deb" \
+                   generalbots-linux-x86_64.rpm "generalbots-${TAG}-linux-x86_64.rpm" \
+                   generalbots-linux-x86_64.AppImage "generalbots-${TAG}-linux-x86_64.AppImage"; do
+            if [ -f "$f" ]; then
+              sha256sum "$f" >> SHA256SUMS-linux
+            fi
+          done
+          ls -lh dist
+
       # A published installer is only as good as its first run. This unpacks the
       # tarball built above on a clean runner, installs it, provisions the stack
       # over the network and waits for the suite — the same sequence a user runs,
@@ -280,6 +336,45 @@ jobs:
       - name: Build desktop shell
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
+      # MSI/NSIS from the same binaries. Best effort, same reasoning as Linux:
+      # a bundler problem must not hide the exe binaries from the release.
+      - name: Install Tauri bundler
+        shell: pwsh
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Package MSI and NSIS installers
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $triple = "x86_64-pc-windows-msvc"
+          New-Item -ItemType Directory -Force botapp\binaries | Out-Null
+          Copy-Item target\release\botserver.exe "botapp\binaries\botserver-$triple.exe"
+          New-Item -ItemType Directory -Force botserver\botserver-installers | Out-Null
+          Push-Location botapp
+          cargo tauri build --features desktop-local,custom-protocol --config tauri.desktop-local.conf.json --bundles msi,nsis
+          Pop-Location
+
+      - name: Collect Windows installers
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          $msi = Get-ChildItem -Path "target\release\bundle\msi\*.msi","botapp\target\release\bundle\msi\*.msi" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if ($msi) {
+            Copy-Item $msi.FullName "dist\generalbots-x64.msi"
+            Copy-Item $msi.FullName "dist\generalbots-$tag-windows-x64.msi"
+          } else {
+            Write-Warning "no MSI was produced by the bundler"
+          }
+          $setup = Get-ChildItem -Path "target\release\bundle\nsis\*.exe","botapp\target\release\bundle\nsis\*.exe" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "*setup*" } | Select-Object -First 1
+          if ($setup) {
+            Copy-Item $setup.FullName "dist\generalbots-x64-setup.exe"
+            Copy-Item $setup.FullName "dist\generalbots-$tag-windows-x64-setup.exe"
+          } else {
+            Write-Warning "no NSIS installer was produced by the bundler"
+          }
+
       - name: Assemble release files
         shell: pwsh
         run: |
@@ -290,6 +385,14 @@ jobs:
           Get-FileHash dist/*.exe -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash)  $([System.IO.Path]::GetFileName($_.Path))" } |
             Out-File dist/SHA256SUMS-windows.txt -Encoding ascii
+
+      - name: Record installer checksums
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem -Path "dist\*.msi","dist\*-setup.exe" -ErrorAction SilentlyContinue) {
+            "$((Get-FileHash $f.FullName -Algorithm SHA256).Hash)  $($f.Name)" |
+              Out-File dist\SHA256SUMS-windows.txt -Encoding ascii -Append
+          }
 
       # #1633 — same trailer format on Windows. The zstd CLI is installed
       # here because the payload builder shells out to it.
@@ -348,6 +451,16 @@ jobs:
           grep -qE "  generalbots-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
           grep -qE "  generalbots-${TAG}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
           (cd dist && sha256sum -c SHA256SUMS-linux --ignore-missing)
+          # Distro packages are best effort: report them instead of failing the
+          # release, because the tarball and the single file must keep shipping.
+          for f in generalbots-linux-x86_64.deb generalbots-linux-x86_64.rpm \
+                   generalbots-linux-x86_64.AppImage; do
+            if [ -f "dist/$f" ]; then
+              echo "package present: $f"
+            else
+              echo "::warning::$f was not produced by the bundler"
+            fi
+          done
           echo "stable alias and both checksums are present"
 
       - name: Publish release assets
@@ -398,12 +511,28 @@ jobs:
             (the app with the stack appended: verify with `--verify`, unpack
             with `--extract-only`), `SHA256SUMS-linux`, and the raw
             `generalbots`/`botserver` binaries for debugging.
+
+            Distro packages (same binaries, bundled by Tauri):
+
+            - `generalbots-linux-x86_64.deb` — Debian/Ubuntu:
+              `sudo apt install ./generalbots-linux-x86_64.deb`
+            - `generalbots-linux-x86_64.rpm` — Fedora/RHEL:
+              `sudo dnf install ./generalbots-linux-x86_64.rpm`
+            - `generalbots-linux-x86_64.AppImage` — any glibc distro:
+              `chmod +x generalbots-linux-x86_64.AppImage && ./generalbots-linux-x86_64.AppImage`
+              (needs FUSE 2; otherwise run it with `--appimage-extract-and-run`)
+
+            The packages depend on WebKitGTK 4.1 and libpq on the host, exactly
+            like the tarball.
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS-linux
             dist/generalbots
             dist/generalbots-linux-x86_64
             dist/botserver-linux-x86_64
+            dist/*.deb
+            dist/*.rpm
+            dist/*.AppImage
           fail_on_unmatched_files: false
 
   release-windows:
@@ -442,4 +571,6 @@ jobs:
             dist/botserver-x64.exe
             dist/botui-x64.exe
             dist/SHA256SUMS-windows.txt
+            dist/*.msi
+            dist/*-setup.exe
           fail_on_unmatched_files: false

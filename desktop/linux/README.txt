@@ -30,6 +30,20 @@ Install and run
   ./install.sh              # installs into ~/.local/opt/general-bots
   general-bots              # first run opens the setup wizard
 
+Distro packages
+---------------
+The release also ships the same binaries packaged per distro (no unpacking):
+
+  Debian/Ubuntu:  sudo apt install ./generalbots-linux-x86_64.deb
+  Fedora/RHEL:    sudo dnf install ./generalbots-linux-x86_64.rpm
+  Any glibc:      chmod +x generalbots-linux-x86_64.AppImage
+                  ./generalbots-linux-x86_64.AppImage
+
+  Single file:    chmod +x generalbots && ./generalbots
+
+The AppImage uses the host WebKitGTK 4.1 and needs FUSE 2; use
+`--appimage-extract-and-run` where FUSE is unavailable.
+
 A truncated download extracts without `generalbots` and `install.sh`; start.sh
 and install.sh refuse to run in that case and print the re-download command.
 

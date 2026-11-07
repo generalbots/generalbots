@@ -77,7 +77,7 @@ service user to `incus-admin`, starts the daemon, runs `incus admin init
 --minimal` when no storage pool exists, and prints the re-login/restart
 reminder.
 
-> ⚠️ **Common Error**: If you see `error while loading shared libraries: libpq.so.5`, install `libpq5` (Debian/Ubuntu) or `libpq` (Fedora/RHEL).
+> ⚠️ **Common Error**: If you see `error while loading shared libraries: libpq.so.5`, run `./PROD-DEPENDENCIES.sh --check` — it names the exact missing library and the package for this host release. On a minimal server image the second failure is usually `libsystemd.so.0` from the provisioned Valkey.
 
 ## System Requirements
 
@@ -89,6 +89,27 @@ reminder.
 | **CPU** | 1 core | 2+ cores |
 | **GPU** | None | RTX 3060+ (12GB VRAM) for local LLM |
 
+## Distribution Packages
+
+Each release publishes the same desktop edition (Chat + Drive) in four shapes,
+built from the same binaries by `.github/workflows/desktop-binaries.yml`:
+
+| Package | Install |
+|---------|---------|
+| `generalbots-linux-x86_64.deb` | `sudo apt install ./generalbots-linux-x86_64.deb` |
+| `generalbots-linux-x86_64.rpm` | `sudo dnf install ./generalbots-linux-x86_64.rpm` |
+| `generalbots-linux-x86_64.AppImage` | `chmod +x generalbots-linux-x86_64.AppImage && ./generalbots-linux-x86_64.AppImage` |
+| `generalbots-x64.msi` / `generalbots-x64-setup.exe` | Windows: double-click |
+
+The `.deb` declares dependencies on `libssl3` and `libwebkit2gtk-4.1-0`; the
+`.rpm` declares `openssl-libs`, `webkit2gtk4.1` and `libpq` (see
+`botapp/tauri.desktop-local.conf.json`). The AppImage still uses the host
+WebKitGTK — it does not bundle it — and needs FUSE 2, or can be started with
+`--appimage-extract-and-run`.
+
+The single self-extracting `generalbots` executable is also published: one file,
+no package manager, no unpack step.
+
 ## Quick Start
 
 ```bash
@@ -97,77 +118,111 @@ reminder.
 
 The bootstrap process automatically:
 1. Detects your system (OS/architecture)
-2. Creates `botserver-stack/` directory structure
-3. Downloads PostgreSQL, Drive, Cache, LLM server
-4. Initializes database and storage
-5. Deploys default bot
-6. Starts all services
+2. Creates the `botserver-stack/` directory structure
+3. Downloads the components pinned in `botserver/3rdparty.toml` — PostgreSQL,
+   Valkey, MinIO and `mc`, Qdrant, Vault, Zitadel, Caddy, Stalwart, llama.cpp
+   (the last one is skipped when the wizard is given a hosted provider)
+4. Initializes database, object storage and secrets in Vault
+5. Deploys the default bot
+6. Starts the services
+
+The desktop edition runs the same sequence headlessly as
+`./start.sh --provision`, printing one `GBWIZARD:{...}` line per component.
 
 **First run takes 2-5 minutes.**
 
 ## Using Existing Services
 
-If you have existing infrastructure, configure it in your bot's `config.csv`:
+The platform components are not configured in `config.csv`. Their endpoints and
+credentials live in Vault, one path per service, seeded on first boot:
 
-```csv
-name,value
-database-url,postgres://myuser:mypass@myhost:5432/mydb
-drive-server,http://my-drive:9000
-drive-accesskey,my-access-key
-drive-secret,my-secret-key
-```
+| Path | Fields |
+|------|--------|
+| `secret/gbo/tables` | `host`, `port`, `database`, `username`, `password`, `url` |
+| `secret/gbo/drive` | `host`, `port`, `accesskey`, `secret`, `bucket`, `backend` |
+| `secret/gbo/cache` | `host`, `port`, `password`, `url` |
+| `secret/gbo/llm` | `url`, `model`, `openai_key` |
+
+Point those at your own instances with `vault kv put` before the first start.
+Per-bot settings (`server-port`, `llm-model`, …) do go in the bot's
+`config.csv` — see [config.csv Format](../10-configuration-deployment/config-csv.md).
 
 ## Default Ports
 
-| Service | Port | Config Key |
-|---------|------|------------|
-| UI Server | 8080 | `server-port` |
-| PostgreSQL | 5432 | `DATABASE_URL` |
-| Drive API | 9000 | `DRIVE_SERVER` |
-| Drive Console | 9001 | - |
-| LLM Server | 8081 | internal |
-| Embedding | 8082 | `embedding-url` |
-| Cache | 6379 | Internal |
+| Service | Port |
+|---------|------|
+| botui (suite) | 3000 |
+| botui (cloud) | 4000 |
+| botui (login) | 5000 |
+| botserver (API + WebSocket) | 8080 |
+| PostgreSQL | 5432 |
+| Valkey | 6379 |
+| Drive API | 9100 |
+| Drive console | 9101 |
+| llama.cpp (chat) | 8081 |
+| llama.cpp (embeddings) | 8082 |
+| BotModels | 8085 |
+| Vault | 8200 |
+| Qdrant | 6333 |
+| Zitadel | 8300 |
 
 ## Verify Installation
 
 ```bash
-# Check services
-./botserver status
+# Component status (requires the component name — no bare `status`)
+./botserver list
+./botserver status tables
 
-# Test database
-psql $DATABASE_URL -c "SELECT version();"
+# API health — the endpoint that answers without a token
+curl -s http://localhost:8080/health
 
-# Test LLM
-curl http://localhost:8081/v1/models
-
-# Open UI
-open http://localhost:9000
+# LLM (only when the local runtime was installed)
+curl -s http://localhost:8081/v1/models
 ```
+
+The component CLI is `botserver list | status <component> | start | stop |
+restart | install <component> | remove <component>` (and `rotate-secret`,
+`vault`, `security <fix|status>`). Component logs land in
+`botserver-stack/logs/`.
 
 ## Bot Deployment
 
-Bots deploy to object storage (not local filesystem):
+Bots live in object storage, not on the local filesystem. The bucket is the
+tenant (`{org}.gborg`); a workspace prefix (`{workspace}.gbai/`) holds one or
+more bots as sibling `{bot}.gbot`, `{bot}.gbdialog`, `{bot}.gbkb` and
+`{bot}.gbdrive` directories:
 
-```bash
-mybot.gbai → creates 'mybot' bucket in drive
+```
+cristo.gborg/
+└── cristo.gbai/
+    ├── cristo.gbot/          # channel prompts (PROMPT-<CHANNEL>.md)
+    ├── cristo.gbdialog/      # start.bas, tables.bas, {tool}.bas
+    ├── cristo.gbkb/          # documents indexed for retrieval
+    └── cristo.gbdrive/       # generated files and media
 ```
 
-The `work/` folder is for internal use only.
+`drive_monitor` discovers buckets and workspace prefixes at runtime and creates
+the bot rows, so uploading a tree is enough to register a bot. The `work/`
+folder is an internal materialization target, never a source.
+
+For bots backed by an ALM repository, `.gbdialog/` and `.gbot/` come from that
+repository (pulled every 15 s) and a copy written straight into drive is
+archived on the next pass. `.gbkb/` and `.gbdrive/` stay drive-owned.
 
 ### S3 Sync for Development
 
-Use S3-compatible tools for local editing:
+Use any S3-compatible client against the drive endpoint:
 - **Cyberduck** (GUI)
 - **rclone** (CLI)
-- **WinSCP** (Windows)
+- **`mc`** (bundled by the provisioner at `botserver-stack/bin/mc`)
 
 ```bash
-# rclone sync example
-rclone sync ./mybot.gbai drive:mybot --watch
+# rclone sync example (bucket = {org}.gborg, prefix = workspace)
+rclone sync ./cristo.gbai drive:cristo.gborg/cristo.gbai --watch
 ```
 
-Edits sync automatically - changes reload without restart.
+`.gbkb`/`.gbdrive` edits are picked up by `drive_monitor` within seconds;
+`.gbdialog`/`.gbot` edits belong in the bot's repository.
 
 ## Memory Optimization
 
