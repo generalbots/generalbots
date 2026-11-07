@@ -12,7 +12,11 @@ impl SessionManager {
         let messages = message_history::table
             .filter(message_history::session_id.eq(sess_id))
             .order(message_history::message_index.asc())
-            .select((message_history::role, message_history::content_encrypted, message_history::message_index))
+            .select((
+                message_history::role,
+                message_history::content_encrypted,
+                message_history::message_index,
+            ))
             .load::<(i32, String, i32)>(&mut conn)?;
         let total_messages_needed = (limit_val * 2) as usize;
         let start_idx = messages.len().saturating_sub(total_messages_needed);
@@ -45,9 +49,7 @@ impl SessionManager {
                     // The tool-call frame is a control message: the tool's
                     // result is stored as its own assistant turn. Replaying
                     // the raw JSON showed the protocol to the user.
-                    if other_role == 2
-                        && decrypted.trim_start().starts_with("{\"__tool_call__\"")
-                    {
+                    if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
                         continue;
                     }
                     if decrypted.trim().is_empty() {
@@ -65,6 +67,81 @@ impl SessionManager {
             );
         }
         Ok(history)
+    }
+
+    pub fn get_conversation_history_paged(
+        &mut self,
+        sess_id: Uuid,
+        _uid: Uuid,
+        history_limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<(String, String)>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let limit_val = history_limit.unwrap_or(50);
+        let messages = message_history::table
+            .filter(message_history::session_id.eq(sess_id))
+            .order(message_history::message_index.asc())
+            .select((
+                message_history::role,
+                message_history::content_encrypted,
+                message_history::message_index,
+            ))
+            .load::<(i32, String, i32)>(&mut conn)?;
+        let total_messages_needed = (limit_val * 2) as usize;
+        let off_msgs = (offset.unwrap_or(0) * 2) as usize;
+        // Work backwards from the end: skip `off_msgs` most-recent rows, then
+        // take the preceding page.
+        let end = messages.len().saturating_sub(off_msgs);
+        let start = end.saturating_sub(total_messages_needed);
+        let page_messages: Vec<_> = messages.into_iter().skip(start).take(end - start).collect();
+
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::bot_id)
+            .first(&mut conn)?;
+        let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
+
+        let mut history: Vec<(String, String)> = Vec::new();
+        let mut unreadable = 0usize;
+        for (other_role, content, _idx) in page_messages {
+            let role_str = match other_role {
+                1 => "user".to_string(),
+                2 => "assistant".to_string(),
+                3 => "system".to_string(),
+                9 => "episodic".to_string(),
+                _ => "unknown".to_string(),
+            };
+            match decrypt_field(&content, &key_bytes) {
+                Ok(decrypted) => {
+                    if other_role == 2 && decrypted.trim_start().starts_with("{\"__tool_call__\"") {
+                        continue;
+                    }
+                    if decrypted.trim().is_empty() {
+                        continue;
+                    }
+                    history.push((role_str, decrypted));
+                }
+                Err(_) => unreadable += 1,
+            }
+        }
+        if unreadable > 0 {
+            botlog::safe_warn!(
+                "get_conversation_history_paged: {unreadable} message(s) skipped for session {sess_id}"
+            );
+        }
+        Ok(history)
+    }
+
+    pub fn count_conversation_messages(
+        &mut self,
+        sess_id: Uuid,
+    ) -> Result<i64, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let count: i64 = message_history::table
+            .filter(message_history::session_id.eq(sess_id))
+            .count()
+            .get_result(&mut conn)?;
+        Ok(count)
     }
 
     pub fn get_first_user_message(
@@ -93,7 +170,9 @@ impl SessionManager {
                 // Ciphertext would surface as the session title in the UI; an
                 // unreadable title is better than a wall of base64.
                 Err(e) => {
-                    botlog::safe_warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
+                    botlog::safe_warn!(
+                        "get_first_user_message: title unreadable for session {sess_id}: {e}"
+                    );
                 }
             }
         }
@@ -126,9 +205,13 @@ impl SessionManager {
         new_user_id: Uuid,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut conn = self.pool.get()?;
-        let updated_count = diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
-            .set((user_sessions::user_id.eq(new_user_id.to_string()), user_sessions::updated_at.eq(chrono::Utc::now())))
-            .execute(&mut conn)?;
+        let updated_count =
+            diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
+                .set((
+                    user_sessions::user_id.eq(new_user_id.to_string()),
+                    user_sessions::updated_at.eq(chrono::Utc::now()),
+                ))
+                .execute(&mut conn)?;
         if updated_count == 0 {
             botlog::safe_warn!("No session found with ID: {}", session_id);
         } else {

@@ -113,7 +113,7 @@
                         .then(function (j) {
                             if (!j.success) throw new Error(j.error || "assign failed");
                             if (status) status.textContent = j.provider + " · " + j.model + " ✔";
-                            window.alert("Vibe " + agent + " agent → " + j.provider + " (" + j.model + ")");
+                            (window.GBModal||{alert:alert}).alert("Vibe " + agent + " agent → " + j.provider + " (" + j.model + ")");
                             render();
                         })
                         .catch(function (e) {

@@ -202,7 +202,7 @@
         if (method === "tools/call") {
             var name = params.name || "";
             host.status.textContent = "Waiting for approval…";
-            var confirmed = window.confirm(
+            var confirmed = (window.GBModal||{confirm:confirm}).confirm(
                 "The app wants to run '" + name + "'. This will be sent to the assistant and requires your consent."
             );
             if (!confirmed) {

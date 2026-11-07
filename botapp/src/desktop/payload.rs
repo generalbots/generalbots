@@ -56,8 +56,7 @@ fn current_exe() -> Result<PathBuf> {
 /// Reads the trailer from an executable. `Ok(None)` means the file is a plain
 /// development build with no payload appended.
 pub fn read_trailer(path: &Path) -> Result<Option<Trailer>> {
-    let mut file = File::open(path)
-        .with_context(|| format!("cannot open {}", path.display()))?;
+    let mut file = File::open(path).with_context(|| format!("cannot open {}", path.display()))?;
     let len = file.metadata()?.len();
     if len < TRAILER_LEN {
         return Ok(None);
@@ -171,8 +170,7 @@ pub fn extract_if_present() -> Result<Option<PathBuf>> {
         ));
     }
 
-    fs::create_dir_all(&stack)
-        .with_context(|| format!("cannot create {}", stack.display()))?;
+    fs::create_dir_all(&stack).with_context(|| format!("cannot create {}", stack.display()))?;
     let mut file = File::open(&exe)?;
     file.seek(SeekFrom::Start(trailer.offset))?;
     let reader = file.take(trailer.length);

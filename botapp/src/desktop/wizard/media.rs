@@ -56,19 +56,19 @@ fn unavailable(detail: &str, remediation: &str) -> Value {
     })
 }
 
-fn normalize(
-    payload: Value,
-    service_running: bool,
-    source: &str,
-    error: Option<String>,
-) -> Value {
-    let capabilities = payload.get("media_capabilities").cloned().unwrap_or(Value::Null);
-    let barcode = capabilities.get("barcode").cloned().unwrap_or_else(|| {
-        unavailable("the AI media service did not report barcode support", "")
-    });
-    let ocr = capabilities.get("ocr").cloned().unwrap_or_else(|| {
-        unavailable("the AI media service did not report OCR support", "")
-    });
+fn normalize(payload: Value, service_running: bool, source: &str, error: Option<String>) -> Value {
+    let capabilities = payload
+        .get("media_capabilities")
+        .cloned()
+        .unwrap_or(Value::Null);
+    let barcode = capabilities
+        .get("barcode")
+        .cloned()
+        .unwrap_or_else(|| unavailable("the AI media service did not report barcode support", ""));
+    let ocr = capabilities
+        .get("ocr")
+        .cloned()
+        .unwrap_or_else(|| unavailable("the AI media service did not report OCR support", ""));
     let mut result = json!({
         "service_running": service_running,
         "source": source,
@@ -100,13 +100,17 @@ fn host_probe() -> Value {
             "reinstall the BotModels pythonbox or run ./install.sh --with barcode",
         )
     } else if !libzbar {
-        unavailable("libzbar0 is not installed on this host", LIBZBAR_REMEDIATION)
+        unavailable(
+            "libzbar0 is not installed on this host",
+            LIBZBAR_REMEDIATION,
+        )
     } else {
         json!({"available": true, "detail": Value::Null, "remediation": Value::Null})
     };
 
     let tesseract = executable_on_path("tesseract");
-    let rapidocr = bundle_contains("rapidocr_onnxruntime") || bundle_contains("rapidocr-onnxruntime");
+    let rapidocr =
+        bundle_contains("rapidocr_onnxruntime") || bundle_contains("rapidocr-onnxruntime");
     let ocr = if tesseract {
         json!({"available": true, "detail": Value::Null, "remediation": Value::Null})
     } else if rapidocr {
@@ -183,20 +187,12 @@ fn venv_contains(venv: &Path, module: &str) -> bool {
 }
 
 fn library_present(prefix: &str) -> bool {
-    const ROOTS: [&str; 5] = [
-        "/usr/lib",
-        "/usr/lib64",
-        "/usr/local/lib",
-        "/lib",
-        "/lib64",
-    ];
+    const ROOTS: [&str; 5] = ["/usr/lib", "/usr/lib64", "/usr/local/lib", "/lib", "/lib64"];
     let mut roots: Vec<PathBuf> = ROOTS.iter().map(PathBuf::from).collect();
     if let Some(paths) = std::env::var_os("LD_LIBRARY_PATH") {
         roots.extend(std::env::split_paths(&paths));
     }
-    roots
-        .iter()
-        .any(|root| scan_prefix(root, prefix, 2))
+    roots.iter().any(|root| scan_prefix(root, prefix, 2))
 }
 
 fn scan_prefix(directory: &Path, prefix: &str, depth: usize) -> bool {

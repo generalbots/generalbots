@@ -70,47 +70,12 @@ import Script from 'next/script'
 <Script src="/heavy.js" strategy="worker" />
 ```
 
-## Google Analytics
+## No Third-Party Analytics by Default
 
-Use `@next/third-parties` instead of inline GA scripts.
-
-```tsx
-// Bad: Inline GA script
-<Script src="https://www.googletagmanager.com/gtag/js?id=G-XXXXX" />
-<Script id="ga-init">
-  {`window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-XXXXX');`}
-</Script>
-
-// Good: Next.js component
-import { GoogleAnalytics } from '@next/third-parties/google'
-
-export default function Layout({ children }) {
-  return (
-    <html>
-      <body>{children}</body>
-      <GoogleAnalytics gaId="G-XXXXX" />
-    </html>
-  )
-}
-```
-
-## Google Tag Manager
-
-```tsx
-import { GoogleTagManager } from '@next/third-parties/google'
-
-export default function Layout({ children }) {
-  return (
-    <html>
-      <GoogleTagManager gtmId="GTM-XXXXX" />
-      <body>{children}</body>
-    </html>
-  )
-}
-```
+General Bots does not ship Google Analytics, Google Tag Manager, or any other
+outbound analytics SDK. Do not add one to a bot or template unless the operator
+explicitly asks for it and documents the data being sent. Prefer first-party,
+same-origin measurements that stay on the operator's server.
 
 ## Other Third-Party Scripts
 
@@ -137,5 +102,5 @@ import { GoogleMapsEmbed } from '@next/third-parties/google'
 | `<script src="...">` | No optimization | Use `next/script` |
 | `<Script>` without id | Can't track inline scripts | Add `id` attribute |
 | `<Script>` inside `<Head>` | Wrong placement | Move outside Head |
-| Inline GA/GTM scripts | No optimization | Use `@next/third-parties` |
+| Inline analytics scripts | Privacy risk | Do not add third-party analytics by default |
 | `strategy="beforeInteractive"` outside layout | Won't work | Only use in root layout |

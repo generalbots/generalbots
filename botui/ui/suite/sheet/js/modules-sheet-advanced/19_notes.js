@@ -62,7 +62,7 @@
   function addNote(row, col) {
     const d = grid() ? grid().cells.get(row + "," + col) : null;
     const existing = (d && d.note) ? String(d.note) : "";
-    const note = window.prompt("Cell note for " + colName(col) + (row + 1) + ":", existing);
+    const note = (window.GBModal||{prompt:prompt}).prompt("Cell note for " + colName(col) + (row + 1) + ":", existing);
     if (note === null) return;
     const trimmed = note.trim();
     saveNote(row, col, trimmed).then(function () {

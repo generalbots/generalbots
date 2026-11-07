@@ -1,7 +1,7 @@
 use axum::{
     extract::State,
-    http::StatusCode,
-    response::IntoResponse,
+    http::{HeaderMap, StatusCode},
+    response::{Html, IntoResponse},
 };
 use chrono::{DateTime, Utc};
 use diesel::RunQueryDsl;
@@ -11,7 +11,9 @@ use botcore::shared::state::AppState;
 
 use super::{count_query, get_conn};
 
-pub async fn export_report(State(state): State<Arc<AppState>>) -> Result<axum::response::Response, StatusCode> {
+pub async fn export_report(
+    State(state): State<Arc<AppState>>,
+) -> Result<axum::response::Response, StatusCode> {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
         None => return Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -40,7 +42,10 @@ pub async fn export_report(State(state): State<Arc<AppState>>) -> Result<axum::r
     Ok(axum::response::Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "text/plain")
-        .header("Content-Disposition", "attachment; filename=\"org-report.txt\"")
+        .header(
+            "Content-Disposition",
+            "attachment; filename=\"org-report.txt\"",
+        )
         .body(axum::body::Body::from(body))
         .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()))
 }
@@ -87,10 +92,13 @@ pub async fn stats_storage(State(state): State<Arc<AppState>>) -> axum::Json<ser
     }))
 }
 
-pub async fn list_users(State(state): State<Arc<AppState>>) -> axum::Json<serde_json::Value> {
+pub async fn list_users(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return axum::Json(serde_json::json!([])),
+        None => return axum::Json(serde_json::json!([])).into_response(),
     };
 
     #[derive(Debug, diesel::QueryableByName)]
@@ -116,6 +124,50 @@ pub async fn list_users(State(state): State<Arc<AppState>>) -> axum::Json<serde_
     .load::<UserRow>(&mut conn)
     .unwrap_or_default();
 
+    // Settings → Users swaps this endpoint into the page with HTMX (#1839).
+    // Serve the same rows as an HTML table for that request, while keeping the
+    // JSON contract for API/automation callers.
+    let wants_html = headers
+        .get("HX-Request")
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    if wants_html {
+        let mut html = String::from(
+            "<table class=\"data-table users-table\"><thead><tr>\
+             <th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th>\
+             </tr></thead><tbody>",
+        );
+        if rows.is_empty() {
+            html.push_str(
+                "<tr><td colspan=\"5\"><div class=\"empty-state\"><p>No users found</p></div></td></tr>",
+            );
+        }
+        for user in &rows {
+            let role = if user.is_admin {
+                "<span class=\"role-badge admin\">Admin</span>"
+            } else {
+                "<span class=\"role-badge\">User</span>"
+            };
+            let status = if user.is_active {
+                "<span class=\"status-badge active\">Active</span>"
+            } else {
+                "<span class=\"status-badge inactive\">Inactive</span>"
+            };
+            html.push_str(&format!(
+                "<tr><td>{username}</td><td>{email}</td><td>{role}</td>\
+                 <td>{status}</td><td>{created}</td></tr>",
+                username = crate::webhook_delivery::escape_html(&user.username),
+                email = crate::webhook_delivery::escape_html(&user.email),
+                role = role,
+                status = status,
+                created = user.created_at.format("%Y-%m-%d"),
+            ));
+        }
+        html.push_str("</tbody></table>");
+        return Html(html).into_response();
+    }
+
     let users: Vec<serde_json::Value> = rows
         .into_iter()
         .map(|u| {
@@ -130,7 +182,7 @@ pub async fn list_users(State(state): State<Arc<AppState>>) -> axum::Json<serde_
         })
         .collect();
 
-    axum::Json(serde_json::json!(users))
+    axum::Json(serde_json::json!(users)).into_response()
 }
 
 pub async fn list_groups(State(state): State<Arc<AppState>>) -> axum::Json<serde_json::Value> {
@@ -176,10 +228,9 @@ pub async fn list_dns(State(state): State<Arc<AppState>>) -> axum::Json<serde_js
         domain: String,
     }
 
-    let rows: Vec<DnsRow> =
-        diesel::sql_query("SELECT id, domain FROM bot_domains ORDER BY domain")
-            .load::<DnsRow>(&mut conn)
-            .unwrap_or_default();
+    let rows: Vec<DnsRow> = diesel::sql_query("SELECT id, domain FROM bot_domains ORDER BY domain")
+        .load::<DnsRow>(&mut conn)
+        .unwrap_or_default();
 
     let domains: Vec<serde_json::Value> = rows
         .into_iter()

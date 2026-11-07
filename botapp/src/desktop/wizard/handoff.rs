@@ -45,7 +45,10 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
             let _ = std::fs::set_permissions(&path, permissions);
         }
     }
-    info!("wizard: administrator credentials written to {}", path.display());
+    info!(
+        "wizard: administrator credentials written to {}",
+        path.display()
+    );
     Ok(())
 }
 
@@ -59,7 +62,8 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
         "desktop_local": cfg!(feature = "desktop-local"),
         "workspace": workspace_path().to_string_lossy(),
     });
-    let raw = serde_json::to_string_pretty(&marker).map_err(|e| format!("serialize marker: {e}"))?;
+    let raw =
+        serde_json::to_string_pretty(&marker).map_err(|e| format!("serialize marker: {e}"))?;
     std::fs::write(marker_path(), raw).map_err(|e| format!("write marker: {e}"))?;
 
     reveal_suite(app);

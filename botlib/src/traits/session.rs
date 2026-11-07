@@ -1,16 +1,9 @@
 use std::fmt::Debug;
 
-use crate::traits::{
-    BoxFutureString, BoxFutureUnit, BoxFutureVecString,
-};
+use crate::traits::{BoxFutureString, BoxFutureUnit, BoxFutureVecString};
 
 pub trait ScriptRunner: Send + Sync + Debug {
-    fn run_script(
-        &self,
-        script: &str,
-        session_id: uuid::Uuid,
-        bot_id: &str,
-    ) -> BoxFutureString;
+    fn run_script(&self, script: &str, session_id: uuid::Uuid, bot_id: &str) -> BoxFutureString;
 
     fn get_suggestions(
         &self,
@@ -39,15 +32,14 @@ pub trait SessionStore: Send + Sync + Debug {
 pub trait KnowledgeBase: Send + Sync + Debug {
     fn query(&self, query: &str, limit: usize) -> BoxFutureVecString;
 
-    fn index_document(
-        &self,
-        doc_id: &str,
-        content: &str,
-    ) -> BoxFutureUnit;
+    fn index_document(&self, doc_id: &str, content: &str) -> BoxFutureUnit;
 }
 
 pub trait SessionManagerService: Send + Debug {
-    fn get_session_by_id(&mut self, session_id: uuid::Uuid) -> Result<Option<crate::models::UserSession>, String>;
+    fn get_session_by_id(
+        &mut self,
+        session_id: uuid::Uuid,
+    ) -> Result<Option<crate::models::UserSession>, String>;
 
     fn get_or_create_user_session(
         &mut self,
@@ -88,7 +80,11 @@ pub trait SessionManagerService: Send + Debug {
     /// Records which model produced the latest assistant message. Used by the
     /// usage report to price counted tokens; implementations without usage
     /// accounting may keep the no-op default (#1712).
-    fn record_message_model(&mut self, _session_id: uuid::Uuid, _model: &str) -> Result<(), String> {
+    fn record_message_model(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _model: &str,
+    ) -> Result<(), String> {
         Ok(())
     }
 
@@ -98,6 +94,27 @@ pub trait SessionManagerService: Send + Debug {
         user_id: uuid::Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<(String, String)>, String>;
+
+    /// Paged variant of `get_conversation_history`. `offset` is the number of
+    /// most-recent turns to skip, so older pages can be fetched for the
+    /// "show more…" control. The default delegates to the un-paged method and
+    /// ignores the offset.
+    fn get_conversation_history_paged(
+        &mut self,
+        session_id: uuid::Uuid,
+        user_id: uuid::Uuid,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<(String, String)>, String> {
+        let _ = offset;
+        self.get_conversation_history(session_id, user_id, limit)
+    }
+
+    /// Total number of stored message rows for a conversation. Used to decide
+    /// whether older pages remain. Default returns 0 (no "show more" offered).
+    fn count_conversation_messages(&mut self, _session_id: uuid::Uuid) -> Result<i64, String> {
+        Ok(0)
+    }
 
     /// Returns the first user message of a conversation (decrypted) — used as
     /// the human-readable title in chat history listings. `None` when the

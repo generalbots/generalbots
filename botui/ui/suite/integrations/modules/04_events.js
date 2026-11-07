@@ -93,7 +93,7 @@
             announce(root, "Revoke needs a workspace context");
             return;
         }
-        if (!window.confirm("Revoke this connection? Its stored credentials will be deleted.")) {
+        if (!(window.GBModal||{confirm:confirm}).confirm("Revoke this connection? Its stored credentials will be deleted.")) {
             return;
         }
         try {

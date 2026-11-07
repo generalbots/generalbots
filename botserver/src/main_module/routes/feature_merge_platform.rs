@@ -1,7 +1,6 @@
 use axum::Router;
-use std::sync::Arc;
 use botcore::shared::state::AppState;
-
+use std::sync::Arc;
 
 /// Applies the second half of the feature-block merges (legal, compliance,
 /// monitoring, scripting, people, vibe, project, goals, sheet, canvas,
@@ -18,16 +17,29 @@ pub(super) async fn merge_platform_routers(
     #[cfg(feature = "legal")]
     {
         let legal_pool = app_state.conn.clone();
-        *sub_router = sub_router.clone().merge(crate::legal::configure_legal_routes().with_state(Arc::new(legal_pool.clone())));
-        *sub_router = sub_router.clone().merge(crate::legal::configure_legal_ui_routes().with_state(Arc::new(legal_pool)));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::legal::configure_legal_routes().with_state(Arc::new(legal_pool.clone())));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::legal::configure_legal_ui_routes().with_state(Arc::new(legal_pool)));
     }
 
     #[cfg(feature = "compliance")]
     {
         let compliance_pool = app_state.conn.clone();
-        *sub_router = sub_router.clone().merge(crate::compliance::configure_compliance_routes().with_state(Arc::new(compliance_pool.clone())));
-        *sub_router = sub_router.clone().merge(crate::compliance::ui::configure_compliance_ui_routes().with_state(Arc::new(compliance_pool.clone())));
-        *sub_router = sub_router.clone().merge(crate::compliance::dashboard::configure_dashboard_routes().with_state(Arc::new(compliance_pool)));
+        *sub_router = sub_router.clone().merge(
+            crate::compliance::configure_compliance_routes()
+                .with_state(Arc::new(compliance_pool.clone())),
+        );
+        *sub_router = sub_router.clone().merge(
+            crate::compliance::ui::configure_compliance_ui_routes()
+                .with_state(Arc::new(compliance_pool.clone())),
+        );
+        *sub_router = sub_router.clone().merge(
+            crate::compliance::dashboard::configure_dashboard_routes()
+                .with_state(Arc::new(compliance_pool)),
+        );
     }
 
     #[cfg(feature = "monitoring")]
@@ -94,9 +106,7 @@ pub(super) async fn merge_platform_routers(
                     let start = Instant::now();
                     let healthy = cache
                         .get_connection_with_timeout(std::time::Duration::from_millis(750))
-                        .and_then(|mut conn| {
-                            redis::cmd("PING").query::<String>(&mut conn)
-                        })
+                        .and_then(|mut conn| redis::cmd("PING").query::<String>(&mut conn))
                         .map(|reply| reply.to_uppercase() == "PONG")
                         .unwrap_or(false);
                     let latency = start.elapsed().as_secs_f64() * 1000.0;
@@ -136,7 +146,13 @@ pub(super) async fn merge_platform_routers(
                         .and_then(|(host, port)| {
                             use std::net::{SocketAddr, TcpStream};
                             let addr: SocketAddr = format!("{host}:{port}").parse().ok()?;
-                            Some(TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(750)).is_ok())
+                            Some(
+                                TcpStream::connect_timeout(
+                                    &addr,
+                                    std::time::Duration::from_millis(750),
+                                )
+                                .is_ok(),
+                            )
                         })
                         .unwrap_or(false);
                     let latency = start.elapsed().as_secs_f64() * 1000.0;
@@ -166,30 +182,52 @@ pub(super) async fn merge_platform_routers(
             collector: collector.clone(),
         });
         *sub_router = sub_router.clone().merge(
-            crate::monitoring::configure::<MonitoringAppState, crate::monitoring::DefaultMonitoringUrls>()
-                .with_state(monitoring_state)
+            crate::monitoring::configure::<
+                MonitoringAppState,
+                crate::monitoring::DefaultMonitoringUrls,
+            >()
+            .with_state(monitoring_state),
         );
-        *sub_router = sub_router.clone().merge(
-            crate::monitoring::governance::configure_routes(collector)
-        );
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::monitoring::governance::configure_routes(collector));
     }
 
     #[cfg(feature = "scripting")]
-    { *sub_router = sub_router.clone().merge(crate::basic::keywords::app_server::configure_app_server_routes().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router.clone().merge(
+            crate::basic::keywords::app_server::configure_app_server_routes()
+                .with_state(app_state.clone()),
+        );
+    }
 
     #[cfg(feature = "people")]
-    { *sub_router = sub_router.clone().merge(crate::basic::keywords::db_api::configure_db_routes().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router.clone().merge(
+            crate::basic::keywords::db_api::configure_db_routes().with_state(app_state.clone()),
+        );
+    }
 
     #[cfg(feature = "vibe")]
-    { *sub_router = sub_router.clone().merge(crate::vibe::configure_vibe_routes(app_state).await); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::vibe::configure_vibe_routes(app_state).await);
+    }
 
     #[cfg(feature = "project")]
     {
-        let project_service = Arc::new(crate::project::ProjectService::with_pool(app_state.conn.clone()));
+        let project_service = Arc::new(crate::project::ProjectService::with_pool(
+            app_state.conn.clone(),
+        ));
         project_service.load_from_db().await;
         let project_router = crate::project::configure(project_service.clone());
-        *sub_router = sub_router.clone().merge(project_router.with_state(project_service.clone()));
-        *sub_router = sub_router.clone().merge(crate::project::project_ui::configure_project_ui_routes().with_state(project_service));
+        *sub_router = sub_router
+            .clone()
+            .merge(project_router.with_state(project_service.clone()));
+        *sub_router = sub_router.clone().merge(
+            crate::project::project_ui::configure_project_ui_routes().with_state(project_service),
+        );
     }
 
     #[cfg(all(feature = "analytics", feature = "goals"))]
@@ -233,7 +271,8 @@ pub(super) async fn merge_platform_routers(
             }
         })();
         let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(move || goals_context);
-        let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
+        let goals_default_bot: crate::analytics::GetDefaultBotFn =
+            Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
         // The global auth middleware classifies an invalid bearer token as
         // anonymous and still inserts an extension, so the shared extractor
         // alone let anonymous callers read and mutate goals (a forged JWT was
@@ -261,9 +300,9 @@ pub(super) async fn merge_platform_routers(
             pool: Arc::new(app_state.conn.clone()),
             default_bot: Arc::new(reports_default_bot),
         });
-        *sub_router = sub_router.clone().merge(
-            crate::analytics::reports::configure_reports_routes().with_state(reports_state),
-        );
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::analytics::reports::configure_reports_routes().with_state(reports_state));
     }
 
     #[cfg(feature = "sheet")]
@@ -292,85 +331,158 @@ pub(super) async fn merge_platform_routers(
     }
 
     #[cfg(feature = "canvas")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_canvas_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_canvas_router(app_state));
+    }
 
     #[cfg(feature = "fraud")]
     {
         let fraud_state = Arc::new(crate::fraud::FraudState::new(app_state.conn.clone()));
-        *sub_router = sub_router.clone().merge(crate::fraud::configure_fraud_routes().with_state(fraud_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::fraud::configure_fraud_routes().with_state(fraud_state));
     }
 
     #[cfg(feature = "inventory")]
     {
-        let inventory_state = Arc::new(crate::inventory::InventoryState { pool: app_state.conn.clone() });
-        *sub_router = sub_router.clone().merge(crate::inventory::configure_inventory_routes().with_state(inventory_state));
+        let inventory_state = Arc::new(crate::inventory::InventoryState {
+            pool: app_state.conn.clone(),
+        });
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::inventory::configure_inventory_routes().with_state(inventory_state));
     }
 
     #[cfg(feature = "gl")]
     {
-        let gl_state = Arc::new(crate::gl::GlState { pool: app_state.conn.clone() });
-        *sub_router = sub_router.clone().merge(crate::gl::configure_gl_routes().with_state(gl_state));
+        let gl_state = Arc::new(crate::gl::GlState {
+            pool: app_state.conn.clone(),
+        });
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::gl::configure_gl_routes().with_state(gl_state));
     }
 
     #[cfg(feature = "retail")]
-    { *sub_router = sub_router.clone().merge(botretail::configure()); }
+    {
+        *sub_router = sub_router.clone().merge(botretail::configure());
+    }
 
     #[cfg(feature = "banking")]
-    { *api_router = api_router.clone().merge(botbanking::configure()); }
+    {
+        *api_router = api_router.clone().merge(botbanking::configure());
+    }
 
     #[cfg(feature = "m365")]
-    { *api_router = api_router.clone().merge(botm365::configure()); }
+    {
+        *api_router = api_router.clone().merge(botm365::configure());
+    }
 
     #[cfg(feature = "weba")]
     {
         let weba_state = Arc::new(crate::weba::WebaState::new());
-        *sub_router = sub_router.clone().merge(crate::weba::configure_routes(weba_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::weba::configure_routes(weba_state));
     }
 
     #[cfg(feature = "directory")]
-    { *sub_router = sub_router.clone().merge(crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router.clone().merge(
+            crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone()),
+        );
+    }
 
     #[cfg(feature = "social")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_social_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_social_router(app_state));
+    }
 
     #[cfg(feature = "learn")]
     {
-        *sub_router = sub_router.clone().merge(crate::learn::ui::configure_learn_ui_routes());
-        *sub_router = sub_router.clone().merge(crate::learn::creator::configure_learn_api_routes().with_state(Arc::new(botlearn::GamificationService::new())));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::learn::ui::configure_learn_ui_routes());
+        *sub_router = sub_router.clone().merge(
+            crate::learn::creator::configure_learn_api_routes()
+                .with_state(Arc::new(botlearn::GamificationService::new())),
+        );
     }
 
     #[cfg(feature = "meet")]
-    { *sub_router = sub_router.clone().merge(crate::meet::ui::configure_meet_ui_routes().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::meet::ui::configure_meet_ui_routes().with_state(app_state.clone()));
+    }
 
     #[cfg(feature = "billing")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_billing_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_billing_router(app_state));
+    }
 
     #[cfg(feature = "saas")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_saas_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_saas_router(app_state));
+    }
 
     #[cfg(feature = "whatsapp")]
-    { *sub_router = sub_router.clone().merge(crate::whatsapp::configure(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::whatsapp::configure(app_state));
+    }
 
     #[cfg(feature = "marketing")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_marketing_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_marketing_router(app_state));
+    }
 
     #[cfg(feature = "telegram")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_telegram_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_telegram_router(app_state));
+    }
 
     #[cfg(feature = "instagram")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_instagram_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_instagram_router(app_state));
+    }
 
     #[cfg(feature = "msteams")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_msteams_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_msteams_router(app_state));
+    }
 
     #[cfg(feature = "sources")]
     {
         let sources_state = crate::sources::make_sources_state(app_state.conn.clone());
-        *sub_router = sub_router.clone().merge(crate::sources::configure_sources_api_routes().with_state(sources_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::sources::configure_sources_api_routes().with_state(sources_state));
     }
 
     #[cfg(feature = "attendant")]
-    { *sub_router = sub_router.clone().merge(super::feature_routers::make_attendant_router(app_state)); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_attendant_router(app_state));
+    }
 
     #[cfg(feature = "browser")]
     {
@@ -384,14 +496,37 @@ pub(super) async fn merge_platform_routers(
 
     #[cfg(feature = "player")]
     {
-        *sub_router = sub_router.clone().merge(crate::player::configure_player_routes().with_state(app_state.clone()));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::player::configure_player_routes().with_state(app_state.clone()));
     }
 
     #[cfg(feature = "terminal")]
-    { *sub_router = sub_router.clone().merge(crate::api::terminal::routes::configure_terminal_routes(app_state.conn.clone())); }
+    {
+        *sub_router =
+            sub_router
+                .clone()
+                .merge(crate::api::terminal::routes::configure_terminal_routes(
+                    app_state.conn.clone(),
+                ));
+    }
+    // #1841 — a build without the terminal feature still answers the terminal
+    // client with a clear capability error instead of the generic API 404.
+    #[cfg(not(feature = "terminal"))]
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::api::terminal::routes::configure_unavailable_terminal_routes());
+    }
 
     // #1247 — Web Push subscription backend (Settings push toggle).
-    { *sub_router = sub_router.clone().merge(crate::api::push::configure_push_routes(app_state.conn.clone())); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::api::push::configure_push_routes(
+                app_state.conn.clone(),
+            ));
+    }
 
     #[cfg(feature = "automations")]
     {

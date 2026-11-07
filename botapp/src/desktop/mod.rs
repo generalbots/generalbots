@@ -1,10 +1,12 @@
 #[cfg(feature = "desktop-local")]
 pub mod activity;
+pub mod download;
 pub mod drive;
 pub mod payload;
 pub mod safe_command;
 #[cfg(feature = "desktop-local")]
 pub mod sidecar;
+pub mod splash;
 pub mod sync;
 pub mod tray;
 #[cfg(feature = "desktop-local")]

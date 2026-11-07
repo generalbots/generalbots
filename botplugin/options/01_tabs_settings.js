@@ -34,7 +34,6 @@ async function loadSettings() {
         hideIndicators: false,
         localOnly: false,
         storeOriginals: true,
-        analytics: false,
         debugMode: false,
         showPanel: true,
         shortcut: "Ctrl+Shift+G",
@@ -73,8 +72,6 @@ async function loadSettings() {
             items.localOnly;
         document.getElementById("store-originals").checked =
             items.storeOriginals;
-        document.getElementById("analytics").checked =
-            items.analytics;
         document.getElementById("debug-mode").checked =
             items.debugMode;
         document.getElementById("show-panel").checked =

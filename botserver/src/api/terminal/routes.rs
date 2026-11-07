@@ -46,6 +46,30 @@ pub fn configure_terminal_routes(pool: DbPool) -> Router {
         .with_state(Arc::new(TerminalRouterState { manager, pool }))
 }
 
+/// Routes for builds without the `terminal` feature.
+///
+/// The API fallback answered a generic `{"error":"not_found"}`, which the
+/// terminal client rendered as "Terminal session failed: not_found" (#1841).
+/// Advertising the missing capability with an actionable message is better
+/// than pretending the route never existed.
+pub fn configure_unavailable_terminal_routes() -> Router {
+    Router::new()
+        .route("/api/terminal/create", post(terminal_unavailable))
+        .route("/api/terminal/list", get(terminal_unavailable))
+        .route("/api/terminal/kill", post(terminal_unavailable))
+        .route("/api/terminal/ws", get(terminal_unavailable))
+}
+
+async fn terminal_unavailable() -> impl IntoResponse {
+    (
+        axum::http::StatusCode::SERVICE_UNAVAILABLE,
+        Json(serde_json::json!({
+            "error": "terminal_unavailable",
+            "message": "Terminal is not available in this build. Install a build with the terminal feature (the desktop edition includes it) and try again."
+        })),
+    )
+}
+
 async fn create_terminal(
     State(state): State<Arc<TerminalRouterState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -59,23 +83,34 @@ async fn create_terminal(
     #[cfg(not(feature = "agent-vm"))]
     let agent_vm: Option<String> = None;
 
-    let container = req
-        .container
-        .clone()
-        .filter(|c| !c.trim().is_empty())
-        .or_else(|| agent_vm.clone());
+    let explicit_container = req.container.clone().filter(|c| !c.trim().is_empty());
+    let container = explicit_container.or_else(|| agent_vm.clone());
     // SECURITY: a container-less session spawns a PTY on the botserver host
     // itself — any caller could read the whole server filesystem ("terminal
     // exposes server contents" report). Web terminals must run inside a VM
     // container; refuse anything else outright.
+    //
+    // #1841 — name the actual missing capability instead of letting this end
+    // as a generic, sanitized failure: a build without agent-vm has no
+    // workspace to attach to, and a build with it still needs the user to
+    // start the workspace before the shell exists.
     let container = match container {
         Some(c) => c,
         None => {
+            let (error, message) = if cfg!(feature = "agent-vm") {
+                (
+                    "no_workspace_vm",
+                    "No workspace VM is running. Send a message in chat to start your workspace, then reopen the terminal.",
+                )
+            } else {
+                (
+                    "agent_vm_unavailable",
+                    "Terminal requires the agent VM, which is not available in this build. The desktop edition includes it; otherwise open a project VM terminal instead.",
+                )
+            };
             return (
-                axum::http::StatusCode::FORBIDDEN,
-                Json(serde_json::json!({
-                    "error": "Host shell denied: send a message in chat to start your workspace VM, then reopen the terminal."
-                })),
+                axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ "error": error, "message": message })),
             );
         }
     };
@@ -102,13 +137,13 @@ async fn create_terminal(
     // starts where they are. When the caller does not name a directory, open
     // the newest conversation folder of the user's own workspace VM.
     let cwd = match req.cwd.as_deref().filter(|c| !c.trim().is_empty()) {
-        Some(raw) => {
-            sanitize_container_cwd(raw).unwrap_or_else(|| "/opt/vibe/app".to_string())
-        }
+        Some(raw) => sanitize_container_cwd(raw).unwrap_or_else(|| "/opt/vibe/app".to_string()),
         None if is_own_agent_vm => agent_conversation_cwd(&container).await,
         None => "/opt/vibe/app".to_string(),
     };
-    let result = state.manager.create_session_with_container(shell, cwd, Some(container));
+    let result = state
+        .manager
+        .create_session_with_container(shell, cwd, Some(container));
     let (code, body) = match result {
         Ok(session) => (
             axum::http::StatusCode::OK,
@@ -123,19 +158,60 @@ async fn create_terminal(
             })),
         ),
         Err(e) => {
+            // Keep the raw cause in the operator log (the sanitizer used to
+            // collapse it into "internal_error" before the user saw it), and
+            // return a fixed, safe category the terminal can explain (#1841).
             log::error!("terminal create failed: {e}");
+            let lower = e.to_ascii_lowercase();
+            let (status, error, message) = if lower.contains("incus")
+                && (lower.contains("not found")
+                    || lower.contains("no such file")
+                    || lower.contains("cannot find"))
+            {
+                (
+                    axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                    "incus_unavailable",
+                    "Terminal needs Incus, but the incus command was not found on this machine.",
+                )
+            } else if lower.contains("instance")
+                && (lower.contains("not found")
+                    || lower.contains("does not exist")
+                    || lower.contains("no such"))
+            {
+                (
+                    axum::http::StatusCode::CONFLICT,
+                    "vm_not_found",
+                    "The workspace VM was not found. Send a message in chat to start it, then reopen the terminal.",
+                )
+            } else if lower.contains("stopped") || lower.contains("not running") {
+                (
+                    axum::http::StatusCode::CONFLICT,
+                    "vm_stopped",
+                    "The workspace VM is stopped. Send a message in chat to start it, then reopen the terminal.",
+                )
+            } else if lower.contains("permission denied") {
+                (
+                    axum::http::StatusCode::FORBIDDEN,
+                    "terminal_forbidden",
+                    "The terminal cannot access the workspace VM. Check the Incus permissions and try again.",
+                )
+            } else {
+                (
+                    axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                    "terminal_unavailable",
+                    "The terminal could not start. Check that the workspace VM is running and try again.",
+                )
+            };
             (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "api::terminal::routes", None)})),
+                status,
+                Json(serde_json::json!({ "error": error, "message": message })),
             )
         }
     };
     (code, body)
 }
 
-async fn list_terminals(
-    State(state): State<Arc<TerminalRouterState>>,
-) -> impl IntoResponse {
+async fn list_terminals(State(state): State<Arc<TerminalRouterState>>) -> impl IntoResponse {
     state.manager.reap();
     Json(serde_json::json!({ "terminals": state.manager.list_sessions() }))
 }
@@ -248,13 +324,12 @@ fn authorize_project_container(
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         value: Uuid,
     }
-    let project_id: Option<UuidCell> = diesel::sql_query(
-        "SELECT project_id AS value FROM vm_instances WHERE container_name = $1",
-    )
-    .bind::<diesel::sql_types::Text, _>(container)
-    .get_result::<UuidCell>(&mut conn)
-    .optional()
-    .map_err(|e| format!("vm lookup: {e}"))?;
+    let project_id: Option<UuidCell> =
+        diesel::sql_query("SELECT project_id AS value FROM vm_instances WHERE container_name = $1")
+            .bind::<diesel::sql_types::Text, _>(container)
+            .get_result::<UuidCell>(&mut conn)
+            .optional()
+            .map_err(|e| format!("vm lookup: {e}"))?;
     let project_id = match project_id {
         Some(row) => row.value,
         None => {
@@ -272,7 +347,9 @@ fn authorize_project_container(
 /// Resolves whether the caller holds at least the `viewer` role on the
 /// project that owns the VM (direct membership or via an active group).
 fn project_role_at_least_viewer(
-    conn: &mut diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    conn: &mut diesel::r2d2::PooledConnection<
+        diesel::r2d2::ConnectionManager<diesel::PgConnection>,
+    >,
     user_id: Uuid,
     project_id: Uuid,
 ) -> Result<bool, String> {

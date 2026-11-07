@@ -169,7 +169,7 @@
         null,
         "Restore"
       );
-    } else if (window.confirm("Restore this version? A new current version will be created — nothing is lost.")) {
+    } else if ((window.GBModal||{confirm:confirm}).confirm("Restore this version? A new current version will be created — nothing is lost.")) {
       restore();
     }
   }
@@ -197,7 +197,7 @@
     if (window.WindowManager && window.WindowManager.promptFloating) {
       window.WindowManager.promptFloating("Name version", "Name this version (e.g. \"v2 — approved\"):", "", done);
     } else {
-      done(window.prompt("Name this version (e.g. \"v2 — approved\"):", ""));
+      done((window.GBModal||{prompt:prompt}).prompt("Name this version (e.g. \"v2 — approved\"):", ""));
     }
   }
 

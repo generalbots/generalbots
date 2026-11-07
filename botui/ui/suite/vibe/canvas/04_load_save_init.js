@@ -184,7 +184,7 @@
                         doClear,
                         null
                     );
-                } else if (window.confirm("Clear all design elements?")) {
+                } else if ((window.GBModal||{confirm:confirm}).confirm("Clear all design elements?")) {
                     doClear();
                 }
             }

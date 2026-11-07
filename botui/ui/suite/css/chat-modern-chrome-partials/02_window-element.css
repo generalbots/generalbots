@@ -73,6 +73,15 @@
     height: min(78vh, 900px);
 }
 
+#chat-app .gb-inline-artifact.expanded {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+}
+
 /* An interactive app is the message: give it the conversation width instead
    of the prose bubble's 70% cap. */
 #chat-app .message.bot:has(.gb-inline-artifact) {
@@ -175,6 +184,14 @@
     background: #fff;
 }
 .gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
+.gb-live-artifact.expanded {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    max-width: 100%;
+    width: 100%;
+    overflow: visible;
+}
 
 /* #1693 — Drive picker for the composer. */
 .gb-drive-picker-overlay {

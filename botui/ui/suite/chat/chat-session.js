@@ -214,12 +214,123 @@ window.ChatSwitchBot = function (botName) {
     if (typeof stickToBottom === "function") stickToBottom(2500);
   }
 
-  function loadSessionHistory(sessionId, replace) {
+  var HISTORY_PAGE_TURNS = 500;
+
+  function fetchSessionHistory(sessionId, offsetTurns) {
     var headers = {};
     var tok = window.getGBAccessToken ? window.getGBAccessToken()
       : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
     if (tok) headers["Authorization"] = "Bearer " + tok;
-    return fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/messages", { headers: headers })
+    var url = "/api/chat/history/sessions/" + encodeURIComponent(sessionId) +
+      "/messages?limit=" + HISTORY_PAGE_TURNS + "&offset=" + (offsetTurns || 0);
+    var grant = null;
+    try { grant = sessionStorage.getItem("gb-unlock:" + sessionId); } catch (e) {}
+    if (grant) url += "&unlock_token=" + encodeURIComponent(grant);
+    return fetch(url, { headers: headers });
+  }
+
+  function renderHistoryMessages(messages, pane) {
+    var previousRole = "";
+    var previousContent = "";
+    (messages || []).forEach(function (m) {
+      var role = m.role === "user" ? "user" : "bot";
+      // The pipeline can persist the same assistant turn twice; do not
+      // replay both bubbles into the conversation.
+      if (role === "bot" && previousRole === "bot" && previousContent === m.content) {
+        return;
+      }
+      previousRole = role;
+      previousContent = m.content;
+      addMessage(role, m.content);
+    });
+  }
+
+  function removeShowMoreControl() {
+    var existing = document.getElementById("gbShowMoreMessages");
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+  }
+
+  function insertShowMoreControl(sessionId) {
+    removeShowMoreControl();
+    if (!ChatState.historyHasMore) return;
+    var pane = document.getElementById("messages");
+    if (!pane) return;
+    var btn = document.createElement("button");
+    btn.id = "gbShowMoreMessages";
+    btn.type = "button";
+    btn.className = "gb-show-more-messages";
+    btn.textContent = "show more…";
+    btn.style.cssText = "display:block;margin:8px auto;padding:6px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;cursor:pointer;font-size:13px;";
+    btn.addEventListener("click", function () {
+      loadMoreHistory(sessionId);
+    });
+    pane.insertBefore(btn, pane.firstChild);
+  }
+
+  function loadMoreHistory(sessionId) {
+    if (ChatState.historyLoadingMore) return;
+    ChatState.historyLoadingMore = true;
+    var btn = document.getElementById("gbShowMoreMessages");
+    if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+    var pane = document.getElementById("messages");
+    var prevHeight = pane ? pane.scrollHeight : 0;
+    var prevTop = pane ? pane.scrollTop : 0;
+    fetchSessionHistory(sessionId, ChatState.historyOffsetTurns || 0)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        ChatState.historyLoadingMore = false;
+        if (!data || !Array.isArray(data.messages) || data.messages.length === 0) {
+          ChatState.historyHasMore = false;
+          removeShowMoreControl();
+          return;
+        }
+        // Render older messages into a temporary container, then move them
+        // to the top of the real pane so scroll position can be restored.
+        var realPane = document.getElementById("messages");
+        if (realPane) realPane.id = "gbMessagesLive";
+        var tempPane = document.createElement("div");
+        tempPane.id = "messages";
+        tempPane.style.display = "none";
+        document.body.appendChild(tempPane);
+        ChatState.suppressPersist = true;
+        renderHistoryMessages(data.messages, tempPane);
+        ChatState.suppressPersist = false;
+        if (realPane) {
+          while (tempPane.firstChild) {
+            realPane.insertBefore(tempPane.firstChild, realPane.firstChild);
+          }
+          realPane.id = "messages";
+        }
+        tempPane.remove();
+        if (pane) {
+          pane.scrollTop = pane.scrollHeight - prevHeight + prevTop;
+        }
+        ChatState.historyOffsetTurns = (ChatState.historyOffsetTurns || 0) + HISTORY_PAGE_TURNS;
+        ChatState.historyHasMore = (data.has_more === true) ||
+          (data.has_more === undefined && data.messages.length >= HISTORY_PAGE_TURNS * 2);
+        removeShowMoreControl();
+        insertShowMoreControl(sessionId);
+        if (typeof hydrateVmAttachments === "function") {
+          try { hydrateVmAttachments(document.getElementById("messages")); } catch (e) {}
+        }
+      })
+      .catch(function () {
+        ChatState.historyLoadingMore = false;
+        if (btn) { btn.disabled = false; btn.textContent = "show more…"; }
+      });
+  }
+  window.loadMoreHistory = loadMoreHistory;
+
+  function loadSessionHistory(sessionId, replace) {
+    ChatState.historySessionId = sessionId;
+    ChatState.historyOffsetTurns = 0;
+    ChatState.historyHasMore = false;
+    ChatState.historyLoadingMore = false;
+    var headers = {};
+    var tok = window.getGBAccessToken ? window.getGBAccessToken()
+      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+    if (tok) headers["Authorization"] = "Bearer " + tok;
+    return fetchSessionHistory(sessionId, 0)
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !Array.isArray(data.messages) || data.messages.length === 0) {
@@ -232,24 +343,16 @@ window.ChatSwitchBot = function (botName) {
         if (!replace && pane && pane.childElementCount > 0) return;
         if (pane) pane.innerHTML = "";
         ChatState.suppressPersist = true;
-        var previousRole = "";
-        var previousContent = "";
-        data.messages.forEach(function (m) {
-          var role = m.role === "user" ? "user" : "bot";
-          // The pipeline can persist the same assistant turn twice; do not
-          // replay both bubbles into the conversation.
-          if (role === "bot" && previousRole === "bot" && previousContent === m.content) {
-            return;
-          }
-          previousRole = role;
-          previousContent = m.content;
-          addMessage(role, m.content);
-        });
+        renderHistoryMessages(data.messages, pane);
         ChatState.suppressPersist = false;
+        ChatState.historyOffsetTurns = HISTORY_PAGE_TURNS;
+        ChatState.historyHasMore = (data.has_more === true) ||
+          (data.has_more === undefined && data.messages.length >= HISTORY_PAGE_TURNS * 2);
         scrollToBottom(false);
         setTimeout(snapToBottom, 250);
         if (typeof followLiveEdge === "function") followLiveEdge(12000);
         else if (typeof stickToBottom === "function") stickToBottom(2500);
+        insertShowMoreControl(sessionId);
       })
       .catch(function () { restoreLocalHistory(); });
   }

@@ -1,6 +1,5 @@
 use super::*;
 
-
 /// Desktop/single-user installs have no reachable identity provider API for
 /// password checks (Zitadel v2 sessions is not exposed by the bundled build).
 /// The first-run wizard writes `conf/directory/admin-credentials.json`; when
@@ -11,12 +10,16 @@ fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
     let mut candidates: Vec<std::path::PathBuf> = Vec::new();
     if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
         if !stack.trim().is_empty() {
-            candidates.push(std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"));
+            candidates.push(
+                std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"),
+            );
         }
     }
     if let Ok(stack) = std::env::var("GBO_STACK_PATH") {
         if !stack.trim().is_empty() {
-            candidates.push(std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"));
+            candidates.push(
+                std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"),
+            );
         }
     }
     if let Ok(cwd) = std::env::current_dir() {
@@ -50,13 +53,92 @@ fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
     None
 }
 
+/// #1839 — desktop logins mint a session from `admin-credentials.json` without
+/// going through directory provisioning. Persist the same identity into the
+/// local `users` table as an administrator so Settings → Users can list it
+/// immediately after the first-run wizard, without waiting for a restart.
+fn persist_local_admin(state: &Arc<AppState>, user_id: &str, email: &str) {
+    use diesel::RunQueryDsl;
+
+    let Ok(mut conn) = state.conn.get() else {
+        warn!("Local admin: database unavailable; users row not reconciled");
+        return;
+    };
+    let uuid = uuid::Uuid::parse_str(user_id.trim()).unwrap_or_else(|_| {
+        uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_DNS,
+            format!("zitadel:{}", user_id.trim()).as_bytes(),
+        )
+    });
+    let username = email
+        .split('@')
+        .next()
+        .filter(|value| !value.is_empty())
+        .unwrap_or("admin");
+
+    let updated = diesel::sql_query(
+        "UPDATE users SET is_admin = TRUE, is_active = TRUE, updated_at = NOW() \
+         WHERE id = $1 OR lower(email) = lower($2)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(uuid)
+    .bind::<diesel::sql_types::Text, _>(email)
+    .execute(&mut conn);
+
+    match updated {
+        Ok(count) if count > 0 => {
+            info!(
+                "Local admin: users row for {} reconciled with is_admin=true",
+                email
+            );
+        }
+        Ok(_) => {
+            let inserted = diesel::sql_query(
+                "INSERT INTO users \
+                   (id, username, email, password_hash, is_active, is_admin, created_at, updated_at) \
+                 VALUES ($1, $2, $3, '', TRUE, TRUE, NOW(), NOW()) \
+                 ON CONFLICT DO NOTHING",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(uuid)
+            .bind::<diesel::sql_types::Text, _>(username)
+            .bind::<diesel::sql_types::Text, _>(email)
+            .execute(&mut conn);
+
+            match inserted {
+                Ok(1) => info!(
+                    "Local admin: created users row for {} with is_admin=true",
+                    email
+                ),
+                Ok(_) => warn!("Local admin: {} already has a conflicting users row", email),
+                Err(e) => warn!("Local admin: could not create users row for {}: {e}", email),
+            }
+        }
+        Err(e) => warn!(
+            "Local admin: could not reconcile users row for {}: {e}",
+            email
+        ),
+    }
+}
+
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, (StatusCode, Json<ErrorResponse>)> {
     info!("Login attempt for: {}", req.email);
 
-    let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
+    let auth_service = state
+        .auth_service
+        .as_ref()
+        .ok_or_else(|| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "No auth service".to_string(),
+                    details: None,
+                }),
+            )
+        })?
+        .lock()
+        .await;
 
     let http_client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
@@ -81,7 +163,12 @@ pub async fn login(
         // created with a bare username (e.g. `sample`), sending the full email
         // (`sample@example.com`) fails. Try the full email first, then fall
         // back to the username prefix.
-        let username = req.email.split('@').next().unwrap_or(&req.email).to_string();
+        let username = req
+            .email
+            .split('@')
+            .next()
+            .unwrap_or(&req.email)
+            .to_string();
         let login_names = [req.email.clone(), username];
 
         let mut session_response: Option<reqwest::Response> = None;
@@ -271,7 +358,11 @@ pub async fn login(
                 }
             };
 
-            let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
+            let api_token = format!(
+                "gb_{}_{}",
+                uuid::Uuid::new_v4(),
+                chrono::Utc::now().timestamp()
+            );
 
             let session_user = SessionUserData {
                 user_id: user_id_str.clone(),
@@ -293,7 +384,11 @@ pub async fn login(
                 persist_session(&api_token, &session_user);
             }
 
-            botlog::safe_info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
+            botlog::safe_info!(
+                "Login successful for: {} (user_id: {})",
+                req.email,
+                user_id_str
+            );
 
             return Ok(Json(LoginResponse {
                 success: true,
@@ -323,7 +418,12 @@ pub async fn login(
     // that account here so login and logout work without a cloud identity
     // provider, exactly like the wizard's auto-login did.
     if let Some(user_id) = local_admin_user_id(&req.email, &req.password) {
-        let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
+        persist_local_admin(&state, &user_id, &req.email);
+        let api_token = format!(
+            "gb_{}_{}",
+            uuid::Uuid::new_v4(),
+            chrono::Utc::now().timestamp()
+        );
         let session_user = SessionUserData {
             user_id: user_id.clone(),
             email: req.email.clone(),
@@ -341,7 +441,11 @@ pub async fn login(
             cache.insert(api_token.clone(), session_user.clone());
             persist_session(&api_token, &session_user);
         }
-        botlog::safe_info!("Local administrator login for: {} (user_id: {})", req.email, user_id);
+        botlog::safe_info!(
+            "Local administrator login for: {} (user_id: {})",
+            req.email,
+            user_id
+        );
         return Ok(Json(LoginResponse {
             success: true,
             user_id: Some(user_id),

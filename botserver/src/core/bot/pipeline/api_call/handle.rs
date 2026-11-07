@@ -112,6 +112,38 @@ pub(crate) async fn handle_api_call(
 
     match api_catalog::execute_command(state, bot_uuid, user_id, &name, &params).await {
         Ok(result) => {
+            // #1835 — when the model itself runs web.search, surface its hits
+            // as citation chips too, so informational answers show references.
+            if name == "web.search" {
+                if let Some(results) = result.get("results").and_then(|v| v.as_array()) {
+                    let mut citations = Vec::new();
+                    for r in results {
+                        let title = r.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let url = r.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        if url.is_empty() {
+                            continue;
+                        }
+                        let host = url
+                            .split("://")
+                            .nth(1)
+                            .unwrap_or(&url)
+                            .split('/')
+                            .next()
+                            .unwrap_or(&url)
+                            .trim_start_matches("www.")
+                            .to_string();
+                        citations.push(serde_json::json!({
+                            "title": title,
+                            "url": url,
+                            "host": host,
+                        }));
+                    }
+                    if !citations.is_empty() {
+                        let mut pending = state.pending_citations.lock().await;
+                        pending.insert(session_id.to_string(), citations);
+                    }
+                }
+            }
             if compose {
                 let deep_links = extract_deep_links(&result);
                 // Grounding: the model once answered "I created the automation"

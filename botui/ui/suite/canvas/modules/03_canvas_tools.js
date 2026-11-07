@@ -76,7 +76,7 @@
     }
 
     C.clearCanvas = function clearCanvas() {
-        if (C.elements.length && window.confirm("Clear all elements?")) {
+        if (C.elements.length && (window.GBModal||{confirm:confirm}).confirm("Clear all elements?")) {
             C.elements = [];
             C.selectedElement = null;
             C.saveHistory();

@@ -6,7 +6,7 @@ function deleteProject(p, force) {
     if (!p) return;
     var id = p.project_id || p.id;
     var name = p.name || "this project";
-    if (!window.confirm("Delete project '" + name + "'?\n\nThis removes its VMs and workspace files. This cannot be undone.")) {
+    if (!(window.GBModal||{confirm:confirm}).confirm("Delete project '" + name + "'?\n\nThis removes its VMs and workspace files. This cannot be undone.")) {
         return;
     }
     // Freeze the UI until the deletion finishes AND the project combo is
@@ -64,17 +64,17 @@ function deleteProject(p, force) {
                 // #1440 — the default-bot protection answers with an explicit
                 // explanation; offer a one-click force instead of a dead end.
                 if (data && data.code === "default_bot_project_protected") {
-                    if (window.confirm("Delete default bot project: " + msg)) {
+                    if ((window.GBModal||{confirm:confirm}).confirm("Delete default bot project: " + msg)) {
                         deleteProject(p, true);
                     }
                     return;
                 }
-                window.alert("Could not delete project: " + msg);
+                (window.GBModal||{alert:alert}).alert("Could not delete project: " + msg);
             }
         })
         .catch(function (e) {
             unfreeze();
-            window.alert("Could not delete project: " + e.message);
+            (window.GBModal||{alert:alert}).alert("Could not delete project: " + e.message);
         });
 }
 

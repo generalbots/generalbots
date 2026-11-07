@@ -4,7 +4,7 @@ function persistLocalMessage(sender, content) {
     var key = "gb_chat_history_" + (ChatState.currentSessionId || "default");
     var history = JSON.parse(localStorage.getItem(key) || "[]");
     history.push({ sender: sender, content: content, ts: Date.now() });
-    if (history.length > 200) history = history.slice(-200);
+    if (history.length > 500) history = history.slice(-500);
     localStorage.setItem(key, JSON.stringify(history));
   } catch (e) {}
 }

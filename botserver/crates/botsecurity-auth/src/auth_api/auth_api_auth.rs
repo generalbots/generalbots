@@ -1,9 +1,7 @@
 use axum::body::Body;
 use tracing::{debug, warn};
 
-use super::auth_api_utils::{
-    ExtractedAuthData, is_jwt_format, validate_session_sync,
-};
+use super::auth_api_utils::{is_jwt_format, validate_session_sync, ExtractedAuthData};
 use super::config::AuthConfig;
 use super::error::AuthError;
 use super::types::AuthenticatedUser;
@@ -132,7 +130,11 @@ pub async fn authenticate_with_extracted_data(
     }
 
     if !config.require_auth {
-        return Ok(AuthenticatedUser::anonymous());
+        // Single-user desktop install (`no_security=true`): no directory
+        // account exists, but the local OS user owns the instance. Handlers
+        // get an explicit local principal instead of an anonymous visitor so
+        // token-less writes (Drive uploads, #1840) have a real identity.
+        return Ok(AuthenticatedUser::desktop_local());
     }
 
     Err(AuthError::MissingToken)
@@ -146,4 +148,3 @@ pub async fn extract_user_with_providers(
     let extracted = ExtractedAuthData::from_request(request, config);
     authenticate_with_extracted_data(extracted, config, registry).await
 }
-

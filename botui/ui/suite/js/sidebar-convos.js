@@ -146,7 +146,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
   /// refreshes the rail. Used by the hover button and the context menu.
   mod.deleteConversation = function (sessionId, item) {
     if (!sessionId) return;
-    if (!window.confirm("Delete this conversation and its workspace files?")) {
+    if (!(window.GBModal||{confirm:confirm}).confirm("Delete this conversation and its workspace files?")) {
       return;
     }
     fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId), {
@@ -164,7 +164,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
         );
       })
       .catch(function (err) {
-        window.alert("Could not delete conversation: " + err.message);
+        (window.GBModal||{alert:alert}).alert("Could not delete conversation: " + err.message);
       });
   };
 
@@ -175,7 +175,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       var nameEl = item.querySelector(".chat-sidebar-conv-name");
       if (nameEl) currentName = nameEl.textContent || "";
     }
-    var next = window.prompt("Rename conversation:", currentName);
+    var next = (window.GBModal||{prompt:prompt}).prompt("Rename conversation:", currentName);
     if (next === null) return;
     next = String(next).trim();
     if (!next) return;
@@ -193,7 +193,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
         mod.loadHistory();
       })
       .catch(function (err) {
-        window.alert("Could not rename conversation: " + err.message);
+        (window.GBModal||{alert:alert}).alert("Could not rename conversation: " + err.message);
       });
   };
 

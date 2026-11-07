@@ -169,7 +169,7 @@
                 height: 0,
             });
         } else if (C.currentTool === "text") {
-            const text = window.prompt("Text content:", "");
+            const text = (window.GBModal||{prompt:prompt}).prompt("Text content:", "");
             if (text === null || text === "") return;
             element = Object.assign({}, base, {
                 type: "text",

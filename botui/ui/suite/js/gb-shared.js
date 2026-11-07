@@ -84,11 +84,125 @@
     return out;
   }
 
+  // #1834 — the suite runs inside a Tauri WebView in the desktop edition,
+  // where `<a download>` and blob URLs are ignored by WebKitGTK. Route those
+  // downloads through the native Save dialog; the web build keeps the plain
+  // anchor fallback.
+  function isDesktop() {
+    return !!(window.__TAURI__ || window.__TAURI_INTERNALS__);
+  }
+
+  function tauriInvoke(command, args) {
+    var tauri = window.__TAURI__;
+    if (tauri && tauri.core && typeof tauri.core.invoke === "function") {
+      return tauri.core.invoke(command, args);
+    }
+    if (
+      window.__TAURI_INTERNALS__ &&
+      typeof window.__TAURI_INTERNALS__.invoke === "function"
+    ) {
+      return window.__TAURI_INTERNALS__.invoke(command, args);
+    }
+    return Promise.reject(new Error("Tauri invoke is not available"));
+  }
+
+  function absoluteUrl(url) {
+    try {
+      return new URL(String(url || ""), window.location.href).href;
+    } catch (error) {
+      return String(url || "");
+    }
+  }
+
+  function notify(message, kind) {
+    if (window.GBToasts && typeof window.GBToasts.show === "function") {
+      window.GBToasts.show("Download", message, kind);
+    } else if (kind === "error") {
+      console.error(message);
+    }
+  }
+
+  function anchorDownload(url, fileName) {
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = fileName || "";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function reportSaved(saved, fileName) {
+    if (!saved) return null;
+    notify(fileName + " saved to " + saved, "success");
+    return saved;
+  }
+
+  // `url` may be relative; `fileName` is the suggested Save-dialog name.
+  function download(url, fileName) {
+    var name = fileName || "";
+    if (!isDesktop()) {
+      anchorDownload(url, name);
+      return Promise.resolve(null);
+    }
+    return tauriInvoke("save_download", {
+      fileName: name,
+      url: absoluteUrl(url),
+      bytes: null,
+    })
+      .then(function (saved) {
+        return reportSaved(saved, name);
+      })
+      .catch(function (error) {
+        notify(
+          "Download failed: " +
+            (error && error.message ? error.message : String(error)),
+          "error"
+        );
+        throw error;
+      });
+  }
+
+  // A Blob (POST download endpoints, object URLs) uses the same Save dialog.
+  function saveBlob(blob, fileName) {
+    var name = fileName || "";
+    if (!isDesktop()) {
+      var objectUrl = URL.createObjectURL(blob);
+      anchorDownload(objectUrl, name);
+      setTimeout(function () {
+        URL.revokeObjectURL(objectUrl);
+      }, 1000);
+      return Promise.resolve(null);
+    }
+    return blob
+      .arrayBuffer()
+      .then(function (buffer) {
+        return tauriInvoke("save_download", {
+          fileName: name,
+          url: null,
+          bytes: Array.from(new Uint8Array(buffer)),
+        });
+      })
+      .then(function (saved) {
+        return reportSaved(saved, name);
+      })
+      .catch(function (error) {
+        notify(
+          "Download failed: " +
+            (error && error.message ? error.message : String(error)),
+          "error"
+        );
+        throw error;
+      });
+  }
+
   var html = { escape: escapeHtml };
   var auth = { token: token, headers: headers };
+  var downloadKit = { download: download, saveBlob: saveBlob, isDesktop: isDesktop };
 
   window.GBHtml = window.GBHtml || html;
-  window.GBShared = { html: html, auth: auth };
+  window.GBShared = { html: html, auth: auth, download: download, saveBlob: saveBlob };
+  window.GBDownload = window.GBDownload || downloadKit;
   // auth-service.js owns the rest of window.GBAuth; only add our two helpers.
   window.GBAuth = Object.assign(window.GBAuth || {}, auth);
   // Legacy global used by few remaining call sites; a page-local declaration

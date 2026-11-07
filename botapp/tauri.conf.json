@@ -16,6 +16,20 @@
     },
     "windows": [
       {
+        "label": "splash",
+        "title": "General Bots",
+        "url": "splash.html",
+        "width": 420,
+        "height": 420,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "center": true,
+        "visible": false
+      },
+      {
         "title": "General Bots",
         "url": "suite/desktop.html",
         "width": 1200,

@@ -8,7 +8,7 @@ use botcore::shared::state::AppState;
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::{bearer_user, db_error, HandlerError};
+use super::{HandlerError, bearer_user, db_error};
 use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_pin};
 
 #[derive(Serialize)]
@@ -40,10 +40,7 @@ pub async fn handle_chat_history_messages(
     }
     // #1682 — a locked conversation releases its messages only with the PIN.
     if sess.locked {
-        let token = params
-            .get("unlock_token")
-            .map(String::as_str)
-            .unwrap_or("");
+        let token = params.get("unlock_token").map(String::as_str).unwrap_or("");
         let token_ok = !token.is_empty() && unlock_token_valid(token, session_id, user_uuid);
         let supplied = params.get("pin").map(String::as_str).unwrap_or("");
         let pin_ok = sess
@@ -58,9 +55,25 @@ pub async fn handle_chat_history_messages(
         }
     }
 
+    let limit = params
+        .get("limit")
+        .and_then(|v| v.parse::<i64>().ok())
+        .map(|v| v.clamp(1, 500))
+        .unwrap_or(500);
+    let offset = params
+        .get("offset")
+        .and_then(|v| v.parse::<i64>().ok())
+        .map(|v| v.max(0))
+        .unwrap_or(0);
+
+    let total = {
+        let mut sm = state.session_manager.lock().await;
+        sm.count_conversation_messages(session_id).unwrap_or(0)
+    };
+
     let history = {
         let mut sm = state.session_manager.lock().await;
-        sm.get_conversation_history(session_id, user_uuid, Some(500))
+        sm.get_conversation_history_paged(session_id, user_uuid, Some(limit), Some(offset))
             .map_err(|e| db_error("decrypt history", e))?
     };
 
@@ -72,8 +85,15 @@ pub async fn handle_chat_history_messages(
         .map(|(role, content)| HistoryMessage { role, content })
         .collect();
 
+    // `limit`/`offset` are expressed in turns (a turn = user + assistant), so
+    // compare against the raw row count to decide whether older pages remain.
+    let has_more = (offset + limit) * 2 < total;
+
     Ok(Json(serde_json::json!({
         "session_id": session_id,
         "messages": messages,
+        "has_more": has_more,
+        "offset": offset,
+        "limit": limit,
     })))
 }

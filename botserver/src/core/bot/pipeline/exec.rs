@@ -322,7 +322,12 @@ pub async fn process_message_internal(
     super::turn_context::apply_drive_listing(&mut messages, &parsed);
 
     // #1580: Always-on agent VM — auto-provision and inject execution context.
-    super::agent_vm_context::inject(session_id, user_id, bot_uuid, &mut messages).await;
+    // #1835 — news/informational turns belong to web grounding, not to the
+    // agent VM's code-execution surface: skip the VM contract for them so the
+    // model does not route the request into vm_exec (which never shows refs).
+    if !super::turn_hooks::is_informational_request(&user_text) {
+        super::agent_vm_context::inject(session_id, user_id, bot_uuid, &mut messages).await;
+    }
 
     // #1584: files named in the message are copied from Drive into data/
     // before the model writes the program that reads them.
@@ -377,7 +382,8 @@ pub async fn process_message_internal(
         let web_search_enabled = parsed
             .get("web_search")
             .and_then(|value| value.as_bool())
-            .unwrap_or(false);
+            .unwrap_or(false)
+            || super::turn_hooks::is_informational_request(&user_text);
         if web_search_enabled {
             let citations =
                 super::web_context::search_and_inject(identity, &user_text, &mut messages).await;

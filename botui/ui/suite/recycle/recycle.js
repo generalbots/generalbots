@@ -57,7 +57,7 @@
   }
 
   function empty() {
-    if (!window.confirm("Permanently delete all items in the Recycle Bin?")) return;
+    if (!(window.GBModal||{confirm:confirm}).confirm("Permanently delete all items in the Recycle Bin?")) return;
     fetch("/api/files/trash/empty", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

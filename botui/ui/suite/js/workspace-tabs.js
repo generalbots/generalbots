@@ -102,7 +102,7 @@ const WorkspaceTabs = (() => {
     if (window.WindowManager && window.WindowManager.promptFloating) {
       window.WindowManager.promptFloating("Rename workspace", "Workspace name:", tab.name, done);
     } else {
-      done(window.prompt("Workspace name:", tab.name));
+      done((window.GBModal||{prompt:prompt}).prompt("Workspace name:", tab.name));
     }
   }
 

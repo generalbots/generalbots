@@ -9,12 +9,10 @@ pub async fn run_axum_server(
 
     use crate::core::product::PRODUCT_CONFIG;
     {
-        let config = PRODUCT_CONFIG
-            .read()
-            .unwrap_or_else(|e| {
-                error!("Product config RwLock poisoned: {}", e);
-                e.into_inner()
-            });
+        let config = PRODUCT_CONFIG.read().unwrap_or_else(|e| {
+            error!("Product config RwLock poisoned: {}", e);
+            e.into_inner()
+        });
         info!(
             "Product: {} | Theme: {} | Apps: {:?}",
             config.name,
@@ -50,7 +48,8 @@ pub async fn run_axum_server(
             match tokio::net::TcpListener::bind(gateway_addr).await {
                 Ok(listener) => {
                     log::info!("Deploy Gateway Server listening on http://0.0.0.0:5860");
-                    if let Err(e) = axum::serve(listener, gateway_router.into_make_service()).await {
+                    if let Err(e) = axum::serve(listener, gateway_router.into_make_service()).await
+                    {
                         log::error!("Deploy Gateway Server execution failed: {}", e);
                     }
                 }
@@ -94,24 +93,51 @@ pub async fn run_axum_server(
         "dev-csrf-secret-change-in-production-minimum-32-bytes".to_string()
     });
     let csrf_config = CsrfConfig {
+        // Single-user desktop (`no_security=true`): there is no account
+        // session or auth cookie for CSRF to protect, and the double-submit
+        // cookie cannot work because the token cookie is HttpOnly while the
+        // desktop sends no bearer token to skip the check. Leaving CSRF on
+        // rejected every local POST/DELETE — file uploads (#1840), downloads
+        // (#1834) and folder operations — with 403. Normal authenticated
+        // deployments keep CSRF enabled.
+        enabled: !sec.no_security,
         exempt_paths: vec![
-            "/api/health".into(), "/api/auth".into(), "/api/auth/login".into(),
-            "/api/auth/refresh".into(), "/api/auth/bootstrap".into(), "/api/setup/status".into(),
-            "/api/product".into(), "/api/manifest".into(), "/api/i18n".into(),
-            "/api/client-errors".into(), "/api/cloud/auth*".into(), "/api/sheet*".into(), "/suite/sheet*".into(),            "/api/auth/cloud-sso".into(),
+            "/api/health".into(),
+            "/api/auth".into(),
+            "/api/auth/login".into(),
+            "/api/auth/refresh".into(),
+            "/api/auth/bootstrap".into(),
+            "/api/setup/status".into(),
+            "/api/product".into(),
+            "/api/manifest".into(),
+            "/api/i18n".into(),
+            "/api/client-errors".into(),
+            "/api/cloud/auth*".into(),
+            "/api/sheet*".into(),
+            "/suite/sheet*".into(),
+            "/api/auth/cloud-sso".into(),
             "/api/auth/suite-sso".into(),
-            "/api/auth/unified-login".into(), "/api/catalog".into(), "/ws".into(),
-            "/ws/".into(), "/webhook/whatsapp".into(), "/api/whatsapp/webhook".into(), "/api/facebook/webhook".into(), "/webhook".into(),
+            "/api/auth/unified-login".into(),
+            "/api/catalog".into(),
+            "/ws".into(),
+            "/ws/".into(),
+            "/webhook/whatsapp".into(),
+            "/api/whatsapp/webhook".into(),
+            "/api/facebook/webhook".into(),
+            "/webhook".into(),
             // Inbound channel webhooks arrive from the provider, which cannot
             // hold a CSRF token; each handler proves the call itself (#1327).
-            "/webhook/telegram*".into(), "/api/instagram/webhook".into(), "/api/msteams/messages".into(),
+            "/webhook/telegram*".into(),
+            "/api/instagram/webhook".into(),
+            "/api/msteams/messages".into(),
             // CalDAV clients (Thunderbird, Apple Calendar, DAVx5) authenticate
             // with HTTP Basic and their write verbs — PROPFIND, REPORT, PUT,
             // DELETE — are not in the exempt method list, so a CSRF check
             // rejected every discovery request and no client could sync. The
             // DAV router authenticates and authorizes each request itself
             // (#1335).
-            "/caldav*".into(), "/.well-known/caldav".into(),
+            "/caldav*".into(),
+            "/.well-known/caldav".into(),
         ],
         ..Default::default()
     };
@@ -120,7 +146,10 @@ pub async fn run_axum_server(
         let secret = if csrf_secret.len() >= 32 {
             csrf_secret.as_bytes()
         } else {
-            log::warn!("CSRF secret too short ({} bytes), using fallback", csrf_secret.len());
+            log::warn!(
+                "CSRF secret too short ({} bytes), using fallback",
+                csrf_secret.len()
+            );
             fallback_secret.as_bytes()
         };
         match CsrfManager::new(csrf_config, secret) {
@@ -149,18 +178,25 @@ pub async fn run_axum_server(
     if ui_path_exists {
         info!("Serving UI from external folder: {}", ui_path);
     } else if use_embedded_ui {
-        info!("External UI folder not found at '{}', using embedded UI", ui_path);
+        info!(
+            "External UI folder not found at '{}', using embedded UI",
+            ui_path
+        );
         let file_count = crate::embedded_ui::list_embedded_files().len();
         info!("Embedded UI contains {} files", file_count);
     } else {
-        warn!("No UI available: folder '{}' not found and no embedded UI", ui_path);
+        warn!(
+            "No UI available: folder '{}' not found and no embedded UI",
+            ui_path
+        );
     }
 
     let mut app_state_with_auth = (*app_state).clone();
     if let Some(jwt_mgr) = sec.jwt_manager {
         app_state_with_auth.jwt_manager = Some(jwt_mgr as Arc<dyn botlib::traits::JwtService>);
     }
-    app_state_with_auth.auth_provider_registry = Some(sec.auth_provider_registry as Arc<dyn std::any::Any + Send + Sync>);
+    app_state_with_auth.auth_provider_registry =
+        Some(sec.auth_provider_registry as Arc<dyn std::any::Any + Send + Sync>);
     {
         let rbac: Arc<dyn botlib::traits::RbacService> = sec.rbac_manager.clone();
         app_state_with_auth.rbac_manager = Some(rbac);
@@ -172,7 +208,13 @@ pub async fn run_axum_server(
         base_url: format!("http://localhost:{}", port),
     });
 
-    let base_router = build_base_router(app_state.clone(), api_router, sub_router, oauth_state, &site_path);
+    let base_router = build_base_router(
+        app_state.clone(),
+        api_router,
+        sub_router,
+        oauth_state,
+        &site_path,
+    );
 
     let app = apply_middleware(
         base_router,
@@ -233,13 +275,16 @@ pub(super) fn build_base_router(
     #[cfg(feature = "attendant")]
     let base_router = add_attendant_routes(base_router, &app_state);
     #[cfg(not(feature = "vibe"))]
-    let base_router = base_router
-        .nest_service("/static", ServeDir::new(site_path));
+    let base_router = base_router.nest_service("/static", ServeDir::new(site_path));
 
     let ui_path = std::env::var("BOTUI_PATH").unwrap_or_else(|_| {
-        if std::path::Path::new("./botui/ui/suite").exists() { "./botui/ui/suite".to_string() }
-        else if std::path::Path::new("../botui/ui/suite").exists() { "../botui/ui/suite".to_string() }
-        else { "./botui/ui/suite".to_string() }
+        if std::path::Path::new("./botui/ui/suite").exists() {
+            "./botui/ui/suite".to_string()
+        } else if std::path::Path::new("../botui/ui/suite").exists() {
+            "../botui/ui/suite".to_string()
+        } else {
+            "./botui/ui/suite".to_string()
+        }
     });
     let ui_path_exists = std::path::Path::new(&ui_path).exists();
     let use_embedded_ui = !ui_path_exists && crate::embedded_ui::has_embedded_ui();

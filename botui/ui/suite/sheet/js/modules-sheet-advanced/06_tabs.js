@@ -128,7 +128,7 @@
   function deleteWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || sheet.worksheets.length <= 1) return;
-    if (!window.confirm(t("tabs.confirm_delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
+    if (!(window.GBModal||{confirm:confirm}).confirm(t("tabs.confirm_delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
     api().deleteWorksheet(i).then(function () {
       reloadSheetAfterMutation().then(function (fresh) {
         // The captured `sheet` still has the pre-delete length, so the bounds
@@ -145,7 +145,7 @@
   function renameWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || !sheet.worksheets[i]) return;
-    const name = window.prompt(t("tabs.rename_prompt", "New worksheet name:"), sheet.worksheets[i].name);
+    const name = (window.GBModal||{prompt:prompt}).prompt(t("tabs.rename_prompt", "New worksheet name:"), sheet.worksheets[i].name);
     if (!name || !name.trim()) return;
     api().renameWorksheet(i, name.trim()).then(function () {
       sheet.worksheets[i].name = name.trim();

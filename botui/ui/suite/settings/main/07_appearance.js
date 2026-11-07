@@ -22,7 +22,7 @@ function hasUnsavedSettingsChanges() {
 function confirmLanguageReload(locale) {
   if (!hasUnsavedSettingsChanges()) return true;
   var languageName = locale || "the selected language";
-  return window.confirm(
+  return (window.GBModal||{confirm:confirm}).confirm(
     "Changing the language to " +
       languageName +
       " will reload the app. Unsaved changes may be lost. Continue?"

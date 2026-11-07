@@ -106,15 +106,21 @@ async function exportPaths(paths, folder, bucket) {
         throw new Error(detail.error || ("HTTP " + res.status));
     }
     var blob = await res.blob();
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement("a");
-    link.href = url;
-    link.download = folder ? folder.split("/").pop() + ".zip" : "general-bots-export.zip";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
-    showNotification("Archive downloaded", "success");
+    var archiveName = folder ? folder.split("/").pop() + ".zip" : "general-bots-export.zip";
+    if (window.GBShared && typeof window.GBShared.saveBlob === "function") {
+        var saved = await window.GBShared.saveBlob(blob, archiveName);
+        if (!saved) showNotification("Archive downloaded", "success");
+    } else {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = archiveName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+        showNotification("Archive downloaded", "success");
+    }
 }
 
 async function deleteSelected() {

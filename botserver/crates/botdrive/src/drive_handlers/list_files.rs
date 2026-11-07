@@ -1,5 +1,16 @@
 use super::*;
 
+/// Local principal for single-user desktop installs (`no_security=true`).
+/// Normal deployments always answer `None`, so a missing auth extension can
+/// never silently become an authenticated request there.
+fn desktop_local_fallback() -> Option<AuthenticatedUser> {
+    let no_security = botcore::product::PRODUCT_CONFIG
+        .read()
+        .map(|product| product.no_security)
+        .unwrap_or(false);
+    no_security.then(AuthenticatedUser::desktop_local)
+}
+
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -8,7 +19,14 @@ pub async fn list_files(
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        params.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let sub_path = normalize_path(params.path.as_deref().unwrap_or(""));
     let full_prefix = if sub_path.is_empty() {
@@ -24,16 +42,25 @@ pub async fn list_files(
     // HEAD it performs on every listing only matters when the bucket is
     // actually missing (a user's personal bucket), and paying for it on every
     // request starved the CPU the handler needs.
-    let objects = match drive.list_objects_with_metadata(&bucket, Some(&full_prefix)).await {
+    let objects = match drive
+        .list_objects_with_metadata(&bucket, Some(&full_prefix))
+        .await
+    {
         Ok(objects) => objects,
         Err(list_err) => {
             // Ensures a personal bucket that has never been written to still
             // renders as an empty folder instead of erroring.
             botlog::safe_warn!("drive: listing '{full_prefix}' failed ({list_err}); ensuring bucket '{bucket}' exists");
             let _ = drive.create_bucket_if_not_exists(&bucket).await;
-            drive.list_objects_with_metadata(&bucket, Some(&full_prefix))
+            drive
+                .list_objects_with_metadata(&bucket, Some(&full_prefix))
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list objects: {e}")))?
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Failed to list objects: {e}"),
+                    )
+                })?
         }
     };
 
@@ -51,13 +78,37 @@ pub async fn list_files(
 }
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
+    user: Option<Extension<AuthenticatedUser>>,
     Json(req): Json<WriteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
+    // The global auth middleware always inserts a principal, including the
+    // local desktop one when `no_security=true`. The fallback below keeps the
+    // endpoint itself safe if it is ever mounted without that middleware:
+    // only a single-user desktop profile may write without a bearer identity.
+    let user = match user {
+        Some(Extension(user)) => user,
+        None => match desktop_local_fallback() {
+            Some(user) => user,
+            None => return Err(err(StatusCode::UNAUTHORIZED, "Authentication required")),
+        },
+    };
+    // Defence in depth: a normal deployment must never reach the write path
+    // as the anonymous fallback, even if the route is accidentally made
+    // public. Only the explicit local desktop principal may write token-less.
+    if !user.is_authenticated() && !user.metadata.contains_key("desktop_local") {
+        return Err(err(StatusCode::UNAUTHORIZED, "Authentication required"));
+    }
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     // Accept both raw text (designer/editor send the file content verbatim)
@@ -117,7 +168,14 @@ pub async fn read_file(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
@@ -137,7 +195,14 @@ pub async fn download_file(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
@@ -147,7 +212,12 @@ pub async fn download_file(
         .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
 
     let content = base64::engine::general_purpose::STANDARD.encode(&data);
-    let file_name = req.path.rsplit('/').next().unwrap_or("download").to_string();
+    let file_name = req
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or("download")
+        .to_string();
 
     Ok(Json(DownloadFileResponse { content, file_name }))
 }
@@ -159,7 +229,14 @@ pub async fn download_file_binary(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
@@ -168,7 +245,12 @@ pub async fn download_file_binary(
         .await
         .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
 
-    let file_name = req.path.rsplit('/').next().unwrap_or("download").to_string();
+    let file_name = req
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or("download")
+        .to_string();
     let mime = guess_mime(&file_name);
 
     use axum::response::IntoResponse;
@@ -193,7 +275,14 @@ pub async fn download_file_inline(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
@@ -202,7 +291,12 @@ pub async fn download_file_inline(
         .await
         .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
 
-    let file_name = req.path.rsplit('/').next().unwrap_or("download").to_string();
+    let file_name = req
+        .path
+        .rsplit('/')
+        .next()
+        .unwrap_or("download")
+        .to_string();
     let mime = guess_mime(&file_name);
 
     use axum::response::IntoResponse;
@@ -214,7 +308,11 @@ pub async fn download_file_inline(
     Ok((headers, data).into_response())
 }
 pub(super) fn guess_mime(file_name: &str) -> &'static str {
-    let ext = file_name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let ext = file_name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
     match ext.as_str() {
         "pdf" => "application/pdf",
         "png" => "image/png",
@@ -245,14 +343,23 @@ pub async fn delete_file(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = scoped_key(&prefix, &req.path);
 
-    drive
-        .delete_object(&bucket, &key)
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Delete failed: {e}")))?;
+    drive.delete_object(&bucket, &key).await.map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("Delete failed: {e}"),
+        )
+    })?;
 
     botlog::safe_info!("File deleted: {key} from bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
@@ -265,20 +372,38 @@ pub async fn create_folder(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let parent = normalize_path(&req.path);
     let folder_name = normalize_path(&req.name);
     let key = if parent.is_empty() {
-        format!("{}/", scoped_key(&prefix, &folder_name).trim_end_matches('/'))
+        format!(
+            "{}/",
+            scoped_key(&prefix, &folder_name).trim_end_matches('/')
+        )
     } else {
-        format!("{}/", scoped_key(&prefix, &format!("{parent}/{folder_name}")).trim_end_matches('/'))
+        format!(
+            "{}/",
+            scoped_key(&prefix, &format!("{parent}/{folder_name}")).trim_end_matches('/')
+        )
     };
 
     drive
         .put_object(&bucket, &key, vec![], None)
         .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Create folder failed: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Create folder failed: {e}"),
+            )
+        })?;
 
     botlog::safe_info!("Folder created: {key} in bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
@@ -296,8 +421,22 @@ pub async fn copy_file(
     // Scope decides the bucket: a user-scope folder lives in the personal
     // bucket, not in the workspace bucket the client sent (folder copies used
     // to 404 because the listing ran against the wrong store).
-    let src_bucket = resolve_bucket(&state, req.source_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
-    let dest_bucket = resolve_bucket(&state, req.dest_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let src_bucket = resolve_bucket(
+        &state,
+        req.source_bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
+    let dest_bucket = resolve_bucket(
+        &state,
+        req.dest_bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let from_key = scoped_key(&prefix, &req.source_path);
     let to_key = scoped_key(&prefix, &req.dest_path);
 
@@ -326,9 +465,17 @@ pub async fn copy_file(
         let objects = drive
             .list_objects_with_metadata(&src_bucket, Some(&source_prefix))
             .await
-            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source folder not found: {e}")))?;
+            .map_err(|e| {
+                err(
+                    StatusCode::NOT_FOUND,
+                    &format!("Source folder not found: {e}"),
+                )
+            })?;
         if objects.is_empty() {
-            return Err(err(StatusCode::NOT_FOUND, "Source folder is empty or missing"));
+            return Err(err(
+                StatusCode::NOT_FOUND,
+                "Source folder is empty or missing",
+            ));
         }
         for object in objects {
             let relative = object
@@ -338,11 +485,26 @@ pub async fn copy_file(
             let data = drive
                 .get_object(&src_bucket, &object.key)
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder copy read failed: {e}")))?;
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Folder copy read failed: {e}"),
+                    )
+                })?;
             drive
-                .put_object(&dest_bucket, &format!("{dest_prefix}{relative}"), data, None)
+                .put_object(
+                    &dest_bucket,
+                    &format!("{dest_prefix}{relative}"),
+                    data,
+                    None,
+                )
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder copy write failed: {e}")))?;
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Folder copy write failed: {e}"),
+                    )
+                })?;
         }
         botlog::safe_info!("Copied folder {from_key} -> {to_key} in bucket {dest_bucket}");
         return Ok(Json(SuccessResponse { success: true }));
@@ -351,12 +513,22 @@ pub async fn copy_file(
     let data = drive
         .get_object(&src_bucket, &from_key)
         .await
-        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source file not found: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::NOT_FOUND,
+                &format!("Source file not found: {e}"),
+            )
+        })?;
 
     drive
         .put_object(&dest_bucket, &to_key, data, None)
         .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Copy failed: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Copy failed: {e}"),
+            )
+        })?;
 
     botlog::safe_info!("Copied {from_key} -> {to_key} in bucket {dest_bucket}");
     Ok(Json(SuccessResponse { success: true }))

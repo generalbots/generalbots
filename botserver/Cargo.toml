@@ -173,7 +173,7 @@ sampledata = ["dep:botsampledata"]
 # `agent-vm` is required: chat generates files (PDF/DOCX) inside the local
 # workspace container.
 desktop-local = [
-    "chat", "drive", "agent-vm", "security", "directory", "llm", "vectordb",
+    "chat", "drive", "agent-vm", "terminal", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction", "web-search",
     # Drive's Connected tab: OneDrive/Google Drive consent surface.
     "external_sync",

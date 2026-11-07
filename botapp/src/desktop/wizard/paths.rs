@@ -53,7 +53,9 @@ pub(crate) fn workspace_path() -> PathBuf {
 /// file. No heuristics based on a slow API.
 pub fn is_desktop_mode() -> bool {
     cfg!(feature = "desktop-local")
-        || std::env::var("GB_DESKTOP_MODE").map(|v| v == "1").unwrap_or(false)
+        || std::env::var("GB_DESKTOP_MODE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
         || stack_path().join(".product.desktop-local").exists()
 }
 

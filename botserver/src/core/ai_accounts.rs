@@ -4,7 +4,7 @@
 //! inside the user's VM; ChatGPT tokens live in Vault at `vault_path`.
 
 use diesel::prelude::*;
-use diesel::sql_types::{Nullable, Text, Uuid as DieselUuid};
+use diesel::sql_types::{Bool, Nullable, Text, Uuid as DieselUuid};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -75,16 +75,31 @@ pub fn ensure_user(pool: &DbPool, user_id: Uuid, email: Option<&str>) -> Result<
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .unwrap_or("admin@localhost");
+    let is_bootstrap_admin =
+        crate::main_module::directory_setup::is_bootstrap_admin_identity(user_id, Some(email));
     let mut conn = pool.get().map_err(|error| error.to_string())?;
     diesel::sql_query(
         "INSERT INTO users (id, username, email, password_hash, is_admin) \
-         VALUES ($1, $2, $2, '', TRUE) \
+         VALUES ($1, $2, $2, '', $3) \
          ON CONFLICT DO NOTHING",
     )
     .bind::<DieselUuid, _>(user_id)
     .bind::<Text, _>(email)
+    .bind::<Bool, _>(is_bootstrap_admin)
     .execute(&mut conn)
     .map_err(|error| error.to_string())?;
+
+    // #1839 — the row may already exist from an earlier connect (inserted with
+    // `is_admin = false`). Only ever promote; never demote an existing admin.
+    if is_bootstrap_admin {
+        let _ = diesel::sql_query(
+            "UPDATE users SET is_admin = TRUE, is_active = TRUE, updated_at = NOW() \
+             WHERE id = $1 OR lower(email) = lower($2)",
+        )
+        .bind::<DieselUuid, _>(user_id)
+        .bind::<Text, _>(email)
+        .execute(&mut conn);
+    }
     Ok(())
 }
 
@@ -124,7 +139,10 @@ pub fn mark_linked(
 
 /// Whether the provider needs a per-user subscription account (#1652/#1653).
 pub fn is_subscription_provider(provider: &str) -> bool {
-    matches!(normalize_provider(provider), Some(CLAUDE_CODE) | Some(CHATGPT_PLAN))
+    matches!(
+        normalize_provider(provider),
+        Some(CLAUDE_CODE) | Some(CHATGPT_PLAN)
+    )
 }
 
 /// Model used when the bot has no explicit subscription model.
@@ -226,7 +244,6 @@ fn provider_label(provider: &str) -> &'static str {
         _ => "AI",
     }
 }
-
 
 pub fn list_accounts(pool: &DbPool, user_id: Uuid) -> Vec<Value> {
     let mut rows: Vec<Value> = Vec::new();
@@ -341,7 +358,8 @@ pub fn is_linked(pool: &DbPool, user_id: Uuid, provider: &str) -> bool {
         .unwrap_or_default()
         .into_iter()
         .next();
-        return status_for(row.as_ref().map(|r| json!({ "status": r.status })).as_ref()) == "linked";
+        return status_for(row.as_ref().map(|r| json!({ "status": r.status })).as_ref())
+            == "linked";
     }
     false
 }
@@ -370,8 +388,8 @@ mod tests {
 
     #[test]
     fn bot_config_wins_when_the_user_has_no_account() {
-        let resolved = choose_llm(None, Some(("openai", "gpt-4o")), Some(("kilo", "dots")))
-            .expect("resolved");
+        let resolved =
+            choose_llm(None, Some(("openai", "gpt-4o")), Some(("kilo", "dots"))).expect("resolved");
         assert_eq!(resolved.source, "bot");
         assert_eq!(resolved.provider, "openai");
     }

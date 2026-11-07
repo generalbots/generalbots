@@ -112,7 +112,7 @@
     };
     if (window.WindowManager && window.WindowManager.confirmFloating) {
       window.WindowManager.confirmFloating("Delete comment", "Delete this comment?", remove, null, "Delete");
-    } else if (window.confirm("Delete this comment?")) {
+    } else if ((window.GBModal||{confirm:confirm}).confirm("Delete this comment?")) {
       remove();
     }
   }
@@ -125,7 +125,7 @@
     if (window.WindowManager && window.WindowManager.promptFloating) {
       window.WindowManager.promptFloating("Reply", "Reply to comment:", "", done);
     } else {
-      done(window.prompt("Reply to comment:"));
+      done((window.GBModal||{prompt:prompt}).prompt("Reply to comment:"));
     }
   }
 

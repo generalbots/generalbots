@@ -39,7 +39,7 @@
     }
 
     async function createPlaylist() {
-        const name = window.prompt("Playlist name:");
+        const name = (window.GBModal||{prompt:prompt}).prompt("Playlist name:");
         if (!name || !name.trim()) return;
         try {
             const playlist = await apiFetch("/api/player/playlists", {
@@ -135,7 +135,7 @@
 
     async function renamePlaylist() {
         if (!currentPlaylist) return;
-        const name = window.prompt("New playlist name:", currentPlaylist.name);
+        const name = (window.GBModal||{prompt:prompt}).prompt("New playlist name:", currentPlaylist.name);
         if (!name || !name.trim()) return;
         try {
             await apiFetch("/api/player/playlists/" + currentPlaylist.id, {
@@ -150,7 +150,7 @@
     }
 
     async function deletePlaylist(playlistId) {
-        if (!window.confirm("Delete this playlist?")) return;
+        if (!(window.GBModal||{confirm:confirm}).confirm("Delete this playlist?")) return;
         try {
             await apiFetch("/api/player/playlists/" + playlistId, { method: "DELETE" });
             if (currentPlaylist && currentPlaylist.id === playlistId) {

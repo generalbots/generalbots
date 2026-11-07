@@ -171,7 +171,7 @@ document.addEventListener("click", function (e) {
 // Delete button resolves through here. The list fragment refreshes in place
 // (scoped to this app window — #sidebar-files also exists in the docs app).
 function deletePresentation(id) {
-  if (!id || !window.confirm("Delete this presentation?")) return;
+  if (!id || !(window.GBModal||{confirm:confirm}).confirm("Delete this presentation?")) return;
   fetch("/api/slides/delete", {
     method: "POST",
     headers: Object.assign(

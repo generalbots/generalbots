@@ -77,11 +77,21 @@ async function loadStorageInfo() {
     }
 }
 
+// Human-readable reason for a failed upload. The auth/CSRF/RBAC middleware
+// answers JSON `{error,message}` and ApiClient attaches both `status` and
+// `body`, so surface them instead of silently counting failures (#1840).
+function uploadFailureReason(err) {
+    if (!err) return "unknown error";
+    var detail = (err.body && (err.body.message || err.body.error)) || err.message || "request failed";
+    return err.status ? "HTTP " + err.status + ": " + detail : detail;
+}
+
 async function uploadFiles(files) {
     var total = files.length;
     var uploaded = 0;
     var failed = 0;
     var failedFiles = [];
+    var failures = [];
     var progressEl = showUploadProgress(total);
     for (var fi = 0; fi < files.length; fi++) {
         var file = files[fi];
@@ -100,9 +110,10 @@ async function uploadFiles(files) {
             });
             uploaded++;
         } catch (err) {
-            console.error("Upload error:", err);
+            console.error("Upload error for " + file.name + ":", err);
             failed++;
             failedFiles.push(file);
+            failures.push(file.name + " (" + uploadFailureReason(err) + ")");
         }
     }
     if (failed === 0) {
@@ -110,10 +121,13 @@ async function uploadFiles(files) {
         showNotification("Uploaded " + uploaded + " file(s)", "success");
     } else {
         // #1550: failed uploads are retryable instead of being lost.
+        // #1840: the reason (HTTP status + server message) must be visible.
+        var reason = failures.slice(0, 2).join("; ");
+        if (failures.length > 2) reason += " +" + (failures.length - 2) + " more";
         var label = document.getElementById("gb-upload-label");
         var detail = document.getElementById("gb-upload-detail");
         if (label) label.textContent = failed + " upload(s) failed";
-        if (detail) detail.textContent = uploaded + " uploaded";
+        if (detail) detail.textContent = uploaded + " uploaded: " + reason;
         var retry = document.createElement("button");
         retry.type = "button";
         retry.textContent = "Retry failed";
@@ -126,7 +140,7 @@ async function uploadFiles(files) {
         setTimeout(function () {
             if (progressEl && progressEl.parentNode) progressEl.remove();
         }, 15000);
-        showNotification("Uploaded " + uploaded + ", " + failed + " failed", "warning");
+        showNotification("Uploaded " + uploaded + ", " + failed + " failed: " + reason, "warning");
     }
     loadFiles(currentPath, currentBucket);
 }
@@ -165,23 +179,35 @@ function hideUploadProgress(el) {
 }
 
 async function createFolder() {
-    var name = prompt("Enter folder name:");
-    if (!name || !name.trim()) return;
-    try {
-        await apiRequest("/createFolder", {
-            method: "POST",
-            body: JSON.stringify({
-                bucket: getEffectiveBucket(),
-                path: currentPath,
-                name: name.trim(),
-                scope: currentScope,
-            }),
+    var doCreate = async function (name) {
+        if (!name || !name.trim()) return;
+        try {
+            await apiRequest("/createFolder", {
+                method: "POST",
+                body: JSON.stringify({
+                    bucket: getEffectiveBucket(),
+                    path: currentPath,
+                    name: name.trim(),
+                    scope: currentScope,
+                }),
+            });
+            showNotification('Folder "' + name + '" created', "success");
+            loadFiles(currentPath, currentBucket);
+        } catch (err) {
+            showNotification("Failed to create folder: " + err.message, "error");
+        }
+    };
+    var wm = window.WindowManager;
+    if (wm && wm.promptFloating) {
+        wm.promptFloating("New folder", "Enter folder name:", "", function (name) {
+            doCreate(name);
         });
-        showNotification('Folder "' + name + '" created', "success");
-        loadFiles(currentPath, currentBucket);
-    } catch (err) {
-        showNotification("Failed to create folder: " + err.message, "error");
+        return;
     }
+    var name = (window.GBModal && window.GBModal.prompt)
+        ? window.GBModal.prompt("Enter folder name:", "")
+        : prompt("Enter folder name:");
+    await doCreate(name);
 }
 
 async function loadRecentFiles() {

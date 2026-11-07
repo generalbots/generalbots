@@ -9,15 +9,21 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2>API Keys</h2>
-                    <button class="btn-primary btn-sm"
-                        onclick="document.getElementById('create-api-key-modal').showModal()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Create Key
-                    </button>
+                    <div class="card-actions" style="display:flex;gap:8px;align-items:center">
+                        <a class="btn-secondary btn-sm"
+                            href="https://docs.generalbots.org/08-rest-api-tools/user-security.html#api-keys"
+                            target="_blank" rel="noopener"
+                            title="API keys documentation (BotBook)">Docs</a>
+                        <button class="btn-primary btn-sm"
+                            onclick="document.getElementById('create-api-key-modal').showModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Create Key
+                        </button>
+                    </div>
                 </div>
                 <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
                     hx-swap="innerHTML">
@@ -31,15 +37,21 @@
             <div class="setting-card">
                 <div class="card-header">
                     <h2>Webhooks</h2>
-                    <button class="btn-primary btn-sm"
-                        onclick="document.getElementById('add-webhook-modal').showModal()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Add Webhook
-                    </button>
+                    <div class="card-actions" style="display:flex;gap:8px;align-items:center">
+                        <a class="btn-secondary btn-sm"
+                            href="https://docs.generalbots.org/07-user-interface/apps/settings.html#integrations"
+                            target="_blank" rel="noopener"
+                            title="Webhooks documentation (BotBook)">Docs</a>
+                        <button class="btn-primary btn-sm"
+                            onclick="document.getElementById('add-webhook-modal').showModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Webhook
+                        </button>
+                    </div>
                 </div>
                 <div class="webhooks-list" id="webhooks-list" hx-get="/api/user/webhooks" hx-trigger="load"
                     hx-swap="innerHTML">
@@ -277,16 +289,25 @@
                     These facts are sent with every message so answers stay consistent between
                     conversations. Remove anything you no longer want the assistant to use.
                 </p>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 20px 12px;">
+                    <input id="gbMemorySearch" class="input-sm" placeholder="Search memories…" style="flex:1;min-width:180px;">
+                    <select id="gbMemoryScope" class="input-sm" aria-label="Memory scope filter">
+                        <option value="all">All scopes</option>
+                        <option value="global">Global (all bots)</option>
+                        <option value="bot">Bot-specific</option>
+                    </select>
+                    <span id="gbMemorySyncStatus" class="setting-desc">Synced</span>
+                </div>
+                <div id="gbMemoryBotScope" class="setting-desc" style="padding:0 20px 8px;">
+                    Bot scope: <strong id="gbMemoryBotName">default</strong>
+                </div>
                 <div id="gbMemoryList" style="padding:0 20px 16px;"></div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Add a fact</span>
-                        <span class="setting-desc">For example: "preferred language: Portuguese"</span>
+                        <span class="setting-title">Manage memories</span>
+                        <span class="setting-desc">Memories are created by the assistant. Edit or remove them here.</span>
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <input id="gbMemoryKey" class="input-sm" placeholder="key" style="width:130px;">
-                        <input id="gbMemoryValue" class="input-sm" placeholder="value" style="width:220px;">
-                        <button type="button" class="btn btn-primary btn-sm" id="gbMemoryAdd">Add</button>
                         <button type="button" class="btn btn-secondary btn-sm" id="gbMemoryClear">Clear all</button>
                     </div>
                 </div>

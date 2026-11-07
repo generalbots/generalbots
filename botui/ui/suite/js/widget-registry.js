@@ -289,13 +289,13 @@
         if (window.WindowManager && window.WindowManager.promptFloating) {
           window.WindowManager.promptFloating("Widget title", "Widget title:", "Web", done);
         } else {
-          done(window.prompt("Widget title:", "") || "Web");
+          done((window.GBModal||{prompt:prompt}).prompt("Widget title:", "") || "Web");
         }
       };
       if (window.WindowManager && window.WindowManager.promptFloating) {
         window.WindowManager.promptFloating("Web widget", "Web address for the widget:", "https://", askTitle);
       } else {
-        askTitle(window.prompt("Web address for the widget:", "https://"));
+        askTitle((window.GBModal||{prompt:prompt}).prompt("Web address for the widget:", "https://"));
       }
     },
 

@@ -94,6 +94,18 @@ function applyProductConfig(config) {
     }
   }
 
+  // #1841 — a build without the agent VM cannot host the terminal. Hide the
+  // entry points instead of offering an app that can only fail, and keep the
+  // same answer in isAppEnabled() for pins and quick actions.
+  if (config.terminal_available === false) {
+    document
+      .querySelectorAll('[data-app-id="terminal"], [data-terminal-shortcut]')
+      .forEach((el) => {
+        el.style.display = "none";
+        el.classList.add("hidden-uncompiled");
+      });
+  }
+
   // Hide omnibox if search is disabled
   if (config.search_enabled === false) {
     const omnibox = document.getElementById("omnibox");
@@ -225,6 +237,13 @@ function filterAppsByConfig(enabledApps) {
 // Check if an app is enabled
 function isAppEnabled(appName) {
   if (isAppHidden(appName)) return false;
+  if (
+    String(appName || "").toLowerCase() === "terminal" &&
+    window.productConfig &&
+    window.productConfig.terminal_available === false
+  ) {
+    return false;
+  }
   if (!window.productConfig || !window.productConfig.apps) return true;
   return window.productConfig.apps
     .map((a) => a.toLowerCase())

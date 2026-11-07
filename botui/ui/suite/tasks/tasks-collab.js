@@ -18,7 +18,7 @@
     btn.addEventListener("click", function () {
       var taskId = window.TasksState && window.TasksState.selectedTaskId;
       if (!taskId) {
-        window.alert("Select a task first to comment on it.");
+        (window.GBModal||{alert:alert}).alert("Select a task first to comment on it.");
         return;
       }
       window.GBCollabComments.open({

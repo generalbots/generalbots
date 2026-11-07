@@ -220,9 +220,15 @@
     button.className = "gb-preview-btn";
     button.textContent = "Download";
     button.onclick = function () {
+      var downloadUrl = fileUrl(state.conversation, state.path);
+      var downloadName = String(state.path).split("/").pop() || "file";
+      if (window.GBShared && typeof window.GBShared.download === "function") {
+        window.GBShared.download(downloadUrl, downloadName);
+        return;
+      }
       var link = document.createElement("a");
-      link.href = fileUrl(state.conversation, state.path);
-      link.download = String(state.path).split("/").pop() || "file";
+      link.href = downloadUrl;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       link.remove();

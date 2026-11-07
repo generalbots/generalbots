@@ -11,9 +11,7 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   card.innerHTML =
     '<span class="gb-attachment-icon"></span>' +
     '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
-    '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
-    '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
-    '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';
+    vmAttachmentButtons(path);
   card.querySelector(".gb-attachment-icon").textContent = vmFileIcon(path);
   card.querySelector(".gb-attachment-name").textContent = name;
   wrapper.appendChild(card);

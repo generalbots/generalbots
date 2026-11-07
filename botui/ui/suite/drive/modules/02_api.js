@@ -21,7 +21,12 @@ async function apiRequest(endpoint, options = {}) {
         });
         if (!response.ok) {
             const error = await response.json().catch(() => ({ error: response.statusText }));
-            throw new Error(error.error || "Request failed");
+            const message = error.message || error.error || response.statusText || "Request failed";
+            const failure = new Error("HTTP " + response.status + ": " + message);
+            failure.status = response.status;
+            failure.body = error;
+            failure.response = response;
+            throw failure;
         }
         return response.json();
     } catch (err) {
@@ -83,15 +88,23 @@ async function downloadFile(path, bucket) {
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showNotification("Downloaded " + fileName, "success");
+        // #1834 — the desktop WebView ignores blob + `<a download>`; the
+        // shared helper opens the native Save dialog there and keeps the
+        // anchor for the web build.
+        if (window.GBShared && typeof window.GBShared.saveBlob === "function") {
+            const saved = await window.GBShared.saveBlob(blob, fileName);
+            if (!saved) showNotification("Downloaded " + fileName, "success");
+        } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification("Downloaded " + fileName, "success");
+        }
     } catch (err) {
         showNotification("Download failed: " + err.message, "error");
     }

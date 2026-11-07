@@ -140,7 +140,7 @@
     if (!S.path) return;
     var base = S.path.replace(/\.[^.]+$/, "");
     var suggested = base + "-edited.png";
-    var input = window.prompt("Save copy as (Drive path):", suggested);
+    var input = (window.GBModal||{prompt:prompt}).prompt("Save copy as (Drive path):", suggested);
     if (input && input.trim()) saveAs(input.trim());
   }
 

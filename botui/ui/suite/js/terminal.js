@@ -86,6 +86,49 @@ const botCoderTerminal = {
         );
     },
 
+    // #1841 — turn the backend's capability categories into instructions the
+    // user can act on. The raw payload stays in the console for support.
+    errorMessage: function(data, status) {
+        var code = (data && (data.error || data.code)) || '';
+        var detail = data && (data.message || data.error);
+        if (code === 'agent_vm_unavailable') {
+            return 'Terminal requires the agent VM, which is not available in this build.';
+        }
+        if (code === 'no_workspace_vm') {
+            return 'No workspace VM is running. Send a message in chat to start your workspace, then reopen the terminal.';
+        }
+        if (code === 'vm_not_found' || code === 'vm_stopped') {
+            return 'Your workspace VM is not running. Send a message in chat to start it, then reopen the terminal.';
+        }
+        if (code === 'incus_unavailable') {
+            return 'Terminal needs Incus, but it is not installed or not available on this machine.';
+        }
+        if (code === 'terminal_forbidden') {
+            return 'The terminal cannot access the workspace VM. Check the Incus permissions.';
+        }
+        if (code === 'terminal_unavailable') {
+            return detail || 'Terminal is not available in this build.';
+        }
+        if (code === 'not_found') {
+            return 'Terminal is not available in this build (the terminal API is not compiled).';
+        }
+        if (status === 404) {
+            return 'Terminal is not available in this build.';
+        }
+        return detail || ('HTTP ' + status);
+    },
+
+    // The product endpoint reports the combined terminal + agent-VM
+    // capability. Skip the request entirely when the build cannot host a
+    // workspace shell.
+    capabilityMessage: function() {
+        var cfg = window.productConfig;
+        if (cfg && cfg.terminal_available === false) {
+            return 'Terminal requires the agent VM, which is not available in this desktop build.';
+        }
+        return '';
+    },
+
     // Collect the signed-in user's VM containers across their Vibe
     // projects (never the botserver host). Prefers a running dev VM.
     async resolveUserVm() {
@@ -139,6 +182,12 @@ const botCoderTerminal = {
     // refuses to open a botserver host shell (safety: never expose the
     // server filesystem) and prints instructions instead.
     connect: function() {
+        var unavailable = this.capabilityMessage();
+        if (unavailable) {
+            this.term.write('\r\n\x1b[31m' + unavailable + '\x1b[0m\r\n');
+            this.term.write('\x1b[33mChat and file output keep working; the terminal needs the desktop edition\'s agent VM.\x1b[0m\r\n');
+            return;
+        }
         this.sessionId = this.generateSessionId();
         this.term.write('\x1b[36mResolving your workspace VM…\x1b[0m\r\n');
 
@@ -155,17 +204,28 @@ const botCoderTerminal = {
     },
 
     createSession: function(container) {
-        const tok = this.token();
-        const headers = { 'Content-Type': 'application/json' };
+        var self = this;
+        var tok = this.token();
+        var headers = { 'Content-Type': 'application/json' };
         if (tok) headers['Authorization'] = 'Bearer ' + tok;
         this.term.write('\x1b[36mConnecting to VM ' + container + '…\x1b[0m\r\n');
         fetch('/api/terminal/create', {
             method: 'POST',
             headers,
             body: JSON.stringify({ container: container }),
-        }).then((r) => r.json()).then((data) => {
-            if (!data || !data.id) {
-                this.term.write('\r\n\x1b[31mTerminal session failed: ' + ((data && data.error) || 'unknown error') + '\x1b[0m\r\n');
+        }).then((r) => {
+            return r.text().then((text) => {
+                var data = {};
+                try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { error: text }; }
+                return { ok: r.ok, status: r.status, data: data };
+            });
+        }).then((result) => {
+            var data = result.data;
+            if (!result.ok || !data || !data.id) {
+                // Keep the raw server payload for support, show the actionable
+                // category to the user (#1841).
+                console.error('Terminal create failed:', result.status, data);
+                this.term.write('\r\n\x1b[31mTerminal session failed: ' + self.errorMessage(data, result.status) + '\x1b[0m\r\n');
                 return;
             }
             this.sessionId = data.id;
@@ -206,6 +266,7 @@ const botCoderTerminal = {
                 }
             };
         }).catch((err) => {
+            console.error('Terminal create request failed:', err);
             this.term.write('\r\n\x1b[31mTerminal unavailable: ' + String(err) + '\x1b[0m\r\n');
         });
     },
