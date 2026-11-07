@@ -71,53 +71,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          pushed=0
-          for attempt in 1 2 3; do
-            # Always release the newest main, not a snapshot that a queued run
-            # picked up earlier.
-            git fetch --force --tags origin main
-            git reset --hard FETCH_HEAD
+          # Always release the newest main, not a snapshot that a queued run
+          # picked up earlier.
+          git fetch --force --tags origin main
+          git reset --hard FETCH_HEAD
 
-            if [ -n "${REQUESTED_VERSION:-}" ]; then
-              VERSION="v${REQUESTED_VERSION#v}"
-              if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
-                echo "::error::tag ${VERSION} already exists"
-                exit 1
-              fi
-              python3 scripts/release_version.py sync "$VERSION"
-            else
-              VERSION="$(python3 scripts/release_version.py next --bump "$BUMP")"
-              if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
-                echo "::error::tag ${VERSION} already exists"
-                exit 1
-              fi
-              python3 scripts/release_version.py sync "$VERSION"
+          if [ -n "${REQUESTED_VERSION:-}" ]; then
+            VERSION="v${REQUESTED_VERSION#v}"
+            if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
+              echo "::error::tag ${VERSION} already exists"
+              exit 1
             fi
-
-            git add Cargo.toml Cargo.lock botapp/tauri.conf.json README.md
-
-            if git diff --cached --quiet; then
-              echo "version files already at ${VERSION}; tagging current main"
-              pushed=1
-              break
+            python3 scripts/release_version.py sync "$VERSION"
+          else
+            VERSION="$(python3 scripts/release_version.py next --bump "$BUMP")"
+            if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
+              echo "::error::tag ${VERSION} already exists"
+              exit 1
             fi
-
-            git commit -m "chore(release): ${VERSION} [skip ci]"
-
-            if git push origin HEAD:main; then
-              pushed=1
-              break
-            fi
-
-            echo "push raced another commit; retrying (${attempt}/3)"
-            sleep 5
-          done
-
-          if [ "$pushed" != "1" ]; then
-            echo "::error::could not publish the version bump after 3 attempts"
-            exit 1
+            python3 scripts/release_version.py sync "$VERSION"
           fi
 
+          git add Cargo.toml Cargo.lock botapp/tauri.conf.json README.md
+
+          if git diff --cached --quiet; then
+            echo "version files already at ${VERSION}; tagging current main"
+          else
+            git commit -m "chore(release): ${VERSION} [skip ci]"
+          fi
+
+          # #1804: main is a protected branch, so the bot cannot push the
+          # version-bump commit. The bump lives on the signed tag instead; the
+          # next run derives the following version from the latest tag.
           git tag -a "$VERSION" -m "General Bots ${VERSION}"
           git push origin "$VERSION"
 
