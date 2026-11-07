@@ -6,15 +6,6 @@ Welcome to General Bots! This guide will help you understand the basic features 
 
 ## Available Features
 
-### Calculator
-
-Perform mathematical calculations by asking the bot to calculate expressions.
-
-**Examples:**
-- "Calculate 25 * 4"
-- "What is 1500 / 12?"
-- "Calculate 15% of 200"
-
 ### Send Email
 
 Send emails directly through the bot.
@@ -42,19 +33,6 @@ Send text messages to mobile phones.
 - "Send SMS to +1234567890"
 - "Text message to my contact"
 
-### Translation
-
-Translate text between different languages.
-
-**How to use:**
-1. Say "Translate" followed by the text
-2. Specify the target language
-
-**Examples:**
-- "Translate 'Hello, how are you?' to Spanish"
-- "Translate this text to Portuguese"
-- "How do you say 'thank you' in French?"
-
 ### Weather
 
 Get current weather information for any location.
@@ -77,9 +55,8 @@ The more specific your request, the better the bot can help you. Include relevan
 
 ### Natural Language
 You can speak naturally to the bot. It understands various ways of asking for the same thing:
-- "Calculate 10 + 5" or "What is 10 plus 5?"
 - "Send email" or "I need to email someone"
-- "Translate to Spanish" or "How do you say this in Spanish?"
+- "What's the weather in New York?" or "Will it rain in London today?"
 
 ### Confirmation
 The bot will ask for confirmation before performing actions like sending emails or SMS to ensure accuracy.
