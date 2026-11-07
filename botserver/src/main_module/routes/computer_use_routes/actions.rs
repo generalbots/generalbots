@@ -23,10 +23,7 @@ pub async fn create_action(
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
     if body.session_id.trim().is_empty() {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "session_id is required",
-        ));
+        return Err(api_error(StatusCode::BAD_REQUEST, "session_id is required"));
     }
     if body.kind != "browser" && body.kind != "terminal" {
         return Err(api_error(
@@ -60,10 +57,7 @@ pub async fn pending(
 }
 
 /// GET /api/computer/actions/:id
-pub async fn get_action(
-    headers: HeaderMap,
-    Path(id): Path<Uuid>,
-) -> Result<Json<Value>, ApiError> {
+pub async fn get_action(headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
     match computer_use::get(id, user_id).await {
         Some(action) => Ok(Json(action.to_json())),

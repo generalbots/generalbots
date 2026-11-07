@@ -386,8 +386,9 @@ llm-gpu-layers,35
 
 ```bash
 # On your VPS
-wget https://github.com/generalbots/generalbots/releases/latest/botserver
-chmod +x botserver
+wget https://github.com/generalbots/generalbots/releases/latest/download/botserver-linux-x86_64
+chmod +x botserver-linux-x86_64
+mv botserver-linux-x86_64 botserver
 ```
 
 ### 2. Configure DNS (Namecheap)

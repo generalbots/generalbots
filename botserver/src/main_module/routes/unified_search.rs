@@ -264,9 +264,9 @@ pub async fn handle_unified_search(
             // the trusted auth layer — no user-controlled SQL reaches here.
             let org_clause = match (source.table, source.org_column, org_id) {
                 // Drive/KB rows carry `bot_id`; join to the tenant owner.
-                ("drive_files" | "kb_documents", _, Some(id)) => {
-                    Some(format!("bot_id IN (SELECT id FROM bots WHERE org_id = '{id}')"))
-                }
+                ("drive_files" | "kb_documents", _, Some(id)) => Some(format!(
+                    "bot_id IN (SELECT id FROM bots WHERE org_id = '{id}')"
+                )),
                 (_, Some(col), Some(id)) => Some(format!("{col} = '{id}'")),
                 _ => None,
             };
@@ -299,8 +299,5 @@ pub async fn handle_unified_search(
 
 /// Registers the universal search endpoint.
 pub fn configure_unified_search_routes() -> axum::Router<Arc<AppState>> {
-    axum::Router::new().route(
-        "/api/ui/search",
-        axum::routing::get(handle_unified_search),
-    )
+    axum::Router::new().route("/api/ui/search", axum::routing::get(handle_unified_search))
 }

@@ -73,8 +73,7 @@ pub(super) fn active_bot_id(state: &Arc<AppState>) -> uuid::Uuid {
 /// `PUBLIC_BASE_URL` env var (deploy-time value) and falls back to the
 /// local suite origin.
 pub(super) fn base_url() -> String {
-    std::env::var("PUBLIC_BASE_URL")
-        .unwrap_or_else(|_| "http://localhost:3000".to_string())
+    std::env::var("PUBLIC_BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string())
 }
 /// POST /api/oauth/{provider}/connect
 ///
@@ -128,7 +127,11 @@ pub async fn oauth_connect(
         .for_user(&user_id.to_string())
         .with_pkce();
     let state_encoded = oauth_state.encode();
-    let auth_url = provider.build_auth_url(&config, &state_encoded, oauth_state.pkce_verifier.as_deref());
+    let auth_url = provider.build_auth_url(
+        &config,
+        &state_encoded,
+        oauth_state.pkce_verifier.as_deref(),
+    );
 
     botlog::safe_info!("Starting OAuth account link for user {user_id} via {provider}");
     // JSON response: the frontend performs the top-level navigation so the
@@ -147,7 +150,10 @@ pub async fn oauth_callback(
     Query(params): Query<CallbackParams>,
 ) -> Response {
     if let Some(error) = &params.error {
-        let description = params.error_description.as_deref().unwrap_or("Unknown error");
+        let description = params
+            .error_description
+            .as_deref()
+            .unwrap_or("Unknown error");
         log::warn!("OAuth callback error from {provider_name}: {error} — {description}");
         return redirect_to_settings("error=oauth_denied");
     }
@@ -192,7 +198,12 @@ pub async fn oauth_callback(
 
     let http_client = reqwest::Client::new();
     let token = match provider
-        .exchange_code(&config, code, &http_client, oauth_state.pkce_verifier.as_deref())
+        .exchange_code(
+            &config,
+            code,
+            &http_client,
+            oauth_state.pkce_verifier.as_deref(),
+        )
         .await
     {
         Ok(t) => t,
@@ -202,7 +213,10 @@ pub async fn oauth_callback(
         }
     };
 
-    let user_info = match provider.fetch_user_info(&token.access_token, &http_client).await {
+    let user_info = match provider
+        .fetch_user_info(&token.access_token, &http_client)
+        .await
+    {
         Ok(info) => info,
         Err(e) => {
             log::error!("Failed to fetch OAuth user info for {provider}: {e}");
@@ -221,12 +235,7 @@ pub async fn oauth_callback(
     }
 
     // Upsert the link row.
-    match upsert_account_link(
-        &state,
-        user_id,
-        provider,
-        &user_info,
-    ) {
+    match upsert_account_link(&state, user_id, provider, &user_info) {
         Ok(()) => {
             record_audit_event(crate::audit_log::AuditEvent {
                 state: &state,
@@ -236,7 +245,10 @@ pub async fn oauth_callback(
                 target_type: Some("oauth_account_links"),
                 target_id: None,
                 success: true,
-                details: Some(&format!("Linked {} account ({})", provider, user_info.provider_id)),
+                details: Some(&format!(
+                    "Linked {} account ({})",
+                    provider, user_info.provider_id
+                )),
             });
             botlog::safe_info!(
                 "Linked {provider} account {} to user {user_id}",

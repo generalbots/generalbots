@@ -19,7 +19,9 @@ use std::path::{Path, PathBuf};
 use botcore::shared::utils::{get_work_path, DbPool};
 use diesel::RunQueryDsl;
 
-use super::core::{dialog_source_dir, ensure_checkout_with_heal, materialize_checkout, run_git, MonitoredBot};
+use super::core::{
+    dialog_source_dir, ensure_checkout_with_heal, materialize_checkout, run_git, MonitoredBot,
+};
 use super::loop_ops::{list_monitored_bots, mark_for_compile, resolve_branch_id};
 
 /// Committer identity used for AutoTask-authored source commits.
@@ -34,14 +36,13 @@ pub(crate) struct SourceTarget {
 }
 
 /// Resolve `bot_name` to its git-owned project, ALM org and branch.
-pub(crate) fn find_source_target(
-    pool: &DbPool,
-    bot_name: &str,
-) -> Result<SourceTarget, String> {
+pub(crate) fn find_source_target(pool: &DbPool, bot_name: &str) -> Result<SourceTarget, String> {
     let project = list_monitored_bots(pool)
         .into_iter()
         .find(|p| p.name == bot_name)
-        .ok_or_else(|| format!("bot '{bot_name}' has no git project — sources cannot be committed"))?;
+        .ok_or_else(|| {
+            format!("bot '{bot_name}' has no git project — sources cannot be committed")
+        })?;
     let branch_slug = project.branch_slug.clone().unwrap_or_default();
     if branch_slug.is_empty() {
         return Err(format!(
@@ -64,10 +65,7 @@ pub(crate) fn find_source_target(
 
 /// Checkout the bot's repository, fast-forwarding to `origin/main` before any
 /// edit so the following commit contains only the generated sources.
-pub(crate) fn prepare_checkout(
-    pool: &DbPool,
-    target: &SourceTarget,
-) -> Result<PathBuf, String> {
+pub(crate) fn prepare_checkout(pool: &DbPool, target: &SourceTarget) -> Result<PathBuf, String> {
     let checkout = ensure_checkout_with_heal(pool, &target.project, &target.org)?;
     if let Err(e) = run_git(&checkout, &["fetch", "origin", "main"]) {
         log::warn!("[git_monitor] autotask fetch {}: {e}", target.bot_name);
@@ -176,13 +174,19 @@ fn materialize_autotask_commit(pool: &DbPool, checkout: &Path, target: &SourceTa
     let head = match run_git(checkout, &["rev-parse", "HEAD"]) {
         Ok(head) => head.trim().to_string(),
         Err(e) => {
-            log::warn!("[git_monitor] autotask {}: rev-parse HEAD: {e}", target.bot_name);
+            log::warn!(
+                "[git_monitor] autotask {}: rev-parse HEAD: {e}",
+                target.bot_name
+            );
             return;
         }
     };
     match materialize_checkout(checkout, &work_root, branch_slug, &target.project.name) {
         Ok(paths) => mark_for_compile(pool, branch_id, &paths, &head),
-        Err(e) => log::error!("[git_monitor] autotask materialize {}: {e}", target.bot_name),
+        Err(e) => log::error!(
+            "[git_monitor] autotask materialize {}: {e}",
+            target.bot_name
+        ),
     }
 }
 
@@ -332,7 +336,9 @@ pub(crate) fn list_sources(
         }
     };
     let mut files: Vec<botautotask::types::SourceFile> = Vec::new();
-    for entry in std::fs::read_dir(&dialog).map_err(|e| format!("read {}: {e}", dialog.display()))? {
+    for entry in
+        std::fs::read_dir(&dialog).map_err(|e| format!("read {}: {e}", dialog.display()))?
+    {
         let entry = entry.map_err(|e| format!("entry: {e}"))?;
         let path = entry.path();
         if !path.is_file() {
@@ -430,8 +436,14 @@ mod tests {
 
     #[test]
     fn flatten_strips_generated_subdirectories() {
-        assert_eq!(flatten("tools/classify_media.bas").unwrap_or_default(), "classify_media.bas");
-        assert_eq!(flatten("classify_media.bas").unwrap_or_default(), "classify_media.bas");
+        assert_eq!(
+            flatten("tools/classify_media.bas").unwrap_or_default(),
+            "classify_media.bas"
+        );
+        assert_eq!(
+            flatten("classify_media.bas").unwrap_or_default(),
+            "classify_media.bas"
+        );
     }
 
     #[test]

@@ -48,11 +48,18 @@ Settings is the user preferences application in General Bots Suite. Manage your 
 
 | Channel | Options |
 |---------|---------|
-| Email | Frequency, digest, critical-only |
+| Email — Mentions and replies | Email when someone mentions you in a comment |
+| Email — Weekly Digest | Monday 09:00 summary in your profile timezone: messages, conversations, Drive files, scheduled tasks and mentions. Settings shows the last successful send, the next run or the last delivery error |
+| Email — Marketing | Product news and updates |
 | Push | Browser push notifications |
 | In-App | Real-time badges and banners |
 | Sound | Notification sounds on/off |
-| Quiet Hours | Do-not-disturb schedule |
+
+### Storage
+
+| Setting | Description |
+|---------|-------------|
+| Use all Drive files as knowledge context | On by default. When enabled, the names of your recent Drive files are sent with each chat turn so the assistant can use them as context; turn it off to keep Drive out of the prompt |
 
 ### Integrations
 
@@ -150,8 +157,8 @@ Settings is the user preferences application in General Bots Suite. Manage your 
 | `/api/users/me/security/2fa` | DELETE | Disable 2FA |
 | `/api/users/me/sessions` | GET | List active sessions |
 | `/api/users/me/sessions/:id` | DELETE | Revoke a session |
-| `/api/users/me/notifications` | GET | Notification preferences |
-| `/api/users/me/notifications` | PUT | Update notification preferences |
+| `/api/user/notifications/preferences` | GET | Notification preferences, digest last-sent/last-error/next-run |
+| `/api/user/notifications/preferences` | PUT | Update notification preferences |
 | `/api/users/me/api-keys` | GET | List API keys |
 | `/api/users/me/api-keys` | POST | Generate new API key |
 | `/api/users/me/api-keys/:id` | DELETE | Revoke API key |

@@ -32,8 +32,10 @@ mod comments;
 mod dto;
 mod engagement;
 mod helpers;
-#[cfg(feature = "mail")]
-mod notification_email;
+// The platform sender is shared by mention email and the weekly digest
+// (#1813); compile it whenever either delivery path is enabled.
+#[cfg(any(feature = "mail", feature = "digest"))]
+pub(crate) mod notification_email;
 mod permissions;
 mod versions;
 

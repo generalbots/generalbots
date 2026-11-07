@@ -13,7 +13,12 @@ pub async fn handle_dns_remove(
 
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<div class=\"dns-error\">{}</div>", html_escape(&e.1))),
+        Err(e) => {
+            return Html(format!(
+                "<div class=\"dns-error\">{}</div>",
+                html_escape(&e.1)
+            ))
+        }
     };
 
     let _ = diesel::sql_query("DELETE FROM dns_records WHERE id = $1")
@@ -48,7 +53,10 @@ pub async fn handle_user_current_org(
     .ok();
     if let Some(p) = saved {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&p.value) {
-            if let Some(id_str) = parsed.as_str().or_else(|| parsed.get("org_id").and_then(|v| v.as_str())) {
+            if let Some(id_str) = parsed
+                .as_str()
+                .or_else(|| parsed.get("org_id").and_then(|v| v.as_str()))
+            {
                 if let Ok(org_id) = Uuid::parse_str(id_str) {
                     #[derive(diesel::QueryableByName)]
                     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -89,7 +97,9 @@ pub async fn handle_user_current_org(
 
     match row {
         Some(r) => Ok(Json(serde_json::json!({ "id": r.id, "name": r.name }))),
-        None => Ok(Json(serde_json::json!({ "id": Uuid::nil(), "name": "Default Organization" }))),
+        None => Ok(Json(
+            serde_json::json!({ "id": Uuid::nil(), "name": "Default Organization" }),
+        )),
     }
 }
 pub async fn handle_user_organizations(
@@ -112,7 +122,12 @@ pub async fn handle_user_organizations(
         "SELECT org_id AS id, name FROM organizations ORDER BY created_at ASC LIMIT 50",
     )
     .load(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Query error: {e}"),
+        )
+    })?;
 
     let mut items = String::new();
     for r in rows {
@@ -143,7 +158,10 @@ pub async fn handle_user_current_org_put(
         .get("org_id")
         .and_then(|v| v.as_str())
         .and_then(|s| Uuid::parse_str(s).ok())
-        .ok_or((StatusCode::BAD_REQUEST, "org_id must be a valid UUID".to_string()))?;
+        .ok_or((
+            StatusCode::BAD_REQUEST,
+            "org_id must be a valid UUID".to_string(),
+        ))?;
 
     let token = headers
         .get(axum::http::header::AUTHORIZATION)
@@ -160,7 +178,10 @@ pub async fn handle_user_current_org_put(
             match session {
                 Some(s) => s.user_id,
                 None => {
-                    return Err((StatusCode::UNAUTHORIZED, "No valid session for this token".to_string()));
+                    return Err((
+                        StatusCode::UNAUTHORIZED,
+                        "No valid session for this token".to_string(),
+                    ));
                 }
             }
         }
@@ -180,7 +201,9 @@ pub async fn handle_user_current_org_put(
     .bind::<diesel::sql_types::Text, _>(&org_id.to_string())
     .execute(&mut conn);
 
-    Ok(Json(serde_json::json!({ "success": true, "org_id": org_id })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "org_id": org_id }),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +230,13 @@ pub fn configure_misc_routes() -> Router<Arc<AppState>> {
         .route("/api/dns/register", post(handle_dns_register))
         .route("/api/dns/remove", post(handle_dns_remove))
         .route("/api/dns/:id/edit", get(handle_dns_edit_form))
-        .route("/api/user/current-org", get(handle_user_current_org).put(handle_user_current_org_put))
+        .route(
+            "/api/user/current-org",
+            get(handle_user_current_org).put(handle_user_current_org_put),
+        )
         .route("/api/user/organizations", get(handle_user_organizations))
-        .route("/api/v2/sandbox/connection-details", get(handle_sandbox_connection_details))
+        .route(
+            "/api/v2/sandbox/connection-details",
+            get(handle_sandbox_connection_details),
+        )
 }

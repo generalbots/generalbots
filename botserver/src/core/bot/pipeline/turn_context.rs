@@ -94,7 +94,8 @@ pub(super) async fn route_project(
 }
 
 /// #1545 — the client's recent Drive names become prompt context when
-/// `index_all_drive` is enabled (the default).
+/// `index_all_drive` is enabled (the default). The Settings toggle writes
+/// `gb-index-all-drive`; `chat-send.js` forwards it as this boolean.
 pub(super) fn apply_drive_listing(messages: &mut Vec<Value>, parsed: &Value) {
     let index_all_drive = parsed
         .get("index_all_drive")
@@ -110,6 +111,7 @@ pub(super) fn apply_drive_listing(messages: &mut Vec<Value>, parsed: &Value) {
     else {
         return;
     };
+
     let names: Vec<String> = files
         .iter()
         .filter_map(|v| v.as_str())
@@ -127,4 +129,63 @@ pub(super) fn apply_drive_listing(messages: &mut Vec<Value>, parsed: &Value) {
             names.join(", ")
         )
     }));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn drive_payload(index_all_drive: Option<bool>) -> Value {
+        let mut payload = json!({
+            "drive_context": {
+                "source": "user_drive",
+                "untrusted": true,
+                "files": ["budget.xlsx", "contract.pdf"]
+            }
+        });
+        if let Some(enabled) = index_all_drive {
+            payload["index_all_drive"] = json!(enabled);
+        }
+        payload
+    }
+
+    #[test]
+    fn drive_listing_is_included_when_key_is_absent() {
+        let mut messages = Vec::new();
+        apply_drive_listing(&mut messages, &drive_payload(None));
+        assert_eq!(messages.len(), 1);
+        let content = messages[0]["content"].as_str().unwrap_or_default();
+        assert!(content.contains("budget.xlsx"));
+        assert!(content.contains("contract.pdf"));
+    }
+
+    #[test]
+    fn drive_listing_is_included_when_toggle_is_on() {
+        let mut messages = Vec::new();
+        apply_drive_listing(&mut messages, &drive_payload(Some(true)));
+        assert_eq!(messages.len(), 1);
+    }
+
+    #[test]
+    fn drive_listing_is_skipped_when_toggle_is_off() {
+        let mut messages = Vec::new();
+        apply_drive_listing(&mut messages, &drive_payload(Some(false)));
+        assert!(messages.is_empty());
+    }
+
+    #[test]
+    fn drive_listing_ignores_missing_or_empty_context() {
+        let mut messages = Vec::new();
+        apply_drive_listing(&mut messages, &json!({ "index_all_drive": true }));
+        apply_drive_listing(
+            &mut messages,
+            &json!({ "index_all_drive": true, "drive_context": { "files": [] } }),
+        );
+        apply_drive_listing(
+            &mut messages,
+            &json!({ "index_all_drive": true, "drive_context": { "files": "not-an-array" } }),
+        );
+        assert!(messages.is_empty());
+    }
 }

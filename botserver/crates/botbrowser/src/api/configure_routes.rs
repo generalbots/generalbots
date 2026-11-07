@@ -6,7 +6,10 @@ pub fn configure_routes() -> Router<SessionMap> {
         .route("/api/browser/session/:id/navigate", post(handle_navigate))
         .route("/api/browser/session/:id/click", post(handle_click))
         .route("/api/browser/session/:id/fill", post(handle_fill))
-        .route("/api/browser/session/:id/screenshot", get(handle_screenshot))
+        .route(
+            "/api/browser/session/:id/screenshot",
+            get(handle_screenshot),
+        )
         .route("/api/browser/session/:id/extract", get(handle_extract))
         .route("/api/browser/session/:id/execute", post(handle_execute))
         .route("/api/browser/session/:id/state", get(handle_state))
@@ -15,4 +18,13 @@ pub fn configure_routes() -> Router<SessionMap> {
         .route("/api/browser/session/:id/stream", get(handle_stream))
         .route("/api/browser/proxy", get(handle_proxy))
         .route("/api/browser/session/:id", delete(handle_close))
+        // #1843 — shared container/VM tab strip.
+        .route("/api/browser/tabs", get(list_tabs).post(open_tab))
+        .route("/api/browser/tabs/:id", delete(close_tab))
+        .route(
+            "/api/browser/vm/:vm/tabs",
+            get(list_vm_tabs).post(open_vm_tab),
+        )
+        .route("/api/browser/vm/:vm/tabs/:id/attach", post(attach_vm_tab))
+        .route("/api/browser/vm/:vm/tabs/:id", delete(close_vm_tab))
 }

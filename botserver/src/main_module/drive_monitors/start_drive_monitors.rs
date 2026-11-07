@@ -33,9 +33,7 @@ pub(crate) async fn start_drive_monitors(
                 Ok(buckets) => {
                     for bucket in buckets {
                         if bucket.ends_with(".gborg") {
-                            process_org_bucket(
-                                &state_for_scan, &pool_clone, &bucket,
-                            ).await;
+                            process_org_bucket(&state_for_scan, &pool_clone, &bucket).await;
                         }
                     }
                 }
@@ -44,7 +42,8 @@ pub(crate) async fn start_drive_monitors(
         }
 
         // Step 2: Periodic bucket re-scan (bots are discovered via process_org_bucket)
-        let mut monitored_bots: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut monitored_bots: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
 
         let mut last_list_error: Option<std::time::Instant> = None;
         let mut consecutive_failures: u32 = 0;
@@ -86,9 +85,13 @@ pub(crate) async fn start_drive_monitors(
                             for bucket in buckets {
                                 if bucket.ends_with(".gborg") {
                                     if let Err(e) = scan_org_bucket(
-                                        &scan_state, &scan_pool, &bucket,
+                                        &scan_state,
+                                        &scan_pool,
+                                        &bucket,
                                         &mut monitored_bots,
-                                    ).await {
+                                    )
+                                    .await
+                                    {
                                         warn!("Periodic .gborg scan failed for {}: {}", bucket, e);
                                     }
                                 }
@@ -99,9 +102,9 @@ pub(crate) async fn start_drive_monitors(
                             // Exponential backoff: grow the sleep after repeated failures
                             // so a dead/unreachable drive does not burn CPU forever.
                             if consecutive_failures > 1 {
-                                let backoff = scan_interval.saturating_mul(
-                                    1u64 << consecutive_failures.min(6)
-                                ).min(MAX_BACKOFF_SECS);
+                                let backoff = scan_interval
+                                    .saturating_mul(1u64 << consecutive_failures.min(6))
+                                    .min(MAX_BACKOFF_SECS);
                                 tokio::time::sleep(std::time::Duration::from_secs(backoff)).await;
                             }
                             if consecutive_failures >= 10 && !unhealthy_logged {
@@ -114,7 +117,8 @@ pub(crate) async fn start_drive_monitors(
                                 unhealthy_logged = true;
                             }
                             let now = std::time::Instant::now();
-                            let should_log = last_list_error.is_none_or(|t| now.duration_since(t).as_secs() > 120);
+                            let should_log = last_list_error
+                                .is_none_or(|t| now.duration_since(t).as_secs() > 120);
                             if should_log {
                                 warn!("Periodic bucket re-scan failed: {}", e);
                                 last_list_error = Some(now);
@@ -127,7 +131,9 @@ pub(crate) async fn start_drive_monitors(
     });
 }
 /// Bootstrap: ensure default tenant/org/branch/bot exist for fresh installs
-pub(super) fn ensure_bootstrap_defaults(pool: &botcore::shared::utils::DbPool) -> Result<(), String> {
+pub(super) fn ensure_bootstrap_defaults(
+    pool: &botcore::shared::utils::DbPool,
+) -> Result<(), String> {
     use diesel::sql_query;
 
     let mut conn = pool.get().map_err(|e| e.to_string())?;
@@ -138,7 +144,8 @@ pub(super) fn ensure_bootstrap_defaults(pool: &botcore::shared::utils::DbPool) -
          ON CONFLICT (slug) DO NOTHING",
         tid = DEFAULT_TENANT_ID
     ))
-    .execute(&mut conn) {
+    .execute(&mut conn)
+    {
         warn!("Failed to insert default tenant: {}", e);
     }
 
@@ -149,30 +156,36 @@ pub(super) fn ensure_bootstrap_defaults(pool: &botcore::shared::utils::DbPool) -
         oid = DEFAULT_ORG_ID,
         tid = DEFAULT_TENANT_ID
     ))
-    .execute(&mut conn) {
+    .execute(&mut conn)
+    {
         warn!("Failed to insert default organization: {}", e);
     }
 
     // Look up the actual org_id and tenant_id from the database
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct OrgId { #[diesel(sql_type = diesel::sql_types::Uuid)] org_id: Uuid }
+    struct OrgId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct TenantId { #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid }
+    struct TenantId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
 
-    let actual_org_id: Uuid = sql_query(
-        "SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1"
-    ).get_result::<OrgId>(&mut conn)
-     .map(|r| r.org_id)
-     .unwrap_or(DEFAULT_ORG_ID);
+    let actual_org_id: Uuid =
+        sql_query("SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1")
+            .get_result::<OrgId>(&mut conn)
+            .map(|r| r.org_id)
+            .unwrap_or(DEFAULT_ORG_ID);
 
-    let actual_tenant_id: Uuid = sql_query(
-        "SELECT id FROM tenants WHERE slug = 'default' LIMIT 1"
-    ).get_result::<TenantId>(&mut conn)
-     .map(|r| r.id)
-     .unwrap_or(DEFAULT_TENANT_ID);
+    let actual_tenant_id: Uuid = sql_query("SELECT id FROM tenants WHERE slug = 'default' LIMIT 1")
+        .get_result::<TenantId>(&mut conn)
+        .map(|r| r.id)
+        .unwrap_or(DEFAULT_TENANT_ID);
 
     if let Err(e) = sql_query(format!(
         "INSERT INTO branches (id, org_id, tenant_id, slug, name, created_at) \
@@ -182,21 +195,25 @@ pub(super) fn ensure_bootstrap_defaults(pool: &botcore::shared::utils::DbPool) -
         oid = actual_org_id,
         tid = actual_tenant_id
     ))
-    .execute(&mut conn) {
+    .execute(&mut conn)
+    {
         warn!("Failed to insert default branch: {}", e);
     }
 
     // Look up the actual branch_id
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct BranchId { #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid }
+    struct BranchId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
 
-    let actual_branch_id: Uuid = sql_query(
-        "SELECT id FROM branches WHERE org_id = $1 AND slug = 'default' LIMIT 1"
-    ).bind::<diesel::sql_types::Uuid, _>(actual_org_id)
-     .get_result::<BranchId>(&mut conn)
-     .map(|r| r.id)
-     .unwrap_or(DEFAULT_BRANCH_ID);
+    let actual_branch_id: Uuid =
+        sql_query("SELECT id FROM branches WHERE org_id = $1 AND slug = 'default' LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(actual_org_id)
+            .get_result::<BranchId>(&mut conn)
+            .map(|r| r.id)
+            .unwrap_or(DEFAULT_BRANCH_ID);
 
     if let Err(e) = sql_query(format!(
         "INSERT INTO bots (id, name, slug, org_id, branch_id, is_default_for_branch, \
@@ -209,7 +226,8 @@ pub(super) fn ensure_bootstrap_defaults(pool: &botcore::shared::utils::DbPool) -
         oid = actual_org_id,
         bid = actual_branch_id
     ))
-    .execute(&mut conn) {
+    .execute(&mut conn)
+    {
         warn!("Failed to insert default bot: {}", e);
     }
 

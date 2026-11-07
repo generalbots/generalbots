@@ -240,11 +240,13 @@ sha256 = ""
 name = "BotModels Python Service (pythonbox)"
 url = "https://github.com/generalbots/generalbots/releases/download/{tag}/botmodels-pythonbox-linux-x86_64.tar.gz"
 filename = "botmodels-pythonbox-linux-x86_64.tar.gz"
+url_win = "https://github.com/generalbots/generalbots/releases/download/{tag}/botmodels-pythonbox-windows-x86_64.zip"
+filename_win = "botmodels-pythonbox-windows-x86_64.zip"
 sha256 = ""
-# No aarch64 (or Windows) pythonbox is published: the pythonbox-* releases
-# carry only botmodels-pythonbox-linux-x86_64.tar.gz. The resolver therefore
-# has no url_arm64 to select; on Linux arm64 and Windows the wizard reports
-# media (vision/STT/TTS) as unavailable instead of downloading this archive.
+# The pythonbox-* releases carry the Linux tarball and the Windows zip. There
+# is no aarch64 archive, so the resolver has no url_arm64 to select; on Linux
+# arm64 the wizard reports media (vision/STT/TTS) as unavailable instead of
+# downloading an archive the host cannot run.
 
 # LLM Models
 # ==========

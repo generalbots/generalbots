@@ -3,11 +3,19 @@ use super::*;
 pub async fn handle_get_organization(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    let auth_service = state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service"
-        })))
-    })?.lock().await;
+    let auth_service = state
+        .auth_service
+        .as_ref()
+        .ok_or_else(|| {
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "No auth service"
+                })),
+            )
+        })?
+        .lock()
+        .await;
 
     match auth_service.list_organizations().await {
         Ok(data) => {
@@ -79,7 +87,9 @@ pub async fn handle_get_org_stats(
         }
         if let Ok(bytes) = drive_files
             .filter(file_size.is_not_null())
-            .select(diesel::dsl::sql::<diesel::sql_types::BigInt>("COALESCE(SUM(file_size), 0)"))
+            .select(diesel::dsl::sql::<diesel::sql_types::BigInt>(
+                "COALESCE(SUM(file_size), 0)",
+            ))
             .first::<i64>(&mut conn)
         {
             storage_bytes = bytes;
@@ -101,9 +111,12 @@ pub async fn handle_delete_organization(
     info!("Organization deletion requested");
 
     let auth = state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service"
-        })))
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "No auth service"
+            })),
+        )
     })?;
 
     let auth_service = auth.lock().await;
@@ -114,24 +127,37 @@ pub async fn handle_delete_organization(
         }))))?;
 
     let orgs = orgs_data.as_array().cloned().unwrap_or_default();
-    let org_id = orgs.first()
+    let org_id = orgs
+        .first()
         .and_then(|o| o.get("id").or_else(|| o.get("orgId")))
         .and_then(|v| v.as_str())
         .unwrap_or("default");
 
     if org_id == "default" {
-        return Err((axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
-            "error": "Cannot delete the default organization"
-        }))));
+        return Err((
+            axum::http::StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "Cannot delete the default organization"
+            })),
+        ));
     }
 
-    let _ = auth_service.http_delete(format!("{}/v2/organizations/{}", auth_service.api_url(), org_id)).await;
+    let _ = auth_service
+        .http_delete(format!(
+            "{}/v2/organizations/{}",
+            auth_service.api_url(),
+            org_id
+        ))
+        .await;
 
     let stack = botcore::shared::utils::get_stack_path();
-    let settings_path = std::path::PathBuf::from(format!("{}/conf/directory/org-settings.json", stack));
+    let settings_path =
+        std::path::PathBuf::from(format!("{}/conf/directory/org-settings.json", stack));
     let _ = std::fs::remove_file(settings_path);
 
-    Ok(Json(serde_json::json!({"success": true, "message": format!("Organization {} deleted", org_id)})))
+    Ok(Json(
+        serde_json::json!({"success": true, "message": format!("Organization {} deleted", org_id)}),
+    ))
 }
 pub async fn handle_get_org_audit(
     State(_state): State<Arc<AppState>>,
@@ -172,10 +198,14 @@ pub async fn handle_export_org_data(
 
     if let Ok(mut conn) = state.conn.get() {
         use botcore::shared::models::schema::bots::dsl::*;
-        if let Ok(bot_list) = bots.limit(100).load::<botcore::shared::models::core::Bot>(&mut conn) {
-            let bot_names: Vec<serde_json::Value> = bot_list.iter().map(|b| {
-                serde_json::json!({"id": b.id.to_string(), "name": b.name})
-            }).collect();
+        if let Ok(bot_list) = bots
+            .limit(100)
+            .load::<botcore::shared::models::core::Bot>(&mut conn)
+        {
+            let bot_names: Vec<serde_json::Value> = bot_list
+                .iter()
+                .map(|b| serde_json::json!({"id": b.id.to_string(), "name": b.name}))
+                .collect();
             export["bots"] = serde_json::json!(bot_names);
         }
     }
@@ -188,8 +218,15 @@ pub async fn handle_export_org_data(
         }
     }
 
-    let export_path = format!("{}/tmp/org-export-{}.json", stack, chrono::Utc::now().timestamp());
-    let _ = std::fs::write(&export_path, serde_json::to_string_pretty(&export).unwrap_or_default());
+    let export_path = format!(
+        "{}/tmp/org-export-{}.json",
+        stack,
+        chrono::Utc::now().timestamp()
+    );
+    let _ = std::fs::write(
+        &export_path,
+        serde_json::to_string_pretty(&export).unwrap_or_default(),
+    );
 
     Ok(Json(serde_json::json!({
         "success": true,
@@ -224,14 +261,26 @@ pub async fn handle_update_organization(
         }
     }
 
-    if let Err(e) = std::fs::write(&config_path, serde_json::to_string_pretty(&merged).unwrap_or_default()) {
+    if let Err(e) = std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&merged).unwrap_or_default(),
+    ) {
         log::error!("Failed to save organization settings: {}", e);
-        return Err((axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "Failed to save settings"
-        }))));
+        return Err((
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "Failed to save settings"
+            })),
+        ));
     }
 
-    append_audit_log("settings_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+    append_audit_log(
+        "settings_updated",
+        &body
+            .as_object()
+            .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
+            .unwrap_or_default(),
+    );
 
     Ok(Json(serde_json::json!({"success": true})))
 }
@@ -259,7 +308,10 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
         entries = entries.split_off(entries.len() - 500);
     }
 
-    let _ = std::fs::write(&log_path, serde_json::to_string_pretty(&entries).unwrap_or_default());
+    let _ = std::fs::write(
+        &log_path,
+        serde_json::to_string_pretty(&entries).unwrap_or_default(),
+    );
 }
 pub async fn handle_update_organization_contact(
     State(state): State<Arc<AppState>>,
@@ -267,7 +319,13 @@ pub async fn handle_update_organization_contact(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization contact update: {:?}", body);
     let result = handle_update_organization(State(state), Json(body.clone())).await?;
-    append_audit_log("contact_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+    append_audit_log(
+        "contact_updated",
+        &body
+            .as_object()
+            .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
+            .unwrap_or_default(),
+    );
     Ok(result)
 }
 pub async fn handle_update_organization_branding(
@@ -276,6 +334,12 @@ pub async fn handle_update_organization_branding(
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization branding update: {:?}", body);
     let result = handle_update_organization(State(state), Json(body.clone())).await?;
-    append_audit_log("branding_updated", &body.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>().join(",")).unwrap_or_default());
+    append_audit_log(
+        "branding_updated",
+        &body
+            .as_object()
+            .map(|o| o.keys().cloned().collect::<Vec<_>>().join(","))
+            .unwrap_or_default(),
+    );
     Ok(result)
 }

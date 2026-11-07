@@ -74,19 +74,28 @@
     });
 
     async function createSession() {
+        const api = window.GBDesktopVMTabs;
+        if (!api) {
+            addLogEntry('error', 'VM tab strip is unavailable');
+            return;
+        }
         try {
-            const resp = await fetch('/api/browser/session', { method: 'POST' });
+            const resp = await fetch(api.path(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    headless: true,
+                    vm: api.vm(),
+                    conversation_id: api.conversation(),
+                    vm_controlled: true,
+                    title: 'New Tab'
+                })
+            });
             const data = await resp.json();
-            sessionId = data.id;
-            elSession.textContent = sessionId.substring(0, 8) + '...';
-            elNew.style.display = 'none';
-            elClose.style.display = 'inline-block';
-            elToolbar.style.display = 'block';
-            elSidebar.style.display = 'block';
-            elStatus.style.display = 'none';
-            canvas.style.display = 'block';
-            startStream();
-            addLogEntry('info', 'Session created: ' + sessionId);
+            if (!resp.ok || !data.id) throw new Error(data.error || ('HTTP ' + resp.status));
+            attachSession(data.id, (data.tab && data.tab.title) || 'New Tab');
+            refreshVmTabs();
+            addLogEntry('info', 'VM tab opened: ' + data.id);
         } catch (e) {
             addLogEntry('error', 'Failed to create session: ' + e.message);
         }
@@ -94,11 +103,24 @@
 
     async function closeSession() {
         if (!sessionId) return;
+        const closing = sessionId;
         stopStream();
         try {
-            await fetch('/api/browser/session/' + sessionId, { method: 'DELETE' });
+            const api = window.GBDesktopVMTabs;
+            const resp = api
+                ? await fetch(api.path('/' + encodeURIComponent(closing)), { method: 'DELETE' })
+                : { ok: false };
+            if (!resp.ok) {
+                await fetch('/api/browser/session/' + encodeURIComponent(closing), { method: 'DELETE' });
+            }
         } catch (e) { }
+        clearSessionUi();
+        addLogEntry('info', 'Session closed');
+    }
+
+    function clearSessionUi() {
         sessionId = null;
+        stopStream();
         elSession.textContent = 'No session';
         elNew.style.display = 'inline-block';
         elClose.style.display = 'none';
@@ -107,12 +129,31 @@
         canvas.style.display = 'none';
         elStatus.style.display = 'block';
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        addLogEntry('info', 'Session closed');
+        refreshVmTabs();
+    }
+
+    function attachSession(id, title) {
+        stopStream();
+        sessionId = id;
+        elSession.textContent = (title || id).substring(0, 24);
+        elNew.style.display = 'none';
+        elClose.style.display = 'inline-block';
+        elToolbar.style.display = 'block';
+        elSidebar.style.display = 'block';
+        elStatus.style.display = 'none';
+        canvas.style.display = 'block';
+        startStream();
+        refreshVmTabs();
+    }
+
+    function refreshVmTabs() {
+        if (window.GBDesktopVMTabs) window.GBDesktopVMTabs.refresh();
     }
 
     function startStream() {
         if (ws) ws.close();
-        ws = new WebSocket('ws://' + location.host + '/api/browser/session/' + sessionId + '/stream');
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(proto + '//' + location.host + '/api/browser/session/' + sessionId + '/stream');
         ws.binaryType = 'arraybuffer';
 
         ws.onmessage = function (e) {
@@ -188,6 +229,7 @@
             const data = await resp.json();
             if (data.url) elStateUrl.textContent = data.url;
             addLogEntry('nav', 'Navigated to ' + url);
+            refreshVmTabs();
         } catch (e) {
             addLogEntry('error', 'Navigation failed: ' + e.message);
         }
@@ -287,5 +329,15 @@
         if (elAgentLog.children.length > 200) {
             elAgentLog.removeChild(elAgentLog.firstChild);
         }
+    }
+
+    if (window.GBDesktopVMTabs) {
+        window.GBDesktopVMTabs.init({
+            onAttach: attachSession,
+            getSessionId: function () { return sessionId; },
+            onClosed: function (id) {
+                if (sessionId === id) clearSessionUi();
+            }
+        });
     }
 })();

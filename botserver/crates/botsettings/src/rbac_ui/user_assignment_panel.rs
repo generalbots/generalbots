@@ -1,6 +1,9 @@
 use super::*;
 
-pub async fn user_assignment_panel(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn user_assignment_panel(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -159,7 +162,10 @@ pub async fn user_assignment_panel(State(state): State<Arc<AppState>>, Path(user
         }
     }
 }
-pub async fn available_roles_for_user(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn available_roles_for_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -205,7 +211,10 @@ pub async fn available_roles_for_user(State(state): State<Arc<AppState>>, Path(u
         }
     }
 }
-pub async fn assigned_roles_for_user(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn assigned_roles_for_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -246,7 +255,10 @@ pub async fn assigned_roles_for_user(State(state): State<Arc<AppState>>, Path(us
         }
     }
 }
-pub async fn available_groups_for_user(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn available_groups_for_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;

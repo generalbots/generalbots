@@ -8,7 +8,9 @@ pub async fn handle_agent(
     let session = get_session(&sessions, &id).await?;
     let session_arc = Arc::new(Mutex::new(session));
 
-    let llm_url = payload.llm_url.unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
+    let llm_url = payload
+        .llm_url
+        .unwrap_or_else(|| "http://127.0.0.1:8081/v1/chat/completions".to_string());
     let llm_key = payload.llm_key.unwrap_or_default();
     let llm_model = payload.llm_model.unwrap_or_else(|| "default".to_string());
     let llm_config = agent::LlmConfig::new(&llm_url, &llm_key, &llm_model);

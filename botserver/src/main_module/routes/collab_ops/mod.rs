@@ -10,7 +10,13 @@
 
 pub(crate) use super::collab_routes::{collab_user_id, collab_user_name, sanitize_resource};
 pub(crate) use crate::security::auth_api::types::AuthenticatedUser;
-pub(crate) use axum::{ extract::{Path, Query, State}, http::StatusCode, response::Json, routing::{get, post}, Extension, Router, };
+pub(crate) use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::Json,
+    routing::{get, post},
+    Extension, Router,
+};
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_types::{BigInt, Bool, Text, Timestamptz, Uuid as SqlUuid};
@@ -58,9 +64,9 @@ pub struct ResolveBody {
 // ---------------------------------------------------------------------------
 
 mod err;
-mod read_current_version;
 mod list_conflicts;
+mod read_current_version;
 
 use err::*;
-pub use read_current_version::*;
 pub use list_conflicts::*;
+pub use read_current_version::*;

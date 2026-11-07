@@ -235,6 +235,30 @@ mod tests {
         assert!(parse_lenient_mentions(&serde_json::json!({ "mentions": [] })).is_empty());
     }
 
+    #[test]
+    fn composer_mention_payloads_survive_the_turn() {
+        // The composer sends the selected chips verbatim. CRM/KB/site chips
+        // carry no connection id; project chips carry a project UUID. None of
+        // them may make the turn fail, and an unknown/empty chip is simply
+        // ignored downstream.
+        let payload = serde_json::json!({
+            "text": "compare @crm:Acme with the @kb:contract and @site:example.com",
+            "mentions": [
+                { "kind": "crm", "id": "", "label": "Acme" },
+                { "kind": "kb", "id": "", "label": "contract" },
+                { "kind": "site", "id": "", "label": "example.com" },
+                { "kind": "project", "id": "4f0c2b2e-7c1a-4d6b-9e1a-2b3c4d5e6f70",
+                  "label": "calculator", "project_id": "4f0c2b2e-7c1a-4d6b-9e1a-2b3c4d5e6f70" },
+                { "kind": "", "id": "ignored" }
+            ]
+        });
+        let mentions = parse_lenient_mentions(&payload);
+        assert_eq!(mentions.len(), 5);
+        let kinds: Vec<&str> = mentions.iter().map(|m| m.kind.as_str()).collect();
+        assert_eq!(kinds, ["crm", "kb", "site", "project", ""]);
+        assert_eq!(mentions[3].id, "4f0c2b2e-7c1a-4d6b-9e1a-2b3c4d5e6f70");
+    }
+
     #[cfg(feature = "integrations")]
     #[test]
     fn mention_block_lists_action_names_without_secret_material() {

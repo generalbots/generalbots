@@ -4,10 +4,12 @@ use axum::{
     response::{Html, IntoResponse, Response},
     Json,
 };
+use botcore::shared::state::AppState;
+use botcoredirectory::auth_routes::{
+    persist_session, session_from_persisted, SessionUserData, SESSION_CACHE,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use botcore::shared::state::AppState;
-use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData, persist_session, session_from_persisted};
 
 #[derive(Debug, Deserialize)]
 pub struct SsoRequest {
@@ -36,7 +38,10 @@ pub async fn handle_cloud_sso(
     // Validate JWT signature — reject on mismatch, no fallback
     let parts: Vec<&str> = req.cloud_token.split('.').collect();
     if parts.len() != 3 {
-        return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token format"}))));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "Invalid token format"})),
+        ));
     }
 
     let (header_b64, payload_b64, sig_b64) = (parts[0], parts[1], parts[2]);
@@ -44,26 +49,50 @@ pub async fn handle_cloud_sso(
 
     let expected_sig = match jwt_sign_inner(&message, jwt_secret.as_bytes()) {
         Ok(sig) => sig,
-        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Token signing failed"})),
+            ))
+        }
     };
     if sig_b64 != expected_sig {
         log::warn!("cloud-sso: JWT signature mismatch — rejecting token");
-        return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token signature"}))));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "Invalid token signature"})),
+        ));
     }
 
     // Decode JWT payload
     let payload_bytes = match base64_url_decode(payload_b64) {
         Ok(b) => b,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid token payload"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Invalid token payload"})),
+            ))
+        }
     };
 
     let claims: serde_json::Value = match serde_json::from_slice(&payload_bytes) {
         Ok(v) => v,
-        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid token payload JSON"})))),
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Invalid token payload JSON"})),
+            ))
+        }
     };
 
-    let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
-    let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
+    let email = claims
+        .get("email")
+        .and_then(|v| v.as_str())
+        .unwrap_or("user@localhost");
+    let user_id = claims
+        .get("sub")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
 
     // Create Suite session with the real per-user role (fix #843) and the
     // JWT org scope so org-scoped APIs resolve the user's organization.
@@ -124,7 +153,9 @@ pub async fn handle_suite_sso(
     }
 
     let message = format!("{}.{}", parts[0], parts[1]);
-    let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes()).map(|s| s == parts[2]).unwrap_or(false);
+    let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes())
+        .map(|s| s == parts[2])
+        .unwrap_or(false);
     if !sig_ok {
         log::warn!("suite-sso: JWT signature mismatch — rejecting token");
         return Ok(redirect_to_login("invalid_token"));
@@ -139,12 +170,22 @@ pub async fn handle_suite_sso(
         Err(_) => return Ok(redirect_to_login("invalid_token")),
     };
 
-    let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
-    let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
-    let bucket = claims.get("bucket").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let email = claims
+        .get("email")
+        .and_then(|v| v.as_str())
+        .unwrap_or("user@localhost");
+    let user_id = claims
+        .get("sub")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let bucket = claims
+        .get("bucket")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let roles = resolve_session_roles(&state, user_id);
-    let suite_token = create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
+    let suite_token =
+        create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
     let redirect = sanitize_redirect(&query.redirect);
     let html = Html(sso_html(&suite_token, &redirect));
     Ok(session_cookie(suite_token, html))
@@ -252,7 +293,11 @@ pub(crate) async fn create_suite_session(
     roles: Vec<String>,
     organization_id: Option<String>,
 ) -> String {
-    let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
+    let api_token = format!(
+        "gb_{}_{}",
+        uuid::Uuid::new_v4(),
+        chrono::Utc::now().timestamp()
+    );
     let session_user = SessionUserData {
         user_id: user_id.to_string(),
         email: email.to_string(),
@@ -272,7 +317,11 @@ pub(crate) async fn create_suite_session(
         persist_session(&api_token, &session_user);
     }
 
-    log::info!("Created Suite session for {} (token: {}...)", email, &api_token[..6.min(api_token.len())]);
+    log::info!(
+        "Created Suite session for {} (token: {}...)",
+        email,
+        &api_token[..6.min(api_token.len())]
+    );
     api_token
 }
 
@@ -303,24 +352,56 @@ pub async fn handle_unified_login(
         // Exchange Cloud JWT for Suite session — signature MUST verify (fix #842)
         let parts: Vec<&str> = cloud_token.split('.').collect();
         if parts.len() != 3 {
-            return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid cloud token format"}))));
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "Invalid cloud token format"})),
+            ));
         }
         let message = format!("{}.{}", parts[0], parts[1]);
         let expected_sig = match jwt_sign_inner(&message, jwt_secret.as_bytes()) {
             Ok(sig) => sig,
-            Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "Token signing failed"})))),
+            Err(_) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Token signing failed"})),
+                ))
+            }
         };
         if parts[2] != expected_sig {
             log::warn!("unified-login (cloud_token): JWT signature mismatch — rejecting token");
-            return Err((StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": "Invalid token signature"}))));
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "Invalid token signature"})),
+            ));
         }
-        let payload_bytes = base64_url_decode(parts[1]).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid payload"}))))?;
-        let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid JSON"}))))?;
-        email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost").to_string();
-        user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+        let payload_bytes = base64_url_decode(parts[1]).map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Invalid payload"})),
+            )
+        })?;
+        let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Invalid JSON"})),
+            )
+        })?;
+        email = claims
+            .get("email")
+            .and_then(|v| v.as_str())
+            .unwrap_or("user@localhost")
+            .to_string();
+        user_id = claims
+            .get("sub")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
         org_scope = claims_org(&claims);
     } else {
-        return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token"}))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "Provide cloud_token"})),
+        ));
     }
 
     // Create Suite session token with the real per-user role (fix #843) and
@@ -362,15 +443,16 @@ fn get_saas_jwt_secret() -> String {
 fn jwt_sign_inner(message: &str, secret: &[u8]) -> Result<String, String> {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret)
-        .map_err(|e| format!("HMAC key error: {}", e))?;
+    let mut mac =
+        Hmac::<Sha256>::new_from_slice(secret).map_err(|e| format!("HMAC key error: {}", e))?;
     mac.update(message.as_bytes());
     Ok(base64_url_encode(&mac.finalize().into_bytes()))
 }
 
 fn base64_url_encode(input: &[u8]) -> String {
-    use base64::{Engine as _, engine::general_purpose};
-    general_purpose::STANDARD.encode(input)
+    use base64::{engine::general_purpose, Engine as _};
+    general_purpose::STANDARD
+        .encode(input)
         .replace('+', "-")
         .replace('/', "_")
         .trim_end_matches('=')
@@ -408,8 +490,14 @@ mod script_literal_tests {
     #[test]
     fn closes_no_script_element() {
         let literal = js_string_literal("/?next=</script><script>alert(1)</script>");
-        assert!(!literal.contains('<'), "raw '<' must not survive: {literal}");
-        assert!(!literal.contains('>'), "raw '>' must not survive: {literal}");
+        assert!(
+            !literal.contains('<'),
+            "raw '<' must not survive: {literal}"
+        );
+        assert!(
+            !literal.contains('>'),
+            "raw '>' must not survive: {literal}"
+        );
         assert!(literal.starts_with('"') && literal.ends_with('"'));
     }
 
@@ -439,6 +527,8 @@ fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
         0 => raw,
         _ => return Err("invalid base64 input length"),
     };
-    use base64::{Engine as _, engine::general_purpose};
-    general_purpose::STANDARD.decode(&raw).map_err(|_| "base64 decode failed")
+    use base64::{engine::general_purpose, Engine as _};
+    general_purpose::STANDARD
+        .decode(&raw)
+        .map_err(|_| "base64 decode failed")
 }

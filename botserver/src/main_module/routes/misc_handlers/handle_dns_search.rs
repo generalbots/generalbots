@@ -9,7 +9,12 @@ pub async fn handle_dns_search(
     let q = params.get("q").cloned().unwrap_or_default();
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<tr><td colspan=\"7\">{}</td></tr>", html_escape(&e.1))),
+        Err(e) => {
+            return Html(format!(
+                "<tr><td colspan=\"7\">{}</td></tr>",
+                html_escape(&e.1)
+            ))
+        }
     };
 
     #[derive(diesel::QueryableByName)]
@@ -44,7 +49,9 @@ pub async fn handle_dns_search(
     };
 
     if rows.is_empty() {
-        return Html("<tr><td colspan=\"7\" class=\"empty-cell\">No DNS records match</td></tr>".to_string());
+        return Html(
+            "<tr><td colspan=\"7\" class=\"empty-cell\">No DNS records match</td></tr>".to_string(),
+        );
     }
 
     let mut html = String::new();

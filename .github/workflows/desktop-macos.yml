@@ -66,6 +66,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -134,6 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           mkdir -p dist
           shopt -s nullglob
           dmgs=(target/release/bundle/dmg/*.dmg botapp/target/release/bundle/dmg/*.dmg)
@@ -146,10 +149,10 @@ jobs:
             echo "::error::the bundler produced no .app"
             exit 1
           fi
-          cp "${dmgs[0]}" "dist/generalbots-${TAG}-macos-arm64.dmg"
+          cp "${dmgs[0]}" "dist/generalbots-${VERSION}-macos-arm64.dmg"
           # GitHub release assets are files, so the raw .app is zipped.
           ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" \
-            "dist/generalbots-${TAG}-macos-arm64.app.zip"
+            "dist/generalbots-${VERSION}-macos-arm64.app.zip"
           (cd dist && shasum -a 256 ./* > SHA256SUMS-macos)
           ls -lh dist
 
@@ -180,9 +183,12 @@ jobs:
         if: ${{ hashFiles('dist/*.dmg') != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          BASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
+          # macOS is an additive platform build: publish it as a `-macos`
+          # pre-release so it can never take /releases/latest (#1804).
+          TAG="${BASE_TAG}-macos"
           # Never rewrite the release notes: `gh release upload` attaches files
           # only. Releases with immutability enabled reject the upload, which is
           # tolerated by the job-level continue-on-error.
@@ -192,8 +198,8 @@ jobs:
             # The Linux release job may create the same release concurrently.
             # Fall back to an upload when create loses that race.
             gh release create "$TAG" dist/* \
-              --title "$TAG" \
-              --notes "macOS arm64 desktop bundle (unsigned): $TAG" \
-              --latest=false ||
+              --title "${BASE_TAG} (macOS)" \
+              --notes "macOS arm64 desktop bundle (unsigned), pre-release for ${BASE_TAG}: it never takes latest." \
+              --prerelease --latest=false ||
               gh release upload "$TAG" dist/* --clobber
           fi

@@ -89,7 +89,10 @@ mod tests {
             "steps": [{"op": "fill", "field": "Name", "value": "<script>alert(1)</script>"}]
         });
         let parsed = parse_ui_plan(&plan).unwrap();
-        assert_eq!(parsed.steps[0].value.as_deref(), Some("scriptalert(1)/script"));
+        assert_eq!(
+            parsed.steps[0].value.as_deref(),
+            Some("scriptalert(1)/script")
+        );
     }
 
     #[test]
@@ -124,10 +127,7 @@ Done."#;
         let plan = result.expect("plan present").expect("plan valid");
         assert_eq!(plan.steps.len(), 3);
         assert_eq!(plan.steps[2].op, UiOp::Fill);
-        assert_eq!(
-            plan.steps[2].value.as_deref(),
-            Some("Jeff")
-        );
+        assert_eq!(plan.steps[2].value.as_deref(), Some("Jeff"));
     }
 
     #[test]

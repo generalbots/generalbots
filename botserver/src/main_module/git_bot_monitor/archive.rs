@@ -119,9 +119,9 @@ async fn archive_bot_sources(
     // Server-side copy then delete — S3 has no rename; an interrupted pass
     // re-copies idempotently on the next boot (the source is already gone).
     for key in &keys {
-        let file_part = key.strip_prefix(&bot_segment).unwrap_or_else(|| {
-            key.rsplit('/').next().unwrap_or(key)
-        });
+        let file_part = key
+            .strip_prefix(&bot_segment)
+            .unwrap_or_else(|| key.rsplit('/').next().unwrap_or(key));
         let target = format!("{archive_prefix}{}", file_part.trim_start_matches('/'));
         s3.copy_object(bucket, key, &target)
             .await
@@ -162,7 +162,8 @@ pub async fn run_archive_pass(state: std::sync::Arc<AppState>, pool: DbPool) {
         let mut candidates: Vec<(String, String)> = Vec::new();
         match pool.get() {
             Ok(mut conn) => {
-                let loc = botbasic_core::utils::bot_drive_location_for_name(&mut conn, &target.bot_name);
+                let loc =
+                    botbasic_core::utils::bot_drive_location_for_name(&mut conn, &target.bot_name);
                 candidates.push((loc.bucket.clone(), loc.bot_prefix.clone()));
             }
             Err(e) => log::warn!("[git_archive] {}: pool: {e}", target.bot_name),
@@ -177,7 +178,10 @@ pub async fn run_archive_pass(state: std::sync::Arc<AppState>, pool: DbPool) {
                 String::new(),
             ),
         ] {
-            if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+            if !candidates
+                .iter()
+                .any(|(b, p)| b == &candidate.0 && p == &candidate.1)
+            {
                 candidates.push(candidate);
             }
         }

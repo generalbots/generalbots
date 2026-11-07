@@ -13,15 +13,22 @@ pub(crate) fn stack_path() -> PathBuf {
 
 pub(crate) fn installers_path(resource_dir: Option<&Path>) -> PathBuf {
     // An explicit path wins (development runs point at the checkout's bundled
-    // installers); packaged builds fall back to the resource directory.
+    // installers); a packaged MSI/NSIS install uses the resource directory and
+    // the self-extracting executable uses the payload extracted into the
+    // stack. Only select an existing directory, otherwise the self-extractor's
+    // stack/installers/ was hidden behind a missing resource path (#1793).
     if let Ok(value) = std::env::var("BOTSERVER_INSTALLERS_PATH") {
         if !value.trim().is_empty() {
             return PathBuf::from(value);
         }
     }
-    resource_dir
-        .map(|dir| dir.join("installers"))
-        .unwrap_or_else(|| stack_path().join("installers"))
+    if let Some(dir) = resource_dir {
+        let installed = dir.join("installers");
+        if installed.exists() {
+            return installed;
+        }
+    }
+    stack_path().join("installers")
 }
 
 pub(crate) fn marker_path() -> PathBuf {

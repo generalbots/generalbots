@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
-pub async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
+pub async fn health_check(
+    State(state): State<Arc<AppState>>,
+) -> (StatusCode, Json<serde_json::Value>) {
     let pool = state.conn.clone();
     let db_ok = tokio::time::timeout(
         std::time::Duration::from_secs(2),

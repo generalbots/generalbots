@@ -4,8 +4,7 @@ use super::*;
 /// result via query params.
 pub(super) fn redirect_to_settings(query: &str) -> Response {
     let base = base_url();
-    Redirect::temporary(&format!("{base}/settings?section=accounts&{query}"))
-        .into_response()
+    Redirect::temporary(&format!("{base}/settings?section=accounts&{query}")).into_response()
 }
 /// Persists the OAuth access/refresh tokens in Vault under
 /// `secret/gbo/oauth/{user_id}/{provider}`. Only non-sensitive metadata is
@@ -98,8 +97,7 @@ pub(super) fn upsert_account_link(
     provider: OAuthProvider,
     user_info: &botcoreoauth::OAuthUserInfo,
 ) -> anyhow::Result<()> {
-    let mut conn = get_conn(state)
-        .ok_or_else(|| anyhow::anyhow!("database unavailable"))?;
+    let mut conn = get_conn(state).ok_or_else(|| anyhow::anyhow!("database unavailable"))?;
     let provider_lower = provider.to_string().to_lowercase();
     diesel::sql_query(
         "INSERT INTO oauth_account_links \

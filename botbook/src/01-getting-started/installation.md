@@ -59,13 +59,13 @@ The Linux matrix above does not apply to the desktop bundles:
   stack, the BotModels pythonbox and the native Incus agent remain unavailable
   (see `desktop/macos/README.md`).
 
-The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel
-and Caddy under `installers/` (the MSI/NSIS packages carry the same resources).
-PostgreSQL, Vault and llama.cpp plus its models are downloaded once on first
-run; `GB_DESKTOP_OFFLINE=1` refuses those downloads and names the missing
-archive. There is no Windows BotModels pythonbox, so media (vision/STT/TTS)
-stays unavailable and `/api/product` reports `media_capabilities` with the
-reason.
+The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel,
+Caddy and the Windows BotModels pythonbox under `installers/` (the MSI/NSIS
+packages carry the same resources). PostgreSQL, Vault and llama.cpp plus its
+models are downloaded once on first run; `GB_DESKTOP_OFFLINE=1` refuses those
+downloads and names the missing archive. The pythonbox ships an offline
+win_amd64 wheelhouse, so media (vision/STT/TTS) also works without network
+access after its first-use virtual environment build.
 
 See [First-Run Wizard](../07-user-interface/first-run-wizard.md) for the exit
 codes and the per-platform agent backend details.
@@ -111,7 +111,7 @@ Tauri bundler are best effort and have never shipped in a release:
 | `generalbots` (single file) | Published for x86_64: `chmod +x generalbots && ./generalbots` |
 | `generalbots-linux-<arch>.deb` / `.rpm` / `.AppImage` | Best effort only — the bundler step is `continue-on-error` and has never produced an artifact in a release; do not rely on these names being present |
 | `generalbots-x64.msi` / `generalbots-x64-setup.exe` | Windows, best effort |
-| `generalbots-<tag>-macos-arm64.dmg` | macOS 11+ (Apple silicon), unsigned, best effort |
+| `generalbots-<version>-macos-arm64.dmg` | macOS 11+ (Apple silicon), unsigned, best effort; published in the `-macos` pre-release |
 
 The `.deb`/`.rpm` dependency declarations live in
 `botapp/tauri.desktop-local.conf.json` for reference, but those packages are not
@@ -120,11 +120,32 @@ currently published. The AppImage, when produced, still uses the host WebKitGTK
 Ubuntu 24.04); where FUSE is unavailable, start it with
 `APPIMAGE_EXTRACT_AND_RUN=1` or `--appimage-extract-and-run`.
 
-There is no in-app auto-updater in this build. Tarball upgrades run
-`./install.sh` again (user data stays in `~/.local/share/generalbots`); a
-present AppImage is replaced in place. `GET http://127.0.0.1:8080/api/health`
-reports the running version, and a Settings -> About surface is follow-up UI
-work.
+### Updating an installation
+
+There is no in-app auto-updater in this build. The Tauri updater plugin is not
+registered and there is no `plugins.updater` configuration, so every upgrade
+replaces files on disk:
+
+- **AppImage** — download the new `generalbots-linux-<arch>.AppImage`, verify
+  it against `SHA256SUMS-linux`, quit the app, move the new file over the old
+  path (or keep both and launch the new one), then `chmod +x` and start it.
+  Nothing is installed system-wide, so deleting the old file after the new one
+  starts is enough. Keep the AppImage in a user-writable directory
+  (`~/Applications`, `~/bin`, …) so replacing it needs no root.
+- **deb/rpm** — `sudo apt install ./generalbots-linux-<arch>.deb` or
+  `sudo dnf upgrade ./generalbots-linux-<arch>.rpm`; the package manager
+  replaces the files.
+- **tarball** — run `./install.sh` again; it replaces
+  `~/.local/opt/general-bots` and leaves the data directory untouched.
+- **macOS** — open the new `.dmg` and drag the app over the old one.
+
+User data is never stored next to the package. The stack, logs, workspace and
+cached installers live in `~/.local/share/generalbots` (override with
+`BOTSERVER_STACK_PATH`), so it survives every upgrade above.
+`GET http://127.0.0.1:8080/api/health` reports the running version, and a
+Settings -> About surface is follow-up UI work. The maintainer-level rationale
+and the exact steps needed to wire the Tauri updater later are in
+[`botapp/README.md`](https://github.com/generalbots/generalbots/blob/main/botapp/README.md#installing-and-upgrading).
 
 The macOS bundle is best effort and unsigned. It cannot run the Linux service
 stack natively: PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
@@ -142,11 +163,12 @@ arm64 checksum asset, so those two variants skip verification rather than
 comparing them to the x86_64 hash.
 
 The Windows payload bundles `installers/` with MinIO + mc, Redis (cache),
-Qdrant, Zitadel and Caddy. PostgreSQL, Vault, llama.cpp and models are fetched
-once on first run, or refused with the exact missing file when
-`GB_DESKTOP_OFFLINE=1`. Media (vision/STT/TTS) is unavailable on Windows until
-a Windows BotModels pythonbox exists; `/api/product` reports
-`media_capabilities.botmodels.available=false` with the reason.
+Qdrant, Zitadel, Caddy and the Windows BotModels pythonbox. PostgreSQL, Vault,
+llama.cpp and models are fetched once on first run, or refused with the exact
+missing file when `GB_DESKTOP_OFFLINE=1`. Media (vision/STT/TTS) uses the
+bundled win_amd64 wheelhouse and needs no network access after the first-use
+venv build; `/api/product` reports `media_capabilities.botmodels.available`
+with the platform reason.
 
 The Linux arm64 package is preview quality until its first run is verified on
 real arm64 hardware (the CI smoke test still covers x86_64 only), and publishing

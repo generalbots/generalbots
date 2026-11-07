@@ -2,20 +2,28 @@ name: Desktop binaries
 
 # Builds the desktop edition on GitHub-hosted runners and attaches it to a
 # GitHub Release ("release folder"). Manual runs need a tag; pushing a v* tag
-# runs it automatically. Public repository: runner minutes are free.
+# runs it automatically, and `.github/workflows/release.yml` dispatches it with
+# the next product version on every merge to main. Public repository: runner
+# minutes are free.
+#
+# Release naming (#1804):
+#   product:  vMAJOR.MINOR.PATCH       normal release, owns /releases/latest
+#   windows:  vMAJOR.MINOR.PATCH-windows  pre-release, never latest
 #
 # Release assets:
-#   linux:   generalbots-<tag>-linux-x86_64.tar.gz  (installer: binaries,
+#   linux:   generalbots-<version>-linux-x86_64.tar.gz  (installer: binaries,
 #            suite, launcher, per-user install.sh, vendored MinIO/mc) +
-#            SHA256SUMS-linux
-#   windows: generalbots-x64.exe (best effort)
+#            generalbots-linux-x86_64.tar.gz (stable alias) + SHA256SUMS-linux
+#   windows: generalbots.exe (self-extracting payload), generalbots-x64.msi,
+#            generalbots-x64-setup.exe (NSIS) and the raw executables
 #
 # The Linux tarball is what a user downloads and runs (#1633). It bundles the
 # vendored drive binaries (and the BotModels pythonbox when a release exists);
 # the first-run wizard fetches the remaining components once. The Windows
-# self-extractor bundles MinIO/mc, Redis, Qdrant, Zitadel and Caddy; PostgreSQL,
-# Vault and llama.cpp are downloaded once. Adding archives to installers/
-# before a local run produces the same offline layout.
+# self-extractor bundles MinIO/mc, Redis, Qdrant, Zitadel, Caddy and the Windows
+# BotModels pythonbox; PostgreSQL, Vault and llama.cpp are downloaded once.
+# Adding archives to installers/ before a local run produces the same offline
+# layout.
 
 on:
   workflow_dispatch:
@@ -43,6 +51,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -198,6 +208,7 @@ jobs:
           cd "${GITHUB_WORKSPACE:-$PWD}"
           mkdir -p dist
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
             local glob="$1" stable="$2" versioned="$3"
@@ -210,15 +221,15 @@ jobs:
             return 0
           }
           collect "target/release/bundle/deb/*.deb botapp/target/release/bundle/deb/*.deb" \
-            generalbots-linux-x86_64.deb "generalbots-${TAG}-linux-x86_64.deb"
+            generalbots-linux-x86_64.deb "generalbots-${VERSION}-linux-x86_64.deb"
           collect "target/release/bundle/rpm/*.rpm botapp/target/release/bundle/rpm/*.rpm" \
-            generalbots-linux-x86_64.rpm "generalbots-${TAG}-linux-x86_64.rpm"
+            generalbots-linux-x86_64.rpm "generalbots-${VERSION}-linux-x86_64.rpm"
           collect "target/release/bundle/appimage/*.AppImage botapp/target/release/bundle/appimage/*.AppImage" \
-            generalbots-linux-x86_64.AppImage "generalbots-${TAG}-linux-x86_64.AppImage"
+            generalbots-linux-x86_64.AppImage "generalbots-${VERSION}-linux-x86_64.AppImage"
           cd dist
-          for f in generalbots-linux-x86_64.deb "generalbots-${TAG}-linux-x86_64.deb" \
-                   generalbots-linux-x86_64.rpm "generalbots-${TAG}-linux-x86_64.rpm" \
-                   generalbots-linux-x86_64.AppImage "generalbots-${TAG}-linux-x86_64.AppImage"; do
+          for f in generalbots-linux-x86_64.deb "generalbots-${VERSION}-linux-x86_64.deb" \
+                   generalbots-linux-x86_64.rpm "generalbots-${VERSION}-linux-x86_64.rpm" \
+                   generalbots-linux-x86_64.AppImage "generalbots-${VERSION}-linux-x86_64.AppImage"; do
             if [ -f "$f" ]; then
               sha256sum "$f" >> SHA256SUMS-linux
             fi
@@ -237,7 +248,8 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          PKG="generalbots-${TAG}-linux-x86_64"
+          VERSION="${TAG#v}"
+          PKG="generalbots-${VERSION}-linux-x86_64"
           WORK="$RUNNER_TEMP/first-run"
           rm -rf "$WORK"
           mkdir -p "$WORK/home"
@@ -322,6 +334,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Install PostgreSQL client libraries (libpq)
         shell: pwsh
@@ -411,6 +425,57 @@ jobs:
           Get-ChildItem $stage -File | Sort-Object Name |
             ForEach-Object { Write-Host ("bundled {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
 
+      # #1793 — the Windows box is built by botmodels-pythonbox.yml. Resolve the
+      # newest published release that actually carries the asset (older
+      # pythonbox releases predate the Windows build) instead of assuming the
+      # newest tag has it.
+      - name: Fetch the BotModels pythonbox (Windows)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assetName = 'botmodels-pythonbox-windows-x86_64.zip'
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            'User-Agent'  = 'general-bots-desktop'
+          }
+          $releases = Invoke-RestMethod `
+            -Uri 'https://api.github.com/repos/generalbots/generalbots/releases?per_page=50' `
+            -Headers $headers
+          $release = $releases |
+            Where-Object {
+              # Component releases are published as pre-releases (#1804), so
+              # only drafts are excluded here.
+              -not $_.draft -and
+              ($_.assets.name -contains $assetName)
+            } |
+            Select-Object -First 1
+          if (-not $release) {
+            Write-Warning "no published release carries $assetName; the Windows payload ships without BotModels"
+            exit 0
+          }
+          $out = Join-Path 'dist\installers' $assetName
+          $url = "https://github.com/generalbots/generalbots/releases/download/$($release.tag_name)/$assetName"
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          if ((Get-Item $out).Length -eq 0) {
+            throw "$assetName downloaded empty from $($release.tag_name)"
+          }
+          Copy-Item $out 'botserver\botserver-installers' -Force
+          # Keep the component checksum list truthful: the staging step wrote it
+          # before BotModels was fetched.
+          $sums = 'dist\installers\SHA256SUMS-windows-installers'
+          $line = "$((Get-FileHash $out -Algorithm SHA256).Hash.ToLowerInvariant())  $assetName"
+          if (Test-Path $sums) {
+            if (-not (Select-String -Path $sums -SimpleMatch $assetName -Quiet)) {
+              Add-Content -Path $sums -Value $line -Encoding ascii
+            }
+          } else {
+            Set-Content -Path $sums -Value $line -Encoding ascii
+          }
+          Copy-Item $sums 'botserver\botserver-installers' -Force
+          Write-Host "bundled BotModels $($release.tag_name) ($('{0:N1}' -f ((Get-Item $out).Length / 1MB)) MB)"
+
       - name: Report bundled vs downloadable components
         shell: pwsh
         run: |
@@ -430,8 +495,12 @@ jobs:
             }
             Write-Host "bundled offline: $($component.Id)"
           }
+          if (Test-Path 'dist\installers\botmodels-pythonbox-windows-x86_64.zip') {
+            Write-Host 'bundled offline: botmodels (Windows pythonbox + offline wheelhouse)'
+          } else {
+            Write-Warning 'botmodels is not bundled: vision/STT/TTS need a first-run download'
+          }
           Write-Host 'download once on first run: vault, tables (PostgreSQL), llm (llama.cpp), models'
-          Write-Host 'unavailable on Windows: botmodels (no Windows pythonbox) — vision/STT/TTS stay disabled'
 
       # MSI/NSIS from the same binaries. Best effort, same reasoning as Linux:
       # a bundler problem must not hide the exe binaries from the release.
@@ -455,11 +524,12 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          $version = $tag -replace '^v', ''
           $msi = Get-ChildItem -Path "target\release\bundle\msi\*.msi","botapp\target\release\bundle\msi\*.msi" -ErrorAction SilentlyContinue |
             Select-Object -First 1
           if ($msi) {
             Copy-Item $msi.FullName "dist\generalbots-x64.msi"
-            Copy-Item $msi.FullName "dist\generalbots-$tag-windows-x64.msi"
+            Copy-Item $msi.FullName "dist\generalbots-$version-windows-x64.msi"
           } else {
             Write-Warning "no MSI was produced by the bundler"
           }
@@ -467,10 +537,33 @@ jobs:
             Where-Object { $_.Name -like "*setup*" } | Select-Object -First 1
           if ($setup) {
             Copy-Item $setup.FullName "dist\generalbots-x64-setup.exe"
-            Copy-Item $setup.FullName "dist\generalbots-$tag-windows-x64-setup.exe"
+            Copy-Item $setup.FullName "dist\generalbots-$version-windows-x64-setup.exe"
           } else {
             Write-Warning "no NSIS installer was produced by the bundler"
           }
+
+      # #1793 — both installers are release artifacts, not best effort. The
+      # packaging step is continue-on-error so a partial failure still lets the
+      # collection run; this gate makes a missing MSI/NSIS fail the job instead
+      # of silently publishing only the raw executables.
+      - name: Verify the MSI and NSIS installers exist
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $missing = @()
+          foreach ($name in 'generalbots-x64.msi', 'generalbots-x64-setup.exe') {
+            $path = Join-Path 'dist' $name
+            if (-not (Test-Path $path)) {
+              $missing += $name
+            } elseif ((Get-Item $path).Length -lt 1MB) {
+              $missing += "$name (suspiciously small)"
+            }
+          }
+          if ($missing.Count -gt 0) {
+            throw "the Windows bundler did not produce: $($missing -join ', ')"
+          }
+          Get-ChildItem 'dist\generalbots-x64.msi', 'dist\generalbots-x64-setup.exe' |
+            ForEach-Object { Write-Host ("installer ready: {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
 
       - name: Assemble release files
         shell: pwsh
@@ -515,6 +608,44 @@ jobs:
             --payload dist/payload `
             --out dist/generalbots.exe
           .\dist\generalbots.exe --verify
+
+          # #1793 — prove the payload carries the offline services instead of
+          # only the executables. Unpack into a scratch stack and assert every
+          # component (including the BotModels pythonbox) is present.
+          $check = Join-Path $env:RUNNER_TEMP 'windows-payload'
+          Remove-Item -Recurse -Force $check -ErrorAction SilentlyContinue
+          $previousStack = $env:BOTSERVER_STACK_PATH
+          $env:BOTSERVER_STACK_PATH = $check
+          try {
+            .\dist\generalbots.exe --extract-only
+            if ($LASTEXITCODE -ne 0) { throw 'the payload could not be extracted' }
+          } finally {
+            $env:BOTSERVER_STACK_PATH = $previousStack
+          }
+          $payloadFiles = @(
+            'botserver.exe',
+            'ui\suite\desktop.html',
+            '.product.desktop-local',
+            'installers\minio.exe',
+            'installers\mc.exe',
+            'installers\Redis-x64-3.0.504.zip',
+            'installers\qdrant-x86_64-pc-windows-msvc.zip',
+            'installers\zitadel-windows-amd64.tar.gz',
+            'installers\caddy_2.11.9_windows_amd64.zip'
+          )
+          foreach ($rel in $payloadFiles) {
+            if (-not (Test-Path (Join-Path $check $rel))) {
+              throw "the Windows payload is missing $rel"
+            }
+          }
+          $botmodels = Join-Path $check 'installers\botmodels-pythonbox-windows-x86_64.zip'
+          if (Test-Path $botmodels) {
+            Write-Host ("payload carries BotModels ({0:N1} MB)" -f ((Get-Item $botmodels).Length / 1MB))
+          } else {
+            Write-Warning 'the Windows payload does not carry the BotModels pythonbox'
+          }
+          Write-Host 'payload contents verified'
+
           Get-FileHash dist/generalbots.exe -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash)  generalbots.exe" } |
             Out-File dist/SHA256SUMS-windows.txt -Encoding ascii -Append
@@ -527,7 +658,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Attach the Linux installer to the release
+    name: Attach the Linux installer to the product release
     needs: [linux]
     runs-on: ubuntu-latest
     # Linux is the supported first-run artifact; it must not wait for the
@@ -549,10 +680,11 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           test -f "dist/generalbots-linux-x86_64.tar.gz"
-          test -f "dist/generalbots-${TAG}-linux-x86_64.tar.gz"
+          test -f "dist/generalbots-${VERSION}-linux-x86_64.tar.gz"
           grep -qE "  generalbots-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
-          grep -qE "  generalbots-${TAG}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
+          grep -qE "  generalbots-${VERSION}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
           (cd dist && sha256sum -c SHA256SUMS-linux --ignore-missing)
           # Distro packages are best effort: report them instead of failing the
           # release, because the tarball and the single file must keep shipping.
@@ -578,6 +710,11 @@ jobs:
           make_latest: true
           body: |
             Desktop edition for ${{ github.event.inputs.tag || github.ref_name }}.
+
+            This is the product release: the `vMAJOR.MINOR.PATCH` tag owns
+            `/releases/latest`. Platform builds (`-windows`, `-macos`) and
+            component builds (`alm-*`, `pythonbox-*`, `drive-bin-*`) are
+            pre-releases and never take `latest`.
 
             Stable link (always the newest release):
 
@@ -633,12 +770,13 @@ jobs:
           fail_on_unmatched_files: false
 
   release-windows:
-    name: Attach the Windows binaries to the release
+    name: Attach the Windows binaries to a pre-release
     needs: [windows]
     runs-on: ubuntu-latest
     # Best effort: only runs when the Windows build itself went green, and never
     # fails the workflow. Releases are immutable, so assets cannot be appended
-    # to the Linux tag after publication — the Windows build gets its own tag.
+    # to the Linux tag after publication — the Windows build gets its own
+    # `-windows` pre-release tag (#1804), which never takes "latest".
     continue-on-error: true
     if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     steps:
@@ -656,25 +794,32 @@ jobs:
           # /releases/latest/download/generalbots-linux-x86_64.tar.gz must keep
           # resolving to the release that actually carries that asset.
           make_latest: false
+          prerelease: true
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}-windows
           name: ${{ github.event.inputs.tag || github.ref_name }} (Windows)
           body: |
-            Windows binaries for ${{ github.event.inputs.tag || github.ref_name }}.
-            Best effort: the Linux installer is the supported artifact and lives
-            on the `${{ github.event.inputs.tag || github.ref_name }}` tag.
+            Pre-release: Windows binaries for ${{ github.event.inputs.tag || github.ref_name }}.
+            It is not the product release and never takes `latest`; the Linux
+            installer is the supported artifact and lives on the
+            `${{ github.event.inputs.tag || github.ref_name }}` tag.
 
             Bundled offline in `generalbots.exe` (payload `installers/` and the
-            MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel and
-            Caddy. First run downloads the remaining stack once (PostgreSQL,
-            Vault and, when the local model is selected, llama.cpp + models)
-            unless `GB_DESKTOP_OFFLINE=1` refuses downloads; `GB_DESKTOP_OFFLINE`
-            also makes a missing component fail with the exact file name.
+            MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel,
+            Caddy and the Windows BotModels pythonbox
+            (`botmodels-pythonbox-windows-x86_64.zip`, relocatable CPython plus
+            the CPU-tier wheelhouse). First run downloads the remaining stack
+            once (PostgreSQL, Vault and, when the local model is selected,
+            llama.cpp + models) unless `GB_DESKTOP_OFFLINE=1` refuses downloads;
+            `GB_DESKTOP_OFFLINE` also makes a missing component fail with the
+            exact file name.
 
-            Media (vision/STT/TTS) is unavailable on Windows: BotModels publishes
-            only `botmodels-pythonbox-linux-x86_64`. `/api/product` reports
-            `media_capabilities.botmodels.available=false` with the reason, and
+            Media (vision/STT/TTS) uses the bundled Windows pythonbox: the
+            first use builds its virtual environment from the offline wheelhouse
+            in `installers/`, so no PyPI round-trip is required. If a release is
+            built before the Windows pythonbox exists, `/api/product` reports
+            `media_capabilities.botmodels.available=false` with the reason and
             the wizard marks the AI media service unavailable instead of trying
-            to install it. Media returns when a Windows pythonbox is published.
+            to install it.
           files: |
             dist/generalbots.exe
             dist/generalbots-x64.exe

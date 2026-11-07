@@ -40,8 +40,10 @@ pub async fn handle_attachment_preview(
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    let (user_raw, _roles) = resolve_token_user(&token)
-        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+    let (user_raw, _roles) = resolve_token_user(&token).ok_or((
+        StatusCode::UNAUTHORIZED,
+        "Authentication required".to_string(),
+    ))?;
     let user_uuid = resolve_chat_user_uuid(&user_raw);
 
     let name = params.get("name").cloned().unwrap_or_default();
@@ -58,10 +60,12 @@ pub async fn handle_attachment_preview(
         ));
     }
 
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {error}")))?;
+    let mut conn = state.conn.get().map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("DB pool: {error}"),
+        )
+    })?;
     let bot_id: Uuid = botschema::bots::table
         .filter(botschema::bots::name.eq(&bot_name))
         .select(botschema::bots::id)
@@ -94,10 +98,10 @@ pub async fn handle_attachment_preview(
 
     let location = botbasic_core::utils::bot_drive_location_for_name(&mut conn, &bot_name);
     let key = location.key_for(&format!("inbox/{name}"));
-    let drive = state
-        .drive
-        .as_ref()
-        .ok_or((StatusCode::SERVICE_UNAVAILABLE, "Drive is not configured".to_string()))?;
+    let drive = state.drive.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "Drive is not configured".to_string(),
+    ))?;
     let bytes = drive
         .get_object(&location.bucket, &key)
         .await
@@ -158,5 +162,10 @@ pub async fn handle_attachment_preview(
         .header(axum::http::header::X_FRAME_OPTIONS, "SAMEORIGIN")
         .header(axum::http::header::CONTENT_SECURITY_POLICY, csp)
         .body(axum::body::Body::from(body))
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("response: {error}")))
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("response: {error}"),
+            )
+        })
 }

@@ -16,10 +16,9 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 pub fn run_diesel_migrations(
     conn: &mut PgConnection,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    if let Err(e) = sql_query(
-        "UPDATE __diesel_schema_migrations SET version = replace(version, '-', '')",
-    )
-    .execute(conn)
+    if let Err(e) =
+        sql_query("UPDATE __diesel_schema_migrations SET version = replace(version, '-', '')")
+            .execute(conn)
     {
         log::warn!("Failed to normalize migration versions (continuing): {}", e);
     }
@@ -34,8 +33,13 @@ pub fn run_diesel_migrations(
             Ok(())
         }
         Err(e) => {
-            log::error!("Migration pipeline failed (schema may be partially updated): {}", e);
-            log::warn!("Continuing despite migration errors - database might be partially migrated");
+            log::error!(
+                "Migration pipeline failed (schema may be partially updated): {}",
+                e
+            );
+            log::warn!(
+                "Continuing despite migration errors - database might be partially migrated"
+            );
             Ok(())
         }
     }

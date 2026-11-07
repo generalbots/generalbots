@@ -120,12 +120,25 @@ impl Sidecar {
             });
 
         // An explicit path wins (development runs point at the checkout's
-        // bundled installers); packaged builds use the resource directory.
+        // bundled installers); a packaged MSI/NSIS install uses the resource
+        // directory, and the self-extracting executable uses the payload that
+        // was extracted into the stack. Only select a directory that exists:
+        // the self-extractor has no resource installers/, and preferring a
+        // missing path there hid the bundled stack/installers (#1793).
         let installers = std::env::var("BOTSERVER_INSTALLERS_PATH")
             .ok()
             .filter(|value| !value.trim().is_empty())
             .map(std::path::PathBuf::from)
-            .or_else(|| resource_dir.as_ref().map(|r| r.join("installers")))
+            .or_else(|| {
+                resource_dir
+                    .as_ref()
+                    .map(|r| r.join("installers"))
+                    .filter(|dir| dir.exists())
+            })
+            .or_else(|| {
+                let dir = stack.join("installers");
+                dir.exists().then_some(dir)
+            })
             .unwrap_or_else(|| stack.join("installers"));
 
         info!(

@@ -22,7 +22,10 @@ pub(crate) fn resolve_default_bot_id(conn: &mut diesel::PgConnection) -> uuid::U
 /// bootstrap admin PAT (`conf/directory/admin-pat.txt`) and validate the
 /// chosen token against the management API so signup user creation and login
 /// password checks never run with a dead token.
-pub(crate) fn resolve_directory_service_token(api_url: &str, configured: Option<String>) -> Option<String> {
+pub(crate) fn resolve_directory_service_token(
+    api_url: &str,
+    configured: Option<String>,
+) -> Option<String> {
     let mut candidates: Vec<String> = Vec::new();
     if let Some(token) = configured.as_ref() {
         if !token.is_empty() {
@@ -74,7 +77,9 @@ pub(crate) fn resolve_directory_service_token(api_url: &str, configured: Option<
     .unwrap_or(None);
     if let Some(token) = valid {
         if configured.as_deref() != Some(token.as_str()) {
-            tracing::info!("Using admin PAT as directory service token (configured token was invalid)");
+            tracing::info!(
+                "Using admin PAT as directory service token (configured token was invalid)"
+            );
         }
         return Some(token);
     }
@@ -87,18 +92,23 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
 
     let s3_put = {
         let drive = drive.clone();
-        Arc::new(move |bucket: &str, key: &str, data: Vec<u8>, content_type: Option<&str>| {
-            let drive = drive.clone();
-            let bucket = bucket.to_string();
-            let key = key.to_string();
-            let ct = content_type.map(|s| s.to_string());
-            Box::pin(async move {
-                match drive.as_ref() {
-                    Some(d) => d.put_object(&bucket, &key, data, ct.as_deref()).await,
-                    None => Err("Drive service not available".to_string()),
-                }
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
-        }) as crate::paper::state::S3PutFn
+        Arc::new(
+            move |bucket: &str, key: &str, data: Vec<u8>, content_type: Option<&str>| {
+                let drive = drive.clone();
+                let bucket = bucket.to_string();
+                let key = key.to_string();
+                let ct = content_type.map(|s| s.to_string());
+                Box::pin(async move {
+                    match drive.as_ref() {
+                        Some(d) => d.put_object(&bucket, &key, data, ct.as_deref()).await,
+                        None => Err("Drive service not available".to_string()),
+                    }
+                })
+                    as std::pin::Pin<
+                        Box<dyn std::future::Future<Output = Result<(), String>> + Send>,
+                    >
+            },
+        ) as crate::paper::state::S3PutFn
     };
 
     let s3_get = {
@@ -112,7 +122,10 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
                     Some(d) => d.get_object(&bucket, &key).await,
                     None => Err("Drive service not available".to_string()),
                 }
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>>
+            })
+                as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>,
+                >
         }) as crate::paper::state::S3GetFn
     };
 
@@ -127,7 +140,8 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
                     Some(d) => d.delete_object(&bucket, &key).await,
                     None => Err("Drive service not available".to_string()),
                 }
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+            })
+                as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
         }) as crate::paper::state::S3DeleteFn
     };
 
@@ -142,7 +156,10 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
                     Some(d) => d.list_objects(&bucket, Some(&prefix)).await,
                     None => Err("Drive service not available".to_string()),
                 }
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>>
+            })
+                as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>,
+                >
         }) as crate::paper::state::S3ListFn
     };
 
@@ -157,7 +174,10 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
                     Some(l) => l.generate_with_context(&prompt, &context).await,
                     None => Err("LLM service not available".to_string()),
                 }
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
+            })
+                as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                >
         }) as crate::paper::state::CallLlmFn
     };
 
@@ -173,22 +193,34 @@ pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::s
 }
 #[cfg(feature = "designer")]
 pub(crate) fn make_designer_router(app_state: &Arc<AppState>) -> Router<()> {
-    let make_state = || Arc::new(botdesigner::DesignerState {
-        conn: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
-            let branch = resolve_default_branch(conn);
-            (branch, "default".to_string())
-        }),
-        get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
-        get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
-        get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
-        load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> { Err("not available".to_string()) }),
-        write_to_drive: Arc::new(|_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> { Err("not available".to_string()) }),
-        call_llm: Arc::new(|_: &str, _: &serde_json::Value| -> Result<String, String> { Ok(String::new()) }),
-        get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok(String::new()) }),
-        bucket_name: app_state.bucket_name.clone(),
-        site_path: None,
-    });
+    let make_state = || {
+        Arc::new(botdesigner::DesignerState {
+            conn: Arc::new(app_state.conn.clone()),
+            get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
+                let branch = resolve_default_branch(conn);
+                (branch, "default".to_string())
+            }),
+            get_designer_error_context: Arc::new(|_err: &str| -> Option<String> { None }),
+            get_content_type: Arc::new(|_p: &str| -> &'static str { "text/html" }),
+            get_stack_path: Arc::new(|| "/opt/gbo/stack".to_string()),
+            load_from_drive: Arc::new(|_: &str, _: &str| -> Result<String, String> {
+                Err("not available".to_string())
+            }),
+            write_to_drive: Arc::new(
+                |_: &str, _: &str, _: &[u8], _: &str| -> Result<(), String> {
+                    Err("not available".to_string())
+                },
+            ),
+            call_llm: Arc::new(|_: &str, _: &serde_json::Value| -> Result<String, String> {
+                Ok(String::new())
+            }),
+            get_config: Arc::new(
+                |_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok(String::new()) },
+            ),
+            bucket_name: app_state.bucket_name.clone(),
+            site_path: None,
+        })
+    };
     let state = make_state();
     Router::new()
         .merge(crate::designer::designer_api::configure_designer_routes().with_state(state.clone()))
@@ -201,24 +233,32 @@ pub(crate) fn make_dashboards_router(app_state: &Arc<AppState>) -> Router<()> {
         resolve_default_branch(conn)
     }
     Router::new()
-        .merge(crate::dashboards::configure_dashboards_routes(Arc::new(botdashboards::DashboardsState {
-            pool: app_state.conn.clone(),
-            get_default_bot: default_bot_fn,
-        })))
-        .merge(crate::dashboards::ui::configure_dashboards_ui_routes().with_state(Arc::new(botdashboards::DashboardsState {
-            pool: app_state.conn.clone(),
-            get_default_bot: default_bot_fn,
-        })))
+        .merge(crate::dashboards::configure_dashboards_routes(Arc::new(
+            botdashboards::DashboardsState {
+                pool: app_state.conn.clone(),
+                get_default_bot: default_bot_fn,
+            },
+        )))
+        .merge(
+            crate::dashboards::ui::configure_dashboards_ui_routes().with_state(Arc::new(
+                botdashboards::DashboardsState {
+                    pool: app_state.conn.clone(),
+                    get_default_bot: default_bot_fn,
+                },
+            )),
+        )
 }
 #[cfg(feature = "social")]
 pub(crate) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
-    let make_state = || Arc::new(botsocial::SocialState {
-        pool: Arc::new(app_state.conn.clone()),
-        get_default_bot: Arc::new(|conn: &mut _| {
-            let branch = resolve_default_branch(conn);
-            (branch, "default".to_string())
-        }),
-    });
+    let make_state = || {
+        Arc::new(botsocial::SocialState {
+            pool: Arc::new(app_state.conn.clone()),
+            get_default_bot: Arc::new(|conn: &mut _| {
+                let branch = resolve_default_branch(conn);
+                (branch, "default".to_string())
+            }),
+        })
+    };
     let state = make_state();
     Router::new()
         .merge(crate::social::configure_social_routes().with_state(state.clone()))
@@ -226,29 +266,34 @@ pub(crate) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
 }
 #[cfg(feature = "billing")]
 pub(crate) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
-    let make_state = || Arc::new(botbilling::api::BillingApiState {
-        pool: Arc::new(app_state.conn.clone()),
-        get_default_bot: Some(
-            (|conn: &mut diesel::PgConnection| {
-                use diesel::prelude::*;
-                #[derive(diesel::QueryableByName)]
-                #[diesel(check_for_backend(diesel::pg::Pg))]
-                struct BranchRow {
-                    #[diesel(sql_type = diesel::sql_types::Uuid)]
-                    branch_id: uuid::Uuid,
-                }
-                diesel::sql_query(
+    let make_state = || {
+        Arc::new(botbilling::api::BillingApiState {
+            pool: Arc::new(app_state.conn.clone()),
+            get_default_bot: Some(
+                (|conn: &mut diesel::PgConnection| {
+                    use diesel::prelude::*;
+                    #[derive(diesel::QueryableByName)]
+                    #[diesel(check_for_backend(diesel::pg::Pg))]
+                    struct BranchRow {
+                        #[diesel(sql_type = diesel::sql_types::Uuid)]
+                        branch_id: uuid::Uuid,
+                    }
+                    diesel::sql_query(
                     "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
                 )
                 .get_result::<BranchRow>(conn)
                 .map(|r| r.branch_id)
                 .unwrap_or_else(|_| uuid::Uuid::nil())
-            }) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
-        ),
-    });
+                }) as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+            ),
+        })
+    };
     Router::new()
         .merge(crate::billing::billing_ui::configure_billing_routes().with_state(make_state()))
-        .merge(crate::billing::billing_admin::configure_admin_billing_routes().with_state(make_state()))
+        .merge(
+            crate::billing::billing_admin::configure_admin_billing_routes()
+                .with_state(make_state()),
+        )
         .merge(crate::billing::erp_ui::configure_erp_ui_routes().with_state(make_state()))
         .merge(crate::billing::api::configure_billing_api_routes().with_state(make_state()))
 }

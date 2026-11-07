@@ -8,10 +8,11 @@ component must not hide the Linux installer from a release.
 
 ## Artifacts
 
-For a `v*` tag the workflow publishes:
+For a `vMAJOR.MINOR.PATCH` product tag the workflow publishes a
+`vMAJOR.MINOR.PATCH-macos` pre-release (it never takes `latest`) with:
 
-- `generalbots-<tag>-macos-arm64.dmg`
-- `generalbots-<tag>-macos-arm64.app.zip` (the raw `.app`, zipped for release)
+- `generalbots-<version>-macos-arm64.dmg`
+- `generalbots-<version>-macos-arm64.app.zip` (the raw `.app`, zipped for release)
 - `SHA256SUMS-macos`
 
 ## Install (unsigned build)
@@ -56,8 +57,9 @@ must report these components as unavailable instead of failing provisioning:
 - **Service stack:** PostgreSQL, Valkey, MinIO and `mc`, Qdrant, Vault,
   Zitadel and llama.cpp have no darwin builds. Run them in a Linux VM or on a
   remote Incus host (`incus remote add`) and point botserver at it.
-- **BotModels:** the only published pythonbox is
-  `botmodels-pythonbox-linux-x86_64.tar.gz`; the darwin pythonbox is not
+- **BotModels:** the published pythonboxes are
+  `botmodels-pythonbox-linux-x86_64.tar.gz` and
+  `botmodels-pythonbox-windows-x86_64.zip`; the darwin pythonbox is not
   published yet, so vision/STT/TTS stay unavailable.
 - **Agent VM:** Incus cannot run containers natively on macOS. Agent mode
   needs a remote Incus endpoint or a Linux VM.

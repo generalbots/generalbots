@@ -3,7 +3,6 @@
 use log::{info, warn};
 use std::sync::Arc;
 
-
 pub async fn init_redis() -> Option<Arc<redis::Client>> {
     use crate::core::secrets::{SecretPaths, SecretsManager};
 
@@ -14,7 +13,8 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         .ok();
 
     // Check for Redis database number for namespace isolation
-    let redis_db = std::env::var("REDIS_DB").ok()
+    let redis_db = std::env::var("REDIS_DB")
+        .ok()
         .and_then(|s| s.parse::<u8>().ok())
         .unwrap_or(0);
 
@@ -32,8 +32,14 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
     if let Ok(secrets) = SecretsManager::get() {
         if let Ok(data) = secrets.get_secret(SecretPaths::CACHE).await {
             let host = data.get("host").cloned().unwrap_or_else(|| "".into());
-            let port = data.get("port").and_then(|p| p.parse().ok()).unwrap_or(6379);
-            if let Some(url_val) = data.get("url").filter(|u| !u.is_empty() && u.contains("://")) {
+            let port = data
+                .get("port")
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(6379);
+            if let Some(url_val) = data
+                .get("url")
+                .filter(|u| !u.is_empty() && u.contains("://"))
+            {
                 urls.push(url_val.clone());
                 info!("Cache: using Vault URL with credentials");
             } else {
@@ -56,7 +62,10 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         let masked = u.split('@').next_back().unwrap_or(u);
         info!("Cache URL candidate: {}", masked);
     }
-    info!("Attempting to connect to cache, trying {} URL(s)", urls.len());
+    info!(
+        "Attempting to connect to cache, trying {} URL(s)",
+        urls.len()
+    );
 
     let max_attempts = 12;
     let mut attempt = 0;
@@ -66,37 +75,35 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
         attempt += 1;
         let cache_url = urls[url_index % urls.len()].clone();
 
-        let result = tokio::task::spawn_blocking(move || {
-            match redis::Client::open(cache_url.as_str()) {
+        let result =
+            tokio::task::spawn_blocking(move || match redis::Client::open(cache_url.as_str()) {
                 Ok(client) => {
                     let timeout = std::time::Duration::from_secs(3);
                     match client.get_connection_with_timeout(timeout) {
-                        Ok(mut conn) => {
-                            match redis::cmd("PING").query::<String>(&mut conn) {
-                                Ok(response) if response == "PONG" => {
-                                    log::info!("Cache initialized - Valkey connected via {}", cache_url.split('@').next_back().unwrap_or(&cache_url));
-                                    Ok(Some(Arc::new(client)))
-                                }
-                                Ok(response) => {
-                                    log::info!("Cache initialized - Valkey connected via {} (PING: {})", cache_url.split('@').next_back().unwrap_or(&cache_url), response);
-                                    Ok(Some(Arc::new(client)))
-                                }
-                                Err(e) => {
-                                    Err(format!("Cache PING failed: {}", e))
-                                }
+                        Ok(mut conn) => match redis::cmd("PING").query::<String>(&mut conn) {
+                            Ok(response) if response == "PONG" => {
+                                log::info!(
+                                    "Cache initialized - Valkey connected via {}",
+                                    cache_url.split('@').next_back().unwrap_or(&cache_url)
+                                );
+                                Ok(Some(Arc::new(client)))
                             }
-                        }
-                        Err(e) => {
-                            Err(format!("Failed to establish cache connection: {}", e))
-                        }
+                            Ok(response) => {
+                                log::info!(
+                                    "Cache initialized - Valkey connected via {} (PING: {})",
+                                    cache_url.split('@').next_back().unwrap_or(&cache_url),
+                                    response
+                                );
+                                Ok(Some(Arc::new(client)))
+                            }
+                            Err(e) => Err(format!("Cache PING failed: {}", e)),
+                        },
+                        Err(e) => Err(format!("Failed to establish cache connection: {}", e)),
                     }
                 }
-                Err(e) => {
-                    Err(format!("Failed to create cache client: {}", e))
-                }
-            }
-        })
-        .await;
+                Err(e) => Err(format!("Failed to create cache client: {}", e)),
+            })
+            .await;
 
         match result {
             Ok(Ok(Some(client))) => return Some(client),
@@ -108,7 +115,10 @@ pub async fn init_redis() -> Option<Arc<redis::Client>> {
                     continue;
                 }
                 if attempt < max_attempts {
-                    info!("Cache connection attempt {}/{} failed: {}. Retrying in 5s...", attempt, max_attempts, e);
+                    info!(
+                        "Cache connection attempt {}/{} failed: {}. Retrying in 5s...",
+                        attempt, max_attempts, e
+                    );
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                     continue;
                 } else {

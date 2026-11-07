@@ -8,7 +8,7 @@ use botcore::shared::state::AppState;
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::{HandlerError, bearer_user, db_error};
+use super::{bearer_user, db_error, HandlerError};
 use crate::main_module::routes::chat_history_lock::{unlock_token_valid, verify_pin};
 
 #[derive(Serialize)]

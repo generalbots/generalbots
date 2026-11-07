@@ -96,9 +96,12 @@ async fn import_dialog_from_drive(
         Ok(o) => o,
         // A branch with no Drive bucket (fresh/demo) has zero sources — not
         // an error, otherwise the import warn-loops on every boot.
-        Err(e) if e.to_string().to_lowercase().contains("nosuchbucket")
-            || e.to_string().to_lowercase().contains("no such bucket")            || e.to_string().to_lowercase().contains("404")
-            || e.to_string().to_lowercase().contains("invalidbucketname") => {
+        Err(e)
+            if e.to_string().to_lowercase().contains("nosuchbucket")
+                || e.to_string().to_lowercase().contains("no such bucket")
+                || e.to_string().to_lowercase().contains("404")
+                || e.to_string().to_lowercase().contains("invalidbucketname") =>
+        {
             log::info!(
                 "[git_import] {bot_name}: bucket {bucket} absent on Drive — treating as fresh branch"
             );
@@ -149,9 +152,13 @@ fn commit_and_push(workspace: &Path, message: &str) -> Result<(), String> {
     match run_git(
         workspace,
         &[
-            "-c", "user.name=Vibe Agent",
-            "-c", "user.email=vibe@gbo.local",
-            "commit", "-m", message,
+            "-c",
+            "user.name=Vibe Agent",
+            "-c",
+            "user.email=vibe@gbo.local",
+            "commit",
+            "-m",
+            message,
         ],
     ) {
         Ok(_) => {}
@@ -197,7 +204,10 @@ async fn import_one(
             String::new(),
         ),
     ] {
-        if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+        if !candidates
+            .iter()
+            .any(|(b, p)| b == &candidate.0 && p == &candidate.1)
+        {
             candidates.push(candidate);
         }
     }
@@ -313,9 +323,15 @@ async fn recover_config_files(state: Arc<botcore::shared::state::AppState>, pool
                 format!("{branch_slug}.gborg"),
                 format!("{branch_slug}.gbai/"),
             ),
-            (format!("{}.gbai", branch_slug.to_lowercase()), String::new()),
+            (
+                format!("{}.gbai", branch_slug.to_lowercase()),
+                String::new(),
+            ),
         ] {
-            if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+            if !candidates
+                .iter()
+                .any(|(b, p)| b == &candidate.0 && p == &candidate.1)
+            {
                 candidates.push(candidate);
             }
         }

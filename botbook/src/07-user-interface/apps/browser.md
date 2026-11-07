@@ -26,6 +26,24 @@ Manage multiple browser tabs for multitasking.
 | **Reopen Tab** | Restore recently closed tabs |
 | **Tab Groups** | Organize tabs into logical groups |
 
+### VM-controlled tabs (#1843)
+
+Tabs opened by an assistant inside the user's agent workspace are shared by
+every conversation, instead of each chat spawning its own browser. They are
+marked with a **green VM badge** so they never look like the user's personal
+tabs. Selecting a VM tab attaches that tab to the current conversation and
+streams its frames into the visible surface.
+
+Sharing is explicit: another conversation must attach to an existing tab, and
+credentials entered in a VM tab stay in that tab's profile. The current build
+uses the existing CDP frame stream as the VNC-like transport; the full X11
+surface (`Xvfb` + `x11vnc`/`websockify` inside the container) is the next step.
+
+When Chromium runs inside the agent container, set
+`BROWSER_CDP_URL_TEMPLATE=http://{vm}:9222` (or `BROWSER_CDP_URL` for a single
+shared host). Every tab of that VM then attaches to the same browser process
+instead of launching a new one.
+
 ### Navigation
 
 Standard browser navigation controls.
@@ -144,6 +162,10 @@ Browser operations are available via REST API:
 | `/api/browser/tabs` | GET | List open tabs |
 | `/api/browser/tabs` | POST | Open new tab |
 | `/api/browser/tabs/:id` | DELETE | Close tab |
+| `/api/browser/vm/:vm/tabs` | GET | List the shared container/VM tab strip |
+| `/api/browser/vm/:vm/tabs` | POST | Open a tab in the shared VM tab set |
+| `/api/browser/vm/:vm/tabs/:id/attach` | POST | Explicitly attach a tab to this conversation |
+| `/api/browser/vm/:vm/tabs/:id` | DELETE | Close a shared VM tab |
 | `/api/browser/tabs/:id/navigate` | POST | Navigate to URL |
 | `/api/browser/tabs/:id/screenshot` | POST | Capture screenshot |
 | `/api/browser/tabs/:id/back` | POST | Go back |

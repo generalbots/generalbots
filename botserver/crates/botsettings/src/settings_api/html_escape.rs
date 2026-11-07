@@ -57,6 +57,14 @@ pub async fn notif_prefs_get(
     };
 
     let prefs = read_pref(&mut conn, user_id, "notifications");
+    // #1813 — the digest job records its last run under a separate preference
+    // key; surface it here so Settings can show delivery health instead of a
+    // fire-and-forget checkbox.
+    let digest_status = read_pref(
+        &mut conn,
+        user_id,
+        crate::settings_digest::DIGEST_STATUS_KEY,
+    );
     let email_mentions = prefs
         .get("email_mentions")
         .and_then(|v| v.as_bool())
@@ -65,6 +73,25 @@ pub async fn notif_prefs_get(
         .get("email_digest")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    let digest_last_sent = digest_status
+        .get("last_sent_at")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    let digest_last_error = digest_status
+        .get("last_error")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    let digest_next_run = if email_digest {
+        let timezone = read_pref(&mut conn, user_id, "timezone")
+            .as_str()
+            .unwrap_or("UTC")
+            .to_string();
+        crate::settings_digest::next_run_at(&digest_status, &timezone)
+            .map(|next| serde_json::Value::String(next.to_rfc3339()))
+            .unwrap_or(serde_json::Value::Null)
+    } else {
+        serde_json::Value::Null
+    };
     let email_marketing = prefs
         .get("email_marketing")
         .and_then(|v| v.as_bool())
@@ -96,6 +123,9 @@ pub async fn notif_prefs_get(
         return axum::Json(serde_json::json!({
             "email_mentions": email_mentions,
             "email_digest": email_digest,
+            "digest_last_sent": digest_last_sent,
+            "digest_last_error": digest_last_error,
+            "digest_next_run": digest_next_run,
             "email_marketing": email_marketing,
             "push_enabled": push_enabled,
             "push_sound": push_sound,

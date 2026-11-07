@@ -1,6 +1,9 @@
 use super::*;
 
-pub async fn assigned_groups_for_user(State(state): State<Arc<AppState>>, Path(user_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn assigned_groups_for_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;

@@ -6,10 +6,10 @@ use axum::{
     Router,
 };
 use bigdecimal::ToPrimitive;
+use botcore::shared::state::AppState;
 use diesel::prelude::*;
 use serde::Serialize;
 use std::sync::Arc;
-use botcore::shared::state::AppState;
 
 mod prod_schema {
     // Canonical definition lives in `botschema` (#1497).
@@ -126,7 +126,10 @@ pub async fn list_products(
         .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let products = load_public_products(&mut conn).map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Query error: {e}"),
+        )
     })?;
 
     let public: Vec<CatalogProductResponse> = products
@@ -158,12 +161,18 @@ pub async fn get_product_by_sku(
         .first(&mut conn)
         .optional()
         .map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
         })?;
 
     match product {
         Some(p) => Ok(Json(p.into())),
-        None => Err((StatusCode::NOT_FOUND, format!("Product '{product_sku}' not found"))),
+        None => Err((
+            StatusCode::NOT_FOUND,
+            format!("Product '{product_sku}' not found"),
+        )),
     }
 }
 
@@ -186,7 +195,10 @@ pub async fn list_plans(
         .order(dsl::price.asc())
         .load(&mut conn)
         .map_err(|e| {
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
         })?;
 
     let public: Vec<CatalogProductResponse> = products
@@ -207,7 +219,10 @@ pub async fn prices_json(
         .map_err(|e| (StatusCode::SERVICE_UNAVAILABLE, format!("DB error: {e}")))?;
 
     let products = load_public_products(&mut conn).map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Query error: {e}"),
+        )
     })?;
 
     let items: Vec<JsonLdListItem> = products

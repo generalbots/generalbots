@@ -1,14 +1,6 @@
 pub mod admin_dashboard;
 pub mod audit_log;
 pub mod menu_config;
-pub mod settings_billing;
-pub mod settings_credentials;
-pub mod settings_oauth;
-pub mod settings_memory;
-pub mod settings_usage;
-pub mod settings_webhooks;
-pub mod webhook_delivery;
-pub mod settings_profile;
 pub mod ops;
 pub mod permission_inheritance;
 pub mod rbac;
@@ -17,13 +9,22 @@ pub mod rbac_kb;
 pub mod rbac_ui;
 pub mod security_admin;
 pub mod settings_api;
+pub mod settings_billing;
+pub mod settings_credentials;
+pub mod settings_digest;
+pub mod settings_memory;
+pub mod settings_oauth;
+pub mod settings_profile;
 pub mod settings_ui;
+pub mod settings_usage;
+pub mod settings_webhooks;
+pub mod webhook_delivery;
 
 use axum::{
-extract::State,
-response::Json,
-routing::{get, post},
-Router,
+    extract::State,
+    response::Json,
+    routing::{get, post},
+    Router,
 };
 use diesel::RunQueryDsl;
 use serde::{Deserialize, Serialize};
@@ -32,33 +33,75 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 
 pub fn configure_settings_routes() -> Router<Arc<AppState>> {
-Router::new()
-.route("/api/ui/user/storage", get(settings_ui::get_storage_info))
-.route("/api/ui/user/storage/connections", get(settings_ui::get_storage_connections))
-.route("/api/ui/user/security/2fa/status", get(settings_ui::get_2fa_status))
-.route("/api/ui/user/security/2fa/enable", post(settings_ui::enable_2fa))
-.route("/api/ui/user/security/2fa/disable", post(settings_ui::disable_2fa))
-.route("/api/ui/user/security/sessions", get(settings_ui::get_active_sessions))
-.route(
-"/api/ui/user/security/sessions/revoke-all",
-post(settings_ui::revoke_all_sessions),
-)
-.route("/api/ui/user/security/devices", get(settings_ui::get_trusted_devices))
-.route("/api/settings/search", post(settings_ui::save_search_settings))
-.route("/api/settings/smtp/test", post(test_smtp_connection))
-.route("/api/oauth/accounts", get(settings_oauth::oauth_accounts_list))
-.route("/api/oauth/:provider/unlink", post(settings_oauth::oauth_unlink))
-.route("/api/oauth/:provider/callback", get(settings_oauth::oauth_callback))
-.route("/api/ui/settings/accounts/social", get(settings_ui::get_accounts_social))
-.route("/api/ui/settings/accounts/messaging", get(settings_ui::get_accounts_messaging))
-.route("/api/ui/settings/accounts/email", get(settings_ui::get_accounts_email))
-.route("/api/settings/accounts/smtp", post(settings_ui::save_smtp_account))
-.route("/api/ops/health", get(get_ops_health))
-.merge(rbac::configure_rbac_routes())
-.merge(security_admin::configure_security_admin_routes())
-.merge(admin_dashboard::configure_admin_dashboard_routes())
-.merge(settings_api::configure_settings_api_routes())
-.merge(ops::configure_ops_routes())
+    Router::new()
+        .route("/api/ui/user/storage", get(settings_ui::get_storage_info))
+        .route(
+            "/api/ui/user/storage/connections",
+            get(settings_ui::get_storage_connections),
+        )
+        .route(
+            "/api/ui/user/security/2fa/status",
+            get(settings_ui::get_2fa_status),
+        )
+        .route(
+            "/api/ui/user/security/2fa/enable",
+            post(settings_ui::enable_2fa),
+        )
+        .route(
+            "/api/ui/user/security/2fa/disable",
+            post(settings_ui::disable_2fa),
+        )
+        .route(
+            "/api/ui/user/security/sessions",
+            get(settings_ui::get_active_sessions),
+        )
+        .route(
+            "/api/ui/user/security/sessions/revoke-all",
+            post(settings_ui::revoke_all_sessions),
+        )
+        .route(
+            "/api/ui/user/security/devices",
+            get(settings_ui::get_trusted_devices),
+        )
+        .route(
+            "/api/settings/search",
+            post(settings_ui::save_search_settings),
+        )
+        .route("/api/settings/smtp/test", post(test_smtp_connection))
+        .route(
+            "/api/oauth/accounts",
+            get(settings_oauth::oauth_accounts_list),
+        )
+        .route(
+            "/api/oauth/:provider/unlink",
+            post(settings_oauth::oauth_unlink),
+        )
+        .route(
+            "/api/oauth/:provider/callback",
+            get(settings_oauth::oauth_callback),
+        )
+        .route(
+            "/api/ui/settings/accounts/social",
+            get(settings_ui::get_accounts_social),
+        )
+        .route(
+            "/api/ui/settings/accounts/messaging",
+            get(settings_ui::get_accounts_messaging),
+        )
+        .route(
+            "/api/ui/settings/accounts/email",
+            get(settings_ui::get_accounts_email),
+        )
+        .route(
+            "/api/settings/accounts/smtp",
+            post(settings_ui::save_smtp_account),
+        )
+        .route("/api/ops/health", get(get_ops_health))
+        .merge(rbac::configure_rbac_routes())
+        .merge(security_admin::configure_security_admin_routes())
+        .merge(admin_dashboard::configure_admin_dashboard_routes())
+        .merge(settings_api::configure_settings_api_routes())
+        .merge(ops::configure_ops_routes())
 }
 
 async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -113,13 +156,11 @@ async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::
     }))
 }
 
-
-
 #[derive(Debug, Serialize)]
 struct SmtpTestResponse {
-success: bool,
-message: Option<String>,
-error: Option<String>,
+    success: bool,
+    message: Option<String>,
+    error: Option<String>,
 }
 
 #[cfg(feature = "mail")]
@@ -135,45 +176,42 @@ struct SmtpTestRequest {
 #[cfg(not(feature = "mail"))]
 #[derive(Debug, Deserialize)]
 struct SmtpTestRequest {
-_host: String,
-_port: i32,
-_username: Option<String>,
-_password: Option<String>,
-_use_tls: Option<bool>,
+    _host: String,
+    _port: i32,
+    _username: Option<String>,
+    _password: Option<String>,
+    _use_tls: Option<bool>,
 }
 
 #[cfg(feature = "mail")]
 async fn test_smtp_connection(
-State(_state): State<Arc<AppState>>,
-Json(config): Json<SmtpTestRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(config): Json<SmtpTestRequest>,
 ) -> Json<SmtpTestResponse> {
-#[cfg(feature = "mail")]
-use lettre::SmtpTransport;
-#[cfg(feature = "mail")]
-use lettre::transport::smtp::authentication::Credentials;
+    #[cfg(feature = "mail")]
+    use lettre::transport::smtp::authentication::Credentials;
+    #[cfg(feature = "mail")]
+    use lettre::SmtpTransport;
 
+    log::info!("Testing SMTP connection to {}:{}", config.host, config.port);
 
-
-log::info!("Testing SMTP connection to {}:{}", config.host, config.port);
-
-let mailer_result = if let (Some(user), Some(pass)) = (config.username, config.password) {
-    let creds = Credentials::new(user, pass);
-    if config.port == 465 {
-        SmtpTransport::relay(&config.host)
-            .map(|b| b.port(config.port as u16).credentials(creds).build())
+    let mailer_result = if let (Some(user), Some(pass)) = (config.username, config.password) {
+        let creds = Credentials::new(user, pass);
+        if config.port == 465 {
+            SmtpTransport::relay(&config.host)
+                .map(|b| b.port(config.port as u16).credentials(creds).build())
+        } else {
+            SmtpTransport::starttls_relay(&config.host)
+                .map(|b| b.port(config.port as u16).credentials(creds).build())
+        }
     } else {
-        SmtpTransport::starttls_relay(&config.host)
-            .map(|b| b.port(config.port as u16).credentials(creds).build())
-    }
-} else {
-    SmtpTransport::builder_dangerous(&config.host)
-        .port(config.port as u16)
-        .build()
-};
+        SmtpTransport::builder_dangerous(&config.host)
+            .port(config.port as u16)
+            .build()
+    };
 
-match mailer_result {
-    Ok(mailer) => {
-        match mailer.test_connection() {
+    match mailer_result {
+        Ok(mailer) => match mailer.test_connection() {
             Ok(true) => Json(SmtpTestResponse {
                 success: true,
                 message: Some("SMTP connection successful".to_string()),
@@ -189,27 +227,23 @@ match mailer_result {
                 message: None,
                 error: Some(format!("SMTP error: {}", e)),
             }),
-        }
+        },
+        Err(e) => Json(SmtpTestResponse {
+            success: false,
+            message: None,
+            error: Some(format!("Failed to create SMTP transport: {}", e)),
+        }),
     }
-    Err(e) => Json(SmtpTestResponse {
-        success: false,
-        message: None,
-        error: Some(format!("Failed to create SMTP transport: {}", e)),
-    }),
-}
-
 }
 
 #[cfg(not(feature = "mail"))]
 async fn test_smtp_connection(
-State(_state): State<Arc<AppState>>,
-Json(_config): Json<SmtpTestRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_config): Json<SmtpTestRequest>,
 ) -> Json<SmtpTestResponse> {
-Json(SmtpTestResponse {
-success: false,
-message: None,
-error: Some("SMTP email feature is not enabled in this build".to_string()),
-})
+    Json(SmtpTestResponse {
+        success: false,
+        message: None,
+        error: Some("SMTP email feature is not enabled in this build".to_string()),
+    })
 }
-
-

@@ -1,5 +1,3 @@
-
-
 /// Formats the three prompt catalogues for the apps accepted by `available`.
 /// Kept separate from the product-config lookup so the filter is testable.
 fn catalog_lines<F>(available: F) -> (Vec<String>, Vec<String>, Vec<String>)
@@ -45,9 +43,7 @@ pub fn ui_automation_instructions(client_caps: Option<&serde_json::Value>) -> St
     let available = |id: &str| -> bool {
         botcore::product::PRODUCT_CONFIG
             .read()
-            .map(|config| {
-                config.is_app_enabled(id) || (preview_on && config.is_app_preview(id))
-            })
+            .map(|config| config.is_app_enabled(id) || (preview_on && config.is_app_preview(id)))
             .unwrap_or(false)
     };
     let (apps, deep_links, seq_hints) = catalog_lines(available);
@@ -132,9 +128,21 @@ mod tests {
     #[test]
     fn only_enabled_apps_enter_the_prompt_catalogue() {
         let (apps, deep_links, hints) = catalog_lines(|id| id == "weather");
-        assert!(apps.iter().any(|line| line.contains("(id: weather)")), "{apps:?}");
-        assert!(!apps.iter().any(|line| line.contains("(id: crm)")), "{apps:?}");
-        assert!(deep_links.iter().all(|line| line.starts_with("- weather")), "{deep_links:?}");
-        assert!(hints.iter().all(|line| line.starts_with("- weather")), "{hints:?}");
+        assert!(
+            apps.iter().any(|line| line.contains("(id: weather)")),
+            "{apps:?}"
+        );
+        assert!(
+            !apps.iter().any(|line| line.contains("(id: crm)")),
+            "{apps:?}"
+        );
+        assert!(
+            deep_links.iter().all(|line| line.starts_with("- weather")),
+            "{deep_links:?}"
+        );
+        assert!(
+            hints.iter().all(|line| line.starts_with("- weather")),
+            "{hints:?}"
+        );
     }
 }

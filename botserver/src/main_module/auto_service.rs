@@ -1,7 +1,7 @@
 #[cfg(feature = "automation")]
-use log::{error, trace};
+use botcore::shared::memory_monitor::{register_thread, MemoryStats};
 #[cfg(feature = "automation")]
-use botcore::shared::memory_monitor::{MemoryStats, register_thread};
+use log::{error, trace};
 
 pub fn start_automation_service(app_state: std::sync::Arc<botcore::shared::state::AppState>) {
     #[cfg(feature = "automation")]

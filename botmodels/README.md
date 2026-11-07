@@ -58,8 +58,16 @@ The desktop bundle ships a CPU-tier wheelhouse and installs without network
 access:
 
 ```bash
-./install.sh            # --no-index --find-links ./wheelhouse
+./install.sh            # Linux/macOS build, --no-index --find-links ./wheelhouse
 ./install.sh --online --yes   # explicit PyPI fallback (~4 GiB download)
+```
+
+On Windows use the PowerShell entry points:
+
+```powershell
+.\install.ps1           # offline: install from .\wheelhouse
+.\install.ps1 -Online -Yes     # explicit PyPI fallback (~4 GiB download)
+.\run.ps1               # BotModels on :8085
 ```
 
 The wheelhouse is built by `scripts/wheelhouse.py` (see `plan`, `build`,

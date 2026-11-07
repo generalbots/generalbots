@@ -7,7 +7,10 @@ pub mod invitations;
 pub mod stats;
 pub mod teams;
 
-use axum::{routing::{delete, get, post}, Router};
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 use diesel::RunQueryDsl;
 use std::sync::Arc;
 
@@ -17,15 +20,36 @@ pub fn configure_admin_dashboard_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/admin/dashboard/stats", get(stats::dashboard_stats))
         .route("/api/admin/dashboard/health", get(health::dashboard_health))
-        .route("/api/admin/dashboard/activity", get(activity::dashboard_activity))
-        .route("/api/admin/dashboard/members", get(teams::dashboard_members))
+        .route(
+            "/api/admin/dashboard/activity",
+            get(activity::dashboard_activity),
+        )
+        .route(
+            "/api/admin/dashboard/members",
+            get(teams::dashboard_members),
+        )
         .route("/api/admin/dashboard/roles", get(teams::dashboard_roles))
         .route("/api/admin/dashboard/bots", get(teams::dashboard_bots))
-        .route("/api/admin/dashboard/invitations", get(invitations::dashboard_invitations))
-        .route("/api/admin/invitations/resend/:id", post(invitations::resend_invitation))
-        .route("/api/admin/invitations/bulk", post(invitations::bulk_invite))
-        .route("/api/admin/invitations/:id", delete(invitations::revoke_invitation))
-        .route("/api/admin/invitations", post(invitations::create_invitation))
+        .route(
+            "/api/admin/dashboard/invitations",
+            get(invitations::dashboard_invitations),
+        )
+        .route(
+            "/api/admin/invitations/resend/:id",
+            post(invitations::resend_invitation),
+        )
+        .route(
+            "/api/admin/invitations/bulk",
+            post(invitations::bulk_invite),
+        )
+        .route(
+            "/api/admin/invitations/:id",
+            delete(invitations::revoke_invitation),
+        )
+        .route(
+            "/api/admin/invitations",
+            post(invitations::create_invitation),
+        )
         .route("/api/admin/export-report", get(export::export_report))
         .route("/api/admin/health", get(health::admin_health))
         .route("/api/admin/activity/recent", get(activity::activity_recent))
@@ -36,7 +60,10 @@ pub fn configure_admin_dashboard_routes() -> Router<Arc<AppState>> {
         .route("/api/admin/users", get(export::list_users))
         .route("/api/admin/groups", get(export::list_groups))
         .route("/api/admin/dns", get(export::list_dns))
-        .route("/api/admin/invitations", get(invitations::admin_invitations))
+        .route(
+            "/api/admin/invitations",
+            get(invitations::admin_invitations),
+        )
         .route("/api/admin/bots", get(bots::admin_bots))
         .route("/api/admin/audit", get(audit::admin_audit))
 }

@@ -54,18 +54,23 @@ pub async fn handle_services_summary(
         status: String,
     }
 
-    let rows: Vec<ServiceRow> = diesel::sql_query(
-        "SELECT 'api' AS name, 'online' AS status",
-    )
-    .load(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+    let rows: Vec<ServiceRow> = diesel::sql_query("SELECT 'api' AS name, 'online' AS status")
+        .load(&mut conn)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?;
 
     let mut services = Vec::new();
     for r in &rows {
         services.push(serde_json::json!({ "name": r.name, "status": r.status }));
     }
 
-    Ok(Json(serde_json::json!({ "services": services, "total": services.len() })))
+    Ok(Json(
+        serde_json::json!({ "services": services, "total": services.len() }),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -84,10 +89,13 @@ pub async fn handle_products_pricelists(
     // authenticated callers without a tenant binding resolve to the global
     // (nil) branch scope, mirroring campaigns and the seeded global catalog.
     #[cfg(feature = "contacts")]
-    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
-        .unwrap_or(Uuid::nil());
+    let branch_id =
+        botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn).unwrap_or(Uuid::nil());
     #[cfg(not(feature = "contacts"))]
-    let branch_id = { let _ = &headers; Uuid::nil() };
+    let branch_id = {
+        let _ = &headers;
+        Uuid::nil()
+    };
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -109,7 +117,12 @@ pub async fn handle_products_pricelists(
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
     .load(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Query error: {e}"),
+        )
+    })?;
 
     let pricelists: Vec<serde_json::Value> = rows
         .into_iter()
@@ -140,10 +153,13 @@ pub async fn handle_contacts_search(
     let mut conn = pool_conn(&state)?;
 
     #[cfg(feature = "contacts")]
-    let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
-        .unwrap_or(Uuid::nil());
+    let branch_id =
+        botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn).unwrap_or(Uuid::nil());
     #[cfg(not(feature = "contacts"))]
-    let branch_id = { let _ = &headers; Uuid::nil() };
+    let branch_id = {
+        let _ = &headers;
+        Uuid::nil()
+    };
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -180,7 +196,12 @@ pub async fn handle_contacts_search(
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?
     } else {
         diesel::sql_query(
             "SELECT id, first_name, last_name, email FROM crm_contacts \
@@ -193,7 +214,12 @@ pub async fn handle_contacts_search(
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
         .bind::<diesel::sql_types::Text, _>(&pattern)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Query error: {e}"),
+            )
+        })?
     };
 
     let contacts: Vec<serde_json::Value> = rows
@@ -214,14 +240,17 @@ pub async fn handle_contacts_search(
 // DNS records: /api/dns/list, /api/dns/register, /api/dns/remove,
 //              /api/dns/:id/edit, /api/dns/search
 // ---------------------------------------------------------------------------
-pub async fn handle_dns_list(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn handle_dns_list(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     use diesel::prelude::*;
 
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
-        Err(e) => return Html(format!("<tr><td colspan=\"7\">{}</td></tr>", html_escape(&e.1))),
+        Err(e) => {
+            return Html(format!(
+                "<tr><td colspan=\"7\">{}</td></tr>",
+                html_escape(&e.1)
+            ))
+        }
     };
 
     #[derive(diesel::QueryableByName)]
@@ -248,7 +277,9 @@ pub async fn handle_dns_list(
     .unwrap_or_default();
 
     if rows.is_empty() {
-        return Html("<tr><td colspan=\"7\" class=\"empty-cell\">No DNS records yet</td></tr>".to_string());
+        return Html(
+            "<tr><td colspan=\"7\" class=\"empty-cell\">No DNS records yet</td></tr>".to_string(),
+        );
     }
 
     let mut html = String::new();

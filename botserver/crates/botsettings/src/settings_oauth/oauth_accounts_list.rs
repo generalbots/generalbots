@@ -77,14 +77,22 @@ pub async fn oauth_unlink(
             StatusCode::BAD_REQUEST,
             Html(format!(
                 "Unsupported OAuth provider: {}",
-                provider_name.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+                provider_name
+                    .replace('&', "&amp;")
+                    .replace('<', "&lt;")
+                    .replace('>', "&gt;")
             )),
         );
     };
 
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let user_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
@@ -94,13 +102,12 @@ pub async fn oauth_unlink(
     // Best-effort token revocation from Vault.
     let _ = delete_tokens_from_vault(&user_id, provider);
 
-    let affected = diesel::sql_query(
-        "DELETE FROM oauth_account_links WHERE user_id = $1 AND provider = $2",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .bind::<diesel::sql_types::Text, _>(&provider_name_lower)
-    .execute(&mut conn)
-    .unwrap_or(0);
+    let affected =
+        diesel::sql_query("DELETE FROM oauth_account_links WHERE user_id = $1 AND provider = $2")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .bind::<diesel::sql_types::Text, _>(&provider_name_lower)
+            .execute(&mut conn)
+            .unwrap_or(0);
 
     record_audit_event(crate::audit_log::AuditEvent {
         state: &state,
@@ -119,7 +126,10 @@ pub async fn oauth_unlink(
             Html(format!("No linked {} account found", provider)),
         );
     }
-    (StatusCode::OK, Html(format!("{} account unlinked", provider)))
+    (
+        StatusCode::OK,
+        Html(format!("{} account unlinked", provider)),
+    )
 }
 
 // ---------------------------------------------------------------------------

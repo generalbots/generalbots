@@ -8,11 +8,11 @@ use log::error;
 #[cfg(not(feature = "embed-ui"))]
 use std::fs;
 
-#[cfg(feature = "embed-ui")]
-use crate::ui_server::constants::Assets;
+use crate::shared::AppState;
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::get_ui_root;
-use crate::shared::AppState;
+#[cfg(feature = "embed-ui")]
+use crate::ui_server::constants::Assets;
 
 pub async fn serve_minimal() -> impl IntoResponse {
     let html_res = {
@@ -37,7 +37,11 @@ pub async fn serve_minimal() -> impl IntoResponse {
     };
 
     match html_res {
-        Ok(html) => (StatusCode::OK, [("content-type", "text/html; charset=utf-8")], Html(html)),
+        Ok(html) => (
+            StatusCode::OK,
+            [("content-type", "text/html; charset=utf-8")],
+            Html(html),
+        ),
         Err(e) => {
             error!("Failed to load minimal UI: {e}");
             (

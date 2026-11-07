@@ -8,9 +8,7 @@ use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use botcore::shared::models::{
-    NewRbacRole, NewRbacRolePermission, RbacPermission, RbacRole,
-};
+use botcore::shared::models::{NewRbacRole, NewRbacRolePermission, RbacPermission, RbacRole};
 use botcore::shared::state::AppState;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
 use diesel::prelude::*;
@@ -32,16 +30,23 @@ pub async fn list_roles(State(state): State<Arc<AppState>>) -> impl IntoResponse
 
     match result {
         Ok(Ok(roles)) => Json(serde_json::json!({ "roles": roles })).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "list_roles", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "list_roles", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "list_roles", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "list_roles", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn get_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_role(
+    State(state): State<Arc<AppState>>,
+    Path(role_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<RbacRole, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -55,16 +60,23 @@ pub async fn get_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uu
 
     match result {
         Ok(Ok(role)) => Json(role).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::NOT_FOUND, log_and_sanitize_str(&e, "get_role", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_role", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::NOT_FOUND,
+            log_and_sanitize_str(&e, "get_role", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_role", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn create_role(State(state): State<Arc<AppState>>, Json(req): Json<CreateRoleRequest>) -> impl IntoResponse {
+pub async fn create_role(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateRoleRequest>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let now = Utc::now();
     let new_role = NewRbacRole {
@@ -103,12 +115,16 @@ pub async fn create_role(State(state): State<Arc<AppState>>, Json(req): Json<Cre
             });
             (StatusCode::CREATED, Json(role)).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "create_role", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "create_role", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "create_role", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "create_role", None),
+        )
+            .into_response(),
     }
 }
 
@@ -155,16 +171,23 @@ pub async fn update_role(
             });
             Json(role).into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "update_role", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "update_role", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "update_role", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "update_role", None),
+        )
+            .into_response(),
     }
 }
 
-pub async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path<Uuid>) -> impl IntoResponse {
+pub async fn delete_role(
+    State(state): State<Arc<AppState>>,
+    Path(role_id): Path<Uuid>,
+) -> impl IntoResponse {
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
@@ -191,12 +214,16 @@ pub async fn delete_role(State(state): State<Arc<AppState>>, Path(role_id): Path
             });
             StatusCode::NO_CONTENT.into_response()
         }
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "delete_role", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "delete_role", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "delete_role", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "delete_role", None),
+        )
+            .into_response(),
     }
 }
 
@@ -214,13 +241,19 @@ pub async fn list_permissions(State(state): State<Arc<AppState>>) -> impl IntoRe
     .await;
 
     match result {
-        Ok(Ok(permissions)) => Json(serde_json::json!({ "permissions": permissions })).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "list_permissions", None)).into_response()
+        Ok(Ok(permissions)) => {
+            Json(serde_json::json!({ "permissions": permissions })).into_response()
         }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "list_permissions", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "list_permissions", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "list_permissions", None),
+        )
+            .into_response(),
     }
 }
 
@@ -267,12 +300,16 @@ pub async fn get_role_permissions(
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "get_role_permissions", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_role_permissions", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "get_role_permissions", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_role_permissions", None),
+        )
+            .into_response(),
     }
 }
 
@@ -324,11 +361,15 @@ pub async fn update_role_permissions(
 
     match result {
         Ok(Ok(())) => StatusCode::OK.into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::BAD_REQUEST, log_and_sanitize_str(&e, "update_role_permissions", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "update_role_permissions", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::BAD_REQUEST,
+            log_and_sanitize_str(&e, "update_role_permissions", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "update_role_permissions", None),
+        )
+            .into_response(),
     }
 }

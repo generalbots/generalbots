@@ -5,7 +5,10 @@ pub async fn handle_office365_migration(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<Office365MigrationRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
-    info!("Office 365 migration requested for tenant: {}", req.tenant_id);
+    info!(
+        "Office 365 migration requested for tenant: {}",
+        req.tenant_id
+    );
 
     let mode = match req.sync_mode.as_deref() {
         Some("delta") => crate::directory::scim::sync::SyncMode::Delta,
@@ -21,11 +24,19 @@ pub async fn handle_office365_migration(
 
     let syncer = crate::directory::scim::sync::AzureAdSyncer::new(config);
 
-    let auth_service = _state.auth_service.as_ref().ok_or_else(|| {
-        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
-            "error": "No auth service available"
-        })))
-    })?.lock().await;
+    let auth_service = _state
+        .auth_service
+        .as_ref()
+        .ok_or_else(|| {
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "No auth service available"
+                })),
+            )
+        })?
+        .lock()
+        .await;
 
     match syncer.sync(&*auth_service).await {
         Ok(result) => {
@@ -47,7 +58,7 @@ pub async fn handle_office365_migration(
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({
                     "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "main_module::routes::org_handlers::handle_office365_migration", None)
-                }))
+                })),
             ))
         }
     }

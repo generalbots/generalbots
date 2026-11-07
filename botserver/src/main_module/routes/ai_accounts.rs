@@ -29,7 +29,13 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/ai-accounts/:provider/reconnect", post(reconnect))
         .route("/api/ai-accounts/:provider/status", post(status))
         .route("/api/ai-accounts/:provider/disconnect", post(disconnect))
-        .route("/api/ai-accounts/:provider/use-for-vibe", post(use_for_vibe))
-        .route("/api/ai-accounts/:provider/use-for-chat", post(use_for_chat))
+        .route(
+            "/api/ai-accounts/:provider/use-for-vibe",
+            post(use_for_vibe),
+        )
+        .route(
+            "/api/ai-accounts/:provider/use-for-chat",
+            post(use_for_chat),
+        )
         .route("/api/ai-accounts/claude-code/code", post(claude_code))
 }

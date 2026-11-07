@@ -8,15 +8,13 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use botcore::shared::models::{
-    RbacGroup, RbacPermission, RbacRole, User,
-};
+use botcore::shared::models::{RbacGroup, RbacPermission, RbacRole, User};
 use botcore::shared::state::AppState;
 use botsecurity::auth::AuthenticatedUser;
 use botsecurity::error_sanitizer::log_and_sanitize_str;
 
-use crate::rbac::{CheckPermissionRequest, CheckPermissionResponse, PaginationParams};
 use crate::rbac::utils;
+use crate::rbac::{CheckPermissionRequest, CheckPermissionResponse, PaginationParams};
 
 pub async fn list_users_with_roles(
     State(state): State<Arc<AppState>>,
@@ -29,18 +27,17 @@ pub async fn list_users_with_roles(
 
     let result = tokio::task::spawn_blocking(move || -> Result<serde_json::Value, String> {
         let mut db_conn = conn.get().map_err(|e| format!("DB error: {e}"))?;
-        use botcore::shared::models::schema::{rbac_user_roles, rbac_roles, users};
+        use botcore::shared::models::schema::{rbac_roles, rbac_user_roles, users};
 
         let offset_val = (page - 1) * per_page;
-        let pattern = search.as_ref().map(|term| format!("%{}%", term.to_lowercase()));
+        let pattern = search
+            .as_ref()
+            .map(|term| format!("%{}%", term.to_lowercase()));
 
         let users_list: Vec<User> = if let Some(ref pat) = pattern {
             users::table
                 .filter(users::is_active.eq(true))
-                .filter(
-                    users::username.ilike(pat)
-                        .or(users::email.ilike(pat)),
-                )
+                .filter(users::username.ilike(pat).or(users::email.ilike(pat)))
                 .order(users::username.asc())
                 .offset(offset_val)
                 .limit(per_page)
@@ -85,12 +82,16 @@ pub async fn list_users_with_roles(
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "list_users_with_roles", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "list_users_with_roles", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "list_users_with_roles", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "list_users_with_roles", None),
+        )
+            .into_response(),
     }
 }
 
@@ -157,13 +158,18 @@ pub async fn get_effective_permissions(
         Ok(Ok(permissions)) => Json(serde_json::json!({
             "user_id": user_id,
             "permissions": permissions,
-        })).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "get_effective_permissions", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "get_effective_permissions", None)).into_response()
-        }
+        }))
+        .into_response(),
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "get_effective_permissions", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "get_effective_permissions", None),
+        )
+            .into_response(),
     }
 }
 
@@ -196,15 +202,24 @@ pub async fn check_permission(
         Ok(Ok(granted)) => Json(CheckPermissionResponse {
             granted,
             permission: permission_str,
-            source: if granted { "db_role_permission" } else { "denied" }.to_string(),
+            source: if granted {
+                "db_role_permission"
+            } else {
+                "denied"
+            }
+            .to_string(),
         })
         .into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "check_permission", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "check_permission", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "check_permission", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "check_permission", None),
+        )
+            .into_response(),
     }
 }
 
@@ -293,11 +308,15 @@ pub async fn my_permissions(
 
     match result {
         Ok(Ok(data)) => Json(data).into_response(),
-        Ok(Err(e)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e, "my_permissions", None)).into_response()
-        }
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, log_and_sanitize_str(&e.to_string(), "my_permissions", None)).into_response()
-        }
+        Ok(Err(e)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e, "my_permissions", None),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            log_and_sanitize_str(&e.to_string(), "my_permissions", None),
+        )
+            .into_response(),
     }
 }

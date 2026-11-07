@@ -29,7 +29,10 @@ mod tests {
     fn destructive_commands_are_refused_server_side() {
         assert_eq!(blocked_pattern("rm -rf /"), Some("rm -rf /"));
         assert_eq!(blocked_pattern("sudo SHUTDOWN now"), Some("shutdown"));
-        assert_eq!(blocked_pattern("dd if=/dev/zero of=/dev/sda"), Some("dd if="));
+        assert_eq!(
+            blocked_pattern("dd if=/dev/zero of=/dev/sda"),
+            Some("dd if=")
+        );
         assert_eq!(blocked_pattern(":(){ :|:& };:"), Some(":(){"));
     }
 

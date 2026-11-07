@@ -47,7 +47,9 @@ pub(super) async fn handle_stream_inner(mut ws: WebSocket, sessions: SessionMap,
     let session = match get_session(&sessions, &id).await {
         Ok(s) => s,
         Err(e) => {
-            let _ = ws.send(Message::Text(format!("{{\"error\":\"{}\"}}", e.1))).await;
+            let _ = ws
+                .send(Message::Text(format!("{{\"error\":\"{}\"}}", e.1)))
+                .await;
             return;
         }
     };

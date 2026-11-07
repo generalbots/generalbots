@@ -1,7 +1,6 @@
 use axum::{routing::post, Router};
-use std::sync::Arc;
 use botcore::shared::state::AppState;
-
+use std::sync::Arc;
 
 /// Applies the first half of the feature-block merges (directory, apps,
 /// workspace tabs, integrations, AI OS routers, memory, editor, database,
@@ -20,10 +19,14 @@ pub(super) async fn merge_office_routers(
             conn: app_state.conn.clone(),
             base_url: format!("http://localhost:{}", port),
         });
-        *api_router = api_router.clone().merge(crate::directory::api::configure_user_routes().with_state(directory_api_state));
+        *api_router = api_router
+            .clone()
+            .merge(crate::directory::api::configure_user_routes().with_state(directory_api_state));
     }
 
-    *api_router = api_router.clone().merge(crate::apps::register(Router::new()));
+    *api_router = api_router
+        .clone()
+        .merge(crate::apps::register(Router::new()));
 
     // #1674 — signed, content-addressed sandbox resources. The handler is
     // origin-independent; the dedicated listener below provides isolation.
@@ -45,30 +48,30 @@ pub(super) async fn merge_office_routers(
         .clone()
         .merge(crate::core::bot::runs::tools::router());
     // #1697 — pooled group budgets and usage reports.
-    *api_router = api_router
-        .clone()
-        .merge(super::group_budgets::router());
+    *api_router = api_router.clone().merge(super::group_budgets::router());
     // #1694 — parallel sub-agent fan-out.
-    *api_router = api_router
-        .clone()
-        .merge(super::subagents::router());
+    *api_router = api_router.clone().merge(super::subagents::router());
     // #1705 — long-horizon goal runs with automatic checkpoints.
-    *api_router = api_router
-        .clone()
-        .merge(super::goal_runs::router());
+    *api_router = api_router.clone().merge(super::goal_runs::router());
 
     *api_router = api_router
         .clone()
         .merge(super::workspace_tabs::configure_workspace_tabs_routes());
 
     #[cfg(feature = "tax")]
-    { *api_router = api_router.clone().merge(bottax::configure()); }
+    {
+        *api_router = api_router.clone().merge(bottax::configure());
+    }
 
     #[cfg(feature = "vision")]
-    { *api_router = api_router.clone().merge(botvision::configure()); }
+    {
+        *api_router = api_router.clone().merge(botvision::configure());
+    }
 
     #[cfg(feature = "erp")]
-    { *api_router = api_router.clone().merge(boterp::configure()); }
+    {
+        *api_router = api_router.clone().merge(boterp::configure());
+    }
 
     // botsources owns the /api/integrations/* namespace (connectors + ETL);
     // the legacy botintegrations router that used to shadow-mount here is
@@ -86,9 +89,10 @@ pub(super) async fn merge_office_routers(
                 app_state.conn.clone(),
                 botintegrations::secrets::ConnectionVault::new(secrets_manager),
             ));
-            *api_router = api_router
-                .clone()
-                .merge(botintegrations::configure_connection_routes().with_state(connections_state.clone()));
+            *api_router = api_router.clone().merge(
+                botintegrations::configure_connection_routes()
+                    .with_state(connections_state.clone()),
+            );
             botintegrations::automations::spawn(connections_state.clone());
             botintegrations::token_refresh::spawn(connections_state.clone());
         }
@@ -100,46 +104,72 @@ pub(super) async fn merge_office_routers(
     }
 
     #[cfg(feature = "hr")]
-    { *api_router = api_router.clone().merge(bothr::configure()); }
+    {
+        *api_router = api_router.clone().merge(bothr::configure());
+    }
 
     #[cfg(feature = "sales")]
-    { *api_router = api_router.clone().merge(botsales::configure()); }
+    {
+        *api_router = api_router.clone().merge(botsales::configure());
+    }
 
     #[cfg(feature = "minutes")]
-    { *api_router = api_router.clone().merge(botminutes::configure()); }
+    {
+        *api_router = api_router.clone().merge(botminutes::configure());
+    }
 
     #[cfg(feature = "templates")]
-    { *api_router = api_router.clone().merge(bottemplates::configure()); }
+    {
+        *api_router = api_router.clone().merge(bottemplates::configure());
+    }
 
     #[cfg(feature = "itsm")]
-    { *api_router = api_router.clone().merge(botitsm::configure()); }
+    {
+        *api_router = api_router.clone().merge(botitsm::configure());
+    }
 
     #[cfg(feature = "pos")]
-    { *api_router = api_router.clone().merge(botpos::configure()); }
+    {
+        *api_router = api_router.clone().merge(botpos::configure());
+    }
 
     #[cfg(feature = "handoff")]
-    { *api_router = api_router.clone().merge(bothandoff::configure()); }
+    {
+        *api_router = api_router.clone().merge(bothandoff::configure());
+    }
 
     #[cfg(feature = "kyc")]
-    { *api_router = api_router.clone().merge(botkyc::configure()); }
+    {
+        *api_router = api_router.clone().merge(botkyc::configure());
+    }
 
     #[cfg(feature = "timeclock")]
-    { *api_router = api_router.clone().merge(bottimeclock::configure()); }
+    {
+        *api_router = api_router.clone().merge(bottimeclock::configure());
+    }
 
     #[cfg(feature = "contacts")]
     {
         let contacts_state = Arc::new(crate::contacts::CrateState {
             db_pool: app_state.conn.clone(),
             get_default_bot: Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil()),
-            trigger_contact_change: Arc::new(|_c: &mut diesel::PgConnection, _id: uuid::Uuid, _kind: &str, _by: uuid::Uuid| {}),
+            trigger_contact_change: Arc::new(
+                |_c: &mut diesel::PgConnection, _id: uuid::Uuid, _kind: &str, _by: uuid::Uuid| {},
+            ),
             trigger_deal_stage_change: Arc::new(
-                |_c: &mut diesel::PgConnection, _id: uuid::Uuid, _old: &str, _new: &str, _by: uuid::Uuid| {},
+                |_c: &mut diesel::PgConnection,
+                 _id: uuid::Uuid,
+                 _old: &str,
+                 _new: &str,
+                 _by: uuid::Uuid| {},
             ),
         });
         // #1452 — seed default pipeline stages for branches with CRM activity
         // but no stage rows (idempotent; keeps the kanban data-driven).
         crate::contacts::stages::seed_default_stages(&contacts_state);
-        *api_router = api_router.clone().merge(crate::contacts::routes::configure_all_routes().with_state(contacts_state));
+        *api_router = api_router
+            .clone()
+            .merge(crate::contacts::routes::configure_all_routes().with_state(contacts_state));
     }
 
     // ===== AI OS routers (issues #1167-#1179) =====
@@ -174,9 +204,9 @@ pub(super) async fn merge_office_routers(
                 .with_llm(Arc::new(|_system: &str, _user: &str, _params: &str| {
                     Err("LLM not wired for automations".to_string())
                 }))
-                .with_delivery(Arc::new(|_channel: &str, _to: &str, _subject: &str, _body: &str| {
-                    Ok(())
-                })),
+                .with_delivery(Arc::new(
+                    |_channel: &str, _to: &str, _subject: &str, _body: &str| Ok(()),
+                )),
         );
         botautomation::scheduler::spawn_scheduler(automation_state.clone());
         *api_router = api_router
@@ -186,7 +216,9 @@ pub(super) async fn merge_office_routers(
 
     #[cfg(feature = "marketplace")]
     {
-        let marketplace_state = Arc::new(botmarketplace::MarketplaceService::new(app_state.conn.clone()));
+        let marketplace_state = Arc::new(botmarketplace::MarketplaceService::new(
+            app_state.conn.clone(),
+        ));
         let seed_state = marketplace_state.clone();
         tokio::spawn(async move {
             match botmarketplace::seed_if_empty(&seed_state).await {
@@ -225,12 +257,15 @@ pub(super) async fn merge_office_routers(
     }
 
     #[cfg(feature = "connectors")]
-    { *api_router = api_router.clone().merge(botconnectors::configure()); }
+    {
+        *api_router = api_router.clone().merge(botconnectors::configure());
+    }
 
     #[cfg(feature = "browser-policy")]
     {
-        let browser_policy_state =
-            Arc::new(botbrowserpolicy::BrowserPolicyService::new(app_state.conn.clone()));
+        let browser_policy_state = Arc::new(botbrowserpolicy::BrowserPolicyService::new(
+            app_state.conn.clone(),
+        ));
         *api_router = api_router
             .clone()
             .merge(botbrowserpolicy::configure_routes().with_state(browser_policy_state));
@@ -238,78 +273,150 @@ pub(super) async fn merge_office_routers(
 
     #[cfg(feature = "channel-bindings")]
     {
-        let bindings_state =
-            Arc::new(botchannelbindings::ChannelBindingsService::new(app_state.conn.clone()));
+        let bindings_state = Arc::new(botchannelbindings::ChannelBindingsService::new(
+            app_state.conn.clone(),
+        ));
         *api_router = api_router
             .clone()
             .merge(botchannelbindings::configure_routes().with_state(bindings_state));
     }
 
-    *sub_router = sub_router.clone().merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(crate::security::protection::configure_protection_routes().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(crate::settings::configure_settings_routes().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(crate::jukebox::configure_jukebox_routes());
-    *sub_router = sub_router.clone().merge(botcore::shared::admin::configure().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(botcore::shared::analytics::configure().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(crate::core::i18n::configure_i18n_routes().with_state(app_state.clone()));
+    *sub_router = sub_router.clone().merge(
+        crate::security::protection::configure_protection_routes().with_state(app_state.clone()),
+    );
+    *sub_router = sub_router
+        .clone()
+        .merge(crate::settings::configure_settings_routes().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(crate::jukebox::configure_jukebox_routes());
+    *sub_router = sub_router
+        .clone()
+        .merge(botcore::shared::admin::configure().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(botcore::shared::analytics::configure().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(botcore::organization_invitations::configure().with_state(app_state.clone()));
 
     // BotCoder IDE APIs
     #[cfg(feature = "editor")]
-    { *sub_router = sub_router.clone().merge(boteditor::configure().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(boteditor::configure().with_state(app_state.clone()));
+    }
     #[cfg(feature = "database")]
-    { *sub_router = sub_router.clone().merge(botdatabase::configure().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(botdatabase::configure().with_state(app_state.clone()));
+    }
     #[cfg(feature = "git")]
-    { *sub_router = sub_router.clone().merge(botgit::configure().with_state(app_state.clone())); }
+    {
+        *sub_router = sub_router
+            .clone()
+            .merge(botgit::configure().with_state(app_state.clone()));
+    }
     #[cfg(feature = "desktop")]
     {
-        *sub_router = sub_router.clone().merge(botdesktop::routes::configure_routes(Some(app_state.conn.clone())));
+        *sub_router = sub_router
+            .clone()
+            .merge(botdesktop::routes::configure_routes(Some(
+                app_state.conn.clone(),
+            )));
     }
-    *sub_router = sub_router.clone().merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(crate::api::system::configure_system_routes().with_state(app_state.clone()));
     #[cfg(feature = "meet")]
     {
-        *sub_router = sub_router.clone().merge(crate::meet::configure().with_state(app_state.clone()));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::meet::configure().with_state(app_state.clone()));
     }
 
     #[cfg(feature = "chat")]
     {
-        *sub_router = sub_router.clone().merge(super::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
-        *sub_router = sub_router.clone().merge(super::chat_history::configure_chat_history_routes().with_state(app_state.clone()));
+        *sub_router = sub_router
+            .clone()
+            .merge(super::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
+        *sub_router = sub_router.clone().merge(
+            super::chat_history::configure_chat_history_routes().with_state(app_state.clone()),
+        );
     }
 
-    *sub_router = sub_router.clone().merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(super::bot_tree::configure_bot_tree_routes().with_state(app_state.clone()));
-    *sub_router = sub_router.clone().merge(super::unified_search::configure_unified_search_routes().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
+    *sub_router = sub_router
+        .clone()
+        .merge(super::bot_tree::configure_bot_tree_routes().with_state(app_state.clone()));
+    *sub_router = sub_router.clone().merge(
+        super::unified_search::configure_unified_search_routes().with_state(app_state.clone()),
+    );
     #[cfg(feature = "tasks")]
     {
-        *sub_router = sub_router.clone().merge(crate::tasks::configure_tasks_routes().with_state(Arc::new(bottasks::state::TasksState {
-            pool: app_state.conn.clone(),
-            run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> { Ok(String::new()) }),
-            call_llm: Arc::new(|_prompt: &str, _ctx: &str| Box::pin(async { Ok(String::new()) })),
-            get_config: Arc::new(|_key: &str| -> Result<String, String> { Ok(String::new()) }),
-            cache_get: Arc::new(|_key: String| Box::pin(async { Ok(None) })),
-            cache_set: Arc::new(|_key: String, _val: String, _ttl: Option<u64>| Box::pin(async { Ok(()) })),
-        })));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::tasks::configure_tasks_routes().with_state(Arc::new(
+                bottasks::state::TasksState {
+                    pool: app_state.conn.clone(),
+                    run_command: Arc::new(|_cmd: &str, _args: &[&str]| -> Result<String, String> {
+                        Ok(String::new())
+                    }),
+                    call_llm: Arc::new(|_prompt: &str, _ctx: &str| {
+                        Box::pin(async { Ok(String::new()) })
+                    }),
+                    get_config: Arc::new(|_key: &str| -> Result<String, String> {
+                        Ok(String::new())
+                    }),
+                    cache_get: Arc::new(|_key: String| Box::pin(async { Ok(None) })),
+                    cache_set: Arc::new(|_key: String, _val: String, _ttl: Option<u64>| {
+                        Box::pin(async { Ok(()) })
+                    }),
+                },
+            )));
     }
 
     #[cfg(feature = "analytics")]
     {
-        *sub_router = sub_router.clone().merge(crate::analytics::routes::create_analytics_router(Arc::new(app_state.conn.clone())));
-        *sub_router = sub_router.clone().merge(crate::analytics::insights::configure_insights_routes().with_state(Arc::new(app_state.conn.clone())));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::analytics::routes::create_analytics_router(Arc::new(
+                app_state.conn.clone(),
+            )));
+        *sub_router = sub_router.clone().merge(
+            crate::analytics::insights::configure_insights_routes()
+                .with_state(Arc::new(app_state.conn.clone())),
+        );
     }
 
     #[cfg(feature = "docs")]
     {
-        *sub_router = sub_router.clone().merge(crate::docs::configure_docs_routes().with_state(Arc::new(botdocs::state::DocState {
-            pool: Arc::new(app_state.conn.clone()),
-            drive: app_state.drive.clone().unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
-            bucket_name: app_state.bucket_name.clone(),
-            history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
-        })));
+        *sub_router = sub_router.clone().merge(
+            crate::docs::configure_docs_routes().with_state(Arc::new(botdocs::state::DocState {
+                pool: Arc::new(app_state.conn.clone()),
+                drive: app_state
+                    .drive
+                    .clone()
+                    .unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
+                bucket_name: app_state.bucket_name.clone(),
+                history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+            })),
+        );
     }
 
     #[cfg(feature = "paper")]
     {
-        *sub_router = sub_router.clone().merge(crate::paper::configure_paper_routes().with_state(super::feature_routers::make_paper_state(app_state)));
+        *sub_router = sub_router.clone().merge(
+            crate::paper::configure_paper_routes()
+                .with_state(super::feature_routers::make_paper_state(app_state)),
+        );
     }
 
     #[cfg(feature = "research")]
@@ -320,7 +427,10 @@ pub(super) async fn merge_office_routers(
             llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
         }
         impl crate::research::ResearchState for ResearchAppState {
-            fn db_pool(&self) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>> {
+            fn db_pool(
+                &self,
+            ) -> &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>
+            {
                 &self.pool
             }
             fn llm_provider(&self) -> Option<Arc<dyn botlib::traits::LLMProvider>> {
@@ -360,31 +470,44 @@ pub(super) async fn merge_office_routers(
             pool: app_state.conn.clone(),
             llm: app_state.llm_provider.clone(),
         });
-        *sub_router = sub_router.clone().merge(crate::research::configure_research_routes().with_state(research_state.clone()));
-        *sub_router = sub_router.clone().merge(crate::research::ui::configure_research_ui_routes().with_state(research_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::research::configure_research_routes().with_state(research_state.clone()));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::research::ui::configure_research_ui_routes().with_state(research_state));
     }
 
     #[cfg(feature = "search")]
     {
-        let search_state = Arc::new(crate::search::SearchService::new(Arc::new(app_state.conn.clone()), None));
-        *sub_router = sub_router.clone().merge(crate::search::configure_search_routes().with_state(search_state));
+        let search_state = Arc::new(crate::search::SearchService::new(
+            Arc::new(app_state.conn.clone()),
+            None,
+        ));
+        *sub_router = sub_router
+            .clone()
+            .merge(crate::search::configure_search_routes().with_state(search_state));
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
     {
         *api_router = api_router.clone().route(
             "/api/website/force-recrawl",
-            post(crate::core::kb::website_crawler_service::handle_force_recrawl)
+            post(crate::core::kb::website_crawler_service::handle_force_recrawl),
         );
     }
 
     #[cfg(feature = "designer")]
     {
-        *sub_router = sub_router.clone().merge(super::feature_routers::make_designer_router(app_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_designer_router(app_state));
     }
 
     #[cfg(feature = "dashboards")]
     {
-        *sub_router = sub_router.clone().merge(super::feature_routers::make_dashboards_router(app_state));
+        *sub_router = sub_router
+            .clone()
+            .merge(super::feature_routers::make_dashboards_router(app_state));
     }
 }

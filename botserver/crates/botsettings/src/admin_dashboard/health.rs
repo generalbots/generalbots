@@ -25,37 +25,74 @@ pub async fn dashboard_health(State(state): State<Arc<AppState>>) -> Html<String
     let llm_ok = llm_url.is_some();
 
     let mut items = String::new();
-    items.push_str(&health_item("API Server", db_ok, "Operational", "HTTP API responding"));
+    items.push_str(&health_item(
+        "API Server",
+        db_ok,
+        "Operational",
+        "HTTP API responding",
+    ));
     items.push_str(&health_item(
         "Database",
         db_ok,
         if db_ok { "Operational" } else { "Unreachable" },
-        if db_ok { "Connection pool healthy" } else { "Connection failed" },
+        if db_ok {
+            "Connection pool healthy"
+        } else {
+            "Connection failed"
+        },
     ));
     items.push_str(&health_item(
         "Cache",
         cache_ok,
-        if cache_ok { "Operational" } else { "Unreachable" },
-        if cache_ok { "PING responded" } else { "No PONG" },
+        if cache_ok {
+            "Operational"
+        } else {
+            "Unreachable"
+        },
+        if cache_ok {
+            "PING responded"
+        } else {
+            "No PONG"
+        },
     ));
     items.push_str(&health_item(
         "Storage",
         drive_ok,
-        if drive_ok { "Operational" } else { "Not configured" },
-        if drive_ok { "Drive repository active" } else { "No drive client" },
+        if drive_ok {
+            "Operational"
+        } else {
+            "Not configured"
+        },
+        if drive_ok {
+            "Drive repository active"
+        } else {
+            "No drive client"
+        },
     ));
     items.push_str(&health_item(
         "LLM Service",
         llm_ok,
-        if llm_ok { "Configured" } else { "Not configured" },
-        if llm_ok { "Provider URL present" } else { "LLM_URL unset" },
+        if llm_ok {
+            "Configured"
+        } else {
+            "Not configured"
+        },
+        if llm_ok {
+            "Provider URL present"
+        } else {
+            "LLM_URL unset"
+        },
     ));
 
     Html(items)
 }
 
 fn health_item(name: &str, ok: bool, status: &str, detail: &str) -> String {
-    let (indicator, cls) = if ok { ("healthy", "") } else { ("unhealthy", " warning") };
+    let (indicator, cls) = if ok {
+        ("healthy", "")
+    } else {
+        ("unhealthy", " warning")
+    };
     format!(
         r##"<div class="health-item{cls}">
     <div class="health-indicator {indicator}"></div>

@@ -250,13 +250,7 @@ async fn list(
     })))
 }
 
-fn update_status(
-    pool: &DbPool,
-    id: &str,
-    status: &str,
-    result: Option<&str>,
-    error: Option<&str>,
-) {
+fn update_status(pool: &DbPool, id: &str, status: &str, result: Option<&str>, error: Option<&str>) {
     let Ok(mut conn) = pool.get() else {
         return;
     };

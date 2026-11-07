@@ -47,6 +47,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -135,11 +137,26 @@ jobs:
             --config tauri.desktop-local.conf.json \
             --bundles deb,rpm,appimage
 
+      # #1787 — the arm64 .deb carries the same Depends as the x86_64 one; prove
+      # it resolves on both current Debian-family releases before publishing.
+      - name: Verify the arm64 .deb installs on Debian 13 and Ubuntu 24.04
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          debs=(target/release/bundle/deb/*.deb botapp/target/release/bundle/deb/*.deb)
+          if [ "${#debs[@]}" -eq 0 ]; then
+            echo "::warning::the bundler produced no .deb; skipping the install test"
+            exit 0
+          fi
+          chmod +x desktop/linux/test-deb-install.sh
+          desktop/linux/test-deb-install.sh "${debs[0]}"
+
       - name: Collect arm64 packages
         continue-on-error: true
         run: |
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name || 'nightly' }}"
+          VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
             local glob="$1" stable="$2" versioned="$3"
@@ -152,15 +169,15 @@ jobs:
             return 0
           }
           collect "botapp/target/release/bundle/deb/*.deb target/release/bundle/deb/*.deb" \
-            generalbots-linux-aarch64.deb "generalbots-${TAG}-linux-aarch64.deb"
+            generalbots-linux-aarch64.deb "generalbots-${VERSION}-linux-aarch64.deb"
           collect "botapp/target/release/bundle/rpm/*.rpm target/release/bundle/rpm/*.rpm" \
-            generalbots-linux-aarch64.rpm "generalbots-${TAG}-linux-aarch64.rpm"
+            generalbots-linux-aarch64.rpm "generalbots-${VERSION}-linux-aarch64.rpm"
           collect "botapp/target/release/bundle/appimage/*.AppImage target/release/bundle/appimage/*.AppImage" \
-            generalbots-linux-aarch64.AppImage "generalbots-${TAG}-linux-aarch64.AppImage"
+            generalbots-linux-aarch64.AppImage "generalbots-${VERSION}-linux-aarch64.AppImage"
           cd dist
-          for f in generalbots-linux-aarch64.deb "generalbots-${TAG}-linux-aarch64.deb" \
-                   generalbots-linux-aarch64.rpm "generalbots-${TAG}-linux-aarch64.rpm" \
-                   generalbots-linux-aarch64.AppImage "generalbots-${TAG}-linux-aarch64.AppImage"; do
+          for f in generalbots-linux-aarch64.deb "generalbots-${VERSION}-linux-aarch64.deb" \
+                   generalbots-linux-aarch64.rpm "generalbots-${VERSION}-linux-aarch64.rpm" \
+                   generalbots-linux-aarch64.AppImage "generalbots-${VERSION}-linux-aarch64.AppImage"; do
             if [ -f "$f" ]; then
               sha256sum "$f" >> SHA256SUMS-linux-aarch64
             fi
@@ -196,5 +213,7 @@ jobs:
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Linux arm64 desktop build"
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG (Linux arm64)" \
+                 --notes "Linux arm64 desktop build, pre-release for $TAG: it never takes latest." \
+                 --prerelease --latest=false
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber

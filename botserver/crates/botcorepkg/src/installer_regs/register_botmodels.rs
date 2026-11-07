@@ -1,11 +1,12 @@
 use super::*;
 
 /// BotModels as a pythonbox: the archive carries its own CPython, the service
-/// sources, a CPU-tier wheelhouse and `install.sh`/`run.sh`. Nothing is
-/// compiled or installed at this step — `run.sh` materialises the virtual
-/// environment from the bundled wheels on first start, so a clean machine
-/// needs no network access (the dependency set is far larger than the bundle
-/// itself).
+/// sources, a CPU-tier wheelhouse and platform entry points (`install.sh` /
+/// `run.sh` on Linux, `install.ps1` / `run.ps1` on Windows). Nothing is
+/// compiled or installed at this step — the run script materialises the
+/// virtual environment from the bundled wheels on first start, so a clean
+/// machine needs no network access (the dependency set is far larger than the
+/// bundle itself).
 pub fn register_botmodels(components: &mut HashMap<String, ComponentConfig>) {
     components.insert(
         "botmodels".to_string(),
@@ -35,9 +36,14 @@ pub fn register_botmodels(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: Vec::new(),
             exec_cmd: "nohup {{BIN_PATH}}/run.sh > {{LOGS_PATH}}/botmodels.log 2>&1 &".to_string(),
             check_cmd: "curl -f -s -o /dev/null --connect-timeout 2 -m 5 http://127.0.0.1:8085/api/health".to_string(),
-            // No Windows bundle is published yet: the box is Linux x86_64 only.
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
+            // The Windows pythonbox ships run.ps1; `start /B ""` detaches the
+            // service so provisioning is not blocked while the venv is built.
+            exec_cmd_windows: Some(
+                "start /B \"\" powershell -NoProfile -ExecutionPolicy Bypass -File \"{{BIN_PATH}}\\run.ps1\" >> \"{{LOGS_PATH}}\\botmodels.log\" 2>&1".to_string(),
+            ),
+            check_cmd_windows: Some(
+                "curl.exe -f -s -o NUL --connect-timeout 2 -m 5 http://127.0.0.1:8085/api/health".to_string(),
+            ),
             container: None,
         },
     );

@@ -1,9 +1,16 @@
-#[cfg(any(feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
+#[cfg(any(
+    feature = "saas",
+    feature = "marketing",
+    feature = "telegram",
+    feature = "instagram",
+    feature = "msteams",
+    feature = "attendant"
+))]
 use super::*;
 
 #[cfg(feature = "saas")]
 pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
-    use botcloud::{SaasService, SaasConfig, stripe::StripeClient, cloud_ui, api};
+    use botcloud::{api, cloud_ui, stripe::StripeClient, SaasConfig, SaasService};
     let stripe_secret = match std::env::var("STRIPE_SECRET_KEY") {
         Ok(key) => key,
         Err(_) => {
@@ -21,7 +28,11 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         let from_config = botcloud::integration::resolve_mc_binary(&configured);
         // resolve_mc_binary falls back to `configured` when nothing exists on
         // disk; keep /tmp/mc as the last-resort legacy default in that case.
-        if from_config == "mc" { "/tmp/mc".to_string() } else { from_config }
+        if from_config == "mc" {
+            "/tmp/mc".to_string()
+        } else {
+            from_config
+        }
     };
     let mc_alias = std::env::var("MC_ALIAS").unwrap_or_else(|_| "local".to_string());
     if let Some(ref cfg) = app_state.config {
@@ -57,15 +68,31 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     }
 
     // Load all SaaS config from directory_config.json (written during init from Vault)
-    let (base_url, jwt_secret, templates_dir, mc_path, mc_alias,
-         directory_api_url, directory_service_token, directory_external_domain,
-         directory_allow_insecure_http) = {
-        let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
+    let (
+        base_url,
+        jwt_secret,
+        templates_dir,
+        mc_path,
+        mc_alias,
+        directory_api_url,
+        directory_service_token,
+        directory_external_domain,
+        directory_allow_insecure_http,
+    ) = {
+        let config_path = format!(
+            "{}/conf/system/directory_config.json",
+            botcore::shared::utils::get_stack_path()
+        );
         match std::fs::read_to_string(&config_path) {
             Ok(content) => {
                 match serde_json::from_str::<serde_json::Value>(&content) {
                     Ok(json) => {
-                        let j = |key: &str| json.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(|s| s.to_string());
+                        let j = |key: &str| {
+                            json.get(key)
+                                .and_then(|v| v.as_str())
+                                .filter(|s| !s.is_empty())
+                                .map(|s| s.to_string())
+                        };
                         let configured_token = j("service_token");
                         let api_url = j("base_url");
                         let service_token = resolve_directory_service_token(
@@ -76,29 +103,59 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                             // Persist the working token so future boots reuse it.
                             if let Some(new_token) = &service_token {
                                 if let Ok(mut json) = content.clone().parse::<serde_json::Value>() {
-                                    json["service_token"] = serde_json::Value::String(new_token.clone());
-                                    let _ = std::fs::write(&config_path, serde_json::to_string_pretty(&json).unwrap_or(content.clone()));
+                                    json["service_token"] =
+                                        serde_json::Value::String(new_token.clone());
+                                    let _ = std::fs::write(
+                                        &config_path,
+                                        serde_json::to_string_pretty(&json)
+                                            .unwrap_or(content.clone()),
+                                    );
                                 }
                             }
                         }
                         (
                             j("saas_base_url").unwrap_or_default(),
-                            j("saas_jwt_secret").unwrap_or_else(crate::main_module::directory_setup::resolve_saas_jwt_secret),
-                            j("bot_templates_dir").unwrap_or_else(|| "work/templates/bots".to_string()),
-                            j("mc_path").map(|p| botcloud::integration::resolve_mc_binary(&p)).unwrap_or_else(|| "/tmp/mc".to_string()),
+                            j("saas_jwt_secret").unwrap_or_else(
+                                crate::main_module::directory_setup::resolve_saas_jwt_secret,
+                            ),
+                            j("bot_templates_dir")
+                                .unwrap_or_else(|| "work/templates/bots".to_string()),
+                            j("mc_path")
+                                .map(|p| botcloud::integration::resolve_mc_binary(&p))
+                                .unwrap_or_else(|| "/tmp/mc".to_string()),
                             j("mc_alias").unwrap_or_else(|| "local".to_string()),
                             api_url,
                             service_token,
                             j("external_domain"),
-                            json.get("allow_insecure_http").and_then(|v| v.as_bool()).unwrap_or(false),
+                            json.get("allow_insecure_http")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false),
                         )
                     }
-                    Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
-                              "/tmp/mc".to_string(), "local".to_string(), None, None, None, false),
+                    Err(_) => (
+                        String::new(),
+                        crate::main_module::directory_setup::resolve_saas_jwt_secret(),
+                        "work/templates/bots".to_string(),
+                        "/tmp/mc".to_string(),
+                        "local".to_string(),
+                        None,
+                        None,
+                        None,
+                        false,
+                    ),
                 }
             }
-            Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
-                      "/tmp/mc".to_string(), "local".to_string(), None, None, None, false),
+            Err(_) => (
+                String::new(),
+                crate::main_module::directory_setup::resolve_saas_jwt_secret(),
+                "work/templates/bots".to_string(),
+                "/tmp/mc".to_string(),
+                "local".to_string(),
+                None,
+                None,
+                None,
+                false,
+            ),
         }
     };
     let saas_config = SaasConfig {
@@ -116,14 +173,18 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     let saas_service = Arc::new(SaasService::new(
         Arc::new(botbilling::api::BillingApiState {
             pool: Arc::new(app_state.conn.clone()),
-            get_default_bot: Some(botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> uuid::Uuid),
+            get_default_bot: Some(
+                botbilling::query_first_bot as fn(&mut diesel::PgConnection) -> uuid::Uuid,
+            ),
         }),
         stripe,
         saas_config,
     ));
     Router::new()
         .merge(cloud_ui::configure_cloud_ui_routes().with_state(saas_service.clone()))
-        .merge(api::configure_cloud_api_routes(saas_config_for_api).with_state(saas_service.clone()))
+        .merge(
+            api::configure_cloud_api_routes(saas_config_for_api).with_state(saas_service.clone()),
+        )
         .merge(botcloud::webhook::configure_webhook_routes().with_state(saas_service))
 }
 #[cfg(feature = "marketing")]
@@ -138,16 +199,34 @@ pub(crate) fn make_marketing_router(app_state: &Arc<AppState>) -> Router<()> {
             let bot = resolve_default_bot_id(conn);
             (bot, "default".to_string())
         }),
-        send_email: Arc::new(|_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        send_whatsapp: Arc::new(|_: uuid::Uuid, _: &str, _: &str, _: Option<&str>, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
-        llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, String> { Ok("stub".to_string()) }),
+        send_email: Arc::new(
+            |_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> {
+                Ok("stub".to_string())
+            },
+        ),
+        send_whatsapp: Arc::new(
+            |_: uuid::Uuid,
+             _: &str,
+             _: &str,
+             _: Option<&str>,
+             _: Option<&str>|
+             -> Result<String, String> { Ok("stub".to_string()) },
+        ),
+        get_config: Arc::new(
+            |_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> {
+                Ok("stub".to_string())
+            },
+        ),
+        llm_generate: Arc::new(
+            |_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, String> {
+                Ok("stub".to_string())
+            },
+        ),
         worker: None,
     };
     let worker_state = Arc::new(base.clone());
-    let marketing_state = Arc::new(
-        base.with_worker(botmarketing::campaign::CampaignWorker::new(worker_state)),
-    );
+    let marketing_state =
+        Arc::new(base.with_worker(botmarketing::campaign::CampaignWorker::new(worker_state)));
     crate::marketing::routes::configure_marketing_routes().with_state(marketing_state)
 }
 #[cfg(feature = "telegram")]
@@ -158,20 +237,25 @@ pub(crate) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
             let branch = resolve_default_branch(conn);
             (branch, "default".to_string())
         }),
-        get_config: crate::main_module::routes::channel_support::make_channel_config_reader(app_state),
+        get_config: crate::main_module::routes::channel_support::make_channel_config_reader(
+            app_state,
+        ),
         put_media: crate::main_module::routes::channel_support::make_put_media_fn(app_state),
         stream_response: {
             let app_state = app_state.clone();
-            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                let state = app_state.clone();
-                tokio::spawn(async move {
-                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
-                    crate::core::bot::pipeline::run_pipeline_for_channel(
-                        &state, &msg, &sink,
-                    ).await.map_err(|e| e.to_string())?;
-                    Ok(())
-                })
-            })
+            Arc::new(
+                move |msg: botlib::models::UserMessage,
+                      tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                    let state = app_state.clone();
+                    tokio::spawn(async move {
+                        let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                        crate::core::bot::pipeline::run_pipeline_for_channel(&state, &msg, &sink)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(())
+                    })
+                },
+            )
         },
         attendant_broadcast: None,
     }))
@@ -179,19 +263,25 @@ pub(crate) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
 #[cfg(feature = "instagram")]
 pub(crate) fn make_instagram_router(app_state: &Arc<AppState>) -> Router<()> {
     crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
-        get_config: crate::main_module::routes::channel_support::make_channel_config_reader_by_handle(app_state),
+        get_config:
+            crate::main_module::routes::channel_support::make_channel_config_reader_by_handle(
+                app_state,
+            ),
         stream_response: {
             let app_state = app_state.clone();
-            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                let state = app_state.clone();
-                tokio::spawn(async move {
-                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
-                    crate::core::bot::pipeline::run_pipeline_for_channel(
-                        &state, &msg, &sink,
-                    ).await.map_err(|e| e.to_string())?;
-                    Ok(())
-                })
-            })
+            Arc::new(
+                move |msg: botlib::models::UserMessage,
+                      tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                    let state = app_state.clone();
+                    tokio::spawn(async move {
+                        let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                        crate::core::bot::pipeline::run_pipeline_for_channel(&state, &msg, &sink)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(())
+                    })
+                },
+            )
         },
         attendant_broadcast: None,
     }))
@@ -204,35 +294,50 @@ pub(crate) fn make_msteams_router(app_state: &Arc<AppState>) -> Router<()> {
             let branch = resolve_default_branch(conn);
             (branch, "default".to_string())
         }),
-        get_config: crate::main_module::routes::channel_support::make_channel_config_reader(app_state),
+        get_config: crate::main_module::routes::channel_support::make_channel_config_reader(
+            app_state,
+        ),
         stream_response: {
             let app_state = app_state.clone();
-            Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
-                let state = app_state.clone();
-                tokio::spawn(async move {
-                    let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
-                    crate::core::bot::pipeline::run_pipeline_for_channel(
-                        &state, &msg, &sink,
-                    ).await.map_err(|e| e.to_string())?;
-                    Ok(())
-                })
-            })
+            Arc::new(
+                move |msg: botlib::models::UserMessage,
+                      tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
+                    let state = app_state.clone();
+                    tokio::spawn(async move {
+                        let sink = crate::core::bot::pipeline::MpscChannelSink(tx);
+                        crate::core::bot::pipeline::run_pipeline_for_channel(&state, &msg, &sink)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(())
+                    })
+                },
+            )
         },
         attendant_broadcast: None,
     }))
 }
 #[cfg(feature = "attendant")]
 pub(crate) fn make_attendant_router(app_state: &Arc<AppState>) -> Router<()> {
-    Router::new()
-        .merge(crate::attendance::routes::configure_attendance_routes().with_state(Arc::new(botattendance::AttendanceConfig {
+    Router::new().merge(
+        crate::attendance::routes::configure_attendance_routes()
+            .with_state(Arc::new(botattendance::AttendanceConfig {
             pool: Arc::new(app_state.conn.clone()),
             master_key: botsecurity_crypto::encryption::load_master_encryption_key(),
             get_default_bot: Arc::new(|conn: &mut _| resolve_default_branch(conn)),
-            llm_generate: Arc::new(|_: &str, _: &serde_json::Value, _: &str, _: &str| -> Result<String, Box<dyn std::error::Error + Send + Sync>> { Ok(String::new()) }),
+            llm_generate: Arc::new(
+                |_: &str,
+                 _: &serde_json::Value,
+                 _: &str,
+                 _: &str|
+                 -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+                    Ok(String::new())
+                },
+            ),
             process_content: Arc::new(|_: &str, _: &str| -> String { String::new() }),
             config_get: Arc::new(|_: &uuid::Uuid, _: &str| -> String { String::new() }),
             send_bot_response: None,
             broadcast_notification: None,
             save_message: None,
-        })))
+        })),
+    )
 }

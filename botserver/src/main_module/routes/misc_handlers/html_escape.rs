@@ -43,8 +43,10 @@ pub(super) fn bot_id_for(conn: &mut diesel::PgConnection, branch_id: Uuid) -> Uu
 }
 pub(super) fn pool_conn(
     state: &Arc<AppState>,
-) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, String)>
-{
+) -> Result<
+    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    (StatusCode, String),
+> {
     state
         .conn
         .get()

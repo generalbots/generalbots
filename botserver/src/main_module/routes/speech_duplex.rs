@@ -20,10 +20,10 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use tokio_tungstenite::connect_async_tls_with_config;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame as WsCloseFrame;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
-use tokio_tungstenite::connect_async_tls_with_config;
 use uuid::Uuid;
 
 use botcore::shared::state::AppState;

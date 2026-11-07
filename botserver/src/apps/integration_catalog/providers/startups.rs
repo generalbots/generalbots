@@ -172,7 +172,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             status: Status::Built,
             priority: Priority::Nice,
             module: None,
-            official_docs: Some("https://www.plain.com/docs/api-reference/introduction"),
+            official_docs: Some("https://www.plain.com/docs"),
             auth: &API_KEY,
             actions: SUPPORT_ACTIONS,
         },

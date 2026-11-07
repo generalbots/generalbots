@@ -212,7 +212,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             status: Status::Built,
             priority: Priority::Nice,
             module: None,
-            official_docs: Some("https://developer.dhl.com/api-reference"),
+            official_docs: Some("https://developer.dhl.com/"),
             auth: &API_KEY,
             actions: SHIPPING_ACTIONS,
         },

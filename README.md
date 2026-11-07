@@ -144,6 +144,22 @@ The long-form version — every module, the two security crates, the RAG modes �
 
 ## Getting Started
 
+### Download the desktop app (Linux x86_64)
+
+Product releases use `vMAJOR.MINOR.PATCH` tags. The `latest` links always point at the newest product release, which carries the desktop installer and its checksums:
+
+```bash
+curl -fL -O https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
+curl -fL -O https://github.com/generalbots/generalbots/releases/latest/download/SHA256SUMS-linux
+sha256sum -c <(grep ' generalbots-linux-x86_64.tar.gz' SHA256SUMS-linux)
+tar -xzf generalbots-linux-x86_64.tar.gz
+cd generalbots-*-linux-x86_64
+./install.sh        # per-user install, no root required
+general-bots        # first run opens the setup wizard
+```
+
+Windows and macOS builds are published as `-windows` and `-macos` pre-releases so they never take `latest`; component builds (`alm-*`, `pythonbox-*`, `drive-bin-*`) are pre-releases too. See [`desktop/linux/README.txt`](./desktop/linux/README.txt) for the full platform matrix.
+
 ### Requirements
 
 - **Rust** — a recent stable toolchain from [rustup.rs](https://rustup.rs) (edition 2021)

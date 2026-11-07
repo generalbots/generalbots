@@ -138,13 +138,14 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
-                    <div class="setting-row" style="opacity:0.55;cursor:default;" title="Not yet implemented">
+                    <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Weekly Digest <span style="font-size:0.75em;font-weight:normal;color:var(--text-secondary,#888);">(coming soon)</span></span>
-                            <span class="setting-desc">Get a weekly summary of activity</span>
+                            <span class="setting-title">Weekly Digest</span>
+                            <span class="setting-desc">Get a weekly summary of messages, conversations, Drive files and scheduled tasks</span>
+                            <span class="setting-desc" data-digest-status></span>
                         </div>
                         <label class="toggle">
-                            <input type="checkbox" name="email_digest" disabled>
+                            <input type="checkbox" name="email_digest">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -232,11 +233,11 @@
                 <div class="card-header">
                     <h2>Knowledge</h2>
                 </div>
-                <label style="display:flex;align-items:center;gap:10px;cursor:default;opacity:0.55;" title="Not yet implemented">
-                    <input type="checkbox" id="settings-index-all-drive" disabled>
-                    <span>Use all Drive files as knowledge context <span style="font-size:0.75em;font-weight:normal;color:var(--text-secondary,#888);">(coming soon)</span></span>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" id="settings-index-all-drive" onchange="toggleIndexAllDrive(this)">
+                    <span>Use all Drive files as knowledge context</span>
                 </label>
-                <p class="subtitle" style="margin-top:8px;">When enabled, recent Drive files are included in chat context by default.</p>
+                <p class="subtitle" style="margin-top:8px;">When enabled (the default), the names of your recent Drive files travel with each chat turn so the assistant can use them as context. Turn it off to keep Drive out of the prompt.</p>
             </div>
 
             <!-- Storage Usage -->

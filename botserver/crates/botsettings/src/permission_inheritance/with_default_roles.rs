@@ -12,13 +12,8 @@ impl PermissionInheritanceResolver {
     }
 
     pub fn with_default_roles(mut self) -> Self {
-        self.role_hierarchy.add_role(
-            "owner",
-            "Owner",
-            vec!["*".to_string()],
-            Vec::new(),
-            100,
-        );
+        self.role_hierarchy
+            .add_role("owner", "Owner", vec!["*".to_string()], Vec::new(), 100);
 
         self.role_hierarchy.add_role(
             "admin",
@@ -67,10 +62,7 @@ impl PermissionInheritanceResolver {
         self.role_hierarchy.add_role(
             "viewer",
             "Viewer",
-            vec![
-                "bot:view".to_string(),
-                "kb:read".to_string(),
-            ],
+            vec!["bot:view".to_string(), "kb:read".to_string()],
             vec!["member".to_string()],
             30,
         );
@@ -87,11 +79,8 @@ impl PermissionInheritanceResolver {
     }
 
     pub fn with_default_groups(mut self) -> Self {
-        self.group_hierarchy.add_group(
-            "everyone",
-            vec!["basic:access".to_string()],
-            None,
-        );
+        self.group_hierarchy
+            .add_group("everyone", vec!["basic:access".to_string()], None);
 
         self.group_hierarchy.add_group(
             "developers",
@@ -105,19 +94,13 @@ impl PermissionInheritanceResolver {
 
         self.group_hierarchy.add_group(
             "content_managers",
-            vec![
-                "kb:write".to_string(),
-                "kb:admin".to_string(),
-            ],
+            vec!["kb:write".to_string(), "kb:admin".to_string()],
             Some("everyone".to_string()),
         );
 
         self.group_hierarchy.add_group(
             "support",
-            vec![
-                "bot:view".to_string(),
-                "analytics:view".to_string(),
-            ],
+            vec!["bot:view".to_string(), "analytics:view".to_string()],
             Some("everyone".to_string()),
         );
 
@@ -223,7 +206,11 @@ impl PermissionInheritanceResolver {
         }
     }
 
-    pub fn check_permission(&mut self, user_id: Uuid, required_permission: &str) -> PermissionCheckResult {
+    pub fn check_permission(
+        &mut self,
+        user_id: Uuid,
+        required_permission: &str,
+    ) -> PermissionCheckResult {
         let effective = self.get_effective_permissions(user_id);
 
         if effective.permissions.contains("*") {

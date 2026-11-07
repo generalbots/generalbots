@@ -1,7 +1,7 @@
-use std::net::SocketAddr;
+use super::shutdown::shutdown_signal;
 use axum::Router;
 use log::{error, info};
-use super::shutdown::shutdown_signal;
+use std::net::SocketAddr;
 
 pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
     let stack = botcore::shared::utils::get_stack_path();

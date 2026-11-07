@@ -13,6 +13,8 @@
 set -euo pipefail
 
 VERSION="${1:?version is required (for example v6.7.0)}"
+# Artifacts are named from the version, not the tag: v6.7.1 -> 6.7.1.
+VERSION="${VERSION#v}"
 TARGET="${2:?target directory is required (for example target/release)}"
 OUT="${3:?output directory is required (for example dist)}"
 VENDOR="${4:-}"

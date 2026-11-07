@@ -54,7 +54,10 @@ pub async fn handle_chat_message(
 
     let trimmed = message.trim().to_string();
     if trimmed.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Please enter a message.".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Please enter a message.".to_string(),
+        ));
     }
 
     let reply = if let Some(llm) = state.llm_provider.clone() {
@@ -82,7 +85,9 @@ pub async fn handle_chat_message(
         )
     };
 
-    Ok(Json(serde_json::json!({ "reply": reply, "message": reply })))
+    Ok(Json(
+        serde_json::json!({ "reply": reply, "message": reply }),
+    ))
 }
 
 pub async fn handle_chat_message_htmx(
@@ -130,9 +135,7 @@ pub async fn handle_chat_context(
     ))
 }
 
-pub async fn handle_new_session(
-    Form(payload): Form<NewSessionRequest>,
-) -> impl IntoResponse {
+pub async fn handle_new_session(Form(payload): Form<NewSessionRequest>) -> impl IntoResponse {
     let id = Uuid::new_v4();
     let title = payload
         .title
@@ -190,7 +193,10 @@ pub fn configure_chat_routes() -> Router<Arc<AppState>> {
         .route("/api/chat/context", post(handle_chat_context))
         .route("/api/chat/models", get(handle_chat_models))
         .route("/api/chat/sessions/new", post(handle_new_session))
-        .route("/api/sessions/current/message", post(handle_sessions_current_message))
+        .route(
+            "/api/sessions/current/message",
+            post(handle_sessions_current_message),
+        )
 }
 
 /// #1637 — reports the model behind each picker tier so the UI can label the

@@ -132,6 +132,14 @@
             leastPrivilege.push(leastPrivilegeFallback);
         }
         var docsUrl = namespace.safeUrl(provider.official_docs);
+        // #1859: send users straight to the page that issues the credential,
+        // not just to the API reference. Unsupported/unknown providers and
+        // user-supplied endpoints publish no credentials_url.
+        var credentialsUrl = namespace.safeUrl(provider.credentials_url);
+        var credentialsBlock = credentialsUrl ?
+            '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Get credentials</h4><span>Vendor console</span></div>' +
+            '<p class="integrations-readonly-note">Create the token, key or OAuth app on the vendor page, then paste the value into the connect form below.</p>' +
+            '<a class="integrations-button" href="' + namespace.escapeHtml(credentialsUrl) + '" target="_blank" rel="noopener noreferrer">Open credential page</a></section>' : '';
         var setupSteps = renderSetupSteps(provider.auth.setup_steps, provider.auth.instructions);
         var setupNote = provider.auth.instructions ?
             '<p class="integrations-readonly-note">' + namespace.escapeHtml(provider.auth.instructions) + '</p>' : '';
@@ -149,7 +157,7 @@
             '<dl class="integrations-detail-meta"><div><dt>Category</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.category)) + '</dd></div>' +
             '<div><dt>Priority</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.priority)) + '</dd></div>' +
             '<div><dt>Module</dt><dd>' + namespace.escapeHtml(provider.module) + '</dd></div></dl>' + warning +
-            adapterBlock +
+            credentialsBlock + adapterBlock +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Authentication</h4>' +
             '<span>' + namespace.escapeHtml(namespace.titleCase(provider.auth.method, "Not specified")) + '</span></div>' + renderFields(provider) + '</section>' +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Setup guidance</h4><span>Read only</span></div>' +

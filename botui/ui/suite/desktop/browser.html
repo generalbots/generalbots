@@ -22,6 +22,12 @@
             </div>
         </header>
 
+        <div class="vm-tabstrip" id="vm-tabstrip" style="display:none">
+            <span class="vm-tabstrip-label">VM tabs</span>
+            <div class="vm-tabstrip-list" id="vm-tabstrip-list"></div>
+            <span class="vm-tabstrip-hint" id="vm-tabstrip-hint">Shared across conversations</span>
+        </div>
+
         <div class="browser-toolbar" id="toolbar" style="display:none">
             <div class="toolbar-row">
                 <input type="text" id="nav-url" class="input-field url-bar" placeholder="https://example.com">
@@ -67,6 +73,7 @@
         </div>
     </div>
 
+    <script src="/suite/desktop/vm-tabs.js"></script>
     <script src="/suite/desktop/browser.js"></script>
 </body>
 </html>

@@ -143,10 +143,7 @@ pub async fn usage_summary(
         }
     };
 
-    let models: Vec<String> = rows
-        .iter()
-        .filter_map(|row| row.model.clone())
-        .collect();
+    let models: Vec<String> = rows.iter().filter_map(|row| row.model.clone()).collect();
     let prices = prices_for(&state, &models);
     let mut per_day: BTreeMap<String, serde_json::Value> = BTreeMap::new();
     let mut total_tokens: i64 = 0;
@@ -162,8 +159,14 @@ pub async fn usage_summary(
             .entry(row.day.clone())
             .or_insert_with(|| json!({ "day": row.day.clone(), "tokens": 0, "messages": 0 }));
         if let Some(object) = day_entry.as_object_mut() {
-            let tokens = object.get("tokens").and_then(serde_json::Value::as_i64).unwrap_or(0);
-            let messages = object.get("messages").and_then(serde_json::Value::as_i64).unwrap_or(0);
+            let tokens = object
+                .get("tokens")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(0);
+            let messages = object
+                .get("messages")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(0);
             object.insert("tokens".to_string(), json!(tokens + row.tokens));
             object.insert("messages".to_string(), json!(messages + row.messages));
         }
@@ -172,11 +175,14 @@ pub async fn usage_summary(
             priced += 1;
             total_cost += (row.tokens as f64 / 1_000_000.0) * price;
         }
-        let entry = per_model.entry(model).or_insert_with(|| {
-            json!({ "tokens": 0, "messages": 0, "cost": null })
-        });
+        let entry = per_model
+            .entry(model)
+            .or_insert_with(|| json!({ "tokens": 0, "messages": 0, "cost": null }));
         if let Some(object) = entry.as_object_mut() {
-            let tokens = object.get("tokens").and_then(serde_json::Value::as_i64).unwrap_or(0);
+            let tokens = object
+                .get("tokens")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or(0);
             let messages = object
                 .get("messages")
                 .and_then(serde_json::Value::as_i64)

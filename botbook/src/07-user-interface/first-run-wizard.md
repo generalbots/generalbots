@@ -46,12 +46,13 @@ needs remote Incus or a Linux VM. Gatekeeper blocks the unsigned app until the
 user right-clicks -> Open or runs
 `xattr -dr com.apple.quarantine "/Applications/General Bots.app"`.
 
-On Windows the payload now includes `installers/` for MinIO + mc, Redis
-(cache), Qdrant, Zitadel and Caddy. The wizard downloads PostgreSQL, Vault,
-llama.cpp and models once unless `GB_DESKTOP_OFFLINE=1`; with that flag it
-names the missing file instead of attempting a network call. The AI media
-service stays unavailable because no Windows pythonbox is published, and the
-finish screen shows that reason from `/api/product`.
+On Windows the payload includes `installers/` for MinIO + mc, Redis (cache),
+Qdrant, Zitadel, Caddy and the Windows BotModels pythonbox
+(`botmodels-pythonbox-windows-x86_64.zip`). The wizard downloads PostgreSQL,
+Vault, llama.cpp and models once unless `GB_DESKTOP_OFFLINE=1`; with that flag
+it names the missing file instead of attempting a network call. The AI media
+service builds its virtual environment from the bundled win_amd64 wheelhouse on
+first use, so vision/STT/TTS also work without network access.
 
 `PROD-DEPENDENCIES.ps1 -Check` exits `0` when the desktop shell and agent mode
 can run, `1` when the desktop shell cannot run (WebView2, VC++ 2015-2022 x64
@@ -92,21 +93,23 @@ the platform reason that `/api/product` should expose as
 Without that field, call the same function from the agent error path before
 spawning Incus.
 
-The BotModels pythonbox release asset is
-`botmodels-pythonbox-linux-x86_64.tar.gz` only. On Windows, Linux arm64 and
-macOS, vision/STT/TTS cannot be provisioned: the only published pythonbox is
-Linux x86_64, so the desktop-local package manager refuses the runtime download
-("not found in bundled installers"). Those features stay unavailable until a
-Windows/aarch64/darwin pythonbox exists. `/api/product` always returns
-`media_capabilities` with `botmodels.available` and the platform reason, and the
-wizard marks the AI media service unavailable instead of trying to install
-(and failing or hanging on) an archive that cannot run.
+The BotModels pythonbox releases publish
+`botmodels-pythonbox-linux-x86_64.tar.gz` and
+`botmodels-pythonbox-windows-x86_64.zip`. On Linux arm64 and macOS,
+vision/STT/TTS cannot be provisioned: there is no aarch64/darwin archive, so
+the desktop-local package manager refuses the runtime download ("not found in
+bundled installers"). Those features stay unavailable until that pythonbox
+exists. `/api/product` always returns `media_capabilities` with
+`botmodels.available` and the platform reason, and the wizard marks the AI media
+service unavailable instead of trying to install (and failing or hanging on) an
+archive that cannot run.
 
-The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel
-and Caddy under `installers/`; PostgreSQL, Vault and llama.cpp (when the local
-model is selected) are downloaded once on first run. `GB_DESKTOP_OFFLINE=1`
-refuses those downloads and names the missing archive. The MSI/NSIS packages get
-the same `installers/` resources from `botserver/botserver-installers`.
+The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel,
+Caddy and the Windows pythonbox under `installers/`; PostgreSQL, Vault and
+llama.cpp (when the local model is selected) are downloaded once on first run.
+`GB_DESKTOP_OFFLINE=1` refuses those downloads and names the missing archive.
+The MSI/NSIS packages get the same `installers/` resources from
+`botserver/botserver-installers`.
 
 ## Detection
 

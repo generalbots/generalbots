@@ -27,7 +27,9 @@ pub struct MemoryUpsert {
     pub bot_id: Option<Uuid>,
 }
 
-fn auth_error(status: axum::http::StatusCode) -> (axum::http::StatusCode, AxumJson<serde_json::Value>) {
+fn auth_error(
+    status: axum::http::StatusCode,
+) -> (axum::http::StatusCode, AxumJson<serde_json::Value>) {
     (
         status,
         AxumJson(json!({ "error": "A valid session token is required" })),
@@ -35,10 +37,7 @@ fn auth_error(status: axum::http::StatusCode) -> (axum::http::StatusCode, AxumJs
 }
 
 /// GET /api/user/memory
-pub async fn list(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-) -> impl IntoResponse {
+pub async fn list(State(state): State<Arc<AppState>>, headers: HeaderMap) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(conn) => conn,
         None => {

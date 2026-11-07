@@ -25,14 +25,24 @@ pub fn validate_webhook_url(url: &str) -> Result<(), &'static str> {
     if url.trim().is_empty() {
         return Err("Webhook URL is required");
     }
-    let is_prod = std::env::var("GB_ENV").map(|v| v == "production").unwrap_or(false);
+    let is_prod = std::env::var("GB_ENV")
+        .map(|v| v == "production")
+        .unwrap_or(false);
     if is_prod && !url.starts_with("https://") {
         return Err("Webhook URL must use HTTPS in production");
     }
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("Webhook URL must start with http:// or https://");
     }
-    let forbidden = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "169.254.", "10.", "192.168."];
+    let forbidden = [
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "169.254.",
+        "10.",
+        "192.168.",
+    ];
     if forbidden.iter().any(|f| url.contains(f)) {
         return Err("Webhook URL cannot point to localhost or private networks");
     }
@@ -93,7 +103,15 @@ pub async fn deliver_with_retries(
         Ok(c) => c,
         Err(e) => {
             log::error!("webhook deliver: client build failed: {e}");
-            mark_delivery(&state, delivery_id, "failed", None, None, attempt, Some(&e.to_string()));
+            mark_delivery(
+                &state,
+                delivery_id,
+                "failed",
+                None,
+                None,
+                attempt,
+                Some(&e.to_string()),
+            );
             return;
         }
     };
@@ -116,24 +134,66 @@ pub async fn deliver_with_retries(
                 let ok = (200..300).contains(&code);
                 let body = resp.text().await.unwrap_or_default();
                 let status = if ok { "success" } else { "failed" };
-                let err = if ok { None } else { Some(format!("HTTP {code}: {}", truncate(&body, 200))) };
+                let err = if ok {
+                    None
+                } else {
+                    Some(format!("HTTP {code}: {}", truncate(&body, 200)))
+                };
                 let should_retry = !ok && attempt < max_attempts;
                 if should_retry {
-                    mark_delivery(&state, delivery_id, "retrying", Some(code), Some(&body), attempt, err.as_deref());
-                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt as u32) * 5)).await;
+                    mark_delivery(
+                        &state,
+                        delivery_id,
+                        "retrying",
+                        Some(code),
+                        Some(&body),
+                        attempt,
+                        err.as_deref(),
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(
+                        2u64.pow(attempt as u32) * 5,
+                    ))
+                    .await;
                     continue;
                 }
-                mark_delivery(&state, delivery_id, status, Some(code), Some(&body), attempt, err.as_deref());
+                mark_delivery(
+                    &state,
+                    delivery_id,
+                    status,
+                    Some(code),
+                    Some(&body),
+                    attempt,
+                    err.as_deref(),
+                );
                 return;
             }
             Err(e) => {
                 let msg = format!("request error: {e}");
                 if attempt < max_attempts {
-                    mark_delivery(&state, delivery_id, "retrying", None, None, attempt, Some(&msg));
-                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt as u32) * 5)).await;
+                    mark_delivery(
+                        &state,
+                        delivery_id,
+                        "retrying",
+                        None,
+                        None,
+                        attempt,
+                        Some(&msg),
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(
+                        2u64.pow(attempt as u32) * 5,
+                    ))
+                    .await;
                     continue;
                 }
-                mark_delivery(&state, delivery_id, "failed", None, None, attempt, Some(&msg));
+                mark_delivery(
+                    &state,
+                    delivery_id,
+                    "failed",
+                    None,
+                    None,
+                    attempt,
+                    Some(&msg),
+                );
                 return;
             }
         }

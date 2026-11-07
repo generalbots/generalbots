@@ -23,10 +23,12 @@ fn canvas_branch_pool(
 pub(crate) fn make_canvas_router(app_state: &Arc<AppState>) -> Router<()> {
     let state = Arc::new(botcanvas::CanvasState {
         pool: Arc::new(app_state.conn.clone()),
-        get_bot_context: Arc::new(canvas_branch_pool
-            as fn(
-                &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
-            ) -> (uuid::Uuid, uuid::Uuid)),
+        get_bot_context: Arc::new(
+            canvas_branch_pool
+                as fn(
+                    &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+                ) -> (uuid::Uuid, uuid::Uuid),
+        ),
     });
     Router::new()
         .merge(crate::canvas::configure_canvas_routes().with_state(state.clone()))

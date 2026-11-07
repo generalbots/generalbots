@@ -20,10 +20,7 @@ pub type UuidConfigFn = dyn Fn(&Uuid, &str, Option<&str>) -> Result<String, Stri
 pub type HandleConfigFn = dyn Fn(&str, &str, Option<&str>) -> Result<String, String> + Send + Sync;
 
 #[cfg(feature = "instagram")]
-fn resolve_channel_bot_id(
-    pool: &botcore::shared::utils::DbPool,
-    name: &str,
-) -> Option<Uuid> {
+fn resolve_channel_bot_id(pool: &botcore::shared::utils::DbPool, name: &str) -> Option<Uuid> {
     use diesel::prelude::*;
 
     #[derive(diesel::QueryableByName)]
@@ -143,19 +140,13 @@ pub fn make_put_media_fn(app_state: &Arc<AppState>) -> bottelegram::state::PutMe
             let Some(repository) = drive.clone() else {
                 return Box::pin(std::future::ready(Err(
                     "Drive service not available".to_string()
-                ))) as std::pin::Pin<
-                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
-                >;
+                )))
+                    as std::pin::Pin<
+                        Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                    >;
             };
 
-            put_channel_media(
-                &pool,
-                &repository,
-                bot_id,
-                rel_path,
-                data,
-                content_type,
-            )
+            put_channel_media(&pool, &repository, bot_id, rel_path, data, content_type)
         },
     ) as bottelegram::state::PutMediaFn
 }
@@ -172,19 +163,13 @@ pub fn make_wa_put_media_fn(app_state: &Arc<AppState>) -> botwhatsapp::state::Pu
             let Some(repository) = drive.clone() else {
                 return Box::pin(std::future::ready(Err(
                     "Drive service not available".to_string()
-                ))) as std::pin::Pin<
-                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
-                >;
+                )))
+                    as std::pin::Pin<
+                        Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                    >;
             };
 
-            put_channel_media(
-                &pool,
-                &repository,
-                bot_id,
-                rel_path,
-                data,
-                content_type,
-            )
+            put_channel_media(&pool, &repository, bot_id, rel_path, data, content_type)
         },
     ) as botwhatsapp::state::PutMediaFn
 }

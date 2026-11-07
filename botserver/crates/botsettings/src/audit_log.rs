@@ -71,10 +71,7 @@ pub fn record_audit_event(event: AuditEvent<'_>) {
 }
 
 /// Reads the most recent audit events from the `audit_log` table.
-pub fn list_audit_events(
-    state: &Arc<AppState>,
-    limit: i64,
-) -> Vec<serde_json::Value> {
+pub fn list_audit_events(state: &Arc<AppState>, limit: i64) -> Vec<serde_json::Value> {
     let Some(mut conn) = state.conn.get().ok() else {
         return Vec::new();
     };

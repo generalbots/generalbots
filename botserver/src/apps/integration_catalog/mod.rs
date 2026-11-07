@@ -1,6 +1,7 @@
 mod actions;
 mod auth;
 mod auth_steps;
+mod credentials;
 mod providers;
 mod routes;
 mod types;
@@ -79,6 +80,7 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
         priority: seed.priority,
         module: seed.module,
         official_docs: seed.official_docs,
+        credentials_url: credentials::credential_page(seed.id),
         auth: *seed.auth,
         action_count: actions.len(),
         actions,

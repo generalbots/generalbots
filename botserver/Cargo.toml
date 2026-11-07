@@ -15,7 +15,7 @@ features = ["database", "i18n", "http-client"]
 # #1621 — `botcore/default` restores the domain feature set that used to arrive
 # through workspace feature unification. Slim bundles (desktop-local, chat-drive,
 # no-security) build without it and therefore report only what they ship.
-default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory", "terminal", "research", "consent", "botcore/default"]
+default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory", "terminal", "research", "consent", "digest", "botcore/default"]
 
 # Lean product profile: chat + drive only (no integrations app, no editor,
 # no Zitadel directory). Use with:
@@ -44,7 +44,11 @@ crawler = ["cache"]
 # Communication
 chat = ["automation", "cache", "botcore/chat"]
 people = ["automation", "drive", "cache", "dep:botpeople"]
-mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail"]
+mail = ["automation", "drive", "cache", "digest", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail"]
+# #1813 — weekly notification digest. Kept separate from `mail` so the
+# desktop-local/settings bundles can send through the platform notification
+# sender without pulling in IMAP, mail parsing or the full mail app.
+digest = ["automation", "drive", "cache", "dep:lettre"]
 meet = ["automation", "drive", "cache", "dep:botmeet"]
 social = ["automation", "drive", "cache", "dep:botsocial", "dep:botchannels"]
 marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
@@ -104,7 +108,7 @@ git = ["automation", "drive", "cache", "dep:botgit"]
 # Admin
 attendant = ["automation", "drive", "cache", "dep:botattendant"]
 security = ["automation", "drive", "cache", "dep:botsecurity", "botsecurity/cache"]
-settings = ["automation", "drive", "cache"]
+settings = ["automation", "drive", "cache", "digest"]
 
 whatsapp = ["automation", "drive", "cache", "dep:botwhatsapp"]
 

@@ -5,7 +5,6 @@ use log::info;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 pub(crate) fn init_llm_provider(
     config_manager: &ConfigManager,
     default_bot_id: &str,
@@ -13,16 +12,14 @@ pub(crate) fn init_llm_provider(
     pool: &botcore::shared::utils::DbPool,
     redis_client: Option<Arc<redis::Client>>,
 ) -> Arc<dyn crate::llm::traits::LLMProvider> {
-    use crate::llm::cache::{CacheConfig, CachedLLMProvider, EmbeddingService, LocalEmbeddingService};
+    use crate::llm::cache::{
+        CacheConfig, CachedLLMProvider, EmbeddingService, LocalEmbeddingService,
+    };
 
     if let Some(ref cache) = redis_client {
         let bot_id = Uuid::parse_str(default_bot_id).unwrap_or_default();
         let embedding_url = config_manager
-            .get_config(
-                &bot_id,
-                "embedding-url",
-                Some(""),
-            )
+            .get_config(&bot_id, "embedding-url", Some(""))
             .unwrap_or_else(|_| "".to_string());
         let embedding_model = config_manager
             .get_config(&bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
@@ -33,7 +30,8 @@ pub(crate) fn init_llm_provider(
         let semantic_cache_enabled = config_manager
             .get_config(&bot_id, "llm-cache-semantic", Some("false"))
             .unwrap_or_else(|_| "false".to_string())
-            .to_lowercase() == "true";
+            .to_lowercase()
+            == "true";
 
         let similarity_threshold = config_manager
             .get_config(&bot_id, "llm-cache-threshold", Some("0.85"))
@@ -43,7 +41,14 @@ pub(crate) fn init_llm_provider(
 
         info!("Embedding URL: {}", embedding_url);
         info!("Embedding Model: {}", embedding_model);
-        info!("Embedding Key: {}", if embedding_key.is_some() { "configured" } else { "not set" });
+        info!(
+            "Embedding Key: {}",
+            if embedding_key.is_some() {
+                "configured"
+            } else {
+                "not set"
+            }
+        );
         info!("Semantic Cache Enabled: {}", semantic_cache_enabled);
         info!("Cache Similarity Threshold: {}", similarity_threshold);
 

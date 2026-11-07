@@ -75,8 +75,9 @@ fn deliver_telegram(state: &Arc<AppState>, response: &BotResponse) -> bool {
 
         let adapter = bottelegram::TelegramAdapter::new(pool, bot_id, get_config);
         let session_id = message.session_id.clone();
-        let sent = runtime
-            .block_on(bottelegram::ChannelAdapter::send_bot_response(&adapter, message));
+        let sent = runtime.block_on(bottelegram::ChannelAdapter::send_bot_response(
+            &adapter, message,
+        ));
 
         match sent {
             Ok(()) => botlog::safe_info!(
