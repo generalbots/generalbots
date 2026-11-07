@@ -49,6 +49,7 @@ fn create_api_router() -> Router<AppState> {
         // need a real WS proxy — the reqwest-based fallback cannot tunnel
         // upgrades. These routes must come BEFORE the fallback.
         .route("/terminal/ws", get(api_ws_proxy))
+        .route("/speech/duplex", get(api_ws_proxy))
         .route("/browser/session/:id/agent/ws", get(api_ws_proxy))
         .fallback(any(proxy_api))
 }

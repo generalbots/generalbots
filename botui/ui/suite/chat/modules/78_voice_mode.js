@@ -1,10 +1,12 @@
-/* chat/modules/78_voice_mode.js — immersive full-duplex voice surface.
+/* chat/modules/78_voice_mode.js — immersive voice surface (live or turn-based).
  *
- * The duplex button in the composer opens a centered panel with a live
- * waveform: the bars follow the microphone level while listening, switch to a
- * speech-like animation while the assistant is talking, and pulse while the
- * answer is being generated. Closing the panel ends duplex mode (and the
- * microphone) in one action.
+ * The voice button in the composer opens a centered panel with a live
+ * waveform: bars follow the microphone level while listening, switch to a
+ * speech-like animation while the assistant talks, and pulse while the answer
+ * is generated. The status line reports the real transport: "Live voice" only
+ * after 76_voice_duplex.js connected to BotModels, otherwise the explicit
+ * "Turn-based voice (duplex unavailable)" fallback label. Closing the panel
+ * ends voice mode and releases the microphone in one action.
  */
 "use strict";
 
@@ -22,6 +24,13 @@
     return fallback;
   }
 
+  function mode() {
+    if (window.GBVoice && typeof GBVoice.getMode === "function") {
+      return GBVoice.getMode() === "duplex" ? "duplex" : "turn_based";
+    }
+    return "turn_based";
+  }
+
   function phase() {
     if (window.GBVoice && typeof GBVoice.getPhase === "function") {
       var p = GBVoice.getPhase();
@@ -31,11 +40,24 @@
     return "idle";
   }
 
-  function labelFor(p) {
-    if (p === "listening") return tr("voice-mode-listening", "Listening… speak naturally");
-    if (p === "thinking") return tr("voice-mode-thinking", "Thinking…");
-    if (p === "speaking") return tr("voice-mode-speaking", "Speaking…");
-    return tr("voice-mode-idle", "Voice conversation");
+  function labelFor(p, currentMode) {
+    if (p === "connecting") return tr("voice-mode-connecting", "Connecting duplex voice…");
+    if (currentMode === "duplex") {
+      if (p === "listening") return tr("voice-mode-live-listening", "Live voice — speak to interrupt");
+      if (p === "thinking") return tr("voice-mode-thinking", "Thinking…");
+      if (p === "speaking") return tr("voice-mode-live-speaking", "Live voice — speaking (interrupt anytime)");
+      return tr("voice-mode-live-ready", "Live voice ready");
+    }
+    if (p === "listening") {
+      return tr("voice-mode-fallback-listening", "Turn-based voice (duplex unavailable) — listening…");
+    }
+    if (p === "thinking") {
+      return tr("voice-mode-fallback-thinking", "Turn-based voice (duplex unavailable) — thinking…");
+    }
+    if (p === "speaking") {
+      return tr("voice-mode-fallback-speaking", "Turn-based voice (duplex unavailable) — speaking…");
+    }
+    return tr("voice-mode-fallback-idle", "Turn-based voice (duplex unavailable)");
   }
 
   function build() {
@@ -85,9 +107,10 @@
     var overlay = document.getElementById("gbVoiceMode");
     if (!overlay) return;
     var box = overlay.querySelector(".gb-voice-mode-transcript");
+    var live = overlay.dataset.transcript;
     var bot = document.querySelectorAll("#chat-app .message.bot");
     var last = bot.length ? bot[bot.length - 1] : null;
-    var text = last ? (last.innerText || "").trim() : "";
+    var text = live || (last ? (last.innerText || "").trim() : "");
     if (text) {
       box.textContent = text.length > 280 ? text.slice(0, 280) + "…" : text;
     }
@@ -97,10 +120,12 @@
     var overlay = document.getElementById("gbVoiceMode");
     if (!overlay || !overlay.classList.contains("visible")) return;
     var p = phase();
+    var currentMode = mode();
     var status = overlay.querySelector(".gb-voice-mode-status");
-    var label = labelFor(p);
+    var label = labelFor(p, currentMode);
     if (status.textContent !== label) status.textContent = label;
     overlay.dataset.phase = p;
+    overlay.dataset.mode = currentMode;
     var level = window.GBVoice && GBVoice.getLevel ? GBVoice.getLevel() : 0;
     var t = performance.now() / 1000;
     for (var i = 0; i < bars.length; i++) {
@@ -109,7 +134,7 @@
         value = 0.26 + Math.max(level, 0.22) * (0.45 + 0.55 * Math.abs(Math.sin(t * 4.2 + i * 0.55)));
       } else if (p === "speaking") {
         value = 0.40 + 0.52 * Math.abs(Math.sin(t * 7.5 + i * 0.8));
-      } else if (p === "thinking") {
+      } else if (p === "thinking" || p === "connecting") {
         value = 0.16 + 0.14 * Math.abs(Math.sin(t * 2.2 + i * 0.35));
       } else {
         value = 0.12;
@@ -130,7 +155,10 @@
 
   function close() {
     var overlay = document.getElementById("gbVoiceMode");
-    if (overlay) overlay.classList.remove("visible");
+    if (overlay) {
+      overlay.classList.remove("visible");
+      overlay.dataset.transcript = "";
+    }
     if (frame) {
       cancelAnimationFrame(frame);
       frame = null;
@@ -140,6 +168,19 @@
   window.addEventListener("gb-voice-duplex", function (event) {
     if (event.detail && event.detail.enabled) open();
     else close();
+  });
+
+  // The duplex transport publishes the recognised user text; show it until the
+  // bot reply replaces it, without adding new DOM ids or classes.
+  window.addEventListener("gb-voice-transcript", function (event) {
+    var overlay = document.getElementById("gbVoiceMode");
+    if (!overlay || !event.detail || !event.detail.text) return;
+    overlay.dataset.transcript = event.detail.text;
+  });
+
+  window.addEventListener("gb-chat-bot-complete", function () {
+    var overlay = document.getElementById("gbVoiceMode");
+    if (overlay) overlay.dataset.transcript = "";
   });
 
   // A one-shot microphone recording also gets the visual feedback, but the

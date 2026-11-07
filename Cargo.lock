@@ -3424,6 +3424,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-rustls",
+ "tokio-tungstenite",
  "toml 0.8.2",
  "tower-http",
  "tracing",

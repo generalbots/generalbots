@@ -50,12 +50,21 @@ Two composer controls cover hands-on and hands-free use:
 | Control | What it does |
 |---------|--------------|
 | 🎤 **Microphone** | Records one utterance, then sends it as an audio attachment. BotModels `faster-whisper` transcribes it server-side (`/api/speech/totext`) and the answer arrives as normal chat. Silence ends the recording automatically. |
-| 🎧 **Full duplex** | Continuously re-arms the microphone after every reply and reads the answer aloud, so you can hold a spoken conversation without touching the keyboard. It opens an immersive panel with a live waveform: green while listening, amber while thinking, blue while the assistant speaks. |
+| 🎧 **Continuous voice** | Opens a duplex session through botserver `/api/speech/duplex` to BotModels `/v1/audio/duplex`: microphone PCM streams continuously and the answer is spoken back. Speaking while the assistant talks triggers barge-in (playback stops and the server cancels the utterance). The panel labels the real transport: **Live voice — speak to interrupt** only after the socket is ready, otherwise **Turn-based voice (duplex unavailable)**. |
 
 Microphone permission is requested by the browser on first use. If it is
 denied, the composer shows a localized explanation instead of failing
 silently. Recordings are ordinary chat attachments, so they also appear in the
 conversation history and can be transcribed again later.
+
+Live duplex needs BotModels with the speech backends loaded and the
+`BOTMODELS_HOST`/API-key configuration used by attachment transcription. When
+BotModels is absent, the socket cannot connect, or it closes abnormally, the
+same button falls back to the record → transcribe → speak loop and says so in
+the panel; it never presents the fallback as live. The duplex endpoint does not
+perform acoustic echo cancellation, so the client gates microphone frames while
+the assistant speaks and barge-in needs headphones or the browser's echo
+cancellation.
 
 ### Camera
 

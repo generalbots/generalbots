@@ -369,6 +369,13 @@ on barge-in. It does **not** perform acoustic echo cancellation; the client
 must not route the synthesised output back into its microphone. `/stt/stream`
 and `/tts/stream` remain available for half-duplex clients.
 
+The suite chat client never connects to BotModels directly: it uses the
+authenticated botserver bridge at `/api/speech/duplex`, which keeps the
+BotModels URL and API key server-side. If the bridge or BotModels is
+unavailable, the client keeps the record → transcribe → speak loop and labels
+the panel "Turn-based voice (duplex unavailable)" instead of claiming live
+duplex.
+
 ```bash
 # HTTP round-trip
 curl -s -H "X-API-Key: $API_KEY" \

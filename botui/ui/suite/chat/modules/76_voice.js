@@ -1,13 +1,15 @@
-/* chat/modules/76_voice.js — microphone input and full-duplex conversation.
+/* chat/modules/76_voice.js — microphone input and continuous voice control.
  *
  * Mic: records one utterance with MediaRecorder, sends it as the normal chat
  * attachment. The server already routes audio attachments to BotModels'
  * /api/speech/totext, so the transcription and the answer use the same
  * open-source stack as uploaded audio — no browser vendor service.
  *
- * Full duplex: keeps the loop going. After each completed bot turn the reply
- * is spoken (existing TTSState/speakText) and the microphone re-arms, so the
- * user can talk back without touching the keyboard.
+ * Continuous voice: 76_voice_duplex.js streams PCM both ways when BotModels
+ * is reachable. This module keeps the fallback loop used when it is not: after
+ * each completed bot turn the reply is spoken (TTSState/speakText) and the
+ * microphone re-arms, so the user can talk back without touching the keyboard.
+ * `GBVoice.getMode()` reports "duplex" only after the live socket is ready.
  */
 "use strict";
 
@@ -37,6 +39,11 @@
     restartTimer: null,
     level: 0,
     phase: "idle",
+    mode: "turn_based",
+    fallbackReason: "",
+    fallbackNotified: false,
+    liveNotified: false,
+    prevAutoSpeak: null,
   };
 
   function setPhase(phase) {
@@ -44,7 +51,7 @@
     state.phase = phase;
     try {
       window.dispatchEvent(new CustomEvent("gb-voice-state", {
-        detail: { phase: phase, duplex: state.duplex },
+        detail: { phase: phase, mode: state.mode, duplex: state.duplex },
       }));
     } catch (e) { /* CustomEvent unavailable */ }
   }
@@ -110,9 +117,14 @@
     if (duplex) {
       duplex.classList.toggle("active", state.duplex);
       duplex.setAttribute("aria-pressed", state.duplex ? "true" : "false");
-      var duplexLabel = state.duplex
-        ? tr("chat-voice-duplex-on", "Continuous voice on — replies are spoken and the mic re-arms. Click to stop.")
-        : tr("chat-voice-duplex-off", "Continuous voice (full duplex) — speak and listen hands-free.");
+      var duplexLabel;
+      if (!state.duplex) {
+        duplexLabel = tr("chat-voice-duplex-off", "Continuous voice — speak and listen hands-free.");
+      } else if (state.mode === "duplex") {
+        duplexLabel = tr("chat-voice-duplex-live", "Live voice on — speak anytime to interrupt. Click to stop.");
+      } else {
+        duplexLabel = tr("chat-voice-duplex-fallback", "Turn-based voice (duplex unavailable) — replies are spoken and the mic re-arms. Click to stop.");
+      }
       duplex.title = duplexLabel;
       duplex.setAttribute("aria-label", duplexLabel);
     }
@@ -310,12 +322,12 @@
   }
 
   function scheduleNext() {
-    if (!state.duplex) return;
+    if (!state.duplex || state.mode === "duplex") return;
     if (state.restartTimer) clearTimeout(state.restartTimer);
     setPhase(window.speechSynthesis && window.speechSynthesis.speaking ? "speaking" : "listening");
     var waited = 0;
     (function waitForSpeech() {
-      if (!state.duplex) return;
+      if (!state.duplex || state.mode === "duplex") return;
       var speaking = window.speechSynthesis && window.speechSynthesis.speaking;
       if (speaking && waited < 20000) {
         waited += 250;
@@ -323,18 +335,33 @@
         return;
       }
       state.restartTimer = setTimeout(function () {
-        if (state.duplex && !state.recording) start();
+        if (state.duplex && state.mode !== "duplex" && !state.recording) start();
       }, 350);
     })();
   }
 
+  // Continuous mode is owned by 76_voice_duplex.js, which reports its real
+  // transport. This module keeps the record -> transcribe fallback and the
+  // shared state the visual panel reads.
+  window.GBVoiceCore = {
+    state: state,
+    setPhase: setPhase,
+    paint: paint,
+    notify: notify,
+    tr: tr,
+    startOneShot: start,
+    stopOneShot: stop,
+  };
+
   function setDuplex(enabled) {
+    if (window.GBVoiceDuplex && typeof window.GBVoiceDuplex.control === "function") {
+      window.GBVoiceDuplex.control(enabled === true);
+      return;
+    }
+    // Transport module absent: keep the historical turn-based switch.
     state.duplex = enabled === true;
-    try {
-      window.dispatchEvent(new CustomEvent("gb-voice-duplex", {
-        detail: { enabled: state.duplex },
-      }));
-    } catch (e) { /* CustomEvent unavailable */ }
+    state.mode = "turn_based";
+    state.fallbackReason = "";
     if (state.duplex) {
       if (window.TTSState) window.TTSState.autoSpeak = true;
       paint();
@@ -349,6 +376,11 @@
       setPhase("idle");
       paint();
     }
+    try {
+      window.dispatchEvent(new CustomEvent("gb-voice-duplex", {
+        detail: { enabled: state.duplex, mode: state.mode },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
   }
 
   function bind() {
@@ -356,6 +388,10 @@
     if (mic && !mic.dataset.bound) {
       mic.dataset.bound = "1";
       mic.addEventListener("click", function () {
+        if (state.duplex) {
+          setDuplex(false);
+          return;
+        }
         if (state.recording) stop();
         else start();
       });
@@ -371,7 +407,7 @@
   }
 
   window.addEventListener("gb-chat-bot-complete", function () {
-    if (state.duplex) scheduleNext();
+    if (state.duplex && state.mode !== "duplex") scheduleNext();
   });
 
   window.GBVoice = {
@@ -380,7 +416,13 @@
     setDuplex: setDuplex,
     isRecording: function () { return state.recording; },
     isDuplex: function () { return state.duplex; },
-    getLevel: function () { return state.level; },
+    getMode: function () { return state.mode === "duplex" ? "duplex" : "turn_based"; },
+    getLevel: function () {
+      if (state.mode === "duplex" && window.GBVoiceDuplex && GBVoiceDuplex.getLevel) {
+        return GBVoiceDuplex.getLevel();
+      }
+      return state.level;
+    },
     getPhase: function () { return state.phase; },
   };
 
