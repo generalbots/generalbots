@@ -216,7 +216,7 @@ where
                         let _ = upstream_tx.send(WsMessage::Close(mapped)).await;
                         break;
                     }
-                    Some(Err(_error)) | None => break,
+                    Some(Err(_)) | None => break,
                 }
             }
             message = upstream_rx.next() => {
@@ -239,6 +239,9 @@ where
                     Some(Ok(WsMessage::Pong(data))) => {
                         let _ = client_tx.send(AxumMessage::Pong(data)).await;
                     }
+                    // Raw frame fragments are an internal tungstenite detail;
+                    // the assembled Text/Binary/control message arrives next.
+                    Some(Ok(WsMessage::Frame(_))) => {}
                     Some(Ok(WsMessage::Close(frame))) => {
                         let normal = frame
                             .as_ref()
@@ -264,7 +267,7 @@ where
                         }
                         break;
                     }
-                    Some(Err(_error)) | None => {
+                    Some(Err(_)) | None => {
                         let _ = client_tx
                             .send(AxumMessage::Text(
                                 serde_json::json!({
