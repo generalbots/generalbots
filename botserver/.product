@@ -53,6 +53,11 @@ menu_launcher_enabled=true
 #                   seasidepostcard, typewriter, 3dbevel, xeroxui, xtreegold
 theme=sentient
 
+# Shell mode (#1852): false for the normal web/SaaS edition. The desktop-local
+# product file (used by the Tauri app and the General Bots OS kiosk) sets this
+# to true, which reveals the low-level Operating System panel in Settings.
+shell_mode=false
+
 # Logo URL (optional - leave empty to use default)
 # Can be a relative path or absolute URL
 logo=

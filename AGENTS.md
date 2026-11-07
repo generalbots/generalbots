@@ -1317,8 +1317,9 @@ When `desktop-local` is active:
 
 | File | Purpose |
 |------|---------|
-| `botapp/tauri.conf.json` | Base config: `frontendDist: ../botui/ui`, `url: suite/desktop.html`, icons. No `externalBin` (would fail in dev without binary). |
-| `botapp/tauri.desktop-local.conf.json` | Production override: NSIS/MSI/deb/AppImage targets, `externalBin: ["binaries/botserver"]`, resources mapping for `.product.desktop-local` and `installers/`. Merged via `--config` flag at build time. |
+| `botapp/tauri.conf.json` | Base config: `frontendDist: ../botui/ui`, `url: suite/desktop.html`, icons, `bundle.macOS.minimumSystemVersion: 11.0`. No `externalBin` (would fail in dev without binary). |
+| `botapp/tauri.desktop-local.conf.json` | Production override: NSIS/MSI/deb/rpm/AppImage/dmg/app targets, `externalBin: ["binaries/botserver"]`, resources mapping for `.product.desktop-local` and `installers/`. Merged via `--config` flag at build time. |
+| `botapp/tauri.macos.conf.json` | macOS override: narrows `bundle.targets` to `["dmg", "app"]`, adds `icons/icon.icns` and macOS 11+ metadata. Passed after the desktop-local override so macOS arrays win. |
 
 **NSIS:** Portuguese BR + English, language selector, per-machine install.
 **WiX/MSI:** pt-BR + en-US.
@@ -1356,6 +1357,13 @@ The Windows job mirrors steps 1–6 and adds `cargo tauri build --bundles msi,ns
 Both packaging steps are `continue-on-error`: a bundler regression must not hide
 the tarball, the single file or the raw binaries from the release, so the
 release job warns about a missing package instead of failing.
+
+The separate macOS job (`.github/workflows/desktop-macos.yml`) runs on
+`macos-14`, stages the Mach-O sidecar with `desktop/macos/stage-sidecar.sh`,
+and runs `cargo tauri build --config tauri.desktop-local.conf.json --config
+tauri.macos.conf.json --bundles dmg,app`. It publishes an unsigned arm64
+`.dmg`/`.app` to a `-macos` pre-release; signing and notarization are future
+work (`desktop/macos/README.md`).
 
 Published Linux assets: `generalbots-linux-x86_64.tar.gz` (stable alias),
 `generalbots-<tag>-linux-x86_64.tar.gz`, `generalbots` (self-extracting single

@@ -58,7 +58,10 @@ pub async fn vm_exec(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let (sub, user_id, _) = caller_uuid(&headers)?;
     if !EXEC_LIMITER.check(&format!("vmexec:{sub}"), 5.0) {
-        return Err((StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()));
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            "Rate limit exceeded".to_string(),
+        ));
     }
 
     let session = vm::get_user_vm(&state, &user_id)?
@@ -70,9 +73,15 @@ pub async fn vm_exec(
 
     let timeout = body.timeout_ms.unwrap_or(30_000).min(120_000);
     let (ok, stdout, stderr) = vm::exec_in_conversation(
-        &state, &session.vm_name, &body.conversation_id,
-        &body.language, &body.code, timeout, &body.packages,
-    ).await?;
+        &state,
+        &session.vm_name,
+        &body.conversation_id,
+        &body.language,
+        &body.code,
+        timeout,
+        &body.packages,
+    )
+    .await?;
 
     let files = vm::list_conversation_output(&state, &session.vm_name, &body.conversation_id)
         .await

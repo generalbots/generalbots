@@ -16,7 +16,9 @@ use uuid::Uuid;
 
 use crate::state::RateLimiter;
 
-pub use auth::{authorize_session_access, b64_json_sub, bearer_token, is_admin_claims, jwt_payload};
+pub use auth::{
+    authorize_session_access, b64_json_sub, bearer_token, is_admin_claims, jwt_payload,
+};
 pub use files::{vm_file, vm_files};
 pub use sandbox::sandbox_exec;
 pub use sessions::{current_session, set_agent_mode};
@@ -27,9 +29,8 @@ static EXEC_LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::new);
 
 /// Resolves a non-JWT suite token (`gb_<uuid>_<ts>`) to a user id. The server
 /// wires this at boot because the session store lives outside this crate.
-static EXTERNAL_TOKEN_VERIFIER: LazyLock<
-    std::sync::Mutex<Option<fn(&str) -> Option<Uuid>>>,
-> = LazyLock::new(|| std::sync::Mutex::new(None));
+static EXTERNAL_TOKEN_VERIFIER: LazyLock<std::sync::Mutex<Option<fn(&str) -> Option<Uuid>>>> =
+    LazyLock::new(|| std::sync::Mutex::new(None));
 
 pub fn set_external_token_verifier(resolver: fn(&str) -> Option<Uuid>) {
     if let Ok(mut slot) = EXTERNAL_TOKEN_VERIFIER.lock() {
@@ -50,7 +51,10 @@ fn external_token_user(raw: &str) -> Option<Uuid> {
 
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");
-    (StatusCode::INTERNAL_SERVER_ERROR, "Agent request failed".to_string())
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Agent request failed".to_string(),
+    )
 }
 
 fn unauthorized(msg: &str) -> (StatusCode, String) {

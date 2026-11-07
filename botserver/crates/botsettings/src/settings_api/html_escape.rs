@@ -92,6 +92,11 @@ pub async fn notif_prefs_get(
     } else {
         serde_json::Value::Null
     };
+    let email_recipient = prefs
+        .get("email_recipient")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     let email_marketing = prefs
         .get("email_marketing")
         .and_then(|v| v.as_bool())
@@ -123,6 +128,7 @@ pub async fn notif_prefs_get(
         return axum::Json(serde_json::json!({
             "email_mentions": email_mentions,
             "email_digest": email_digest,
+            "email_recipient": email_recipient,
             "digest_last_sent": digest_last_sent,
             "digest_last_error": digest_last_error,
             "digest_next_run": digest_next_run,
@@ -137,13 +143,13 @@ pub async fn notif_prefs_get(
 
     (StatusCode::OK, Html(format!(
         r#"<div class="preference-list">
-    <label class="checkbox-label"><input type="checkbox" name="email_mentions" {email_mentions_ck}> Mentions and replies</label>
-    <label class="checkbox-label"><input type="checkbox" name="email_digest" {email_digest_ck}> Weekly digest</label>
-    <label class="checkbox-label"><input type="checkbox" name="email_marketing" {email_marketing_ck}> Marketing</label>
-    <label class="checkbox-label"><input type="checkbox" name="push_enabled" {push_enabled_ck}> Push notifications</label>
-    <label class="checkbox-label"><input type="checkbox" name="push_sound" {push_sound_ck}> Sound</label>
-    <label class="checkbox-label"><input type="checkbox" name="desktop_notifications" {desktop_ck}> Desktop notifications</label>
-    <label class="checkbox-label"><input type="checkbox" name="badge_count" {badge_ck}> Badge count</label>
+    <label class="checkbox-label"><input type="checkbox" name="email_mentions" {email_mentions_ck}> <span data-i18n="settings-mentions">Mentions and replies</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="email_digest" {email_digest_ck}> <span data-i18n="settings-weekly-digest">Weekly digest</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="email_marketing" {email_marketing_ck}> <span data-i18n="settings-marketing">Marketing</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="push_enabled" {push_enabled_ck}> <span data-i18n="settings-push-notifications">Push notifications</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="push_sound" {push_sound_ck}> <span data-i18n="settings-push-sound">Sound</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="desktop_notifications" {desktop_ck}> <span data-i18n="settings-desktop-notifications">Desktop notifications</span></label>
+    <label class="checkbox-label"><input type="checkbox" name="badge_count" {badge_ck}> <span data-i18n="settings-badge-count">Badge count</span></label>
 </div>"#,
         email_mentions_ck = if email_mentions { "checked" } else { "" },
         email_digest_ck = if email_digest { "checked" } else { "" },
@@ -184,9 +190,15 @@ pub async fn notif_prefs_put(
         Err(e) => return (StatusCode::BAD_REQUEST, Html(e)),
     };
 
+    let email_recipient = fields
+        .get("email_recipient")
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .unwrap_or("");
     let prefs = serde_json::json!({
         "email_mentions": form_or_json_bool(fields.get("email_mentions")),
         "email_digest": form_or_json_bool(fields.get("email_digest")),
+        "email_recipient": email_recipient,
         "email_marketing": form_or_json_bool(fields.get("email_marketing")),
         "push_enabled": form_or_json_bool(fields.get("push_enabled")),
         "push_sound": form_or_json_bool(fields.get("push_sound")),

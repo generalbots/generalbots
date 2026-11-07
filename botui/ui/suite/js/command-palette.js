@@ -19,6 +19,10 @@
     results: [],
   };
 
+  function tr(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   function escapeHtml(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -71,7 +75,7 @@
           category: app.category,
           icon: app.icon,
           color: app.color,
-          hint: "Open " + (app.title || app.id),
+          hint: tr("palette-open-app", "Open {app}", { app: app.title || app.id }),
         });
       }
 
@@ -113,11 +117,11 @@
 
     var html = '';
     html += '<div class="gb-palette-head">';
-    html += '  <input id="gb-palette-input" type="text" placeholder="Search apps and commands. Or type @ <command> to send to the assistant..." autocomplete="off"/>';
+    html += '  <input id="gb-palette-input" type="text" placeholder="' + tr('palette-placeholder', 'Search apps and commands. Or type @ <command> to send to the assistant...') + '" autocomplete="off"/>';
     html += '</div>';
     html += '<div class="gb-palette-body" id="gb-palette-body">';
     if (!results.length) {
-      html += '<div class="gb-palette-empty">No matching apps or commands</div>';
+      html += '<div class="gb-palette-empty">' + tr("palette-empty", "No matching apps or commands") + "</div>";
     } else {
       results.forEach(function (r, i) {
         var active = (i === state.selected) ? " gb-palette-item-active" : "";
@@ -125,7 +129,7 @@
         if (r.type === "app") {
           html += '<span class="gb-palette-icon" style="color:' + escapeHtml(r.color) + '">' + (r.icon ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + r.icon + '</svg>' : "") + '</span>';
           html += '<span class="gb-palette-label">' + escapeHtml(r.title) + '</span>';
-          html += '<span class="gb-palette-kind">App</span>';
+          html += '<span class="gb-palette-kind">' + tr("palette-kind-app", "App") + "</span>";
         } else {
           html += '<span class="gb-palette-icon" style="color:' + escapeHtml(r.color) + '">' + (r.icon ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + r.icon + '</svg>' : "") + '</span>';
           html += '<span class="gb-palette-label"><b>' + escapeHtml(r.title) + '</b> <span class="gb-palette-app">' + escapeHtml(r.appTitle) + '</span></span>';
@@ -136,7 +140,7 @@
     }
     html += '</div>';
     html += '<div class="gb-palette-footer">';
-    html += '↑↓ navigate · Enter run · Esc close · Ctrl+K toggle';
+    html += tr('palette-hint', '↑↓ navigate · Enter run · Esc close · Ctrl+K toggle');
     html += '</div>';
 
     root.innerHTML = html;
@@ -188,7 +192,12 @@
       var params = {};
       var proceed = true;
       placeholders.forEach(function (key) {
-        var value = prompt(r.summary ? (r.command.name + ": ") : "" + r.summary + "\nValue for " + key + ":");
+        var promptText = tr("palette-value-prompt", "{name}: {summary} — value for {key}:", {
+          name: r.command.name || "",
+          summary: r.summary || "",
+          key: key,
+        });
+        var value = prompt(promptText);
         if (value === null) { proceed = false; }
         else if (value.trim() !== "") { params[key] = value.trim(); }
       });
@@ -210,9 +219,15 @@
     // curated commands are asked to the assistant by name.
     var text;
     if (cmd.method && cmd.path) {
-      text = "Execute " + cmd.method + " " + cmd.path + " and summarize the result.";
+      text = tr("palette-execute", "Execute {method} {path} and summarize the result.", {
+        method: cmd.method,
+        path: cmd.path,
+      });
     } else {
-      text = "Use the " + (cmd.name || "command") + " command to " + (cmd.summary || cmd.label || "") + ".";
+      text = tr("palette-use-command", "Use the {command} command to {summary}.", {
+        command: cmd.name || "command",
+        summary: cmd.summary || cmd.label || "",
+      });
     }
     input.value = text;
     input.dispatchEvent(new Event("input"));
@@ -268,6 +283,10 @@
       e.stopImmediatePropagation();
       toggle();
     }
+  });
+
+  window.addEventListener("localeChanged", function () {
+    if (window.GBCommandPalette.overlay) renderPalette(window.GBCommandPalette.overlay);
   });
 
   window.GBCommandPalette.toggle = toggle;

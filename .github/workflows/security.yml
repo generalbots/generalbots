@@ -18,6 +18,9 @@ name: Security
 #   headers        the six IMP-09 headers on the public origin (advisory)
 
 on:
+  # Reusable: `.github/workflows/ci.yml` calls this as the single CI entry point.
+  # The triggers below stay intact so the workflow also keeps working on its own.
+  workflow_call:
   push:
     branches: [main]
   pull_request:

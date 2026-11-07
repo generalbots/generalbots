@@ -166,10 +166,11 @@ pub(crate) fn send_mention_emails(
     mentions: Vec<String>,
     body: String,
 ) {
-    // Platform-owned sender only. Never resolve the author's or the
-    // recipient's `user_email_accounts` mailbox: notification mail must not
+    // Platform-owned sender only. Never use the author's or the recipient's
+    // `user_email_accounts` mailbox as the sender: notification mail must not
     // leave through a personal Gmail/Outlook account, and delivery is simply
-    // disabled when the workspace has no notification sender configured.
+    // disabled when the workspace has no notification sender configured. The
+    // recipient address itself comes from `notification_recipient` below.
     let Some(sender) = super::notification_email::NotificationSender::configured() else {
         warn!("mention email: no platform notification sender configured; delivery disabled");
         return;
@@ -246,12 +247,13 @@ pub(crate) fn send_mention_emails(
         if !notification_email_enabled(&mut conn, &recipient.id, "email_mentions") {
             continue;
         }
-        match sender.send(&recipient.email, &subject, &text) {
-            Ok(()) => botlog::safe_info!(
-                "mention email sent to {} (platform sender)",
-                recipient.email
-            ),
-            Err(e) => warn!("mention email: send failed for {}: {e}", recipient.email),
+        // #1853 — deliver to the mailbox the user configured (primary Mail
+        // account or linked account); fall back to the profile address.
+        let to = super::notification_email::notification_recipient(&mut conn, &recipient.id)
+            .unwrap_or_else(|| recipient.email.clone());
+        match sender.send(&to, &subject, &text) {
+            Ok(()) => botlog::safe_info!("mention email sent to {to} (platform sender)"),
+            Err(e) => warn!("mention email: send failed for {to}: {e}"),
         }
     }
 }

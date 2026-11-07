@@ -37,5 +37,10 @@ menu_launcher_enabled=true
 # provisioned for a logged-in account).
 no_security=false
 
+# Shell mode (#1852): the desktop app and the General Bots OS kiosk image use
+# this product file. Settings then exposes the low-level "Operating System"
+# panel, and /api/system/os serves host data only in this mode.
+shell_mode=true
+
 # Default theme
 theme=sentient

@@ -7,11 +7,99 @@
 //! be revoked at any time, and put delivery outside tenant control.
 //!
 //! When no platform sender is configured, delivery is disabled. Callers log
-//! the reason instead of silently falling back to a user mailbox.
+//! the reason instead of silently falling back to a user mailbox as the
+//! sender. The *recipient* is still resolved from the mailbox the user
+//! configured (#1853, [`notification_recipient`]).
 
+use diesel::prelude::*;
+use diesel::sql_types::Text;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use log::warn;
+use log::{debug, warn};
+
+fn valid_address(value: &str) -> Option<String> {
+    let value = value.trim();
+    if value.is_empty() || value.eq_ignore_ascii_case("none") {
+        return None;
+    }
+    value
+        .parse::<lettre::address::Address>()
+        .ok()
+        .map(|_| value.to_string())
+}
+
+#[derive(QueryableByName)]
+struct MailboxRow {
+    #[diesel(sql_type = Text)]
+    email: String,
+}
+
+/// Resolve the mailbox that receives a user's notification email.
+///
+/// #1853 — notifications belong in the mailbox the user configured, not
+/// necessarily the login address. Precedence:
+///   1. `notifications.email_recipient` (explicit choice in preferences);
+///   2. the primary active mailbox from `user_email_accounts` (Mail app);
+///   3. a linked Google/Microsoft account (`oauth_account_links`);
+///   4. the profile address in `users.email`.
+///
+/// Only addresses that parse as an email are returned, so a malformed or
+/// placeholder preference can never become an SMTP recipient.
+pub(crate) fn notification_recipient(
+    conn: &mut diesel::PgConnection,
+    user_id: &str,
+) -> Option<String> {
+    let explicit = diesel::sql_query(
+        "SELECT COALESCE(preference_value->>'email_recipient', '') AS email \
+         FROM user_preferences \
+         WHERE user_id::text = $1 AND preference_key = 'notifications' LIMIT 1",
+    )
+    .bind::<Text, _>(user_id)
+    .get_result::<MailboxRow>(conn)
+    .ok()
+    .and_then(|row| valid_address(&row.email));
+    if explicit.is_some() {
+        return explicit;
+    }
+
+    let configured = diesel::sql_query(
+        "SELECT email FROM user_email_accounts \
+         WHERE user_id::text = $1 AND is_active \
+         ORDER BY is_primary DESC, updated_at DESC LIMIT 1",
+    )
+    .bind::<Text, _>(user_id)
+    .get_result::<MailboxRow>(conn)
+    .ok()
+    .and_then(|row| valid_address(&row.email));
+    if configured.is_some() {
+        return configured;
+    }
+
+    let linked = diesel::sql_query(
+        "SELECT email FROM oauth_account_links \
+         WHERE user_id::text = $1 \
+           AND LOWER(provider) IN ('google', 'microsoft') \
+           AND email IS NOT NULL AND email <> '' \
+         ORDER BY updated_at DESC LIMIT 1",
+    )
+    .bind::<Text, _>(user_id)
+    .get_result::<MailboxRow>(conn)
+    .ok()
+    .and_then(|row| valid_address(&row.email));
+    if linked.is_some() {
+        return linked;
+    }
+
+    let profile = diesel::sql_query("SELECT email FROM users WHERE id::text = $1 LIMIT 1")
+        .bind::<Text, _>(user_id)
+        .get_result::<MailboxRow>(conn)
+        .ok()
+        .and_then(|row| valid_address(&row.email));
+    if profile.is_none() {
+        debug!("notification email: no deliverable address for user {user_id}");
+    }
+    profile
+}
 
 pub(crate) struct NotificationSender {
     from: String,

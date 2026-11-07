@@ -32,12 +32,14 @@ impl I18nBundle {
             let mut bundles = HashMap::new();
             let mut available = Vec::new();
 
-            let entries = std::fs::read_dir(base)
-                .map_err(|e| crate::error::BotError::config(format!("failed to read locales directory: {e}")))?;
+            let entries = std::fs::read_dir(base).map_err(|e| {
+                crate::error::BotError::config(format!("failed to read locales directory: {e}"))
+            })?;
 
             for entry in entries {
-                let entry = entry
-                    .map_err(|e| crate::error::BotError::config(format!("failed to read directory entry: {e}")))?;
+                let entry = entry.map_err(|e| {
+                    crate::error::BotError::config(format!("failed to read directory entry: {e}"))
+                })?;
 
                 let path = entry.path();
 
@@ -96,7 +98,11 @@ impl I18nBundle {
         }
 
         let fallback = Locale::default();
-        log::info!("Loaded {} embedded locales: {:?}", available.len(), available);
+        log::info!(
+            "Loaded {} embedded locales: {:?}",
+            available.len(),
+            available
+        );
 
         Ok(Self {
             bundles,
@@ -126,6 +132,19 @@ impl I18nBundle {
 
     pub fn available_locales(&self) -> Vec<String> {
         self.available.iter().map(ToString::to_string).collect()
+    }
+
+    /// Message ids authored in the fallback (English) bundle, sorted for
+    /// stable API responses. Other locales resolve through the same fallback
+    /// in `get_message`, so English is the authoritative key set.
+    pub fn message_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self
+            .bundles
+            .get(&self.fallback.to_string())
+            .map(|bundle| bundle.message_ids().map(str::to_string).collect())
+            .unwrap_or_default();
+        ids.sort();
+        ids
     }
 
     fn interpolate(template: &str, args: Option<&MessageArgs>) -> String {

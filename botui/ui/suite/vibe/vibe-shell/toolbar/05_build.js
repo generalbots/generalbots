@@ -218,16 +218,27 @@
            pill inside the toolbar. */
         var statusBarTimer = setInterval(function () {
             var src = document.getElementById("vibeRibbonStatus");
-            var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
-            if (!src || !statusEl) return;
+            if (!src) return;
             var text = String(src.textContent || "").trim();
             if (!text) return;
-            statusEl.textContent = text;
             var state = /running|execut/i.test(text) ? "running"
                 : /paus|approv/i.test(text) ? "paused"
                 : /fail|error|stop/i.test(text) ? "failed"
                 : "idle";
-            statusEl.dataset.state = state;
+            // #1849 — the footer is rendered by the shared status contract.
+            if (window.GBStatus && typeof window.GBStatus.set === "function") {
+                window.GBStatus.set("vibe", {
+                    state: state,
+                    text: text,
+                    busy: state === "running",
+                    progress: state === "running" ? { indeterminate: true, label: text } : null,
+                });
+            } else {
+                var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
+                if (!statusEl) return;
+                statusEl.textContent = text;
+                statusEl.dataset.state = state;
+            }
             document.dispatchEvent(new CustomEvent("gb:vibe-status", { detail: { status: text, state: state } }));
         }, 800);
         if (bar && bar.__statusBarTimer && typeof bar.__statusBarTimer === "number") clearInterval(bar.__statusBarTimer);

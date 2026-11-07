@@ -78,9 +78,7 @@ pub async fn vm_file(
     // token as a query parameter when the header is absent.
     if !headers.contains_key(axum::http::header::AUTHORIZATION) {
         if let Some(token) = params.get("access_token").filter(|t| !t.is_empty()) {
-            if let Ok(value) =
-                axum::http::HeaderValue::from_str(&format!("Bearer {token}"))
-            {
+            if let Ok(value) = axum::http::HeaderValue::from_str(&format!("Bearer {token}")) {
                 headers.insert(axum::http::header::AUTHORIZATION, value);
             }
         }
@@ -89,7 +87,10 @@ pub async fn vm_file(
     let vm_name = resolve_vm_name(&state, &headers, &conversation_id)?;
     let rel_path = params.get("path").cloned().unwrap_or_default();
     if conversation_id.is_empty() || rel_path.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "conversation_id and path required".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "conversation_id and path required".to_string(),
+        ));
     }
     // Basic path safety: no traversal, no absolute paths.
     if rel_path.contains("..") || rel_path.starts_with('/') || rel_path.contains('\\') {
@@ -100,9 +101,11 @@ pub async fn vm_file(
     // Execute base64 directly with the path as an argument: interpolating it
     // into a shell command broke on quotes, and the shell guard rejects `$`.
     let (ok, stdout, stderr) = vm::exec_in_vm(
-        &state, &vm_name,
+        &state,
+        &vm_name,
         &["base64".into(), "-w0".into(), full_path],
-    ).await?;
+    )
+    .await?;
     if !ok {
         return Err((StatusCode::NOT_FOUND, format!("File not found: {}", stderr)));
     }
@@ -116,7 +119,12 @@ pub async fn vm_file(
         use base64::Engine;
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(encoded.as_bytes())
-            .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("decode failed: {error}")))?;
+            .map_err(|error| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("decode failed: {error}"),
+                )
+            })?;
         let file_name: String = rel_path
             .rsplit('/')
             .next()
@@ -164,7 +172,12 @@ pub async fn vm_file(
         use base64::Engine;
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(encoded.as_bytes())
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("decode failed: {e}")))?;
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("decode failed: {e}"),
+                )
+            })?;
         let file_name: String = rel_path
             .rsplit('/')
             .next()
@@ -202,10 +215,16 @@ pub async fn vm_file(
             [
                 (axum::http::header::CONTENT_TYPE, mime.to_string()),
                 (axum::http::header::CONTENT_DISPOSITION, disposition),
-                (axum::http::header::CACHE_CONTROL, "private, max-age=60".to_string()),
+                (
+                    axum::http::header::CACHE_CONTROL,
+                    "private, max-age=60".to_string(),
+                ),
                 // The chat previews PDFs/images in a same-origin iframe; the
                 // global DENY made that preview a blank broken-file box.
-                (axum::http::header::X_FRAME_OPTIONS, "SAMEORIGIN".to_string()),
+                (
+                    axum::http::header::X_FRAME_OPTIONS,
+                    "SAMEORIGIN".to_string(),
+                ),
             ],
             bytes,
         )

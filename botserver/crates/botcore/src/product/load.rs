@@ -84,6 +84,7 @@ impl Default for ProductConfig {
             suite_default_app: None,
             hidden_apps: HashSet::new(),
             no_security: false,
+            shell_mode: false,
         }
     }
 }
@@ -233,6 +234,11 @@ impl ProductConfig {
                     }
                     "no_security" => {
                         config.no_security = value.eq_ignore_ascii_case("true")
+                            || value == "1"
+                            || value.eq_ignore_ascii_case("yes");
+                    }
+                    "shell_mode" => {
+                        config.shell_mode = value.eq_ignore_ascii_case("true")
                             || value == "1"
                             || value.eq_ignore_ascii_case("yes");
                     }

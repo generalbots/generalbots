@@ -76,6 +76,13 @@ pub struct ProductConfig {
     /// No-security mode (optional)
     /// When true, the UI skips authentication checks entirely.
     pub no_security: bool,
+
+    /// Shell mode (optional, #1852)
+    /// True for the Tauri desktop app, desktop-local build and the
+    /// General Bots OS kiosk image. Settings uses it to expose the
+    /// low-level "Operating System" panel, and the OS API refuses
+    /// requests when it is false.
+    pub shell_mode: bool,
 }
 
 /// Error type for product configuration
@@ -133,10 +140,14 @@ theme=dark
 
     #[test]
     fn test_hidden_apps_override_enabled_apps() {
-        let content = "apps=chat,drive,integrations,automations\nhidden_apps= integrations , Automations ";
+        let content =
+            "apps=chat,drive,integrations,automations\nhidden_apps= integrations , Automations ";
         let config = ProductConfig::parse(content).unwrap();
 
-        assert_eq!(config.get_hidden_apps(), vec!["automations", "integrations"]);
+        assert_eq!(
+            config.get_hidden_apps(),
+            vec!["automations", "integrations"]
+        );
         assert!(config.is_app_enabled("chat"));
         // Hidden wins over enabled: the surface stays compiled and routed but
         // the profile never advertises it.
@@ -183,7 +194,7 @@ theme=dark
     }
 }
 
-mod load;
 mod get_product_name;
+mod load;
 
 pub use get_product_name::*;

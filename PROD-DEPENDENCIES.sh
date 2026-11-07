@@ -75,7 +75,8 @@ MSG
     exit 3
 fi
 
-config="$root/botapp/tauri.desktop-local.conf.json"
+config="$root/botapp/tauri.macos.conf.json"
+legacy_config="$root/botapp/tauri.desktop-local.conf.json"
 workflows=(
     "$root/.github/workflows/desktop-binaries.yml"
     "$root/.github/workflows/desktop-macos.yml"
@@ -90,8 +91,11 @@ show_install_guidance() {
 No installation is performed by this script on macOS.
 
 macOS desktop bundle: BEST EFFORT (UNSIGNED)
-  - botapp/tauri.desktop-local.conf.json configures the dmg/app targets.
+  - botapp/tauri.macos.conf.json narrows the bundle to the dmg/app targets.
+  - botapp/tauri.desktop-local.conf.json carries the botserver sidecar and
+    desktop-local resources.
   - GitHub Actions builds it in .github/workflows/desktop-macos.yml.
+  - Signing/notarization is future work; the published .dmg is unsigned.
   - The Linux service stack (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault,
     Zitadel, llama.cpp), the BotModels pythonbox and the Incus agent have no
     native darwin builds. Use a Linux VM or a remote Incus host.
@@ -126,10 +130,16 @@ echo
 echo "--- Desktop bundle ---"
 bundle_unsupported=0
 
+bundle_config=""
 if [ -f "$config" ] && grep -q '"dmg"' "$config"; then
-    ok "dmg bundle target configured in botapp/tauri.desktop-local.conf.json"
+    bundle_config="$config"
+elif [ -f "$legacy_config" ] && grep -q '"dmg"' "$legacy_config"; then
+    bundle_config="$legacy_config"
+fi
+if [ -n "$bundle_config" ]; then
+    ok "dmg bundle target configured in ${bundle_config#"$root"/}"
 else
-    missing "no dmg bundle target in botapp/tauri.desktop-local.conf.json"
+    missing "no dmg bundle target in botapp/tauri.macos.conf.json or botapp/tauri.desktop-local.conf.json"
     bundle_unsupported=1
 fi
 

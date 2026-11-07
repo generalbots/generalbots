@@ -13,6 +13,8 @@ name: Accessibility and performance gate
 #      --require-desktop, so a redirect to /suite/login.html fails the job
 #      instead of silently certifying the login page.
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  workflow_call:
   push:
     paths:
       - "botui/ui/suite/**"

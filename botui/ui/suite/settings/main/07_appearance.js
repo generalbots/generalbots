@@ -6,50 +6,41 @@
   var getAuthToken = S.getAuthToken;
   var showToast = S.showToast;
 
-function hasUnsavedSettingsChanges() {
-  try {
-    if (window.__gbSettingsDirty) return true;
-    if (typeof window.gbHasUnsavedChanges === "function" && window.gbHasUnsavedChanges()) {
-      return true;
-    }
-    if (document.querySelector('[data-dirty="true"], .is-dirty, .settings-dirty, .unsaved')) {
-      return true;
-    }
-  } catch (e) {}
-  return false;
+function languageChangedLabel() {
+  if (window.i18n && typeof window.i18n.tOr === "function") {
+    return window.i18n.tOr("settings-language-changed", "Language changed");
+  }
+  return "Language changed";
 }
 
-function confirmLanguageReload(locale) {
-  if (!hasUnsavedSettingsChanges()) return true;
-  var languageName = locale || "the selected language";
-  return (window.GBModal||{confirm:confirm}).confirm(
-    "Changing the language to " +
-      languageName +
-      " will reload the app. Unsaved changes may be lost. Continue?"
-  );
+function applyLocale(locale) {
+  localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
+  document.documentElement.lang = locale;
+  // Re-render every translated node in place. The desktop shell also listens
+  // for localeChanged to retranslate launchers, status bars and toasts that
+  // build their own DOM, so no reload is needed.
+  if (window.i18n && typeof window.i18n.setLocale === "function") {
+    return window.i18n.setLocale(locale);
+  }
+  location.reload();
+  return Promise.resolve();
 }
 
 window.changeLanguage = function (locale) {
-  if (!confirmLanguageReload(locale)) return;
-  localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
-  document.documentElement.lang = locale;
-  showToast("Language changed");
-  setTimeout(function () {
-    location.reload();
-  }, 500);
+  var element = null;
+  document.querySelectorAll(".language-option[data-locale]").forEach(function (opt) {
+    if (opt.dataset.locale === locale) element = opt;
+  });
+  return window.selectLanguage(locale, element);
 };
 window.selectLanguage = function (locale, element) {
-  if (!confirmLanguageReload(locale)) return;
   document.querySelectorAll(".language-option").forEach(function (o) {
     o.classList.remove("active");
   });
   if (element) element.classList.add("active");
-  localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
-  document.documentElement.lang = locale;
-  showToast("Language changed");
-  setTimeout(function () {
-    location.reload();
-  }, 500);
+  applyLocale(locale).then(function () {
+    showToast(languageChangedLabel());
+  });
 };
 window.changeDateFormat = function (format) {
   localStorage.setItem(STORAGE_KEYS.DATE_FORMAT, format);
@@ -266,6 +257,13 @@ function applyNotificationPreferences(prefs) {
       input.checked = !!prefs[input.name];
     }
   });
+  var form = document.querySelector(
+    'form[hx-put="/api/user/notifications/preferences"]',
+  );
+  var recipient = form ? form.querySelector('input[name="email_recipient"]') : null;
+  if (recipient && typeof prefs.email_recipient === "string") {
+    recipient.value = prefs.email_recipient;
+  }
   applyDigestStatus(prefs);
 }
 

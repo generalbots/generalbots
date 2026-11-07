@@ -69,9 +69,12 @@ async fn run_incus(
     state: &AgentService,
     args: Vec<String>,
 ) -> Result<std::process::Output, (StatusCode, String)> {
-    let mut cmd = SafeCommand::new(state.incus_bin()).map_err(|e| internal(format!("incus guard: {e}")))?;
+    let mut cmd =
+        SafeCommand::new(state.incus_bin()).map_err(|e| internal(format!("incus guard: {e}")))?;
     for arg in &args {
-        cmd = cmd.arg(arg).map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd
+            .arg(arg)
+            .map_err(|e| internal(format!("incus arg: {e}")))?;
     }
     tokio::task::spawn_blocking(move || cmd.execute())
         .await
@@ -159,9 +162,20 @@ pub async fn run_sandbox(
     let (interpreter, target) =
         interpreter_and_file(&language).ok_or_else(|| bad_request("Unsupported language"))?;
 
-    let timeout_ms = body.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS).min(MAX_TIMEOUT_MS);
+    let timeout_ms = body
+        .timeout_ms
+        .unwrap_or(DEFAULT_TIMEOUT_MS)
+        .min(MAX_TIMEOUT_MS);
 
-    let name = format!("sbx-{}", Uuid::new_v4().simple().to_string().chars().take(8).collect::<String>());
+    let name = format!(
+        "sbx-{}",
+        Uuid::new_v4()
+            .simple()
+            .to_string()
+            .chars()
+            .take(8)
+            .collect::<String>()
+    );
 
     let started = Instant::now();
 
@@ -234,7 +248,12 @@ pub async fn run_sandbox(
             ("error".to_string(), None, String::new(), handler_err.1)
         }
         Ok(Ok(output)) => (
-            if output.status.success() { "completed" } else { "failed" }.to_string(),
+            if output.status.success() {
+                "completed"
+            } else {
+                "failed"
+            }
+            .to_string(),
             output.status.code(),
             clip(&String::from_utf8_lossy(&output.stdout)),
             clip(&String::from_utf8_lossy(&output.stderr)),
@@ -254,7 +273,10 @@ pub async fn run_sandbox(
         created_at: Utc::now(),
     };
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     diesel::insert_into(sandbox_runs::table)
         .values(&row)
         .execute(&mut conn)

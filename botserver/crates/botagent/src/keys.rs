@@ -91,11 +91,7 @@ fn unauthorized(msg: &str) -> (StatusCode, String) {
 
 /// 48 hex chars derived from two concatenated UUIDv4 simples.
 pub fn generate_api_key() -> String {
-    let combined = format!(
-        "{}{}",
-        Uuid::new_v4().simple(),
-        Uuid::new_v4().simple()
-    );
+    let combined = format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
     combined.chars().take(48).collect()
 }
 
@@ -130,11 +126,7 @@ pub fn authenticate_key(
     };
     let current_hash = hash_key(token);
     let row: OrgApiKeyRow = org_api_keys
-        .filter(
-            key_hash
-                .eq(&current_hash)
-                .or(key_hash.eq(&legacy_hash)),
-        )
+        .filter(key_hash.eq(&current_hash).or(key_hash.eq(&legacy_hash)))
         .filter(revoked_at.is_null())
         .first(conn)
         .optional()
@@ -197,7 +189,10 @@ fn resolve_caller(
     state: &AgentService,
     headers: &HeaderMap,
 ) -> Result<CallerIdentity, (StatusCode, String)> {
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     if let Some(token) = bearer_token(headers) {
         if let Ok(ctx) = authenticate_key(&token, &mut conn) {
             return Ok(CallerIdentity::Org(ctx));
@@ -226,7 +221,10 @@ pub async fn create_org_key(
     let org_id = match &caller {
         CallerIdentity::Org(ctx) => ctx.org_id,
         CallerIdentity::Admin => body.org_id.ok_or_else(|| {
-            (StatusCode::BAD_REQUEST, "org_id is required for admin-created keys".to_string())
+            (
+                StatusCode::BAD_REQUEST,
+                "org_id is required for admin-created keys".to_string(),
+            )
         })?,
     };
 
@@ -239,14 +237,20 @@ pub async fn create_org_key(
         key_hash: hash_key(&raw),
         key_prefix: raw.chars().take(12).collect(),
         scopes: serde_json::Value::Array(
-            body.scopes.iter().map(|s| serde_json::Value::String(s.clone())).collect(),
+            body.scopes
+                .iter()
+                .map(|s| serde_json::Value::String(s.clone()))
+                .collect(),
         ),
         last_used_at: None,
         revoked_at: None,
         created_at: now,
     };
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     diesel::insert_into(org_api_keys::table)
         .values(&row)
         .execute(&mut conn)
@@ -268,7 +272,10 @@ pub async fn list_org_keys(
     let caller = resolve_caller(&state, &headers)?;
 
     use crate::schema::org_api_keys::dsl::{created_at, org_api_keys, org_id};
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let rows: Vec<OrgApiKeyRow> = match caller {
         CallerIdentity::Admin => org_api_keys
             .order(created_at.desc())
@@ -281,7 +288,9 @@ pub async fn list_org_keys(
             .map_err(|e| internal(format!("org_api_keys select: {e}")))?,
     };
 
-    Ok(Json(json!({ "items": rows.iter().map(redacted).collect::<Vec<_>>() })))
+    Ok(Json(
+        json!({ "items": rows.iter().map(redacted).collect::<Vec<_>>() }),
+    ))
 }
 
 /// `DELETE /api/cloud/orgkeys/{id}` — soft revoke via `revoked_at`.
@@ -293,7 +302,10 @@ pub async fn revoke_org_key(
     let caller = resolve_caller(&state, &headers)?;
 
     use crate::schema::org_api_keys::dsl::{id, org_api_keys, org_id, revoked_at};
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let affected = match &caller {
         CallerIdentity::Admin => diesel::update(org_api_keys.filter(id.eq(key_id)))
             .set(revoked_at.eq(Utc::now()))

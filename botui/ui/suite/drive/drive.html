@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="/suite/drive/drive.css" />
 <div class="gb-app drive-container" id="drive-app" data-gb-app="explorer">
 <!-- Sidebar -->
-<aside class="drive-sidebar" id="drive-sidebar">
+<aside class="drive-sidebar" id="drive-sidebar" data-tour="drive.nav">
 <div class="drive-sidebar-header">
 <h2 data-i18n="nav-drive">Drive</h2>
 <button class="btn-icon" id="toggle-drive-sidebar" title="Collapse">
@@ -20,7 +20,7 @@
 </svg>
 <span data-i18n="drive-new-bot">New Bot</span>
 </button>
-<button class="btn-primary-full" id="upload-btn">
+<button class="btn-primary-full" id="upload-btn" data-tour="drive.upload">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="17 8 12 3 7 8"></polyline>
@@ -100,7 +100,7 @@ Loading storage...
 <!-- Main Content -->
 <main class="drive-main">
 <!-- Top-Level Tabs -->
-<div class="drive-top-tabs" id="drive-top-tabs">
+<div class="drive-top-tabs" id="drive-top-tabs" data-tour="drive.tabs">
 <!-- My Files = the signed-in user's space (users.gbdrive). The
                  "Bot" tab is where chat/automation output lands (the bot's
                  {bot}.gbdrive inside the org workspace) and must stay
@@ -163,7 +163,7 @@ Drive
 <circle cx="11" cy="11" r="8"></circle>
 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
 </svg>
-<input id="search-input" type="search" placeholder="Search all files… (Ctrl+K)" aria-label="Search all files by name and content" autocomplete="off" />
+<input id="search-input" type="search" data-tour="drive.search" placeholder="Search all files… (Ctrl+K)" aria-label="Search all files by name and content" autocomplete="off" />
 <kbd class="drive-search-kbd">Ctrl K</kbd>
 </div>
 </div>
@@ -256,3 +256,4 @@ Drive
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/drive/drive-module-loader.js"></script>
+<script src="/suite/drive/tour.js?v=1"></script>

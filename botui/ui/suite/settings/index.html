@@ -139,6 +139,23 @@
                 <span data-i18n="settings-administration">Administration</span>
             </div>
 
+            <!-- #1852 — shell-mode only (Tauri desktop / desktop-local / OS
+                 kiosk). Hidden by default and revealed by isShellMode() in
+                 settings/main/02_edition.js. Admin-gated like the rest of the
+                 administration rail; the OS API enforces the same rules. -->
+            <div class="nav-divider" data-admin-only="true" data-shell-only="true" hidden>
+                <span>System</span>
+            </div>
+            <a href="#os" class="nav-item" data-admin-only="true" data-shell-only="true" hidden
+                onclick="showSection('os', this); window.loadOsPanel && window.loadOsPanel()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span>Operating System</span>
+            </a>
+
             <a href="#ledger" class="nav-item" data-admin-only="true" onclick="showSection('ledger', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 11l3 3 8-8"></path>
@@ -230,6 +247,11 @@
 
 <!-- Dialogs (loaded in parallel; opened on demand) -->
 <div hx-get="/suite/settings/partials/06_dialogs.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+<!-- Operating System panel (#1852): shell-mode only. The partial stays inert
+     in browser/cloud deployments because the section is hidden and the panel
+     only fetches after a shell-mode session opens it. -->
+<div hx-get="/suite/settings/partials/07_os.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
 <link rel="stylesheet" href="/suite/settings/settings-forms.css" />
 <link rel="stylesheet" href="/suite/settings/settings-controls.css" />

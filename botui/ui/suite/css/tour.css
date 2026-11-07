@@ -1,0 +1,248 @@
+/* Guided tour overlay, spotlight and callouts.
+ *
+ * The callout surfaces are intentionally fully opaque: tour copy has to stay
+ * readable on top of any app background, including glass and gradient themes.
+ */
+.gb-tour-layer,
+.gb-tour-prompt-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+}
+
+.gb-tour-layer {
+  pointer-events: none;
+}
+
+.gb-tour-spotlight {
+  position: fixed;
+  z-index: 0;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 9999px rgba(8, 15, 30, 0.78);
+  pointer-events: none;
+  transition:
+    top 160ms ease,
+    left 160ms ease,
+    width 160ms ease,
+    height 160ms ease;
+}
+
+.gb-tour-callout {
+  position: fixed;
+  z-index: 1;
+  width: min(360px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 16px 18px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gb-tour-progress {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gb-tour-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.gb-tour-body {
+  margin: 0 0 14px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gb-tour-footer,
+.gb-tour-prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gb-tour-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gb-tour-btn {
+  appearance: none;
+  min-height: 32px;
+  padding: 6px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gb-tour-btn:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.gb-tour-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.gb-tour-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gb-tour-btn--primary {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.gb-tour-btn--primary:hover {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+}
+
+.gb-tour-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: #64748b;
+}
+
+.gb-tour-btn--ghost:hover {
+  border-color: transparent;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.gb-tour-prompt-layer {
+  z-index: 2147483001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 15, 30, 0.64);
+}
+
+.gb-tour-prompt {
+  width: min(440px, calc(100vw - 48px));
+  box-sizing: border-box;
+  padding: 22px 24px 20px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+  opacity: 1;
+}
+
+.gb-tour-eyebrow {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gb-tour-prompt-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.gb-tour-prompt-body {
+  margin: 0 0 18px;
+  color: #334155;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.gb-tour-prompt-actions {
+  justify-content: flex-end;
+}
+
+@media (prefers-color-scheme: dark) {
+  .gb-tour-callout,
+  .gb-tour-prompt {
+    border-color: rgba(148, 163, 184, 0.28);
+    background: #111827;
+    color: #f8fafc;
+  }
+
+  .gb-tour-progress {
+    color: #94a3b8;
+  }
+
+  .gb-tour-body,
+  .gb-tour-prompt-body {
+    color: #cbd5e1;
+  }
+
+  .gb-tour-eyebrow {
+    color: #93c5fd;
+  }
+
+  .gb-tour-btn {
+    border-color: #475569;
+    background: #1e293b;
+    color: #f8fafc;
+  }
+
+  .gb-tour-btn:hover {
+    border-color: #64748b;
+    background: #334155;
+  }
+
+  .gb-tour-btn--primary {
+    border-color: #3b82f6;
+    background: #3b82f6;
+    color: #ffffff;
+  }
+
+  .gb-tour-btn--primary:hover {
+    border-color: #2563eb;
+    background: #2563eb;
+  }
+
+  .gb-tour-btn--ghost {
+    border-color: transparent;
+    background: transparent;
+    color: #94a3b8;
+  }
+
+  .gb-tour-btn--ghost:hover {
+    background: #1e293b;
+    color: #e2e8f0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-tour-spotlight {
+    transition: none;
+  }
+}
+
+@media print {
+  .gb-tour-layer,
+  .gb-tour-prompt-layer {
+    display: none !important;
+  }
+}

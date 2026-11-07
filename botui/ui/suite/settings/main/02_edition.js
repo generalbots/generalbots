@@ -22,6 +22,42 @@ function isSlimEdition(config) {
     apps.indexOf("vibe") === -1;
 }
 
+// #1852 — shell mode is the Tauri desktop app, the desktop-local build or the
+// General Bots OS kiosk image. Only there do host-level settings make sense;
+// a normal browser/cloud deployment must never show the Operating System panel.
+function isShellMode(config) {
+  if (window.__GB_SHELL_MODE__ === true || window.__GB_SHELL_MODE__ === "true") {
+    return true;
+  }
+  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return true; }
+  if (!config) { return false; }
+  return config.shell_mode === true ||
+    config.desktop === true ||
+    config.desktop_local === true ||
+    config.is_desktop === true ||
+    config.no_security === true;
+}
+
+function applyShellModeVisibility(config) {
+  var shell = isShellMode(config);
+  if (document.body) {
+    document.body.classList.toggle("gb-shell-mode", shell);
+  }
+  document.querySelectorAll('[data-shell-only="true"]').forEach(function (node) {
+    if (shell) {
+      node.removeAttribute("hidden");
+    } else {
+      node.setAttribute("hidden", "");
+    }
+  });
+  if (shell) { return; }
+  var active = document.querySelector(".settings-section.active");
+  if (active && active.id === "os-section") {
+    var profile = document.querySelector('.settings-nav a[href="#profile"]');
+    if (profile) { profile.click(); }
+  }
+}
+
 function hideSettingsSection(id) {
   var section = document.getElementById(id + "-section");
   if (section) { section.style.display = "none"; }
@@ -88,6 +124,10 @@ function applyEditionVisibility(config) {
   if (!isSlimEdition(config)) { return; }
   ["billing", "vibe"].forEach(hideSettingsSection);
   document.querySelectorAll('[data-admin-only="true"]').forEach(function (node) {
+    // #1852 — the Operating System panel is admin-gated too, but it must stay
+    // reachable in the slim desktop-local profile. Its shell-mode switch owns
+    // visibility; RBAC hides it again for non-admin users.
+    if (node.getAttribute("data-shell-only") === "true") { return; }
     node.style.display = "none";
   });
   var active = document.querySelector(".settings-section.active");
@@ -100,6 +140,7 @@ function applyEditionVisibility(config) {
 function initEditionVisibility() {
   var resolvedDesktop = false;
   function run() {
+    applyShellModeVisibility(window.productConfig);
     if (window.productConfig) {
       resolvedDesktop = isDesktopEdition(window.productConfig);
       applyEditionVisibility(window.productConfig);
@@ -113,6 +154,7 @@ function initEditionVisibility() {
     return false;
   }
   function reapply() {
+    applyShellModeVisibility(window.productConfig);
     if (resolvedDesktop || isDesktopEdition(window.productConfig)) {
       resolvedDesktop = true;
       applyDesktopEditionVisibility();
@@ -133,8 +175,10 @@ function initEditionVisibility() {
 
   S.isDesktopEdition = isDesktopEdition;
   S.isSlimEdition = isSlimEdition;
+  S.isShellMode = isShellMode;
   S.hideSettingsSection = hideSettingsSection;
   S.applyDesktopEditionVisibility = applyDesktopEditionVisibility;
+  S.applyShellModeVisibility = applyShellModeVisibility;
   S.applyEditionVisibility = applyEditionVisibility;
   S.initEditionVisibility = initEditionVisibility;
 })(window);

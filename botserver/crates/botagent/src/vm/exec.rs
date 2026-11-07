@@ -32,9 +32,7 @@ pub async fn exec_in_conversation(
     let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
     // Create the conversation folders FIRST: dependency installs `cd` into
     // this folder, and a fresh conversation has no folder yet.
-    let bootstrap = format!(
-        "mkdir -p {folder}/program {folder}/output {folder}/data"
-    );
+    let bootstrap = format!("mkdir -p {folder}/program {folder}/output {folder}/data");
     tracing::info!("vm exec: bootstrap {conversation_id}");
     run_with_timeout(state, vm_name, bootstrap, 30_000).await?;
     tracing::info!("vm exec: folders ready {conversation_id}");
@@ -62,7 +60,12 @@ pub async fn exec_in_conversation(
         install_log.push_str(&format!("installed: {}\n", declared.join(", ")));
     }
 
-    let run_id: String = Uuid::new_v4().simple().to_string().chars().take(8).collect();
+    let run_id: String = Uuid::new_v4()
+        .simple()
+        .to_string()
+        .chars()
+        .take(8)
+        .collect();
     // #1581: generated programs live in program/, never in the conversation
     // root. output/ and data/ are created up front so the script can write
     // without a race.
@@ -101,13 +104,9 @@ pub async fn exec_in_conversation(
         // failing the user's first request.
         for _ in 0..36 {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            let probe = run_with_timeout(
-                state,
-                vm_name,
-                format!("command -v {interpreter}"),
-                15_000,
-            )
-            .await?;
+            let probe =
+                run_with_timeout(state, vm_name, format!("command -v {interpreter}"), 15_000)
+                    .await?;
             if probe.0 {
                 let retried = run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
                 first_ok = retried.0;
@@ -130,7 +129,11 @@ pub async fn exec_in_conversation(
         if installed.0 {
             let retried = run_with_timeout(state, vm_name, run_cmd, timeout_ms).await?;
             let note = format!("auto-installed missing package: {missing}\n");
-            return Ok((retried.0, format!("{install_log}{note}{}", retried.1), retried.2));
+            return Ok((
+                retried.0,
+                format!("{install_log}{note}{}", retried.1),
+                retried.2,
+            ));
         }
     }
 
@@ -202,21 +205,57 @@ pub async fn run_root_shell(
     run_with_timeout(state, vm_name, command.to_string(), timeout_ms).await
 }
 
+/// True when `incus exec` failed because the container or its exec channel was
+/// not ready yet. A cold-started container can already be RUNNING in the
+/// daemon's view for a moment before it accepts commands; the command never
+/// ran, so retrying is safe (issue #1798).
+fn exec_channel_not_ready(stderr: &str) -> bool {
+    let text = stderr.to_ascii_lowercase();
+    (text.contains("vm agent")
+        && (text.contains("not connected")
+            || text.contains("not running")
+            || text.contains("starting")))
+        || text.contains("instance is not running")
+        || text.contains("instance is starting")
+        || (text.contains("incus") && text.contains("not ready"))
+}
+
+const EXEC_RETRY_ATTEMPTS: u32 = 3;
+
 async fn run_with_timeout(
     state: &AgentService,
     vm_name: &str,
     command: String,
     timeout_ms: u64,
 ) -> Result<(bool, String, String), (StatusCode, String)> {
-    let result = tokio::time::timeout(
-        std::time::Duration::from_millis(timeout_ms),
-        exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), command]),
-    )
-    .await;
-    match result {
-        Err(_) => Ok((false, String::new(), "Execution timed out".to_string())),
-        Ok(r) => r,
+    for attempt in 0..EXEC_RETRY_ATTEMPTS {
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(timeout_ms),
+            exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), command.clone()]),
+        )
+        .await;
+        match result {
+            Err(_) => return Ok((false, String::new(), "Execution timed out".to_string())),
+            Ok(Err(exec_error)) => return Err(exec_error),
+            Ok(Ok((true, stdout, stderr))) => return Ok((true, stdout, stderr)),
+            Ok(Ok((false, stdout, stderr))) => {
+                if !exec_channel_not_ready(&stderr) || attempt + 1 >= EXEC_RETRY_ATTEMPTS {
+                    return Ok((false, stdout, stderr));
+                }
+                tracing::warn!(
+                    "vm exec channel for {vm_name} not ready (attempt {}/{EXEC_RETRY_ATTEMPTS}): {stderr}",
+                    attempt + 1
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(2 * u64::from(attempt + 1)))
+                    .await;
+            }
+        }
     }
+    Ok((
+        false,
+        String::new(),
+        "the workspace exec channel did not become ready".to_string(),
+    ))
 }
 
 /// Installs packages for `language`. Names are validated by `sanitize_package`.
@@ -326,7 +365,19 @@ fn python_package_alias(name: &str) -> &str {
 
 #[cfg(test)]
 mod isolation_tests {
-    use super::runner_command;
+    use super::{exec_channel_not_ready, runner_command};
+
+    #[test]
+    fn a_container_that_does_not_accept_exec_is_retried() {
+        assert!(exec_channel_not_ready("Error: VM agent is not connected"));
+        assert!(exec_channel_not_ready("Error: Instance is not running"));
+        assert!(exec_channel_not_ready("Error: Instance is starting"));
+        assert!(exec_channel_not_ready("incus exec: instance not ready"));
+        assert!(!exec_channel_not_ready(
+            "ModuleNotFoundError: No module named 'reportlab'"
+        ));
+        assert!(!exec_channel_not_ready("sh: 1: python3: not found"));
+    }
 
     #[test]
     fn generated_code_runs_as_runner() {

@@ -22,9 +22,11 @@ fn workspace_failure_message(reason: &str) -> String {
     } else {
         clipped
     };
-    format!(
-        "The workspace could not run this program: {clipped}. Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up."
-    )
+    // The reason is already actionable (a cold start says it is still pulling
+    // the image; a host problem names the missing Incus setup). Do not append
+    // the old "restart the app" advice: it made a transient first-run race look
+    // like a permanently dead sandbox host (issue #1798).
+    format!("The workspace could not run this program: {clipped}. Start a new message to retry.")
 }
 
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
@@ -363,11 +365,21 @@ mod workspace_failure_message_tests {
     }
 
     #[test]
+    fn a_cold_start_reason_is_not_framed_as_a_dead_host() {
+        let message = workspace_failure_message(
+            "the workspace container ag-u58d054e0-619e is still starting after 900s; the first run downloads and unpacks the Incus image. Retry in a moment",
+        );
+        assert!(message.contains("still starting"));
+        assert!(!message.contains("restarting the app"));
+        assert!(message.ends_with("Start a new message to retry."));
+    }
+
+    #[test]
     fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
         let long = "x".repeat(600);
         let message = workspace_failure_message(&long);
         assert!(message.contains('…'), "clip marker present");
         assert!(message.chars().count() < 500, "message stays readable");
-        assert!(message.ends_with("brings the workspace up."));
+        assert!(message.ends_with("Start a new message to retry."));
     }
 }

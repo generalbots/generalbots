@@ -27,7 +27,10 @@ pub fn extract_oauth_url(log: &str) -> Option<String> {
     let end = rest
         .char_indices()
         .find(|(_, c)| {
-            matches!(*c, '\u{1b}' | '\u{7}' | '\0' | '\n' | '\r' | ' ' | '\t' | '"' | '\'' | '<' | '>')
+            matches!(
+                *c,
+                '\u{1b}' | '\u{7}' | '\0' | '\n' | '\r' | ' ' | '\t' | '"' | '\'' | '<' | '>'
+            )
         })
         .map(|(i, _)| i)
         .unwrap_or(rest.len());
@@ -44,11 +47,22 @@ pub(super) async fn run_script(
     vm_name: &str,
     script: &str,
 ) -> Result<(bool, String, String), (StatusCode, String)> {
-    vm::exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), script.to_string()]).await
+    vm::exec_in_vm(
+        state,
+        vm_name,
+        &["sh".into(), "-c".into(), script.to_string()],
+    )
+    .await
 }
 
 pub(super) async fn read_status_file(state: &AgentService, vm_name: &str) -> String {
-    match run_script(state, vm_name, &format!("cat {LOGIN_STATUS} 2>/dev/null || true")).await {
+    match run_script(
+        state,
+        vm_name,
+        &format!("cat {LOGIN_STATUS} 2>/dev/null || true"),
+    )
+    .await
+    {
         Ok((_, stdout, _)) => stdout.trim().to_string(),
         Err(_) => String::new(),
     }
@@ -70,7 +84,11 @@ pub async fn status(
     if stdout.trim().is_empty() && !stderr.trim().is_empty() {
         return Err(internal(format!("claude status: {stderr}")));
     }
-    let linked = stdout.lines().next().map(|line| line.trim() == "LINKED").unwrap_or(false);
+    let linked = stdout
+        .lines()
+        .next()
+        .map(|line| line.trim() == "LINKED")
+        .unwrap_or(false);
     let url = extract_oauth_url(&stdout);
     let phase = read_status_file(state, vm_name).await;
     let state_name = if linked {

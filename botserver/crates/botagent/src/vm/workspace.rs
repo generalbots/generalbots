@@ -29,7 +29,10 @@ pub async fn ensure_conversation_folder(
 
     // Check DB first.
     let exists = {
-        let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+        let mut conn = state
+            .pool()
+            .get()
+            .map_err(|e| internal(format!("DB pool: {e}")))?;
         use agent_conversation_folders::dsl as cf;
         cf::agent_conversation_folders
             .filter(cf::agent_session_id.eq(session.id))
@@ -43,13 +46,26 @@ pub async fn ensure_conversation_folder(
         return Ok(row.folder_path);
     }
 
-    exec_in_vm(state, &session.vm_name, &["mkdir".into(), "-p".into(), folder_path.clone()]).await?;
+    exec_in_vm(
+        state,
+        &session.vm_name,
+        &["mkdir".into(), "-p".into(), folder_path.clone()],
+    )
+    .await?;
     for sub in ["output", "program", "data"] {
         let sub_path = format!("{folder_path}/{sub}");
-        let _ = exec_in_vm(state, &session.vm_name, &["mkdir".into(), "-p".into(), sub_path]).await;
+        let _ = exec_in_vm(
+            state,
+            &session.vm_name,
+            &["mkdir".into(), "-p".into(), sub_path],
+        )
+        .await;
     }
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let row = AgentConversationFolderRow {
         id: Uuid::new_v4(),
         agent_session_id: session.id,
@@ -106,14 +122,20 @@ pub async fn switch_conversation(
 ) -> Result<AgentSessionRow, (StatusCode, String)> {
     let clean_cid = sanitize_id(new_conversation_id)?;
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let session = load_session_by_user(&mut conn, user_id)?
         .ok_or_else(|| bad_request("No active VM for this user"))?;
     drop(conn);
 
     ensure_conversation_folder(state, &session, &clean_cid).await?;
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     set_active_conversation(&mut conn, session.id, &clean_cid)?;
 
     let mut updated = session;
@@ -131,7 +153,10 @@ pub async fn delete_conversation_folder(
 ) -> Result<(), (StatusCode, String)> {
     let clean_cid = sanitize_id(conversation_id)?;
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let Some(session) = load_session_by_user(&mut conn, user_id)? else {
         return Ok(());
     };
@@ -143,9 +168,7 @@ pub async fn delete_conversation_folder(
     // the command does not match itself and die before `rm` executes — that
     // bug left every deleted conversation folder behind. `clean_cid` is
     // restricted to ASCII alphanumerics, '-' and '_' by `sanitize_id`.
-    let kill = format!(
-        "pkill -f '[c]onversations/{clean_cid}' 2>/dev/null || true"
-    );
+    let kill = format!("pkill -f '[c]onversations/{clean_cid}' 2>/dev/null || true");
     if let Err((code, err)) = exec_in_vm(
         state,
         &session.vm_name,
@@ -166,7 +189,10 @@ pub async fn delete_conversation_folder(
         tracing::warn!("delete conversation folder {clean_cid} ({code}): {err}");
     }
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     use agent_conversation_folders::dsl as cf;
     diesel::delete(
         cf::agent_conversation_folders

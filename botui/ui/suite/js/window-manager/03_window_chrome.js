@@ -51,14 +51,14 @@
 
   _glassHeader(id, title, opts) {
     const maximize = opts && opts.noMaximize !== true
-      ? `<div class="window-dot window-dot-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>`
+      ? `<div class="window-dot window-dot-maximize" role="button" tabindex="0" title="Maximize" data-i18n-title="window-maximize" aria-label="Maximize" data-i18n-aria-label="window-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>`
       : "";
     return `<div class="window-header-glass">
       <div class="window-title">${title}</div>
       <div class="window-dot-controls">
-        <div class="window-dot window-dot-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
+        <div class="window-dot window-dot-minimize" role="button" tabindex="0" title="Minimize" data-i18n-title="window-minimize" aria-label="Minimize" data-i18n-aria-label="window-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
         ${maximize}
-        <div class="window-dot window-dot-close" onclick="window.WindowManager.close('${id}')"></div>
+        <div class="window-dot window-dot-close" role="button" tabindex="0" title="Close" data-i18n-title="window-close" aria-label="Close" data-i18n-aria-label="window-close" onclick="window.WindowManager.close('${id}')"></div>
       </div>
     </div>`;
   },
@@ -78,15 +78,27 @@
     return `<div id="window-body-${id}" class="window-body relative flex-1 overflow-y-auto"></div>`;
   },
 
-  // Issue #725: an inverted 3D bevel status bar, styled to match the active
-  // theme. Shows a small status glyph and the window title so every app
-  // window carries a visible footer bar.
+  // Issue #725/#1849: every app window carries an inverted 3D bevel status
+  // bar. The markup is the shared live contract renderer sink (see
+  // 07_status.js): state LED + primary text, progress, metrics, selection,
+  // connection and the window title. Apps publish through GBStatus and never
+  // write these nodes directly.
   _statusBar(id) {
     const title = ((this.openWindows.find((w) => w.id === id)) || {}).title || "";
-    return `<div class="window-statusbar" data-window-id="${id}">
-      <span class="window-statusbar-status">Ready</span>
+    const safeTitle = String(title).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[ch]);
+    return `<div class="window-statusbar" data-window-id="${id}" data-state="ready" role="group" aria-label="Window status">
+      <span class="window-statusbar-status" data-state="ready" role="status" aria-live="polite" tabindex="0" data-help="status-ready" data-tooltip="Ready" title="Ready">Ready</span>
+      <span class="window-statusbar-progress" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" hidden>
+        <span class="window-statusbar-progress-track" aria-hidden="true"><span class="window-statusbar-progress-fill"></span></span>
+        <span class="window-statusbar-progress-label"></span>
+      </span>
+      <span class="window-statusbar-metrics" hidden></span>
+      <span class="window-statusbar-selection" hidden></span>
       <span class="window-statusbar-spacer"></span>
-      <span class="window-statusbar-title">${String(title).replace(/"/g, "&quot;")}</span>
+      <span class="window-statusbar-connection" hidden></span>
+      <span class="window-statusbar-title" title="${safeTitle}">${safeTitle}</span>
     </div>`;
   },
 
@@ -121,7 +133,7 @@
     // (FOUC). Apps without local stylesheets reveal immediately.
     body.classList.remove("gb-window-ready");
     body.innerHTML =
-      '<div class="gb-window-loading" role="status" aria-label="Loading app">' +
+      '<div class="gb-window-loading" role="status" aria-label="Loading app" data-i18n-aria-label="window-loading">' +
       '<div class="gb-window-loading-spinner"></div></div>' +
       '<div class="gb-window-content"></div>';
     const content = body.querySelector(".gb-window-content");

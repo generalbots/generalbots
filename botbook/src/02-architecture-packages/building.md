@@ -382,6 +382,31 @@ lipo -create \
     -output botserver-universal
 ```
 
+#### macOS desktop bundle (.dmg)
+
+The desktop edition is built on an Apple Silicon host. Stage the Mach-O
+sidecar with the name Tauri expects, then pass both bundle overrides:
+
+```bash
+cargo build -p botserver --release --no-default-features --features desktop-local
+cargo build -p botui --release
+cargo build -p botapp --release --features desktop-local,custom-protocol
+desktop/macos/stage-sidecar.sh aarch64-apple-darwin
+cd botapp
+cargo tauri build \
+    --features desktop-local,custom-protocol \
+    --config tauri.desktop-local.conf.json \
+    --config tauri.macos.conf.json \
+    --bundles dmg,app
+```
+
+The second `--config` wins on arrays, so `tauri.macos.conf.json` narrows the
+output to `app`/`dmg` while `tauri.desktop-local.conf.json` still supplies
+`externalBin` and the resources. The artifact is unsigned; signing and
+notarization are future work (see `desktop/macos/README.md`). The Linux service
+stack and Incus agent have no native darwin builds, so run them in a Linux VM
+or on a remote Incus host.
+
 ### Windows
 
 Build with MSVC toolchain:

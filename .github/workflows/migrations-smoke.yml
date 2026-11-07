@@ -5,6 +5,8 @@ name: Migrations smoke
 # job runs the real embedded migrations against an empty PostgreSQL and checks
 # the tables/columns the desktop first run needs.
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  workflow_call:
   push:
     paths:
       - "botserver/migrations/**"

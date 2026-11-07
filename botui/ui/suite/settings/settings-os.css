@@ -1,0 +1,181 @@
+/* #1852 — shell-mode Operating System panel. */
+
+[data-shell-only="true"][hidden] {
+  display: none !important;
+}
+
+.os-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.os-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.os-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.os-info-row:last-child {
+  border-bottom: 0;
+}
+
+.os-label {
+  color: var(--text-secondary, #9ca3af);
+  font-size: 13px;
+}
+
+.os-info-row code {
+  color: var(--text, #e5e7eb);
+  font-family: "Fira Code", monospace;
+  font-size: 13px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.os-hint {
+  margin: 12px 0 0;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.os-service-list,
+.os-disk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.os-service-row,
+.os-disk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.os-service-row:last-child,
+.os-disk-row:last-child {
+  border-bottom: 0;
+}
+
+.os-service-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text, #e5e7eb);
+}
+
+.os-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-secondary, #6b7280);
+  flex: 0 0 auto;
+}
+
+.os-status-dot.running {
+  background: #22c55e;
+}
+
+.os-status-dot.stopped {
+  background: #ef4444;
+}
+
+.os-status-text {
+  color: var(--text-secondary, #9ca3af);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.os-disk-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.os-disk-mount {
+  color: var(--text, #e5e7eb);
+  font-family: "Fira Code", monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.os-disk-meta {
+  color: var(--text-secondary, #9ca3af);
+  font-size: 12px;
+}
+
+.os-disk-bar {
+  width: 150px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2, #2a2a2a);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.os-disk-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #22c55e;
+}
+
+.os-disk-fill.warn {
+  background: #f59e0b;
+}
+
+.os-disk-fill.danger {
+  background: #ef4444;
+}
+
+.os-log-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.os-log-output {
+  margin: 14px 0 0;
+  padding: 14px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #0b0f14;
+  color: #d1d5db;
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.os-empty {
+  margin: 0;
+  color: var(--text-secondary, #9ca3af);
+  font-size: 13px;
+}
+
+.os-error {
+  color: #f87171;
+}
+
+@media (max-width: 640px) {
+  .os-disk-bar {
+    width: 90px;
+  }
+}

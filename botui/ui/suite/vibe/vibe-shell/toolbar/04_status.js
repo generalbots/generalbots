@@ -44,10 +44,22 @@
             el.className = "vibe-ribbon-status" + (state === "running" ? " running" : state === "failed" ? " failed" : "");
             el.style.display = text ? "" : "none";
         }
-        var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
-        if (statusEl) {
-            statusEl.textContent = text || "";
-            statusEl.dataset.state = state || "idle";
+        // #1849 — publish through the shared status contract. Keep the direct
+        // fallback so an older desktop shell (without 07_status.js) still
+        // shows the run state in the footer.
+        if (window.GBStatus && typeof window.GBStatus.set === "function") {
+            window.GBStatus.set("vibe", {
+                state: state || "idle",
+                text: text || "Ready",
+                busy: state === "running",
+                progress: state === "running" ? { indeterminate: true, label: text || "" } : null,
+            });
+        } else {
+            var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
+            if (statusEl) {
+                statusEl.textContent = text || "";
+                statusEl.dataset.state = state || "idle";
+            }
         }
         document.dispatchEvent(new CustomEvent("gb:vibe-status", {
             detail: { status: text || "", state: state || "idle" },

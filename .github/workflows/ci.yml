@@ -1,0 +1,102 @@
+name: CI
+
+# #1851 — single CI entry point.
+#
+# Every reusable gate lives in its own workflow so it can still be dispatched
+# (and still fires on its original path/tag/schedule triggers). This workflow
+# is the one place to see, on a push or pull request, whether the repository is
+# green:
+#
+#   security      cargo-deny, OSV, gitleaks, pip-audit, SBOM, actionlint
+#   migrations    fresh PostgreSQL run of every embedded migration
+#   quality       structural adequacy baseline (AGENTS.md rules)
+#   boteval       guards, unit tests and the evaluation gate (CI-only)
+#   botbook       mdBook rebuild and SUMMARY.md link check
+#   gb6 / gb7     published feature-contract fixtures
+#   windows       Windows agent/VM adapter compile check
+#
+# `workflow_dispatch` adds the heavy gates on request: `full` runs the
+# accessibility/performance audit, and `release_tag` additionally builds the
+# desktop binaries for that tag (without publishing — publishing belongs to
+# `.github/workflows/release-all.yml`).
+#
+# The per-workflow triggers are intentionally kept: the repository is mirrored
+# to Forgejo and maintainers still dispatch individual gates directly.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Run the heavy gates (accessibility/performance audit)"
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: "Build desktop binaries for this tag (implies full)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security
+    # security.yml uploads SARIF; the caller must grant the permission so the
+    # called workflow can keep its job-level security-events: write.
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yml
+
+  migrations:
+    name: Migrations
+    uses: ./.github/workflows/migrations-smoke.yml
+
+  quality:
+    name: Code quality
+    uses: ./.github/workflows/adequacy.yml
+
+  boteval:
+    name: Bot eval
+    uses: ./.github/workflows/boteval.yml
+    # KILO_*/BOTEVAL_* stay optional: boteval turns an unconfigured gate into
+    # an advisory warning, and inheriting keeps the existing secrets usable.
+    secrets: inherit
+
+  botbook:
+    name: BotBook
+    uses: ./.github/workflows/botbook-reindex.yml
+
+  gb6:
+    name: GB6 feature contract
+    uses: ./.github/workflows/gb6-features.yml
+
+  gb7:
+    name: GB7 feature contract
+    uses: ./.github/workflows/gb7-features.yml
+
+  windows:
+    name: Windows agent adapters
+    uses: ./.github/workflows/windows-agent.yml
+
+  a11y:
+    name: Accessibility and performance
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.full || inputs.release_tag != '') }}
+    uses: ./.github/workflows/a11y-perf.yml
+
+  desktop:
+    name: Desktop binaries (no publish)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}
+    uses: ./.github/workflows/desktop-binaries.yml
+    with:
+      tag: ${{ inputs.release_tag }}
+      publish: false

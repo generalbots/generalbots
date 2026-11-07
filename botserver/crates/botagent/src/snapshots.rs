@@ -32,7 +32,9 @@ async fn run_incus(
     let mut cmd = botlib::security::command_guard::SafeCommand::new(state.incus_bin())
         .map_err(|e| internal(format!("incus guard: {e}")))?;
     for arg in &args {
-        cmd = cmd.arg(arg).map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd
+            .arg(arg)
+            .map_err(|e| internal(format!("incus arg: {e}")))?;
     }
     tokio::task::spawn_blocking(move || cmd.execute())
         .await
@@ -60,7 +62,10 @@ pub async fn list_snapshots(
     Path(session_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let clean = vm::sanitize_id(&session_id)?;
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let session = {
         use crate::schema::agent_sessions::dsl::{agent_sessions, session_id as sid};
         agent_sessions
@@ -90,7 +95,10 @@ pub async fn create_snapshot(
     Json(body): Json<SnapshotCreateBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let clean = vm::sanitize_id(&session_id)?;
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let session = {
         use crate::schema::agent_sessions::dsl::{agent_sessions, session_id as sid};
         agent_sessions
@@ -128,7 +136,9 @@ pub async fn create_snapshot(
 
     evict_oldest(&state, &session, &mut conn).await?;
 
-    Ok(Json(serde_json::json!({ "status": "created", "item": row })))
+    Ok(Json(
+        serde_json::json!({ "status": "created", "item": row }),
+    ))
 }
 
 /// FIFO eviction: drop the oldest snapshots beyond the configured cap.
@@ -207,7 +217,10 @@ pub async fn restore_snapshot(
     headers: HeaderMap,
     Path(snapshot_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let (snap, session) = load_snapshot_with_session(&mut conn, snapshot_id)?;
     authorize_session_access(&headers, &session.user_id)?;
     {
@@ -223,7 +236,11 @@ pub async fn restore_snapshot(
         if vm::is_running(&state, &session.vm_name).await? {
             run_incus(
                 &state,
-                vec!["stop".to_string(), "--force".to_string(), session.vm_name.clone()],
+                vec![
+                    "stop".to_string(),
+                    "--force".to_string(),
+                    session.vm_name.clone(),
+                ],
             )
             .await?;
         }
@@ -236,11 +253,7 @@ pub async fn restore_snapshot(
             ],
         )
         .await?;
-        run_incus(
-            &state,
-            vec!["start".to_string(), session.vm_name.clone()],
-        )
-        .await?;
+        run_incus(&state, vec!["start".to_string(), session.vm_name.clone()]).await?;
         vm::wait_for_running(&state, &session.vm_name).await
     }
     .await;
@@ -252,7 +265,10 @@ pub async fn restore_snapshot(
             vm::STATUS_ERROR
         }
     };
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     {
         use crate::schema::agent_sessions::dsl::{id, last_active_at, status};
         diesel::update(agent_sessions::table.filter(id.eq(session.id)))
@@ -275,7 +291,10 @@ pub async fn delete_snapshot(
     headers: HeaderMap,
     Path(snapshot_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let (snap, session) = load_snapshot_with_session(&mut conn, snapshot_id)?;
     authorize_session_access(&headers, &session.user_id)?;
 

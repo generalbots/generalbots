@@ -42,6 +42,28 @@ admin role (`data-admin-only` attributes; the renderer checks the resolved
 user role from the suite token). Non-admin users see only personal settings,
 and the admin view falls back to the personal view when access is denied.
 
+## Operating System panel (shell mode only)
+
+Issue #1852 adds a low-level **Operating System** section for deployments
+that are the whole OS: the Tauri desktop app, the desktop-local build and the
+General Bots OS kiosk image. It never appears in a normal browser/cloud
+deployment.
+
+| Piece | Location |
+|---|---|
+| Mode detection | `settings/main/02_edition.js` — `isShellMode(config)` |
+| Nav + section | `settings/index.html`, `settings/partials/07_os.html` |
+| Controller | `settings/settings-os.js` |
+| Product flag | `shell_mode=true` in `.product.desktop-local` (`/api/product`) |
+| API | `GET /api/system/os`, `GET /api/system/os/logs`, `POST /api/system/os/services/restart` |
+
+The minimal panel shows hostname, OS/kernel/architecture, uptime, timezone,
+service status, disk usage and a log tail. Hostname and timezone are
+read-only in this phase. **Restart** is the only mutating tool: it requires a
+typed service-name confirmation and writes an `os_service_restart` entry to
+the audit log. New OS endpoints enforce shell mode, administrator access and
+a loopback host; hiding the panel in the browser is not the security gate.
+
 ## Verification
 
 - Desktop launcher → Settings opens the unified page.

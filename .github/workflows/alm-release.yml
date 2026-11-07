@@ -38,6 +38,14 @@ name: ALM release binaries
 # Release tarballs for end users stay in `.github/workflows/desktop-binaries.yml`.
 
 on:
+  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  workflow_call:
+    inputs:
+      publish:
+        description: "Publish the alm-* component release"
+        required: false
+        default: true
+        type: boolean
   push:
     branches: ["main"]
     paths:
@@ -168,7 +176,7 @@ jobs:
   publish:
     name: Publish the build as a release
     needs: [build]
-    if: ${{ github.server_url == 'https://github.com' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ github.server_url == 'https://github.com' && (inputs.publish == null || inputs.publish) && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || inputs.publish == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

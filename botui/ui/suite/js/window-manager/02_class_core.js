@@ -139,6 +139,11 @@ class WindowManager {
     }
 
     workspace.appendChild(windowEl);
+    // Chrome (title-bar controls, status bar) is built by the window manager,
+    // not by the app fragment, so translate it explicitly at open time.
+    if (window.i18n && typeof window.i18n.translatePage === "function") {
+      window.i18n.translatePage(windowEl);
+    }
     // #1315 — per-app default window size. Timer (and other small
     // utilities) open compact; users can still resize/maximize freely.
     const APP_DEFAULT_SIZE = {
@@ -166,7 +171,15 @@ class WindowManager {
     if (id === "settings" || id === "admin") {
       windowEl.classList.add("window-settings-modal");
     }
+    // #1849 — install the per-app status listener before the fragment scripts
+    // run so an app that publishes `gb:status:<id>` during boot is captured.
+    if (typeof this._statusBarInit === "function") this._statusBarInit(id);
     this._injectBodyContent(id, htmlContent);
+    // #1849 — hand the freshly-created footer to the shared status renderer.
+    // Apps may already have published a status while their fragment scripts
+    // executed; this replays the stored payload (or the app registry default)
+    // into the live slots.
+    if (typeof this._statusBarInit === "function") this._statusBarInit(id);
     this._addTaskbarDockItem(id);
     this._makeDraggable(windowEl);
     this._makeResizable(windowEl);

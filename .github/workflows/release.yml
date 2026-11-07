@@ -2,7 +2,8 @@ name: Product release
 
 # #1804 — one product release line: vMAJOR.MINOR.PATCH, created on every merge
 # to main. It bumps the patch, commits the new version into the version files,
-# tags that commit and dispatches the desktop builds from the tag.
+# tags that commit and dispatches the all-inclusive release from the tag
+# (#1851: `.github/workflows/release-all.yml`).
 #
 # /releases/latest always resolves to this product release because every other
 # release is a pre-release:
@@ -113,42 +114,28 @@ jobs:
             echo
             echo "- version files: \`Cargo.toml\`, \`Cargo.lock\`, \`botapp/tauri.conf.json\`, README badge"
             echo "- tag: \`${VERSION}\` at \`$(git rev-parse --short HEAD)\`"
-            echo "- desktop builds are dispatched from this tag"
+            echo "- the all-inclusive release is dispatched from this tag"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Dispatch the desktop build from the tag
+      - name: Dispatch the all-inclusive release from the tag
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          # #1851: one entry point builds and publishes the whole product
+          # line (server + Linux/Windows/macOS/arm64 desktops + pythonbox +
+          # appliance image) into a single release with one MANIFEST.json.
           for attempt in 1 2 3; do
-            if gh workflow run desktop-binaries.yml \
+            if gh workflow run release-all.yml \
                  --repo "$GITHUB_REPOSITORY" \
                  --ref "$VERSION" \
                  -f tag="$VERSION"; then
-              echo "dispatched desktop-binaries.yml at ${VERSION}"
+              echo "dispatched release-all.yml at ${VERSION}"
               exit 0
             fi
             echo "dispatch failed (${attempt}/3); retrying"
             sleep 5
           done
-          echo "::error::could not dispatch desktop-binaries.yml at ${VERSION}"
+          echo "::error::could not dispatch release-all.yml at ${VERSION}"
           exit 1
-
-      - name: Dispatch macOS and arm64 builds (best effort)
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          gh workflow run desktop-macos.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref "$VERSION" \
-            -f tag="$VERSION"
-          gh workflow run desktop-linux-arm64.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref "$VERSION" \
-            -f tag="$VERSION"
-          echo "dispatched macOS and arm64 builds at ${VERSION}"

@@ -1,6 +1,9 @@
 name: BotEval CI Gate
 
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  # `secrets: inherit` on the caller passes KILO_*/BOTEVAL_* through unchanged.
+  workflow_call:
   push:
     branches: ["main"]
   pull_request:

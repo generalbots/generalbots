@@ -26,6 +26,17 @@ name: General Bots OS (kiosk appliance image)
 # staging ground.
 
 on:
+  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  workflow_call:
+    inputs:
+      release:
+        description: "Release to take the tarball from ('latest' or e.g. v6.7.0)"
+        required: false
+        type: string
+      artifact:
+        description: "Download linux-installer from the current run instead of a release"
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       release:
@@ -51,26 +62,46 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Download the desktop artifact from the caller run
+        if: ${{ inputs.artifact != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ inputs.artifact }}
+          path: /tmp/general-bots-artifact
+
       - name: Fetch and unpack the release tarball into the image payload
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT: ${{ inputs.artifact }}
         run: |
           set -euo pipefail
-          # "latest" means "the newest release whose assets actually carry
-          # the desktop tarball" — a plain latest/download URL 404s on the
-          # ALM tags (botserver/botui assets only).
-          REL="${{ github.event.inputs.release }}"
-          if [ -z "$REL" ] || [ "$REL" = "latest" ]; then
-            REL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-              | python3 -c 'import json,sys; print(next((r["tag_name"] for r in json.load(sys.stdin) if any(a["name"] == "generalbots-linux-x86_64.tar.gz" for a in r["assets"])), ""))')
-            test -n "$REL" || { echo 'no release carries generalbots-linux-x86_64.tar.gz' >&2; exit 1; }
-            echo "using release $REL"
-          fi
           mkdir -p desktop/os/mkosi.extra/opt/general-bots
-          curl -fL -o /tmp/general-bots.tar.gz \
-            "https://github.com/${GITHUB_REPOSITORY}/releases/download/${REL}/generalbots-linux-x86_64.tar.gz"
-          tar -xzf /tmp/general-bots.tar.gz \
+          if [ -n "${ARTIFACT:-}" ]; then
+            # release-all.yml passes the linux-installer artifact produced in
+            # the same run, so the image never waits for the release publish.
+            TARBALL="/tmp/general-bots-artifact/generalbots-linux-x86_64.tar.gz"
+            test -f "$TARBALL" || {
+              echo "artifact ${ARTIFACT} carries no generalbots-linux-x86_64.tar.gz" >&2
+              exit 1
+            }
+            echo "using artifact ${ARTIFACT} from the current run"
+          else
+            # "latest" means "the newest release whose assets actually carry
+            # the desktop tarball" — a plain latest/download URL 404s on the
+            # ALM tags (botserver/botui assets only).
+            REL="${{ inputs.release || github.event.inputs.release }}"
+            if [ -z "$REL" ] || [ "$REL" = "latest" ]; then
+              REL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+                | python3 -c 'import json,sys; print(next((r["tag_name"] for r in json.load(sys.stdin) if any(a["name"] == "generalbots-linux-x86_64.tar.gz" for a in r["assets"])), ""))')
+              test -n "$REL" || { echo 'no release carries generalbots-linux-x86_64.tar.gz' >&2; exit 1; }
+              echo "using release $REL"
+            fi
+            TARBALL=/tmp/general-bots.tar.gz
+            curl -fL -o "$TARBALL" \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${REL}/generalbots-linux-x86_64.tar.gz"
+          fi
+          tar -xzf "$TARBALL" \
             -C desktop/os/mkosi.extra/opt/general-bots --strip-components=1
           test -x desktop/os/mkosi.extra/opt/general-bots/start.sh
           test -x desktop/os/mkosi.extra/opt/general-bots/generalbots
