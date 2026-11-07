@@ -4,6 +4,8 @@
      first. Do not edit by hand: `generate --version` replaces that section.
      Sections start at v6.7.7; earlier releases predate this file. -->
 
+## v6.7.15 — 2026-11-07
+
 ## v6.7.10 — 2026-11-07
 
 Packaging-only release: no user-facing changes.
