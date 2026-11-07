@@ -82,7 +82,9 @@ impl DbDriver for MySqlDriver {
         SqlDialect::Mysql
     }
     fn connect(&self, _url: &str) -> Result<Box<dyn DbConnection>, DbError> {
-        Err(DbError::UnsupportedDialect("MySqlDriver not yet implemented".into()))
+        Err(DbError::UnsupportedDialect(
+            "MySqlDriver not yet implemented".into(),
+        ))
     }
 }
 
@@ -123,7 +125,10 @@ mod tests {
     #[test]
     fn driver_for_returns_matching_dialect() {
         assert_eq!(driver_for(SqlDialect::Sqlite).dialect(), SqlDialect::Sqlite);
-        assert_eq!(driver_for(SqlDialect::Postgres).dialect(), SqlDialect::Postgres);
+        assert_eq!(
+            driver_for(SqlDialect::Postgres).dialect(),
+            SqlDialect::Postgres
+        );
     }
 
     /// Only Postgres reaches a live connection, through diesel. The SQLite and

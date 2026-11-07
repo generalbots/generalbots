@@ -24,6 +24,44 @@ pub struct AddImapAccountForm {
     pub password: String,
 }
 
+/// Verifies an IMAP mailbox before the credentials are stored.
+///
+/// The Sources Accounts tab and the Mail app must agree on what "connected"
+/// means, so this reuses the same `botemail` session code (#1820). The IMAP
+/// client is blocking and has no connect timeout of its own, so the check runs
+/// on a blocking thread under a strict deadline; an unreachable host must not
+/// hang the request.
+#[cfg(feature = "mail")]
+async fn validate_imap_credentials(
+    host: String,
+    port: u16,
+    username: String,
+    password: String,
+) -> Result<(), String> {
+    use botemail::imap_auth::{verify_connectivity, ImapAuth};
+
+    let check = tokio::task::spawn_blocking(move || {
+        let auth = ImapAuth::Password { username, password };
+        verify_connectivity(&host, port, &auth)
+    });
+    match tokio::time::timeout(std::time::Duration::from_secs(15), check).await {
+        Ok(Ok(Ok(()))) => Ok(()),
+        Ok(Ok(Err(error))) => Err(error),
+        Ok(Err(error)) => Err(format!("The mailbox check could not run: {error}")),
+        Err(_) => Err("Timed out while connecting to the mail server".to_string()),
+    }
+}
+
+#[cfg(feature = "mail")]
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
 #[derive(diesel::QueryableByName, Debug)]
 struct ConnectedAccountRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -36,9 +74,7 @@ struct ConnectedAccountRow {
     metadata_json: String,
 }
 
-pub async fn handle_list_accounts_htmx(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn handle_list_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let pool = state.conn.clone();
     let accounts = tokio::task::spawn_blocking(move || {
         let mut conn = match pool.get() {
@@ -50,13 +86,14 @@ pub async fn handle_list_accounts_htmx(
             "SELECT id, email, status, metadata_json
              FROM connected_accounts
              WHERE provider = 'imap' AND status = 'active'
-             ORDER BY created_at DESC"
+             ORDER BY created_at DESC",
         )
-            .load::<ConnectedAccountRow>(&mut conn)
-            .map_err(|e| format!("Query error: {e}"))?;
+        .load::<ConnectedAccountRow>(&mut conn)
+        .map_err(|e| format!("Query error: {e}"))?;
 
         Ok::<_, String>(rows)
-    }).await;
+    })
+    .await;
 
     let accounts = match accounts {
         Ok(Ok(list)) => list,
@@ -80,9 +117,14 @@ pub async fn handle_list_accounts_htmx(
     for acct in &accounts {
         let acct_id = acct.id;
         let status = &acct.status;
-        let status_class = if status == "active" { "active" } else { "error" };
+        let status_class = if status == "active" {
+            "active"
+        } else {
+            "error"
+        };
 
-        let meta: HashMap<String, String> = serde_json::from_str(&acct.metadata_json).unwrap_or_default();
+        let meta: HashMap<String, String> =
+            serde_json::from_str(&acct.metadata_json).unwrap_or_default();
         let imap_server = meta.get("imap_server").map(|s| s.as_str()).unwrap_or("");
 
         let _ = write!(
@@ -125,6 +167,41 @@ pub async fn handle_add_imap_account(
     State(state): State<Arc<AppState>>,
     Form(form): Form<AddImapAccountForm>,
 ) -> impl IntoResponse {
+    if form.imap_server.trim().is_empty() || form.username.trim().is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(
+                r#"<div class="toast toast-error">IMAP server and username are required</div>"#
+                    .to_string(),
+            ),
+        );
+    }
+
+    // Without the `mail` feature the account can still be stored as a source,
+    // but there is no IMAP client to prove the mailbox is reachable.
+    #[cfg(feature = "mail")]
+    if let Err(error) = validate_imap_credentials(
+        form.imap_server.clone(),
+        form.imap_port,
+        form.username.clone(),
+        form.password.clone(),
+    )
+    .await
+    {
+        log::warn!(
+            "IMAP connectivity check failed for {}: {error}",
+            form.imap_server
+        );
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(format!(
+                r#"<div class="toast toast-error">Could not connect to {}: {}</div>"#,
+                escape_html(&form.imap_server),
+                escape_html(&error)
+            )),
+        );
+    }
+
     let account_id = Uuid::new_v4();
     let vault_path = format!("gbo/users/imap/{}", account_id);
     let vault_path_for_vault = vault_path.clone();
@@ -143,25 +220,34 @@ pub async fn handle_add_imap_account(
             Err(e) => return Err(format!("Vault not available: {e}")),
         };
         let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all().build()
+            .enable_all()
+            .build()
             .map_err(|e| format!("Runtime build failed: {e}"))?;
         rt.block_on(sm.put_secret(&vault_path_for_vault, vault_data))
             .map_err(|e| format!("Vault write failed: {e}"))
-    }).await;
+    })
+    .await;
 
     match vault_result {
         Ok(Ok(())) => {}
         Ok(Err(e)) => {
             log::error!("Failed to save IMAP credentials to Vault: {e}");
-                return (StatusCode::INTERNAL_SERVER_ERROR, Html(
-                format!(r#"<div class="toast toast-error">Failed to save credentials: {e}</div>"#)
-            ));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!(
+                    r#"<div class="toast toast-error">Failed to save credentials: {e}</div>"#
+                )),
+            );
         }
         Err(e) => {
             log::error!("Vault task error: {e}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, Html(
-                r#"<div class="toast toast-error">Internal error saving credentials</div>"#.to_string()
-            ));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(
+                    r#"<div class="toast toast-error">Internal error saving credentials</div>"#
+                        .to_string(),
+                ),
+            );
         }
     }
 
@@ -225,9 +311,12 @@ pub async fn handle_delete_account(
 ) -> impl IntoResponse {
     let id = match Uuid::parse_str(&account_id) {
         Ok(id) => id,
-        Err(_) => return (StatusCode::BAD_REQUEST, Html(
-            r#"<div class="toast toast-error">Invalid account ID</div>"#.to_string()
-        )),
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Html(r#"<div class="toast toast-error">Invalid account ID</div>"#.to_string()),
+            )
+        }
     };
 
     let pool = state.conn.clone();
@@ -243,7 +332,8 @@ pub async fn handle_delete_account(
             .map_err(|e| format!("DB delete failed: {e}"))?;
 
         Ok::<_, String>(())
-    }).await;
+    })
+    .await;
 
     match db_result {
         Ok(Ok(_)) => {

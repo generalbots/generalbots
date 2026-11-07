@@ -28,7 +28,16 @@ fn test_safe_command_disallowed() {
 #[test]
 fn dangerous_binaries_stay_out_of_the_allowlist() {
     for binary in [
-        "nc", "netcat", "wget", "dd", "mkfs", "rm", "openssl", "initdb", "pg_ctl", "createdb",
+        "nc",
+        "netcat",
+        "wget",
+        "dd",
+        "mkfs",
+        "rm",
+        "openssl",
+        "initdb",
+        "pg_ctl",
+        "createdb",
         "systemctl",
     ] {
         assert!(

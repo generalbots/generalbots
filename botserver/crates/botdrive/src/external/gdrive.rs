@@ -76,14 +76,32 @@ impl TokenResponse {
 /// Build the authorization URL. `access_type=offline` + `prompt=consent` is
 /// what makes Google issue a refresh token for a desktop-style client.
 pub fn authorize_url(client_id: &str, redirect_uri: &str, state: &str) -> String {
-    format!(
+    authorize_url_with_pkce(client_id, redirect_uri, state, None)
+}
+
+/// Build the authorization URL with an optional PKCE challenge. Managed
+/// installed-app clients have no secret, so the desktop flow always supplies
+/// the S256 challenge derived from the verifier carried in the signed state.
+pub fn authorize_url_with_pkce(
+    client_id: &str,
+    redirect_uri: &str,
+    state: &str,
+    code_challenge: Option<&str>,
+) -> String {
+    let mut url = format!(
         "{AUTH_URL}?client_id={client}&redirect_uri={redirect}&response_type=code\
 &scope={scope}&access_type=offline&prompt=consent&include_granted_scopes=true&state={state}",
         client = percent_encode(client_id),
         redirect = percent_encode(redirect_uri),
         scope = percent_encode("https://www.googleapis.com/auth/drive.readonly"),
         state = percent_encode(state),
-    )
+    );
+    if let Some(challenge) = code_challenge.filter(|value| !value.is_empty()) {
+        url.push_str("&code_challenge=");
+        url.push_str(&percent_encode(challenge));
+        url.push_str("&code_challenge_method=S256");
+    }
+    url
 }
 
 /// Exchange an authorization code for tokens.
@@ -94,14 +112,40 @@ pub async fn exchange_code(
     redirect_uri: &str,
     code: &str,
 ) -> Result<TokenSet, SyncError> {
-    let form = [
+    exchange_code_with_pkce(
+        http,
+        client_id,
+        Some(client_secret),
+        redirect_uri,
+        code,
+        None,
+    )
+    .await
+}
+
+/// Exchange an authorization code for tokens, omitting the secret for public
+/// clients and presenting the PKCE verifier when the flow used one.
+pub async fn exchange_code_with_pkce(
+    http: &reqwest::Client,
+    client_id: &str,
+    client_secret: Option<&str>,
+    redirect_uri: &str,
+    code: &str,
+    code_verifier: Option<&str>,
+) -> Result<TokenSet, SyncError> {
+    let mut form: Vec<(&str, &str)> = vec![
         ("client_id", client_id),
-        ("client_secret", client_secret),
         ("grant_type", "authorization_code"),
         ("code", code),
         ("redirect_uri", redirect_uri),
         ("access_type", "offline"),
     ];
+    if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
+        form.push(("client_secret", secret));
+    }
+    if let Some(verifier) = code_verifier.filter(|value| !value.is_empty()) {
+        form.push(("code_verifier", verifier));
+    }
     post_token(http, &form).await
 }
 
@@ -112,19 +156,28 @@ pub async fn refresh_token(
     client_secret: &str,
     refresh: &str,
 ) -> Result<TokenSet, SyncError> {
-    let form = [
+    refresh_token_optional_secret(http, client_id, Some(client_secret), refresh).await
+}
+
+/// Refresh with an optional secret so managed public clients keep working.
+pub async fn refresh_token_optional_secret(
+    http: &reqwest::Client,
+    client_id: &str,
+    client_secret: Option<&str>,
+    refresh: &str,
+) -> Result<TokenSet, SyncError> {
+    let mut form: Vec<(&str, &str)> = vec![
         ("client_id", client_id),
-        ("client_secret", client_secret),
         ("grant_type", "refresh_token"),
         ("refresh_token", refresh),
     ];
+    if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
+        form.push(("client_secret", secret));
+    }
     post_token(http, &form).await
 }
 
-async fn post_token(
-    http: &reqwest::Client,
-    form: &[(&str, &str)],
-) -> Result<TokenSet, SyncError> {
+async fn post_token(http: &reqwest::Client, form: &[(&str, &str)]) -> Result<TokenSet, SyncError> {
     let res = http
         .post(token_url())
         .form(form)
@@ -148,7 +201,10 @@ async fn post_token(
 }
 
 /// Obtain the cursor a delta run starts from. Called once per connection.
-pub async fn start_page_token(http: &reqwest::Client, access_token: &str) -> Result<String, SyncError> {
+pub async fn start_page_token(
+    http: &reqwest::Client,
+    access_token: &str,
+) -> Result<String, SyncError> {
     let url = format!("{DRIVE_API}/changes/startPageToken");
     let res = http
         .get(&url)
@@ -298,14 +354,19 @@ pub fn parse_page(json: &Value) -> DeltaPage {
     }
     if let Some(changes) = json.get("changes").and_then(Value::as_array) {
         for change in changes {
-            let Some(id) = change
-                .get("fileId")
-                .and_then(Value::as_str)
-                .or_else(|| change.get("file").and_then(|f| f.get("id")).and_then(Value::as_str))
-            else {
+            let Some(id) = change.get("fileId").and_then(Value::as_str).or_else(|| {
+                change
+                    .get("file")
+                    .and_then(|f| f.get("id"))
+                    .and_then(Value::as_str)
+            }) else {
                 continue;
             };
-            if change.get("removed").and_then(Value::as_bool).unwrap_or(false) {
+            if change
+                .get("removed")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
                 page.removed.push(id.to_string());
                 continue;
             }
@@ -322,7 +383,10 @@ pub fn parse_page(json: &Value) -> DeltaPage {
             }
         }
     }
-    page.next_cursor = json.get("nextPageToken").and_then(Value::as_str).map(String::from);
+    page.next_cursor = json
+        .get("nextPageToken")
+        .and_then(Value::as_str)
+        .map(String::from);
     page.delta = json
         .get("newStartPageToken")
         .and_then(Value::as_str)
@@ -355,7 +419,10 @@ fn parse_file(file: &Value) -> Option<ExternalFile> {
         .get("modifiedTime")
         .and_then(Value::as_str)
         .and_then(crate::external::onedrive::parse_ts);
-    f.revision = file.get("version").and_then(Value::as_str).map(String::from);
+    f.revision = file
+        .get("version")
+        .and_then(Value::as_str)
+        .map(String::from);
     f.parent_remote_id = file
         .get("parents")
         .and_then(Value::as_array)

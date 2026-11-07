@@ -37,11 +37,24 @@ pub struct S3PutBuilder {
 }
 
 impl S3PutBuilder {
-    pub fn bucket(self, _name: &str) -> Self { self }
-    pub fn key(mut self, k: &str) -> Self { self.key = Some(k.to_string()); self }
-    pub fn body(mut self, body: impl Into<Vec<u8>>) -> Self { self.body = Some(body.into()); self }
-    pub fn content_type(mut self, ct: &str) -> Self { self.content_type = Some(ct.to_string()); self }
-    pub fn content_disposition(self, _cd: &str) -> Self { self }
+    pub fn bucket(self, _name: &str) -> Self {
+        self
+    }
+    pub fn key(mut self, k: &str) -> Self {
+        self.key = Some(k.to_string());
+        self
+    }
+    pub fn body(mut self, body: impl Into<Vec<u8>>) -> Self {
+        self.body = Some(body.into());
+        self
+    }
+    pub fn content_type(mut self, ct: &str) -> Self {
+        self.content_type = Some(ct.to_string());
+        self
+    }
+    pub fn content_disposition(self, _cd: &str) -> Self {
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         let key = self.key.context("Key required")?;
         let body = self.body.context("Body required")?;
@@ -56,8 +69,13 @@ pub struct S3GetBuilder {
 }
 
 impl S3GetBuilder {
-    pub fn bucket(self, _name: &str) -> Self { self }
-    pub fn key(mut self, k: &str) -> Self { self.key = Some(k.to_string()); self }
+    pub fn bucket(self, _name: &str) -> Self {
+        self
+    }
+    pub fn key(mut self, k: &str) -> Self {
+        self.key = Some(k.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         let key = self.key.context("Key required")?;
         let response = self.bucket.get_object(&key).await?;
@@ -72,8 +90,13 @@ pub struct S3DeleteBuilder {
 }
 
 impl S3DeleteBuilder {
-    pub fn bucket(self, _name: &str) -> Self { self }
-    pub fn key(mut self, key: &str) -> Self { self.key = Some(key.to_string()); self }
+    pub fn bucket(self, _name: &str) -> Self {
+        self
+    }
+    pub fn key(mut self, key: &str) -> Self {
+        self.key = Some(key.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         let key = self.key.context("Key required")?;
         self.bucket.delete_object(&key).await?;
@@ -88,9 +111,17 @@ pub struct S3CopyBuilder {
 }
 
 impl S3CopyBuilder {
-    pub fn bucket(self, _name: &str) -> Self { self }
-    pub fn source(mut self, source: &str) -> Self { self.source = Some(source.to_string()); self }
-    pub fn dest(mut self, dest: &str) -> Self { self.dest = Some(dest.to_string()); self }
+    pub fn bucket(self, _name: &str) -> Self {
+        self
+    }
+    pub fn source(mut self, source: &str) -> Self {
+        self.source = Some(source.to_string());
+        self
+    }
+    pub fn dest(mut self, dest: &str) -> Self {
+        self.dest = Some(dest.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         let source = self.source.context("Source required")?;
         let dest = self.dest.context("Dest required")?;
@@ -106,11 +137,16 @@ pub struct S3ListBucketsBuilder {
 }
 
 impl S3ListBucketsBuilder {
-    pub fn repo(mut self, repo: SharedS3Repository) -> Self { self.repo = Some(repo); self }
+    pub fn repo(mut self, repo: SharedS3Repository) -> Self {
+        self.repo = Some(repo);
+        self
+    }
     pub async fn send(self) -> Result<S3ListBucketsResponse> {
         if let Some(repo) = self.repo {
             let names = repo.list_all_buckets().await?;
-            Ok(S3ListBucketsResponse { buckets: names.into_iter().map(|name| S3Bucket { name }).collect() })
+            Ok(S3ListBucketsResponse {
+                buckets: names.into_iter().map(|name| S3Bucket { name }).collect(),
+            })
         } else {
             Ok(S3ListBucketsResponse { buckets: vec![] })
         }
@@ -122,7 +158,10 @@ pub struct S3HeadBucketBuilder {
 }
 
 impl S3HeadBucketBuilder {
-    pub fn bucket(mut self, name: &str) -> Self { self.bucket_name = Some(name.to_string()); self }
+    pub fn bucket(mut self, name: &str) -> Self {
+        self.bucket_name = Some(name.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         Ok(super::S3Response::default())
     }
@@ -133,7 +172,10 @@ pub struct S3CreateBucketBuilder {
 }
 
 impl S3CreateBucketBuilder {
-    pub fn bucket(mut self, name: &str) -> Self { self.bucket_name = Some(name.to_string()); self }
+    pub fn bucket(mut self, name: &str) -> Self {
+        self.bucket_name = Some(name.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3Response> {
         Ok(super::S3Response::default())
     }
@@ -146,16 +188,25 @@ pub struct S3ListObjectsBuilder {
 }
 
 impl S3ListObjectsBuilder {
-    pub fn bucket(mut self, name: &str) -> Self { self.bucket_name = Some(name.to_string()); self }
-    pub fn prefix(mut self, prefix: &str) -> Self { self.prefix = Some(prefix.to_string()); self }
+    pub fn bucket(mut self, name: &str) -> Self {
+        self.bucket_name = Some(name.to_string());
+        self
+    }
+    pub fn prefix(mut self, prefix: &str) -> Self {
+        self.prefix = Some(prefix.to_string());
+        self
+    }
     pub async fn send(self) -> Result<S3ListObjectsResponse> {
         let prefix_str = self.prefix.unwrap_or_default();
         let results = self.bucket.list(prefix_str, Some("/".to_string())).await?;
-        let contents: Vec<S3Object> = results.iter()
-            .flat_map(|r| r.contents.iter().map(|c| S3Object {
-                key: c.key.clone(),
-                size: c.size,
-            }))
+        let contents: Vec<S3Object> = results
+            .iter()
+            .flat_map(|r| {
+                r.contents.iter().map(|c| S3Object {
+                    key: c.key.clone(),
+                    size: c.size,
+                })
+            })
             .collect();
         Ok(S3ListObjectsResponse { contents })
     }
@@ -169,8 +220,14 @@ pub struct S3Response {
 }
 
 impl S3Response {
-    pub fn new() -> Self { Self::default() }
-    pub fn with_data(data: Vec<u8>) -> Self { Self { body: S3ResponseBody { data } } }
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn with_data(data: Vec<u8>) -> Self {
+        Self {
+            body: S3ResponseBody { data },
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -190,7 +247,9 @@ pub struct S3CollectedBody {
 }
 
 impl S3CollectedBody {
-    pub fn into_bytes(self) -> Vec<u8> { self.data }
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.data
+    }
 }
 
 #[derive(Debug)]
@@ -204,7 +263,9 @@ pub struct S3Bucket {
 }
 
 impl S3Bucket {
-    pub fn name(&self) -> Option<String> { Some(self.name.clone()) }
+    pub fn name(&self) -> Option<String> {
+        Some(self.name.clone())
+    }
 }
 
 #[derive(Debug)]
@@ -213,7 +274,9 @@ pub struct S3ListObjectsResponse {
 }
 
 impl S3ListObjectsResponse {
-    pub fn contents(&self) -> &[S3Object] { &self.contents }
+    pub fn contents(&self) -> &[S3Object] {
+        &self.contents
+    }
 }
 
 #[derive(Debug)]
@@ -223,5 +286,7 @@ pub struct S3Object {
 }
 
 impl S3Object {
-    pub fn key(&self) -> Option<String> { Some(self.key.clone()) }
+    pub fn key(&self) -> Option<String> {
+        Some(self.key.clone())
+    }
 }

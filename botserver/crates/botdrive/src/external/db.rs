@@ -377,7 +377,12 @@ pub fn disconnect(
 }
 
 /// Borrow a pool connection.
-pub fn conn(pool: &DbPool) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, String> {
+pub fn conn(
+    pool: &DbPool,
+) -> Result<
+    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    String,
+> {
     pool.get().map_err(|e| format!("pool: {e}"))
 }
 

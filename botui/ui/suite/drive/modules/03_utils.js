@@ -151,6 +151,31 @@ function getEffectiveBucket() {
     return undefined;
 }
 
+// ── Local backend helpers (#1801) ────────────────────────────────
+// Local rows carry a `local:<root>` bucket so folder navigation, preview and
+// download requests can all be routed to the same allowlisted local root.
+const LOCAL_BUCKET_PREFIX = "local:";
+
+function localBucket(root) {
+    return LOCAL_BUCKET_PREFIX + (root || "home");
+}
+
+function parseLocalBucket(bucket) {
+    if (!bucket || bucket.indexOf(LOCAL_BUCKET_PREFIX) !== 0) return null;
+    return bucket.slice(LOCAL_BUCKET_PREFIX.length) || "home";
+}
+
+// The Home tab is a desktop-only surface: the local backend is disabled on a
+// multi-tenant server and must not be advertised there.
+function isDesktopLocal() {
+    var product = window.productConfig || {};
+    return window.__BOT_IS_PUBLIC__ === true ||
+        product.no_security === true ||
+        product.shell_mode === true ||
+        product.desktop_local === true ||
+        product.is_desktop === true;
+}
+
 function getGbaiDirName() {
     if (currentGborgBranch) return currentGborgBranch + ".gbai/";
     return "";

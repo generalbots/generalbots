@@ -16,6 +16,16 @@ pub async fn list_files(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ListFilesParams>,
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
+    // #1801 — one file API over local FS and MinIO. A desktop request sets
+    // backend=local (or passes a `local:<root>` bucket) and never reaches S3.
+    if crate::local_fs::is_local_backend(params.backend.as_deref(), params.bucket.as_deref()) {
+        let root =
+            crate::local_fs::requested_root(params.root.as_deref(), params.bucket.as_deref());
+        let items = crate::local_fs::list_local_files(root, params.path.as_deref())
+            .await
+            .map_err(|e| err(StatusCode::BAD_REQUEST, &e))?;
+        return Ok(Json(items));
+    }
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
@@ -165,24 +175,30 @@ pub async fn read_file(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(
-        &state,
-        req.bucket.as_deref(),
-        &scope,
-        Some(uid.as_str()),
-        None,
-        &user,
-    )?;
-    let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = scoped_key(&prefix, &req.path);
-
-    let data = drive
-        .get_object(&bucket, &key)
-        .await
-        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+    let data = if crate::local_fs::is_local_backend(req.backend.as_deref(), req.bucket.as_deref()) {
+        let root = crate::local_fs::requested_root(req.root.as_deref(), req.bucket.as_deref());
+        crate::local_fs::read_local_file(root, &req.path)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
+    } else {
+        let drive = get_drive(&state)?;
+        let scope = req.scope.unwrap_or_default();
+        let uid = effective_uid(&state, &user, req.user_id.as_deref());
+        let bucket = resolve_bucket(
+            &state,
+            req.bucket.as_deref(),
+            &scope,
+            Some(uid.as_str()),
+            None,
+            &user,
+        )?;
+        let prefix = resolve_scope_prefix(&scope, &uid);
+        let key = scoped_key(&prefix, &req.path);
+        drive
+            .get_object(&bucket, &key)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?
+    };
 
     let content = String::from_utf8_lossy(&data).to_string();
     Ok(Json(serde_json::json!({ "content": content })))
@@ -192,24 +208,30 @@ pub async fn download_file(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<Json<DownloadFileResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(
-        &state,
-        req.bucket.as_deref(),
-        &scope,
-        Some(uid.as_str()),
-        None,
-        &user,
-    )?;
-    let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = scoped_key(&prefix, &req.path);
-
-    let data = drive
-        .get_object(&bucket, &key)
-        .await
-        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+    let data = if crate::local_fs::is_local_backend(req.backend.as_deref(), req.bucket.as_deref()) {
+        let root = crate::local_fs::requested_root(req.root.as_deref(), req.bucket.as_deref());
+        crate::local_fs::read_local_file(root, &req.path)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
+    } else {
+        let drive = get_drive(&state)?;
+        let scope = req.scope.unwrap_or_default();
+        let uid = effective_uid(&state, &user, req.user_id.as_deref());
+        let bucket = resolve_bucket(
+            &state,
+            req.bucket.as_deref(),
+            &scope,
+            Some(uid.as_str()),
+            None,
+            &user,
+        )?;
+        let prefix = resolve_scope_prefix(&scope, &uid);
+        let key = scoped_key(&prefix, &req.path);
+        drive
+            .get_object(&bucket, &key)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?
+    };
 
     let content = base64::engine::general_purpose::STANDARD.encode(&data);
     let file_name = req
@@ -226,24 +248,30 @@ pub async fn download_file_binary(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(
-        &state,
-        req.bucket.as_deref(),
-        &scope,
-        Some(uid.as_str()),
-        None,
-        &user,
-    )?;
-    let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = scoped_key(&prefix, &req.path);
-
-    let data = drive
-        .get_object(&bucket, &key)
-        .await
-        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+    let data = if crate::local_fs::is_local_backend(req.backend.as_deref(), req.bucket.as_deref()) {
+        let root = crate::local_fs::requested_root(req.root.as_deref(), req.bucket.as_deref());
+        crate::local_fs::read_local_file(root, &req.path)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
+    } else {
+        let drive = get_drive(&state)?;
+        let scope = req.scope.unwrap_or_default();
+        let uid = effective_uid(&state, &user, req.user_id.as_deref());
+        let bucket = resolve_bucket(
+            &state,
+            req.bucket.as_deref(),
+            &scope,
+            Some(uid.as_str()),
+            None,
+            &user,
+        )?;
+        let prefix = resolve_scope_prefix(&scope, &uid);
+        let key = scoped_key(&prefix, &req.path);
+        drive
+            .get_object(&bucket, &key)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?
+    };
 
     let file_name = req
         .path
@@ -272,24 +300,30 @@ pub async fn download_file_inline(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<DownloadFileBody>,
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(
-        &state,
-        req.bucket.as_deref(),
-        &scope,
-        Some(uid.as_str()),
-        None,
-        &user,
-    )?;
-    let prefix = resolve_scope_prefix(&scope, &uid);
-    let key = scoped_key(&prefix, &req.path);
-
-    let data = drive
-        .get_object(&bucket, &key)
-        .await
-        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+    let data = if crate::local_fs::is_local_backend(req.backend.as_deref(), req.bucket.as_deref()) {
+        let root = crate::local_fs::requested_root(req.root.as_deref(), req.bucket.as_deref());
+        crate::local_fs::read_local_file(root, &req.path)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &e))?
+    } else {
+        let drive = get_drive(&state)?;
+        let scope = req.scope.unwrap_or_default();
+        let uid = effective_uid(&state, &user, req.user_id.as_deref());
+        let bucket = resolve_bucket(
+            &state,
+            req.bucket.as_deref(),
+            &scope,
+            Some(uid.as_str()),
+            None,
+            &user,
+        )?;
+        let prefix = resolve_scope_prefix(&scope, &uid);
+        let key = scoped_key(&prefix, &req.path);
+        drive
+            .get_object(&bucket, &key)
+            .await
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?
+    };
 
     let file_name = req
         .path

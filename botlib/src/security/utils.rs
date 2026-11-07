@@ -35,8 +35,8 @@ pub fn create_tls_client(timeout_secs: Option<u64>) -> reqwest::Client {
 
 #[cfg(feature = "http-client")]
 pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) -> reqwest::Client {
-    use std::time::Duration;
     use log::{debug, warn};
+    use std::time::Duration;
 
     let timeout = Duration::from_secs(timeout_secs.unwrap_or(30));
     let mut builder = reqwest::Client::builder().timeout(timeout);
@@ -46,10 +46,16 @@ pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) 
             Ok(ca_cert_pem) => match reqwest::Certificate::from_pem(&ca_cert_pem) {
                 Ok(ca_cert) => {
                     builder = builder.add_root_certificate(ca_cert);
-                    debug!("Using local CA certificate from {} (dev stack mode)", ca_cert_path);
+                    debug!(
+                        "Using local CA certificate from {} (dev stack mode)",
+                        ca_cert_path
+                    );
                 }
                 Err(e) => {
-                    warn!("Failed to parse CA certificate from {}: {}", ca_cert_path, e);
+                    warn!(
+                        "Failed to parse CA certificate from {}: {}",
+                        ca_cert_path, e
+                    );
                 }
             },
             Err(e) => {
@@ -57,7 +63,10 @@ pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) 
             }
         }
     } else {
-        debug!("Local CA cert not found at {}, using system CA store (production mode)", ca_cert_path);
+        debug!(
+            "Local CA cert not found at {}, using system CA store (production mode)",
+            ca_cert_path
+        );
     }
 
     builder.build().unwrap_or_else(|e| {

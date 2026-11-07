@@ -62,8 +62,20 @@ impl TokenResponse {
 /// `state` is the CSRF value minted by the connect handler and echoed back on
 /// the callback; it is what binds the callback to this branch and provider.
 pub fn authorize_url(tenant_id: &str, client_id: &str, redirect_uri: &str, state: &str) -> String {
+    authorize_url_with_pkce(tenant_id, client_id, redirect_uri, state, None)
+}
+
+/// Build the authorization URL with an optional PKCE challenge. Microsoft
+/// requires PKCE for a public client (mobile/desktop platform registration).
+pub fn authorize_url_with_pkce(
+    tenant_id: &str,
+    client_id: &str,
+    redirect_uri: &str,
+    state: &str,
+    code_challenge: Option<&str>,
+) -> String {
     let scopes = "offline_access Files.Read.All User.Read";
-    format!(
+    let mut url = format!(
         "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize\
 ?client_id={client}&response_type=code&redirect_uri={redirect}&response_mode=query\
 &scope={scopes}&state={state}",
@@ -72,7 +84,13 @@ pub fn authorize_url(tenant_id: &str, client_id: &str, redirect_uri: &str, state
         redirect = percent_encode(redirect_uri),
         scopes = percent_encode(scopes),
         state = percent_encode(state),
-    )
+    );
+    if let Some(challenge) = code_challenge.filter(|value| !value.is_empty()) {
+        url.push_str("&code_challenge=");
+        url.push_str(&percent_encode(challenge));
+        url.push_str("&code_challenge_method=S256");
+    }
+    url
 }
 
 /// Exchange an authorization code for tokens.
@@ -84,14 +102,42 @@ pub async fn exchange_code(
     redirect_uri: &str,
     code: &str,
 ) -> Result<TokenSet, SyncError> {
-    let form = [
+    exchange_code_with_pkce(
+        http,
+        tenant_id,
+        client_id,
+        Some(client_secret),
+        redirect_uri,
+        code,
+        None,
+    )
+    .await
+}
+
+/// Exchange an authorization code, omitting the secret for public clients and
+/// presenting the PKCE verifier when the flow used one.
+pub async fn exchange_code_with_pkce(
+    http: &reqwest::Client,
+    tenant_id: &str,
+    client_id: &str,
+    client_secret: Option<&str>,
+    redirect_uri: &str,
+    code: &str,
+    code_verifier: Option<&str>,
+) -> Result<TokenSet, SyncError> {
+    let mut form: Vec<(&str, &str)> = vec![
         ("client_id", client_id),
-        ("client_secret", client_secret),
         ("grant_type", "authorization_code"),
         ("code", code),
         ("redirect_uri", redirect_uri),
         ("scope", "offline_access Files.Read.All User.Read"),
     ];
+    if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
+        form.push(("client_secret", secret));
+    }
+    if let Some(verifier) = code_verifier.filter(|value| !value.is_empty()) {
+        form.push(("code_verifier", verifier));
+    }
     post_token(http, tenant_id, &form).await
 }
 
@@ -103,13 +149,26 @@ pub async fn refresh_token(
     client_secret: &str,
     refresh: &str,
 ) -> Result<TokenSet, SyncError> {
-    let form = [
+    refresh_token_optional_secret(http, tenant_id, client_id, Some(client_secret), refresh).await
+}
+
+/// Refresh with an optional secret so managed public clients keep working.
+pub async fn refresh_token_optional_secret(
+    http: &reqwest::Client,
+    tenant_id: &str,
+    client_id: &str,
+    client_secret: Option<&str>,
+    refresh: &str,
+) -> Result<TokenSet, SyncError> {
+    let mut form: Vec<(&str, &str)> = vec![
         ("client_id", client_id),
-        ("client_secret", client_secret),
         ("grant_type", "refresh_token"),
         ("refresh_token", refresh),
         ("scope", "offline_access Files.Read.All User.Read"),
     ];
+    if let Some(secret) = client_secret.filter(|value| !value.is_empty()) {
+        form.push(("client_secret", secret));
+    }
     post_token(http, tenant_id, &form).await
 }
 
@@ -171,7 +230,10 @@ pub async fn download(
     access_token: &str,
     remote_id: &str,
 ) -> Result<Vec<u8>, SyncError> {
-    let url = format!("{GRAPH_BASE}/me/drive/items/{}/content", percent_encode(remote_id));
+    let url = format!(
+        "{GRAPH_BASE}/me/drive/items/{}/content",
+        percent_encode(remote_id)
+    );
     let res = http
         .get(&url)
         .bearer_auth(access_token)
@@ -364,11 +426,26 @@ mod tests {
 
     #[test]
     fn status_classification_drives_retry_behavior() {
-        assert!(matches!(classify_status(401, "token expired"), SyncError::Auth(_)));
-        assert!(matches!(classify_status(403, "no consent"), SyncError::Auth(_)));
-        assert!(matches!(classify_status(429, ""), SyncError::RateLimited(None)));
-        assert!(matches!(classify_status(503, "busy"), SyncError::Transient(_)));
-        assert!(matches!(classify_status(400, "bad"), SyncError::Permanent(_)));
+        assert!(matches!(
+            classify_status(401, "token expired"),
+            SyncError::Auth(_)
+        ));
+        assert!(matches!(
+            classify_status(403, "no consent"),
+            SyncError::Auth(_)
+        ));
+        assert!(matches!(
+            classify_status(429, ""),
+            SyncError::RateLimited(None)
+        ));
+        assert!(matches!(
+            classify_status(503, "busy"),
+            SyncError::Transient(_)
+        ));
+        assert!(matches!(
+            classify_status(400, "bad"),
+            SyncError::Permanent(_)
+        ));
     }
 
     #[test]

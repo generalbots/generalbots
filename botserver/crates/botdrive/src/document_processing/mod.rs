@@ -1,7 +1,7 @@
 pub(crate) use axum::{extract::State, http::StatusCode, response::Json};
+pub(crate) use botcore::shared::state::AppState;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::sync::Arc;
-pub(crate) use botcore::shared::state::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct MergeDocumentsRequest {
@@ -52,8 +52,8 @@ pub struct DocumentResponse {
     pub metadata: Option<serde_json::Value>,
 }
 
-mod merge_documents;
 mod export_document;
+mod merge_documents;
 
-pub use merge_documents::*;
 pub use export_document::*;
+pub use merge_documents::*;

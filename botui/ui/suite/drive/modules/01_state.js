@@ -6,6 +6,7 @@ const TAB_BRANCHDRIVE = "branchdrive";
 const TAB_SHARED      = "shared";
 const TAB_PUBLIC      = "public";
 const TAB_MYFILES     = "myfiles";
+const TAB_HOME        = "home";
 const TAB_BOTS        = "bots";
 const TAB_ROOT        = "root";
 const TAB_DESKTOP     = "desktop";
@@ -17,6 +18,12 @@ const API_BASE = "/api/files";
 let currentBucket = "";
 let currentPath = "";
 let currentScope = sessionStorage.getItem("drive-scope") || "user";
+
+// #1801 — local filesystem backend. `currentBackend` selects the storage the
+// current listing came from; `local:<root>` buckets carry the root alias so
+// folders, previews and downloads keep addressing the same place.
+let currentBackend = "minio";
+let currentLocalRoot = "home";
 let availableBuckets = [];
 let selectedFiles = new Set();
 let viewMode = "list";

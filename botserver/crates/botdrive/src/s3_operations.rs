@@ -54,8 +54,11 @@ impl S3Repository {
         let creds = s3::creds::Credentials::new(
             Some(&self.access_key),
             Some(&self.secret_key),
-            None, None, None,
-        ).context("Failed to create credentials")?;
+            None,
+            None,
+            None,
+        )
+        .context("Failed to create credentials")?;
 
         let target_bucket = Bucket::new(bucket, region.clone(), creds)
             .context("Failed to create target bucket")?
@@ -70,7 +73,8 @@ impl S3Repository {
         let presigned_url = url::Url::parse(&presigned)
             .map_err(|e| anyhow::anyhow!("Failed to parse presigned URL: {}", e))?;
 
-        let query = presigned_url.query()
+        let query = presigned_url
+            .query()
             .ok_or_else(|| anyhow::anyhow!("Presigned URL has no query string"))?;
 
         // Rebuild URL with correct base + signature params
@@ -90,11 +94,17 @@ impl S3Repository {
             .map_err(|e| anyhow::anyhow!("Failed to download from S3: {}", e))?;
 
         if !response.status().is_success() {
-            return Err(anyhow::anyhow!("S3 GET failed with status {} for {}/{}: {}",
-                response.status(), bucket, key, response.text().await.unwrap_or_default()));
+            return Err(anyhow::anyhow!(
+                "S3 GET failed with status {} for {}/{}: {}",
+                response.status(),
+                bucket,
+                key,
+                response.text().await.unwrap_or_default()
+            ));
         }
 
-        let data = response.bytes()
+        let data = response
+            .bytes()
             .await
             .map_err(|e| anyhow::anyhow!("Failed to read response bytes: {}", e))?
             .to_vec();
@@ -143,8 +153,16 @@ impl S3Repository {
     }
 
     /// Copy object - creates bucket reference for target bucket
-    pub async fn copy_object_direct(&self, bucket: &str, from_key: &str, to_key: &str) -> Result<()> {
-        debug!("Copying in S3: {}/{} -> {}/{}", bucket, from_key, bucket, to_key);
+    pub async fn copy_object_direct(
+        &self,
+        bucket: &str,
+        from_key: &str,
+        to_key: &str,
+    ) -> Result<()> {
+        debug!(
+            "Copying in S3: {}/{} -> {}/{}",
+            bucket, from_key, bucket, to_key
+        );
         let target_bucket = self.bucket_for(bucket)?;
         let response = target_bucket.get_object(from_key).await?;
         let data = response.to_vec();
@@ -161,8 +179,11 @@ impl S3Repository {
         let creds = s3::creds::Credentials::new(
             Some(&self.access_key),
             Some(&self.secret_key),
-            None, None, None
-        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+            None,
+            None,
+            None,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
         let target = Bucket::new(bucket_name, region, creds)?.with_path_style();
         Ok(Arc::new((*target).clone()))
     }
@@ -175,8 +196,11 @@ impl S3Repository {
         let creds = s3::creds::Credentials::new(
             Some(&self.access_key),
             Some(&self.secret_key),
-            None, None, None
-        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+            None,
+            None,
+            None,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
 
         let response = Bucket::list_buckets(region, creds)
             .await
@@ -196,23 +220,41 @@ impl S3Repository {
     /// List common prefixes (sub-folders) within a bucket using a delimiter.
     /// Ex: list_common_prefixes("cristo.gborg", "/") → ["cristo.gbai/", "rh.gbai/"]
     pub async fn list_common_prefixes(&self, bucket: &str, delimiter: &str) -> Result<Vec<String>> {
-        debug!("Listing common prefixes in S3: {} with delimiter {:?}", bucket, delimiter);
+        debug!(
+            "Listing common prefixes in S3: {} with delimiter {:?}",
+            bucket, delimiter
+        );
 
         let region = self.bucket.region().clone();
         let creds = s3::creds::Credentials::new(
             Some(&self.access_key),
             Some(&self.secret_key),
-            None, None, None
-        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+            None,
+            None,
+            None,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
 
         let target_bucket = Bucket::new(bucket, region, creds)?.with_path_style();
 
-        let results = target_bucket.list(String::new(), Some(delimiter.to_string())).await?;
-        let common_prefixes: Vec<String> = results.iter()
-            .flat_map(|r| r.common_prefixes.iter().flat_map(|v| v.iter().map(|cp| cp.prefix.clone())))
+        let results = target_bucket
+            .list(String::new(), Some(delimiter.to_string()))
+            .await?;
+        let common_prefixes: Vec<String> = results
+            .iter()
+            .flat_map(|r| {
+                r.common_prefixes
+                    .iter()
+                    .flat_map(|v| v.iter().map(|cp| cp.prefix.clone()))
+            })
             .collect();
 
-        debug!("Found {} common prefixes in bucket {}: {:?}", common_prefixes.len(), bucket, common_prefixes);
+        debug!(
+            "Found {} common prefixes in bucket {}: {:?}",
+            common_prefixes.len(),
+            bucket,
+            common_prefixes
+        );
         Ok(common_prefixes)
     }
 
@@ -223,28 +265,45 @@ impl S3Repository {
     }
 
     /// List objects with prefix, returning key + etag + size for change detection
-    pub async fn list_objects_with_metadata(&self, bucket: &str, prefix: Option<&str>) -> Result<Vec<S3ObjectInfo>> {
-        debug!("Listing objects with metadata in S3: {} with prefix {:?}", bucket, prefix);
+    pub async fn list_objects_with_metadata(
+        &self,
+        bucket: &str,
+        prefix: Option<&str>,
+    ) -> Result<Vec<S3ObjectInfo>> {
+        debug!(
+            "Listing objects with metadata in S3: {} with prefix {:?}",
+            bucket, prefix
+        );
 
         let region = self.bucket.region().clone();
         let creds = s3::creds::Credentials::new(
             Some(&self.access_key),
             Some(&self.secret_key),
-            None, None, None
-        ).map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
+            None,
+            None,
+            None,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create credentials: {}", e))?;
 
         let target_bucket = Bucket::new(bucket, region, creds)?.with_path_style();
 
         let prefix_str = prefix.unwrap_or("");
         let results = target_bucket.list(prefix_str.to_string(), None).await?;
-        let objects: Vec<S3ObjectInfo> = results.iter()
-            .flat_map(|r| r.contents.iter().map(|c| S3ObjectInfo {
-                key: c.key.clone(),
-                etag: c.e_tag.clone(),
-                size: c.size,
-            }))
+        let objects: Vec<S3ObjectInfo> = results
+            .iter()
+            .flat_map(|r| {
+                r.contents.iter().map(|c| S3ObjectInfo {
+                    key: c.key.clone(),
+                    etag: c.e_tag.clone(),
+                    size: c.size,
+                })
+            })
             .collect();
-        debug!("Found {} objects with metadata in bucket {}", objects.len(), bucket);
+        debug!(
+            "Found {} objects with metadata in bucket {}",
+            objects.len(),
+            bucket
+        );
         Ok(objects)
     }
 
@@ -258,7 +317,8 @@ impl S3Repository {
     ) -> Result<()> {
         debug!("Uploading file to S3: {} -> {}/{}", file_path, bucket, key);
         let target_bucket = self.bucket_for(bucket)?;
-        let data = tokio::fs::read(file_path).await
+        let data = tokio::fs::read(file_path)
+            .await
             .context("Failed to read file for upload")?;
         target_bucket.put_object(key, &data).await?;
         Ok(())
@@ -266,13 +326,20 @@ impl S3Repository {
 
     /// Download a file
     pub async fn download_file(&self, bucket: &str, key: &str, file_path: &str) -> Result<()> {
-        debug!("Downloading file from S3: {}/{} -> {}", bucket, key, file_path);
+        debug!(
+            "Downloading file from S3: {}/{} -> {}",
+            bucket, key, file_path
+        );
         let target_bucket = self.bucket_for(bucket)?;
         let response = target_bucket.get_object(key).await?;
         let data = response.to_vec();
-        tokio::fs::write(file_path, data).await
+        tokio::fs::write(file_path, data)
+            .await
             .context("Failed to write downloaded file")?;
-        info!("Successfully downloaded file from S3: {}/{} -> {}", bucket, key, file_path);
+        info!(
+            "Successfully downloaded file from S3: {}/{} -> {}",
+            bucket, key, file_path
+        );
         Ok(())
     }
 
@@ -302,7 +369,10 @@ impl S3Repository {
             }
             Ok(false) => {}
             Err(e) => {
-                warn!("Failed to check if bucket {} exists: {}. Attempting to create.", bucket, e);
+                warn!(
+                    "Failed to check if bucket {} exists: {}. Attempting to create.",
+                    bucket, e
+                );
             }
         }
 
@@ -318,21 +388,37 @@ impl S3Repository {
         let url_str = format!("{}://{}/{}", scheme, endpoint, bucket);
 
         let now = time::OffsetDateTime::now_utc();
-        let short_date = now.format(&time::macros::format_description!("[year][month][day]"))
+        let short_date = now
+            .format(&time::macros::format_description!("[year][month][day]"))
             .map_err(|e| anyhow::anyhow!("short date: {}", e))?;
-        let long_date = now.format(&time::macros::format_description!("[year][month][day]T[hour][minute][second]Z"))
+        let long_date = now
+            .format(&time::macros::format_description!(
+                "[year][month][day]T[hour][minute][second]Z"
+            ))
             .map_err(|e| anyhow::anyhow!("long date: {}", e))?;
 
         let mut headers = http::HeaderMap::new();
-        headers.insert("host", endpoint.parse()
-            .map_err(|e| anyhow::anyhow!("invalid host header: {}", e))?);
-        headers.insert("x-amz-date", long_date.parse()
-            .map_err(|e| anyhow::anyhow!("invalid date header: {}", e))?);
-        headers.insert("x-amz-content-sha256", http::HeaderValue::from_static("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+        headers.insert(
+            "host",
+            endpoint
+                .parse()
+                .map_err(|e| anyhow::anyhow!("invalid host header: {}", e))?,
+        );
+        headers.insert(
+            "x-amz-date",
+            long_date
+                .parse()
+                .map_err(|e| anyhow::anyhow!("invalid date header: {}", e))?,
+        );
+        headers.insert(
+            "x-amz-content-sha256",
+            http::HeaderValue::from_static(
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+        );
         headers.insert("x-amz-acl", http::HeaderValue::from_static("private"));
 
-        let url = url::Url::parse(&url_str)
-            .map_err(|e| anyhow::anyhow!("bad url: {}", e))?;
+        let url = url::Url::parse(&url_str).map_err(|e| anyhow::anyhow!("bad url: {}", e))?;
 
         let canonical_uri = s3::signing::canonical_uri_string(&url);
         let canonical_qs = s3::signing::canonical_query_string(&url);
@@ -350,7 +436,8 @@ impl S3Repository {
             payload = payload_hash,
         );
 
-        let scope = format!("{date}/{region}/s3/aws4_request",
+        let scope = format!(
+            "{date}/{region}/s3/aws4_request",
             date = short_date,
             region = region,
         );
@@ -358,7 +445,8 @@ impl S3Repository {
         let mut hasher = Sha256::default();
         hasher.update(canonical_req.as_bytes());
         let canonical_hash = hex::encode(hasher.finalize());
-        let sts = format!("AWS4-HMAC-SHA256\n{date}\n{scope}\n{hash}",
+        let sts = format!(
+            "AWS4-HMAC-SHA256\n{date}\n{scope}\n{hash}",
             date = long_date,
             scope = scope,
             hash = canonical_hash,
@@ -374,8 +462,9 @@ impl S3Repository {
         let mut service_hmac = Hmac::<Sha256>::new_from_slice(&region_hmac.finalize().into_bytes())
             .map_err(|e| anyhow::anyhow!("hmac service: {}", e))?;
         service_hmac.update(b"s3");
-        let mut signing_hmac = Hmac::<Sha256>::new_from_slice(&service_hmac.finalize().into_bytes())
-            .map_err(|e| anyhow::anyhow!("hmac signing: {}", e))?;
+        let mut signing_hmac =
+            Hmac::<Sha256>::new_from_slice(&service_hmac.finalize().into_bytes())
+                .map_err(|e| anyhow::anyhow!("hmac signing: {}", e))?;
         signing_hmac.update(b"aws4_request");
         let signing_key = signing_hmac.finalize().into_bytes();
 
@@ -391,15 +480,19 @@ impl S3Repository {
             sh = signed_hdrs,
             sig = signature,
         );
-        headers.insert("authorization", auth.parse()
-            .map_err(|e| anyhow::anyhow!("invalid auth header: {}", e))?);
+        headers.insert(
+            "authorization",
+            auth.parse()
+                .map_err(|e| anyhow::anyhow!("invalid auth header: {}", e))?,
+        );
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(20))
             .connect_timeout(std::time::Duration::from_secs(10))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-        let resp = client.put(&url_str)
+        let resp = client
+            .put(&url_str)
             .headers(headers)
             .send()
             .await
@@ -411,7 +504,12 @@ impl S3Repository {
         } else {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            Err(anyhow::anyhow!("Failed to create bucket {}: HTTP {} - {}", bucket, status, body))
+            Err(anyhow::anyhow!(
+                "Failed to create bucket {}: HTTP {} - {}",
+                bucket,
+                status,
+                body
+            ))
         }
     }
 

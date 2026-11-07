@@ -25,9 +25,18 @@ fn backend_names_round_trip() {
 #[test]
 fn vendor_spellings_resolve_to_the_same_backend() {
     assert_eq!(StorageBackend::from_name("B2"), StorageBackend::BackblazeB2);
-    assert_eq!(StorageBackend::from_name("backblaze"), StorageBackend::BackblazeB2);
-    assert_eq!(StorageBackend::from_name("Cloudflare-R2"), StorageBackend::CloudflareR2);
-    assert_eq!(StorageBackend::from_name("R2"), StorageBackend::CloudflareR2);
+    assert_eq!(
+        StorageBackend::from_name("backblaze"),
+        StorageBackend::BackblazeB2
+    );
+    assert_eq!(
+        StorageBackend::from_name("Cloudflare-R2"),
+        StorageBackend::CloudflareR2
+    );
+    assert_eq!(
+        StorageBackend::from_name("R2"),
+        StorageBackend::CloudflareR2
+    );
 }
 
 #[test]
@@ -43,13 +52,25 @@ fn b2_and_r2_get_a_default_region_because_they_require_one() {
     assert!(StorageBackend::CloudflareR2.requires_explicit_region());
     assert!(!StorageBackend::Minio.requires_explicit_region());
 
-    let selection = StorageSelection::new("b2", "https://s3.us-west-004.backblazeb2.com", "", "acme.gbai", None);
+    let selection = StorageSelection::new(
+        "b2",
+        "https://s3.us-west-004.backblazeb2.com",
+        "",
+        "acme.gbai",
+        None,
+    );
     assert_eq!(selection.region, "us-west-004");
 }
 
 #[test]
 fn an_explicit_region_is_never_overridden() {
-    let selection = StorageSelection::new("b2", "https://s3.eu-west-001.backblazeb2.com", "eu-west-001", "acme.gbai", None);
+    let selection = StorageSelection::new(
+        "b2",
+        "https://s3.eu-west-001.backblazeb2.com",
+        "eu-west-001",
+        "acme.gbai",
+        None,
+    );
     assert_eq!(selection.region, "eu-west-001");
 }
 
@@ -69,7 +90,8 @@ fn endpoints_are_normalised() {
 fn an_empty_fallback_endpoint_is_treated_as_absent() {
     let with_blank = StorageSelection::new("minio", "http://a", "", "b", Some("  ".to_string()));
     assert!(!with_blank.has_fallback());
-    let with_real = StorageSelection::new("minio", "http://a", "", "b", Some("http://c/".to_string()));
+    let with_real =
+        StorageSelection::new("minio", "http://a", "", "b", Some("http://c/".to_string()));
     assert!(with_real.has_fallback());
     assert_eq!(with_real.fallback_endpoint.as_deref(), Some("http://c"));
 }
@@ -108,20 +130,30 @@ fn egress_under_the_allowance_is_not_billable() {
     let meter = EgressMeter::new();
     meter.record_read(1_000);
     let stored = 1_000;
-    assert_eq!(meter.billable_egress(StorageBackend::BackblazeB2, stored), 0, "3x allowance");
+    assert_eq!(
+        meter.billable_egress(StorageBackend::BackblazeB2, stored),
+        0,
+        "3x allowance"
+    );
 }
 
 #[test]
 fn egress_past_the_allowance_is_reported() {
     let meter = EgressMeter::new();
     meter.record_read(5_000);
-    assert_eq!(meter.billable_egress(StorageBackend::BackblazeB2, 1_000), 2_000);
+    assert_eq!(
+        meter.billable_egress(StorageBackend::BackblazeB2, 1_000),
+        2_000
+    );
 }
 
 #[test]
 fn backends_with_unmetered_egress_report_nothing() {
     let meter = EgressMeter::new();
     meter.record_read(10_000_000);
-    assert_eq!(meter.billable_egress(StorageBackend::CloudflareR2, 1_000), 0);
+    assert_eq!(
+        meter.billable_egress(StorageBackend::CloudflareR2, 1_000),
+        0
+    );
     assert_eq!(meter.billable_egress(StorageBackend::Minio, 1_000), 0);
 }

@@ -137,6 +137,11 @@ pub struct ListFilesParams {
     pub page_size: Option<u32>,
     pub sort: Option<String>,
     pub order: Option<String>,
+    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    pub backend: Option<String>,
+    /// #1801 — allowlisted local root for `backend=local`
+    /// (`home`, `documents`, `music`, `pictures`, `downloads`, `desktop`).
+    pub root: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -206,6 +211,12 @@ pub struct DownloadFileBody {
     pub path: String,
     pub scope: Option<FileScope>,
     pub user_id: Option<String>,
+    /// #1801 — storage backend selector: `minio` (default) or `local`.
+    #[serde(default)]
+    pub backend: Option<String>,
+    /// #1801 — allowlisted local root for `backend=local`.
+    #[serde(default)]
+    pub root: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

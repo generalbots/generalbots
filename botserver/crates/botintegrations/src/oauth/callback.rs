@@ -34,62 +34,119 @@ async fn callback_inner(
     query: CallbackQuery,
 ) -> Result<Response, ResponseError> {
     if let Some(error) = query.error {
-        return Err(error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation(error)));
+        return Err(error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation(error),
+        ));
     }
     let (code, signed) = match (query.code, query.state) {
         (Some(code), Some(state)) => (code, state),
         _ => {
-            return Err(error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation(
-                "missing code or state".to_string(),
-            )))
+            return Err(error_response(
+                StatusCode::BAD_REQUEST,
+                IntegrationError::Validation("missing code or state".to_string()),
+            ))
         }
     };
     let (encoded, signature) = signed.rsplit_once('.').ok_or_else(|| {
-        error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("malformed state".to_string()))
+        error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("malformed state".to_string()),
+        )
     })?;
     let expected = sign(encoded, &signing_key()?)?;
     if expected != signature {
-        return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::Validation(
-            "state signature mismatch".to_string(),
-        )));
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            IntegrationError::Validation("state signature mismatch".to_string()),
+        ));
     }
-    let raw = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(encoded).map_err(|_| {
-        error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("malformed state payload".to_string()))
-    })?;
+    let raw = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(encoded)
+        .map_err(|_| {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                IntegrationError::Validation("malformed state payload".to_string()),
+            )
+        })?;
     let payload: Value = serde_json::from_slice(&raw).map_err(|_| {
-        error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("malformed state payload".to_string()))
+        error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("malformed state payload".to_string()),
+        )
     })?;
-    let age = chrono::Utc::now().timestamp() - payload.get("t").and_then(Value::as_i64).unwrap_or(i64::MAX);
+    let age = chrono::Utc::now().timestamp()
+        - payload.get("t").and_then(Value::as_i64).unwrap_or(i64::MAX);
     if !(0..=STATE_MAX_AGE_SECS).contains(&age) {
-        return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::Validation("state expired".to_string())));
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            IntegrationError::Validation("state expired".to_string()),
+        ));
     }
     if payload.get("p").and_then(Value::as_str) != Some(provider.as_str()) {
-        return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::Validation(
-            "state provider mismatch".to_string(),
-        )));
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            IntegrationError::Validation("state provider mismatch".to_string()),
+        ));
     }
 
     let config = provider_config(&provider).ok_or_else(|| {
-        error_response(StatusCode::NOT_FOUND, IntegrationError::Validation("unknown oauth provider".to_string()))
+        error_response(
+            StatusCode::NOT_FOUND,
+            IntegrationError::Validation("unknown oauth provider".to_string()),
+        )
     })?;
 
     let user_id = Uuid::parse_str(payload.get("u").and_then(Value::as_str).unwrap_or_default())
-        .map_err(|_| error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("invalid state user".to_string())))?;
+        .map_err(|_| {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                IntegrationError::Validation("invalid state user".to_string()),
+            )
+        })?;
     let org_id = Uuid::parse_str(payload.get("o").and_then(Value::as_str).unwrap_or_default())
-        .map_err(|_| error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("invalid state org".to_string())))?;
-    let branch_id = Uuid::parse_str(payload.get("br").and_then(Value::as_str).unwrap_or_default())
-        .map_err(|_| error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("invalid state branch".to_string())))?;
+        .map_err(|_| {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                IntegrationError::Validation("invalid state org".to_string()),
+            )
+        })?;
+    let branch_id = Uuid::parse_str(
+        payload
+            .get("br")
+            .and_then(Value::as_str)
+            .unwrap_or_default(),
+    )
+    .map_err(|_| {
+        error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("invalid state branch".to_string()),
+        )
+    })?;
     let bot_uuid = Uuid::parse_str(payload.get("b").and_then(Value::as_str).unwrap_or_default())
-        .map_err(|_| error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("invalid state bot".to_string())))?;
+        .map_err(|_| {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                IntegrationError::Validation("invalid state bot".to_string()),
+            )
+        })?;
     let base = payload
         .get("base")
         .and_then(Value::as_str)
         .filter(|value| value.starts_with("https://") || value.starts_with("http://localhost"))
-        .ok_or_else(|| error_response(StatusCode::UNAUTHORIZED, IntegrationError::Validation("invalid state base".to_string())))?
+        .ok_or_else(|| {
+            error_response(
+                StatusCode::UNAUTHORIZED,
+                IntegrationError::Validation("invalid state base".to_string()),
+            )
+        })?
         .to_string();
 
     let mut conn = state.pool.get().map_err(|_| {
-        error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable)
+        error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            IntegrationError::VaultUnavailable,
+        )
     })?;
     #[derive(diesel::QueryableByName)]
     struct BotOrgRow {
@@ -109,7 +166,10 @@ async fn callback_inner(
     .map_err(|_| error_response(StatusCode::UNAUTHORIZED, IntegrationError::UnauthorizedScope))?
     .ok_or_else(|| error_response(StatusCode::UNAUTHORIZED, IntegrationError::UnauthorizedScope))?;
     if row.org_id != org_id || row.branch_id != branch_id {
-        return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::UnauthorizedScope));
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            IntegrationError::UnauthorizedScope,
+        ));
     }
     botlog::safe_debug!("oauth callback scope validated for bot {bot_uuid}");
     drop(conn);
@@ -121,9 +181,7 @@ async fn callback_inner(
         bot_id: bot_uuid,
     };
 
-    let (client, vault_path) = state
-        .vault
-        .load_oauth_client(scope.org_id, scope.branch_id, scope.bot_id, &provider)
+    let (client, vault_path) = load_client_or_managed(&state, &scope, &provider)
         .await
         .map_err(|_| {
             error_response(
@@ -137,7 +195,12 @@ async fn callback_inner(
     let client_id = client
         .get("client_id")
         .and_then(Value::as_str)
-        .ok_or_else(|| error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation("client_id missing".to_string())))?
+        .ok_or_else(|| {
+            error_response(
+                StatusCode::PRECONDITION_FAILED,
+                IntegrationError::Validation("client_id missing".to_string()),
+            )
+        })?
         .to_string();
     // A public client (desktop / loopback install) may legitimately have no
     // secret; providers that need confidential-client auth still require one.
@@ -161,7 +224,12 @@ async fn callback_inner(
     let http = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .build()
-        .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable))?;
+        .map_err(|_| {
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                IntegrationError::VaultUnavailable,
+            )
+        })?;
     let mut form: Vec<(&str, String)> = vec![
         ("grant_type", "authorization_code".to_string()),
         ("code", code.clone()),
@@ -179,7 +247,8 @@ async fn callback_inner(
     let mut outgoing = http.post(config.token_url).form(&form);
     if config.basic_client_auth {
         let secret = client_secret.as_deref().unwrap_or_default();
-        let basic = base64::engine::general_purpose::STANDARD.encode(format!("{client_id}:{secret}"));
+        let basic =
+            base64::engine::general_purpose::STANDARD.encode(format!("{client_id}:{secret}"));
         outgoing = outgoing.header(header::AUTHORIZATION, format!("Basic {basic}"));
     }
     let response = outgoing.send().await.map_err(|error| {
@@ -190,7 +259,10 @@ async fn callback_inner(
     let body: Value = response.json().await.unwrap_or(Value::Null);
     if !status.is_success() {
         log::warn!("oauth token exchange returned {status} for {provider}");
-        return Err(error_response(StatusCode::BAD_GATEWAY, IntegrationError::VaultUnavailable));
+        return Err(error_response(
+            StatusCode::BAD_GATEWAY,
+            IntegrationError::VaultUnavailable,
+        ));
     }
     // Meta answers the code exchange with a token that lives about an hour.
     // Instagram publishing needs a Page or system-user token, and the Page
@@ -221,7 +293,10 @@ async fn callback_inner(
     } else {
         short_lived
     };
-    let refresh_token = body.get("refresh_token").and_then(Value::as_str).map(str::to_string);
+    let refresh_token = body
+        .get("refresh_token")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     let granted_scopes = body.get("scope").cloned().unwrap_or(Value::Null);
 
     let connection_id = Uuid::now_v7();
@@ -233,10 +308,18 @@ async fn callback_inner(
         .vault
         .store(&scope, connection_id, &envelope)
         .await
-        .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable))?;
+        .map_err(|_| {
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                IntegrationError::VaultUnavailable,
+            )
+        })?;
 
     let mut conn = state.pool.get().map_err(|_| {
-        error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable)
+        error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            IntegrationError::VaultUnavailable,
+        )
     })?;
     repository::insert(
         &mut conn,
@@ -257,7 +340,10 @@ async fn callback_inner(
     )
     .map_err(|error| {
         log::error!("oauth connection insert failed for {provider}: {error:?}");
-        error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable)
+        error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            IntegrationError::VaultUnavailable,
+        )
     })?;
     let event = repository::NewConnectionEvent {
         connection_id: Some(connection_id),

@@ -20,7 +20,6 @@ impl DriveMonitor {
         let is_processing = self.is_processing.clone();
 
         tokio::spawn(async move {
-
             while is_processing.load(Ordering::SeqCst) {
                 let kb_key = {
                     let pending = pending_kb_index.write().await;
@@ -40,10 +39,14 @@ impl DriveMonitor {
                 }
 
                 let kb_folder_name = parts[1];
-                let kb_folder_path =
-                    work_root.join(&tenant_slug).join(&org_slug)
-                        .join(format!("{org_id}.gborg/{branch_slug}.gbai/{bot_name}.gbkb", org_id = current_org_id()))
-                        .join(kb_folder_name);
+                let kb_folder_path = work_root
+                    .join(&tenant_slug)
+                    .join(&org_slug)
+                    .join(format!(
+                        "{org_id}.gborg/{branch_slug}.gbai/{bot_name}.gbkb",
+                        org_id = current_org_id()
+                    ))
+                    .join(kb_folder_name);
 
                 {
                     let indexing = files_being_indexed.read().await;
@@ -61,8 +64,11 @@ impl DriveMonitor {
 
                 log::trace!("Indexing KB: {} for bot: {}", kb_key, bot_name);
 
-                let result =
-                    tokio::time::timeout(std::time::Duration::from_secs(120), kb_manager.handle_gbkb_change(bot_id, &bot_name, kb_folder_path.as_path())).await;
+                let result = tokio::time::timeout(
+                    std::time::Duration::from_secs(120),
+                    kb_manager.handle_gbkb_change(bot_id, &bot_name, kb_folder_path.as_path()),
+                )
+                .await;
 
                 {
                     let mut indexing = files_being_indexed.write().await;

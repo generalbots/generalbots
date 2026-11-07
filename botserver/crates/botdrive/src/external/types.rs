@@ -371,8 +371,12 @@ mod tests {
 
     #[test]
     fn failed_report_keeps_counters() {
-        let r = SyncReport { upserted: 3, removed: 1, ..Default::default() }
-            .failed(&SyncError::RateLimited(None));
+        let r = SyncReport {
+            upserted: 3,
+            removed: 1,
+            ..Default::default()
+        }
+        .failed(&SyncError::RateLimited(None));
         assert!(!r.ok());
         assert_eq!(r.upserted, 3);
         assert_eq!(r.removed, 1);

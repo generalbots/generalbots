@@ -21,8 +21,8 @@ pub async fn merge_documents(
     let mut merged_content = String::new();
     let format = req.format.as_deref().unwrap_or("txt");
 
-for (idx, path) in req.source_paths.iter().enumerate() {
-let bytes = s3_client
+    for (idx, path) in req.source_paths.iter().enumerate() {
+        let bytes = s3_client
 .get_object(&req.bucket, path)
 .await
 .map_err(|e| {
@@ -32,7 +32,7 @@ Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_san
 )
 })?;
 
-let content = String::from_utf8(bytes).map_err(|e| {
+        let content = String::from_utf8(bytes).map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdrive::document_processing::merge_documents", None) })),

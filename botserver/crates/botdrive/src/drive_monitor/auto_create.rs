@@ -21,9 +21,7 @@
 /// A implementação real está em `types.rs::scan_bucket()` — esta função
 /// é mantida como atalho para chamadas externas que precisam verificar
 /// um bot específico sem acionar o scan completo.
-pub async fn ensure_bot_exists(
-    bot_name: &str,
-) -> Result<bool, String> {
+pub async fn ensure_bot_exists(bot_name: &str) -> Result<bool, String> {
     // A implementação real foi integrada em types.rs::scan_bucket()
     // Este arquivo agora serve como documentação e ponto de entrada
     // alternativo para uso programático.

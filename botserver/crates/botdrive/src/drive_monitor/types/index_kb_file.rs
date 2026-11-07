@@ -5,7 +5,13 @@ impl DriveMonitor {
     // was the only armed user of them, so a build without `research`/`llm`
     // failed to compile. Callers (start_monitoring.rs) carry the same attribute.
     #[cfg(any(feature = "research", feature = "llm"))]
-    pub(crate) async fn index_kb_file(&self, bot_name: &str, full_key: &str, s3_key: &str, etag: Option<String>) {
+    pub(crate) async fn index_kb_file(
+        &self,
+        bot_name: &str,
+        full_key: &str,
+        s3_key: &str,
+        etag: Option<String>,
+    ) {
         let parsed = match parse_kb_path(s3_key) {
             Some(p) => p,
             None => {
@@ -34,14 +40,23 @@ impl DriveMonitor {
         let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
             Ok(d) => d,
             Err(e) => {
-                log::error!("Failed to download KB file {}/{}: {}", self.bucket_name, s3_key, e);
+                log::error!(
+                    "Failed to download KB file {}/{}: {}",
+                    self.bucket_name,
+                    s3_key,
+                    e
+                );
                 let _ = self.file_repo.mark_failed(full_key);
                 self.files_being_indexed.write().await.remove(full_key);
                 return;
             }
         };
 
-        let temp_path = std::env::temp_dir().join(format!("gb_kb_{}_{}", uuid::Uuid::new_v4(), parsed.file_name));
+        let temp_path = std::env::temp_dir().join(format!(
+            "gb_kb_{}_{}",
+            uuid::Uuid::new_v4(),
+            parsed.file_name
+        ));
 
         if let Err(e) = std::fs::write(&temp_path, &data) {
             log::error!("Failed to write temp file {}: {}", temp_path.display(), e);
@@ -49,16 +64,24 @@ impl DriveMonitor {
             return;
         }
 
-        log::info!("Indexing KB file {}/{} -> temp {}", bot_name, parsed.kb_name, temp_path.display());
+        log::info!(
+            "Indexing KB file {}/{} -> temp {}",
+            bot_name,
+            parsed.kb_name,
+            temp_path.display()
+        );
 
-        let index_result =
-            tokio::time::timeout(std::time::Duration::from_secs(120), self.kb_manager.index_single_file_with_id(
+        let index_result = tokio::time::timeout(
+            std::time::Duration::from_secs(120),
+            self.kb_manager.index_single_file_with_id(
                 self.bot_id,
                 bot_name,
                 &parsed.kb_name,
                 &temp_path,
                 Some(full_key),
-            )).await;
+            ),
+        )
+        .await;
 
         match index_result {
             Ok(Ok(result)) => {
@@ -69,7 +92,12 @@ impl DriveMonitor {
                     result.collection_name
                 );
                 let _ = self.file_repo.mark_indexed(full_key, etag);
-                self.upsert_kb_collection(bot_name, &parsed.kb_name, &result.collection_name, result.documents_processed);
+                self.upsert_kb_collection(
+                    bot_name,
+                    &parsed.kb_name,
+                    &result.collection_name,
+                    result.documents_processed,
+                );
             }
             Ok(Err(e)) => {
                 log::error!("KB indexing failed for {}: {}", full_key, e);
@@ -98,9 +126,23 @@ impl DriveMonitor {
         let relative_path = parsed.relative_path.clone();
 
         tokio::spawn(async move {
-            match kb_manager.delete_file_from_kb(bot_id, &bot_name, &parsed.kb_name, &relative_path).await {
-                Ok(_) => log::info!("Deleted vectors for {} from {}/{}", relative_path, bot_name, parsed.kb_name),
-                Err(e) => log::error!("Failed to delete vectors for {} from {}/{}: {}", relative_path, bot_name, parsed.kb_name, e),
+            match kb_manager
+                .delete_file_from_kb(bot_id, &bot_name, &parsed.kb_name, &relative_path)
+                .await
+            {
+                Ok(_) => log::info!(
+                    "Deleted vectors for {} from {}/{}",
+                    relative_path,
+                    bot_name,
+                    parsed.kb_name
+                ),
+                Err(e) => log::error!(
+                    "Failed to delete vectors for {} from {}/{}: {}",
+                    relative_path,
+                    bot_name,
+                    parsed.kb_name,
+                    e
+                ),
             }
         });
     }
@@ -117,7 +159,12 @@ impl DriveMonitor {
         let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
             Ok(d) => d,
             Err(e) => {
-                log::error!("Failed to download config.csv from {}/{}: {}", self.bucket_name, s3_key, e);
+                log::error!(
+                    "Failed to download config.csv from {}/{}: {}",
+                    self.bucket_name,
+                    s3_key,
+                    e
+                );
                 return;
             }
         };
@@ -152,10 +199,24 @@ impl DriveMonitor {
                     log::warn!("Ignoring sensitive key '{}' from config.csv for bot {} — secrets must be configured via Vault", key, bot_name);
                     continue;
                 }
-                if let Err(e) = config_manager.set_config_with_branch(&self.bot_id, key, value, branch_id) {
-                    log::error!("Failed to set config {}={} for bot {}: {}", key, value, bot_name, e);
+                if let Err(e) =
+                    config_manager.set_config_with_branch(&self.bot_id, key, value, branch_id)
+                {
+                    log::error!(
+                        "Failed to set config {}={} for bot {}: {}",
+                        key,
+                        value,
+                        bot_name,
+                        e
+                    );
                 } else {
-                    log::trace!("Synced config {}={} for bot {} (branch_id={:?})", key, value, bot_name, branch_id);
+                    log::trace!(
+                        "Synced config {}={} for bot {} (branch_id={:?})",
+                        key,
+                        value,
+                        bot_name,
+                        branch_id
+                    );
                 }
             }
         }
@@ -171,23 +232,32 @@ impl DriveMonitor {
         }
         if let Ok(mut conn) = self.state.conn.get() {
             use diesel::sql_query;
-            let result = sql_query(
-                "SELECT id FROM branches WHERE slug = $1 LIMIT 1"
-            )
-            .bind::<diesel::sql_types::Text, _>(&self.branch_slug)
-            .get_result::<BranchIdRow>(&mut conn)
-            .ok();
+            let result = sql_query("SELECT id FROM branches WHERE slug = $1 LIMIT 1")
+                .bind::<diesel::sql_types::Text, _>(&self.branch_slug)
+                .get_result::<BranchIdRow>(&mut conn)
+                .ok();
             if let Some(row) = result {
-                log::info!("Resolved branch_id {} from slug '{}'", row.id, self.branch_slug);
+                log::info!(
+                    "Resolved branch_id {} from slug '{}'",
+                    row.id,
+                    self.branch_slug
+                );
                 return Some(row.id);
             }
-            log::warn!("No branch found for slug '{}', using nil UUID", self.branch_slug);
+            log::warn!(
+                "No branch found for slug '{}', using nil UUID",
+                self.branch_slug
+            );
         }
         Some(uuid::Uuid::nil())
     }
 
-
-    pub(crate) async fn sync_gbot_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
+    pub(crate) async fn sync_gbot_to_work(
+        &self,
+        bot_name: &str,
+        s3_key: &str,
+        etag: Option<String>,
+    ) {
         let s3 = match &self.state.drive {
             Some(s3) => s3,
             None => {
@@ -199,7 +269,12 @@ impl DriveMonitor {
         let data = match s3.get_object_direct(&self.bucket_name, s3_key).await {
             Ok(d) => d,
             Err(e) => {
-                log::error!("Failed to download gbot file from {}/{}: {}", self.bucket_name, s3_key, e);
+                log::error!(
+                    "Failed to download gbot file from {}/{}: {}",
+                    self.bucket_name,
+                    s3_key,
+                    e
+                );
                 return;
             }
         };
@@ -231,7 +306,13 @@ impl DriveMonitor {
     }
 
     #[cfg(any(feature = "research", feature = "llm"))]
-    pub(super) fn upsert_kb_collection(&self, bot_name: &str, kb_name: &str, collection_name: &str, doc_count: usize) {
+    pub(super) fn upsert_kb_collection(
+        &self,
+        bot_name: &str,
+        kb_name: &str,
+        collection_name: &str,
+        doc_count: usize,
+    ) {
         use diesel::prelude::*;
         use uuid::Uuid;
 

@@ -55,7 +55,7 @@
       var processed = typeof renderMentionInMessage === "function"
         ? renderMentionInMessage(MC.esc(content))
         : MC.esc(content);
-      inner.innerHTML = processed;
+      inner.innerHTML = '<div class="gb-message-text">' + processed + "</div>";
     } else if (typeof marked !== "undefined" && marked.parse) {
       try {
         inner.innerHTML = marked.parse(content || "");
@@ -75,13 +75,13 @@
       inner.textContent = content;
     }
     div.appendChild(inner);
+    if (sender === "user" && typeof collapseUserMessageIfNeeded === "function") {
+      collapseUserMessageIfNeeded(div, content);
+    }
     if (!msgId || String(msgId).indexOf("streaming-") !== 0) {
-      try {
-        div.dataset.time = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      } catch (e) { /* Intl unavailable — no timestamp is fine */ }
+      if (typeof attachMessageTimestamp === "function") {
+        attachMessageTimestamp(div, Date.now());
+      }
     }
     // Parallel tabs render through this helper, so they must add the same
     // per-message actions the stock addMessage path attaches.

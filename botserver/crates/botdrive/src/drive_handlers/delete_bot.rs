@@ -10,11 +10,21 @@ pub async fn delete_bot(
     }
 
     let bot_name = req.name.trim().to_lowercase();
-    if bot_name.is_empty() || !bot_name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars)."));
+    if bot_name.is_empty()
+        || !bot_name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    {
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars).",
+        ));
     }
     if bot_name.len() < 3 || bot_name.len() > 50 {
-        return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Bot name must be between 3 and 50 characters.",
+        ));
     }
 
     // Tenant isolation (#1387): an org admin may only delete bots inside its
@@ -50,12 +60,26 @@ pub async fn delete_bot(
     // Only this bot's own objects are removed: the `{…}{bot}.gb` tree inside
     // its branch workspace. Deleting the bucket — or the whole branch
     // workspace — would destroy every sibling bot in the same org.
-    let objects = drive.list_objects(&bucket_name, Some(&location.bot_tree_prefix(&bot_name))).await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list bucket objects: {e}")))?;
+    let objects = drive
+        .list_objects(&bucket_name, Some(&location.bot_tree_prefix(&bot_name)))
+        .await
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to list bucket objects: {e}"),
+            )
+        })?;
 
     if !objects.is_empty() {
-        drive.delete_objects(&bucket_name, objects).await
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to delete bot objects: {e}")))?;
+        drive
+            .delete_objects(&bucket_name, objects)
+            .await
+            .map_err(|e| {
+                err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Failed to delete bot objects: {e}"),
+                )
+            })?;
     }
 
     botlog::safe_info!("Bot '{}' deleted by user {}", bot_name, user.user_id);
@@ -75,10 +99,14 @@ pub async fn open_file(
             "designer".to_string(),
             format!("/suite/designer.html?file={path}&bucket={bucket}"),
         ),
-        "txt" | "md" | "json" | "xml" | "html" | "css" | "js" => {
-            ("editor".to_string(), format!("/suite/editor.html?file={path}&bucket={bucket}"))
-        }
-        "pdf" => ("preview".to_string(), format!("/suite/docs/docs.html?file={path}&bucket={bucket}")),
+        "txt" | "md" | "json" | "xml" | "html" | "css" | "js" => (
+            "editor".to_string(),
+            format!("/suite/editor.html?file={path}&bucket={bucket}"),
+        ),
+        "pdf" => (
+            "preview".to_string(),
+            format!("/suite/docs/docs.html?file={path}&bucket={bucket}"),
+        ),
         "csv" | "xls" | "xlsx" | "ods" => (
             "sheets".to_string(),
             format!("/suite/sheet/sheet.html?bucket={bucket}&path={path}"),
@@ -109,7 +137,10 @@ pub async fn open_file(
             "photo-editor".to_string(),
             format!("/suite/photos/photos-editor.html?bucket={bucket}&path={path}"),
         ),
-        _ => ("preview".to_string(), format!("/suite/docs/docs.html?file={path}&bucket={bucket}")),
+        _ => (
+            "preview".to_string(),
+            format!("/suite/docs/docs.html?file={path}&bucket={bucket}"),
+        ),
     };
     Ok(Json(OpenFileResponse { app, url }))
 }
@@ -202,12 +233,15 @@ pub async fn list_favorites(
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
-        let items: Vec<StarItem> = rows.into_iter().map(|r| StarItem {
-            id: r.id,
-            bucket: r.bucket,
-            path: r.path,
-            created_at: r.created_at,
-        }).collect();
+        let items: Vec<StarItem> = rows
+            .into_iter()
+            .map(|r| StarItem {
+                id: r.id,
+                bucket: r.bucket,
+                path: r.path,
+                created_at: r.created_at,
+            })
+            .collect();
         return Ok(Json(items));
     }
     Ok(Json(vec![]))
@@ -238,7 +272,7 @@ pub async fn toggle_star(
         .execute(&mut conn)
     } else {
         diesel::sql_query(
-            "DELETE FROM drive_stars WHERE user_id = $1 AND bucket = $2 AND path = $3"
+            "DELETE FROM drive_stars WHERE user_id = $1 AND bucket = $2 AND path = $3",
         )
         .bind::<Text, _>(uid)
         .bind::<Text, _>(bucket)
@@ -247,7 +281,10 @@ pub async fn toggle_star(
     };
     result.map_err(|e| {
         botlog::safe_error!("drive star toggle failed: {e}");
-        err(StatusCode::INTERNAL_SERVER_ERROR, "Could not update the star")
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Could not update the star",
+        )
     })?;
 
     Ok(Json(SuccessResponse { success: true }))
@@ -283,15 +320,18 @@ pub async fn list_shared(
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
-        let items: Vec<ShareItem> = rows.into_iter().map(|r| ShareItem {
-            id: r.id,
-            owner_id: r.owner_id,
-            recipient_id: r.recipient_id,
-            bucket: r.bucket,
-            path: r.path,
-            permissions: r.permissions,
-            created_at: r.created_at,
-        }).collect();
+        let items: Vec<ShareItem> = rows
+            .into_iter()
+            .map(|r| ShareItem {
+                id: r.id,
+                owner_id: r.owner_id,
+                recipient_id: r.recipient_id,
+                bucket: r.bucket,
+                path: r.path,
+                permissions: r.permissions,
+                created_at: r.created_at,
+            })
+            .collect();
         return Ok(Json(items));
     }
     Ok(Json(vec![]))
@@ -301,7 +341,11 @@ pub async fn share_folder(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateShareBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let owner_id = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let owner_id = req
+        .user_id
+        .as_deref()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| get_user_id(&user));
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
     let recipient_id = &req.recipient_id;

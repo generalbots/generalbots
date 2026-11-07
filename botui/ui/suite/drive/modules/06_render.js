@@ -25,7 +25,9 @@ function renderFileCard(file) {
     var iconClass = file.is_dir ? "folder" : getFileTypeClass(file.name);
     var iconSvg = file.is_dir ? getFolderIcon() : getFileIcon(file.name);
     var sizeText = file.is_dir ? "" : formatFileSize(file.size);
-    var provenance = file.bucket ? escapeHtml(file.bucket) : "";
+    var provenance = file.bucket
+        ? (parseLocalBucket(file.bucket) ? "Local" : escapeHtml(file.bucket))
+        : "";
     var metaText = [sizeText, provenance].filter(Boolean).join(" · ");
     var checked = selectedFiles.has(file.path) ? "checked" : "";
     var selected = selectedFiles.has(file.path) ? "selected" : "";
@@ -36,7 +38,7 @@ function renderFileCard(file) {
 function renderFileRow(file) {
     var iconSvg = file.is_dir ? getFolderIcon() : getFileIcon(file.name);
     var sizeText = file.is_dir ? "\u2014" : formatFileSize(file.size);
-    var modifiedText = file.bucket
+    var modifiedText = file.bucket && !parseLocalBucket(file.bucket)
         ? escapeHtml(file.bucket) + (file.is_dir ? "" : "")
         : (file.modified ? formatDate(file.modified) : "\u2014");
     var checked = selectedFiles.has(file.path) ? "checked" : "";
@@ -80,6 +82,13 @@ function bindFileEvents() {
         // #1638 — a search hit can come from another bucket; switch to the
         // hit's own bucket before navigating so the path resolves.
         var hitBucket = item.dataset.bucket || "";
+        // #1801 — local rows: folders navigate on the local backend, files
+        // open in the preview modal (the editor apps only speak MinIO).
+        if (parseLocalBucket(hitBucket)) {
+            if (type === "folder") loadFiles(path, hitBucket);
+            else previewFile(path, hitBucket);
+            return;
+        }
         if (hitBucket && hitBucket !== getEffectiveBucket()) {
             currentBucket = hitBucket;
             // The org-layout pointer is what getEffectiveBucket() prefers;
@@ -147,7 +156,8 @@ function updateBreadcrumb() {
     const parts = currentPath ? currentPath.split("/").filter(Boolean) : [];
 
     var rootLabel = "My Drive";
-    if (currentGborgBucket && currentGborgBranch) rootLabel = currentGborgBranch;
+    if (parseLocalBucket(currentBucket)) rootLabel = "Home";
+    else if (currentGborgBucket && currentGborgBranch) rootLabel = currentGborgBranch;
 
     var html = '<button class="breadcrumb-item" onclick="DriveModule.loadFiles(\'\', \'' + currentBucket + '\')">' + escapeHtml(rootLabel) + '</button>';
     var cumulativePath = "";

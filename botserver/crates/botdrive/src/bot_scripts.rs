@@ -165,7 +165,11 @@ impl BotScriptsRepository {
         lease_secs: i64,
     ) -> Result<Vec<BotScript>, String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
-        let lease_secs = if lease_secs > 0 { lease_secs } else { DEFAULT_LEASE_SECS };
+        let lease_secs = if lease_secs > 0 {
+            lease_secs
+        } else {
+            DEFAULT_LEASE_SECS
+        };
         let limit = limit.clamp(1, 500);
 
         // `make_interval` with explicit casts, not `($n || ' seconds')::interval`:
@@ -265,13 +269,11 @@ impl BotScriptsRepository {
     /// repo deleted a tool). Keeps the queue from accumulating dead paths.
     pub fn remove(&self, branch_id: uuid::Uuid, script_path: &str) -> Result<(), String> {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
-        diesel::sql_query(
-            "DELETE FROM bot_scripts WHERE branch_id = $1 AND script_path = $2",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(&branch_id)
-        .bind::<diesel::sql_types::Text, _>(script_path)
-        .execute(&mut conn)
-        .map_err(|e| format!("remove {script_path}: {e}"))?;
+        diesel::sql_query("DELETE FROM bot_scripts WHERE branch_id = $1 AND script_path = $2")
+            .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+            .bind::<diesel::sql_types::Text, _>(script_path)
+            .execute(&mut conn)
+            .map_err(|e| format!("remove {script_path}: {e}"))?;
         Ok(())
     }
 }

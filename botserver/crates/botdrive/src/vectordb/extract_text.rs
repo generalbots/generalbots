@@ -45,7 +45,9 @@ impl FileContentExtractor {
                 tokio::task::spawn_blocking(move || {
                     use crate::stream_processor::StreamProcessor;
                     let mut processor = crate::streaming::csv::CsvStreamProcessor;
-                    processor.process_stream(&path).map_err(|e| anyhow::anyhow!(e))
+                    processor
+                        .process_stream(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await?
             }
@@ -53,7 +55,8 @@ impl FileContentExtractor {
             "text/plain" | "text/markdown" => {
                 let path = file_path.to_path_buf();
                 tokio::task::spawn_blocking(move || {
-                    crate::stream_processor::read_file_streaming(&path).map_err(|e| anyhow::anyhow!(e))
+                    crate::stream_processor::read_file_streaming(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await?
             }
@@ -61,7 +64,8 @@ impl FileContentExtractor {
             t if t.starts_with("text/") => {
                 let path = file_path.to_path_buf();
                 tokio::task::spawn_blocking(move || {
-                    crate::stream_processor::read_file_streaming(&path).map_err(|e| anyhow::anyhow!(e))
+                    crate::stream_processor::read_file_streaming(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await?
             }
@@ -74,7 +78,9 @@ impl FileContentExtractor {
                     tokio::task::spawn_blocking(move || {
                         use crate::stream_processor::StreamProcessor;
                         let mut processor = crate::streaming::pdf::PdfStreamProcessor;
-                        processor.process_stream(&path).map_err(|e| anyhow::anyhow!(e))
+                        processor
+                            .process_stream(&path)
+                            .map_err(|e| anyhow::anyhow!(e))
                     })
                     .await?
                 }
@@ -91,7 +97,9 @@ impl FileContentExtractor {
                 tokio::task::spawn_blocking(move || {
                     use crate::stream_processor::StreamProcessor;
                     let mut processor = crate::streaming::docx::DocxStreamProcessor;
-                    processor.process_stream(&path).map_err(|e| anyhow::anyhow!(e))
+                    processor
+                        .process_stream(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await?
             }
@@ -105,7 +113,9 @@ impl FileContentExtractor {
                     tokio::task::spawn_blocking(move || {
                         use crate::stream_processor::StreamProcessor;
                         let mut processor = crate::streaming::xlsx::XlsxStreamProcessor;
-                        processor.process_stream(&path).map_err(|e| anyhow::anyhow!(e))
+                        processor
+                            .process_stream(&path)
+                            .map_err(|e| anyhow::anyhow!(e))
                     })
                     .await?
                 }
@@ -119,7 +129,8 @@ impl FileContentExtractor {
             "application/json" => {
                 let path = file_path.to_path_buf();
                 let content = tokio::task::spawn_blocking(move || {
-                    crate::stream_processor::read_file_streaming(&path).map_err(|e| anyhow::anyhow!(e))
+                    crate::stream_processor::read_file_streaming(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await??;
 
@@ -132,7 +143,8 @@ impl FileContentExtractor {
             "text/xml" | "application/xml" | "text/html" => {
                 let path = file_path.to_path_buf();
                 let content = tokio::task::spawn_blocking(move || {
-                    crate::stream_processor::read_file_streaming(&path).map_err(|e| anyhow::anyhow!(e))
+                    crate::stream_processor::read_file_streaming(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await??;
 
@@ -146,7 +158,8 @@ impl FileContentExtractor {
             "text/rtf" | "application/rtf" => {
                 let path = file_path.to_path_buf();
                 let content = tokio::task::spawn_blocking(move || {
-                    crate::stream_processor::read_file_streaming(&path).map_err(|e| anyhow::anyhow!(e))
+                    crate::stream_processor::read_file_streaming(&path)
+                        .map_err(|e| anyhow::anyhow!(e))
                 })
                 .await??;
 

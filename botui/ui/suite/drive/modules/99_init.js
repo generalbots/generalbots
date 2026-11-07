@@ -28,14 +28,27 @@ async function init() {
     var rootTab = document.getElementById("tab-root");
     if (rootTab) rootTab.style.display = isAdmin ? "flex" : "none";
 
+    // #1801 — the Home tab browses the desktop user's real home folder. The
+    // server disables the local backend outside the desktop edition, so the
+    // tab is never advertised there.
+    var homeTab = document.getElementById("tab-home");
+    if (homeTab) homeTab.style.display = isDesktopLocal() ? "flex" : "none";
+
     var savedTab = sessionStorage.getItem("drive-tab") || TAB_MYFILES;
     if (["branchdrive", "bots", "root", "desktop", "external"].indexOf(savedTab) !== -1) {
+        savedTab = TAB_MYFILES;
+        sessionStorage.setItem("drive-tab", savedTab);
+    }
+    if (savedTab === TAB_HOME && !isDesktopLocal()) {
         savedTab = TAB_MYFILES;
         sessionStorage.setItem("drive-tab", savedTab);
     }
     switch (savedTab) {
         case TAB_BRANCHDRIVE:
             await loadBranchDriveTab();
+            break;
+        case TAB_HOME:
+            await loadHomeTab();
             break;
         case TAB_SHARED:
             await loadSharedTab();
@@ -125,6 +138,7 @@ window.DriveModule = {
     loadSharedTab: loadSharedTab,
     loadPublicTab: loadPublicTab,
     loadMyFilesTab: loadMyFilesTab,
+    loadHomeTab: loadHomeTab,
     loadBotsTab: loadBotsTab,
     loadRootTab: loadRootTab,
     loadExternalTab: loadExternalTab,

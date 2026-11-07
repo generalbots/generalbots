@@ -1,36 +1,98 @@
+pub use super::command_validation::CommandGuardError;
+use super::command_validation::{validate_argument, validate_path};
+use super::utils::get_stack_path;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::{Child, Output};
 use std::sync::LazyLock;
-use super::command_validation::{validate_argument, validate_path};
-pub use super::command_validation::CommandGuardError;
-use super::utils::get_stack_path;
 
 // Server-side allowlist. Desktop-only binaries (`rclone`, `osascript`, `rm`)
 // are deliberately absent: the desktop shell carries its own guard, and
 // `nc`/`netcat` would turn any caller into a reverse shell.
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
-        "pdftotext", "pandoc", "nvidia-smi", "powershell", "clamscan",
-        "freshclam", "mc", "ffmpeg", "ffprobe", "convert", "gs",
-        "tesseract", "which", "where", "sh", "bash", "cmd", "pkill",
-        "pgrep", "kill", "fuser", "curl", "tar", "unzip",
-        "pg_dump", "pg_isready", "lxc", "lxc-execute", "lxd", "docker",
-        "apt-get", "brew", "rustc", "nvcc", "notify-send",
-        "true", "find", "ss", "cargo",
-        "redis-server", "redis-cli", "valkey-cli", "valkey-server",
-        "minio", "chromedriver", "chrome", "chromium", "brave", "diesel",
-        "psql", "forgejo",
-        "forgejo-runner", "incus", "lynis", "rkhunter", "chkrootkit",
-        "suricata", "suricata-update", "maldet", "sudo",
-        "visudo", "id", "netsh", "llama-server", "ollama", "vault",
-        "python", "python3", "python3.11", "python3.12",
-        "tasklist", "tar.exe", "git",
+        "pdftotext",
+        "pandoc",
+        "nvidia-smi",
+        "powershell",
+        "clamscan",
+        "freshclam",
+        "mc",
+        "ffmpeg",
+        "ffprobe",
+        "convert",
+        "gs",
+        "tesseract",
+        "which",
+        "where",
+        "sh",
+        "bash",
+        "cmd",
+        "pkill",
+        "pgrep",
+        "kill",
+        "fuser",
+        "curl",
+        "tar",
+        "unzip",
+        "pg_dump",
+        "pg_isready",
+        "lxc",
+        "lxc-execute",
+        "lxd",
+        "docker",
+        "apt-get",
+        "brew",
+        "rustc",
+        "nvcc",
+        "notify-send",
+        "true",
+        "find",
+        "ss",
+        "cargo",
+        "redis-server",
+        "redis-cli",
+        "valkey-cli",
+        "valkey-server",
+        "minio",
+        "chromedriver",
+        "chrome",
+        "chromium",
+        "brave",
+        "diesel",
+        "psql",
+        "forgejo",
+        "forgejo-runner",
+        "incus",
+        "lynis",
+        "rkhunter",
+        "chkrootkit",
+        "suricata",
+        "suricata-update",
+        "maldet",
+        "sudo",
+        "visudo",
+        "id",
+        "netsh",
+        "llama-server",
+        "ollama",
+        "vault",
+        "python",
+        "python3",
+        "python3.11",
+        "python3.12",
+        "tasklist",
+        "tar.exe",
+        "git",
         // First-party call sites: filesystem/disk readout (`df`), host
         // addressing (`ip`), Windows ACL/identity (`icacls`, `whoami`) and the
         // PostgreSQL dump client that ships with the allowlisted `psql`.
-        "df", "ip", "icacls", "whoami", "pg_dump",
+        "df",
+        "ip",
+        "icacls",
+        "whoami",
+        "pg_dump",
     ])
 });
 
@@ -283,9 +345,7 @@ impl SafeCommand {
         let separator = ":";
 
         #[cfg(target_os = "windows")]
-        let mut path_entries: Vec<String> = vec![
-            std::env::var("PATH").unwrap_or_default(),
-        ];
+        let mut path_entries: Vec<String> = vec![std::env::var("PATH").unwrap_or_default()];
 
         #[cfg(not(target_os = "windows"))]
         let mut path_entries = vec![
@@ -358,7 +418,6 @@ impl SafeCommand {
             cmd.env(key, value);
         }
     }
-
 }
 
 mod execute_async;

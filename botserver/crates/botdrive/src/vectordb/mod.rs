@@ -1,7 +1,11 @@
 pub(crate) use anyhow::Result;
+#[cfg(feature = "vectordb")]
+pub(crate) use botqdrant::{Distance, PointStruct, Qdrant, VectorParams};
 #[cfg(feature = "sheet")]
 pub(crate) use calamine::Reader;
 pub(crate) use chrono::{DateTime, Utc};
+#[cfg(feature = "drive")]
+pub(crate) use pdf_extract;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::path::{Path, PathBuf};
 #[cfg(feature = "vectordb")]
@@ -9,64 +13,60 @@ pub(crate) use std::sync::Arc;
 #[cfg(not(feature = "vectordb"))]
 pub(crate) use tokio::fs;
 pub(crate) use uuid::Uuid;
-#[cfg(feature = "drive")]
-pub(crate) use pdf_extract;
-#[cfg(feature = "vectordb")]
-pub(crate) use botqdrant::{Distance, PointStruct, Qdrant, VectorParams};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
-pub id: String,
-pub file_path: String,
-pub file_name: String,
-pub file_type: String,
-pub file_size: u64,
-pub bucket: String,
-pub content_text: String,
-pub content_summary: Option<String>,
-pub created_at: DateTime<Utc>,
-pub modified_at: DateTime<Utc>,
-pub indexed_at: DateTime<Utc>,
-pub mime_type: Option<String>,
-pub tags: Vec<String>,
+    pub id: String,
+    pub file_path: String,
+    pub file_name: String,
+    pub file_type: String,
+    pub file_size: u64,
+    pub bucket: String,
+    pub content_text: String,
+    pub content_summary: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub modified_at: DateTime<Utc>,
+    pub indexed_at: DateTime<Utc>,
+    pub mime_type: Option<String>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchQuery {
-pub query_text: String,
-pub bucket: Option<String>,
-pub file_type: Option<String>,
-pub date_from: Option<DateTime<Utc>>,
-pub date_to: Option<DateTime<Utc>>,
-pub tags: Vec<String>,
-pub limit: usize,
+    pub query_text: String,
+    pub bucket: Option<String>,
+    pub file_type: Option<String>,
+    pub date_from: Option<DateTime<Utc>>,
+    pub date_to: Option<DateTime<Utc>>,
+    pub tags: Vec<String>,
+    pub limit: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchResult {
-pub file: FileDocument,
-pub score: f32,
-pub snippet: String,
-pub highlights: Vec<String>,
+    pub file: FileDocument,
+    pub score: f32,
+    pub snippet: String,
+    pub highlights: Vec<String>,
 }
 
 pub struct UserDriveVectorDB {
-user_id: Uuid,
-bot_id: Uuid,
-collection_name: String,
-db_path: PathBuf,
-#[cfg(feature = "vectordb")]
-client: Option<Arc<Qdrant>>,
+    user_id: Uuid,
+    bot_id: Uuid,
+    collection_name: String,
+    db_path: PathBuf,
+    #[cfg(feature = "vectordb")]
+    client: Option<Arc<Qdrant>>,
 }
 
 #[derive(Debug)]
 pub struct FileContentExtractor;
 
-mod sanitize_cell_text;
-mod user_id;
-mod search;
-mod extract_text;
 mod extract_pdf_text_sync;
+mod extract_text;
+mod sanitize_cell_text;
+mod search;
+mod user_id;
 
 // The extractors only exist with one of these features; without them the glob
 // re-export is empty and unused.

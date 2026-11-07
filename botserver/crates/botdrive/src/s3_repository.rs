@@ -6,7 +6,7 @@
 //! across four files to stay inside the project size limit; the type is one.
 
 use anyhow::{Context, Result};
-use s3::{Bucket, Region, creds::Credentials};
+use s3::{creds::Credentials, Bucket, Region};
 use std::sync::Arc;
 
 use crate::s3_shims::{
@@ -46,16 +46,18 @@ impl S3Repository {
         let bucket = bucket_for_region(selection, access_key, secret_key, &selection.bucket)?;
         // The fallback handle is built eagerly so a switch costs nothing at read
         // time; a handle that cannot be built simply means no failover.
-        let fallback = selection
-            .fallback_endpoint
-            .as_ref()
-            .and_then(|endpoint| {
-                let mut fallback_selection = selection.clone();
-                fallback_selection.endpoint = endpoint.clone();
-                bucket_for_region(&fallback_selection, access_key, secret_key, &selection.bucket)
-                    .ok()
-                    .map(Arc::new)
-            });
+        let fallback = selection.fallback_endpoint.as_ref().and_then(|endpoint| {
+            let mut fallback_selection = selection.clone();
+            fallback_selection.endpoint = endpoint.clone();
+            bucket_for_region(
+                &fallback_selection,
+                access_key,
+                secret_key,
+                &selection.bucket,
+            )
+            .ok()
+            .map(Arc::new)
+        });
 
         Ok(Self {
             bucket_name: selection.bucket.clone(),
@@ -133,21 +135,19 @@ impl S3Repository {
 
     /// List buckets
     pub fn list_buckets(&self) -> S3ListBucketsBuilder {
-        S3ListBucketsBuilder { repo: Some(Arc::new(self.clone())) }
+        S3ListBucketsBuilder {
+            repo: Some(Arc::new(self.clone())),
+        }
     }
 
     /// Head bucket
     pub fn head_bucket(&self) -> S3HeadBucketBuilder {
-        S3HeadBucketBuilder {
-            bucket_name: None,
-        }
+        S3HeadBucketBuilder { bucket_name: None }
     }
 
     /// Create bucket
     pub fn create_bucket(&self) -> S3CreateBucketBuilder {
-        S3CreateBucketBuilder {
-            bucket_name: None,
-        }
+        S3CreateBucketBuilder { bucket_name: None }
     }
 
     /// List objects v2
@@ -194,7 +194,6 @@ pub fn create_shared_repository(
     let repo = S3Repository::new(endpoint, access_key, secret_key, bucket)?;
     Ok(Arc::new(repo))
 }
-
 
 /// Builds a repository from the application configuration, honouring the
 /// configured backend, region and fallback endpoint (#1468).

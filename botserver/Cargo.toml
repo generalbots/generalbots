@@ -178,6 +178,11 @@ sampledata = ["dep:botsampledata"]
 # always/preview/hidden split.
 desktop-local = [
     "all-apps",
+    # #1820 — the desktop edition ships the Mail app and the IMAP account
+    # routes it owns. `all-apps` already pulls `mail` in, but keep it explicit
+    # so a future slim profile cannot silently drop botemail and leave the
+    # Mail/Data Sources account forms submitting to nothing.
+    "mail",
     "botcore/default",
     "botcore/desktop-local",
 ]

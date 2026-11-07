@@ -52,7 +52,9 @@ struct SenderConfig {
     label: String,
 }
 
-fn valid_recipients(input: &[String]) -> Result<Vec<String>, (StatusCode, Json<serde_json::Value>)> {
+fn valid_recipients(
+    input: &[String],
+) -> Result<Vec<String>, (StatusCode, Json<serde_json::Value>)> {
     let mut out: Vec<String> = Vec::new();
     for raw in input {
         for part in raw.split([',', ';', ' ']) {
@@ -69,13 +71,19 @@ fn valid_recipients(input: &[String]) -> Result<Vec<String>, (StatusCode, Json<s
             {
                 return Err(err(StatusCode::BAD_REQUEST, "Invalid recipient email"));
             }
-            if !out.iter().any(|existing| existing.eq_ignore_ascii_case(email)) {
+            if !out
+                .iter()
+                .any(|existing| existing.eq_ignore_ascii_case(email))
+            {
                 out.push(email.to_string());
             }
         }
     }
     if out.is_empty() {
-        return Err(err(StatusCode::BAD_REQUEST, "At least one recipient is required"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "At least one recipient is required",
+        ));
     }
     if out.len() > MAX_RECIPIENTS {
         return Err(err(StatusCode::BAD_REQUEST, "Too many recipients"));
@@ -83,14 +91,22 @@ fn valid_recipients(input: &[String]) -> Result<Vec<String>, (StatusCode, Json<s
     Ok(out)
 }
 
-fn absolute_url(origin: Option<&str>, path: &str) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+fn absolute_url(
+    origin: Option<&str>,
+    path: &str,
+) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     let base = origin
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
         .or_else(|| std::env::var("GB_PUBLIC_URL").ok())
         .filter(|value| value.starts_with("http://") || value.starts_with("https://"))
-        .ok_or_else(|| err(StatusCode::BAD_REQUEST, "A public origin is required to email a link"))?;
+        .ok_or_else(|| {
+            err(
+                StatusCode::BAD_REQUEST,
+                "A public origin is required to email a link",
+            )
+        })?;
     Ok(format!("{}{}", base.trim_end_matches('/'), path))
 }
 
@@ -137,7 +153,11 @@ async fn connected_sender(
     .await
     .ok()??;
 
-    let from = match account.display_name.as_deref().filter(|name| !name.is_empty()) {
+    let from = match account
+        .display_name
+        .as_deref()
+        .filter(|name| !name.is_empty())
+    {
         Some(name) => format!("{name} <{}>", account.email),
         None => account.email.clone(),
     };
@@ -185,7 +205,12 @@ fn build_mail(
     html: String,
 ) -> Result<Message, String> {
     Message::builder()
-        .from(sender.from.parse().map_err(|e| format!("invalid from: {e}"))?)
+        .from(
+            sender
+                .from
+                .parse()
+                .map_err(|e| format!("invalid from: {e}"))?,
+        )
         .to(to.parse().map_err(|e| format!("invalid recipient: {e}"))?)
         .subject(subject)
         .header(ContentType::TEXT_HTML)
@@ -203,16 +228,22 @@ fn transport(sender: &SenderConfig) -> Result<SmtpTransport, String> {
     } else {
         SmtpTransport::relay(&sender.host).map_err(|e| format!("SMTP relay failed: {e}"))?
     };
-    let mut builder = builder
-        .port(sender.port)
-        .credentials(Credentials::new(sender.username.clone(), sender.secret.clone()));
+    let mut builder = builder.port(sender.port).credentials(Credentials::new(
+        sender.username.clone(),
+        sender.secret.clone(),
+    ));
     if sender.oauth2 {
         builder = builder.authentication(vec![Mechanism::Xoauth2]);
     }
     Ok(builder.build())
 }
 
-fn send_blocking(sender: &SenderConfig, to: &str, subject: &str, html: String) -> Result<(), String> {
+fn send_blocking(
+    sender: &SenderConfig,
+    to: &str,
+    subject: &str,
+    html: String,
+) -> Result<(), String> {
     let mail = build_mail(sender, to, subject, html)?;
     transport(sender)?
         .send(&mail)
@@ -292,8 +323,14 @@ pub async fn send_share_email(
     let recipients = valid_recipients(&req.recipients)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket =
-        resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let expires_at = match req.expires_at.as_deref() {
         None | Some("") => None,
@@ -314,13 +351,7 @@ pub async fn send_share_email(
     };
 
     let minted = mint_public_link(
-        &state,
-        &uid,
-        &bucket,
-        &scope,
-        &prefix,
-        &req.path,
-        expires_at,
+        &state, &uid, &bucket, &scope, &prefix, &req.path, expires_at,
     )
     .await?;
     let url = absolute_url(req.origin.as_deref(), &minted.url)?;
@@ -399,8 +430,11 @@ mod tests {
 
     #[test]
     fn recipients_are_split_deduped_and_validated() {
-        let parsed = valid_recipients(&["a@example.com, b@example.com".into(), "A@example.com".into()])
-            .expect("valid list");
+        let parsed = valid_recipients(&[
+            "a@example.com, b@example.com".into(),
+            "A@example.com".into(),
+        ])
+        .expect("valid list");
         assert_eq!(parsed, vec!["a@example.com", "b@example.com"]);
         assert!(valid_recipients(&["not-an-email".into()]).is_err());
         assert!(valid_recipients(&[]).is_err());

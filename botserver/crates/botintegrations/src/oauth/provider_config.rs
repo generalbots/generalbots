@@ -200,7 +200,10 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
 pub(super) fn signing_key() -> Result<String, ResponseError> {
     let token = botcoresecrets::internal_api_token();
     if token.trim().is_empty() {
-        return Err(error_response(StatusCode::SERVICE_UNAVAILABLE, IntegrationError::Validation("oauth signing key is not configured".to_string())));
+        return Err(error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            IntegrationError::Validation("oauth signing key is not configured".to_string()),
+        ));
     }
     Ok(token)
 }
@@ -221,8 +224,12 @@ pub(super) fn error_response(status: StatusCode, error: IntegrationError) -> Res
     ResponseError::new((status, Json(json!({ "detail": error.to_string() }))).into_response())
 }
 pub(super) fn parse_uuid(value: &str) -> Result<Uuid, ResponseError> {
-    Uuid::parse_str(value)
-        .map_err(|_| error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("bot_id must be a UUID".to_string())))
+    Uuid::parse_str(value).map_err(|_| {
+        error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("bot_id must be a UUID".to_string()),
+        )
+    })
 }
 pub(super) fn urlencode(value: &str) -> String {
     urlencoding::encode(value).into_owned()
@@ -273,11 +280,7 @@ pub(super) async fn exchange_long_lived_meta_token(
     ))
 }
 pub(super) fn request_base(headers: &axum::http::HeaderMap) -> Option<String> {
-    let host = headers
-        .get(header::HOST)?
-        .to_str()
-        .ok()?
-        .to_string();
+    let host = headers.get(header::HOST)?.to_str().ok()?.to_string();
     let scheme = headers
         .get("x-forwarded-proto")
         .and_then(|value| value.to_str().ok())

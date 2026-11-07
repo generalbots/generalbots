@@ -59,13 +59,17 @@ impl DriveFileRepository {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
         let branch_uuid = branch_id.unwrap_or_else(uuid::Uuid::nil);
-        let name = file_path.rsplit('/').next().unwrap_or(file_path).to_string();
+        let name = file_path
+            .rsplit('/')
+            .next()
+            .unwrap_or(file_path)
+            .to_string();
 
         // First try UPDATE (unique key is branch_id + path)
         let updated = diesel::sql_query(
             "UPDATE drive_files SET name = $3, mime_type = $4, etag = $5, \
              last_modified = $6, updated_at = NOW() \
-             WHERE branch_id = $1 AND path = $2"
+             WHERE branch_id = $1 AND path = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
         .bind::<diesel::sql_types::Text, _>(file_path)
@@ -170,9 +174,7 @@ impl DriveFileRepository {
             Err(_) => return vec![],
         };
 
-        drive_files::table
-            .load(&mut conn)
-            .unwrap_or_default()
+        drive_files::table.load(&mut conn).unwrap_or_default()
     }
 
     pub fn get_files_by_type(&self, file_type: &str) -> Vec<DriveFile> {
@@ -200,22 +202,31 @@ impl DriveFileRepository {
         let mut conn = self.pool.get().map_err(|e| e.to_string())?;
 
         let branch_uuid = branch_id.unwrap_or_else(uuid::Uuid::nil);
-        let name = params.file_path.rsplit('/').next().unwrap_or(&params.file_path).to_string();
+        let name = params
+            .file_path
+            .rsplit('/')
+            .next()
+            .unwrap_or(&params.file_path)
+            .to_string();
 
         let updated = diesel::sql_query(
             "UPDATE drive_files SET name = $3, mime_type = $4, etag = $5, last_modified = $6, \
              indexed = $7, fail_count = $8, last_failed_at = $9, updated_at = NOW() \
-             WHERE branch_id = $1 AND path = $2"
+             WHERE branch_id = $1 AND path = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(&branch_uuid)
         .bind::<diesel::sql_types::Text, _>(&params.file_path)
         .bind::<diesel::sql_types::Text, _>(&name)
         .bind::<diesel::sql_types::Text, _>(&params.file_type)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&params.etag)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_modified)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(
+            params.last_modified,
+        )
         .bind::<diesel::sql_types::Bool, _>(params.indexed)
         .bind::<diesel::sql_types::Int4, _>(params.fail_count)
-        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(params.last_failed_at)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(
+            params.last_failed_at,
+        )
         .execute(&mut conn)
         .map_err(|e| e.to_string())?;
 
@@ -318,7 +329,8 @@ impl DriveFileRepository {
 
         diesel::update(drive_files::table)
             .filter(
-                drive_files::fail_count.ge(max_fail_count)
+                drive_files::fail_count
+                    .ge(max_fail_count)
                     .and(drive_files::last_failed_at.is_not_null())
                     .and(drive_files::last_failed_at.lt(cutoff)),
             )

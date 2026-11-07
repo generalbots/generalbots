@@ -7,8 +7,7 @@
 
 use botlib::traits::{
     BoxFutureBool, BoxFutureDriveList, BoxFutureOptionDriveMeta, BoxFutureUnit,
-    BoxFutureVecDriveObject, BoxFutureVecString, BoxFutureVecU8, DriveListResult,
-    DriveRepository,
+    BoxFutureVecDriveObject, BoxFutureVecString, BoxFutureVecU8, DriveListResult, DriveRepository,
 };
 
 #[derive(Debug, Default)]
@@ -35,36 +34,19 @@ impl DriveRepository for NoopDrive {
         err_unit()
     }
 
-    fn get_object(
-        &self,
-        _bucket: &str,
-        _key: &str,
-    ) -> BoxFutureVecU8 {
+    fn get_object(&self, _bucket: &str, _key: &str) -> BoxFutureVecU8 {
         Box::pin(async { Err(NOOP_ERR.to_string()) })
     }
 
-    fn delete_object(
-        &self,
-        _bucket: &str,
-        _key: &str,
-    ) -> BoxFutureUnit {
+    fn delete_object(&self, _bucket: &str, _key: &str) -> BoxFutureUnit {
         err_unit()
     }
 
-    fn copy_object(
-        &self,
-        _bucket: &str,
-        _from: &str,
-        _to: &str,
-    ) -> BoxFutureUnit {
+    fn copy_object(&self, _bucket: &str, _from: &str, _to: &str) -> BoxFutureUnit {
         err_unit()
     }
 
-    fn list_objects(
-        &self,
-        _bucket: &str,
-        _prefix: Option<&str>,
-    ) -> BoxFutureVecString {
+    fn list_objects(&self, _bucket: &str, _prefix: Option<&str>) -> BoxFutureVecString {
         err_vec_string()
     }
 
@@ -76,56 +58,32 @@ impl DriveRepository for NoopDrive {
         Box::pin(async { Ok(Vec::new()) })
     }
 
-    fn list_common_prefixes(
-        &self,
-        _bucket: &str,
-        _delimiter: &str,
-    ) -> BoxFutureVecString {
+    fn list_common_prefixes(&self, _bucket: &str, _delimiter: &str) -> BoxFutureVecString {
         err_vec_string()
     }
 
-    fn list_all_buckets(
-        &self,
-    ) -> BoxFutureVecString {
+    fn list_all_buckets(&self) -> BoxFutureVecString {
         err_vec_string()
     }
 
-    fn object_exists(
-        &self,
-        _bucket: &str,
-        _key: &str,
-    ) -> BoxFutureBool {
+    fn object_exists(&self, _bucket: &str, _key: &str) -> BoxFutureBool {
         Box::pin(async { Ok(false) })
     }
 
-    fn get_object_metadata(
-        &self,
-        _bucket: &str,
-        _key: &str,
-    ) -> BoxFutureOptionDriveMeta {
+    fn get_object_metadata(&self, _bucket: &str, _key: &str) -> BoxFutureOptionDriveMeta {
         Box::pin(async { Ok(None) })
     }
 
-    fn create_bucket_if_not_exists(
-        &self,
-        _bucket: &str,
-    ) -> BoxFutureUnit {
+    fn create_bucket_if_not_exists(&self, _bucket: &str) -> BoxFutureUnit {
         err_unit()
     }
 
-    fn delete_objects(
-        &self,
-        _bucket: &str,
-        _keys: Vec<String>,
-    ) -> BoxFutureUnit {
+    fn delete_objects(&self, _bucket: &str, _keys: Vec<String>) -> BoxFutureUnit {
         let _ = _keys;
         err_unit()
     }
 
-    fn head_bucket(
-        &self,
-        _bucket: &str,
-    ) -> BoxFutureBool {
+    fn head_bucket(&self, _bucket: &str) -> BoxFutureBool {
         Box::pin(async { Ok(false) })
     }
 
@@ -154,12 +112,7 @@ impl DriveRepository for NoopDrive {
         err_unit()
     }
 
-    fn download_file(
-        &self,
-        _bucket: &str,
-        _key: &str,
-        _file_path: &str,
-    ) -> BoxFutureUnit {
+    fn download_file(&self, _bucket: &str, _key: &str, _file_path: &str) -> BoxFutureUnit {
         err_unit()
     }
 }

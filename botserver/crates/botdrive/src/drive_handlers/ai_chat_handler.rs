@@ -5,15 +5,24 @@ pub async fn ai_chat_handler(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<AIChatBody>,
 ) -> Result<Json<AIChatResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let provider = state
-        .llm_provider
-        .as_ref()
-        .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "LLM provider not configured"))?;
+    let provider = state.llm_provider.as_ref().ok_or_else(|| {
+        err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "LLM provider not configured",
+        )
+    })?;
 
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
 
     let mut files_context = String::new();
     if let Ok(objects) = drive.list_objects_with_metadata(&bucket, None).await {
@@ -55,10 +64,12 @@ pub async fn ai_chat_handler(
         req.message
     );
 
-    let reply = provider
-        .generate_simple(&prompt)
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("AI generation error: {e}")))?;
+    let reply = provider.generate_simple(&prompt).await.map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("AI generation error: {e}"),
+        )
+    })?;
 
     Ok(Json(AIChatResponse { reply }))
 }

@@ -5,8 +5,7 @@ mod utils;
 
 pub use command_guard::SafeCommand;
 pub use command_utils::{
-    has_nvidia_gpu_safe, safe_nvidia_smi, safe_pandoc_async, safe_pdftotext,
-    safe_pdftotext_async,
+    has_nvidia_gpu_safe, safe_nvidia_smi, safe_pandoc_async, safe_pdftotext, safe_pdftotext_async,
 };
 pub use command_validation::{
     sanitize_filename, validate_argument, validate_path, CommandGuardError,

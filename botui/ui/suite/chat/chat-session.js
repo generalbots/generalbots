@@ -207,7 +207,7 @@ window.ChatSwitchBot = function (botName) {
     if (pane) pane.innerHTML = "";
     ChatState.suppressPersist = true;
     local.forEach(function (m) {
-      addMessage(m.sender, m.content);
+      addMessage(m.sender, m.content, null, null, m.ts);
     });
     ChatState.suppressPersist = false;
     scrollToBottom(false);
@@ -241,7 +241,9 @@ window.ChatSwitchBot = function (botName) {
       }
       previousRole = role;
       previousContent = m.content;
-      addMessage(role, m.content);
+      // Server history does not expose timestamps yet; pass one through when
+      // a future payload includes it, otherwise the bubble omits the label.
+      addMessage(role, m.content, null, null, m.ts || m.timestamp || m.created_at || m.time);
     });
   }
 
