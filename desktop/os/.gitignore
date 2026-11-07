@@ -1,0 +1,8 @@
+# The release .deb is downloaded by CI into this folder — never committed.
+deb/
+# Build outputs of local mkosi runs (mkosi.out/, work/, tools trees).
+mkosi.out/
+work/
+generalbots-os*
+SHA256SUMS-os
+vm-smoke.log*

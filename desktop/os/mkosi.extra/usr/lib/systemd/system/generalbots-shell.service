@@ -1,0 +1,40 @@
+[Unit]
+Description=General Bots kiosk shell (cage + General Bots desktop)
+Documentation=https://github.com/generalbots/generalbots
+# Serve nothing until user sessions and the network are up; getty@tty1 is
+# masked at build time (mkosi.finalize.chroot) — there is no greeter.
+After=systemd-user-sessions.service systemd-networkd.service systemd-logind.service
+Wants=network-online.target
+Conflicts=getty@tty1.service
+ConditionPathExists=/usr/bin/generalbots
+
+[Service]
+Type=simple
+# No root, no display manager: run inside a PAM login session so
+# pam_systemd sets up /run/user/… and libseat (via logind) hands the DRM
+# devices to the kiosk user (video/render memberships from sysusers.d).
+User=gbdesk
+Group=gbdesk
+PAMName=login
+UtmpIdentifier=tty1
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+WorkingDirectory=/var/lib/gbdesk
+Environment=HOME=/var/lib/gbdesk
+Environment=WLR_BACKENDS=drm
+# Own DBus session bus for GTK/WebKit, cage as the Wayland kiosk compositor
+# and the General Bots desktop shell as its single application. A crash is
+# respawned exactly like a display manager re-spawns a session.
+ExecStart=/usr/bin/dbus-run-session -- /usr/bin/cage /usr/bin/generalbots
+Restart=always
+RestartSec=3
+# Kiosk hardening: the shell has no reason to gain privileges.
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

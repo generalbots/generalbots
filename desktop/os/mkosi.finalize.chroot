@@ -1,0 +1,32 @@
+#!/bin/bash -eu
+# mkosi finalize script — runs INSIDE the image tree (chroot), as root,
+# after packages and mkosi.extra/ are in place. Last step before the image
+# is sealed: from here on the appliance only knows the kiosk shell.
+
+set -euo pipefail
+
+# 1. tty1 belongs to the kiosk shell exclusively — never agetty, never a
+#    greeter. generalbows-shell.service Conflicts= getty@tty1 anyway, but
+#    masked keeps everyone honest.
+systemctl mask getty@tty1.service
+
+# 2. Locked-down appliance: no rescue/emergency shells on any console. The
+#    documented recovery procedure is reprovisioning from a fresh image.
+systemctl mask rescue.service emergency.service
+
+# 3. Kiosk shell + networking for the setup wizard's first-run provisioning.
+systemctl enable generalbots-shell.service systemd-networkd.service systemd-resolved.service
+
+# 4. Defensive path resolution: the Tauri .deb installs the shell at
+#    /usr/bin/generalbots; if a bundler layout change ever moves it, resolve
+#    the real location once at build time instead of failing at boot.
+if ! test -x /usr/bin/generalbots; then
+    GBBIN="$(find /usr -type f -name generalbots -perm -u+x 2>/dev/null | head -n1 || true)"
+    if test -z "$GBBIN"; then
+        echo "error: the generalbots .deb did not install a shell binary under /usr" >&2
+        find /usr -type d -iname '*generalbots*' >&2 || true
+        exit 1
+    fi
+    echo "note: symlinking $GBBIN -> /usr/bin/generalbots" >&2
+    ln -s "$GBBIN" /usr/bin/generalbots
+fi
