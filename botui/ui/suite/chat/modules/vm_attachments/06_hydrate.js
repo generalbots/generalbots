@@ -40,9 +40,15 @@ function vmRenderInlineReferences(root) {
         card.className = "gb-attachment";
         card.dataset.path = parts.path;
         card.dataset.conversationId = parts.conversationId || "";
+        card.dataset.contentType = vmFileMimeType(parts.path);
+        card.dataset.order = "0";
         card.innerHTML =
           '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
+          '<span class="gb-attachment-order">0</span>' +
           '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
+          '<span class="gb-content-type-badge gb-type-badge">' + vmEscapeHtml(vmContentTypeBadge(parts.path)) + "</span>" +
+          '<span class="gb-attachment-desc gb-attachment-minor">' + vmEscapeHtml(vmAttachmentDescription(parts.path)) + "</span>" +
+          '<span class="gb-latest-chip gb-attachment-latest">Latest</span>' +
           vmAttachmentButtons(parts.path);
         card.querySelector(".gb-attachment-name").textContent =
           (hit[1] || "").trim() || parts.path.split("/").pop();

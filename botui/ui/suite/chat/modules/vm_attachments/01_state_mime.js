@@ -139,6 +139,28 @@ function vmFileIcon(path) {
   return "FILE";
 }
 
+// Content-type badge label for an attachment (short, uppercase extension).
+function vmContentTypeBadge(path) {
+  var ext = String(path || "").split(".").pop().toUpperCase();
+  return ext && ext !== String(path || "").toUpperCase() ? ext : "FILE";
+}
+
+// Minor descriptive text for an attachment (rendered in italic).
+function vmAttachmentDescription(path) {
+  var mime = vmFileMimeType(path);
+  if (mime.indexOf("image/") === 0) return "Image file";
+  if (mime === "application/pdf") return "PDF document";
+  if (mime.indexOf("officedocument") !== -1) return "Office document";
+  if (mime === "application/msword") return "Word document";
+  if (mime === "application/vnd.ms-excel") return "Spreadsheet";
+  if (mime === "application/vnd.ms-powerpoint") return "Presentation";
+  if (mime.indexOf("text/") === 0) return "Text file";
+  if (mime.indexOf("video/") === 0) return "Video file";
+  if (mime.indexOf("audio/") === 0) return "Audio file";
+  if (mime === "application/zip") return "Archive";
+  return "Generated file";
+}
+
 function vmSplitTarget(target) {
   var value = String(target || "");
   try {
