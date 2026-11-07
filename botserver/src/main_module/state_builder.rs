@@ -29,12 +29,44 @@ async fn apply_staged_model_choice() {
             return;
         }
     };
-    let url = parsed.get("url").and_then(|v| v.as_str()).unwrap_or("").trim();
-    let model = parsed.get("model").and_then(|v| v.as_str()).unwrap_or("").trim();
+    let url = parsed
+        .get("url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim();
+    let model = parsed
+        .get("model")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim();
     if url.is_empty() || model.is_empty() {
         let _ = std::fs::remove_file(&path);
         return;
     }
+    let explicit_provider = parsed
+        .get("provider")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim();
+    let provider = if !explicit_provider.is_empty() {
+        explicit_provider.to_string()
+    } else if url.contains("api.kilo.ai") {
+        match model {
+            "dots-studio/dots-3-note-preview:free" => "kilo-dots".to_string(),
+            "openrouter/free" => "kilo-openrouter".to_string(),
+            "nvidia/nemotron-3-ultra-550b-a55b:free" => "kilo-nemotron-ultra".to_string(),
+            "nvidia/nemotron-3.5-super-vl:free" => "kilo-nemotron-super".to_string(),
+            "nvidia/nemotron-3.5-lightning:free" => "kilo-nemotron-lightning".to_string(),
+            "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free" => "kilo-nano".to_string(),
+            "cohere/north-mini-code:free" => "kilo-cohere".to_string(),
+            "recursive/flint-v1.0:free" => "kilo-flint".to_string(),
+            "xingchen-agi/xing4.0-29b-a4b:free" => "kilo-xing".to_string(),
+            _ => "kilo-dots".to_string(),
+        }
+    } else {
+        String::new()
+    };
+
     let manager = match botcoresecrets::SecretsManager::from_env() {
         Ok(manager) => manager,
         Err(e) => {
@@ -49,6 +81,9 @@ async fn apply_staged_model_choice() {
     let mut data = std::collections::HashMap::new();
     data.insert("url".to_string(), url.to_string());
     data.insert("model".to_string(), model.to_string());
+    if !provider.is_empty() {
+        data.insert("provider".to_string(), provider.clone());
+    }
     if let Some(key) = parsed.get("api_key").and_then(|v| v.as_str()) {
         if !key.trim().is_empty() {
             data.insert("openai_key".to_string(), key.to_string());
@@ -245,7 +280,9 @@ pub async fn create_app_state(
     );
 
     #[cfg(feature = "llm")]
-    let dynamic_llm_provider = Arc::new(crate::llm::dynamic_provider::DynamicLLMProvider::new(base_llm_provider));
+    let dynamic_llm_provider = Arc::new(crate::llm::dynamic_provider::DynamicLLMProvider::new(
+        base_llm_provider,
+    ));
 
     #[cfg(feature = "llm")]
     {

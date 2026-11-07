@@ -170,7 +170,7 @@ pub async fn remove(
     let connection_uuid = parse_connection_id(&connection_id)?;
     let scope = resolve_scope(&state.pool, &user, bot_uuid)?;
 
-    let vault_path = {
+    let (vault_path, provider_slug) = {
         let mut conn = state.pool.get()?;
         let stored = repository::get(&mut conn, &scope, connection_uuid)?
             .ok_or(IntegrationError::NotFound)?;
@@ -186,7 +186,7 @@ pub async fn remove(
                 "reason": "deleted by owner",
             }),
         );
-        stored.vault_path
+        (stored.vault_path, stored.provider_slug)
     };
 
     let deleted = {
@@ -197,6 +197,10 @@ pub async fn remove(
         return Err(IntegrationError::NotFound);
     }
 
+    // #1818: disconnecting/replacing must update the bot's LLM config. Clear any
+    // Vibe agent slot still pointing at this provider slug.
+    clear_vibe_slots_for_provider(&state.pool, &bot_uuid, &provider_slug);
+
     if let Err(error) = state.vault.delete(&vault_path).await {
         // The row is already gone; surface the leftover credential loudly in
         // the server log so operators can purge the Vault entry manually.
@@ -206,4 +210,24 @@ pub async fn remove(
     Ok(Json(
         serde_json::json!({ "id": connection_uuid.to_string(), "deleted": true }),
     ))
+}
+
+fn clear_vibe_slots_for_provider(
+    pool: &botcore::shared::utils::DbPool,
+    bot_id: &uuid::Uuid,
+    provider_slug: &str,
+) {
+    let config = botcore::config::ConfigManager::new(pool.clone());
+    for agent in ["reasoning", "agentic", "fast"] {
+        let key = format!("vibe-llm-{agent}-provider");
+        let current = config
+            .get_config(bot_id, &key, Some(""))
+            .unwrap_or_default();
+        if current.trim() != provider_slug {
+            continue;
+        }
+        for suffix in ["provider", "url", "model", "key"] {
+            let _ = config.set_config(bot_id, &format!("vibe-llm-{agent}-{suffix}"), "");
+        }
+    }
 }
