@@ -2,9 +2,11 @@ name: Desktop binaries
 
 # Builds the desktop edition on GitHub-hosted runners and attaches it to a
 # GitHub Release ("release folder"). Manual runs need a tag; pushing a v* tag
-# runs it automatically, and `.github/workflows/release.yml` dispatches it with
-# the next product version on every merge to main. Public repository: runner
-# minutes are free.
+# runs it automatically, and `.github/workflows/release.yml` dispatches the
+# all-inclusive `.github/workflows/release-all.yml` with the next product
+# version on every merge to main (#1851). When release-all calls this workflow
+# it passes `publish: false`, so the product release has a single publisher.
+# Public repository: runner minutes are free.
 #
 # Release naming (#1804):
 #   product:  vMAJOR.MINOR.PATCH       normal release, owns /releases/latest
@@ -26,6 +28,19 @@ name: Desktop binaries
 # layout.
 
 on:
+  # Reusable from `.github/workflows/ci.yml` and `.github/workflows/release-all.yml`.
+  # Manual dispatch is preserved so the workflow keeps working on its own.
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag (for example v6.7.0). Defaults to the caller ref."
+        required: false
+        type: string
+      publish:
+        description: "Publish the product release (release-all.yml sets false)"
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       tag:
@@ -52,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -125,7 +140,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x desktop/linux/package.sh
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           ./desktop/linux/package.sh "$TAG" target/release dist dist/installers
           # package.sh writes both the versioned tarball and the tag-free copy
           # used by .../releases/latest/download/generalbots-linux-x86_64.tar.gz.
@@ -207,7 +222,7 @@ jobs:
           set -euo pipefail
           cd "${GITHUB_WORKSPACE:-$PWD}"
           mkdir -p dist
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
@@ -247,7 +262,7 @@ jobs:
         timeout-minutes: 30
         run: |
           set -euo pipefail
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
           PKG="generalbots-${VERSION}-linux-x86_64"
           WORK="$RUNNER_TEMP/first-run"
@@ -335,7 +350,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
 
       - name: Install PostgreSQL client libraries (libpq)
         shell: pwsh
@@ -523,7 +538,7 @@ jobs:
       - name: Collect Windows installers
         shell: pwsh
         run: |
-          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          $tag = "${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           $version = $tag -replace '^v', ''
           $msi = Get-ChildItem -Path "target\release\bundle\msi\*.msi","botapp\target\release\bundle\msi\*.msi" -ErrorAction SilentlyContinue |
             Select-Object -First 1
@@ -664,7 +679,7 @@ jobs:
     # Linux is the supported first-run artifact; it must not wait for the
     # best-effort Windows job. Windows assets are attached by `release-windows`
     # when (and only when) that job is green.
-    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:
       - name: Download Linux installer
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -679,7 +694,7 @@ jobs:
       - name: Verify the stable download aliases
         run: |
           set -euo pipefail
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
           test -f "dist/generalbots-linux-x86_64.tar.gz"
           test -f "dist/generalbots-${VERSION}-linux-x86_64.tar.gz"
@@ -701,15 +716,15 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
           # #1634 — the Linux artifact must be the newest *normal* release;
           # drafts and pre-releases never back /releases/latest.
           draft: false
           prerelease: false
           make_latest: true
           body: |
-            Desktop edition for ${{ github.event.inputs.tag || github.ref_name }}.
+            Desktop edition for ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}.
 
             This is the product release: the `vMAJOR.MINOR.PATCH` tag owns
             `/releases/latest`. Platform builds (`-windows`, `-macos`) and
@@ -778,7 +793,7 @@ jobs:
     # to the Linux tag after publication — the Windows build gets its own
     # `-windows` pre-release tag (#1804), which never takes "latest".
     continue-on-error: true
-    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:
       - name: Download Windows binaries
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -795,13 +810,13 @@ jobs:
           # resolving to the release that actually carries that asset.
           make_latest: false
           prerelease: true
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}-windows
-          name: ${{ github.event.inputs.tag || github.ref_name }} (Windows)
+          tag_name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}-windows
+          name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }} (Windows)
           body: |
-            Pre-release: Windows binaries for ${{ github.event.inputs.tag || github.ref_name }}.
+            Pre-release: Windows binaries for ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}.
             It is not the product release and never takes `latest`; the Linux
             installer is the supported artifact and lives on the
-            `${{ github.event.inputs.tag || github.ref_name }}` tag.
+            `${{ inputs.tag || github.event.inputs.tag || github.ref_name }}` tag.
 
             Bundled offline in `generalbots.exe` (payload `installers/` and the
             MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel,

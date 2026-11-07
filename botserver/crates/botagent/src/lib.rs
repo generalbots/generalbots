@@ -35,8 +35,8 @@ pub const AGENT_INCUS_BIN_ENV: &str = "AGENT_INCUS_BIN";
 /// `/api/product` can expose this as `agent_backend_unavailable` from
 /// `get_product_config()` in `main_module/routes/product_handlers.rs` (inside
 /// the `agent-vm` feature). The agent error path can call it before spawning
-/// Incus so the caller gets this reason instead of the generic
-/// `Agent VM operation failed`.
+/// Incus so the caller gets this reason instead of the generic sanitized
+/// agent-workspace failure.
 pub fn agent_backend_unavailable() -> Option<String> {
     let configured = std::env::var(AGENT_INCUS_BIN_ENV).ok();
     agent_backend_unavailable_for(std::env::consts::OS, configured.as_deref(), binary_on_path)
@@ -164,14 +164,23 @@ pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
         .route("/api/agent/vm/exec", post(api::vm_exec))
         .route("/api/agent/vm/file", get(api::vm_file))
         .route("/api/agent/vm/files", get(api::vm_files))
-        .route("/api/agent/conversations/switch", post(api::switch_conversation))
+        .route(
+            "/api/agent/conversations/switch",
+            post(api::switch_conversation),
+        )
         // Snapshots.
         .route(
             "/api/agent/sessions/:id/snapshots",
             get(snapshots::list_snapshots).post(snapshots::create_snapshot),
         )
-        .route("/api/agent/snapshots/:id/restore", post(snapshots::restore_snapshot))
-        .route("/api/agent/snapshots/:id", delete(snapshots::delete_snapshot))
+        .route(
+            "/api/agent/snapshots/:id/restore",
+            post(snapshots::restore_snapshot),
+        )
+        .route(
+            "/api/agent/snapshots/:id",
+            delete(snapshots::delete_snapshot),
+        )
         // Sandbox.
         .route("/api/v1/sandbox/exec", post(api::sandbox_exec))
         // Org keys.

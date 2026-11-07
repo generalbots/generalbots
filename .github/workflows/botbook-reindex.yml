@@ -5,6 +5,8 @@ name: BotBook reindex
 # search index, and fails when SUMMARY.md points at a page that does not exist.
 # It is the reindex gate for a docs change.
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  workflow_call:
   push:
     paths:
       - "botbook/src/**"

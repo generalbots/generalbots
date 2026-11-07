@@ -9,6 +9,10 @@ window.GBSidebarApps = window.GBSidebarApps || {};
 (function (mod) {
   var SWITCH_KEY = "gb-sidebar-apps-on";
 
+  function tr(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   function appsOn() {
     try {
       // Hidden by default — the sidebar is for pinned essentials and
@@ -44,11 +48,11 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     count.className = "gb-side-apps-count";
     var swLabel = document.createElement("label");
     swLabel.className = "gb-side-switch";
-    swLabel.title = "Show/hide apps";
+    swLabel.title = tr("sidebar-apps-toggle", "Show/hide apps");
     var sw = document.createElement("input");
     sw.type = "checkbox";
     sw.checked = appsOn();
-    sw.setAttribute("aria-label", "Toggle apps panel");
+    sw.setAttribute("aria-label", tr("sidebar-apps-toggle-aria", "Toggle apps panel"));
     var slider = document.createElement("span");
     slider.className = "gb-side-switch-slider";
     swLabel.appendChild(sw);
@@ -65,8 +69,8 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     var search = document.createElement("input");
     search.type = "search";
     search.className = "gb-side-apps-search";
-    search.placeholder = "Filter apps…";
-    search.setAttribute("aria-label", "Filter apps");
+    search.placeholder = tr("sidebar-apps-filter", "Filter apps…");
+    search.setAttribute("aria-label", tr("sidebar-apps-filter-aria", "Filter apps"));
 
     var grid = document.createElement("div");
     grid.className = "gb-side-apps-grid";
@@ -78,14 +82,14 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     previewRow.className = "gb-side-preview";
     var previewLabel = document.createElement("span");
     previewLabel.className = "gb-side-preview-label";
-    previewLabel.textContent = "Preview mode";
+    previewLabel.textContent = tr("sidebar-preview", "Preview mode");
     var previewSwitchLabel = document.createElement("label");
     previewSwitchLabel.className = "gb-side-switch";
-    previewSwitchLabel.title = "Show the applications that are still in preview";
+    previewSwitchLabel.title = tr("sidebar-preview-hint", "Show the applications that are still in preview");
     var previewSwitch = document.createElement("input");
     previewSwitch.type = "checkbox";
     previewSwitch.checked = !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
-    previewSwitch.setAttribute("aria-label", "Toggle preview mode");
+    previewSwitch.setAttribute("aria-label", tr("sidebar-preview-toggle", "Toggle preview mode"));
     var previewSlider = document.createElement("span");
     previewSlider.className = "gb-side-switch-slider";
     previewSwitchLabel.appendChild(previewSwitch);
@@ -110,7 +114,7 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         .sort(function (a, b) {
           return String(a.title || a.id).localeCompare(String(b.title || b.id));
         });
-      title.textContent = "Apps";
+      title.textContent = tr("sidebar-apps", "Apps");
       grid.innerHTML = "";
       var previewCount = 0;
       reg.forEach(function (app) {
@@ -120,7 +124,7 @@ window.GBSidebarApps = window.GBSidebarApps || {};
           ? "gb-side-app-tile gb-side-app-tile-preview"
           : "gb-side-app-tile";
         tile.setAttribute("data-app-id", app.id);
-        tile.setAttribute("title", app.preview ? app.title + " (preview)" : app.title);
+        tile.setAttribute("title", app.preview ? tr("sidebar-app-preview-title", "{app} (preview)", { app: app.title }) : app.title);
         if (app.preview) tile.setAttribute("data-preview", "1");
         tile.innerHTML =
           '<span class="gb-side-app-icon" style="color:' +
@@ -138,8 +142,11 @@ window.GBSidebarApps = window.GBSidebarApps || {};
       // The count names the preview share so it is obvious why the grid grew
       // when the switch was turned on.
       count.textContent = previewCount
-        ? reg.length + " (+ " + previewCount + " preview)"
-        : String(reg.length);
+        ? tr("sidebar-apps-count-preview", "{count} (+ {preview} preview)", {
+            count: reg.length,
+            preview: previewCount,
+          })
+        : tr("sidebar-apps-count", "{count} apps", { count: reg.length });
       filter();
     }
 
@@ -184,4 +191,12 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     // refresh the grid when it lands so nothing is missing.
     window.addEventListener("gb-apps-catalog-loaded", fill);
   };
+
+  // Language switch: labels here are generated imperatively, so clear the
+  // bind guard and render again to pick up the new catalogue.
+  window.addEventListener("localeChanged", function () {
+    var nav = document.getElementById("sidebarAppsNav");
+    if (nav) nav.dataset.gbAppsBound = "";
+    mod.render();
+  });
 })(window.GBSidebarApps);

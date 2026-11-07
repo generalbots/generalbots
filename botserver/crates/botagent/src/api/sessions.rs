@@ -26,7 +26,10 @@ pub async fn set_agent_mode(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let (sub, user_id, _) = caller_uuid(&headers)?;
     if !MODE_LIMITER.check(&format!("mode:{sub}"), 10.0) {
-        return Err((StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()));
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            "Rate limit exceeded".to_string(),
+        ));
     }
 
     let bot_id = params
@@ -58,7 +61,10 @@ pub async fn current_session(
         None => {
             if let Some(sid) = params.get("session_id").filter(|s| !s.trim().is_empty()) {
                 let clean = vm::sanitize_id(sid)?;
-                let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+                let mut conn = state
+                    .pool()
+                    .get()
+                    .map_err(|e| internal(format!("DB pool: {e}")))?;
                 use crate::schema::agent_sessions::dsl::{agent_sessions, session_id};
                 agent_sessions
                     .filter(session_id.eq(&clean))

@@ -20,7 +20,7 @@
             <span class="connection-text" data-i18n="chat-connecting">Connecting...</span>
         </div>
 
-        <main id="messages">
+        <main id="messages" data-tour="chat.messages">
             <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="chat-connecting">Connecting…</span></div>
             <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="chat-connection-failed">Connection failed</span></div>
         </main>
@@ -39,8 +39,8 @@
                 </div>
                 <div class="mention-results" id="mentionResults"></div>
             </div>
-            <form class="input-container" id="chatForm">
-                <select id="modelPicker" class="gb-model-picker" data-i18n-title="chat-model-title" data-i18n-aria-label="chat-model-title">
+            <form class="input-container" id="chatForm" data-tour="chat.composer">
+                <select id="modelPicker" class="gb-model-picker" data-tour="chat.model" data-i18n-title="chat-model-title" data-i18n-aria-label="chat-model-title">
                     <option value="auto" selected data-i18n="chat-model-auto">Auto</option>
                     <option value="fast" data-i18n="chat-model-fast">Fast · cheapest, quick</option>
                     <option value="balanced" data-i18n="chat-model-balanced">Balanced · middle ground</option>
@@ -198,4 +198,5 @@
 <script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <script src="/suite/js/gb-search.js"></script>
+<script src="/suite/chat/tour.js?v=1"></script>
 

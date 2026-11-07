@@ -266,6 +266,233 @@ body.window-maximized .window-element.window-maximized-target {
   cursor: help;
 }
 
+/* ── #1849 live window status bar contract ─────────────────────────────
+   Renderer sink: state LED + primary, progress, metrics, selection,
+   connection, title. See js/window-manager/07_status.js. */
+.window-statusbar {
+  gap: 6px;
+  overflow: hidden;
+}
+
+.window-statusbar > [hidden] {
+  display: none !important;
+}
+
+.window-statusbar .window-statusbar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 55%;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+  outline: none;
+}
+
+.window-statusbar .window-statusbar-status:focus-visible {
+  box-shadow: 0 0 0 2px var(--gb-accent, #22c55e);
+}
+
+.window-statusbar-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gb-accent, #22c55e);
+  box-shadow: 0 0 4px var(--gb-accent, #22c55e);
+}
+
+.window-statusbar-status[data-state="loading"]::before,
+.window-statusbar-status[data-state="busy"]::before,
+.window-statusbar-status[data-state="running"]::before,
+.window-statusbar-status[data-state="saving"]::before,
+.window-statusbar-status[data-state="connecting"]::before {
+  background: var(--gb-accent, #22c55e);
+  animation: gb-status-pulse 1.2s ease-in-out infinite;
+}
+
+.window-statusbar-status[data-state="success"]::before,
+.window-statusbar-status[data-state="complete"]::before,
+.window-statusbar-status[data-state="connected"]::before {
+  background: #22c55e;
+  box-shadow: 0 0 4px #22c55e;
+}
+
+.window-statusbar-status[data-state="warn"]::before,
+.window-statusbar-status[data-state="warning"]::before,
+.window-statusbar-status[data-state="paused"]::before {
+  background: var(--warning, #f59e0b);
+  box-shadow: 0 0 4px var(--warning, #f59e0b);
+}
+
+.window-statusbar-status[data-state="error"]::before,
+.window-statusbar-status[data-state="failed"]::before,
+.window-statusbar-status[data-state="offline"]::before,
+.window-statusbar-status[data-state="disconnected"]::before {
+  background: var(--error-color, #ef4444);
+  box-shadow: 0 0 4px var(--error-color, #ef4444);
+}
+
+.window-statusbar-status[data-state="idle"]::before {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.window-statusbar .window-statusbar-progress,
+.window-statusbar .window-statusbar-metrics,
+.window-statusbar .window-statusbar-selection,
+.window-statusbar .window-statusbar-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.window-statusbar .window-statusbar-progress {
+  flex: 0 1 180px;
+  max-width: 28%;
+}
+
+.window-statusbar-progress-track {
+  position: relative;
+  flex: 1 1 70px;
+  min-width: 46px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.window-statusbar-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gb-accent, #22c55e);
+  transition: width 180ms ease;
+}
+
+.window-statusbar-progress.is-indeterminate .window-statusbar-progress-fill {
+  width: 35% !important;
+  animation: gb-status-indeterminate 1.1s linear infinite;
+}
+
+.window-statusbar-progress-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.window-statusbar-metrics {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.window-statusbar-metric {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-statusbar .window-statusbar-selection,
+.window-statusbar .window-statusbar-connection {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  cursor: help;
+}
+
+.window-statusbar-connection[data-state="connected"],
+.window-statusbar-connection[data-state="online"] {
+  color: #22c55e;
+}
+
+.window-statusbar-connection[data-state="warn"],
+.window-statusbar-connection[data-state="warning"] {
+  color: var(--warning, #f59e0b);
+}
+
+.window-statusbar-connection[data-state="offline"],
+.window-statusbar-connection[data-state="disconnected"],
+.window-statusbar-connection[data-state="error"] {
+  color: var(--error-color, #ef4444);
+}
+
+.window-statusbar-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* Tooltips also work in glass windows and on keyboard focus (a11y). */
+.window-element-glass *[data-tooltip] {
+  position: relative;
+}
+
+.window-element-glass *[data-tooltip]:hover::after,
+.window-element-glass *[data-tooltip]:focus-visible::after,
+.window-element *[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 240;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  max-width: min(320px, 70vw);
+  white-space: normal;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text, #fff);
+  background: rgba(10, 10, 14, 0.95);
+  border: 1px solid var(--win-titlebar-sep, rgba(255, 255, 255, 0.12));
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+@keyframes gb-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes gb-status-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window-statusbar-status::before,
+  .window-statusbar-progress.is-indeterminate .window-statusbar-progress-fill {
+    animation: none !important;
+  }
+  .window-statusbar-progress-fill {
+    transition: none !important;
+  }
+}
+
 /* Floating confirm/prompt tool windows (VB6-style, no native modals). */
 .gb-confirm-floating { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; min-width: 300px; }
 .gb-confirm-floating p { margin: 0 0 0.85rem; font-size: 0.85rem; line-height: 1.5; }

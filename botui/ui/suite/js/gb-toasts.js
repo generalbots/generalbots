@@ -4,6 +4,10 @@
 
 const GBToasts = (() => {
   const STORAGE_KEY = "gb-notifications";
+
+  function tr(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
   let notifications = [];
   let initialized = false;
 
@@ -32,7 +36,7 @@ const GBToasts = (() => {
     toast.innerHTML =
       '<div class="gb-toast-icon">' + iconFor(kind) + "</div>" +
       '<div class="gb-toast-body"><div class="gb-toast-title">' + esc(title) + '</div><div class="gb-toast-msg">' + esc(message) + "</div></div>" +
-      '<button class="gb-toast-close" title="Dismiss">✕</button>';
+      '<button class="gb-toast-close" title="' + esc(tr("toast-dismiss", "Dismiss")) + '">✕</button>';
     document.body.appendChild(toast);
     const closeBtn = toast.querySelector(".gb-toast-close");
     if (closeBtn) closeBtn.addEventListener("click", () => dismiss(toast));
@@ -82,7 +86,7 @@ const GBToasts = (() => {
     center.id = "gb-notification-center";
     center.className = "gb-notification-center";
     center.innerHTML =
-      '<div class="gb-nc-header"><h3>Notifications</h3><button id="gbNcClear">Clear all</button></div>' +
+      '<div class="gb-nc-header"><h3>' + esc(tr("notifications-title", "Notifications")) + '</h3><button id="gbNcClear">' + esc(tr("notifications-clear", "Clear all")) + '</button></div>' +
       '<div class="gb-nc-list">' +
       (notifications.length
         ? notifications
@@ -95,7 +99,7 @@ const GBToasts = (() => {
               "</div>"
             )
             .join("")
-        : '<div class="gb-nc-empty">No notifications</div>') +
+         : '<div class="gb-nc-empty">' + esc(tr("notifications-empty", "No notifications")) + '</div>') +
       "</div>";
     document.body.appendChild(center);
     const clearBtn = document.getElementById("gbNcClear");
@@ -103,7 +107,7 @@ const GBToasts = (() => {
       clearBtn.addEventListener("click", () => {
         notifications = [];
         persist();
-        center.querySelector(".gb-nc-list").innerHTML = '<div class="gb-nc-empty">No notifications</div>';
+        center.querySelector(".gb-nc-list").innerHTML = '<div class="gb-nc-empty">' + esc(tr("notifications-empty", "No notifications")) + '</div>';
         updateBadge();
       });
     }
@@ -116,6 +120,17 @@ const GBToasts = (() => {
     persist();
     updateBadge();
   }
+
+  window.addEventListener("localeChanged", function () {
+    const center = document.getElementById("gb-notification-center");
+    if (!center) return;
+    const heading = center.querySelector("h3");
+    const clear = document.getElementById("gbNcClear");
+    if (heading) heading.textContent = tr("notifications-title", "Notifications");
+    if (clear) clear.textContent = tr("notifications-clear", "Clear all");
+    const empty = center.querySelector(".gb-nc-empty");
+    if (empty) empty.textContent = tr("notifications-empty", "No notifications");
+  });
 
   return { init, show, toggleCenter, list: () => notifications.slice() };
 })();

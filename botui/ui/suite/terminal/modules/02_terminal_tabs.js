@@ -14,6 +14,38 @@
     const dimensions = document.getElementById('term-dimensions');
     const wsStatus = document.getElementById('term-ws-status');
 
+    // #1849 — mirror terminal state into the shared window status bar. The
+    // in-app footer remains for standalone/legacy use, but the window footer
+    // is the single cross-app status surface.
+    function terminalMetrics() {
+        return [
+            { label: 'Size', value: dimensions.textContent || '--', title: 'Terminal size (columns x rows)' },
+            { label: 'WS', value: wsStatus.textContent || 'WS: --', title: 'Terminal WebSocket status' },
+            { label: 'Tabs', value: tabs.length, title: 'Open terminal tabs' }
+        ];
+    }
+
+    function publishTerminalStatus(state, text, extra) {
+        if (!window.GBStatus || typeof window.GBStatus.set !== 'function') return;
+        var payload = {
+            state: state || 'ready',
+            text: text || 'Ready',
+            metrics: terminalMetrics(),
+            busy: state === 'loading' || state === 'busy' || state === 'connecting',
+            progress: (state === 'loading' || state === 'connecting')
+                ? { indeterminate: true, label: text || 'Connecting...' }
+                : null
+        };
+        if (extra) Object.keys(extra).forEach(function (key) { payload[key] = extra[key]; });
+        window.GBStatus.set('terminal', payload);
+    }
+
+    function setTermStatus(text, state, extra) {
+        statusText.textContent = text;
+        statusText.dataset.state = state || 'ready';
+        publishTerminalStatus(state || 'ready', text, extra);
+    }
+
     function createTerminal(index) {
         const pane = document.createElement('div');
         pane.className = 'term-pane' + (index === activeTab ? ' active' : '');
@@ -84,7 +116,7 @@
         function connect() {
             if (!app._vm.isReady()) {
                 // The VM picker loads async; never race it with a host shell.
-                statusText.textContent = 'Resolving VM…';
+                setTermStatus('Resolving VM…', 'loading');
                 const wait = setInterval(function () {
                     if (app._vm.isReady()) {
                         clearInterval(wait);
@@ -98,12 +130,12 @@
         }
 
         function doConnect() {
-            statusText.textContent = 'Connecting...';
+            setTermStatus('Connecting...', 'connecting');
             // #1841 — never call an endpoint this build does not ship.
             const unavailable = app._vm.capabilityMessage();
             if (unavailable) {
-                statusText.textContent = 'Unavailable';
                 wsStatus.textContent = 'WS: —';
+                setTermStatus('Unavailable', 'error');
                 terminal.write('\r\n\x1b[31m[' + unavailable + ']\x1b[0m\r\n');
                 terminal.write('\x1b[33m[Chat and file output keep working; the terminal needs the desktop edition\'s agent VM.]\x1b[0m\r\n');
                 return;
@@ -119,8 +151,8 @@
             // available, explain how to provision one instead of attempting a
             // bare botserver shell or a workspace-cwd fallback.
             if (!container) {
-                statusText.textContent = 'No VM';
                 wsStatus.textContent = 'WS: —';
+                setTermStatus('No VM', 'error');
                 terminal.write('\r\n\x1b[31m[No workspace VM available for your account.]\x1b[0m\r\n');
                 terminal.write('\x1b[33m[Send a message in chat to start your workspace VM, then reopen the terminal.]\x1b[0m\r\n');
                 return;
@@ -153,8 +185,8 @@
                     if (!result.ok || !result.data || !result.data.id) {
                         // Raw payload for support; actionable category for the user.
                         console.error('Terminal create failed:', result.status, result.data);
-                        statusText.textContent = 'Failed to start terminal';
                         wsStatus.textContent = 'WS: Error';
+                        setTermStatus('Failed to start terminal', 'error');
                         terminal.write('\r\n\x1b[31m[' + app._vm.errorMessage(result.data, result.status) + ']\x1b[0m\r\n');
                         return;
                     }
@@ -162,8 +194,8 @@
                 })
                 .catch(function (e) {
                     connecting = false;
-                    statusText.textContent = 'Failed to start terminal';
                     wsStatus.textContent = 'WS: Error';
+                    setTermStatus('Failed to start terminal', 'error');
                     console.error('Terminal create request failed:', e);
                     terminal.write('\r\n\x1b[31m[Terminal unavailable: ' + (e && e.message ? e.message : e) + ']\x1b[0m\r\n');
                 });
@@ -185,7 +217,7 @@
             ws = new WebSocket(app._vm.getWsUrl(sessionId));
             ws.onopen = function() {
                 wsStatus.textContent = 'WS: Connected';
-                statusText.textContent = 'Connected';
+                setTermStatus('Connected', 'connected');
                 fitAddon.fit();
                 ws.send('resize ' + terminal.cols + ' ' + terminal.rows);
             };
@@ -205,7 +237,7 @@
                     // container, no yellow pending message, no artificial delay.
                     switchingVm = false;
                     wsStatus.textContent = 'WS: Connected';
-                    statusText.textContent = 'Connecting...';
+                    setTermStatus('Connecting...', 'connecting');
                     // New shell, new prompt: start it on a fresh line so the
                     // previous `root@name>` prompt is never buried mid-line.
                     terminal.write('\r\n\x1b[90m[switching VM — new shell]\x1b[0m\r\n');
@@ -213,12 +245,13 @@
                     return;
                 }
                 wsStatus.textContent = 'WS: Disconnected';
-                statusText.textContent = 'Disconnected';
+                setTermStatus('Disconnected', 'offline');
                 terminal.write('\r\n\x1b[33m[Connection closed. Reconnecting in 3s...]\x1b[0m\r\n');
                 reconnectTimer = setTimeout(connect, 3000);
             };
             ws.onerror = function() {
                 wsStatus.textContent = 'WS: Error';
+                setTermStatus('WS: Error', 'error');
             };
             // #1288 — a WS upgrade that never completes (proxy hiccup, hung
             // backend) otherwise leaves the status at "Connecting..."
@@ -228,6 +261,7 @@
                 openTimer = null;
                 if (ws && ws.readyState !== WebSocket.OPEN) {
                     wsStatus.textContent = 'WS: Timeout';
+                    setTermStatus('WS: Timeout', 'error');
                     try { ws.close(); } catch (ignore) { }
                 }
             }, 10000);
@@ -244,6 +278,7 @@
                 ws.send('resize ' + size.cols + ' ' + size.rows);
             }
             dimensions.textContent = size.cols + 'x' + size.rows;
+            publishTerminalStatus(statusText.dataset.state || 'ready', statusText.textContent || 'Ready');
         });
 
         var observer = new ResizeObserver(function() {
@@ -315,6 +350,9 @@
             html += '<button class="term-tab-add" onclick="GBTerminal.addTab()">+</button>';
         }
         termTabs.innerHTML = html;
+        if (statusText.dataset.state) {
+            publishTerminalStatus(statusText.dataset.state, statusText.textContent || 'Ready');
+        }
     }
 
 
@@ -369,6 +407,16 @@
     var firstTab = createTerminal(0);
     tabs.push(firstTab);
     updateTabs();
+
+    // Hover help through the shared status contract (#1849).
+    if (window.GBStatus && typeof window.GBStatus.registerHelp === 'function') {
+        window.GBStatus.registerHelp('#termVmSelect', 'Choose the workspace or project VM for this shell');
+        window.GBStatus.registerHelp('#btn-add-tab', 'Open a new terminal tab (Ctrl+T)');
+        document.querySelectorAll('.term-action-btn').forEach(function (btn) {
+            var label = String(btn.textContent || '').trim();
+            if (label) window.GBStatus.registerHelp(btn, label + ' terminal');
+        });
+    }
 
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {

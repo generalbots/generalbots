@@ -1,15 +1,15 @@
         <!-- Language Section -->
         <section id="language-section" class="settings-section">
             <div class="section-header">
-                <h1 data-i18n="settings-language">Language & Region</h1>
-                <p class="subtitle">Choose your preferred language and regional settings</p>
+                <h1 data-i18n="settings-language">Language</h1>
+                <p class="subtitle" data-i18n="settings-language-desc">Choose your preferred language and regional settings</p>
             </div>
 
             <!-- Language Selection -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Display Language</h2>
-                    <p>Choose the language for the application interface</p>
+                    <h2 data-i18n="settings-language-display">Display Language</h2>
+                    <p data-i18n="settings-language-display-desc">Choose the language for the application interface</p>
                 </div>
                 <div class="language-grid"
                     style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
@@ -145,42 +145,7 @@
                         });
                     }
 
-                    function hasUnsavedSettingsChanges() {
-                        try {
-                            if (window.__gbSettingsDirty) return true;
-                            if (typeof window.gbHasUnsavedChanges === 'function' && window.gbHasUnsavedChanges()) {
-                                return true;
-                            }
-                            if (document.querySelector('[data-dirty="true"], .is-dirty, .settings-dirty, .unsaved')) {
-                                return true;
-                            }
-                        } catch (e) {}
-                        return false;
-                    }
-
-                    function confirmLanguageReload(locale) {
-                        if (!hasUnsavedSettingsChanges()) return true;
-                        var name = locale === 'pt-BR' ? 'Português (Brasil)' : locale || 'the selected language';
-                        return (window.GBModal||{confirm:confirm}).confirm(
-                            'Changing the language to ' + name +
-                            ' will reload the app. Unsaved changes may be lost. Continue?'
-                        );
-                    }
-
-                    // #1304 — the <select> calls changeLanguage(value) but only
-                    // selectLanguage(locale, element) existed, so choosing a
-                    // language threw a ReferenceError and nothing happened.
-                    window.changeLanguage = function (locale) {
-                        if (!confirmLanguageReload(locale)) return;
-                        var element = null;
-                        document.querySelectorAll('.language-option[data-locale]').forEach(function (btn) {
-                            if (btn.dataset.locale === locale) element = btn;
-                        });
-                        window.selectLanguage(locale, element);
-                    };
-
-                    window.selectLanguage = function (locale, element) {
-                        if (!confirmLanguageReload(locale)) return;
+                    function markLanguage(locale) {
                         var buttons = document.querySelectorAll('.language-option[data-locale]');
                         buttons.forEach(function (btn) {
                             btn.style.borderColor = '#334155';
@@ -188,24 +153,49 @@
                             var check = btn.querySelector('.lang-check');
                             if (check) check.style.opacity = '0';
                         });
-
-                        if (element) {
-                            element.style.borderColor = '#3b82f6';
-                            element.style.background = 'rgba(59, 130, 246, 0.1)';
-                            var check = element.querySelector('.lang-check');
-                            if (check) check.style.opacity = '1';
+                        var active = document.querySelector('.language-option[data-locale="' + locale + '"]');
+                        if (active) {
+                            active.style.borderColor = '#3b82f6';
+                            active.style.background = 'rgba(59, 130, 246, 0.1)';
+                            var activeCheck = active.querySelector('.lang-check');
+                            if (activeCheck) activeCheck.style.opacity = '1';
                         }
+                    }
 
+                    function languageChangedLabel() {
+                        if (window.i18n && typeof window.i18n.tOr === 'function') {
+                            return window.i18n.tOr('settings-language-changed', 'Language changed');
+                        }
+                        return 'Language changed';
+                    }
+
+                    // #1853 — switch language in place. i18n.setLocale()
+                    // retranslates every [data-i18n*] node and dispatches
+                    // localeChanged so launchers and window chrome re-render;
+                    // a full page reload is only the no-i18n fallback.
+                    function applyLocale(locale) {
                         localStorage.setItem('gb-locale', locale);
                         document.documentElement.lang = locale;
-
-                        if (window.showToast) {
-                            showToast('Language changed to ' + (locale === 'pt-BR' ? 'Português' : 'English') + '. Reloading...');
+                        markLanguage(locale);
+                        if (window.i18n && typeof window.i18n.setLocale === 'function') {
+                            return window.i18n.setLocale(locale);
                         }
+                        location.reload();
+                        return Promise.resolve();
+                    }
 
-                        setTimeout(function () {
-                            location.reload();
-                        }, 1000);
+                    // #1304 — the <select> calls changeLanguage(value) but only
+                    // selectLanguage(locale, element) existed, so choosing a
+                    // language threw a ReferenceError and nothing happened.
+                    window.changeLanguage = function (locale) {
+                        return window.selectLanguage(locale, null);
+                    };
+
+                    window.selectLanguage = function (locale, element) {
+                        if (element) markLanguage(locale);
+                        applyLocale(locale).then(function () {
+                            if (window.showToast) showToast(languageChangedLabel());
+                        });
                     };
 
                     if (document.readyState === 'loading') {
@@ -219,12 +209,12 @@
             <!-- Regional Settings -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Regional Settings</h2>
-                    <p>Configure date, time, and number formats</p>
+                    <h2 data-i18n="settings-language-regional">Regional Settings</h2>
+                    <p data-i18n="settings-language-regional-desc">Configure date, time, and number formats</p>
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Date Format</label>
+                        <label data-i18n="settings-language-date-format">Date Format</label>
                         <select id="date-format-select" class="form-select" onchange="changeDateFormat(this.value)">
                             <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
                             <option value="DD/MM/YYYY">DD/MM/YYYY (EU/BR)</option>
@@ -232,14 +222,14 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Time Format</label>
+                        <label data-i18n="settings-language-time-format">Time Format</label>
                         <select id="time-format-select" class="form-select" onchange="changeTimeFormat(this.value)">
-                            <option value="12h">12-hour (1:30 PM)</option>
-                            <option value="24h">24-hour (13:30)</option>
+                            <option value="12h" data-i18n="settings-language-time-12h">12-hour (1:30 PM)</option>
+                            <option value="24h" data-i18n="settings-language-time-24h">24-hour (13:30)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Timezone</label>
+                        <label data-i18n="settings-language-timezone">Timezone</label>
                         <select id="timezone-select" class="form-select" onchange="changeTimezone(this.value)">
                             <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
                             <option value="America/New_York">New York (GMT-5)</option>
@@ -251,10 +241,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>First Day of Week</label>
+                        <label data-i18n="settings-language-first-day">First Day of Week</label>
                         <select id="first-day-select" class="form-select">
-                            <option value="sunday">Sunday</option>
-                            <option value="monday">Monday</option>
+                            <option value="sunday" data-i18n="settings-language-sunday">Sunday</option>
+                            <option value="monday" data-i18n="settings-language-monday">Monday</option>
                         </select>
                     </div>
                 </div>

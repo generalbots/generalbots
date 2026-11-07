@@ -29,7 +29,9 @@ fn b64_decode(input: &str) -> Option<Vec<u8>> {
     let mut buffer = 0u32;
     let mut bits = 0u32;
     for &byte in input.as_bytes() {
-        if byte == b'=' || byte == b'\r' || byte == b'\n' { continue; }
+        if byte == b'=' || byte == b'\r' || byte == b'\n' {
+            continue;
+        }
         buffer = (buffer << 6) | value(byte)?;
         bits += 6;
         if bits >= 8 {
@@ -83,7 +85,9 @@ fn verified_sub(raw: &str) -> Option<Uuid> {
     Uuid::parse_str(sub).ok()
 }
 
-pub(super) fn caller_uuid(headers: &HeaderMap) -> Result<(String, Uuid, bool), (StatusCode, String)> {
+pub(super) fn caller_uuid(
+    headers: &HeaderMap,
+) -> Result<(String, Uuid, bool), (StatusCode, String)> {
     let token = bearer_token(headers).ok_or_else(|| unauthorized("Missing bearer token"))?;
     // Suite/session tokens (`gb_<uuid>_<ts>`) are not JWTs: the server wires a
     // verifier at boot so file links and VM endpoints accept the same token the

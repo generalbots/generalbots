@@ -116,22 +116,22 @@
         <section id="notifications-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-notifications">Notifications</h1>
-                <p class="subtitle">Control how you receive notifications</p>
+                <p class="subtitle" data-i18n="settings-notifications-desc">Control how you receive notifications</p>
             </div>
 
             <form hx-put="/api/user/notifications/preferences" hx-swap="none"
-                hx-on::after-request="if (event.detail.successful) showToast('Notification preferences saved')">
+                hx-on::after-request="if (event.detail.successful) showToast((window.gbT || function (k, f) { return f; })('settings-notifications-saved', 'Notification preferences saved'))">
 
                 <!-- Email Notifications -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>Email Notifications</h2>
-                        <p class="setting-desc">Sent by the workspace notification sender, never by a connected Gmail/Outlook mailbox.</p>
+                        <h2 data-i18n="settings-email-notifications">Email Notifications</h2>
+                        <p class="setting-desc" data-i18n="settings-email-notifications-desc">Sent by the workspace notification sender, never by a connected Gmail/Outlook mailbox.</p>
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Mentions and replies</span>
-                            <span class="setting-desc">Receive email when someone mentions you in a comment</span>
+                            <span class="setting-title" data-i18n="settings-mentions">Mentions and replies</span>
+                            <span class="setting-desc" data-i18n="settings-mentions-desc">Receive email when someone mentions you in a comment</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="email_mentions" checked>
@@ -140,8 +140,15 @@
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Weekly Digest</span>
-                            <span class="setting-desc">Get a weekly summary of messages, conversations, Drive files and scheduled tasks</span>
+                            <span class="setting-title" data-i18n="settings-notification-recipient">Delivery mailbox</span>
+                            <span class="setting-desc" data-i18n="settings-notification-recipient-desc">Leave blank to use your primary Mail account or profile email.</span>
+                        </div>
+                        <input type="email" name="email_recipient" class="form-input" placeholder="you@example.com" autocomplete="email">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-title" data-i18n="settings-weekly-digest">Weekly Digest</span>
+                            <span class="setting-desc" data-i18n="settings-weekly-digest-desc">Get a weekly summary of messages, conversations, Drive files and scheduled tasks</span>
                             <span class="setting-desc" data-digest-status></span>
                         </div>
                         <label class="toggle">
@@ -151,8 +158,8 @@
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Marketing</span>
-                            <span class="setting-desc">Receive news and product updates</span>
+                            <span class="setting-title" data-i18n="settings-marketing">Marketing</span>
+                            <span class="setting-desc" data-i18n="settings-marketing-desc">Receive news and product updates</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="email_marketing">
@@ -164,12 +171,12 @@
                 <!-- Push Notifications -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>Push Notifications</h2>
+                        <h2 data-i18n="settings-push-notifications">Push Notifications</h2>
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Enable Push Notifications</span>
-                            <span class="setting-desc">Receive browser push notifications</span>
+                            <span class="setting-title" data-i18n="settings-push-enable">Enable Push Notifications</span>
+                            <span class="setting-desc" data-i18n="settings-push-enable-desc">Receive browser push notifications</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="push_enabled" onchange="togglePushNotifications(this)">
@@ -178,8 +185,8 @@
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Sound</span>
-                            <span class="setting-desc">Play sound for notifications</span>
+                            <span class="setting-title" data-i18n="settings-push-sound">Sound</span>
+                            <span class="setting-desc" data-i18n="settings-push-sound-desc">Play sound for notifications</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="push_sound" checked>
@@ -191,12 +198,12 @@
                 <!-- In-App Notifications -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>In-App Notifications</h2>
+                        <h2 data-i18n="settings-in-app-notifications">In-App Notifications</h2>
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Desktop Notifications</span>
-                            <span class="setting-desc">Show notifications on desktop</span>
+                            <span class="setting-title" data-i18n="settings-desktop-notifications">Desktop Notifications</span>
+                            <span class="setting-desc" data-i18n="settings-desktop-notifications-desc">Show notifications on desktop</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="desktop_notifications" checked onchange="toggleDesktopNotifications(this)">
@@ -205,8 +212,8 @@
                     </div>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-title">Badge Count</span>
-                            <span class="setting-desc">Show unread count badge</span>
+                            <span class="setting-title" data-i18n="settings-badge-count">Badge Count</span>
+                            <span class="setting-desc" data-i18n="settings-badge-count-desc">Show unread count badge</span>
                         </div>
                         <label class="toggle">
                             <input type="checkbox" name="badge_count" checked onchange="toggleBadgeCount(this)">
@@ -216,7 +223,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Preferences</button>
+                    <button type="submit" class="btn-primary" data-i18n="settings-save-preferences">Save Preferences</button>
                 </div>
             </form>
         </section>

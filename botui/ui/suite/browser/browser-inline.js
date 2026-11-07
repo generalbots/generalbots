@@ -16,6 +16,40 @@
     var securityInfo = document.getElementById('browser-security-info');
     var protocolIcon = document.getElementById('protocol-icon');
 
+    // #1849 — the in-app footer stays for standalone use, but every state
+    // change also publishes to the shared window status bar. Apps never touch
+    // the window footer DOM directly.
+    function browserMetrics() {
+        var page = pages[activePage] || {};
+        var metrics = [
+            { label: 'Tabs', value: pages.length, title: 'Open browser tabs' }
+        ];
+        var title = page.title || page.url || 'New Tab';
+        if (title) metrics.push({ label: 'Page', value: title, title: page.url || title });
+        return metrics;
+    }
+
+    function publishStatus(state, text, extra) {
+        if (!window.GBStatus || typeof window.GBStatus.set !== 'function') return;
+        var payload = {
+            state: state || 'ready',
+            text: text || 'Ready',
+            metrics: browserMetrics(),
+            busy: state === 'loading' || state === 'busy',
+            progress: state === 'loading' ? { indeterminate: true, label: text || 'Loading...' } : null
+        };
+        if (extra) {
+            Object.keys(extra).forEach(function (key) { payload[key] = extra[key]; });
+        }
+        window.GBStatus.set('browser', payload);
+    }
+
+    function setBrowserStatus(text, state, extra) {
+        statusText.textContent = text;
+        statusText.dataset.state = state || 'ready';
+        publishStatus(state || 'ready', text, extra);
+    }
+
     function isUrl(str) {
         // Also accept same-origin absolute paths (leading "/") such as the
         // Vibe dev-VM preview route (/api/vibe/projects/<id>/vm-preview?port=…).
@@ -52,28 +86,37 @@
             html += '<button class="browser-tab-add" onclick="GBBrowser.addTab()">+</button>';
         }
         tabsBar.innerHTML = html;
+        if (statusText.dataset.state) {
+            publishStatus(statusText.dataset.state, statusText.textContent || 'Ready');
+        }
     }
 
     function setLoading(loading) {
         loadingIndicator.style.display = loading ? 'inline' : 'none';
-        statusText.textContent = loading ? 'Loading...' : 'Ready';
+        setBrowserStatus(loading ? 'Loading...' : 'Ready', loading ? 'loading' : 'ready');
     }
 
     function setSecurityInfo(url) {
+        var connection = null;
         if (url && url.indexOf('https://') === 0) {
             protocolIcon.textContent = '\uD83D\uDD12';
             protocolIcon.style.color = '#22c55e';
             securityInfo.textContent = 'Secure';
             securityInfo.style.color = '#22c55e';
+            connection = { state: 'connected', text: 'Secure', title: 'HTTPS connection' };
         } else if (url && url.indexOf('http://') === 0) {
             protocolIcon.textContent = '\u26A0\uFE0F';
             protocolIcon.style.color = '#eab308';
             securityInfo.textContent = 'Not secure';
             securityInfo.style.color = '#eab308';
+            connection = { state: 'warn', text: 'Not secure', title: 'Plain HTTP connection' };
         } else {
             protocolIcon.textContent = '\uD83D\uDD10';
             protocolIcon.style.color = '#64748b';
             securityInfo.textContent = '';
+        }
+        if (window.GBStatus && typeof window.GBStatus.set === 'function') {
+            window.GBStatus.set('browser', { connection: connection });
         }
     }
 
@@ -134,8 +177,8 @@
         pages[activePage].url = url;
         updateTabs();
         pageInfo.textContent = pages[activePage].title;
-        statusText.textContent = 'Done';
         setLoading(false);
+        setBrowserStatus('Done', 'ready');
     }
 
     // Kept local: token comes from resolveAccessToken() in this page.
@@ -178,9 +221,9 @@
             updateTabs();
 
             pageInfo.textContent = data.title || url;
-            statusText.textContent = 'Done';
+            setBrowserStatus('Done', 'ready');
         } catch (e) {
-            statusText.textContent = 'Failed: ' + e.message;
+            setBrowserStatus('Failed: ' + e.message, 'error');
             // Always render the failure inside the page — the initial page has
             // no iframe yet, so a querySelector would find nothing and the
             // error would vanish (blank "New Tab" with a "Ready" status).
@@ -254,7 +297,7 @@
 
         screenshot: function () {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                statusText.textContent = "Screenshots are not supported in this browser";
+                setBrowserStatus("Screenshots are not supported in this browser", 'warn');
                 return;
             }
             navigator.mediaDevices.getDisplayMedia({ video: true })
@@ -274,18 +317,18 @@
                         a.href = url;
                         a.download = "gb-browser-screenshot-" + Date.now() + ".png";
                         a.click();
-                        statusText.textContent = "Screenshot saved";
+                        setBrowserStatus("Screenshot saved", 'success');
                     };
                 })
                 .catch(function () {
-                    statusText.textContent = "Screenshot cancelled";
+                    setBrowserStatus("Screenshot cancelled", 'warn');
                 });
         },
 
         bookmark: function () {
             var url = (urlInput.value || "").trim();
             if (!url) {
-                statusText.textContent = "Nothing to bookmark";
+                setBrowserStatus("Nothing to bookmark", 'warn');
                 return;
             }
             var key = "gb-browser-bookmarks";
@@ -293,7 +336,7 @@
             try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) { list = []; }
             if (list.indexOf(url) === -1) list.push(url);
             localStorage.setItem(key, JSON.stringify(list));
-            statusText.textContent = "Bookmarked " + url;
+            setBrowserStatus("Bookmarked " + url, 'success');
         }
     };
 
@@ -352,6 +395,26 @@
 
     pages.push({ title: 'New Tab', url: '', pageEl: viewport.querySelector('.browser-page[data-page="0"]') });
     updateTabs();
+    statusText.dataset.state = 'ready';
+    publishStatus('ready', 'Ready');
+
+    // Hover help for the browser chrome through the shared contract.
+    if (window.GBStatus && typeof window.GBStatus.registerHelp === 'function') {
+        [
+            ['btn-back', 'Go back (browser history)'],
+            ['btn-forward', 'Go forward (browser history)'],
+            ['btn-refresh', 'Reload the current page'],
+            ['btn-home', 'Return to the browser start page'],
+            ['browser-url', 'Enter a URL or search the web'],
+            ['btn-go', 'Open the URL in the address bar'],
+            ['btn-screenshot', 'Capture the current screen'],
+            ['btn-bookmark', 'Bookmark the current URL'],
+            ['btn-agentic', 'Open memory and browser-driver tools']
+        ].forEach(function (item) {
+            var el = document.getElementById(item[0]);
+            if (el) window.GBStatus.registerHelp(el, item[1]);
+        });
+    }
 
     // Deep-link: the Vibe shell's Play button opens this window with the
     // project preview URL (window.__gbAppParams__.url or ?url=...).

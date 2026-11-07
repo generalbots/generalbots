@@ -221,10 +221,7 @@ mod tests {
     #[test]
     fn test_negotiate_fallback() {
         let requested = Locale::new("ja").unwrap();
-        let available = vec![
-            Locale::new("en").unwrap(),
-            Locale::new("pt-BR").unwrap(),
-        ];
+        let available = vec![Locale::new("en").unwrap(), Locale::new("pt-BR").unwrap()];
         let fallback = Locale::new("en").unwrap();
 
         let result = Locale::negotiate(&[&requested], &available, &fallback);

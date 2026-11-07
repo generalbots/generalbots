@@ -74,8 +74,10 @@ botapp/
 │   └── app-guides/       # App-specific HTML
 ├── js/
 │   └── app-extensions.js # JavaScript extensions
-├── icons/                # App icons (all sizes)
+├── icons/                # App icons (all sizes, including icon.icns)
 ├── tauri.conf.json       # Tauri configuration
+├── tauri.desktop-local.conf.json # Desktop-local bundle override
+├── tauri.macos.conf.json # macOS dmg/app override
 └── Cargo.toml
 ```
 
@@ -103,11 +105,14 @@ xcode-select --install
 
 > The packaged desktop edition (`tauri.desktop-local.conf.json`) lists Linux
 > (`deb`, `rpm`, `AppImage`), Windows (`nsis`, `msi`) and macOS (`app`, `dmg`)
-> as bundle targets, but the Linux distro packages are best effort and have
-> never shipped in a release. The macOS bundle is built best effort on a
-> `macos-14` runner by `.github/workflows/desktop-macos.yml` and ships unsigned. The Linux service
-> stack, the BotModels pythonbox and the native Incus agent are unavailable on
-> macOS (use a Linux VM or remote Incus); see `desktop/macos/README.md`. Run
+> as bundle targets; the macOS build additionally applies
+> `tauri.macos.conf.json`, which narrows the output to `app`/`dmg`. The Linux
+> distro packages are best effort and have never shipped in a release. The
+> macOS bundle is built best effort on a `macos-14` runner by
+> `.github/workflows/desktop-macos.yml` and ships unsigned; signing and
+> notarization are future work. The Linux service stack, the BotModels
+> pythonbox and the native Incus agent are unavailable on macOS (use a Linux
+> VM or remote Incus); see `desktop/macos/README.md`. Run
 > `./PROD-DEPENDENCIES.sh --check` for the current status.
 
 **Windows:**

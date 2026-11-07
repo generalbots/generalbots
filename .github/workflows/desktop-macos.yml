@@ -4,13 +4,24 @@ name: Desktop macOS
 # runner. Tauri cannot cross-compile macOS bundles, and macOS runners are free
 # for public repositories, so this is the only practical build path.
 #
-# Trigger: manual dispatch, or every v* tag alongside `desktop-binaries.yml`.
-# The job is best effort: the Linux installer is the supported artifact, so a
-# macOS toolchain gap, a missing darwin component or an immutable release must
-# never fail the whole release.
+# Trigger: manual dispatch, every v* tag alongside `desktop-binaries.yml`, or a
+# call from `release-all.yml` (#1851). The job is best effort: the Linux
+# installer is the supported artifact, so a macOS toolchain gap, a missing
+# darwin component or an immutable release must never fail the whole release.
 #
-# Signing / notarization (optional, paid Apple Developer account):
-#   Configure these repository secrets:
+# Bundler: `botapp/tauri.macos.conf.json` overrides the desktop-local config
+# with `bundle.targets = ["dmg", "app"]` and macOS 11+ metadata. The workflow
+# passes both overlays (desktop-local first, macOS second) so the bundle still
+# carries the botserver sidecar, the suite UI and the desktop-local resources.
+#
+# Sidecar: `desktop/macos/stage-sidecar.sh` copies the Mach-O botserver to
+# `botapp/binaries/botserver-<triple>` (the name Tauri's externalBin expects)
+# and refuses to stage a non-darwin or wrong-architecture binary. Only the
+# sidecar and UI are bundled; no Linux stack archives are included.
+#
+# Signing / notarization is FUTURE WORK (paid Apple Developer account). The
+# workflow intentionally produces an unsigned .dmg today. When signing is
+# added, configure these repository secrets:
 #     APPLE_CERTIFICATE             base64-encoded Developer ID .p12
 #     APPLE_CERTIFICATE_PASSWORD    password for the .p12
 #     APPLE_SIGNING_IDENTITY        "Developer ID Application: ..." (optional)
@@ -37,6 +48,18 @@ name: Desktop macOS
 #     natively on macOS.
 
 on:
+  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  workflow_call:
+    inputs:
+      tag:
+        description: "Existing release tag (for example v6.7.0). Defaults to the caller ref."
+        required: false
+        type: string
+      publish:
+        description: "Publish the -macos pre-release (release-all.yml sets false)"
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       tag:
@@ -67,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -80,6 +103,19 @@ jobs:
           rustup toolchain install stable
           rustup default stable
           rustup target add aarch64-apple-darwin
+
+      - name: Confirm the arm64 darwin target
+        run: |
+          set -euo pipefail
+          # The artifact is named -macos-arm64, so fail loudly if GitHub ever
+          # points macos-14 at an Intel image instead of silently shipping x64.
+          arch="$(uname -m)"
+          if [ "$arch" != "arm64" ]; then
+            echo "::error::expected an arm64 runner, got $arch"
+            exit 1
+          fi
+          rustc -vV | grep -q '^host: aarch64-apple-darwin$'
+          echo "host target: aarch64-apple-darwin"
 
       - name: Install libpq and OpenSSL
         run: |
@@ -111,13 +147,14 @@ jobs:
       - name: Build desktop shell
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
-      - name: Stage the botserver sidecar
+      - name: Stage the darwin sidecar
         run: |
           set -euo pipefail
-          # bundle.externalBin resolves with the target-triple suffix.
-          mkdir -p botapp/binaries botserver/botserver-installers
-          cp target/release/botserver botapp/binaries/botserver-aarch64-apple-darwin
-          chmod +x botapp/binaries/botserver-aarch64-apple-darwin
+          # bundle.externalBin resolves with the target-triple suffix. The
+          # helper verifies the Mach-O architecture and keeps Linux stack
+          # archives out of the .dmg.
+          chmod +x desktop/macos/stage-sidecar.sh
+          desktop/macos/stage-sidecar.sh aarch64-apple-darwin
           ls -lh botapp/binaries/botserver-aarch64-apple-darwin
 
       - name: Install Tauri bundler
@@ -127,15 +164,60 @@ jobs:
         run: |
           set -euo pipefail
           cd botapp
+          # desktop-local supplies the sidecar/resources; the macOS overlay
+          # narrows the targets to dmg+app and sets the macOS metadata. The
+          # second config wins on conflicting keys (arrays are replaced).
           cargo tauri build \
             --features desktop-local,custom-protocol \
             --config tauri.desktop-local.conf.json \
+            --config tauri.macos.conf.json \
             --bundles dmg,app
+
+      - name: Verify the unsigned .dmg
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          dmgs=(target/release/bundle/dmg/*.dmg botapp/target/release/bundle/dmg/*.dmg)
+          apps=(target/release/bundle/macos/*.app botapp/target/release/bundle/macos/*.app)
+          if [ "${#dmgs[@]}" -eq 0 ]; then
+            echo "::error::the bundler produced no .dmg"
+            exit 1
+          fi
+          if [ "${#apps[@]}" -eq 0 ]; then
+            echo "::error::the bundler produced no .app"
+            exit 1
+          fi
+          # externalBin must land next to the main executable, with the
+          # target-triple suffix stripped.
+          sidecar="${apps[0]}/Contents/MacOS/botserver"
+          if [ ! -x "$sidecar" ]; then
+            echo "::error::the .app does not contain the darwin botserver sidecar"
+            find "${apps[0]}/Contents" -maxdepth 2 -type f -print || true
+            exit 1
+          fi
+          file "$sidecar" | grep -q 'Mach-O 64-bit executable arm64' || {
+            echo "::error::the sidecar is not an arm64 Mach-O binary"
+            file "$sidecar"
+            exit 1
+          }
+          # Signing/notarization is future work. Record what the bundler did so
+          # an accidentally configured identity is visible in the log, but do
+          # not fail the unsigned-first build.
+          echo "--- codesign ---"
+          codesign -dv --verbose=4 "${apps[0]}" 2>&1 || true
+          echo "--- Gatekeeper assessment (expected to reject an unsigned app) ---"
+          spctl --assess --type execute --verbose=4 "${apps[0]}" 2>&1 || true
+          if codesign -dv "${apps[0]}" 2>&1 | grep -q 'Authority=Developer ID Application'; then
+            echo "::warning::the app carries a Developer ID signature; update the signing docs when this becomes intentional"
+          else
+            echo "unsigned build: users need the documented quarantine bypass on first launch"
+          fi
+          ls -lh "${dmgs[0]}" "${apps[0]}"
 
       - name: Collect macOS artifacts
         run: |
           set -euo pipefail
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
           mkdir -p dist
           shopt -s nullglob
@@ -170,7 +252,7 @@ jobs:
     # Best effort: a failed/absent macOS build, or an immutable release, must
     # not turn a green release red.
     continue-on-error: true
-    if: ${{ always() && github.server_url == 'https://github.com' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ always() && github.server_url == 'https://github.com' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:
       - name: Download macOS installer
         continue-on-error: true
@@ -183,7 +265,7 @@ jobs:
         if: ${{ hashFiles('dist/*.dmg') != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          BASE_TAG: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
           # macOS is an additive platform build: publish it as a `-macos`
@@ -199,7 +281,7 @@ jobs:
             # Fall back to an upload when create loses that race.
             gh release create "$TAG" dist/* \
               --title "${BASE_TAG} (macOS)" \
-              --notes "macOS arm64 desktop bundle (unsigned), pre-release for ${BASE_TAG}: it never takes latest." \
+              --notes "macOS arm64 desktop bundle (unsigned; signing/notarization is future work), pre-release for ${BASE_TAG}: it never takes latest." \
               --prerelease --latest=false ||
               gh release upload "$TAG" dist/* --clobber
           fi

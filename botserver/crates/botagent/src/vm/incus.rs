@@ -13,6 +13,7 @@ use crate::stream::{pump_lines, wait_for_child, ExecEvent};
 use crate::AgentService;
 
 use super::internal;
+use super::retry::{cold_start_timeout_message, retry_incus};
 
 const LAUNCH_WAIT_SECS: u64 = 60;
 /// First launch may download and unpack the image; the 60 s restart budget is
@@ -33,8 +34,8 @@ const INCUS_PERMISSION_MESSAGE: &str = "The botserver service cannot access the 
 
 /// Maps an Incus failure to an actionable capability error when it is caused
 /// by host setup (missing binary/daemon or socket permission). Returns `None`
-/// for everything else so callers keep the generic "Agent VM operation failed"
-/// message and its detail stays in the log.
+/// for everything else so callers keep the generic sanitized message and its
+/// detail stays in the log.
 fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
     let lower = detail.to_ascii_lowercase();
     let permission_denied = lower.contains("permission denied")
@@ -66,14 +67,22 @@ fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
 fn incus_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, String)> {
     SafeCommand::new(state.incus_bin()).map_err(|e| {
         tracing::error!("incus command rejected by guard: {e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "VM subsystem unavailable".to_string())
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "VM subsystem unavailable".to_string(),
+        )
     })
 }
 
-pub(super) async fn run_incus(state: &AgentService, args: Vec<String>) -> Result<std::process::Output, (StatusCode, String)> {
+pub(super) async fn run_incus(
+    state: &AgentService,
+    args: Vec<String>,
+) -> Result<std::process::Output, (StatusCode, String)> {
     let mut cmd = incus_command(state)?;
     for arg in &args {
-        cmd = cmd.arg(arg).map_err(|e| internal(format!("incus arg guard: {e}")))?;
+        cmd = cmd
+            .arg(arg)
+            .map_err(|e| internal(format!("incus arg guard: {e}")))?;
     }
     let output = tokio::task::spawn_blocking(move || cmd.execute())
         .await
@@ -109,9 +118,46 @@ fn running_from_list(stdout: &str, vm_name: &str) -> bool {
     }
 }
 
-pub(crate) async fn is_running(state: &AgentService, vm_name: &str) -> Result<bool, (StatusCode, String)> {
-    let output = run_incus(state, vec!["list".into(), "--format".into(), "json".into()]).await?;
-    Ok(running_from_list(&String::from_utf8_lossy(&output.stdout), vm_name))
+fn exists_from_list(stdout: &str, vm_name: &str) -> bool {
+    match serde_json::from_str::<serde_json::Value>(stdout) {
+        Ok(serde_json::Value::Array(items)) => items
+            .iter()
+            .any(|item| item.get("name").and_then(|n| n.as_str()) == Some(vm_name)),
+        _ => false,
+    }
+}
+
+async fn list_instances(state: &AgentService) -> Result<String, (StatusCode, String)> {
+    let output = retry_incus(
+        state,
+        &[
+            "list".to_string(),
+            "--format".to_string(),
+            "json".to_string(),
+        ],
+        "list",
+    )
+    .await?;
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+pub(crate) async fn is_running(
+    state: &AgentService,
+    vm_name: &str,
+) -> Result<bool, (StatusCode, String)> {
+    let stdout = list_instances(state).await?;
+    Ok(running_from_list(&stdout, vm_name))
+}
+
+/// True when the instance exists at all (RUNNING or STOPPED). A container that
+/// is still being created by a cold `incus launch` is absent here, which is why
+/// callers must wait rather than launch a second copy (issue #1798).
+pub(crate) async fn container_exists(
+    state: &AgentService,
+    vm_name: &str,
+) -> Result<bool, (StatusCode, String)> {
+    let stdout = list_instances(state).await?;
+    Ok(exists_from_list(&stdout, vm_name))
 }
 
 pub(super) fn cold_launch_wait_secs() -> u64 {
@@ -122,7 +168,10 @@ pub(super) fn cold_launch_wait_secs() -> u64 {
         .unwrap_or(COLD_LAUNCH_WAIT_SECS)
 }
 
-pub(crate) async fn wait_for_running(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
+pub(crate) async fn wait_for_running(
+    state: &AgentService,
+    vm_name: &str,
+) -> Result<(), (StatusCode, String)> {
     wait_for_running_within(state, vm_name, LAUNCH_WAIT_SECS).await
 }
 
@@ -132,13 +181,39 @@ pub(super) async fn wait_for_running_within(
     wait_secs: u64,
 ) -> Result<(), (StatusCode, String)> {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(wait_secs);
+    let mut last_error: Option<String> = None;
     while std::time::Instant::now() < deadline {
-        if is_running(state, vm_name).await? {
-            return Ok(());
+        // A cold start makes the daemon busy: `incus list` can fail briefly
+        // while the image is unpacked or the instance is created. Keep polling
+        // until the deadline instead of failing the whole workspace on the
+        // first transient error (issue #1798).
+        match is_running(state, vm_name).await {
+            Ok(true) => return Ok(()),
+            Ok(false) => last_error = None,
+            Err((code, detail)) => {
+                tracing::warn!(
+                    "incus state check for {vm_name} failed ({code}): {detail}; retrying"
+                );
+                last_error = Some(detail);
+            }
         }
         tokio::time::sleep(std::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
     }
-    Err(internal(format!("container {vm_name} did not reach RUNNING within {wait_secs}s")))
+    let message = match &last_error {
+        Some(detail) => format!(
+            "{}; the last Incus state check failed with: {detail}",
+            cold_start_timeout_message(vm_name, wait_secs)
+        ),
+        None => cold_start_timeout_message(vm_name, wait_secs),
+    };
+    tracing::error!(
+        "container {vm_name} did not reach RUNNING within {wait_secs}s{}",
+        last_error
+            .as_deref()
+            .map(|detail| format!("; last error: {detail}"))
+            .unwrap_or_default()
+    );
+    Err((StatusCode::SERVICE_UNAVAILABLE, message))
 }
 
 /// Last `ERROR` entries of the container's own start log. The host-side
@@ -269,11 +344,9 @@ pub async fn exec_in_vm_streaming(
         }));
     }
 
-    let wait = tokio::task::spawn_blocking(move || {
-        wait_for_child(child, started, timeout, cancel)
-    })
-    .await
-    .map_err(|error| internal(format!("incus wait join: {error}")))?;
+    let wait = tokio::task::spawn_blocking(move || wait_for_child(child, started, timeout, cancel))
+        .await
+        .map_err(|error| internal(format!("incus wait join: {error}")))?;
     let (exit_code, cancelled, timed_out) = wait;
 
     for reader in readers {

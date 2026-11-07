@@ -19,7 +19,9 @@ use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Text, Timestamptz, Uuid as SqlUuid};
 use serde_json::{json, Value};
 
-use super::routes::collab_routes::notification_email::NotificationSender;
+use super::routes::collab_routes::notification_email::{
+    notification_recipient, NotificationSender,
+};
 
 /// How often the scheduler looks for due digests. The weekly cadence itself is
 /// enforced by `digest_due`; this is only the polling interval.
@@ -190,7 +192,7 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
     let mut sent = 0usize;
 
     for user in users {
-        let (previous_status, body) = {
+        let (previous_status, body, recipient) = {
             let mut conn = state
                 .conn
                 .get()
@@ -208,14 +210,20 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
                 now - ChronoDuration::days(botsettings::settings_digest::DIGEST_INTERVAL_DAYS),
             );
             let summary = collect_summary(&mut conn, user.id, &user.username, &user.email, since);
+            // #1853 — send to the mailbox the user configured (Mail app
+            // primary account or linked Gmail/Outlook), not just the login
+            // address.
+            let recipient = notification_recipient(&mut conn, &user.id.to_string())
+                .unwrap_or_else(|| user.email.clone());
             (
                 previous_status,
                 build_digest_body(&user.username, since, now, &timezone, summary),
+                recipient,
             )
         };
 
         let delivery = match sender.as_ref() {
-            Some(sender) => sender.send(&user.email, "Your General Bots weekly digest", &body),
+            Some(sender) => sender.send(&recipient, "Your General Bots weekly digest", &body),
             None => Err(
                 "No platform notification sender is configured (set MAIL_* or the \
                  workspace mailbox); the digest cannot be delivered"
@@ -226,14 +234,11 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
         let new_status = match delivery {
             Ok(()) => {
                 sent += 1;
-                botlog::safe_info!("Weekly digest sent to user {} ({})", user.id, user.email);
+                botlog::safe_info!("Weekly digest sent to user {} ({})", user.id, recipient);
                 updated_status(&previous_status, now, None)
             }
             Err(message) => {
-                log::warn!(
-                    "Weekly digest delivery failed for {}: {message}",
-                    user.email
-                );
+                log::warn!("Weekly digest delivery failed for {}: {message}", recipient);
                 updated_status(&previous_status, now, Some(&message))
             }
         };

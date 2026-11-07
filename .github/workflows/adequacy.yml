@@ -7,6 +7,8 @@ name: Adequacy guard
 # The checked-in baseline is a ceiling: a count may fall, never rise. Pure
 # file scanning (no cargo, no network), so it finishes in seconds.
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  workflow_call:
   push:
     branches: ["main"]
   pull_request:

@@ -211,10 +211,7 @@ pub async fn list_folder(
 }
 
 /// Convenience: the active user's VM name, or None when it is not running.
-pub async fn active_vm_name(
-    state: &Arc<AgentService>,
-    user_id: &Uuid,
-) -> Option<String> {
+pub async fn active_vm_name(state: &Arc<AgentService>, user_id: &Uuid) -> Option<String> {
     let row = vm::get_user_vm(state, user_id).ok()??;
     if row.status != vm::STATUS_RUNNING {
         return None;

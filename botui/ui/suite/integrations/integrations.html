@@ -8,7 +8,7 @@
 
 <div class="gb-app integrations-app" data-integrations-app data-gb-app="integrations">
     <div class="integrations-shell">
-        <header class="integrations-header">
+        <header class="integrations-header" data-tour="integrations.header">
             <div class="integrations-heading">
                 <p class="integrations-eyebrow">Connection catalog</p>
                 <h1>Integrations</h1>
@@ -28,7 +28,7 @@
             </div>
         </header>
 
-        <nav class="integrations-navigation" aria-label="Integration views">
+        <nav class="integrations-navigation" data-tour="integrations.tabs" aria-label="Integration views">
             <div class="integrations-tabs" role="tablist" aria-label="Integration views">
                 <button class="integrations-tab" type="button" role="tab" data-tab="explore"
                     aria-selected="true" tabindex="0">Explore</button>
@@ -48,7 +48,7 @@
                         <span class="integrations-control-label">Search providers and actions</span>
                         <span class="integrations-search-control">
                             <span class="integrations-search-mark" aria-hidden="true"></span>
-                            <input type="search" data-search autocomplete="off"
+                            <input type="search" data-search data-tour="integrations.search" autocomplete="off"
                                 placeholder="Search AWS, messaging, storage..."
                                 aria-label="Search integration providers and actions">
                         </span>
@@ -79,7 +79,7 @@
                     </div>
 
                     <div data-explore-notice></div>
-                    <div class="integrations-catalog" data-catalog-view aria-busy="true"></div>
+                    <div class="integrations-catalog" data-catalog-view data-tour="integrations.catalog" aria-busy="true"></div>
                 </div>
             </section>
 
@@ -183,3 +183,4 @@
 <script src="/suite/integrations/modules/06_automations.js"></script>
 <script src="/suite/integrations/modules/07_sources.js"></script>
 <script src="/suite/integrations/modules/99_init.js"></script>
+<script src="/suite/integrations/tour.js?v=1"></script>

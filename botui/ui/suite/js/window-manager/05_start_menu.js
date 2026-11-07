@@ -78,6 +78,8 @@
   },
 
   _buildStartMenuHTML() {
+    const tr = (key, fallback) =>
+      window.gbT ? window.gbT(key, fallback) : fallback;
     const recent = this.getRecentApps();
     const categories = ["ai", "business", "office", "dev", "system"];
 
@@ -92,13 +94,13 @@
 
     let html = `<div class="start-menu-search-wrap"><div class="start-menu-search">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="startMenuSearchInput" placeholder="Type to find an app..."/>
+      <input type="text" id="startMenuSearchInput" placeholder="${tr('start-menu-search-placeholder', 'Type to find an app…')}"/>
     </div></div>`;
 
     html += `<div class="start-menu-body" id="startMenuBody">`;
 
     if (recent.length > 0) {
-      html += `<div class="start-menu-recent"><div class="start-menu-section-title">Recent</div><div class="start-menu-grid">`;
+      html += `<div class="start-menu-recent"><div class="start-menu-section-title">${tr('start-menu-recent', 'Recent')}</div><div class="start-menu-grid">`;
       recent.forEach(function (app) {
         if (!enabledApps || enabledApps.has(app.id)) {
           html += this._appTileHTML(app);
@@ -127,16 +129,16 @@
         });
       }
       if (!apps.length) return;
-      html += `<div class="start-menu-category" data-category="${cat}"><div class="start-menu-section-title">${CATEGORY_LABELS[cat] || cat}</div><div class="start-menu-grid">`;
+      html += `<div class="start-menu-category" data-category="${cat}"><div class="start-menu-section-title">${tr('category-' + cat, CATEGORY_LABELS[cat] || cat)}</div><div class="start-menu-grid">`;
       apps.forEach(function (app) { html += this._appTileHTML(app); }.bind(this));
       html += `</div></div>`;
     }.bind(this));
 
-    html += `<div id="startMenuEmpty" class="start-menu-filter-empty" style="display:none">No apps found</div>`;
+    html += `<div id="startMenuEmpty" class="start-menu-filter-empty" style="display:none">${tr('start-menu-no-apps', 'No apps found')}</div>`;
     html += `</div>`;
 
     html += `<div class="start-menu-footer">
-      <div class="start-menu-user"><div class="start-menu-avatar">U</div><div class="start-menu-user-name">User</div></div>
+      <div class="start-menu-user"><div class="start-menu-avatar">U</div><div class="start-menu-user-name">${tr('start-menu-user', 'User')}</div></div>
       <div class="start-menu-power" onclick="window.location.href=(window.GB_LOGIN_URL||'/login')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </div>
@@ -215,7 +217,7 @@
       if (body) this._injectBodyContent(id, html);
     }).catch(() => {
       const body = document.getElementById(`window-body-${id}`);
-      if (body) this._injectBodyContent(id, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
+      if (body) this._injectBodyContent(id, `<div style="padding:20px"><h3>${title}</h3><p>${window.gbT ? window.gbT('app-loading', 'Application loading…') : 'Application loading…'}</p></div>`);
     });
   },
 
@@ -223,5 +225,23 @@
   // HTML receives the params both as URL query args and via
   // window.__gbAppParams__ so it can select/filter the referenced record.
   // Only available in the desktop shell (web channel).
+  });
+
+  // Rebuild the launcher while it is open so a language switch applies
+  // immediately (the menu is generated, not part of the translated DOM).
+  window.addEventListener("localeChanged", function () {
+    var wm = window.WindowManager;
+    if (!wm || !wm.startMenuOpen) return;
+    var current = document.getElementById("startMenuSearchInput");
+    var query = current ? current.value : "";
+    // Reopen instead of replacing innerHTML: the search input's listener is
+    // attached in openStartMenu, so a raw rewrite would leave it dead.
+    wm.closeStartMenu();
+    wm.openStartMenu();
+    var input = document.getElementById("startMenuSearchInput");
+    if (input && query) {
+      input.value = query;
+      wm._filterStartMenu();
+    }
   });
 })(window);

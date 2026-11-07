@@ -5,7 +5,9 @@ name: Release links
 # desktop build publishes, nightly to catch later regressions, and on demand.
 on:
   workflow_run:
-    workflows: ["Desktop binaries"]
+    # #1851: the all-inclusive release publishes after the desktop build, so
+    # verify links when either workflow completes.
+    workflows: ["Desktop binaries", "Release all"]
     types: [completed]
   schedule:
     - cron: "23 5 * * *"

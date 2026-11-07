@@ -40,7 +40,11 @@ pub async fn run_prompt(
     );
     let (ok, stdout, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        let reason = if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() };
+        let reason = if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        };
         return Err(internal(format!("Claude Code failed: {reason}")));
     }
     Ok(stdout.trim().to_string())
@@ -59,7 +63,10 @@ mod tests {
 
     #[test]
     fn model_is_restricted_to_a_safe_alphabet() {
-        assert_eq!(sanitize_model("claude-sonnet-4.5; rm -rf /"), "claude-sonnet-4.5rm-rf");
+        assert_eq!(
+            sanitize_model("claude-sonnet-4.5; rm -rf /"),
+            "claude-sonnet-4.5rm-rf"
+        );
         assert_eq!(sanitize_model(""), "");
     }
 }

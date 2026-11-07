@@ -1,0 +1,83 @@
+<link rel="stylesheet" href="/suite/settings/settings-os.css?v=1" />
+
+<!-- #1852 — Operating System (shell mode only).
+     The panel is hidden unless isShellMode() in settings/main/02_edition.js
+     unlocks it; the backing API also requires shell mode + admin + loopback. -->
+<section id="os-section" class="settings-section" data-admin-only="true" data-shell-only="true" hidden>
+    <div class="section-header">
+        <h1>Operating System</h1>
+        <p class="subtitle">Low-level host settings and tools for this shell installation</p>
+    </div>
+
+    <div class="os-grid">
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2>System</h2>
+                    <p>Host identity, kernel and timezone</p>
+                </div>
+                <button type="button" class="btn-secondary btn-sm" onclick="window.refreshOsPanel && window.refreshOsPanel()">Refresh</button>
+            </div>
+            <div class="os-info-grid">
+                <div class="os-info-row"><span class="os-label">Hostname</span><code id="os-hostname">—</code></div>
+                <div class="os-info-row"><span class="os-label">Timezone</span><code id="os-timezone">—</code></div>
+                <div class="os-info-row"><span class="os-label">Operating system</span><code id="os-os">—</code></div>
+                <div class="os-info-row"><span class="os-label">Kernel</span><code id="os-kernel">—</code></div>
+                <div class="os-info-row"><span class="os-label">Architecture</span><code id="os-arch">—</code></div>
+                <div class="os-info-row"><span class="os-label">Uptime</span><code id="os-uptime">—</code></div>
+            </div>
+            <p class="os-hint">Hostname and timezone are read-only in this phase. Use the Terminal app or the host tools in the kiosk image to change them.</p>
+        </div>
+
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2>Services</h2>
+                    <p>Start, stop and restart host services</p>
+                </div>
+            </div>
+            <div id="os-services" class="os-service-list">
+                <p class="os-empty">Open the panel to load services.</p>
+            </div>
+        </div>
+
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2>Storage</h2>
+                    <p>Disk usage for mounted filesystems</p>
+                </div>
+            </div>
+            <div id="os-disks" class="os-disk-list">
+                <p class="os-empty">Open the panel to load storage.</p>
+            </div>
+        </div>
+
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2>Logs</h2>
+                    <p>Tail the last 200 lines of a service log</p>
+                </div>
+                <div class="os-log-controls">
+                    <select id="os-log-service" class="form-select" onchange="window.changeOsLogService && window.changeOsLogService(this.value)">
+                        <option value="botserver">botserver</option>
+                        <option value="postgresql">postgresql</option>
+                        <option value="valkey">valkey</option>
+                        <option value="minio">minio</option>
+                        <option value="qdrant">qdrant</option>
+                        <option value="vault">vault</option>
+                        <option value="zitadel">zitadel</option>
+                        <option value="llm">llm</option>
+                        <option value="caddy">caddy</option>
+                        <option value="stalwart">stalwart</option>
+                    </select>
+                    <button type="button" class="btn-secondary btn-sm" onclick="window.changeOsLogService && window.changeOsLogService(document.getElementById('os-log-service').value)">Reload</button>
+                </div>
+            </div>
+            <pre id="os-logs" class="os-log-output">Open the panel to load logs.</pre>
+        </div>
+    </div>
+</section>
+
+<script src="/suite/settings/settings-os.js?v=1"></script>

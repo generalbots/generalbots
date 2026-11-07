@@ -7,6 +7,8 @@ name: GB7 feature contract
 # stale (#1795), so the live check reports drift without blocking CI until
 # that external page is updated.
 on:
+  # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
+  workflow_call:
   push:
     paths:
       - "scripts/gb7_features_check.py"

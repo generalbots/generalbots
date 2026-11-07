@@ -71,9 +71,20 @@ impl TranslationFile {
     pub fn get(&self, key: &str) -> Option<&String> {
         let result = self.messages.get(key);
         if result.is_none() {
-            log::warn!("Translation key not found in bundle: {} (available keys: {})", key, self.messages.len());
+            log::warn!(
+                "Translation key not found in bundle: {} (available keys: {})",
+                key,
+                self.messages.len()
+            );
         }
         result
+    }
+
+    /// Every message id defined in this bundle. Used by the i18n API so a key
+    /// authored in an `.ftl` file is served to the UI even when the explicit
+    /// Rust catalogue has not been updated yet (#1853).
+    pub fn keys(&self) -> impl Iterator<Item = &str> {
+        self.messages.keys().map(String::as_str)
     }
 
     pub fn merge(&mut self, other: Self) {
@@ -149,7 +160,11 @@ impl LocaleBundle {
                 if let Some(content_bytes) = EmbeddedLocales::get(&file) {
                     if let Ok(content) = std::str::from_utf8(content_bytes.data.as_ref()) {
                         let file_translations = TranslationFile::parse(content);
-                        log::info!("Parsed {} keys from {}", file_translations.messages.len(), file);
+                        log::info!(
+                            "Parsed {} keys from {}",
+                            file_translations.messages.len(),
+                            file
+                        );
                         translations.merge(file_translations);
                     }
                 }
@@ -164,5 +179,9 @@ impl LocaleBundle {
 
     pub fn get_message(&self, key: &str) -> Option<&String> {
         self.translations.get(key)
+    }
+
+    pub fn message_ids(&self) -> impl Iterator<Item = &str> {
+        self.translations.keys()
     }
 }

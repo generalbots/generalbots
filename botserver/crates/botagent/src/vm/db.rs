@@ -37,7 +37,10 @@ pub(super) fn load_session(
         .map_err(|e| internal(format!("agent_sessions select: {e}")))
 }
 
-pub(super) fn touch_last_active(conn: &mut diesel::PgConnection, row_id: Uuid) -> Result<(), (StatusCode, String)> {
+pub(super) fn touch_last_active(
+    conn: &mut diesel::PgConnection,
+    row_id: Uuid,
+) -> Result<(), (StatusCode, String)> {
     use agent_sessions::dsl;
     diesel::update(dsl::agent_sessions.filter(dsl::id.eq(row_id)))
         .set(dsl::last_active_at.eq(Utc::now()))
@@ -46,7 +49,11 @@ pub(super) fn touch_last_active(conn: &mut diesel::PgConnection, row_id: Uuid) -
     Ok(())
 }
 
-pub(super) fn set_status(conn: &mut diesel::PgConnection, row_id: Uuid, status_value: &str) -> Result<(), (StatusCode, String)> {
+pub(super) fn set_status(
+    conn: &mut diesel::PgConnection,
+    row_id: Uuid,
+    status_value: &str,
+) -> Result<(), (StatusCode, String)> {
     use agent_sessions::dsl;
     diesel::update(dsl::agent_sessions.filter(dsl::id.eq(row_id)))
         .set(dsl::status.eq(status_value))

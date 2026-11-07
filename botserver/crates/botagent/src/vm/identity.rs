@@ -50,7 +50,10 @@ pub(super) fn require_authenticated_identity(
         ));
     }
 
-    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let mut conn = state
+        .pool()
+        .get()
+        .map_err(|e| internal(format!("DB pool: {e}")))?;
     let email = users::table
         .filter(users::id.eq(*user_id))
         .select(users::email)
@@ -108,7 +111,12 @@ pub fn sanitize_id(raw: &str) -> Result<String, (StatusCode, String)> {
 /// `ag-u{user8}-{rand4}` — short, unique, DNS-safe container name.
 pub(super) fn generate_vm_name(user_id: &Uuid) -> String {
     let user8: String = user_id.simple().to_string().chars().take(8).collect();
-    let rand4: String = Uuid::new_v4().simple().to_string().chars().take(4).collect();
+    let rand4: String = Uuid::new_v4()
+        .simple()
+        .to_string()
+        .chars()
+        .take(4)
+        .collect();
     format!("ag-u{user8}-{rand4}")
 }
 

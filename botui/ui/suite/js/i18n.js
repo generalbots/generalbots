@@ -6,7 +6,7 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  const CACHE_VERSION = "v5";
+  const CACHE_VERSION = "v6";
   const CACHE_TTL_MS = 3600000;
 
   // IMPORTANT: Increment CACHE_VERSION when translation structure changes
@@ -150,24 +150,42 @@
     return text;
   }
 
+  // Translation with an authored fallback for dynamically built strings.
+  // `t()` intentionally returns the key when the catalogue is missing it; UI
+  // code that renders its own DOM should use this helper so a missing
+  // translation never leaks an identifier into the interface.
+  function tOr(key, fallback, params) {
+    const value = t(key, params);
+    return value === key ? fallback : value;
+  }
+
+  function elementParams(element) {
+    const paramsAttr = element.getAttribute("data-i18n-params");
+    if (!paramsAttr) return null;
+    try {
+      return JSON.parse(paramsAttr);
+    } catch (e) {
+      console.warn("i18n: Invalid params JSON", paramsAttr);
+      return null;
+    }
+  }
+
   function translateElement(element) {
     const key = element.getAttribute("data-i18n");
     if (key) {
-      const paramsAttr = element.getAttribute("data-i18n-params");
-      let params = null;
-
-      if (paramsAttr) {
-        try {
-          params = JSON.parse(paramsAttr);
-        } catch (e) {
-          console.warn("i18n: Invalid params JSON", paramsAttr);
-        }
-      }
-
+      const params = elementParams(element);
       const value = t(key, params);
       // A missing catalogue entry returns the key. Keep the authored English
       // text in that case instead of replacing it with a raw identifier.
       if (value !== key) element.textContent = value;
+    }
+
+    // Opt-in HTML translation for strings that intentionally carry markup
+    // (e.g. a link inside a sentence). Only catalogue content is injected.
+    const htmlKey = element.getAttribute("data-i18n-html");
+    if (htmlKey) {
+      const value = t(htmlKey, elementParams(element));
+      if (value !== htmlKey) element.innerHTML = value;
     }
 
     const placeholderKey = element.getAttribute("data-i18n-placeholder");
@@ -187,16 +205,28 @@
       const value = t(ariaLabelKey);
       if (value !== ariaLabelKey) element.setAttribute("aria-label", value);
     }
+
+    const valueKey = element.getAttribute("data-i18n-value");
+    if (valueKey) {
+      const value = t(valueKey);
+      if (value !== valueKey) element.setAttribute("value", value);
+    }
   }
 
   function translatePage(root) {
     const container = root || document;
 
     const elements = container.querySelectorAll(
-      "[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label]",
+      "[data-i18n], [data-i18n-html], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label], [data-i18n-value]",
     );
 
     elements.forEach(translateElement);
+
+    const titleKey = document.documentElement.getAttribute("data-i18n-document-title");
+    if (titleKey) {
+      const value = t(titleKey);
+      if (value !== titleKey) document.title = value;
+    }
   }
 
   async function setLocale(locale) {
@@ -209,7 +239,10 @@
     translatePage();
 
     const lang = locale.split("-")[0];
-    document.documentElement.setAttribute("lang", lang);
+    // Keep the full BCP-47 tag on <html> so font/line-breaking and assistive
+    // technology can distinguish e.g. pt-BR from pt-PT; `dir` only needs the
+    // primary language.
+    document.documentElement.setAttribute("lang", locale);
     document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
     window.dispatchEvent(
@@ -244,9 +277,11 @@
             if (
               node.hasAttribute &&
               (node.hasAttribute("data-i18n") ||
+                node.hasAttribute("data-i18n-html") ||
                 node.hasAttribute("data-i18n-placeholder") ||
                 node.hasAttribute("data-i18n-title") ||
-                node.hasAttribute("data-i18n-aria-label"))
+                node.hasAttribute("data-i18n-aria-label") ||
+                node.hasAttribute("data-i18n-value"))
             ) {
               translateElement(node);
             }
@@ -276,7 +311,7 @@
     await loadTranslations(locale);
 
     const lang = currentLocale.split("-")[0];
-    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("lang", currentLocale);
     document.documentElement.setAttribute("dir", RTL_LANGUAGES.includes(lang) ? "rtl" : "ltr");
 
     isInitialized = true;
@@ -336,6 +371,7 @@
 
   window.i18n = {
     t,
+    tOr,
     init,
     setLocale,
     getLocale: getCurrentLocale,
@@ -345,6 +381,10 @@
     translateElement,
     clearCache,
   };
+
+  // Short alias for call sites that build DOM strings outside a translated
+  // element (window chrome, launcher, spotlights, toasts).
+  window.gbT = tOr;
 
   init().catch((e) => console.error("i18n: Initialization failed", e));
 })();

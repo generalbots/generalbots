@@ -6,6 +6,10 @@ const Spotlight = (() => {
   let index = 0;
   let results = [];
 
+  function tr(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   function isOpen() {
     return document.getElementById("gb-spotlight") !== null;
   }
@@ -19,11 +23,11 @@ const Spotlight = (() => {
       <div class="gb-spotlight-box">
         <div class="gb-spotlight-input-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="gbSpotlightInput" placeholder="Search apps, files… or type a goal for the Concierge" autocomplete="off" spellcheck="false" />
+          <input type="text" id="gbSpotlightInput" placeholder="${tr('spotlight-placeholder', 'Search apps, files… or type a goal for the Concierge')}" autocomplete="off" spellcheck="false" />
           <span class="gb-spotlight-kbd">Esc</span>
         </div>
         <div class="gb-spotlight-results" id="gbSpotlightResults"></div>
-        <div class="gb-spotlight-footer">↑↓ navigate · Enter run · Ctrl+Space or Esc close</div>
+        <div class="gb-spotlight-footer">${tr('spotlight-hint', '↑↓ navigate · Enter run · Ctrl+Space or Esc close')}</div>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -83,8 +87,8 @@ const Spotlight = (() => {
       results.push({
         kind: "goal",
         id: "goal",
-        title: "Run goal: “" + q.trim().substring(0, 60) + "”",
-        subtitle: "Concierge · plan & execute across apps",
+        title: tr("spotlight-goal", "Run goal: “{goal}”", { goal: q.trim().substring(0, 60) }),
+        subtitle: tr("spotlight-goal-subtitle", "Concierge · plan & execute across apps"),
         icon: '<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z"/>',
         color: "#84d669",
         goal: q.trim(),
@@ -92,7 +96,7 @@ const Spotlight = (() => {
     }
 
     if (!results.length) {
-      box.innerHTML = '<div class="gb-spotlight-empty">No results</div>';
+      box.innerHTML = '<div class="gb-spotlight-empty">' + tr("spotlight-empty", "No results") + "</div>";
       return;
     }
     box.innerHTML = results
@@ -157,6 +161,15 @@ const Spotlight = (() => {
       }
     });
   }
+
+  window.addEventListener("localeChanged", function () {
+    if (!isOpen()) return;
+    const input = document.getElementById("gbSpotlightInput");
+    const footer = document.querySelector(".gb-spotlight-footer");
+    if (input) input.placeholder = tr("spotlight-placeholder", "Search apps, files… or type a goal for the Concierge");
+    if (footer) footer.textContent = tr("spotlight-hint", "↑↓ navigate · Enter run · Ctrl+Space or Esc close");
+    search(input ? input.value : "");
+  });
 
   return { init, open, close, toggle, isOpen, search };
 })();

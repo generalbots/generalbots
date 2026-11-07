@@ -23,9 +23,15 @@ const MAX_CAPTURE_BYTES: usize = 256 * 1024;
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ExecEvent {
-    Started { command: String },
-    Stdout { line: String },
-    Stderr { line: String },
+    Started {
+        command: String,
+    },
+    Stdout {
+        line: String,
+    },
+    Stderr {
+        line: String,
+    },
     Finished {
         exit_code: Option<i32>,
         duration_ms: u64,

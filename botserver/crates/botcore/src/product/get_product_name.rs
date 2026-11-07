@@ -26,6 +26,19 @@ pub fn is_app_preview(app: &str) -> bool {
         .map(|c| c.is_app_preview(app))
         .unwrap_or(false)
 }
+/// Whether this deployment runs as a shell / desktop OS (#1852).
+///
+/// `shell_mode=true` is set by the desktop-local product file (shared by the
+/// Tauri app and the kiosk image); the `desktop-local` feature is a fallback
+/// for installs that predate the flag. The OS API refuses to serve anything
+/// when this is false, even if a caller guesses the route.
+pub fn is_shell_mode() -> bool {
+    if cfg!(feature = "desktop-local") {
+        return true;
+    }
+    PRODUCT_CONFIG.read().map(|c| c.shell_mode).unwrap_or(false)
+}
+
 /// Helper function to get default theme
 pub fn get_default_theme() -> String {
     PRODUCT_CONFIG
@@ -77,6 +90,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "suite_default_app": c.suite_default_app,
             "hidden_apps": c.get_hidden_apps(),
             "no_security": c.no_security,
+            "shell_mode": c.shell_mode || cfg!(feature = "desktop-local"),
         }),
         None => serde_json::json!({
             "name": "General Bots",
@@ -89,6 +103,8 @@ pub fn get_product_config_json() -> serde_json::Value {
             "menu_launcher_enabled": false,
             "sidebar": null,
             "hidden_apps": Vec::<String>::new(),
+            "no_security": false,
+            "shell_mode": false,
         }),
     }
 }

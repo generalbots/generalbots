@@ -22,6 +22,18 @@ name: Desktop binaries (Linux arm64)
 # reported as unavailable (no aarch64 pythonbox) instead of failing setup.
 
 on:
+  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag (for example v6.7.0). Defaults to the caller ref."
+        required: false
+        type: string
+      publish:
+        description: "Attach assets to the release (release-all.yml sets false)"
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       tag:
@@ -48,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -108,7 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x desktop/linux/package.sh
-          TAG="${{ github.event.inputs.tag || github.ref_name || 'nightly' }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name || 'nightly' }}"
           ./desktop/linux/package.sh "$TAG" target/release dist dist/installers aarch64
           cp target/release/botapp    dist/generalbots-linux-aarch64
           cp target/release/botserver dist/botserver-linux-aarch64
@@ -155,7 +167,7 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          TAG="${{ github.event.inputs.tag || github.ref_name || 'nightly' }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name || 'nightly' }}"
           VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
@@ -197,7 +209,7 @@ jobs:
   attach:
     name: Attach arm64 assets (opt-in)
     needs: linux-arm64
-    if: ${{ github.server_url == 'https://github.com' && vars.PUBLISH_ARM64 == 'true' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ github.server_url == 'https://github.com' && vars.PUBLISH_ARM64 == 'true' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -211,7 +223,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG (Linux arm64)" \
                  --notes "Linux arm64 desktop build, pre-release for $TAG: it never takes latest." \

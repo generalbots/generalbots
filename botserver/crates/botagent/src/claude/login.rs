@@ -14,10 +14,7 @@ use super::status::{run_script, status, ClaudeStatus};
 /// Workspace preparation runs in the background after the VM is created, so a
 /// Connect click can race it; installing here makes the clean-install flow
 /// deterministic instead of returning "claude CLI is not installed".
-async fn ensure_cli(
-    state: &AgentService,
-    vm_name: &str,
-) -> Result<(), (StatusCode, String)> {
+async fn ensure_cli(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
     let probe = "command -v claude >/dev/null 2>&1 && id -u claude >/dev/null 2>&1 && echo READY || echo MISSING";
     let (_, stdout, _) = run_script(state, vm_name, probe).await?;
     if stdout.trim() == "READY" {
@@ -38,7 +35,11 @@ async fn ensure_cli(
     }
     Err(internal(format!(
         "could not install the Claude CLI in the workspace: {}",
-        if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+        if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        }
     )))
 }
 
@@ -68,7 +69,11 @@ pub async fn start_login(
     if !ok {
         return Err(internal(format!(
             "could not start the Claude login helper: {}",
-            if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() }
+            if stderr.trim().is_empty() {
+                stdout.trim()
+            } else {
+                stderr.trim()
+            }
         )));
     }
     // The CLI needs a moment to print the URL; poll briefly so the caller can
@@ -91,7 +96,10 @@ pub async fn submit_code(
 ) -> Result<ClaudeStatus, (StatusCode, String)> {
     let clean = code.trim();
     if clean.is_empty() || clean.len() > 4096 {
-        return Err((StatusCode::BAD_REQUEST, "Invalid authorization code".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Invalid authorization code".to_string(),
+        ));
     }
     let script = format!(
         "printf '%s' '{payload}' | base64 -d > {path}; \
@@ -102,7 +110,10 @@ pub async fn submit_code(
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not deliver the Claude code: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not deliver the Claude code: {}",
+            stderr.trim()
+        )));
     }
     for _ in 0..40 {
         let snapshot = status(state, vm_name).await?;
@@ -127,7 +138,10 @@ pub async fn logout(state: &AgentService, vm_name: &str) -> Result<(), (StatusCo
     );
     let (ok, _, stderr) = run_script(state, vm_name, &script).await?;
     if !ok {
-        return Err(internal(format!("could not clear Claude credentials: {}", stderr.trim())));
+        return Err(internal(format!(
+            "could not clear Claude credentials: {}",
+            stderr.trim()
+        )));
     }
     Ok(())
 }

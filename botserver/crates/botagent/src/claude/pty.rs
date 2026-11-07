@@ -171,6 +171,9 @@ mod tests {
         let _ = child.kill();
         let _ = child.wait();
         let _ = std::fs::remove_dir_all(&root);
-        assert!(linked, "the bridge must write the credential after the code");
+        assert!(
+            linked,
+            "the bridge must write the credential after the code"
+        );
     }
 }

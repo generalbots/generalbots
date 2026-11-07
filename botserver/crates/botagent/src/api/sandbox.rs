@@ -24,7 +24,10 @@ pub async fn sandbox_exec(
     let auth_header = bearer_token(&headers).ok_or_else(|| unauthorized("Missing credentials"))?;
 
     let (org_id, user_id, limiter_key) = {
-        let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+        let mut conn = state
+            .pool()
+            .get()
+            .map_err(|e| internal(format!("DB pool: {e}")))?;
         if let Ok(ctx) = keys::authenticate_key(&auth_header, &mut conn) {
             (Some(ctx.org_id), None, format!("exec:key:{}", ctx.key_id))
         } else {
@@ -34,7 +37,10 @@ pub async fn sandbox_exec(
     };
 
     if !EXEC_LIMITER.check(&limiter_key, 5.0) {
-        return Err((StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string()));
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            "Rate limit exceeded".to_string(),
+        ));
     }
 
     let result = sandbox_service::run_sandbox(&state, org_id, user_id, &body).await?;

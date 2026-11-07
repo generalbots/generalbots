@@ -26,7 +26,10 @@ pub use status::{extract_oauth_url, status, ClaudeStatus};
 
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");
-    (StatusCode::INTERNAL_SERVER_ERROR, "Claude account operation failed".to_string())
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Claude account operation failed".to_string(),
+    )
 }
 
 fn b64(value: &str) -> String {

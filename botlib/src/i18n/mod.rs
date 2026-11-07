@@ -3,8 +3,8 @@ mod locale;
 mod translation_parser;
 
 pub use bundle::I18nBundle;
-pub use translation_parser::MessageArgs;
 pub use locale::Locale;
+pub use translation_parser::MessageArgs;
 
 use crate::error::{BotError, BotResult};
 use std::sync::OnceLock;
@@ -33,6 +33,14 @@ pub fn available_locales() -> Vec<String> {
     GLOBAL_BUNDLE
         .get()
         .map(I18nBundle::available_locales)
+        .unwrap_or_default()
+}
+
+/// Message ids authored in the English (fallback) locale bundle.
+pub fn message_ids() -> Vec<String> {
+    GLOBAL_BUNDLE
+        .get()
+        .map(I18nBundle::message_ids)
         .unwrap_or_default()
 }
 

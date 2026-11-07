@@ -2,6 +2,8 @@ pub mod admin_dashboard;
 pub mod audit_log;
 pub mod menu_config;
 pub mod ops;
+pub mod os;
+pub mod os_data;
 pub mod permission_inheritance;
 pub mod rbac;
 #[cfg(feature = "rbac")]
@@ -102,6 +104,7 @@ pub fn configure_settings_routes() -> Router<Arc<AppState>> {
         .merge(admin_dashboard::configure_admin_dashboard_routes())
         .merge(settings_api::configure_settings_api_routes())
         .merge(ops::configure_ops_routes())
+        .merge(os::configure_os_routes())
 }
 
 async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {

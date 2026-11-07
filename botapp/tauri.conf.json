@@ -47,6 +47,9 @@
       "icons/icon.ico",
       "icons/icon.png",
       "icons/icon.icns"
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
   }
 }
