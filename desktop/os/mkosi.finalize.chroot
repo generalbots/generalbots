@@ -27,6 +27,14 @@ systemctl enable generalbots-shell.service systemd-networkd.service systemd-reso
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
 
+# 5b. No first-boot wizard: on an appliance it blocks the console waiting
+#     for locale/keymap/root input before the kiosk shell can start (seen in
+#     the QEMU boot smoke: systemd-firstboot.service held serial input).
+systemctl mask systemd-firstboot.service
+printf 'general-bots-os\n' >/etc/hostname
+printf 'LANG=C.UTF-8\n' >/etc/locale.conf
+printf 'KEYMAP=us\n' >/etc/vconsole.conf
+
 # 6. Brand the OS identity everywhere an OS screen reads it: boot tools,
 #    `hostnamectl`, the Plymouth theme selector and desktop icon lookups.
 cat >/etc/os-release <<'EOF'
