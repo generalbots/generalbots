@@ -325,9 +325,9 @@ pub async fn use_for_vibe(
         })
     };
     write(&format!("{prefix}provider"), &row.provider_slug)?;
-    write(&format!("{prefix}model"), default_model)?;
+    write(&format!("{prefix}model"), &default_model)?;
     if !subscription {
-        write(&format!("{prefix}url"), default_url)?;
+        write(&format!("{prefix}url"), &default_url)?;
         write(&format!("{prefix}key"), &api_key)?;
     }
 
@@ -352,7 +352,7 @@ pub async fn use_for_vibe(
         "agent": agent,
         "provider": row.provider_slug,
         "model": default_model,
-        "url": if subscription { "" } else { default_url },
+        "url": if subscription { "" } else { &default_url },
     })))
 }
 
