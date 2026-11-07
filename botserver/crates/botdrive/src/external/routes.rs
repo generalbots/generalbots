@@ -217,13 +217,14 @@ pub async fn oauth_callback(
     // carries what the provider reports as granted, for the consent record.
     let (access_token, refresh_token, expires_at, granted_scope) = match provider {
         Provider::OneDrive => {
-            match crate::external::onedrive::exchange_code(
+            match crate::external::onedrive::exchange_code_with_pkce(
                 &http,
                 &client.tenant_id,
                 &client.client_id,
-                &client.client_secret,
+                client.client_secret.as_deref(),
                 &redirect_uri,
                 code,
+                None,
             )
             .await
             {
@@ -235,12 +236,13 @@ pub async fn oauth_callback(
             }
         }
         Provider::GoogleDrive => {
-            match crate::external::gdrive::exchange_code(
+            match crate::external::gdrive::exchange_code_with_pkce(
                 &http,
                 &client.client_id,
-                &client.client_secret,
+                client.client_secret.as_deref(),
                 &redirect_uri,
                 code,
+                None,
             )
             .await
             {

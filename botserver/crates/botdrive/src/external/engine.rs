@@ -268,19 +268,24 @@ pub async fn connection_access_token(
     // the three fields that actually get stored.
     let (access, refreshed, expires_at) = match connection.provider {
         Provider::OneDrive => {
-            let t = onedrive::refresh_token(
+            let t = onedrive::refresh_token_optional_secret(
                 http,
                 &client.tenant_id,
                 &client.client_id,
-                &client.client_secret,
+                client.client_secret.as_deref(),
                 refresh,
             )
             .await?;
             (t.access_token, t.refresh_token, t.expires_at)
         }
         Provider::GoogleDrive => {
-            let t = gdrive::refresh_token(http, &client.client_id, &client.client_secret, refresh)
-                .await?;
+            let t = gdrive::refresh_token_optional_secret(
+                http,
+                &client.client_id,
+                client.client_secret.as_deref(),
+                refresh,
+            )
+            .await?;
             (t.access_token, t.refresh_token, t.expires_at)
         }
     };
