@@ -1,7 +1,3 @@
-    use serde_json::json;
-
-    use super::apply_patch;
-
 use serde_json::json;
 
 use super::apply_patch;
