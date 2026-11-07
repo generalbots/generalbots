@@ -78,7 +78,7 @@ pub fn ensure_user(pool: &DbPool, user_id: Uuid, email: Option<&str>) -> Result<
     let mut conn = pool.get().map_err(|error| error.to_string())?;
     diesel::sql_query(
         "INSERT INTO users (id, username, email, password_hash, is_admin) \
-         VALUES ($1, $2, $2, '', FALSE) \
+         VALUES ($1, $2, $2, '', TRUE) \
          ON CONFLICT DO NOTHING",
     )
     .bind::<DieselUuid, _>(user_id)

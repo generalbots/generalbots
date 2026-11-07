@@ -1846,6 +1846,7 @@ settings-vibe = Vibe
 settings-memory = 记忆
 settings-administration = 管理
 settings-users = 用户
+settings-versions = 版本
 settings-audit = 审计日志
 settings-bots = 机器人
 settings-groups = 群组

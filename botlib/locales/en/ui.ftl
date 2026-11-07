@@ -1852,6 +1852,7 @@ settings-ai-accounts = AI accounts
 settings-memory = Memory
 settings-administration = Administration
 settings-users = Users
+settings-versions = Versions
 settings-audit = Audit Log
 settings-bots = Bots
 settings-groups = Groups

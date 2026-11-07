@@ -1846,6 +1846,7 @@ settings-vibe = Vibe
 settings-memory = Mémoire
 settings-administration = Administration
 settings-users = Utilisateurs
+settings-versions = Versions
 settings-audit = Journal d’audit
 settings-bots = Bots
 settings-groups = Groupes

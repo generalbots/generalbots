@@ -3,9 +3,13 @@
 
 <script>
     // The settings fragment is also opened as a full page (admin deep link);
-    // there it needs the local htmx to swap in the section partials.
+    // there it needs the local htmx and the security bootstrap to swap in
+    // the section partials with proper auth headers (#1839).
     if (!window.htmx && window.top === window.self) {
         document.write('<script src="/suite/js/vendor/htmx.min.js"><\/script>');
+        document.write('<script src="/suite/js/security-bootstrap/01_tokens.js?v=6"><\/script>');
+        document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"><\/script>');
+        document.write('<script src="/suite/js/security-bootstrap/99_init.js?v=6"><\/script>');
     }
 </script>
 
@@ -202,7 +206,7 @@
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <span data-i18n="settings-users">Versions</span>
+                <span data-i18n="settings-versions">Versions</span>
             </a>
         </nav>
 
