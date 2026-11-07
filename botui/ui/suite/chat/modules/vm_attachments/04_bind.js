@@ -21,10 +21,11 @@ function vmSaveToDrive(conversationId, files) {
     body: JSON.stringify({ conversation_id: conversationId, files: files || [] }),
   }).then(function (res) {
     if (!res.ok) {
+      var detail = (files || []).join(", ") || "unknown";
       throw new Error(
         res.status === 404
-          ? "this file is no longer in the conversation output"
-          : "HTTP " + res.status
+          ? "file not found in conversation output (" + detail + ")"
+          : "HTTP " + res.status + " saving " + detail
       );
     }
     return res.json();
@@ -142,7 +143,7 @@ function vmBindAttachment(card) {
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, [fileName]);
+          return vmSaveToDrive(convId, [path]);
         })
         .then(vmReportSaved)
         .catch(vmNotifyError);
@@ -155,7 +156,7 @@ function vmBindAttachment(card) {
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, [fileName]);
+          return vmSaveToDrive(convId, [path]);
         })
         .then(function (data) {
           var saved = (data && data.saved) || [];
