@@ -15,6 +15,12 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  /* Theme-aware hover fallback when --surface-hover is undefined. */
+  --context-item-hover: var(
+    --surface-hover,
+    color-mix(in srgb, var(--text, #e5e7eb) 10%, transparent)
+  );
+  --context-item-focus: var(--primary, #3b82f6);
 }
 
 .desktop-context-item {
@@ -28,10 +34,17 @@
   color: var(--text, #e5e7eb);
   transition: background 0.15s;
   user-select: none;
+  outline: none;
 }
 
 .desktop-context-item:hover {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  background: var(--context-item-hover);
+}
+
+.desktop-context-item:focus,
+.desktop-context-item:focus-visible {
+  background: var(--context-item-hover);
+  box-shadow: 0 0 0 2px var(--context-item-focus);
 }
 
 .desktop-context-item svg {
