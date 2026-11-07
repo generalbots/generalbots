@@ -173,6 +173,13 @@ pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::U
 /// dead-end "workspace is not available" phrase.
 pub type WorkspaceError = (u16, String);
 
+/// Reports whether the caller's workspace is currently running.
+pub async fn workspace_is_running(user_id: uuid::Uuid) -> Option<bool> {
+    let service = SERVICE.get()?;
+    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    Some(row.status == botagent::vm::STATUS_RUNNING)
+}
+
 /// Execute code in the user's VM within the conversation folder. Returns
 /// (success, stdout, stderr) or None if the service is absent.
 pub async fn exec_in_user_vm(

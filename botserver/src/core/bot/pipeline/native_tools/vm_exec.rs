@@ -6,14 +6,49 @@ use super::render::render_result;
 use super::send;
 use super::super::types::SessionIdentity;
 
-/// The truthful replacement for the dead-end "workspace is not available"
-/// phrase: show the concrete reason the VM subsystem reports (status is
-/// logged only, never shown), then one short pointer forward.
-fn workspace_failure_message(reason: &str) -> String {
+#[derive(Debug, PartialEq, Eq)]
+enum WorkspaceFailureKind {
+    BudgetExceeded,
+    WorkspaceUnavailable,
+}
+
+fn classify_workspace_failure(reason: &str) -> WorkspaceFailureKind {
+    if reason.to_ascii_lowercase().contains("run budget elapsed") {
+        WorkspaceFailureKind::BudgetExceeded
+    } else {
+        WorkspaceFailureKind::WorkspaceUnavailable
+    }
+}
+
+fn workspace_state_label(running: Option<bool>) -> &'static str {
+    match running {
+        Some(true) => "RUNNING",
+        Some(false) => "not RUNNING",
+        None => "unknown",
+    }
+}
+
+/// Formats a user-facing failure without conflating a run timeout with a host outage.
+fn workspace_failure_message(
+    status: u16,
+    reason: &str,
+    timeout_ms: u64,
+    workspace_running: Option<bool>,
+) -> String {
+    if classify_workspace_failure(reason) == WorkspaceFailureKind::BudgetExceeded {
+        let overall_budget_ms = timeout_ms.saturating_add(120_000);
+        return format!(
+            "The workspace run exceeded its {overall_budget_ms} ms time budget. Retry, or split the task into smaller steps. Workspace status: {}.",
+            workspace_state_label(workspace_running),
+        );
+    }
+
     let trimmed = reason.trim();
     if trimmed.is_empty() {
-        return "The workspace could not run this program. Start a new message and try again."
-            .to_string();
+        return format!(
+            "The workspace could not run this program (status {status}). Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up. Workspace status: {}.",
+            workspace_state_label(workspace_running),
+        );
     }
     let clipped: String = trimmed.chars().take(320).collect();
     let clipped = if trimmed.chars().count() > 320 {
@@ -22,8 +57,23 @@ fn workspace_failure_message(reason: &str) -> String {
         clipped
     };
     format!(
-        "The workspace could not run this program: {clipped}. Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up."
+        "The workspace could not run this program (status {status}): {clipped}. Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up. Workspace status: {}.",
+        workspace_state_label(workspace_running),
     )
+}
+
+fn workspace_starting_message(timeout_ms: u64) -> String {
+    format!(
+        "The workspace is starting and did not answer within the {timeout_ms} ms startup window. Retry in a moment. Workspace status: not RUNNING."
+    )
+}
+
+fn workspace_none_message(timeout_ms: u64, workspace_running: Option<bool>) -> String {
+    match workspace_running {
+        Some(false) => workspace_starting_message(timeout_ms),
+        _ => "The workspace is unavailable right now. Start a new message and try again."
+            .to_string(),
+    }
 }
 
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
@@ -108,6 +158,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         let code = code.to_string();
         let language = language.to_string();
         tokio::spawn(async move {
+            let workspace_running =
+                crate::core::bot::agent_vm_hook::workspace_is_running(user_id).await;
             let result = crate::core::bot::agent_vm_hook::exec_with_wake_result(
                 user_id,
                 session_id,
@@ -121,9 +173,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             let message = match result {
                 Err((status, reason)) => {
                     botlog::safe_warn!("background job workspace failure ({status}): {reason}");
-                    workspace_failure_message(&reason)
+                    workspace_failure_message(status, &reason, timeout_ms, workspace_running)
                 }
-                Ok(None) => "The workspace became unavailable and the background job could not finish.".to_string(),
+                Ok(None) => workspace_none_message(timeout_ms, workspace_running),
                 Ok(Some((ok, stdout, stderr))) => {
                     render_result(user_id, session_id, ok, &stdout, &stderr).await
                 }
@@ -143,6 +195,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let progress_run = crate::core::bot::runs::bus::bus()
         .current_run_id(&progress_thread)
         .unwrap_or_default();
+    let workspace_running =
+        crate::core::bot::agent_vm_hook::workspace_is_running(user_id).await;
     if !progress_run.is_empty() {
         crate::core::bot::runs::bus::bus().publish(
             &progress_thread,
@@ -151,7 +205,14 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 "run_id": progress_run,
                 "data": {
                     "name": "gb.tool_progress",
-                    "payload": { "tool": "vm_exec", "phase": "start", "detail": language },
+                    "payload": {
+                        "tool": "vm_exec",
+                        "phase": "start",
+                        "detail": language,
+                        "timeout_ms": timeout_ms,
+                        "budget_ms": timeout_ms.saturating_add(120_000),
+                        "workspace_running": workspace_running,
+                    },
                 },
             }),
         );
@@ -203,6 +264,13 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     };
     if !progress_run.is_empty() {
         let ok = matches!(&result, Ok(Some((true, _, _))));
+        let failure_kind = result.as_ref().err().map(|(_, reason)| {
+            if classify_workspace_failure(reason) == WorkspaceFailureKind::BudgetExceeded {
+                "budget_exceeded"
+            } else {
+                "workspace_unavailable"
+            }
+        });
         crate::core::bot::runs::bus::bus().publish(
             &progress_thread,
             serde_json::json!({
@@ -210,7 +278,15 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 "run_id": progress_run,
                 "data": {
                     "name": "gb.tool_progress",
-                    "payload": { "tool": "vm_exec", "phase": "done", "ok": ok },
+                    "payload": {
+                        "tool": "vm_exec",
+                        "phase": "done",
+                        "ok": ok,
+                        "timeout_ms": timeout_ms,
+                        "budget_ms": timeout_ms.saturating_add(120_000),
+                        "workspace_running": workspace_running,
+                        "failure_kind": failure_kind,
+                    },
                 },
             }),
         );
@@ -228,12 +304,12 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             botlog::safe_warn!(
                 "vm_exec workspace failure for session {session_id}: status={status} reason={reason}"
             );
-            let message = workspace_failure_message(&reason);
+            let message = workspace_failure_message(status, &reason, timeout_ms, workspace_running);
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
         }
         Ok(None) => {
-            let message = "The workspace is not available right now. Start a new message and try again.";
+            let message = workspace_none_message(timeout_ms, workspace_running);
             send(identity, message).await;
             super::persist(state, session_id, user_id, message).await;
         }
@@ -276,33 +352,62 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
 
 #[cfg(test)]
 mod workspace_failure_message_tests {
-    use super::workspace_failure_message;
+    use super::{classify_workspace_failure, workspace_failure_message, WorkspaceFailureKind};
 
     #[test]
     fn empty_reason_keeps_a_short_call_to_action() {
-        let message = workspace_failure_message("   ");
+        let message = workspace_failure_message(503, "   ", 180_000, Some(false));
         assert_eq!(
             message,
-            "The workspace could not run this program. Start a new message and try again."
+            "The workspace could not run this program (status 503). Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up. Workspace status: not RUNNING."
         );
     }
 
     #[test]
     fn the_reason_is_shown_so_the_cause_stays_actionable() {
         let message = workspace_failure_message(
+            500,
             "container ag-uf4b70eb7-7e97 did not reach RUNNING within 60s; instance log: bpf_program_load_kernel: Operation not permitted",
+            180_000,
+            Some(false),
         );
         assert!(message.contains("container ag-uf4b70eb7-7e97"));
         assert!(message.contains("Operation not permitted"));
-        assert!(message.starts_with("The workspace could not run this program: "));
+        assert!(message.starts_with("The workspace could not run this program (status 500): "));
     }
 
     #[test]
     fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
         let long = "x".repeat(600);
-        let message = workspace_failure_message(&long);
+        let message = workspace_failure_message(500, &long, 180_000, None);
         assert!(message.contains('…'), "clip marker present");
         assert!(message.chars().count() < 500, "message stays readable");
-        assert!(message.ends_with("brings the workspace up."));
+        assert!(message.contains("brings the workspace up."));
+    }
+
+    #[test]
+    fn budget_failure_does_not_suggest_restarting_the_app() {
+        let message = workspace_failure_message(
+            503,
+            "the run budget elapsed before the workspace answered",
+            60_000,
+            Some(true),
+        );
+        assert!(message.contains("180000 ms"));
+        assert!(message.contains("Workspace status: RUNNING"));
+        assert!(message.contains("split the task"));
+        assert!(!message.contains("restart the app"));
+    }
+
+    #[test]
+    fn budget_reason_is_classified_before_generic_status() {
+        assert_eq!(
+            classify_workspace_failure("the run budget elapsed before the workspace answered"),
+            WorkspaceFailureKind::BudgetExceeded
+        );
+        assert_eq!(
+            classify_workspace_failure("container did not reach RUNNING"),
+            WorkspaceFailureKind::WorkspaceUnavailable
+        );
     }
 }
