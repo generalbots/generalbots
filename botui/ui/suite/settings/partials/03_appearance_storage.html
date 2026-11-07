@@ -268,31 +268,9 @@
                 </div>
                 <div class="connections-list" id="storage-connections" hx-get="/api/ui/user/storage/connections"
                     hx-trigger="load" hx-swap="innerHTML">
-                    <div class="connection-item">
-                        <div class="connection-icon google-drive">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M4.433 22l-1.6-2.773 8.167-14.167L19.4 19.227 17.8 22H4.433z"></path>
-                            </svg>
-                        </div>
-                        <div class="connection-info">
-                            <span class="connection-name">Google Drive</span>
-                            <span class="connection-status">Not connected</span>
-                        </div>
-                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
-                    </div>
-                    <div class="connection-item">
-                        <div class="connection-icon dropbox">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M6 2l6 3.75L6 9.5 0 5.75 6 2zm12 0l6 3.75-6 3.75-6-3.75L18 2zM0 13.25L6 9.5l6 3.75-6 3.75-6-3.75zm18-3.75l6 3.75-6 3.75-6-3.75 6-3.75zM6 18.25l6-3.75 6 3.75-6 3.75-6-3.75z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div class="connection-info">
-                            <span class="connection-name">Dropbox</span>
-                            <span class="connection-status">Not connected</span>
-                        </div>
-                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading storage connections...</p>
                     </div>
                 </div>
             </div>
