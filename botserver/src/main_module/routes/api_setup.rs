@@ -25,6 +25,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             "/api/manifest",
             get(super::product_handlers::get_workspace_manifest),
         )
+        .route(
+            "/api/whats-new",
+            get(super::product_handlers::get_whats_new),
+        )
         .route("/api/client-errors", post(crate::receive_client_errors))
         .route(
             "/api/desktop/activity",

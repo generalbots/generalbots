@@ -41,6 +41,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: read
 
 # Serialize releases so two queued merges cannot compute the same version.
 concurrency:
@@ -69,6 +70,7 @@ jobs:
         env:
           REQUESTED_VERSION: ${{ github.event.inputs.version }}
           BUMP: ${{ github.event.inputs.bump || 'patch' }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -93,7 +95,17 @@ jobs:
             python3 scripts/release_version.py sync "$VERSION"
           fi
 
-          git add Cargo.toml Cargo.lock botapp/tauri.conf.json README.md
+          # What's New: the sections accumulate on tags, because main is
+          # protected and cannot receive the bump commit. Start from the newest
+          # tagged copy, then add or replace the section for this version.
+          PREV_TAG="$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+          if [ -n "$PREV_TAG" ] && git cat-file -e "${PREV_TAG}:whatsnew.md" 2>/dev/null; then
+            git show "${PREV_TAG}:whatsnew.md" > whatsnew.md
+          fi
+          python3 scripts/whats_new.py --file whatsnew.md generate --version "$VERSION" --write
+          python3 scripts/whats_new.py --file whatsnew.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+          git add Cargo.toml Cargo.lock botapp/tauri.conf.json README.md whatsnew.md
 
           if git diff --cached --quiet; then
             echo "version files already at ${VERSION}; tagging current main"
