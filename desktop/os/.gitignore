@@ -1,5 +1,7 @@
 # The release .deb is downloaded by CI into this folder — never committed.
 deb/
+# The release tarball payload unpacked by CI into mkosi.extra/opt/general-bots.
+mkosi.extra/opt/
 # Build outputs of local mkosi runs (mkosi.out/, work/, tools trees).
 mkosi.out/
 work/

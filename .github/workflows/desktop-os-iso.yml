@@ -5,15 +5,16 @@ name: General Bots OS (kiosk appliance image)
 # display manager, no user shell. Recipe: desktop/os/README.md.
 #
 # Per project rules there is NO source build here: the workflow downloads
-# the desktop edition .deb from the GitHub release channel (tag or latest)
-# and mkosi bakes it into the appliance image. The mkosi build always runs
-# inside a privileged debian:trixie container so the recipe is pinned to
-# mkosi 27 same-tree semantics (the host runner's mkosi is not used).
+# the desktop edition release tarball (generalbots-linux-x86_64.tar.gz — the
+# always-present artifact; the .deb/rpm/AppImage bundler step is best-effort
+# and has historically produced nothing), unpacks it into
+# desktop/os/mkosi.extra/opt/general-bots/ and lets mkosi bake the image
+# inside a privileged debian:trixie container (mkosi 27, same tree as the
+# target; the host runner's mkosi is not used).
 #
 # Artifacts (workflow-level):
 #   generalbots-os.iso — hybrid ISO (El Torito), when the build env's
-#                        systemd-repart is ≥ 261 (mkosi.torito gates on the
-#                        running systemd version for us)
+#                        systemd-repart is ≥ 261 (mkosi.conf.d gate)
 #   generalbots-os.img — GPT disk image, UEFI-bootable (dd), produced when
 #                        the ISO gate does not match
 #   SHA256SUMS-os, vm-smoke.log
@@ -26,7 +27,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: "Release to take the .deb from ('latest' or e.g. v6.7.0)"
+        description: "Release to take the tarball from ('latest' or e.g. v6.7.0)"
         required: false
         default: "latest"
         type: string
@@ -48,20 +49,31 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: Fetch the release .deb into the mkosi package directory
+      - name: Fetch and unpack the release tarball into the image payload
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # "latest" means "the newest release whose assets actually carry
+          # the desktop tarball" — a plain latest/download URL 404s on the
+          # ALM tags (botserver/botui assets only).
           REL="${{ github.event.inputs.release }}"
           if [ -z "$REL" ] || [ "$REL" = "latest" ]; then
-            SRC="releases/latest/download"
-          else
-            SRC="releases/download/${REL}"
+            REL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | python3 -c 'import json,sys; print(next((r["tag_name"] for r in json.load(sys.stdin) if any(a["name"] == "generalbots-linux-x86_64.tar.gz" for a in r["assets"])), ""))')
+            test -n "$REL" || { echo 'no release carries generalbots-linux-x86_64.tar.gz' >&2; exit 1; }
+            echo "using release $REL"
           fi
-          mkdir -p desktop/os/deb
-          curl -fL -o desktop/os/deb/generalbots-linux-x86_64.deb \
-            "https://github.com/generalbots/generalbots/${SRC}/generalbots-linux-x86_64.deb"
-          file desktop/os/deb/generalbots-linux-x86_64.deb | grep -q "Debian binary package"
-          sha256sum desktop/os/deb/generalbots-linux-x86_64.deb
+          mkdir -p desktop/os/mkosi.extra/opt/general-bots
+          curl -fL -o /tmp/general-bots.tar.gz \
+            "https://github.com/${GITHUB_REPOSITORY}/releases/download/${REL}/generalbots-linux-x86_64.tar.gz"
+          tar -xzf /tmp/general-bots.tar.gz \
+            -C desktop/os/mkosi.extra/opt/general-bots --strip-components=1
+          test -x desktop/os/mkosi.extra/opt/general-bots/start.sh
+          test -x desktop/os/mkosi.extra/opt/general-bots/generalbots
+          test -d desktop/os/mkosi.extra/opt/general-bots/ui/suite
+          du -sh desktop/os/mkosi.extra/opt/general-bots
 
       - name: Build the image and boot-test it (mkosi inside Debian trixie)
         run: |
@@ -83,7 +95,7 @@ jobs:
               mkosi --version
               # Same gate as mkosi.conf.d/10-eltorito.conf: name the artifact
               # for what it will contain. The [Match] rule keys on the same
-              # host systemd-repart version (>= 261 = El Torito support).
+              # systemd-repart version (>= 261 = El Torito support).
               SYSTEMDVER=$(systemctl --version | awk "NR==1{print \$2}")
               if awk "BEGIN{exit !($SYSTEMDVER >= 261)}"; then
                 DEST=generalbots-os.iso

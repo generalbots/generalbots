@@ -24,25 +24,41 @@ When comparing the two shell-replacement options, option **B** won:
 |---|---|
 | `mkosi.conf` | Debian trixie appliance: GPT disk image, bootable, 16G grow-on-boot |
 | `mkosi.conf.d/10-eltorito.conf` | auto-upgrades the artifact to a **real hybrid .iso** (El Torito) when the build env's systemd-repart is ≥ 261; skipped cleanly otherwise |
+| `mkosi.extra/opt/general-bots/` | the release tarball payload, unpacked by CI (gitignored) |
 | `mkosi.extra/etc/sysusers.d/generalbots-kiosk.conf` | creates `gbdesk` (nologin, video/render groups) |
-| `mkosi.extra/usr/lib/systemd/system/generalbots-shell.service` | the OS "shell": dbus run-session → cage → `/usr/bin/generalbots` |
-| `mkosi.finalize.chroot` | masks `getty@tty1` + rescue/emergency, enables the service units, resolves the shell binary path defensively |
-| `deb/` | CI drops the release `.deb` here (never committed, see `.gitignore`) |
+| `mkosi.extra/usr/lib/systemd/system/generalbots-shell.service` | the OS "shell": dbus run-session → cage → `/opt/general-bots/start.sh` |
+| `mkosi.finalize.chroot` | validates the payload, masks `getty@tty1` + rescue/emergency, enables the units, creates the kiosk state dir |
+
+Why the **tarball** and not the `.deb`: the distro package step in
+`desktop-binaries.yml` is `continue-on-error` and has never produced a
+`.deb`/`.rpm`/`.AppImage` asset (checked across all releases); the tarball
+`generalbots-linux-x86_64.tar.gz` is the artifact that always exists.
 
 ## CI
 
 `.github/workflows/desktop-os-iso.yml`:
 
-1. downloads `generalbots-linux-x86_64.deb` from a GitHub release (`latest` or a tag) — **no source build, binaries come from the release channel**;
-2. runs `mkosi build` inside a **privileged `debian:trixie` container** (mkosi 27.1 straight from Debian's repos, full toolchain self-consistent; the privileged container lifts the host's unprivileged-userns AppArmor restriction);
-3. names the artifact `generalbots-os.iso` (hybrid ISO via El Torito, when trixie's systemd-repart ≥ 261 — the current case) or `generalbots-os.img` (UEFI bootable GPT image otherwise), brackets to the same gate as `mkosi.conf.d/10-eltorito.conf`;
-4. runs the best-effort **QEMU boot smoke** (`mkosi vm`, text serial console — logs kernel, systemd journal and the kiosk shell startup; never blocks publication, log always uploaded);
+1. resolves the newest release that actually carries
+   `generalbots-linux-x86_64.tar.gz` (`latest` or an explicit tag) and
+   unpacks it under `desktop/os/mkosi.extra/opt/general-bots/` — **no source
+   build, binaries come from the release channel**;
+2. runs `mkosi build` inside a **privileged `debian:trixie` container**
+   (mkosi 27.1 straight from Debian's repos, full toolchain self-consistent;
+   the privileged container lifts the host's unprivileged-userns AppArmor
+   restriction);
+3. names the artifact `generalbots-os.iso` (hybrid ISO via El Torito, when
+   trixie's systemd-repart ≥ 261 — the current case) or `generalbots-os.img`
+   (UEFI bootable GPT image otherwise), bracketed to the same gate as
+   `mkosi.conf.d/10-eltorito.conf`;
+4. runs the best-effort **QEMU boot smoke** (`mkosi vm`, text serial console
+   — logs kernel, systemd journal and the kiosk shell startup; never blocks
+   publication, log always uploaded);
 5. publishes the image plus `SHA256SUMS-os` as workflow artifacts.
 
 ## Install / run
 
 ```bash
-# from a release artifact — hybrid ISO when the build env had systemd ≥ 261:
+# from the artifact — hybrid ISO when the build env had systemd ≥ 261:
 dd if=generalbots-os.iso of=/dev/sdX bs=4M oflag=direct status=progress
 # older build env → GPT disk image, same content:
 dd if=generalbots-os.img of=/dev/sdX bs=4M oflag=direct status=progress
@@ -61,6 +77,7 @@ shell). A crash respawns the shell; there is no console login on the box.
 
 1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates
    via systemd-sysupdate once the image ships as a real kernel).
-2. Swap the `deb/` fetch for a **pinned tag** + checksum for reproducible
-   image builds.
-3. `mkosi.burn`/`mkosiios` wrappers for real appliances.
+2. Swap the "newest release carrying the tarball" resolution for a **pinned
+   tag + checksum** for reproducible image builds.
+3. Drop in the vendored installers (`installers/` in the tarball directory)
+   for an offline-first appliance that needs no internet on first boot.
