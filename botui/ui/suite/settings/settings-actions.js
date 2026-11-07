@@ -200,6 +200,53 @@
         showToast(checkbox.checked ? 'Push notifications enabled' : 'Push notifications disabled');
     };
 
+    // #1816 — Desktop notifications toggle: persists the preference and
+    // exposes a helper other modules can consult before firing a Notification.
+    window.toggleDesktopNotifications = function (checkbox) {
+        persistPref('gb-desktop-notifications', checkbox.checked);
+        showToast(checkbox.checked ? 'Desktop notifications enabled' : 'Desktop notifications disabled');
+    };
+
+    /** Returns true when desktop notifications are allowed by the user
+     *  preference.  Defaults to true when no preference has been saved. */
+    window.gbDesktopNotificationsEnabled = function () {
+        var stored = localStorage.getItem('gb-desktop-notifications');
+        return stored === null || stored === 'true';
+    };
+
+    // #1816 — Badge count toggle: persists preference and forwards to the
+    // Tauri set_badge_count API when running inside the desktop shell.
+    window.toggleBadgeCount = function (checkbox) {
+        persistPref('gb-badge-count', checkbox.checked);
+        // When disabling, clear the badge immediately via Tauri if available.
+        if (!checkbox.checked) {
+            try {
+                var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+                if (tauri && tauri.invoke) {
+                    tauri.invoke('set_badge_count', { count: 0 }).catch(function () {});
+                }
+            } catch (e) { /* not in Tauri shell */ }
+        }
+        showToast(checkbox.checked ? 'Badge count enabled' : 'Badge count disabled');
+    };
+
+    /** Returns true when badge count display is allowed by the user. */
+    window.gbBadgeCountEnabled = function () {
+        var stored = localStorage.getItem('gb-badge-count');
+        return stored === null || stored === 'true';
+    };
+
+    /** Set the app badge count, respecting the user preference. */
+    window.gbSetBadgeCount = function (count) {
+        if (!window.gbBadgeCountEnabled()) return;
+        try {
+            var tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+            if (tauri && tauri.invoke) {
+                tauri.invoke('set_badge_count', { count: count || 0 }).catch(function () {});
+            }
+        } catch (e) { /* not in Tauri shell */ }
+    };
+
     // Cloud portal deep-link for Billing (plans, subscription, invoices live
     // on the cloud host, not in the suite) (#1339).
     window.openCloudBilling = function () {

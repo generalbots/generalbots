@@ -83,8 +83,14 @@
       const sessionsEl = document.getElementById("timerSessions");
       if (sessionsEl) sessionsEl.textContent = sessions + " session" + (sessions === 1 ? "" : "s") + " completed";
       if (window.GBToasts) {
-        window.GBToasts.show("Timer", "Time's up! Take a break. 🎉", "success");
-      } else {
+        window.GBToasts.show("Timer", "Time's up! Take a break.", "success");
+      }
+      // #1816: honour the desktop-notifications preference before firing a
+      // native Notification.
+      var notifAllowed = typeof window.gbDesktopNotificationsEnabled === "function"
+        ? window.gbDesktopNotificationsEnabled()
+        : localStorage.getItem("gb-desktop-notifications") !== "false";
+      if (notifAllowed) {
         try { new Notification("Timer", { body: "Time's up!" }); } catch (e) {}
       }
     }

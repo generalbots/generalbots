@@ -213,30 +213,48 @@ function pushManagerAvailable() {
     "Notification" in window
   );
 }
+function fetchVapidKey() {
+  return fetch("/api/notifications/push/vapid-key")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) { return data && data.key ? data.key : null; })
+    .catch(function () { return null; });
+}
 function requestPushPermissionAndSubscribe() {
   if (!pushManagerAvailable()) {
     showToast("Push notifications are not supported in this browser");
     return Promise.resolve();
   }
-  return Notification.requestPermission().then(function (perm) {
-    if (perm !== "granted") {
-      showToast("Push notifications blocked by the browser");
+  // #1816: fetch the VAPID public key from the server first.  When no key is
+  // configured (common in the desktop-local build) we skip the subscription
+  // with a friendly message instead of crashing on null applicationServerKey.
+  return fetchVapidKey().then(function (vapidKey) {
+    if (!vapidKey) {
+      showToast("Push notifications are not yet available in the desktop edition");
       return Promise.resolve();
     }
-    return navigator.serviceWorker.ready.then(function (reg) {
-      return reg.pushManager
-        .subscribe({ userVisibleOnly: true, applicationServerKey: null })
-        .then(function (sub) {
-          return fetch("/api/notifications/push/register", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + getAuthToken(),
-            },
-            body: JSON.stringify(sub),
+    return Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") {
+        showToast("Push notifications blocked by the browser");
+        return Promise.resolve();
+      }
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager
+          .subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey })
+          .then(function (sub) {
+            return fetch("/api/notifications/push/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getAuthToken(),
+              },
+              body: JSON.stringify(sub),
+            });
           });
-        });
+      });
     });
+  }).catch(function (err) {
+    showToast("Push subscription failed: " + (err.message || "unknown error"));
+    return Promise.resolve();
   });
 }
 function unregisterPushSubscription() {
