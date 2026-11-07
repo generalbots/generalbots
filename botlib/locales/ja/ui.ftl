@@ -1846,6 +1846,7 @@ settings-vibe = Vibe
 settings-memory = メモリ
 settings-administration = 管理
 settings-users = ユーザー
+settings-versions = バージョン
 settings-audit = 監査ログ
 settings-bots = ボット
 settings-groups = グループ

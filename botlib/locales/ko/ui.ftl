@@ -1846,6 +1846,7 @@ settings-vibe = Vibe
 settings-memory = 메모리
 settings-administration = 관리
 settings-users = 사용자
+settings-versions = 버전
 settings-audit = 감사 로그
 settings-bots = 봇
 settings-groups = 그룹
