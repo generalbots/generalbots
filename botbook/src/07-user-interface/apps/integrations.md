@@ -36,6 +36,12 @@ Browse and activate connectors for external services:
 | **Databases** | PostgreSQL, MySQL, MongoDB |
 | **Social** | Instagram, Facebook, Twitter |
 
+Every catalog entry ships a vendor help link ("Open official documentation")
+and a numbered credential setup guide that walks through where to create the
+key or OAuth app, which scope to grant, where to paste it, and when to rotate
+it. The guide is read-only: secrets are submitted through the connect form and
+stored in the vault, never shown back in the detail panel.
+
 ### Connected Services
 
 Manage your active integrations:

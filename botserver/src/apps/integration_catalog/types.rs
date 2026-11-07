@@ -129,6 +129,10 @@ pub struct AuthProfile {
     pub method: AuthMethod,
     pub fields: &'static [AuthField],
     pub instructions: &'static str,
+    /// Numbered credential setup guide rendered as an ordered list in the
+    /// Integrations detail panel. Kept separate from `instructions` so the
+    /// vendor-specific summary stays readable in the API payload.
+    pub setup_steps: &'static [&'static str],
     pub least_privilege: &'static str,
 }
 
