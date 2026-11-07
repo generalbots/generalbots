@@ -101,18 +101,23 @@ jobs:
               mkosi --output-dir /out build
               RAW=$(ls /out/generalbots-os*.raw 2>/dev/null | head -n1)
               test -n "$RAW" || { echo "mkosi produced no .raw output" >&2; exit 1; }
-              # El Torito is always on (mkosi.conf), so the raw file is a
-              # hybrid ISO image; give it the name people expect.
-              mv "$RAW" /out/generalbots-os.iso
-              # Boot smoke (best effort): the plain vm verb boots with a text
-              # console — kernel, systemd journal and (if everything works)
-              # the kiosk shell start line land in the log.
-              if timeout 300 mkosi --output-dir /out vm > /out/vm-smoke.log 2>&1; then
-                echo "boot smoke: green"
-                grep -a -m1 "Started General Bots kiosk shell" /out/vm-smoke.log || true
+              # Boot smoke (best effort) on the ORIGINAL output name — mkosi
+              # vm resolves the image from the config output, so the rename
+              # to .iso must happen afterwards. The plain vm verb boots with
+              # a text console: kernel, systemd journal and (if everything
+              # works) the kiosk shell start line land in the log. timeout
+              # always fires (the VM keeps running), so the marker decides.
+              timeout 420 mkosi --output-dir /out vm > /out/vm-smoke.log 2>&1 || true
+              if grep -aq "Started General Bots kiosk shell" /out/vm-smoke.log; then
+                echo "boot smoke: green (kiosk shell started)"
               else
-                echo "::warning::boot smoke did not finish/confirm — inspect /out/vm-smoke.log"
+                echo "::warning::boot smoke did not confirm the kiosk shell — last log lines follow"
+                tail -80 /out/vm-smoke.log || true
               fi
+              # El Torito is always on (mkosi.conf): the raw file is a hybrid
+              # ISO image; give it the name people expect.
+              mv "$RAW" /out/generalbots-os.iso
+              rm -f /out/generalbots-os
             '
 
       - name: Checksums
