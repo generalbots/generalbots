@@ -23,17 +23,22 @@ pub async fn ensure_llama_servers_running(
 
     let config_values = {
         let conn_arc = app_state.conn.clone();
-        let (default_bot_id, _default_bot_name) = tokio::task::spawn_blocking(move || -> Result<(uuid::Uuid, String), String> {
-            let mut conn = conn_arc
-                .get()
-                .map_err(|e| format!("failed to get db connection: {e}"))?;
-            Ok(botcore::bot::get_default_bot(&mut conn))
-        })
-        .await??;
+        let (default_bot_id, _default_bot_name) =
+            tokio::task::spawn_blocking(move || -> Result<(uuid::Uuid, String), String> {
+                let mut conn = conn_arc
+                    .get()
+                    .map_err(|e| format!("failed to get db connection: {e}"))?;
+                Ok(botcore::bot::get_default_bot(&mut conn))
+            })
+            .await??;
         let config_manager = ConfigManager::new(app_state.conn.clone());
         info!("Reading config for bot_id: {}", default_bot_id);
-        let embedding_model_result = config_manager.get_config(&default_bot_id, "embedding-model", None);
-        info!("embedding-model config result: {:?}", embedding_model_result);
+        let embedding_model_result =
+            config_manager.get_config(&default_bot_id, "embedding-model", None);
+        info!(
+            "embedding-model config result: {:?}",
+            embedding_model_result
+        );
         (
             default_bot_id,
             config_manager
@@ -73,17 +78,17 @@ pub async fn ensure_llama_servers_running(
         llm_server_path
     };
 
-let llm_url = if llm_url.is_empty() && llm_server_enabled {
-    let url = "http://localhost:8081/v1/chat/completions".to_string();
-    info!("No llm-url configured with local server enabled, using default: {url}");
-    let config_manager = ConfigManager::new(app_state.conn.clone());
-    if let Err(e) = config_manager.set_config(&default_bot_id, "llm-url", &url) {
-        warn!("Failed to persist default llm-url: {e}");
-    }
-    url
-} else {
-    llm_url
-};
+    let llm_url = if llm_url.is_empty() && llm_server_enabled {
+        let url = "http://localhost:8081/v1/chat/completions".to_string();
+        info!("No llm-url configured with local server enabled, using default: {url}");
+        let config_manager = ConfigManager::new(app_state.conn.clone());
+        if let Err(e) = config_manager.set_config(&default_bot_id, "llm-url", &url) {
+            warn!("Failed to persist default llm-url: {e}");
+        }
+        url
+    } else {
+        llm_url
+    };
 
     // Use config values, fallback to safe defaults for local development
     let llm_model = if llm_model.is_empty() {
@@ -116,7 +121,10 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
     // rejoin under the stack data dir so the path resolves on any layout.
     let stack_path = botcore::shared::utils::get_stack_path();
     let llm_model_path = format!("{stack_path}/data/llm/{}", model_file_name(&llm_model));
-    let embedding_model_path = format!("{stack_path}/data/llm/{}", model_file_name(&embedding_model));
+    let embedding_model_path = format!(
+        "{stack_path}/data/llm/{}",
+        model_file_name(&embedding_model)
+    );
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
@@ -199,8 +207,22 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
             )));
         } else {
             warn!(
-                "Embedding model '{embedding_model}' is not installed at {embedding_model_path}; skipping the local embedding server (embeddings use the configured remote provider)"
+                "Embedding model '{embedding_model}' is not installed at {embedding_model_path}; skipping the local embedding server"
             );
+            // A local embedding URL is only useful when this server is running.
+            // Leaving localhost:8082 configured made RAG wait on (and fail
+            // against) a dead port on desktop installs with a hosted provider
+            // (#1799). Clearing it makes KB/RAG use the deterministic local
+            // hash fallback instead.
+            if is_loopback_url(&embedding_url) {
+                let config_manager = ConfigManager::new(app_state.conn.clone());
+                match config_manager.set_config(&default_bot_id, "embedding-url", "") {
+                    Ok(()) => info!(
+                        "Cleared local embedding-url ({embedding_url}); embeddings fall back to the local hash"
+                    ),
+                    Err(e) => warn!("Failed to clear local embedding-url: {e}"),
+                }
+            }
         }
     } else if embedding_model.is_empty() {
         info!("EMBEDDING_MODEL not set, skipping Embedding server");

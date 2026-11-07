@@ -2,6 +2,11 @@ use super::*;
 
 impl KbEmbeddingGenerator {
     pub async fn generate_single_embedding(&self, text: &str) -> Result<Embedding> {
+        if !self.has_embedding_endpoint() {
+            trace!("No embedding endpoint configured; using the local hash fallback");
+            return Ok(self.hash_embedding_for(text));
+        }
+
         if !self.check_health().await {
             return Err(anyhow::anyhow!(
                 "Embedding server not available at {}",

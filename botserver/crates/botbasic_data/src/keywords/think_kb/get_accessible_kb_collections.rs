@@ -9,7 +9,11 @@ pub(super) fn get_accessible_kb_collections(
         return Ok(Vec::new());
     }
 
-    let id_str: String = accessible_ids.iter().map(|id| format!("'{}'", id)).collect::<Vec<_>>().join(",");
+    let id_str: String = accessible_ids
+        .iter()
+        .map(|id| format!("'{}'", id))
+        .collect::<Vec<_>>()
+        .join(",");
 
     let query_str = format!(
         "SELECT name, qdrant_collection, document_count FROM kb_collections WHERE bot_id = $1 AND id IN ({})",
@@ -58,15 +62,12 @@ pub(super) fn get_kb_memory_stats(
     .map(|r| r.count)
     .unwrap_or(0);
 
-    let total_consolidations: i64 = diesel::sql_query(
-        "SELECT COUNT(*) as count FROM kb_consolidations WHERE bot_id = $1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .get_result::<CountRow>(conn)
-    .map(|r| r.count)
-    .unwrap_or(0);
-
-
+    let total_consolidations: i64 =
+        diesel::sql_query("SELECT COUNT(*) as count FROM kb_consolidations WHERE bot_id = $1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .get_result::<CountRow>(conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
 
     let unconsolidated: i64 = diesel::sql_query(
         "SELECT COUNT(*) as count FROM drive_files WHERE file_path LIKE $1 AND file_type = 'kb' AND indexed = true
@@ -105,11 +106,22 @@ pub(super) async fn search_qdrant_with_real_embeddings(
 
     let client = botlib::security::create_tls_client(None);
 
-    let check_url = format!("{}/collections/{}", qdrant_url.trim_end_matches('/'), collection_name);
-    let dim = match client.get(&check_url).header("api-key", &api_key).send().await {
+    let check_url = format!(
+        "{}/collections/{}",
+        qdrant_url.trim_end_matches('/'),
+        collection_name
+    );
+    let dim = match client
+        .get(&check_url)
+        .header("api-key", &api_key)
+        .send()
+        .await
+    {
         Ok(r) if r.status().is_success() => {
             let info: serde_json::Value = r.json().await.unwrap_or_default();
-            info["result"]["config"]["params"]["vectors"]["size"].as_u64().map(|d| d as usize)
+            info["result"]["config"]["params"]["vectors"]["size"]
+                .as_u64()
+                .map(|d| d as usize)
         }
         _ => None,
     };
@@ -119,35 +131,43 @@ pub(super) async fn search_qdrant_with_real_embeddings(
     let vector = {
         let config = botcore::kb::EmbeddingConfig::from_bot_config(db_pool, &bot_id);
         if config.embedding_url.is_empty() {
-            generate_hash_embedding(query, dimensions)
+            botcore::kb::embedding_generator::hash_embedding(query, dimensions)
         } else {
             let generator = botcore::kb::KbEmbeddingGenerator::new(config);
             match generator.generate_single_embedding(query).await {
                 Ok(embedding) => embedding.vector,
                 Err(e) => {
-                    warn!("THINK KB: embedding generation failed ({}), using hash fallback", e);
-                    generate_hash_embedding(query, dimensions)
+                    warn!(
+                        "THINK KB: embedding generation failed ({}), using hash fallback",
+                        e
+                    );
+                    botcore::kb::embedding_generator::hash_embedding(query, dimensions)
                 }
             }
         }
     };
 
-    let search_url = format!("{}/collections/{}/points/search", qdrant_url.trim_end_matches('/'), collection_name);
-    let mut request = client
-        .post(&search_url)
-        .json(&serde_json::json!({
-            "limit": limit,
-            "with_vector": false,
-            "with_payload": true,
-            "params": { "hnsw_ef": 128, "exact": false },
-            "vector": vector
-        }));
+    let search_url = format!(
+        "{}/collections/{}/points/search",
+        qdrant_url.trim_end_matches('/'),
+        collection_name
+    );
+    let mut request = client.post(&search_url).json(&serde_json::json!({
+        "limit": limit,
+        "with_vector": false,
+        "with_payload": true,
+        "params": { "hnsw_ef": 128, "exact": false },
+        "vector": vector
+    }));
 
     if !api_key.is_empty() {
         request = request.header("api-key", &api_key);
     }
 
-    let response = request.send().await.map_err(|e| format!("Qdrant request failed: {e}"))?;
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("Qdrant request failed: {e}"))?;
 
     if response.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(Vec::new());
@@ -157,7 +177,10 @@ pub(super) async fn search_qdrant_with_real_embeddings(
         return Ok(Vec::new());
     }
 
-    let result: serde_json::Value = response.json().await.map_err(|e| format!("Qdrant parse error: {e}"))?;
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Qdrant parse error: {e}"))?;
 
     let points = result["result"].as_array().cloned().unwrap_or_default();
 
@@ -170,13 +193,21 @@ pub(super) async fn search_qdrant_with_real_embeddings(
 
         let payload = point.get("payload");
         let content = payload
-            .and_then(|p| p.get("content").or_else(|| p.get("text")).or_else(|| p.get("data")))
+            .and_then(|p| {
+                p.get("content")
+                    .or_else(|| p.get("text"))
+                    .or_else(|| p.get("data"))
+            })
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
 
         let source = payload
-            .and_then(|p| p.get("document_path").or_else(|| p.get("source")).or_else(|| p.get("file")))
+            .and_then(|p| {
+                p.get("document_path")
+                    .or_else(|| p.get("source"))
+                    .or_else(|| p.get("file"))
+            })
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
@@ -194,25 +225,11 @@ pub(super) async fn search_qdrant_with_real_embeddings(
 
     Ok(results)
 }
-pub(super) fn fnv1a_hash(text: &str, salt: usize) -> u64 {
-    let mut hash: u64 = 14695981039346656037;
-    for &b in text.as_bytes() {
-        hash ^= b as u64;
-        hash = hash.wrapping_mul(1099511628211);
-    }
-    hash ^= salt as u64;
-    hash = hash.wrapping_mul(1099511628211);
-    hash
-}
-pub(super) fn generate_hash_embedding(text: &str, dimensions: usize) -> Vec<f32> {
-    let mut embedding = Vec::with_capacity(dimensions);
-    for i in 0..dimensions {
-        let hash = fnv1a_hash(text, i);
-        embedding.push((hash as f32) / (u64::MAX as f32) * 2.0 - 1.0);
-    }
-    embedding
-}
-pub(super) fn calculate_confidence(avg_score: f32, total_results: usize, consolidation_count: usize) -> f32 {
+pub(super) fn calculate_confidence(
+    avg_score: f32,
+    total_results: usize,
+    consolidation_count: usize,
+) -> f32 {
     let score_factor = avg_score;
     let result_factor = (total_results as f32 / 10.0).min(1.0) * 0.3;
     let consolidation_factor = (consolidation_count as f32 / 5.0).min(1.0) * 0.2;
