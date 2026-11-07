@@ -197,7 +197,8 @@ mod tests {
 
     #[test]
     fn reports_truncation() {
-        let err = parse_args("{\"language\":\"python\",\"code\":\"print(1)").expect_err("truncated");
+        let err =
+            parse_args("{\"language\":\"python\",\"code\":\"print(1)").expect_err("truncated");
         assert!(err.contains("truncated"), "got: {err}");
     }
 

@@ -48,9 +48,7 @@ fn scrub_security(value: &mut Value) {
 
 pub(super) fn pipeline() -> &'static Arc<EventPipeline> {
     static PIPELINE: OnceLock<Arc<EventPipeline>> = OnceLock::new();
-    PIPELINE.get_or_init(|| {
-        Arc::new(EventPipeline::new(Arc::new(SecurityRedactor::new())))
-    })
+    PIPELINE.get_or_init(|| Arc::new(EventPipeline::new(Arc::new(SecurityRedactor::new()))))
 }
 
 /// Keeps the in-process sequencer ahead of a sequence number persisted out of

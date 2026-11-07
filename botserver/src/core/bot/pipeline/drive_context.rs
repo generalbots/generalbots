@@ -28,8 +28,8 @@ const SEARCH_BUDGET: Duration = Duration::from_secs(8);
 
 /// Extensions whose bytes are worth sending to a language model as text.
 const TEXT_EXTENSIONS: &[&str] = &[
-    "txt", "md", "csv", "tsv", "json", "jsonl", "html", "htm", "xml", "yaml", "yml",
-    "log", "ini", "toml", "sql", "py", "js", "ts", "rs", "sh", "bas", "rst",
+    "txt", "md", "csv", "tsv", "json", "jsonl", "html", "htm", "xml", "yaml", "yml", "log", "ini",
+    "toml", "sql", "py", "js", "ts", "rs", "sh", "bas", "rst",
 ];
 
 #[derive(Clone, Debug)]
@@ -72,13 +72,12 @@ fn user_prefix(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
         email: String,
     }
     let mut conn = state.conn.get().ok()?;
-    let row: Option<EmailRow> =
-        diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
-            .bind::<SqlUuid, _>(user_id)
-            .get_result(&mut conn)
-            .optional()
-            .ok()
-            .flatten();
+    let row: Option<EmailRow> = diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
+        .bind::<SqlUuid, _>(user_id)
+        .get_result(&mut conn)
+        .optional()
+        .ok()
+        .flatten();
     let email = row?.email;
     if email.trim().is_empty() {
         return None;
@@ -86,11 +85,7 @@ fn user_prefix(state: &Arc<AppState>, user_id: Uuid) -> Option<String> {
     Some(format!("users/{}/", email.trim()))
 }
 
-async fn indexed_docs(
-    state: &Arc<AppState>,
-    bucket: &str,
-    prefix: &str,
-) -> Vec<IndexedDoc> {
+async fn indexed_docs(state: &Arc<AppState>, bucket: &str, prefix: &str) -> Vec<IndexedDoc> {
     let cache_key = format!("{bucket}/{prefix}");
     if let Ok(guard) = cache().lock() {
         if let Some((at, docs)) = guard.get(&cache_key) {
@@ -103,10 +98,7 @@ async fn indexed_docs(
         Some(drive) => drive,
         None => return Vec::new(),
     };
-    let listed = match drive
-        .list_objects_with_metadata(bucket, Some(prefix))
-        .await
-    {
+    let listed = match drive.list_objects_with_metadata(bucket, Some(prefix)).await {
         Ok(objects) => objects,
         Err(e) => {
             log::info!("drive context: list {prefix} failed: {e}");
@@ -139,13 +131,7 @@ fn rank(docs: &[IndexedDoc], words: &[String]) -> Vec<IndexedDoc> {
             let name = doc.relative.to_lowercase();
             let score: usize = words
                 .iter()
-                .map(|word| {
-                    if name.contains(word.as_str()) {
-                        4
-                    } else {
-                        0
-                    }
-                })
+                .map(|word| if name.contains(word.as_str()) { 4 } else { 0 })
                 .sum();
             (score > 0).then_some((score, doc))
         })

@@ -32,14 +32,18 @@ async fn get_session_tools_with_timeout(
         tokio::task::spawn_blocking(move || {
             crate::core::bot::tool_context::get_session_tools(&pool, &name, &sid_for_block)
         }),
-    ).await {
+    )
+    .await
+    {
         Ok(Ok(Ok(tools))) => tools,
         Ok(Ok(Err(e))) => {
             botlog::safe_warn!("get_session_tools error for {session_id_s}: {e}");
             Vec::new()
         }
         Ok(Err(e)) => {
-            botlog::safe_warn!("get_session_tools spawn_blocking join error for {session_id_s}: {e}");
+            botlog::safe_warn!(
+                "get_session_tools spawn_blocking join error for {session_id_s}: {e}"
+            );
             Vec::new()
         }
         Err(_) => {
@@ -60,7 +64,8 @@ fn llm_empty_message() -> String {
     let locale = botcore::i18n::Locale::new("pt-BR").unwrap_or_default();
     let msg = botcore::i18n::t(&locale, "error-llm-empty-response");
     if msg.starts_with('[') && msg.ends_with(']') {
-        "Sorry, I could not process your message right now. Please try again in a few seconds.".to_string()
+        "Sorry, I could not process your message right now. Please try again in a few seconds."
+            .to_string()
     } else {
         msg
     }

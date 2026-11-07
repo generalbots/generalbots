@@ -23,4 +23,7 @@ pub use context::RunContext;
 pub use emit::{can_emit, emit, emit_custom};
 pub use lifecycle::{run_error, run_finished, run_started};
 pub use redactor::{enabled, observe_persisted_seq};
-pub use steps::{step_finished, step_started, text_delta, text_end, tool_result, tool_started};
+pub use steps::{
+    step_finished, step_finished_with, step_started, step_started_with, text_delta, text_end,
+    tool_result, tool_started,
+};

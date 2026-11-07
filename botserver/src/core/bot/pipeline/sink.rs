@@ -9,7 +9,9 @@ pub trait ChannelSink: Send + Sync {
 
     async fn send_raw_json(&self, json: &serde_json::Value) -> PipelineResult<()> {
         let _ = json;
-        Err(PipelineError::Transport("raw JSON not supported by this channel".into()))
+        Err(PipelineError::Transport(
+            "raw JSON not supported by this channel".into(),
+        ))
     }
 
     async fn send_error(&self, session_id: &str, message: &str) -> PipelineResult<()>;
@@ -31,7 +33,9 @@ pub struct MpscChannelSink(pub tokio::sync::mpsc::Sender<BotResponse>);
 #[async_trait]
 impl ChannelSink for MpscChannelSink {
     async fn send_bot_response(&self, response: &BotResponse) -> PipelineResult<()> {
-        self.0.send(response.clone()).await
+        self.0
+            .send(response.clone())
+            .await
             .map_err(|_| PipelineError::Transport("mpsc send failed".into()))?;
         Ok(())
     }
@@ -41,6 +45,10 @@ impl ChannelSink for MpscChannelSink {
         self.send_bot_response(&resp).await
     }
 
-    fn channel_type(&self) -> &str { "mpsc" }
-    fn supports_streaming(&self) -> bool { true }
+    fn channel_type(&self) -> &str {
+        "mpsc"
+    }
+    fn supports_streaming(&self) -> bool {
+        true
+    }
 }

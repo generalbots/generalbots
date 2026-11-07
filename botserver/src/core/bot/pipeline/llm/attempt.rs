@@ -74,10 +74,17 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
     let spawn_key = key.to_string();
     let spawn_tools = tools.clone();
     let _handle = tokio::spawn(async move {
-        if let Err(e) = spawn_llm.generate_stream(
-            &spawn_prompt, &spawn_messages, retry_tx,
-            &spawn_model, &spawn_key, spawn_tools.as_ref(),
-        ).await {
+        if let Err(e) = spawn_llm
+            .generate_stream(
+                &spawn_prompt,
+                &spawn_messages,
+                retry_tx,
+                &spawn_model,
+                &spawn_key,
+                spawn_tools.as_ref(),
+            )
+            .await
+        {
             log::error!("LLM stream error: {e}");
         }
     });

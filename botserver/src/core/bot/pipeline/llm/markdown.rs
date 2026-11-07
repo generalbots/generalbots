@@ -23,7 +23,10 @@ pub(super) fn convert_markdown(content: &str) -> String {
         if trimmed.starts_with("- ") {
             out.push("<ul>".to_string());
             while i < lines.len() && lines[i].trim_start().starts_with("- ") {
-                let li_content = lines[i].trim_start().strip_prefix("- ").unwrap_or(lines[i].trim_start());
+                let li_content = lines[i]
+                    .trim_start()
+                    .strip_prefix("- ")
+                    .unwrap_or(lines[i].trim_start());
                 out.push(format!("<li>{}</li>", li_content));
                 i += 1;
             }

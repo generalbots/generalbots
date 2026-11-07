@@ -20,7 +20,9 @@ pub async fn run_start_bas(
         // two concurrent runs execute the script twice.
         let mut guards = state.start_bas_guards.lock().await;
         if guards.contains_key(&session_id) {
-            log::info!("start.bas execution skipped: session already initialized (in-memory guard)");
+            log::info!(
+                "start.bas execution skipped: session already initialized (in-memory guard)"
+            );
             drop(guards);
             send_start_suggestions(sink, state, bot_uuid, session_id, user_id).await;
             return Ok(false);
@@ -45,7 +47,14 @@ pub async fn run_start_bas(
         }
     }
 
-    let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);
+    let session_init_key = botlib::key_utils::build_key(
+        "",
+        &[
+            "start_bas_executed",
+            &bot_uuid.to_string(),
+            &session_id.to_string(),
+        ],
+    );
     if let Some(ref cache) = state.cache {
         if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
             let _: Result<(), _> = redis::cmd("SET")
@@ -53,7 +62,8 @@ pub async fn run_start_bas(
                 .arg("1")
                 .arg("EX")
                 .arg("259200")
-                .query_async(&mut conn).await;
+                .query_async(&mut conn)
+                .await;
         }
     }
 
@@ -61,12 +71,20 @@ pub async fn run_start_bas(
     let ast_content = {
         let mut found = String::new();
         let rel = format!("{bot_name}.gbdialog/start.ast");
-        if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
-            log::info!("start.bas: found start.ast for {bot_name} ({} bytes)", c.len());
+        if let Some(c) =
+            botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await
+        {
+            log::info!(
+                "start.bas: found start.ast for {bot_name} ({} bytes)",
+                c.len()
+            );
             found = c;
         } else {
             let bas_rel = format!("{bot_name}.gbdialog/start.bas");
-            if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &bas_rel).await {
+            if let Some(c) =
+                botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &bas_rel)
+                    .await
+            {
                 log::info!("start.bas: found start.bas (uncompiled) for {bot_name}");
                 found = c;
             }
@@ -87,7 +105,10 @@ pub async fn run_start_bas(
     let bot_id_for_bas = bot_uuid;
     let channel_name = sink.channel_type().to_string();
     let session_for_bas = botlib::models::UserSession {
-        id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_id_for_bas,
+        id: session_id,
+        user_id,
+        branch_id: Uuid::nil(),
+        bot_id: bot_id_for_bas,
         title: String::new(),
         context_data: serde_json::json!({"channel": channel_name}),
         current_tool: None,
@@ -100,9 +121,14 @@ pub async fn run_start_bas(
         state_for_bas.clone(),
         session_for_bas.clone(),
         &ast_content,
-    ).await;
+    )
+    .await;
     match exec_result {
-        Ok(result) => log::info!("start.bas: execution result (len={}): {}", result.to_string().len(), result),
+        Ok(result) => log::info!(
+            "start.bas: execution result (len={}): {}",
+            result.to_string().len(),
+            result
+        ),
         Err(e) => log::warn!("start.bas: execution error: {e}"),
     }
 
@@ -164,7 +190,10 @@ async fn send_start_suggestions(
             message_type: botlib::message_types::MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: suggestions.into_iter().map(|s| botlib::models::Suggestion::new(s.text)).collect(),
+            suggestions: suggestions
+                .into_iter()
+                .map(|s| botlib::models::Suggestion::new(s.text))
+                .collect(),
             switchers,
             context_name: None,
             context_length: 0,

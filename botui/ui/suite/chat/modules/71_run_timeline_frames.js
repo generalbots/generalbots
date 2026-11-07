@@ -75,6 +75,12 @@
             if (!entry && runId) createCard(runId, Object.assign({}, frame.data || {}, {
                 startedAt: Date.parse(frame.ts) || Date.now(),
             }));
+            // #1807 — infrastructure stages can arrive before RUN_STARTED
+            // (the run card is created by the first STEP frame), so adopt the
+            // real title when the lifecycle frame finally lands.
+            if (entry && frame.data && frame.data.title) {
+                entry.title.textContent = frame.data.title;
+            }
             return;
         }
         if (type === "RUN_FINISHED") {
@@ -96,20 +102,42 @@
         if (!entry) return;
 
         if (type === "STEP_STARTED") {
-            var stepId = (frame.data && frame.data.step_id) || "step";
-            var stepName = (frame.data && frame.data.name) || stepId;
+            var stepData = frame.data || {};
+            var stepId = stepData.step_id || "step";
+            var stepName = stepData.name || stepData.step || stepId;
+            var phase = stepData.phase || "";
+            // #1807 — a workspace stage names itself ("Starting the
+            // workspace", "Installing packages", …) and carries a detail line.
+            // The generic "Answering" step stays out of the rows (the summary
+            // already shows it), except when it describes generation.
+            var stepLabel = phase === "agent" && stepData.detail ? stepData.detail : stepName;
             entry.summary.textContent = stepName;
-            // The only step the pipeline emits is "Answering", and the summary
-            // already shows it. A row with the same word printed the status
-            // twice ("Answering … Answering", #1693).
-            if (stepName.toLowerCase() !== "answering") {
-                row(entry, "step:" + stepId, stepName, "running");
+            if (stepName.toLowerCase() !== "answering" || stepData.detail) {
+                row(entry, "step:" + stepId, stepLabel, "running", {
+                    phase: phase,
+                    detail: stepData.detail || "",
+                    startedAt: Date.now(),
+                });
             }
             return;
         }
         if (type === "STEP_FINISHED") {
-            var doneStep = (frame.data && frame.data.step_id) || "step";
-            row(entry, "step:" + doneStep, doneStep, (frame.data && frame.data.status) || "ok");
+            var doneData = frame.data || {};
+            var doneStep = doneData.step_id || "step";
+            var doneStatus = doneData.status || "ok";
+            var doneLabel = doneData.name || doneData.detail || doneData.step || doneStep;
+            var doneRow = entry.rows.querySelector('[data-row-key="step:' + doneStep + '"]');
+            if (doneRow) {
+                var existingName = doneRow.querySelector(".run-row-name");
+                if (existingName && existingName.textContent) doneLabel = existingName.textContent;
+            }
+            var elapsedMs = doneData.elapsed_ms;
+            if (elapsedMs === undefined || elapsedMs === null) elapsedMs = doneData.duration_ms;
+            row(entry, "step:" + doneStep, doneLabel, doneStatus, {
+                phase: doneData.phase || "",
+                detail: doneData.detail || "",
+                elapsedMs: elapsedMs,
+            });
             return;
         }
         if (type === "TOOL_CALL_START") {

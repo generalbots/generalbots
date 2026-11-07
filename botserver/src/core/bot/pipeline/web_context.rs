@@ -115,17 +115,38 @@ pub async fn search_and_inject(
         Ok(Ok(results)) => results,
         Ok(Err(e)) => {
             log::info!("web context: search failed: {e}");
-            status(sink, bot_uuid, session_id, user_id, "The search failed — answering from what I know.").await;
+            status(
+                sink,
+                bot_uuid,
+                session_id,
+                user_id,
+                "The search failed — answering from what I know.",
+            )
+            .await;
             return Vec::new();
         }
         Err(_) => {
             log::info!("web context: search timed out");
-            status(sink, bot_uuid, session_id, user_id, "The search timed out — answering from what I know.").await;
+            status(
+                sink,
+                bot_uuid,
+                session_id,
+                user_id,
+                "The search timed out — answering from what I know.",
+            )
+            .await;
             return Vec::new();
         }
     };
     if results.is_empty() {
-        status(sink, bot_uuid, session_id, user_id, "No usable sources — answering from what I know.").await;
+        status(
+            sink,
+            bot_uuid,
+            session_id,
+            user_id,
+            "No usable sources — answering from what I know.",
+        )
+        .await;
         return Vec::new();
     }
     // Search engines still return removed articles. A citation the reader
@@ -133,7 +154,14 @@ pub async fn search_and_inject(
     // drop only URLs that answer 404/410 — bot-blocked pages stay.
     let results = drop_dead_sources(results).await;
     if results.is_empty() {
-        status(sink, bot_uuid, session_id, user_id, "No usable sources — answering from what I know.").await;
+        status(
+            sink,
+            bot_uuid,
+            session_id,
+            user_id,
+            "No usable sources — answering from what I know.",
+        )
+        .await;
         return Vec::new();
     }
 
@@ -249,7 +277,10 @@ mod tests {
 
     #[test]
     fn collapses_whitespace() {
-        assert_eq!(normalize_query("  umbrella   weather\n today "), "umbrella weather today");
+        assert_eq!(
+            normalize_query("  umbrella   weather\n today "),
+            "umbrella weather today"
+        );
     }
 
     #[test]
@@ -279,9 +310,6 @@ mod tests {
         assert_eq!(citation["title"], "Umbrella - Wikipedia");
         assert_eq!(citation["url"], "https://en.wikipedia.org/wiki/Umbrella");
         assert_eq!(citation["host"], "en.wikipedia.org");
-        assert_eq!(
-            citation["favicon"],
-            "https://en.wikipedia.org/favicon.ico"
-        );
+        assert_eq!(citation["favicon"], "https://en.wikipedia.org/favicon.ico");
     }
 }

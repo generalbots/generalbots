@@ -27,7 +27,13 @@ fn media_kind(name: &str) -> Option<&'static str> {
 }
 
 fn media_mime(name: &str) -> &'static str {
-    match name.rsplit('.').next().unwrap_or("").to_lowercase().as_str() {
+    match name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
         "gif" => "image/gif",
@@ -54,10 +60,7 @@ fn media_mime(name: &str) -> &'static str {
 /// dev/test deployment sets `BOTMODELS_HOST`/`BOTMODELS_API_KEY` without
 /// rewriting every bot's `config.csv`. BotModels is considered enabled when
 /// the bot says so explicitly or when the environment points at it.
-fn botmodels_endpoint(
-    state: &Arc<AppState>,
-    bot_uuid: Uuid,
-) -> Option<(String, String)> {
+fn botmodels_endpoint(state: &Arc<AppState>, bot_uuid: Uuid) -> Option<(String, String)> {
     use botcore::config::ConfigManager;
     let cfg = ConfigManager::new(state.conn.clone());
 
@@ -224,7 +227,11 @@ pub(super) async fn ingest_attachment(
     }
     AttachmentResult {
         user_text: text,
-        note: if notes.is_empty() { None } else { Some(notes.join("\n\n")) },
+        note: if notes.is_empty() {
+            None
+        } else {
+            Some(notes.join("\n\n"))
+        },
     }
 }
 
@@ -297,9 +304,8 @@ async fn ingest_single_attachment(
             }
             Err(error) => {
                 log::error!("chat attachment store failed: {error}");
-                user_text = format!(
-                    "{user_text}\n\n📎 {fname} (the upload could not be stored: {error})"
-                );
+                user_text =
+                    format!("{user_text}\n\n📎 {fname} (the upload could not be stored: {error})");
             }
         }
     } else {
@@ -346,9 +352,25 @@ pub fn is_informational_request(text: &str) -> bool {
         return false;
     }
     let code_intent = [
-        "code", "script", "program", "python", "node", "shell", "vm_exec",
-        "terminal", "execute", "run ", "arquivo", "file", "pdf", "pptx",
-        "xlsx", "csv", "planilha", "relatorio", "report",
+        "code",
+        "script",
+        "program",
+        "python",
+        "node",
+        "shell",
+        "vm_exec",
+        "terminal",
+        "execute",
+        "run ",
+        "arquivo",
+        "file",
+        "pdf",
+        "pptx",
+        "xlsx",
+        "csv",
+        "planilha",
+        "relatorio",
+        "report",
     ]
     .iter()
     .any(|k| lower.contains(k));
@@ -356,16 +378,64 @@ pub fn is_informational_request(text: &str) -> bool {
         return false;
     }
     let keywords = [
-        "news", "noticia", "notícias", "noticias", "headline", "manchete",
-        "latest", "recent", "recente", "today", "hoje", "current", "atual",
-        "weather", "clima", "forecast", "previsão", "previsao",
-        "price", "preço", "preco", "cotação", "cotacao", "stock", "ação",
-        "acoes", "market", "mercado", "bitcoin", "crypto", "dollar", "dólar",
-        "dolar", "euro", "who is", "who's", "what is", "o que é", "o que e",
-        "quem é", "quem e", "when did", "quando", "where is", "onde",
-        "how much", "quanto custa", "update", "atualização", "atualizacao",
-        "information", "informação", "informacao", "tell me", "fale sobre",
-        "explain", "explique", "notícia",
+        "news",
+        "noticia",
+        "notícias",
+        "noticias",
+        "headline",
+        "manchete",
+        "latest",
+        "recent",
+        "recente",
+        "today",
+        "hoje",
+        "current",
+        "atual",
+        "weather",
+        "clima",
+        "forecast",
+        "previsão",
+        "previsao",
+        "price",
+        "preço",
+        "preco",
+        "cotação",
+        "cotacao",
+        "stock",
+        "ação",
+        "acoes",
+        "market",
+        "mercado",
+        "bitcoin",
+        "crypto",
+        "dollar",
+        "dólar",
+        "dolar",
+        "euro",
+        "who is",
+        "who's",
+        "what is",
+        "o que é",
+        "o que e",
+        "quem é",
+        "quem e",
+        "when did",
+        "quando",
+        "where is",
+        "onde",
+        "how much",
+        "quanto custa",
+        "update",
+        "atualização",
+        "atualizacao",
+        "information",
+        "informação",
+        "informacao",
+        "tell me",
+        "fale sobre",
+        "explain",
+        "explique",
+        "notícia",
     ];
     keywords.iter().any(|k| lower.contains(k))
 }

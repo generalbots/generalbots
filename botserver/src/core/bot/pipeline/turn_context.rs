@@ -71,7 +71,10 @@ pub(super) async fn route_project(
         return Ok(true);
     }
     if let Some(context) = project_context {
-        let project_id = context.get("project_id").and_then(|v| v.as_str()).unwrap_or("");
+        let project_id = context
+            .get("project_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let project_name = context
             .get("project_name")
             .and_then(|v| v.as_str())

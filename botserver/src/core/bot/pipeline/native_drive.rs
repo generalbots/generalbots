@@ -19,9 +19,9 @@ use super::types::SessionIdentity;
 use crate::core::bot::{agent_vm_hook, drive_bridge};
 
 const TEXT_EXTENSIONS: &[&str] = &[
-    "csv", "tsv", "xlsx", "xls", "docx", "doc", "pdf", "txt", "md", "json", "pptx", "ppt",
-    "png", "jpg", "jpeg", "gif", "webp", "svg", "zip", "py", "js", "html", "xml", "yaml",
-    "yml", "log", "sql",
+    "csv", "tsv", "xlsx", "xls", "docx", "doc", "pdf", "txt", "md", "json", "pptx", "ppt", "png",
+    "jpg", "jpeg", "gif", "webp", "svg", "zip", "py", "js", "html", "xml", "yaml", "yml", "log",
+    "sql",
 ];
 
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
@@ -104,8 +104,11 @@ async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
         return;
     };
     let Some(bytes) = drive_bridge::read_object(state, &scope, &key).await else {
-        send(identity, &format!("Could not download `{relative}` from Drive."))
-            .await;
+        send(
+            identity,
+            &format!("Could not download `{relative}` from Drive."),
+        )
+        .await;
         return;
     };
     if bytes.len() as u64 > drive_bridge::MAX_FETCH_BYTES {
@@ -177,7 +180,11 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
         .await
         .unwrap_or_default();
     if files.is_empty() {
-        send(identity, "There are no generated files in `output/` to save.").await;
+        send(
+            identity,
+            "There are no generated files in `output/` to save.",
+        )
+        .await;
         return;
     }
     let selected: Vec<(String, u64)> = files
@@ -185,11 +192,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
         .filter(|(name, _)| requested.is_empty() || requested.contains(name))
         .collect();
     if selected.is_empty() {
-        send(
-            identity,
-            "None of the named files exist in `output/`.",
-        )
-        .await;
+        send(identity, "None of the named files exist in `output/`.").await;
         return;
     }
     let folder = if folder.is_empty() {
@@ -202,12 +205,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
     let mut failed = Vec::new();
     let mut total: u64 = 0;
     for (name, _) in &selected {
-        match agent_vm_hook::read_session_file(
-            user_id,
-            session_id,
-            &format!("output/{name}"),
-        )
-        .await
+        match agent_vm_hook::read_session_file(user_id, session_id, &format!("output/{name}")).await
         {
             Ok(bytes) => {
                 total += bytes.len() as u64;
@@ -247,7 +245,11 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
 fn referenced_names(text: &str) -> Vec<String> {
     let mut names = Vec::new();
     for raw in text.split(|c: char| {
-        c.is_whitespace() || matches!(c, ',' | ';' | '(' | ')' | '[' | ']' | '"' | '\'' | '<' | '>')
+        c.is_whitespace()
+            || matches!(
+                c,
+                ',' | ';' | '(' | ')' | '[' | ']' | '"' | '\'' | '<' | '>'
+            )
     }) {
         let token = raw.trim_matches(|c: char| matches!(c, '.' | ':' | '!' | '?' | '*' | '`'));
         let Some((_, ext)) = token.rsplit_once('.') else {
@@ -328,5 +330,8 @@ pub async fn fetch_referenced(
             fetched.join(", ")
         )
     }));
-    botlog::safe_info!("drive bridge: pre-fetched {} files for {session_id}", fetched.len());
+    botlog::safe_info!(
+        "drive bridge: pre-fetched {} files for {session_id}",
+        fetched.len()
+    );
 }

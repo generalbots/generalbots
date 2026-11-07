@@ -67,16 +67,13 @@ pub(super) async fn build_and_stream(
     .await
     .is_err()
     {
-        botlog::safe_warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}");
+        botlog::safe_warn!(
+            "ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}"
+        );
     }
 
     #[cfg(feature = "memory-os")]
-    crate::core::bot::memory_hook::inject_recall(
-        state,
-        user_id,
-        &user_query,
-        &mut messages_val,
-    );
+    crate::core::bot::memory_hook::inject_recall(state, user_id, &user_query, &mut messages_val);
 
     // Mention system blocks land right before the user turn so the LLM sees
     // the advertised integration surface adjacent to the request it enables.
@@ -115,17 +112,26 @@ pub(super) async fn build_and_stream(
     let started = std::time::Instant::now();
     let title: String = user_text.chars().take(80).collect();
     super::event_sink::run_started(identity.sink, &run, Some(title.as_str())).await;
-    super::event_sink::step_started(identity.sink, &run, "llm", "Answering", Some(0)).await;
+    // #1807 — name the generation stage so the timeline shows work before the
+    // first token arrives. The extra fields keep the required STEP_STARTED
+    // shape while telling the UI this is the agent phase, not a VM tool.
+    super::event_sink::step_started_with(
+        identity.sink,
+        &run,
+        "llm",
+        "Answering",
+        Some(0),
+        serde_json::json!({
+            "phase": "agent",
+            "step": "generate",
+            "detail": "Generating the program",
+        }),
+    )
+    .await;
 
     let timed_out = tokio::time::timeout(
         std::time::Duration::from_secs(300),
-        super::llm::stream_llm_response(
-            identity,
-            rx,
-            &messages_val,
-            &user_query,
-            model_preference,
-        ),
+        super::llm::stream_llm_response(identity, rx, &messages_val, &user_query, model_preference),
     )
     .await
     .is_err();
@@ -223,18 +229,24 @@ pub(crate) async fn resolve_bot_llm_provider(
 ) -> Result<Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)>, String> {
     use botcore::config::ConfigManager;
     let cfg = ConfigManager::new(state.conn.clone());
-    let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
-    let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
-    let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
-    let llm_provider = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
+    let mut llm_url = cfg
+        .get_config(&bot_uuid, "llm-url", Some(""))
+        .unwrap_or_default();
+    let mut llm_key = cfg
+        .get_config(&bot_uuid, "llm-key", Some(""))
+        .unwrap_or_default();
+    let mut llm_model = cfg
+        .get_config(&bot_uuid, "llm-model", Some(""))
+        .unwrap_or_default();
+    let llm_provider = cfg
+        .get_config(&bot_uuid, "llm-provider", Some(""))
+        .unwrap_or_default();
 
     // #1652/#1653/#1654 — subscription accounts are resolved per user before
     // any HTTP provider is built. `choose_for_request` refuses to fall back
     // when the requested provider is a subscription and no account is linked.
     if crate::core::ai_accounts::is_subscription_provider(&llm_provider) {
-        let linked = crate::core::ai_accounts::linked_account(
-            &state.conn, user_id, &llm_provider,
-        );
+        let linked = crate::core::ai_accounts::linked_account(&state.conn, user_id, &llm_provider);
         let resolved = crate::core::ai_accounts::choose_for_request(
             Some(&llm_provider),
             linked.as_ref(),
@@ -244,13 +256,14 @@ pub(crate) async fn resolve_bot_llm_provider(
         let Some(resolved) = resolved else {
             return Ok(None);
         };
-        let provider = crate::llm::subscription::build(
-            state, user_id, session_id, bot_uuid, &resolved,
-        )
-        .await?;
+        let provider =
+            crate::llm::subscription::build(state, user_id, session_id, bot_uuid, &resolved)
+                .await?;
         botlog::safe_info!(
             "BOT {bot_uuid} subscription LLM: provider=[{}] model=[{}] source=[{}]",
-            resolved.provider, resolved.model, resolved.source
+            resolved.provider,
+            resolved.model,
+            resolved.source
         );
         return Ok(Some((provider, String::new(), resolved.model)));
     }
@@ -262,11 +275,11 @@ pub(crate) async fn resolve_bot_llm_provider(
     let tier = model_preference.trim().to_lowercase();
     if matches!(tier.as_str(), "fast" | "balanced" | "quality") {
         let tier_key = format!("llm-model-{tier}");
-        let tier_model = cfg.get_config(&bot_uuid, &tier_key, Some("")).unwrap_or_default();
+        let tier_model = cfg
+            .get_config(&bot_uuid, &tier_key, Some(""))
+            .unwrap_or_default();
         if !tier_model.is_empty() {
-            botlog::safe_info!(
-                "BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]"
-            );
+            botlog::safe_info!("BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]");
             llm_model = tier_model;
         } else {
             botlog::safe_info!(
@@ -274,25 +287,50 @@ pub(crate) async fn resolve_bot_llm_provider(
             );
         }
     }
-    if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
-    if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
-    if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
-    let llm_host = url::Url::parse(&llm_url).ok()
+    if let Ok(val) = std::env::var("LLM_URL") {
+        if !val.is_empty() {
+            llm_url = val;
+        }
+    }
+    if let Ok(val) = std::env::var("LLM_KEY") {
+        if !val.is_empty() {
+            llm_key = val;
+        }
+    }
+    if let Ok(val) = std::env::var("LLM_MODEL") {
+        if !val.is_empty() {
+            llm_model = val;
+        }
+    }
+    let llm_host = url::Url::parse(&llm_url)
+        .ok()
         .and_then(|u| u.host_str().map(|h| h.to_string()))
         .unwrap_or_else(|| "<unparseable>".to_string());
     botlog::safe_info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
     if !llm_url.is_empty() {
-        let explicit = if llm_provider.is_empty() { None } else { crate::llm::provider_factory::llm_provider_type_from_name(&llm_provider) };
+        let explicit = if llm_provider.is_empty() {
+            None
+        } else {
+            crate::llm::provider_factory::llm_provider_type_from_name(&llm_provider)
+        };
         let provider = crate::llm::provider_factory::create_llm_provider_from_url(
             &llm_url,
-            if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
-            None, explicit,
+            if llm_model.is_empty() {
+                None
+            } else {
+                Some(llm_model.clone())
+            },
+            None,
+            explicit,
         );
         Ok(Some((
             Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
-                provider, llm_model.clone(), llm_key.clone(),
+                provider,
+                llm_model.clone(),
+                llm_key.clone(),
             )) as Arc<dyn botlib::traits::LLMProvider>,
-            llm_key, llm_model,
+            llm_key,
+            llm_model,
         )))
     } else {
         log::warn!("CRISTO BOT: llm-url is EMPTY, falling back to global provider");
@@ -319,12 +357,18 @@ pub(super) async fn respond_in_answer_mode(
         return Ok(false);
     }
     let mode_response = match answer_mode {
-        crate::core::bot::answer_mode::AnswerMode::Data => crate::core::bot::answer_mode::generate_data_response(
-            state, user_text, bot_uuid, bot_name, session_id, user_id,
-        ).await,
-        crate::core::bot::answer_mode::AnswerMode::Chart => crate::core::bot::answer_mode::generate_chart_response(
-            state, user_text, bot_uuid, bot_name, session_id, user_id,
-        ).await,
+        crate::core::bot::answer_mode::AnswerMode::Data => {
+            crate::core::bot::answer_mode::generate_data_response(
+                state, user_text, bot_uuid, bot_name, session_id, user_id,
+            )
+            .await
+        }
+        crate::core::bot::answer_mode::AnswerMode::Chart => {
+            crate::core::bot::answer_mode::generate_chart_response(
+                state, user_text, bot_uuid, bot_name, session_id, user_id,
+            )
+            .await
+        }
         _ => return Ok(true),
     };
     match mode_response {
@@ -335,9 +379,11 @@ pub(super) async fn respond_in_answer_mode(
         }
         Err(e) => {
             let err_resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(),
+                bot_uuid.to_string(),
+                session_id.to_string(),
                 user_id.to_string(),
-                format!("<p>Error: {e}</p>"), "web",
+                format!("<p>Error: {e}</p>"),
+                "web",
             );
             let _ = sink.send_bot_response(&err_resp).await;
         }

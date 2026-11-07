@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use log::info;
 use super::types::{PipelineResult, SessionIdentity};
+use log::info;
 
 pub type PipelineFn = std::sync::Arc<
     dyn Fn(
@@ -42,10 +42,9 @@ pub async fn process_message_internal(
     // reaches the LLM.
     #[cfg(feature = "agent-vm")]
     if parsed.get("type").and_then(|v| v.as_str()) == Some("agent_mode") {
-        if let Some(status) = crate::core::bot::agent_vm_hook::handle_frame(
-            &parsed, session_id, user_id, bot_uuid,
-        )
-        .await
+        if let Some(status) =
+            crate::core::bot::agent_vm_hook::handle_frame(&parsed, session_id, user_id, bot_uuid)
+                .await
         {
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
@@ -110,22 +109,19 @@ pub async fn process_message_internal(
     // {project_id, project_name}. It is kept separate from entity mentions so
     // an ordinary `@calculator` reference can target Vibe without changing
     // the existing CRM/integration mention contract.
-    let project_context = parsed
-        .get("project_context")
-        .cloned()
-        .or_else(|| {
-            parsed.get("mentions").and_then(|value| {
-                value.as_array()?.iter().find_map(|mention| {
-                    if mention.get("kind").and_then(|v| v.as_str()) != Some("project") {
-                        return None;
-                    }
-                    Some(serde_json::json!({
-                        "project_id": mention.get("project_id").or_else(|| mention.get("id")),
-                        "project_name": mention.get("label").or_else(|| mention.get("name")),
-                    }))
-                })
+    let project_context = parsed.get("project_context").cloned().or_else(|| {
+        parsed.get("mentions").and_then(|value| {
+            value.as_array()?.iter().find_map(|mention| {
+                if mention.get("kind").and_then(|v| v.as_str()) != Some("project") {
+                    return None;
+                }
+                Some(serde_json::json!({
+                    "project_id": mention.get("project_id").or_else(|| mention.get("id")),
+                    "project_name": mention.get("label").or_else(|| mention.get("name")),
+                }))
             })
-        });
+        })
+    });
     // @-mentions selected in the composer (#939 phase D); resolved against
     // the connection control plane only when the integrations feature is
     // compiled in, exactly like the `integrations.invoke` command arm.
@@ -280,7 +276,10 @@ pub async fn process_message_internal(
     // #1670 — structured answers travel with the user turn. Record them so a
     // field is never asked twice, and make the model treat them as the
     // authoritative value for this conversation.
-    if let Some(values) = parsed.get("question_answers").and_then(|value| value.as_object()) {
+    if let Some(values) = parsed
+        .get("question_answers")
+        .and_then(|value| value.as_object())
+    {
         super::surface_tools::record_answers(&session_id.to_string(), values);
         let rendered = serde_json::to_string(values).unwrap_or_default();
         messages.push(serde_json::json!({
@@ -300,7 +299,6 @@ pub async fn process_message_internal(
         }));
     }
 
-
     // #1549/#1637: the tier now selects a real model in
     // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
     // secondary shaping hint, not the routing mechanism.
@@ -314,8 +312,13 @@ pub async fn process_message_internal(
         session_id,
         user_id,
     };
-    if super::turn_context::route_project(&routing, project_context.as_ref(), &user_text, &mut messages)
-        .await?
+    if super::turn_context::route_project(
+        &routing,
+        project_context.as_ref(),
+        &user_text,
+        &mut messages,
+    )
+    .await?
     {
         return Ok(());
     }
@@ -326,15 +329,30 @@ pub async fn process_message_internal(
     // agent VM's code-execution surface: skip the VM contract for them so the
     // model does not route the request into vm_exec (which never shows refs).
     if !super::turn_hooks::is_informational_request(&user_text) {
-        super::agent_vm_context::inject(session_id, user_id, bot_uuid, &mut messages).await;
+        super::agent_vm_context::inject(identity, &mut messages).await;
     }
 
     // #1584: files named in the message are copied from Drive into data/
     // before the model writes the program that reads them.
     #[cfg(all(feature = "agent-vm", feature = "drive"))]
-    super::native_drive::fetch_referenced(state, bot_uuid, user_id, session_id, &user_text, &mut messages).await;
+    super::native_drive::fetch_referenced(
+        state,
+        bot_uuid,
+        user_id,
+        session_id,
+        &user_text,
+        &mut messages,
+    )
+    .await;
 
-    super::history::append_conversation_history(state, bot_uuid, session_id, user_id, &mut messages).await;
+    super::history::append_conversation_history(
+        state,
+        bot_uuid,
+        session_id,
+        user_id,
+        &mut messages,
+    )
+    .await;
 
     // #1641 — attachment content is a separate system block so it never gets
     // persisted as if the user had typed the whole file.
@@ -346,11 +364,11 @@ pub async fn process_message_internal(
     // the conversation before the model answers, so the next reply can cite
     // the page title (or say the action was denied/failed).
     let completed =
-        crate::core::computer_use::take_completed_for_prompt(&session_id.to_string(), user_id).await;
+        crate::core::computer_use::take_completed_for_prompt(&session_id.to_string(), user_id)
+            .await;
     if !completed.is_empty() {
-        let mut block = String::from(
-            "Results of computer actions the user approved in this conversation:\n",
-        );
+        let mut block =
+            String::from("Results of computer actions the user approved in this conversation:\n");
         for action in &completed {
             let name = action
                 .action

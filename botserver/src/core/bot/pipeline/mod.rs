@@ -1,35 +1,36 @@
+pub mod agent_vm_context;
 pub mod api_call;
-pub mod attachments;
 pub mod attachment_text;
+pub mod attachments;
 pub mod channel_entry;
+#[cfg(feature = "drive")]
+pub mod drive_context;
+pub mod enriched_llm;
+pub mod event_sink;
 pub mod exec;
 pub mod history;
 pub mod kb;
 pub mod llm;
 pub mod mentions;
 pub mod native_args;
+#[cfg(all(feature = "agent-vm", feature = "drive"))]
+pub mod native_drive;
 pub mod native_tools;
 pub mod sink;
 pub mod start_bas;
-pub mod turn_context;
 pub mod start_gate;
-pub mod agent_vm_context;
-pub mod surface_tools;
 pub mod surface_catalog;
+pub mod surface_tools;
 pub mod system_prompt;
-pub mod tool_paths;
 pub mod tool_exec;
+pub mod tool_paths;
+pub mod turn_context;
 pub mod turn_hooks;
 pub mod types;
-pub mod enriched_llm;
-pub mod event_sink;
 pub mod vibe_route;
-#[cfg(all(feature = "agent-vm", feature = "drive"))]
-pub mod native_drive;
-#[cfg(feature = "drive")]
-pub mod drive_context;
 #[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_context;
+pub mod workspace_progress;
 
 pub use channel_entry::run_pipeline_for_channel;
 pub use exec::{process_message_internal, PipelineFn};

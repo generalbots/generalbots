@@ -46,15 +46,15 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         // Declarative gate: only execute tools the bot script associated
         // with this session via USE TOOL (e.g. inside IF role = "admin").
         if !crate::core::bot::tool_context::is_tool_associated_with_session(
-            &state.conn, &session_id, tool_name,
+            &state.conn,
+            &session_id,
+            tool_name,
         ) {
             botlog::safe_info!(
                 "TOOL_EXEC: tool '{tool_name}' not associated with session {session_id}, skipping"
             );
             // The user pressed a button; silence would look like a broken bot.
-            let message = format!(
-                "A ação '{tool_name}' não está disponível para esta conversa."
-            );
+            let message = format!("A ação '{tool_name}' não está disponível para esta conversa.");
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
                 session_id.to_string(),
@@ -69,7 +69,10 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         let tool_name_clone = tool_name.to_string();
         let channel_name = channel.to_string();
         let session_for_tool = botlib::models::UserSession {
-            id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_uuid,
+            id: session_id,
+            user_id,
+            branch_id: Uuid::nil(),
+            bot_id: bot_uuid,
             title: String::new(),
             context_data: serde_json::json!({"channel": channel_name}),
             current_tool: None,
@@ -79,9 +82,8 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
             lock_pin_hash: None,
         };
         let tool_run = tokio::task::spawn_blocking(move || {
-            let mut svc = crate::basic::ScriptService::new(
-                state_for_tool.clone(), session_for_tool,
-            );
+            let mut svc =
+                crate::basic::ScriptService::new(state_for_tool.clone(), session_for_tool);
             svc.load_bot_config_params(&state_for_tool, bot_uuid);
             svc.run(&ast_content).map_err(|e| e.to_string())
         });
@@ -92,9 +94,8 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         // own TALK output reaches the sink while the script runs.
         if let Ok(Err(detail)) = tool_run.await {
             log::warn!("Tool '{tool_name_clone}' execution error: {detail}");
-            let message = format!(
-                "Não consegui executar '{tool_name_clone}'. Tente novamente em instantes."
-            );
+            let message =
+                format!("Não consegui executar '{tool_name_clone}'. Tente novamente em instantes.");
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(),
                 session_id.to_string(),

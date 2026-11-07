@@ -333,6 +333,19 @@
                 if (entry.terminal) return;
                 any = true;
                 entry.elapsed.textContent = elapsedLabel(entry.startedAt);
+                // #1807 — heartbeat for a long workspace stage (cold Incus
+                // start, pip install, a slow render). The row keeps its own
+                // start instant, so a run with several stages shows the real
+                // elapsed time of the stage that is still running.
+                entry.rows.querySelectorAll('.run-row[data-status="running"][data-started-at]').forEach(function (stepRow) {
+                    var startedAt = Number(stepRow.getAttribute("data-started-at"));
+                    if (!startedAt) return;
+                    var seconds = Math.max(0, (Date.now() - startedAt) / 1000);
+                    var text = elapsedLabel(startedAt);
+                    if (seconds >= 15) text = "still working · " + text;
+                    var meta = stepRow.querySelector(".run-row-meta");
+                    if (meta) meta.textContent = text;
+                });
             });
             if (!any && S.timer) {
                 clearInterval(S.timer);

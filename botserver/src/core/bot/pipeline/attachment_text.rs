@@ -11,10 +11,7 @@
 const MAX_EXCERPT_CHARS: usize = 12_000;
 
 fn extension(name: &str) -> String {
-    name.rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_lowercase()
+    name.rsplit('.').next().unwrap_or("").to_lowercase()
 }
 
 fn is_text(ext: &str) -> bool {
@@ -51,9 +48,24 @@ fn is_text(ext: &str) -> bool {
 pub fn is_media(name: &str) -> bool {
     matches!(
         extension(name).as_str(),
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg" | "heic"
-            | "mp4" | "mov" | "webm" | "avi" | "mkv"
-            | "mp3" | "wav" | "ogg" | "m4a" | "flac"
+        "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "bmp"
+            | "svg"
+            | "heic"
+            | "mp4"
+            | "mov"
+            | "webm"
+            | "avi"
+            | "mkv"
+            | "mp3"
+            | "wav"
+            | "ogg"
+            | "m4a"
+            | "flac"
     )
 }
 
@@ -126,7 +138,10 @@ fn docx_text(bytes: &[u8]) -> Option<String> {
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).ok()?;
     let mut file = archive.by_name("word/document.xml").ok()?;
     let mut xml = String::new();
-    file.by_ref().take(4 * 1024 * 1024).read_to_string(&mut xml).ok()?;
+    file.by_ref()
+        .take(4 * 1024 * 1024)
+        .read_to_string(&mut xml)
+        .ok()?;
 
     let mut out = String::new();
     let mut tag = String::new();
