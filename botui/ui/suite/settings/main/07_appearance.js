@@ -6,7 +6,31 @@
   var getAuthToken = S.getAuthToken;
   var showToast = S.showToast;
 
+function hasUnsavedSettingsChanges() {
+  try {
+    if (window.__gbSettingsDirty) return true;
+    if (typeof window.gbHasUnsavedChanges === "function" && window.gbHasUnsavedChanges()) {
+      return true;
+    }
+    if (document.querySelector('[data-dirty="true"], .is-dirty, .settings-dirty, .unsaved')) {
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+function confirmLanguageReload(locale) {
+  if (!hasUnsavedSettingsChanges()) return true;
+  var languageName = locale || "the selected language";
+  return window.confirm(
+    "Changing the language to " +
+      languageName +
+      " will reload the app. Unsaved changes may be lost. Continue?"
+  );
+}
+
 window.changeLanguage = function (locale) {
+  if (!confirmLanguageReload(locale)) return;
   localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
   document.documentElement.lang = locale;
   showToast("Language changed");
@@ -15,11 +39,17 @@ window.changeLanguage = function (locale) {
   }, 500);
 };
 window.selectLanguage = function (locale, element) {
+  if (!confirmLanguageReload(locale)) return;
   document.querySelectorAll(".language-option").forEach(function (o) {
     o.classList.remove("active");
   });
   if (element) element.classList.add("active");
-  changeLanguage(locale);
+  localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
+  document.documentElement.lang = locale;
+  showToast("Language changed");
+  setTimeout(function () {
+    location.reload();
+  }, 500);
 };
 window.changeDateFormat = function (format) {
   localStorage.setItem(STORAGE_KEYS.DATE_FORMAT, format);
@@ -149,6 +179,9 @@ window.toggleShowSidebar = function (checkbox) {
   localStorage.setItem("gb-show-sidebar", enabled);
   document.body.classList.toggle("sidebar-hidden", !enabled);
   showToast(enabled ? "Sidebar shown" : "Sidebar hidden");
+  window.dispatchEvent(new CustomEvent("gb-sidebar-visibility-changed", {
+    detail: { show: enabled },
+  }));
 };
 window.togglePushNotifications = function (checkbox) {
   var enabled = checkbox.checked;
@@ -228,6 +261,12 @@ function unregisterPushSubscription() {
     });
   });
 }
+  window.addEventListener("gb-sidebar-visibility-changed", function (e) {
+    var show = !!(e && e.detail && e.detail.show);
+    var input = document.querySelector('[name="show_sidebar"]');
+    if (input) input.checked = show;
+  });
+
   S.getWallpaper = getWallpaper;
   S.applyWallpaper = applyWallpaper;
   S.initWallpapers = initWallpapers;

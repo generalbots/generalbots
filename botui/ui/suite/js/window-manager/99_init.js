@@ -30,6 +30,16 @@ window.toggleChatSidebar = function () {
   } catch (e) {
     /* storage may be disabled; the toggle still works for the session */
   }
+  // The rail toggle is an explicit show-sidebar interaction: keep the
+  // "Show Sidebar" setting (gb-show-sidebar / body.sidebar-hidden) in sync
+  // so settings and the rail never ignore each other (#1810).
+  try {
+    localStorage.setItem("gb-show-sidebar", "true");
+  } catch (e) {}
+  document.body.classList.remove("sidebar-hidden");
+  window.dispatchEvent(new CustomEvent("gb-sidebar-visibility-changed", {
+    detail: { show: true },
+  }));
 };
 
 // Restore the remembered state on boot. window-manager.js loads in the

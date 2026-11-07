@@ -124,6 +124,7 @@
         });
         document.body.classList.toggle('compact-mode', localStorage.getItem('gb-compact-mode') === 'true');
         document.body.classList.toggle('no-animations', localStorage.getItem('gb-animations') === 'false');
+        document.body.classList.toggle('sidebar-hidden', localStorage.getItem('gb-show-sidebar') === 'false');
     }
 
     function restoreLocaleSelects() {
@@ -152,7 +153,16 @@
         // re-applied from localStorage on boot by restoreChatSidebar).
         document.body.classList.toggle('sidebar-hidden', !checkbox.checked);
         showToast(checkbox.checked ? 'Sidebar shown' : 'Sidebar hidden');
+        window.dispatchEvent(new CustomEvent('gb-sidebar-visibility-changed', {
+            detail: { show: checkbox.checked },
+        }));
     };
+
+    window.addEventListener('gb-sidebar-visibility-changed', function (e) {
+        var show = !!(e && e.detail && e.detail.show);
+        var input = document.querySelector('[name="show_sidebar"]');
+        if (input) input.checked = show;
+    });
 
     window.toggleAnimations = function (checkbox) {
         persistPref('gb-animations', checkbox.checked);

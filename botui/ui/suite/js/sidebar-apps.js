@@ -168,6 +168,13 @@ window.GBSidebarApps = window.GBSidebarApps || {};
       if (window.GBPreviewMode) window.GBPreviewMode.set(previewSwitch.checked);
       else fill();
     });
+    // Keep the left-bar switch in sync when preview mode changes elsewhere
+    // (e.g. the Settings toggle). GBPreviewMode is the canonical source.
+    window.addEventListener("gb-preview-changed", function (e) {
+      var on = !!(e && e.detail && e.detail.preview);
+      if (window.GBPreviewMode) on = window.GBPreviewMode.isOn();
+      previewSwitch.checked = on;
+    });
     search.addEventListener("input", filter);
 
     nav.dataset.gbAppsBound = "1";
