@@ -66,7 +66,7 @@ body {
 }
 
 /* Compact Mode - reduces spacing throughout the app */
-body.compact-mode {
+.compact-mode {
     --spacing-xs: 2px;
     --spacing-sm: 4px;
     --spacing-md: 8px;
@@ -74,23 +74,23 @@ body.compact-mode {
     --spacing-xl: 16px;
 }
 
-body.compact-mode .app-header {
+.compact-mode .app-header {
     height: 48px;
     padding: 0 0.5rem;
 }
 
-body.compact-mode .settings-panel,
-body.compact-mode .apps-dropdown {
+.compact-mode .settings-panel,
+.compact-mode .apps-dropdown {
     padding: 0.5rem;
 }
 
-body.compact-mode .app-item {
+.compact-mode .app-item {
     padding: 0.5rem;
     gap: 0.25rem;
 }
 
-body.compact-mode .setting-card,
-body.compact-mode .settings-section {
+.compact-mode .setting-card,
+.compact-mode .settings-section {
     padding: 12px;
     margin-bottom: 12px;
 }
