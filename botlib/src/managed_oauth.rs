@@ -145,14 +145,14 @@ pub fn client_id_for(slug: &str) -> Option<String> {
 }
 
 fn env_value(key: &str) -> Option<String> {
-    std::env::var(key).ok().and_then(non_empty)
+    std::env::var(key).ok().and_then(|v| non_empty(&v))
 }
 
 fn compile_time_value(value: Option<&'static str>) -> Option<String> {
     value.and_then(non_empty)
 }
 
-fn non_empty(value: String) -> Option<String> {
+fn non_empty(value: &str) -> Option<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
         None
