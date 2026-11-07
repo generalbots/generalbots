@@ -1,15 +1,19 @@
 name: BotModels pythonbox bundle
 
 # Packages BotModels as a self-contained "pythonbox": a relocatable CPython
-# (python-build-standalone) plus the service sources and an installer that
-# materialises the virtual environment on first run. Desktop users get a Python
-# service they can start without a system interpreter, and the same box is the
-# base for other Python services (JupyterLab ships as an opt-in extra).
+# (python-build-standalone) plus the service sources, a CPU-tier wheelhouse and
+# an installer that materialises the virtual environment on first run. Desktop
+# users get a Python service they can start without a system interpreter, and
+# the same box is the base for other Python services (JupyterLab ships as an
+# opt-in extra).
 #
-# Why not vendor the wheels: torch/transformers/diffusers are multi-gigabyte.
-# The bundle stays small and resolves the pinned `requirements.txt` once, into
-# its own virtual environment; `--offline-wheels <dir>` installs from a local
-# wheelhouse when the machine has no network.
+# Offline-first choice: the bundle carries a wheelhouse for the CPU tier so a
+# clean machine installs without network access. torch/torchaudio/torchvision
+# come from PyTorch's CPU index (no nvidia-* CUDA wheels), the rest from PyPI.
+# That makes the archive much larger than an interpreter-only box, but it is
+# what the desktop installer ships, so no separate download is needed on first
+# run. `install.sh --online --yes` remains an explicit opt-in for hosts that
+# prefer PyPI; `--offline-wheels DIR` still selects another wheelhouse.
 #
 # Published on its own tags (never "latest", so the desktop installer link
 # keeps pointing at the desktop release). ALM and the installer resolve the
@@ -74,6 +78,17 @@ jobs:
           echo "bundling $url"
           curl -fsSL --retry 3 --retry-delay 5 -o /tmp/python.tar.gz "$url"
 
+      - name: Build the offline wheelhouse (CPU tier)
+        run: |
+          set -euo pipefail
+          # Keep the wheelhouse out of dist/: only the tarball, manifest and
+          # checksums may be uploaded as release assets.
+          python3 -m pip install --quiet --disable-pip-version-check --upgrade pip
+          python3 botmodels/scripts/wheelhouse.py build \
+            --output "$RUNNER_TEMP/botmodels-wheelhouse" \
+            --python-version "$PYTHON_VERSION"
+          python3 botmodels/scripts/wheelhouse.py inspect "$RUNNER_TEMP/botmodels-wheelhouse"
+
       - name: Check relative imports
         run: python3 botmodels/scripts/check_imports.py
 
@@ -81,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="dist/botmodels-pythonbox"
-          rm -rf dist
+          rm -rf "$ROOT"
           mkdir -p "$ROOT"
 
           tar -xzf /tmp/python.tar.gz -C "$ROOT"
@@ -89,8 +104,13 @@ jobs:
           test -x "$ROOT/python/bin/python3"
 
           cp -r botmodels/src "$ROOT/src"
-          cp botmodels/requirements.txt "$ROOT/requirements.txt"
+          cp botmodels/requirements.txt botmodels/requirements-barcode.txt "$ROOT/"
           cp botmodels/.env.example "$ROOT/.env.example" 2>/dev/null || true
+          # The CPU-tier wheelhouse makes `./install.sh` offline by default.
+          cp -r "$RUNNER_TEMP/botmodels-wheelhouse" "$ROOT/wheelhouse"
+          test -f "$ROOT/wheelhouse/wheelhouse-manifest.json"
+          mkdir -p "$ROOT/scripts"
+          cp botmodels/scripts/wheelhouse.py "$ROOT/scripts/wheelhouse.py"
 
           # Optional extras: services a desktop user may want on top of the
           # BotModels runtime (JupyterLab is the reference case).
@@ -105,34 +125,171 @@ jobs:
           #!/usr/bin/env bash
           # Materialise the virtual environment for this pythonbox.
           #
-          # Usage: ./install.sh [--with jupyter] [--offline-wheels DIR]
-          #                     [--python PATH] [--site DIR] [-r EXTRA_REQ]
+          # Usage: ./install.sh [--with NAME] [--offline-wheels DIR] [--online]
+          #                     [--yes] [--python PATH] [--site DIR]
+          #                     [-r EXTRA_REQ] [--help]
+          #
+          # Offline by default: this bundle ships ./wheelhouse, so pip runs with
+          # --no-index --find-links ./wheelhouse. --online opts into PyPI and
+          # requires --yes (or BOTMODELS_INSTALL_YES=1) because a full resolve
+          # can download several gigabytes.
+          #
+          # Disk preflight: at least 6 GiB free is required. The wheelhouse
+          # estimate is wheel size x3 + 1 GiB; an online resolve uses 12 GiB.
+          # BOTMODELS_MIN_FREE_GIB raises or lowers the floor and
+          # BOTMODELS_SKIP_DISK_CHECK=1 bypasses the check (not recommended).
           #
           # --python  interpreter used to create the venv (default: the bundled one)
-          # --site    extra package tree to reuse (for example /opt/gbo/pylibs on a
-          #           server, so torch and transformers are not downloaded twice)
+          # --site    extra package tree to reuse (for example /opt/gbo/pylibs on
+          #           a server, so torch and transformers are not downloaded twice)
           set -euo pipefail
           ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
           VENV="$ROOT/.venv"
           PYTHON="$ROOT/python/bin/python3"
           EXTRAS=""
           PIP_ARGS=()
+          HASH_FILES=("$ROOT/requirements.txt")
           SITE=""
+          ONLINE=0
+          ASSUME_YES="${BOTMODELS_INSTALL_YES:-0}"
+          MIN_FREE_GIB="${BOTMODELS_MIN_FREE_GIB:-6}"
+          ONLINE_MIN_FREE_GIB=12
+          ONLINE_DOWNLOAD_HINT="about 4 GiB"
+          WHEELHOUSE="$ROOT/wheelhouse"
+          WHEELHOUSE_EXPLICIT=0
+          WITH_BARCODE=0
+
+          usage() {
+            cat <<'USAGE'
+          Usage: ./install.sh [--with NAME] [--offline-wheels DIR] [--online]
+                              [--yes] [--python PATH] [--site DIR] [-r EXTRA_REQ]
+
+            --with NAME          install requirements-NAME.txt (for example jupyter)
+            --offline-wheels DIR install from DIR instead of ./wheelhouse
+            --online             resolve from PyPI instead of the offline wheelhouse
+            --yes                confirm the online download (or BOTMODELS_INSTALL_YES=1)
+            --python PATH        interpreter used to create the venv
+            --site DIR           extra package tree to reuse
+            --help               show this help
+          USAGE
+          }
 
           while [ $# -gt 0 ]; do
             case "$1" in
-              --with) EXTRAS="${EXTRAS} -r $ROOT/requirements-$2.txt"; shift 2 ;;
-              --offline-wheels) PIP_ARGS+=(--no-index --find-links "$2"); shift 2 ;;
-              --python) PYTHON="$2"; shift 2 ;;
-              --site) SITE="$2"; shift 2 ;;
-              -r) EXTRAS="${EXTRAS} -r $2"; shift 2 ;;
-              *) echo "unknown option: $1" >&2; exit 2 ;;
+              --with)
+                [ $# -ge 2 ] || { echo "error: --with needs a value" >&2; exit 2; }
+                extra="$ROOT/requirements-$2.txt"
+                if [ ! -f "$extra" ]; then
+                  echo "error: unknown extra '$2' (expected $extra)" >&2
+                  exit 2
+                fi
+                EXTRAS="${EXTRAS} -r $extra"
+                HASH_FILES+=("$extra")
+                [ "$2" = "barcode" ] && WITH_BARCODE=1
+                shift 2
+                ;;
+              --offline-wheels)
+                [ $# -ge 2 ] || { echo "error: --offline-wheels needs a directory" >&2; exit 2; }
+                WHEELHOUSE="$2"
+                WHEELHOUSE_EXPLICIT=1
+                shift 2
+                ;;
+              --online) ONLINE=1; shift ;;
+              --yes|-y) ASSUME_YES=1; shift ;;
+              --python)
+                [ $# -ge 2 ] || { echo "error: --python needs a path" >&2; exit 2; }
+                PYTHON="$2"; shift 2
+                ;;
+              --site)
+                [ $# -ge 2 ] || { echo "error: --site needs a directory" >&2; exit 2; }
+                SITE="$2"; shift 2
+                ;;
+              -r)
+                [ $# -ge 2 ] || { echo "error: -r needs a file" >&2; exit 2; }
+                EXTRAS="${EXTRAS} -r $2"
+                HASH_FILES+=("$2")
+                shift 2
+                ;;
+              --help|-h) usage; exit 0 ;;
+              *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
             esac
           done
 
-          # pyzbar loads libzbar at import time; the service cannot start without it.
-          if ! ldconfig -p 2>/dev/null | grep -q libzbar; then
-            echo "warning: libzbar is missing (apt-get install -y libzbar0)" >&2
+          if [ "$ONLINE" = 1 ] && [ "$WHEELHOUSE_EXPLICIT" = 1 ]; then
+            echo "error: choose either --online or --offline-wheels DIR, not both" >&2
+            exit 2
+          fi
+
+          if [ "$ONLINE" = 1 ]; then
+            echo "Online install: pip will resolve requirements from PyPI."
+            echo "  approximate download: ${ONLINE_DOWNLOAD_HINT}"
+            echo "  required free space:  ${ONLINE_MIN_FREE_GIB} GiB"
+            if [ "$ASSUME_YES" != "1" ]; then
+              echo "Refusing to download without confirmation." >&2
+              echo "Re-run with --yes or set BOTMODELS_INSTALL_YES=1." >&2
+              exit 2
+            fi
+          else
+            if [ -d "$WHEELHOUSE" ]; then
+              PIP_ARGS+=(--no-index --find-links "$WHEELHOUSE")
+            elif [ "$WHEELHOUSE_EXPLICIT" = 1 ]; then
+              echo "error: offline wheelhouse not found: $WHEELHOUSE" >&2
+              exit 2
+            else
+              cat >&2 <<MESSAGE
+          error: no offline wheelhouse at $WHEELHOUSE.
+            This bundle is meant to install without network access. Re-download
+            the pythonbox, pass --offline-wheels DIR, or opt into PyPI with:
+              ./install.sh --online --yes    # ${ONLINE_DOWNLOAD_HINT} download
+          MESSAGE
+              exit 2
+            fi
+          fi
+
+          # libzbar is a system library, not a wheel. Install pyzbar only when it
+          # can actually load; --with barcode forces it (the service still
+          # degrades cleanly because the import is lazy).
+          if [ "$WITH_BARCODE" = 0 ] && [ -f "$ROOT/requirements-barcode.txt" ]; then
+            # grep without -q: -q closes the pipe early and pipefail would turn
+            # the resulting SIGPIPE into a false "libzbar missing" result.
+            if command -v ldconfig >/dev/null 2>&1 && ldconfig -p 2>/dev/null | grep 'libzbar' >/dev/null; then
+              EXTRAS="${EXTRAS} -r $ROOT/requirements-barcode.txt"
+              HASH_FILES+=("$ROOT/requirements-barcode.txt")
+            else
+              echo "notice: libzbar0 not found; barcode/QR decoding will be unavailable." >&2
+              echo "        BotModels still starts; install libzbar0 and rerun with --with barcode to enable it." >&2
+            fi
+          fi
+
+          wanted="$(cat "${HASH_FILES[@]}" | sha256sum | cut -d' ' -f1)"
+          if [ -x "$VENV/bin/python" ] && [ -f "$ROOT/.installed" ] \
+            && [ "$(cat "$ROOT/.installed")" = "$wanted" ]; then
+            echo "pythonbox already installed (requirements $wanted)"
+            exit 0
+          fi
+
+          free_kib=$(df -Pk "$ROOT" | awk 'NR==2 {print $4}')
+          free_bytes=$((free_kib * 1024))
+          if [ -d "$WHEELHOUSE" ] && [ "$ONLINE" = 0 ]; then
+            wheel_kib=$(du -sk "$WHEELHOUSE" | awk '{print $1}')
+            wheel_bytes=$((wheel_kib * 1024))
+            required_bytes=$((wheel_bytes * 3 + 1073741824))
+            source="wheelhouse ($(awk -v b="$wheel_bytes" 'BEGIN {printf "%.1f", b/1073741824}') GiB)"
+          else
+            required_bytes=$((ONLINE_MIN_FREE_GIB * 1073741824))
+            source="online resolve (${ONLINE_DOWNLOAD_HINT})"
+          fi
+          min_bytes=$((MIN_FREE_GIB * 1073741824))
+          if [ "$required_bytes" -lt "$min_bytes" ]; then required_bytes=$min_bytes; fi
+          if [ "${BOTMODELS_SKIP_DISK_CHECK:-0}" != "1" ] && [ "$free_bytes" -lt "$required_bytes" ]; then
+            cat >&2 <<MESSAGE
+          error: not enough free disk space for the BotModels environment.
+            required:  $(awk -v b="$required_bytes" 'BEGIN {printf "%.1f", b/1073741824}') GiB ($source)
+            available: $(awk -v b="$free_bytes" 'BEGIN {printf "%.1f", b/1073741824}') GiB on $ROOT
+          Free at least the difference and rerun. The floor is BOTMODELS_MIN_FREE_GIB
+          (currently ${MIN_FREE_GIB}); BOTMODELS_SKIP_DISK_CHECK=1 bypasses this check.
+          MESSAGE
+            exit 1
           fi
 
           if [ ! -x "$VENV/bin/python" ]; then
@@ -144,13 +301,9 @@ jobs:
             printf '%s\n' "$SITE" > "$site_dir/zzz-pythonbox-site.pth"
           fi
 
-          wanted="$(sha256sum "$ROOT/requirements.txt" | cut -d' ' -f1)"
-          if [ -f "$ROOT/.installed" ] && [ "$(cat "$ROOT/.installed")" = "$wanted" ]; then
-            echo "pythonbox already installed (requirements $wanted)"
-            exit 0
+          if [ "$ONLINE" = 1 ]; then
+            "$VENV/bin/python" -m pip install --upgrade pip --no-cache-dir
           fi
-
-          "$VENV/bin/python" -m pip install --upgrade pip --no-cache-dir
           # shellcheck disable=SC2086
           "$VENV/bin/python" -m pip install --no-cache-dir "${PIP_ARGS[@]}" -r "$ROOT/requirements.txt" $EXTRAS
           "$VENV/bin/python" -c 'import fastapi, uvicorn; print("pythonbox ready")'
@@ -181,16 +334,25 @@ jobs:
           Self-contained Python service bundle: the interpreter is included, the
           dependencies are installed once into ./.venv.
 
-            ./install.sh                     # resolve requirements.txt
-            ./install.sh --offline-wheels D  # install from a local wheelhouse
+            ./install.sh                     # offline: install from ./wheelhouse
+            ./install.sh --online --yes      # explicit PyPI download (~4 GiB)
+            ./install.sh --offline-wheels D  # install from another wheelhouse
             ./install.sh --with jupyter      # add JupyterLab/Notebook
+            ./install.sh --with barcode      # add pyzbar even without libzbar
             ./run.sh                         # serve on :8085 (BOTMODELS_PORT)
 
           Health: GET http://127.0.0.1:8085/api/health
 
+          The first run requires at least 6 GiB free on the target filesystem
+          (12 GiB for an online install). Override the floor with
+          BOTMODELS_MIN_FREE_GIB; BOTMODELS_SKIP_DISK_CHECK=1 bypasses it.
+
           System libraries (not installable with pip):
-            libzbar0   required at import time (QR/barcode)
-            tesseract  required by the OCR backend at request time
+            libzbar0   optional: barcode/QR decoding. install.sh adds pyzbar
+                       automatically when libzbar is present. Without it the
+                       service still starts and /api/health reports
+                       media_capabilities.barcode.available=false.
+            tesseract  optional OCR backend; RapidOCR is the pip fallback.
 
           The box is relocatable: move the directory, the interpreter keeps
           working. Delete ./.venv to start from scratch.
@@ -202,6 +364,15 @@ jobs:
 
           tar -czf dist/botmodels-pythonbox-linux-x86_64.tar.gz -C dist botmodels-pythonbox
           rm -rf dist/botmodels-pythonbox
+
+          # GitHub release assets are capped at 2 GB; fail here instead of in
+          # the publish job after the archive has already been built.
+          archive_bytes=$(stat -c %s dist/botmodels-pythonbox-linux-x86_64.tar.gz)
+          echo "pythonbox archive: ${archive_bytes} bytes"
+          if [ "$archive_bytes" -ge 2000000000 ]; then
+            echo "::error::pythonbox archive exceeds GitHub's 2 GB release asset limit"
+            exit 1
+          fi
 
           python3 - <<'PY'
           import hashlib
@@ -253,11 +424,22 @@ jobs:
             'import sys, ssl, sqlite3, venv; print(sys.version)'
           bash -n install.sh
           bash -n run.sh
+          ./install.sh --help > /dev/null
+          ./python/bin/python3 scripts/wheelhouse.py inspect wheelhouse > /dev/null
           ./python/bin/python3 - <<'PY'
           import ast
           import pathlib
 
-          for required in ("install.sh", "run.sh", "requirements.txt", "src/main.py", "README.txt"):
+          for required in (
+              "install.sh",
+              "run.sh",
+              "requirements.txt",
+              "requirements-barcode.txt",
+              "wheelhouse/wheelhouse-manifest.json",
+              "scripts/wheelhouse.py",
+              "src/main.py",
+              "README.txt",
+          ):
               assert pathlib.Path(required).exists(), required
           ast.parse(pathlib.Path("src/main.py").read_text())
           print("pythonbox layout ok")
@@ -307,12 +489,15 @@ jobs:
             ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/botmodels-pythonbox-linux-x86_64.tar.gz
           tar -xzf pythonbox.tar.gz
           cd botmodels-pythonbox
-          ./install.sh              # or: ./install.sh --with jupyter
+          ./install.sh              # offline CPU-tier wheelhouse (recommended)
+          ./install.sh --online --yes  # or fetch from PyPI
           ./run.sh                  # BotModels on :8085
           \`\`\`
 
-          The bundle carries its own CPython; no system interpreter is needed.
-          \`pythonbox-manifest.json\` records the commit and the archive checksum."
+          The bundle carries its own CPython and a CPU-tier wheelhouse; no
+          system interpreter or network access is needed for the default
+          install. \`pythonbox-manifest.json\` records the commit and the archive
+          checksum."
           gh release upload "$TAG" dist/* --repo "$REPO"
           # Assets can only be attached to a draft: publishing first makes
           # the release immutable and every upload fails with HTTP 422.

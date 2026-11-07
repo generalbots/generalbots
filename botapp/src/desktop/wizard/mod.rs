@@ -13,6 +13,7 @@
 mod commands;
 mod handoff;
 mod hostcheck;
+mod media;
 mod paths;
 mod progress;
 mod provision;
@@ -44,7 +45,17 @@ mod tests {
         let ids: Vec<&str> = COMPONENTS.iter().map(|(id, _, _)| *id).collect();
         assert_eq!(
             ids,
-            vec!["vault", "tables", "cache", "drive", "vector_db", "directory", "llm", "botserver"]
+            vec![
+                "vault",
+                "tables",
+                "cache",
+                "drive",
+                "vector_db",
+                "directory",
+                "llm",
+                "botmodels",
+                "botserver"
+            ]
         );
     }
 

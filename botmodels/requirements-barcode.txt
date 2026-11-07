@@ -1,0 +1,8 @@
+# Optional barcode/QR decoding extra.
+#
+# pyzbar is not part of the hard requirement set: importing it loads the
+# libzbar shared library, which a per-user desktop install cannot provide.
+# install.sh installs this file when libzbar is present (or with
+# `--with barcode`); without it BotModels still starts and /api/health reports
+# media_capabilities.barcode.available=false with the remediation command.
+pyzbar==0.1.9

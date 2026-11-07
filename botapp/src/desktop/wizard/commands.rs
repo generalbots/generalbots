@@ -54,6 +54,14 @@ pub async fn wizard_host_check(app: tauri::AppHandle) -> super::HostCheckResult 
     super::hostcheck::check(&app).await
 }
 
+/// Media capabilities for the finish screen. The BotModels service is the
+/// source of truth when it is running; otherwise this probes the bundled
+/// wheelhouse and the host libraries so missing features are named up front.
+#[tauri::command]
+pub async fn wizard_media_capabilities() -> serde_json::Value {
+    super::media::capabilities().await
+}
+
 #[tauri::command]
 pub async fn wizard_provision(
     app: tauri::AppHandle,

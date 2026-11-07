@@ -75,6 +75,7 @@ function showSetupWizard() {
     if (step4) step4.style.display = "none";
   }
   overlay.style.display = "flex";
+  if (window.SetupWizardMedia) window.SetupWizardMedia.load();
 }
 
 function hideSetupWizard() {
@@ -83,6 +84,7 @@ function hideSetupWizard() {
     overlay.style.display = "none";
   }
 }
+
 
 function updateProgressBar() {
   var fill = document.getElementById("setupProgressFill");

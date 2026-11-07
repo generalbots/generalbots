@@ -1,9 +1,11 @@
 use super::*;
 
 /// BotModels as a pythonbox: the archive carries its own CPython, the service
-/// sources and `install.sh`/`run.sh`. Nothing is compiled or installed at this
-/// step — `run.sh` resolves the virtual environment on first start, because the
-/// dependency set (torch et al.) is far larger than the bundle itself.
+/// sources, a CPU-tier wheelhouse and `install.sh`/`run.sh`. Nothing is
+/// compiled or installed at this step — `run.sh` materialises the virtual
+/// environment from the bundled wheels on first start, so a clean machine
+/// needs no network access (the dependency set is far larger than the bundle
+/// itself).
 pub fn register_botmodels(components: &mut HashMap<String, ComponentConfig>) {
     components.insert(
         "botmodels".to_string(),

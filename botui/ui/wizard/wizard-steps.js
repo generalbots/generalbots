@@ -330,6 +330,12 @@
         '<div class="summary-row"><span>' + esc(t("finish.not-connected")) + "</span><span>" + esc(notConnected.length ? notConnected.join(", ") : t("finish.none")) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.crash")) + "</span><span>" + esc(draft.telemetry ? t("finish.enabled") : t("finish.off")) + "</span></div>" +
       "</div>" +
+      '<div class="card" id="mediaCapabilitiesCard" style="margin-top:16px">' +
+        '<div class="card-head"><span class="card-title">' + esc(t("finish.media-title")) + "</span>" +
+          '<span class="badge" id="mediaCapabilitiesBadge">' + esc(t("finish.media-checking")) + "</span></div>" +
+        '<div id="mediaCapabilitiesRows" style="margin-top:8px"></div>' +
+        '<p class="note" id="mediaCapabilitiesNote" role="status" style="margin:8px 0 0"></p>' +
+      "</div>" +
       '<p class="note" style="margin-top:16px">' + esc(t("finish.change-later")) + "</p>" +
       '<div id="finishStatus" class="note" role="status" style="margin-top:12px"></div>';
   }

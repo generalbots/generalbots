@@ -27,6 +27,10 @@ struct Component {
     /// When false the wizard only materialises the files and leaves the
     /// service to start on first use (heavy dependencies, no blocking).
     start: bool,
+    /// Optional components that cannot exist on this host (no published
+    /// pythonbox for Windows/aarch64). The wizard reports the reason and never
+    /// attempts a download that would fail or hang.
+    unavailable: Option<String>,
 }
 
 fn emit(event: WizardEvent) {
@@ -64,14 +68,14 @@ fn component_plan() -> Vec<Component> {
         model_mode.eq_ignore_ascii_case("local")
     };
     let mut plan = vec![
-        Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false, start: true },
+        Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false, start: true, unavailable: None },
         // 90 s was not enough on a cold CI runner (first-run smoke test timed
         // out while initdb was still writing); the wait is bounded either way.
-        Component { id: "tables", label: "Database", timeout_secs: 180, optional: false, start: true },
-        Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false, start: true },
-        Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false, start: true },
-        Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false, start: true },
-        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false, start: true },
+        Component { id: "tables", label: "Database", timeout_secs: 180, optional: false, start: true, unavailable: None },
+        Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false, start: true, unavailable: None },
+        Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false, start: true, unavailable: None },
+        Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false, start: true, unavailable: None },
+        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false, start: true, unavailable: None },
     ];
     if wants_local {
         plan.push(Component {
@@ -80,12 +84,16 @@ fn component_plan() -> Vec<Component> {
             timeout_secs: 120,
             optional: true,
             start: true,
+            unavailable: None,
         });
     }
-    // BotModels ships as a pythonbox: the installer carries the archive, so the
-    // wizard only has to unpack it. The virtual environment resolves on first
-    // use (torch-sized downloads), which must never block setup — hence
-    // `start: false`. GB_WIZARD_WITH_BOTMODELS=0 opts out entirely.
+    // BotModels ships as a pythonbox: the installer carries the archive and a
+    // CPU-tier wheelhouse, so the wizard only has to unpack it. The virtual
+    // environment is created offline on first use (no PyPI round-trip), which
+    // must never block setup — hence `start: false`.
+    // GB_WIZARD_WITH_BOTMODELS=0 opts out entirely. Only the Linux x86_64
+    // pythonbox is published; Windows and Linux arm64 get an explicit reason
+    // instead of a download that cannot succeed.
     let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
     if with_botmodels.trim() != "0" {
         plan.push(Component {
@@ -94,6 +102,10 @@ fn component_plan() -> Vec<Component> {
             timeout_secs: 120,
             optional: true,
             start: false,
+            unavailable: crate::main_module::media_capabilities::botmodels_unavailable_reason(
+                std::env::consts::OS,
+                std::env::consts::ARCH,
+            ),
         });
     }
     plan
@@ -107,6 +119,13 @@ async fn provision_component(
     started: Instant,
 ) -> Result<(), String> {
     progress(component.id, "pending", &format!("Preparing {}", component.label.to_lowercase()), started);
+
+    if let Some(reason) = &component.unavailable {
+        // Optional component absent from this platform: never download, fail or
+        // wait for it. The wizard shows the exact media gap instead.
+        progress(component.id, "ready", reason, started);
+        return Ok(());
+    }
 
     if !pm.is_installed(component.id) {
         progress(
@@ -156,7 +175,7 @@ async fn provision_component(
     }
 
     if !component.start {
-        progress(component.id, "ready", "Bundled — starts on first use", started);
+        progress(component.id, "ready", "Bundled with offline wheels — installs on first use", started);
         return Ok(());
     }
 

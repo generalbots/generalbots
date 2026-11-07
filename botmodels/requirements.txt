@@ -48,7 +48,9 @@ opencv-python==4.10.0.84
 timm==1.0.12
 
 # QR Code & Barcode Reading
-pyzbar==0.1.9
+# pyzbar lives in requirements-barcode.txt: it loads the libzbar system
+# library at import time, and a per-user desktop install cannot install that
+# library. install.sh adds the barcode extra when libzbar is present.
 
 # OCR - max tier backend. Requires the `tesseract` system binary for the
 # min tier backend; nothing here installs it.

@@ -107,6 +107,19 @@
         message: "All runtime prerequisites are satisfied."
       });
     },
+    mediaCapabilities: function () {
+      return Promise.resolve({
+        service_running: false,
+        source: "host",
+        barcode: {
+          available: false,
+          library: "libzbar0",
+          detail: "libzbar0 is not installed on this host",
+          remediation: "apt-get install -y libzbar0"
+        },
+        ocr: { available: true, detail: null, remediation: null }
+      });
+    },
     pickFolder: function () { return Promise.resolve("/home/user/Documents/General Bots"); },
     testModel: function (req) {
       if (req.mode === "local") {
@@ -280,6 +293,10 @@
 
     hostCheck: function () {
       return isDesktop ? invoke("wizard_host_check") : mock.hostCheck();
+    },
+
+    mediaCapabilities: function () {
+      return isDesktop ? invoke("wizard_media_capabilities") : mock.mediaCapabilities();
     },
 
     pickFolder: function () {

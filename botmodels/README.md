@@ -46,12 +46,37 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+Optional extras:
+
+```bash
+pip install -r requirements-barcode.txt   # pyzbar, needs the libzbar system library
+```
+
+### Offline pythonbox (desktop bundle)
+
+The desktop bundle ships a CPU-tier wheelhouse and installs without network
+access:
+
+```bash
+./install.sh            # --no-index --find-links ./wheelhouse
+./install.sh --online --yes   # explicit PyPI fallback (~4 GiB download)
+```
+
+The wheelhouse is built by `scripts/wheelhouse.py` (see `plan`, `build`,
+`inspect` and `estimate`). It downloads torch/torchaudio/torchvision from
+PyTorch's CPU index so no `nvidia-*` CUDA wheels enter the archive, then the
+rest of the requirements from PyPI. The first run requires at least **6 GiB**
+free (`BOTMODELS_MIN_FREE_GIB` changes the floor; an online install requires
+**12 GiB**). The estimate is wheelhouse size ×3 + 1 GiB, so a larger
+wheelhouse raises the requirement.
+
 System libraries are not installable with pip:
 
-- `libzbar0` — barcode/QR decoding (`apt-get install -y libzbar0`). Without it
-  BotModels still starts and `/api/health` reports
-  `media_capabilities.barcode.available: false`; the barcode endpoints return
-  503 with that remediation instead of an import traceback.
+- `libzbar0` — **optional** barcode/QR decoding (`apt-get install -y libzbar0`).
+  `install.sh` adds `requirements-barcode.txt` only when libzbar is present;
+  without it BotModels still starts and `/api/health` reports
+  `media_capabilities.barcode.available: false` with the remediation. The
+  barcode endpoints return 503 instead of an import traceback.
 - `tesseract-ocr` — optional OCR backend; RapidOCR is the pip-only fallback.
 
 ### Configuration
@@ -356,8 +381,12 @@ botmodels/
 │   └── main.py
 ├── outputs/
 ├── models/
+├── scripts/
+│   ├── check_imports.py
+│   └── wheelhouse.py
 ├── tests/
 ├── requirements.txt
+├── requirements-barcode.txt
 └── README.md
 ```
 
