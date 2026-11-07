@@ -6,6 +6,20 @@ use super::render::render_result;
 use super::send;
 use super::super::types::SessionIdentity;
 
+/// Sentinel reason used when the outer tokio timeout fires before the
+/// workspace responds.  Kept as a constant so the error-path that sets it
+/// and the message-path that tests it stay in sync.
+const BUDGET_ELAPSED_REASON: &str =
+    "the run budget elapsed before the workspace answered";
+
+/// User-facing message for a run that exhausted its time budget.  The sandbox
+/// is still healthy — there is nothing to restart.
+fn budget_elapsed_message() -> String {
+    "The workspace run exceeded its time budget. \
+     Try a simpler request or break the task into smaller steps."
+        .to_string()
+}
+
 /// The truthful replacement for the dead-end "workspace is not available"
 /// phrase: show the concrete reason the VM subsystem reports (status is
 /// logged only, never shown), then one short pointer forward.
@@ -22,8 +36,24 @@ fn workspace_failure_message(reason: &str) -> String {
         clipped
     };
     format!(
-        "The workspace could not run this program: {clipped}. Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up."
+        "The workspace could not run this program: {clipped}. \
+         Start a new message once the sandbox host is back; \
+         on a desktop install, restarting the app brings the workspace up."
     )
+}
+
+/// Route a VM `Err` to the right user-facing message.
+///
+/// Budget timeouts and real workspace failures need different advice: a
+/// timeout means "simplify your request", a workspace failure means "wait for
+/// the sandbox to recover".  Mixing them (the original bug, #1803) sent users
+/// on a pointless restart loop when the sandbox was perfectly healthy.
+fn vm_error_message(reason: &str) -> String {
+    if reason.trim() == BUDGET_ELAPSED_REASON {
+        budget_elapsed_message()
+    } else {
+        workspace_failure_message(reason)
+    }
 }
 
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
