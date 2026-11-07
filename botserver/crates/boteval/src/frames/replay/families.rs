@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use botevents::{Envelope, EventType, RunState};
 
+use super::apply_patch;
 use super::state::{
     payload_state, payload_str, CustomRecord, MessageView, ReplayError, ReplayState, RunView,
     StepView, ToolView,

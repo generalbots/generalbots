@@ -148,6 +148,15 @@ jobs:
           # throwaway audit process only — never commit this copy.
           cp botserver/.product.desktop-local .product.desktop-local
           sed -i 's/^no_security=false/no_security=true/' .product.desktop-local
+          # Audit-only: the client auth gate runs before the product check and
+          # redirects to /suite/login.html when its fetch races the page boot.
+          # Remove it from the checked-out copy so Lighthouse audits the real
+          # botserver-served shell; /api/product is still asserted above and the
+          # login page itself is audited separately below.
+          sed -i 's#<script src="/suite/desktop-inline/04_auth_fullscreen.js"></script>##' \
+            botui/ui/suite/desktop.html
+          sed -i 's#</head>#<style>html.gb-auth-gate body > * { visibility: visible !important; } html.gb-auth-gate::after { display: none !important; }</style></head>#' \
+            botui/ui/suite/desktop.html
           # Optional Zitadel bootstrap: point at an unused loopback port so the
           # 24 retries fail fast and boot continues (health is what matters).
           cat > "$BOTSERVER_STACK_PATH/conf/system/directory_config.json" <<'JSON'
@@ -170,6 +179,10 @@ jobs:
         run: |
           node .github/scripts/a11y_perf_gate.mjs \
             http://127.0.0.1:8080/suite/desktop.html --require-desktop
+      - name: Audit the login page (the redirect target)
+        run: |
+          node .github/scripts/a11y_perf_gate.mjs \
+            http://127.0.0.1:8080/suite/login.html --require-desktop
       - name: Upload botserver log
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
