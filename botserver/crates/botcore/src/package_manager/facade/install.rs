@@ -65,7 +65,10 @@ impl PackageManager {
             let cache = DownloadCache::new(cache_base).ok();
 
             for url in &component.data_download_list {
-                let filename = DownloadCache::extract_filename(url);
+                let filename = cache
+                    .as_ref()
+                    .and_then(|c| c.filename_for_url(url))
+                    .unwrap_or_else(|| DownloadCache::extract_filename(url));
                 let output_path = self
                     .base_path
                     .join("data")

@@ -1,6 +1,12 @@
 use anyhow::{Context, Result};
 use log::{debug, info, trace, warn};
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
+
+mod component;
+pub use component::ComponentDownload;
 
 const DEFAULT_CACHE_DIR: &str = "./botserver-installers";
 
@@ -32,15 +38,6 @@ impl Default for CacheSettings {
 
 fn default_cache_dir() -> String {
     DEFAULT_CACHE_DIR.to_string()
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct ComponentDownload {
-    pub name: String,
-    pub url: String,
-    pub filename: String,
-    #[serde(default)]
-    pub sha256: String,
 }
 
 #[derive(Debug)]
@@ -150,13 +147,30 @@ impl DownloadCache {
     /// and the archive are not always the same entry (the `llm` component
     /// downloads the Vulkan or the CPU build depending on the host), so
     /// verification must follow the URL in use instead of the component name.
+    /// Arm64 URLs use `sha256_arm64`; an empty value means "not published" and
+    /// skips verification (never fall back to the x86_64 checksum).
     pub fn checksum_for_url(&self, url: &str) -> Option<String> {
         self.config
             .components
             .values()
-            .find(|component| component.url == url)
-            .map(|component| component.sha256.clone())
-            .filter(|sha| !sha.is_empty())
+            .chain(self.config.models.values())
+            .find_map(|component| {
+                component
+                    .sha256_for_url(url)
+                    .filter(|sha| !sha.is_empty())
+                    .map(str::to_string)
+            })
+    }
+
+    /// Configured cache filename for a URL, including the arm64/Windows
+    /// variants. Vendored installers use these stable names (`minio`,
+    /// `minio.exe`) rather than the upstream asset basename.
+    pub fn filename_for_url(&self, url: &str) -> Option<String> {
+        self.config
+            .components
+            .values()
+            .chain(self.config.models.values())
+            .find_map(|component| component.filename_for_url(url).map(str::to_string))
     }
 
     pub fn get_component(&self, component: &str) -> Option<&ComponentDownload> {
@@ -192,7 +206,14 @@ impl DownloadCache {
 
     pub fn resolve_component_url(&self, component: &str, url: &str) -> CacheResult {
         if let Some(comp) = self.get_component(component) {
-            let cached_path = self.cache_dir.join(&comp.filename);
+            // Use the configured filename for the URL actually in use. This is
+            // what lets a bundled `minio`/`minio.exe` satisfy the upstream
+            // release URL, and keeps the arm64 variant separate from x86_64.
+            let filename = comp
+                .filename_for_url(url)
+                .map(str::to_string)
+                .unwrap_or_else(|| Self::extract_filename(url));
+            let cached_path = self.cache_dir.join(&filename);
             if cached_path.exists()
                 && fs::metadata(&cached_path)
                     .map(|m| m.len() > 0)
@@ -202,10 +223,28 @@ impl DownloadCache {
                 return CacheResult::Cached(cached_path);
             }
 
-            trace!("Will download {} from config URL", comp.name);
+            // Older caches stored the upstream asset basename.
+            let url_filename = Self::extract_filename(url);
+            if url_filename != filename {
+                let alternate = self.cache_dir.join(&url_filename);
+                if alternate.exists()
+                    && fs::metadata(&alternate)
+                        .map(|m| m.len() > 0)
+                        .unwrap_or(false)
+                {
+                    info!(
+                        "Using cached {} from: {}",
+                        comp.name,
+                        alternate.display()
+                    );
+                    return CacheResult::Cached(alternate);
+                }
+            }
+
+            trace!("Will download {} from config URL: {}", comp.name, url);
             return CacheResult::Download {
-                url: comp.url.clone(),
-                cache_path: self.cache_dir.join(&comp.filename),
+                url: url.to_string(),
+                cache_path: self.cache_dir.join(filename),
             };
         }
 
@@ -347,7 +386,3 @@ fn sha256_hex(data: &[u8]) -> String {
     let result = hasher.finalize();
     hex::encode(result)
 }
-
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs;

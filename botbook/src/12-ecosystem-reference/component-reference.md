@@ -194,6 +194,7 @@ https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz
 |----------|-----|
 | Linux x64 | `https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip` |
 | Linux x64 Vulkan | `https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-vulkan-x64.zip` |
+| Linux arm64 | `https://github.com/ggml-org/llama.cpp/releases/download/b12189/llama-b12189-bin-ubuntu-arm64.tar.gz` |
 | macOS ARM64 | `https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-macos-arm64.zip` |
 | macOS x64 | `https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-macos-x64.zip` |
 | Windows x64 | `https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-win-cpu-x64.zip` |
@@ -210,6 +211,10 @@ llama-b7345-bin-win-cpu-x64.zip:       ea449082c8e808a289d9a1e8331f90a0379ead4dd
 llama-b7345-bin-win-cuda-12.4-x64.zip: 7a82aba2662fa7d4477a7a40894de002854bae1ab8b0039888577c9a2ca24cae
 llama-b7345-bin-win-cuda-13.1-x64.zip: 06ea715cefb07e9862394e6d1ffa066f4c33add536b1f1aa058723f86ae05572
 ```
+
+Linux arm64 uses b12189 because b7345 publishes no ubuntu-arm64 asset. The
+b12189 release does not publish a SHA256SUMS/checksum file, so the arm64
+download is not hash-verified; x86_64 keeps the b7345 pin above.
 
 **Purpose:**
 - Local LLM inference

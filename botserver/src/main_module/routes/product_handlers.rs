@@ -6,6 +6,17 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
     // load (#1693 follow-up). The manifest is always returned.
     let mut value = crate::core::product::get_product_config_json();
     if let Some(object) = value.as_object_mut() {
+        // #1793 — BotModels has no Windows/aarch64 pythonbox. Report the real
+        // media capability (and the reason) so the suite can hide or explain
+        // vision/STT/TTS instead of failing when the optional service is not
+        // installed.
+        object.insert(
+            "media_capabilities".to_string(),
+            crate::main_module::media_capabilities::media_capabilities_json(
+                std::env::consts::OS,
+                std::env::consts::ARCH,
+            ),
+        );
         // Advertise optional capabilities the suite probes at boot. `agent-vm`
         // gates /api/agent/drive/*, which the chat attachment actions call;
         // without it the client can hide Save/Open instead of eating a 404.

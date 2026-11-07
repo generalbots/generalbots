@@ -73,7 +73,7 @@ impl PackageManager {
             }
         };
 
-        let cache_result = cache.resolve_url(url);
+        let cache_result = cache.resolve_component_url(component, url);
 
         let source_file = match cache_result {
             CacheResult::Cached(cached_path) => {
@@ -117,7 +117,13 @@ impl PackageManager {
             .or_else(|| cache.get_component(component).map(|info| info.sha256.clone()))
             .unwrap_or_default();
         if !expected.is_empty() {
-            let filename = DownloadCache::extract_filename(url);
+            // Verify the file the resolver actually selected: bundled
+            // installers use stable names (minio/minio.exe), not the upstream
+            // release basename.
+            let filename = source_file
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_else(|| DownloadCache::extract_filename(url));
             if !cache.verify_checksum(&filename, &expected)? {
                 return Err(anyhow::anyhow!(
                     "Checksum verification failed for '{}' ({}). The bundled file may be corrupt.",

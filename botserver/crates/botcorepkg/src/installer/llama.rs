@@ -31,8 +31,10 @@ pub fn get_llama_cpp_url() -> Option<String> {
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected ARM64 architecture on Linux");
-            warn!("No pre-built llama.cpp for Linux ARM64 - LLM will not be available");
-            return None;
+            // The `llm` component carries a Linux arm64 variant; the resolver
+            // selects its url_arm64 on aarch64 and keeps the x86_64 URL for the
+            // standard build. No Vulkan detection here (CPU build).
+            get_component_url("llm")
         }
     }
 

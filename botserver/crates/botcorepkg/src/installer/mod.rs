@@ -17,6 +17,8 @@ struct ComponentEntry {
     url: String,
     #[serde(default)]
     url_win: Option<String>,
+    #[serde(default)]
+    url_arm64: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

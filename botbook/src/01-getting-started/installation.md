@@ -54,8 +54,18 @@ The Linux matrix above does not apply to the desktop bundles:
   2015-2022 x64 runtime, `libpq.dll` and the WSL2/Incus agent backend, then
   exits non-zero when the desktop shell or agent mode cannot run. `-Install`
   prints the remediation commands and does not download or install anything.
-- **macOS:** `./PROD-DEPENDENCIES.sh --check` reports that no desktop bundle is
-  built for macOS (`desktop/macos/README.md`).
+- **macOS:** `./PROD-DEPENDENCIES.sh --check` reports the dmg/CI state and the
+  agent backend. The unsigned arm64 dmg is built best effort; the Linux service
+  stack, the BotModels pythonbox and the native Incus agent remain unavailable
+  (see `desktop/macos/README.md`).
+
+The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel
+and Caddy under `installers/` (the MSI/NSIS packages carry the same resources).
+PostgreSQL, Vault and llama.cpp plus its models are downloaded once on first
+run; `GB_DESKTOP_OFFLINE=1` refuses those downloads and names the missing
+archive. There is no Windows BotModels pythonbox, so media (vision/STT/TTS)
+stays unavailable and `/api/product` reports `media_capabilities` with the
+reason.
 
 See [First-Run Wizard](../07-user-interface/first-run-wizard.md) for the exit
 codes and the per-platform agent backend details.
@@ -91,21 +101,66 @@ reminder.
 
 ## Distribution Packages
 
-Each release publishes the same desktop edition (Chat + Drive) in four shapes,
-built from the same binaries by `.github/workflows/desktop-binaries.yml`:
+Each release publishes the same desktop edition (Chat + Drive) in these shapes,
+built from the same binaries by `.github/workflows/desktop-binaries.yml`,
+`.github/workflows/desktop-linux-arm64.yml` and
+`.github/workflows/desktop-macos.yml`:
 
 | Package | Install |
 |---------|---------|
 | `generalbots-linux-x86_64.deb` | `sudo apt install ./generalbots-linux-x86_64.deb` |
 | `generalbots-linux-x86_64.rpm` | `sudo dnf install ./generalbots-linux-x86_64.rpm` |
 | `generalbots-linux-x86_64.AppImage` | `chmod +x generalbots-linux-x86_64.AppImage && ./generalbots-linux-x86_64.AppImage` |
+| `generalbots-linux-aarch64.tar.gz` | Linux arm64 (preview): unpack, then `./install.sh` |
+| `generalbots-linux-aarch64.deb` / `.rpm` / `.AppImage` | Linux arm64 packages, built best effort by the arm64 workflow |
 | `generalbots-x64.msi` / `generalbots-x64-setup.exe` | Windows: double-click |
+| `generalbots-<tag>-macos-arm64.dmg` | macOS 11+ (Apple silicon), unsigned: open the dmg, drag to Applications, then bypass Gatekeeper with `xattr -dr com.apple.quarantine "/Applications/General Bots.app"` |
 
-The `.deb` declares dependencies on `libssl3` and `libwebkit2gtk-4.1-0`; the
-`.rpm` declares `openssl-libs`, `webkit2gtk4.1` and `libpq` (see
+The `.deb` declares dependencies on `libssl3 | libssl3t64`,
+`libwebkit2gtk-4.1-0`, `libpq5` and `libgtk-3-0 | libgtk-3-0t64`; the `.rpm`
+declares `openssl-libs`, `webkit2gtk4.1` and `libpq` (see
 `botapp/tauri.desktop-local.conf.json`). The AppImage still uses the host
-WebKitGTK — it does not bundle it — and needs FUSE 2, or can be started with
-`--appimage-extract-and-run`.
+WebKitGTK — it does not bundle it — and needs FUSE 2 (`libfuse2t64` on
+Debian 13 and Ubuntu 24.04); where FUSE is unavailable, start it with
+`APPIMAGE_EXTRACT_AND_RUN=1` or `--appimage-extract-and-run`.
+
+There is no in-app auto-updater in this build. AppImage upgrades replace the
+file (user data stays in `~/.local/share/generalbots`, and the old file can be
+deleted after the new one runs); deb/rpm upgrade through the package manager.
+`GET http://127.0.0.1:8080/api/health` reports the running version, and a
+Settings -> About surface is follow-up UI work.
+
+The macOS bundle is best effort and unsigned. It cannot run the Linux service
+stack natively: PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
+llama.cpp stay unavailable in the wizard unless a Linux VM or a remote Incus
+host (`incus remote add`) provides them. The BotModels darwin pythonbox is not
+published yet, so media tools are unavailable, and agent VMs need remote Incus
+because Incus does not run containers natively on macOS.
+
+Linux arm64 packages are built by `.github/workflows/desktop-linux-arm64.yml`
+and uploaded as the `linux-arm64-installer` artifact. Publishing is opt-in
+(`PUBLISH_ARM64=true`) until the first run is verified on a real arm64 host;
+`botserver/3rdparty.toml` now carries arm64 variants for MinIO/mc, PostgreSQL,
+Valkey, Qdrant, Vault, Zitadel and llama.cpp. Qdrant and llama.cpp publish no
+arm64 checksum asset, so those two variants skip verification rather than
+comparing them to the x86_64 hash.
+
+The Windows payload bundles `installers/` with MinIO + mc, Redis (cache),
+Qdrant, Zitadel and Caddy. PostgreSQL, Vault, llama.cpp and models are fetched
+once on first run, or refused with the exact missing file when
+`GB_DESKTOP_OFFLINE=1`. Media (vision/STT/TTS) is unavailable on Windows until
+a Windows BotModels pythonbox exists; `/api/product` reports
+`media_capabilities.botmodels.available=false` with the reason.
+
+The Linux arm64 package is preview quality until its first run is verified on
+real arm64 hardware (the CI smoke test still covers x86_64 only), and publishing
+is opt-in through the `PUBLISH_ARM64` repository variable. The core stack has
+arm64 URLs (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and llama.cpp,
+which uses a newer release because the x86_64 pin has no ubuntu-arm64 asset),
+but there is no aarch64 BotModels pythonbox: vision/STT/TTS are reported
+unavailable, and `/api/product` exposes the reason. Optional add-ons outside the
+first-run stack (Caddy, Stalwart, InfluxDB, Vector, Forgejo/runner, NocoDB,
+LiveKit, CoreDNS) remain x86_64-only.
 
 The single self-extracting `generalbots` executable is also published: one file,
 no package manager, no unpack step.

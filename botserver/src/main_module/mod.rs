@@ -13,6 +13,7 @@ mod drive_utils;
 mod health;
 pub mod listen_impl;
 pub mod llm_setup;
+pub mod media_capabilities;
 pub mod migrations;
 pub mod routes;
 mod server;

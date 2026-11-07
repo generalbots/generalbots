@@ -13,6 +13,7 @@ pub const COMPONENTS: &[(&str, &str, bool)] = &[
     ("vector_db", "Vector store", false),
     ("directory", "Identity provider", false),
     ("llm", "Local model runtime", true),
+    ("botmodels", "AI media service", true),
     ("botserver", "Assistant service", false),
 ];
 

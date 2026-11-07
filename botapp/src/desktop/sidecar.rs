@@ -156,6 +156,19 @@ impl Sidecar {
             .current_dir(&stack)
             .env("BOTSERVER_STACK_PATH", &stack)
             .env("BOTSERVER_INSTALLERS_PATH", &installers)
+            // The desktop bundle carries only the small vendored components
+            // (drive on Linux/Windows, plus a few Windows services). Everything
+            // else is fetched once unless the user asked for an air-gapped run.
+            // Without this the Windows first run failed at the first component
+            // that was not bundled instead of downloading it.
+            .env(
+                "GB_DESKTOP_ALLOW_DOWNLOAD",
+                if std::env::var("GB_DESKTOP_OFFLINE").as_deref() == Ok("1") {
+                    "0"
+                } else {
+                    "1"
+                },
+            )
             // Single-user desktop: there is no sign-in screen, so the local
             // identity must be allowed to provision the agent workspace.
             .env("AGENT_ALLOW_UNREGISTERED_IDENTITIES", "1");

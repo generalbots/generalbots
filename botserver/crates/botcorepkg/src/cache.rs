@@ -5,6 +5,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod component;
+pub use component::ComponentDownload;
+
 const DEFAULT_CACHE_DIR: &str = "./botserver-installers";
 
 const CONFIG_FILE: &str = "3rdparty.toml";
@@ -35,37 +38,6 @@ impl Default for CacheSettings {
 
 fn default_cache_dir() -> String {
     DEFAULT_CACHE_DIR.to_string()
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct ComponentDownload {
-    pub name: String,
-    pub url: String,
-    pub filename: String,
-    #[serde(default)]
-    pub url_win: Option<String>,
-    #[serde(default)]
-    pub filename_win: Option<String>,
-    #[serde(default)]
-    pub sha256: String,
-}
-
-impl ComponentDownload {
-    pub fn effective_url(&self) -> &str {
-        if cfg!(target_os = "windows") {
-            self.url_win.as_deref().unwrap_or(&self.url)
-        } else {
-            &self.url
-        }
-    }
-
-    pub fn effective_filename(&self) -> &str {
-        if cfg!(target_os = "windows") {
-            self.filename_win.as_deref().unwrap_or(&self.filename)
-        } else {
-            &self.filename
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -193,6 +165,17 @@ impl DownloadCache {
         &self.config.models
     }
 
+    /// Configured cache filename for a URL, including the arm64/Windows
+    /// variants. Bundled installers use these stable names rather than the
+    /// upstream asset basename.
+    pub fn filename_for_url(&self, url: &str) -> Option<String> {
+        self.config
+            .components
+            .values()
+            .chain(self.config.models.values())
+            .find_map(|component| component.filename_for_url(url).map(str::to_string))
+    }
+
     pub fn resolve_url(&self, url: &str) -> CacheResult {
         let filename = Self::extract_filename(url);
 
@@ -208,10 +191,16 @@ impl DownloadCache {
         }
     }
 
-    pub fn resolve_component_url(&self, component: &str, _fallback_url: &str) -> CacheResult {
+    pub fn resolve_component_url(&self, component: &str, fallback_url: &str) -> CacheResult {
         if let Some(comp) = self.get_component(component) {
-            let filename = comp.effective_filename();
-            let cached_path = self.cache_dir.join(filename);
+            // Honour the URL chosen by the caller (llama.cpp picks a Vulkan or
+            // CPU variant at runtime) while preferring the configured stable
+            // filename for that URL, including the arm64/Windows variants.
+            let filename = comp
+                .filename_for_url(fallback_url)
+                .map(str::to_string)
+                .unwrap_or_else(|| Self::extract_filename(fallback_url));
+            let cached_path = self.cache_dir.join(&filename);
             if cached_path.exists()
                 && fs::metadata(&cached_path)
                     .map(|m| m.len() > 0)
@@ -221,15 +210,31 @@ impl DownloadCache {
                 return CacheResult::Cached(cached_path);
             }
 
-            let down_url = comp.effective_url().to_string();
-            trace!("Will download {} from config URL: {}", comp.name, down_url);
+            let url_filename = Self::extract_filename(fallback_url);
+            if url_filename != filename {
+                let alternate = self.cache_dir.join(&url_filename);
+                if alternate.exists()
+                    && fs::metadata(&alternate)
+                        .map(|m| m.len() > 0)
+                        .unwrap_or(false)
+                {
+                    info!(
+                        "Using cached {} from: {}",
+                        comp.name,
+                        alternate.display()
+                    );
+                    return CacheResult::Cached(alternate);
+                }
+            }
+
+            trace!("Will download {} from config URL: {}", comp.name, fallback_url);
             return CacheResult::Download {
-                url: down_url,
+                url: fallback_url.to_string(),
                 cache_path: self.cache_dir.join(filename),
             };
         }
 
-        self.resolve_url(_fallback_url)
+        self.resolve_url(fallback_url)
     }
 
     pub fn save_to_cache(&self, source: &Path, filename: &str) -> Result<PathBuf> {

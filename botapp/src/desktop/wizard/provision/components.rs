@@ -99,6 +99,18 @@ pub(super) async fn run_components(
         .env("GB_WIZARD_LLM_KEY", &request.model.api_key)
         .env("GB_WIZARD_LLM_PROVIDER", &request.model.provider)
         .env("GB_WIZARD_TELEMETRY", if request.telemetry { "1" } else { "0" })
+        // Mirror start.sh: the bundled installers cover the small services;
+        // the wizard may fetch the rest once unless GB_DESKTOP_OFFLINE=1.
+        // This keeps a Windows first run from stopping at the first component
+        // that is not in the payload.
+        .env(
+            "GB_DESKTOP_ALLOW_DOWNLOAD",
+            if std::env::var("GB_DESKTOP_OFFLINE").as_deref() == Ok("1") {
+                "0"
+            } else {
+                "1"
+            },
+        )
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

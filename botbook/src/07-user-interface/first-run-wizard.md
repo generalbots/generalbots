@@ -28,14 +28,30 @@ from the Tauri asset protocol; in development botui serves
 
 ## Platform prerequisites
 
-The packaged desktop edition is built for Linux x86_64 and, best effort,
-Windows x64. The host check is read-only and installs nothing:
+The packaged desktop edition is built for Linux x86_64 and Linux arm64
+(preview), and, best effort, Windows x64 and macOS arm64. The host check is
+read-only and installs nothing:
 
 | Platform | Check | Agent backend |
 |---|---|---|
 | Windows | `.\PROD-DEPENDENCIES.ps1 -Check` | WSL2 distro (`GBO_WSL_DISTRO`, default `Debian`) with systemd and Incus |
 | Linux | `./PROD-DEPENDENCIES.sh --check` | Incus on the host, user in the `incus-admin` group |
-| macOS | `./PROD-DEPENDENCIES.sh --check` | Not supported; no desktop bundle is published |
+| macOS | `./PROD-DEPENDENCIES.sh --check` | Remote Incus (`incus remote add`) or a Linux VM; Incus cannot run containers natively on macOS |
+
+On macOS the unsigned dmg is best effort. The wizard must mark the service
+stack components (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault, Zitadel and
+llama.cpp) unavailable instead of failing provisioning, because they have no
+darwin builds. BotModels has no darwin pythonbox yet, and the agent backend
+needs remote Incus or a Linux VM. Gatekeeper blocks the unsigned app until the
+user right-clicks -> Open or runs
+`xattr -dr com.apple.quarantine "/Applications/General Bots.app"`.
+
+On Windows the payload now includes `installers/` for MinIO + mc, Redis
+(cache), Qdrant, Zitadel and Caddy. The wizard downloads PostgreSQL, Vault,
+llama.cpp and models once unless `GB_DESKTOP_OFFLINE=1`; with that flag it
+names the missing file instead of attempting a network call. The AI media
+service stays unavailable because no Windows pythonbox is published, and the
+finish screen shows that reason from `/api/product`.
 
 `PROD-DEPENDENCIES.ps1 -Check` exits `0` when the desktop shell and agent mode
 can run, `1` when the desktop shell cannot run (WebView2, VC++ 2015-2022 x64
@@ -77,11 +93,20 @@ Without that field, call the same function from the agent error path before
 spawning Incus.
 
 The BotModels pythonbox release asset is
-`botmodels-pythonbox-linux-x86_64.tar.gz` only. On Windows, vision/STT/TTS
-cannot be provisioned: the only published pythonbox is Linux x86_64, so the
-desktop-local package manager refuses the runtime download ("not found in
-bundled installers"). Those features stay unavailable until a Windows
-pythonbox exists.
+`botmodels-pythonbox-linux-x86_64.tar.gz` only. On Windows, Linux arm64 and
+macOS, vision/STT/TTS cannot be provisioned: the only published pythonbox is
+Linux x86_64, so the desktop-local package manager refuses the runtime download
+("not found in bundled installers"). Those features stay unavailable until a
+Windows/aarch64/darwin pythonbox exists. `/api/product` always returns
+`media_capabilities` with `botmodels.available` and the platform reason, and the
+wizard marks the AI media service unavailable instead of trying to install
+(and failing or hanging on) an archive that cannot run.
+
+The Windows self-extracting payload bundles MinIO + mc, Redis, Qdrant, Zitadel
+and Caddy under `installers/`; PostgreSQL, Vault and llama.cpp (when the local
+model is selected) are downloaded once on first run. `GB_DESKTOP_OFFLINE=1`
+refuses those downloads and names the missing archive. The MSI/NSIS packages get
+the same `installers/` resources from `botserver/botserver-installers`.
 
 ## Detection
 

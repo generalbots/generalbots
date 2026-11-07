@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
 # General Bots desktop — assembles the Linux installer tarball.
 #
-#   ./package.sh <version> <target-dir> <output-dir> [installers-dir]
+#   ./package.sh <version> <target-dir> <output-dir> [installers-dir] [arch]
 #
 # <target-dir> holds the built `botapp` and `botserver` binaries (target/debug
-# for a local run, target/release on CI). <installers-dir> is optional: when it
-# contains archives, they are bundled as `installers/` next to start.sh (used for
-# the vendors whose upstream binaries disappeared, e.g. MinIO). The same script
-# produces the artifact that CI publishes, so a local download simulation and
-# the release asset are byte-for-byte the same layout.
+# for a local run, target/release on CI). <arch> is `x86_64` (default) or
+# `aarch64` and selects the package/stable asset/checksum names. <installers-dir>
+# is optional: when it contains archives, they are bundled as `installers/` next
+# to start.sh (used for the vendors whose upstream binaries disappeared, e.g.
+# MinIO). The same script produces the artifact that CI publishes, so a local
+# download simulation and the release asset are byte-for-byte the same layout.
 set -euo pipefail
 
 VERSION="${1:?version is required (for example v6.7.0)}"
 TARGET="${2:?target directory is required (for example target/release)}"
 OUT="${3:?output directory is required (for example dist)}"
 VENDOR="${4:-}"
+# Target architecture of the binaries in <target-dir> (x86_64 | aarch64).
+ARCH="${5:-x86_64}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PKG="generalbots-${VERSION}-linux-x86_64"
+PKG="generalbots-${VERSION}-linux-${ARCH}"
 DEST="$OUT/$PKG"
 
 [ -x "$TARGET/botapp" ] || { echo "missing $TARGET/botapp" >&2; exit 1; }
@@ -45,10 +48,13 @@ fi
 
 tar -czf "$OUT/${PKG}.tar.gz" -C "$OUT" "$PKG"
 rm -rf "$DEST"
-# Stable name so /releases/latest/download/generalbots-linux-x86_64.tar.gz keeps
-# working across tags (GitHub has no folders and no version-less asset names).
-cp "$OUT/${PKG}.tar.gz" "$OUT/generalbots-linux-x86_64.tar.gz"
-( cd "$OUT" && sha256sum "${PKG}.tar.gz" generalbots-linux-x86_64.tar.gz > SHA256SUMS-linux )
+# Stable name so /releases/latest/download/generalbots-linux-<arch>.tar.gz
+# keeps working across tags (GitHub has no folders and no version-less names).
+STABLE="generalbots-linux-${ARCH}.tar.gz"
+SUMS="SHA256SUMS-linux"
+[ "$ARCH" = "x86_64" ] || SUMS="SHA256SUMS-linux-${ARCH}"
+cp "$OUT/${PKG}.tar.gz" "$OUT/${STABLE}"
+( cd "$OUT" && sha256sum "${PKG}.tar.gz" "${STABLE}" > "$SUMS" )
 
 echo "built $OUT/${PKG}.tar.gz"
-ls -lh "$OUT/${PKG}.tar.gz" "$OUT/generalbots-linux-x86_64.tar.gz"
+ls -lh "$OUT/${PKG}.tar.gz" "$OUT/${STABLE}"

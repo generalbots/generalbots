@@ -6,13 +6,16 @@ name: Desktop binaries
 #
 # Release assets:
 #   linux:   generalbots-<tag>-linux-x86_64.tar.gz  (installer: binaries,
-#            suite, launcher, per-user install.sh) + SHA256SUMS-linux
+#            suite, launcher, per-user install.sh, vendored MinIO/mc) +
+#            SHA256SUMS-linux
 #   windows: generalbots-x64.exe (best effort)
 #
-# The Linux tarball is what a user downloads and runs (#1633). It ships no
-# service archives: the first-run wizard fetches them, so the download stays
-# small. An offline bundle (app + installers/) is built locally with the same
-# layout by dropping the component archives into installers/ before the run.
+# The Linux tarball is what a user downloads and runs (#1633). It bundles the
+# vendored drive binaries (and the BotModels pythonbox when a release exists);
+# the first-run wizard fetches the remaining components once. The Windows
+# self-extractor bundles MinIO/mc, Redis, Qdrant, Zitadel and Caddy; PostgreSQL,
+# Vault and llama.cpp are downloaded once. Adding archives to installers/
+# before a local run produces the same offline layout.
 
 on:
   workflow_dispatch:
@@ -172,6 +175,22 @@ jobs:
             --features desktop-local,custom-protocol \
             --config tauri.desktop-local.conf.json \
             --bundles deb,rpm,appimage
+
+      # #1787 — prove the generated Depends actually resolves on the two
+      # current Debian-family releases. Docker is preinstalled on ubuntu-latest,
+      # so this is the authoritative container check; the script falls back to
+      # dpkg/apt simulation when no daemon is reachable.
+      - name: Verify the .deb installs on Debian 13 and Ubuntu 24.04
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          debs=(target/release/bundle/deb/*.deb botapp/target/release/bundle/deb/*.deb)
+          if [ "${#debs[@]}" -eq 0 ]; then
+            echo "::warning::the bundler produced no .deb; skipping the install test"
+            exit 0
+          fi
+          chmod +x desktop/linux/test-deb-install.sh
+          desktop/linux/test-deb-install.sh "${debs[0]}"
 
       - name: Collect Linux packages
         run: |
@@ -336,6 +355,79 @@ jobs:
       - name: Build desktop shell
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
+      # #1793 — the payload must carry the services that have a Windows build,
+      # not just the executables. `drive-bin-v2` only publishes the Linux MinIO
+      # binaries, so the Windows pair comes from the same pinned upstream
+      # MinIO/mc releases listed in botserver/3rdparty.toml (url_win) and is
+      # verified against their published .sha256sum files. Zitadel publishes
+      # checksums.txt and Caddy's checksums.txt is SHA-512. Redis and Qdrant
+      # publish no checksum asset; their digest is recorded from the pinned
+      # release download instead of inventing a hash.
+      - name: Stage Windows offline components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = 'dist\installers'
+          $resources = 'botserver\botserver-installers'
+          New-Item -ItemType Directory -Force $stage, $resources | Out-Null
+
+          $downloads = @(
+            @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
+            @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
+            @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = ''; Hash = '' },
+            @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = ''; Hash = '' },
+            @{ Name = 'zitadel-windows-amd64.tar.gz'; Url = 'https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-windows-amd64.tar.gz'; Algo = 'SHA256'; Hash = 'dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405' },
+            @{ Name = 'caddy_2.11.9_windows_amd64.zip'; Url = 'https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_windows_amd64.zip'; Algo = 'SHA512'; Hash = '98753d5d42650383d00619ac70917a217141f9e92314185bf6c1b8b439cfcfdf8393da0ebb4675c8cb3b23d29a19aabe99dc5aca64fa1bfc3a1ba22509b06871' }
+          )
+
+          foreach ($item in $downloads) {
+            $out = Join-Path $stage $item.Name
+            if (-not (Test-Path $out)) {
+              Invoke-WebRequest -Uri $item.Url -OutFile $out -UseBasicParsing
+            }
+            if ($item.Hash) {
+              $actual = (Get-FileHash $out -Algorithm $item.Algo).Hash.ToLowerInvariant()
+              if ($actual -ne $item.Hash.ToLowerInvariant()) {
+                throw "checksum mismatch for $($item.Name): expected $($item.Hash), got $actual"
+              }
+              Write-Host "verified $($item.Name) ($($item.Algo))"
+            } else {
+              Write-Host "::warning::no upstream checksum for $($item.Name); recording the downloaded digest"
+            }
+          }
+
+          Get-ChildItem $stage -File |
+            Where-Object { $_.Name -ne 'SHA256SUMS-windows-installers' } |
+            ForEach-Object {
+              "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+            } | Set-Content (Join-Path $stage 'SHA256SUMS-windows-installers') -Encoding ascii
+
+          Copy-Item (Join-Path $stage '*') $resources -Force
+          Get-ChildItem $stage -File | Sort-Object Name |
+            ForEach-Object { Write-Host ("bundled {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
+
+      - name: Report bundled vs downloadable components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundled = @(
+            @{ Id = 'drive'; Files = @('minio.exe', 'mc.exe') },
+            @{ Id = 'cache'; Files = @('Redis-x64-3.0.504.zip') },
+            @{ Id = 'vector_db'; Files = @('qdrant-x86_64-pc-windows-msvc.zip') },
+            @{ Id = 'directory'; Files = @('zitadel-windows-amd64.tar.gz') },
+            @{ Id = 'proxy'; Files = @('caddy_2.11.9_windows_amd64.zip') }
+          )
+          foreach ($component in $bundled) {
+            foreach ($file in $component.Files) {
+              if (-not (Test-Path (Join-Path 'dist\installers' $file))) {
+                throw "component $($component.Id) is missing bundled file $file"
+              }
+            }
+            Write-Host "bundled offline: $($component.Id)"
+          }
+          Write-Host 'download once on first run: vault, tables (PostgreSQL), llm (llama.cpp), models'
+          Write-Host 'unavailable on Windows: botmodels (no Windows pythonbox) — vision/STT/TTS stay disabled'
+
       # MSI/NSIS from the same binaries. Best effort, same reasoning as Linux:
       # a bundler problem must not hide the exe binaries from the release.
       - name: Install Tauri bundler
@@ -407,6 +499,12 @@ jobs:
           Copy-Item -Recurse botui/ui/suite  dist/payload/ui/suite
           Copy-Item -Recurse botui/ui/themes dist/payload/ui/themes
           Copy-Item botserver/.product.desktop-local dist/payload/
+          # #1793 — mirror the Linux `cp -a dist/installers/. dist/payload/installers/`.
+          # The extracted payload lands in the per-user stack, where the sidecar
+          # looks for installers/ before downloading anything.
+          if (Test-Path dist/installers) {
+            Copy-Item -Path dist/installers -Destination dist/payload -Recurse -Force
+          }
           python scripts/build-self-extractor.py `
             --app target/release/botapp.exe `
             --payload dist/payload `
@@ -565,6 +663,19 @@ jobs:
             Windows binaries for ${{ github.event.inputs.tag || github.ref_name }}.
             Best effort: the Linux installer is the supported artifact and lives
             on the `${{ github.event.inputs.tag || github.ref_name }}` tag.
+
+            Bundled offline in `generalbots.exe` (payload `installers/` and the
+            MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel and
+            Caddy. First run downloads the remaining stack once (PostgreSQL,
+            Vault and, when the local model is selected, llama.cpp + models)
+            unless `GB_DESKTOP_OFFLINE=1` refuses downloads; `GB_DESKTOP_OFFLINE`
+            also makes a missing component fail with the exact file name.
+
+            Media (vision/STT/TTS) is unavailable on Windows: BotModels publishes
+            only `botmodels-pythonbox-linux-x86_64`. `/api/product` reports
+            `media_capabilities.botmodels.available=false` with the reason, and
+            the wizard marks the AI media service unavailable instead of trying
+            to install it. Media returns when a Windows pythonbox is published.
           files: |
             dist/generalbots.exe
             dist/generalbots-x64.exe

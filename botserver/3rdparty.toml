@@ -1,4 +1,4 @@
-﻿# Third-Party Dependencies Configuration
+# Third-Party Dependencies Configuration
 # ======================================
 # This file lists all external downloads required by botserver.
 #
@@ -34,25 +34,37 @@ name = "MinIO Object Storage"
 # the last published binary for fresh installs until upstream ships assets.
 url = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-amd64.RELEASE.2025-09-07T16-13-09Z"
 url_win = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe"
+# arm64 asset checksum: minio.linux-arm64...sha256sum in the same release.
+url_arm64 = "https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.linux-arm64.RELEASE.2025-09-07T16-13-09Z"
 filename = "minio"
 filename_win = "minio.exe"
+filename_arm64 = "minio"
 sha256 = "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
+sha256_arm64 = "5c83cd2cf151717ba0243f73e1c7802ff36e272b67144bdd7f1f7d684fd6f03d"
 
 [components.mc]
 name = "MinIO Client (mc)"
 url = "https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.linux-amd64.RELEASE.2025-08-13T08-35-41Z"
 url_win = "https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe"
+# arm64 asset checksum: mc.linux-arm64...sha256sum in the same release.
+url_arm64 = "https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.linux-arm64.RELEASE.2025-08-13T08-35-41Z"
 filename = "mc"
 filename_win = "mc.exe"
+filename_arm64 = "mc"
 sha256 = "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+sha256_arm64 = "14c8c9616cfce4636add161304353244e8de383b2e2752c0e9dad01d4c27c12c"
 
 [components.tables]
 name = "PostgreSQL Database"
 url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"
 url_win = "https://get.enterprisedb.com/postgresql/postgresql-18.6-1-windows-x64-binaries.zip"
+# arm64 asset checksum: postgresql-18.6.1-aarch64-unknown-linux-gnu.tar.gz.sha256.
+url_arm64 = "https://github.com/theseus-rs/postgresql-binaries/releases/download/18.6.1/postgresql-18.6.1-aarch64-unknown-linux-gnu.tar.gz"
 filename = "postgresql-18.6.1-x86_64-unknown-linux-gnu.tar.gz"
 filename_win = "postgresql-18.6-1-windows-x64-binaries.zip"
+filename_arm64 = "postgresql-18.6.1-aarch64-unknown-linux-gnu.tar.gz"
 sha256 = "e84b02dd8d0ce5879fb697330a789231c8b8f8d958dae3ad4d90fecc710b1315"
+sha256_arm64 = "1ab47fa2f06ff70454309ad02e5d89c46488300d43977231481fd6b160b9d556"
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
@@ -60,8 +72,13 @@ url = "https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz"
 filename = "valkey-9.1.3-jammy-x86_64.tar.gz"
 url_win = "https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip"
 filename_win = "Redis-x64-3.0.504.zip"
+# The upstream arm64 tarball is spelled "arm64" (not "aarch64"); its checksum
+# is published as valkey-9.1.3-jammy-arm64.tar.gz.sha256.
+url_arm64 = "https://download.valkey.io/releases/valkey-9.1.3-jammy-arm64.tar.gz"
+filename_arm64 = "valkey-9.1.3-jammy-arm64.tar.gz"
 note = "Windows: Uses Microsoft Redis port. For production, use Memurai or Docker."
 sha256 = "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
+sha256_arm64 = "33e0ac674548424746528b947ef65538d624ef69478445158d690d02ce6c8e36"
 
 [components.cache_win]
 name = "Valkey Cache (Windows - via Memurai)"
@@ -100,7 +117,11 @@ url = "https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-linu
 filename = "zitadel-linux-amd64.tar.gz"
 url_win = "https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-windows-amd64.tar.gz"
 filename_win = "zitadel-windows-amd64.tar.gz"
+# arm64 checksum: checksums.txt in the v4.20.1 release.
+url_arm64 = "https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-linux-arm64.tar.gz"
+filename_arm64 = "zitadel-linux-arm64.tar.gz"
 sha256 = "2e99a33409ffe0a527ea640d157c6c1e3f74823f3cffc6b538fd1c5cef4cfc9c"
+sha256_arm64 = "2be0184a5efe877d3ddca9fa80f9e53e410d4f86e3530212d4c9a1f169d5664b"
 
 [components.alm]
 name = "Forgejo Git Server"
@@ -169,7 +190,13 @@ url = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-
 filename = "qdrant-x86_64-unknown-linux-musl.tar.gz"
 url_win = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip"
 filename_win = "qdrant-x86_64-pc-windows-msvc.zip"
+# Qdrant does not publish a checksum asset for the 1.20.0 archives (only the
+# binaries); sha256_arm64 stays empty so installs skip verification instead of
+# trusting an invented hash.
+url_arm64 = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-aarch64-unknown-linux-musl.tar.gz"
+filename_arm64 = "qdrant-aarch64-unknown-linux-musl.tar.gz"
 sha256 = "b03a64616a1f41ddab78b480a318466541765f19835318113b1821cbea8df52c"
+sha256_arm64 = ""
 
 [components.timeseries_db]
 name = "InfluxDB Time Series Database"
@@ -183,9 +210,13 @@ sha256 = ""
 name = "HashiCorp Vault"
 url = "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_amd64.zip"
 url_win = "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_windows_amd64.zip"
+# arm64 checksum: vault_2.2.1_SHA256SUMS (releases.hashicorp.com).
+url_arm64 = "https://releases.hashicorp.com/vault/2.2.1/vault_2.2.1_linux_arm64.zip"
 filename = "vault_2.2.1_linux_amd64.zip"
 filename_win = "vault_2.2.1_windows_amd64.zip"
+filename_arm64 = "vault_2.2.1_linux_arm64.zip"
 sha256 = "079435de8ff146bdec4cdbe3be71d672ef4e59e4df6af0f2dba672e71be21a68"
+sha256_arm64 = "b8d3a7611ce996dcad8702355895a3f8657dab73311fd8f7f1b797e251aba29a"
 
 [components.observability]
 name = "Vector Log Aggregator"
@@ -210,6 +241,10 @@ name = "BotModels Python Service (pythonbox)"
 url = "https://github.com/generalbots/generalbots/releases/download/{tag}/botmodels-pythonbox-linux-x86_64.tar.gz"
 filename = "botmodels-pythonbox-linux-x86_64.tar.gz"
 sha256 = ""
+# No aarch64 (or Windows) pythonbox is published: the pythonbox-* releases
+# carry only botmodels-pythonbox-linux-x86_64.tar.gz. The resolver therefore
+# has no url_arm64 to select; on Linux arm64 and Windows the wizard reports
+# media (vision/STT/TTS) as unavailable instead of downloading this archive.
 
 # LLM Models
 # ==========
@@ -246,7 +281,14 @@ sha256 = "03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442"
 name = "Llama.cpp Server (Linux x64 CPU)"
 url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip"
 filename = "llama-b7345-bin-ubuntu-x64.zip"
+# Linux arm64 uses a newer llama.cpp release: b7345 (the x86_64 pin) has no
+# ubuntu-arm64 asset. b12189 publishes llama-b12189-bin-ubuntu-arm64.tar.gz but
+# no SHA256SUMS/checksum asset, so sha256_arm64 stays empty and verification is
+# skipped for that variant rather than comparing it to the x86_64 hash.
+url_arm64 = "https://github.com/ggml-org/llama.cpp/releases/download/b12189/llama-b12189-bin-ubuntu-arm64.tar.gz"
+filename_arm64 = "llama-b12189-bin-ubuntu-arm64.tar.gz"
 sha256 = "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+sha256_arm64 = ""
 
 [components.llm_linux_s390x]
 name = "Llama.cpp Server (Linux s390x)"
