@@ -74,8 +74,10 @@
 <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div> </div>
 </aside> <!-- Main Wrapper -->
 <div class="main-wrapper"> <!-- Top Navigation Tabs - Removed (already in Vibe) -->
-<!-- Workspace container where WindowManager operates --> <div class="workspace-v15" id="desktop-content">
-</div> <!-- Bottom Taskbar (v15) -->
+<!-- Workspace container where WindowManager operates. This is the page's
+     single main landmark: it holds the app windows but not the sidebar or the
+     taskbar, which stay outside it. --> <main class="workspace-v15" id="desktop-content" role="main">
+</main> <!-- Bottom Taskbar (v15) -->
 <footer class="toolbar-v15" id="taskbar"> <!-- Compact full-width taskbar: Start + search on the
                          left, running apps centred, tray + clock on the
                          right. Heights are driven by --taskbar-h. -->
@@ -87,9 +89,9 @@
 <div class="taskbar-center" id="taskbar-center"></div> <div class="taskbar-right">
 <div class="taskbar-tray"> <!-- #1648 — the usage panel finally has a caller. -->
 <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" data-i18n-title="taskbar-usage" aria-label="Usage and cost" data-i18n-aria-label="taskbar-usage" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-</button> <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
-</button> <!-- #1617 — Control Center, Mission Control and Virtual
+</button> <span class="tray-btn-wrap"> <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+</button> <span class="tray-badge" id="trayNotificationsBadge" style="display:none" aria-hidden="true"></span> </span> <!-- #1617 — Control Center, Mission Control and Virtual
                                  Desktops are not part of the current desktop scope.
                                  Their modules stay loaded behind the keyboard
                                  shortcuts; only the tray buttons are removed. -->
@@ -217,7 +219,7 @@
 <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button> <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
 <button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button> </div>
 </div> </div>
-<script src="/suite/js/setup-wizard.js?v=1"></script> <script src="/suite/js/versions.js"></script>
+<script src="/suite/js/setup-wizard-media.js?v=1"></script> <script src="/suite/js/setup-wizard.js?v=1"></script> <script src="/suite/js/versions.js"></script>
 <script src="/suite/js/preview.js"></script> <script src="/suite/js/campaigns.js"></script>
 <script src="/suite/js/ui-orchestrator/01_overlay.js?v=6"></script> <script src="/suite/js/ui-orchestrator/02_steps.js?v=6"></script>
 <script src="/suite/js/ui-orchestrator/99_execute.js?v=6"></script> <script src="/suite/js/gb-search.js"></script>

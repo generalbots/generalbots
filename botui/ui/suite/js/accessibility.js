@@ -19,7 +19,10 @@
   function addAriaLandmarks() {
     var chat = document.getElementById("chat-app");
     if (chat && !chat.getAttribute("role")) {
-      chat.setAttribute("role", "main");
+      // The desktop workspace (`#desktop-content`) owns the page's single
+      // main landmark. A chat window is one region inside it, never a second
+      // main — two main landmarks fail landmark-one-main on the served page.
+      chat.setAttribute("role", "region");
       chat.setAttribute("aria-label", "Chat conversation");
     }
     var messages = document.getElementById("messages");

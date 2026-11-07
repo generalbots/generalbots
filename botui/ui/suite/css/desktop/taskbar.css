@@ -125,6 +125,11 @@
   stroke: currentColor;
 }
 
+.toolbar-v15 .tray-btn-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
 .toolbar-v15 .tray-badge {
   position: absolute;
   top: 3px;
@@ -133,6 +138,12 @@
   height: 5px;
   border-radius: 50%;
   background: var(--accent, #2563eb);
+  /* The badge is a dot. gb-toasts.js writes the unread count into it; keep
+     that text out of the visible label-content-name check (the dot is also
+     aria-hidden), so the button's accessible name stays "Notifications". */
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
 }
 
 /* Universal search box — compact, next to Start. */

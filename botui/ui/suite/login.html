@@ -25,6 +25,11 @@
                 background: rgba(255, 255, 255, .03);
                 box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
             }
+            /* The shared suite stylesheet also defines `.card` for light
+               surfaces (`color: hsl(var(--card-foreground))`). This sign-in
+               card sits on the dark theme background, so pin readable text
+               colours here instead of inheriting the light-surface pair. */
+            main.card { color: #e8e8ee; }
             .card h1 { margin: 0 0 4px; font-size: 1.3rem; }
             .card p { margin: 0 0 20px; font-size: .85rem; opacity: .7; }
             label { display: block; margin: 12px 0 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
@@ -65,16 +70,18 @@
         </style>
     </head>
     <body>
-        <form class="card" id="login-form" autocomplete="on">
-            <h1>General Bots</h1>
-            <p>Sign in with the local administrator account.</p>
-            <label for="login-email">Email</label>
-            <input id="login-email" name="email" type="email" autocomplete="username" required />
-            <label for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-            <button id="login-btn" type="submit">Sign in</button>
-            <div class="error" id="login-error" role="alert"></div>
-        </form>
+        <main class="card">
+            <form id="login-form" autocomplete="on">
+                <h1>General Bots</h1>
+                <p>Sign in with the local administrator account.</p>
+                <label for="login-email">Email</label>
+                <input id="login-email" name="email" type="email" autocomplete="username" required />
+                <label for="login-password">Password</label>
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+                <button id="login-btn" type="submit">Sign in</button>
+                <div class="error" id="login-error" role="alert"></div>
+            </form>
+        </main>
         <script>
             (function () {
                 "use strict";

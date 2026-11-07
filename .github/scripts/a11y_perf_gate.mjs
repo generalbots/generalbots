@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 /*
- * Accessibility and performance gate for the suite shell (#1680).
+ * Accessibility and performance gate for the suite shell (#1680, #1791).
  *
- * Runs Lighthouse against the statically served desktop page and fails on a
- * serious accessibility regression. The performance floor is deliberately a
- * smoke check (the page talks to a botserver that is not running in CI); the
- * real budget is measured on a live run.
+ * Runs Lighthouse against a page and fails on a serious accessibility
+ * regression. The performance floor is deliberately a smoke check (startup
+ * dominates and the page talks to a local botserver); the real budget is
+ * measured on a live run.
  *
- * Usage: node .github/scripts/a11y_perf_gate.mjs http://127.0.0.1:3000/suite/desktop.html
+ * Usage:
+ *   node .github/scripts/a11y_perf_gate.mjs <url> [--require-desktop]
+ *
+ * `--require-desktop` also fails when the audited page redirected away from
+ * the requested shell URL. The botserver-served job sets it so a redirect to
+ * /suite/login.html can never be mistaken for a passing desktop page.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
@@ -38,8 +43,12 @@ if (!process.env.CHROME_PATH) {
   if (chrome) process.env.CHROME_PATH = chrome;
 }
 
-const url = process.argv[2] || "http://127.0.0.1:3000/suite/desktop.html";
-const out = "/tmp/lighthouse-gate.json";
+const args = process.argv.slice(2);
+const requireDesktop = args.includes("--require-desktop");
+const url = args.find((arg) => !arg.startsWith("--")) ||
+  "http://127.0.0.1:3000/suite/desktop.html";
+// Unique per process: concurrent gate runs must not read each other's report.
+const out = `/tmp/lighthouse-gate-${process.pid}.json`;
 
 execFileSync(
   "npx",
@@ -57,7 +66,11 @@ execFileSync(
 );
 
 const report = JSON.parse(readFileSync(out, "utf8"));
-rmSync(out, { force: true });
+if (process.env.A11Y_KEEP_REPORT === "1") {
+  console.log(`lighthouse report kept at ${out}`);
+} else {
+  rmSync(out, { force: true });
+}
 
 const accessibility = Math.round((report.categories.accessibility?.score ?? 0) * 100);
 const performance = Math.round((report.categories.performance?.score ?? 0) * 100);
@@ -69,7 +82,42 @@ const serious = Object.values(report.audits).filter(
     audit.id !== "bf-cache",
 );
 
-console.log(`accessibility=${accessibility} performance=${performance}`);
+// Fallback for the #1791 regression: Lighthouse's landmark-one-main audit can
+// be satisfied by the wrong tree, so also assert from the rendered DOM that at
+// least one main landmark exists. Chrome's --dump-dom runs the boot scripts.
+function countMainLandmarks(pageUrl) {
+  const chrome = process.env.CHROME_PATH;
+  if (!chrome) return -1;
+  let dom = "";
+  try {
+    dom = execFileSync(
+      chrome,
+      [
+        "--headless",
+        "--no-sandbox",
+        "--disable-gpu",
+        "--virtual-time-budget=5000",
+        "--dump-dom",
+        pageUrl,
+      ],
+      { encoding: "utf8", timeout: 60_000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+  } catch {
+    return -1;
+  }
+  const tagMains = (dom.match(/<main\b/gi) || []).length;
+  const roleMains = (dom.match(/<[^>]+\brole=["']main["'][^>]*>/gi) || [])
+    .filter((tag) => !/^<main\b/i.test(tag)).length;
+  return tagMains + roleMains;
+}
+
+const requestedPath = new URL(url).pathname.replace(/\/$/, "");
+const finalPath = new URL(report.finalUrl).pathname.replace(/\/$/, "");
+const mainLandmarks = countMainLandmarks(report.finalUrl);
+
+console.log(
+  `accessibility=${accessibility} performance=${performance} main-landmarks=${mainLandmarks} final=${report.finalUrl}`,
+);
 for (const audit of serious) console.log(` - ${audit.id}: ${audit.title}`);
 
 let failed = false;
@@ -84,5 +132,17 @@ if (performance < 20) {
 if (serious.length > 0) {
   console.error(`${serious.length} binary accessibility audit(s) failed`);
   failed = true;
+}
+if (requireDesktop && finalPath !== requestedPath) {
+  console.error(
+    `refusing to certify ${requestedPath}: the audit redirected to ${report.finalUrl}`,
+  );
+  failed = true;
+}
+if (mainLandmarks === 0) {
+  console.error("no <main> or [role=main] landmark in the rendered page");
+  failed = true;
+} else if (mainLandmarks < 0) {
+  console.warn("could not render the page to verify a main landmark");
 }
 process.exit(failed ? 1 : 0);
