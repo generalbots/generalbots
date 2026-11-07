@@ -34,7 +34,7 @@ pub(super) async fn handle(frame: Inbound<'_>) {
         start_bas_ran,
         text,
     } = frame;
-    log::info!(
+    botlog::safe_info!(
         "WS frame received: session={session_id} bytes={}",
         text.len()
     );

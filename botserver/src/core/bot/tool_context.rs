@@ -61,7 +61,7 @@ pub fn get_session_tools(
 
     let work_root_str = work_root.to_string_lossy().to_string();
 
-    info!(
+    botlog::safe_info!(
         "Loading {} tools for session {} from {:?}",
         tool_names.len(),
         session_id,
@@ -96,7 +96,7 @@ pub fn get_session_tools(
         }
     }
 
-    info!("Loaded {} tools for session {}", tools.len(), session_id);
+    botlog::safe_info!("Loaded {} tools for session {}", tools.len(), session_id);
     Ok(tools)
 }
 

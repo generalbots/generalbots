@@ -341,7 +341,7 @@ pub async fn run_start_bas_on_connect(
                 .unwrap_or(false)
         };
         if has_history {
-            info!("start.bas skipped: session {session_id} already has messages");
+            botlog::safe_info!("start.bas skipped: session {session_id} already has messages");
             send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id, bot_name).await;
             return false;
         }
@@ -414,7 +414,7 @@ pub async fn run_start_bas_on_connect(
         match rx.try_recv() {
             Ok(response) => {
                 drained += 1;
-                info!("start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
+                botlog::safe_info!("start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
                     drained, i32::from(response.message_type), response.session_id,
                     response.content.chars().take(80).collect::<String>());
                 if let Ok(json) = serde_json::to_string(&response) {

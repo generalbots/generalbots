@@ -84,7 +84,7 @@ pub async fn terminal_exec(
         ));
     }
     if blocked_pattern(command).is_some() {
-        log::warn!("terminal exec refused a blocked pattern for user {user_id}");
+        botlog::safe_warn!("terminal exec refused a blocked pattern for user {user_id}");
         audit_terminal(
             &state.conn,
             TerminalAuditRow {
@@ -169,7 +169,7 @@ pub async fn terminal_exec(
         Ok(Err(error)) => json!({ "status": "failed", "error": error.to_string() }),
         Err(_) => json!({ "status": "failed", "error": "command timed out" }),
     };
-    log::info!(
+    botlog::safe_info!(
         "terminal exec for {user_id} in {container} ({} chars) -> {}",
         command.len(),
         outcome

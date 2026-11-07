@@ -56,7 +56,7 @@ pub(super) async fn run(
         .await
         {
             Ok(Ok(Ok(tools))) => {
-                log::info!(
+                botlog::safe_info!(
                     "Loaded {} tools for LLM session {}",
                     tools.len(),
                     session_id_s
@@ -64,11 +64,11 @@ pub(super) async fn run(
                 tools
             }
             Ok(Ok(Err(e))) => {
-                log::warn!("get_session_tools error for {}: {}", session_id_s, e);
+                botlog::safe_warn!("get_session_tools error for {}: {}", session_id_s, e);
                 Vec::new()
             }
             Ok(Err(e)) => {
-                log::warn!(
+                botlog::safe_warn!(
                     "get_session_tools spawn_blocking join error for {}: {}",
                     session_id_s,
                     e
@@ -76,7 +76,7 @@ pub(super) async fn run(
                 Vec::new()
             }
             Err(_) => {
-                log::warn!(
+                botlog::safe_warn!(
                     "get_session_tools TIMEOUT after 10s for session {}",
                     session_id_s
                 );
@@ -106,12 +106,7 @@ pub(super) async fn run(
     let llm_key_clone = llm_key.clone();
     let llm_model_clone = llm_model.clone();
     let mut stream_handle = tokio::spawn(async move {
-        log::info!(
-            "LLM spawn task starting: model={}, key_len={}, key_first_20={}",
-            llm_model_clone,
-            llm_key_clone.len(),
-            llm_key_clone.chars().take(20).collect::<String>()
-        );
+        botlog::safe_info!("LLM spawn task starting: model={}", llm_model_clone);
         let tools_arg = if session_tools.is_empty() {
             None
         } else {
@@ -188,7 +183,7 @@ pub(super) async fn run(
                         // the final frame explains why.
                         budget.observe_chars(full_response.chars().count());
                         if let Some(breach) = budget.check() {
-                            log::warn!(
+                            botlog::safe_warn!(
                                 "run cap: {} (session {})",
                                 RunBudget::describe(&breach),
                                 session_id_s
@@ -209,7 +204,7 @@ pub(super) async fn run(
                                 crate::core::bot::runs::bus::bus().take_steering(&thread_id)
                             {
                                 steering_rounds += 1;
-                                log::warn!(
+                                botlog::safe_warn!(
                                     "steering mid-run (session {}, {} chars)",
                                     session_id_s,
                                     steer.chars().count()

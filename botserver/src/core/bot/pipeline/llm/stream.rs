@@ -292,7 +292,7 @@ async fn stream_llm_response_inner(
                             if let Some(steer) = crate::core::bot::runs::bus::bus()
                                 .take_steering(&session_id_s)
                             {
-                                log::warn!(
+                                botlog::safe_warn!(
                                     "steering applied before follow-up (session {}, {} chars)",
                                     session_id_s, steer.chars().count()
                                 );

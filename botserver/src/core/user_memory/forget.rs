@@ -57,7 +57,7 @@ pub fn forget_memories(
             .execute(&mut conn),
     }
     .map_err(|error| error.to_string())?;
-    log::info!("memory: deleted {deleted} row(s) for the forget request");
+    botlog::safe_info!("memory: deleted {deleted} row(s) for the forget request");
     Ok(keys)
 }
 
@@ -74,13 +74,13 @@ pub fn capture_from_message(
     if let Some(needle) = extract_forget_directive(text) {
         match forget_memories(pool, user_id, bot_id, &needle) {
             Ok(keys) if keys.is_empty() => {
-                log::info!("memory: no stored entry matched forget request for user {user_id}");
+                botlog::safe_info!("memory: no stored entry matched forget request for user {user_id}");
             }
             Ok(keys) => {
-                log::info!("memory: forgot {} entries for user {user_id}", keys.len());
+                botlog::safe_info!("memory: forgot {} entries for user {user_id}", keys.len());
             }
             Err(error) => {
-                log::warn!("memory: could not forget entry: {error}");
+                botlog::safe_warn!("memory: could not forget entry: {error}");
             }
         }
         return None;
@@ -89,11 +89,11 @@ pub fn capture_from_message(
     let key = memory_key_for(&fact);
     match store_memory(pool, user_id, bot_id, &key, &fact) {
         Ok(()) => {
-            log::info!("memory: stored an entry for user {user_id}");
+            botlog::safe_info!("memory: stored an entry for user {user_id}");
             Some(key)
         }
         Err(error) => {
-            log::warn!("memory: could not store entry: {error}");
+            botlog::safe_warn!("memory: could not store entry: {error}");
             None
         }
     }

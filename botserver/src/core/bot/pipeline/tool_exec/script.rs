@@ -30,7 +30,7 @@ pub(super) async fn run_script_tool(
     if !crate::core::bot::tool_context::is_tool_associated_with_session(
         &state.conn, &session_id, tool_name,
     ) {
-        log::info!(
+        botlog::safe_info!(
             "LLM tool_call: tool '{tool_name}' not associated with session {session_id}, skipping"
         );
         return String::new();

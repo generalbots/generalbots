@@ -222,7 +222,7 @@ pub async fn inject_kb_context(
     }
 
     if all_contexts.is_empty() {
-        info!("No KB/website content found for session {}", session_id);
+        botlog::safe_info!("No KB/website content found for session {}", session_id);
         return;
     }
 
@@ -233,7 +233,7 @@ pub async fn inject_kb_context(
         return;
     }
 
-    info!(
+    botlog::safe_info!(
         "Injecting {} chars (est. {} tokens) of KB/website context into prompt for session {}",
         truncated.len(),
         estimate_tokens(&truncated),

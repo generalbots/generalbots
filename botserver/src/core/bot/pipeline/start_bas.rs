@@ -39,7 +39,7 @@ pub async fn run_start_bas(
                 .unwrap_or(false)
         };
         if has_history {
-            log::info!("start.bas skipped: session {session_id} already has messages");
+            botlog::safe_info!("start.bas skipped: session {session_id} already has messages");
             send_start_suggestions(sink, state, bot_uuid, session_id, user_id).await;
             return Ok(false);
         }

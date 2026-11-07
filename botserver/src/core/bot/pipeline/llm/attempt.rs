@@ -183,7 +183,7 @@ pub(super) async fn stream_attempt(request: Attempt<'_>) -> AttemptOutcome {
                                 "Run stopped — {}.",
                                 crate::core::bot::runs::caps::RunBudget::describe(&breach)
                             );
-                            log::warn!(
+                            botlog::safe_warn!(
                                 "run cap: {} (session {})",
                                 crate::core::bot::runs::caps::RunBudget::describe(&breach),
                                 session_id_s
