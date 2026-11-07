@@ -15,6 +15,7 @@ llm = []
 [dependencies]
 botlog = { workspace = true }
 botcore = { workspace = true }
+dirs = { workspace = true }
 botemail = { workspace = true }
 botcoresecrets = { workspace = true }
 botlib = { workspace = true }

@@ -4,8 +4,8 @@
 //! connect/callback lifecycle (which writes credentials), this one only reads
 //! what the sync engine already mirrored.
 
-use crate::external::{config, db, engine, files, types::Provider};
 use super::routes::{caller_branch, err, parse_provider, sanitize_filename, ApiError, ApiResult};
+use crate::external::{config, db, engine, files, types::Provider};
 use axum::{
     extract::{Path, Query, State},
     http::{header, StatusCode},
@@ -39,8 +39,12 @@ pub async fn list_connections(
     Extension(user): Extension<AuthenticatedUser>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let branch_id = caller_branch(&state, &user)?;
-    let mut conn = db::conn(&state.conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
+    let mut conn = db::conn(&state.conn).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("database unavailable: {e}"),
+        )
+    })?;
     let statuses = db::list_connection_status(&mut conn, branch_id)
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e))?;
 
@@ -96,10 +100,20 @@ pub async fn list_files(
     let branch_id = caller_branch(&state, &user)?;
     let provider = params.provider.as_deref().map(parse_provider).transpose()?;
     let limit = params.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT);
-    let mut conn = db::conn(&state.conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
-    let files = files::list_files(&mut conn, branch_id, provider, params.path.as_deref(), limit)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e))?;
+    let mut conn = db::conn(&state.conn).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("database unavailable: {e}"),
+        )
+    })?;
+    let files = files::list_files(
+        &mut conn,
+        branch_id,
+        provider,
+        params.path.as_deref(),
+        limit,
+    )
+    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e))?;
     let total = files.len();
     let items: Vec<serde_json::Value> = files
         .into_iter()
@@ -131,8 +145,12 @@ pub async fn download_file(
     let http = engine::http_client()
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
     let (row, access_token) = {
-        let mut conn = db::conn(&state.conn)
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
+        let mut conn = db::conn(&state.conn).map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("database unavailable: {e}"),
+            )
+        })?;
         let row = files::get_file(&mut conn, branch_id, provider, &remote_id)
             .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e))?
             .ok_or_else(|| err(StatusCode::NOT_FOUND, "file not found in this account"))?;
@@ -147,8 +165,12 @@ pub async fn download_file(
     };
 
     let bytes = match provider {
-        Provider::OneDrive => crate::external::onedrive::download(&http, &access_token, &remote_id).await,
-        Provider::GoogleDrive => crate::external::gdrive::download(&http, &access_token, &remote_id).await,
+        Provider::OneDrive => {
+            crate::external::onedrive::download(&http, &access_token, &remote_id).await
+        }
+        Provider::GoogleDrive => {
+            crate::external::gdrive::download(&http, &access_token, &remote_id).await
+        }
     }
     .map_err(provider_failure)?;
 

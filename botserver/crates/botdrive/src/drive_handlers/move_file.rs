@@ -10,8 +10,22 @@ pub async fn move_file(
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
-    let src_bucket = resolve_bucket(&state, req.source_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
-    let dest_bucket = resolve_bucket(&state, req.dest_bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let src_bucket = resolve_bucket(
+        &state,
+        req.source_bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
+    let dest_bucket = resolve_bucket(
+        &state,
+        req.dest_bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let from_key = scoped_key(&prefix, &req.source_path);
     let to_key = scoped_key(&prefix, &req.dest_path);
 
@@ -41,9 +55,17 @@ pub async fn move_file(
         let objects = drive
             .list_objects_with_metadata(&src_bucket, Some(&source_prefix))
             .await
-            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("Source folder not found: {e}")))?;
+            .map_err(|e| {
+                err(
+                    StatusCode::NOT_FOUND,
+                    &format!("Source folder not found: {e}"),
+                )
+            })?;
         if objects.is_empty() {
-            return Err(err(StatusCode::NOT_FOUND, "Source folder is empty or missing"));
+            return Err(err(
+                StatusCode::NOT_FOUND,
+                "Source folder is empty or missing",
+            ));
         }
         for object in &objects {
             let relative = object
@@ -53,11 +75,26 @@ pub async fn move_file(
             let data = drive
                 .get_object(&src_bucket, &object.key)
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder move read failed: {e}")))?;
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Folder move read failed: {e}"),
+                    )
+                })?;
             drive
-                .put_object(&dest_bucket, &format!("{dest_prefix}{relative}"), data, None)
+                .put_object(
+                    &dest_bucket,
+                    &format!("{dest_prefix}{relative}"),
+                    data,
+                    None,
+                )
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Folder move write failed: {e}")))?;
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Folder move write failed: {e}"),
+                    )
+                })?;
         }
         for object in &objects {
             if let Err(error) = drive.delete_object(&src_bucket, &object.key).await {
@@ -76,7 +113,12 @@ pub async fn move_file(
     drive
         .put_object(&dest_bucket, &to_key, data, None)
         .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Move (write) failed: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Move (write) failed: {e}"),
+            )
+        })?;
 
     let _ = drive
         .delete_object(&src_bucket, &from_key)
@@ -96,7 +138,14 @@ pub async fn recent_files(
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        params.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     // drive_files stores bucket-relative keys: `{workspace}.gbai/...` inside
     // an org bucket and `{bot}.gbdialog/...` inside a standalone `{bot}.gbai`
@@ -115,7 +164,11 @@ pub async fn recent_files(
     // (`{bot}.` or `{org}.gbai/`). Filtering both scopes with the bot prefix
     // returned bot-scoped rows for a user request, and opening them prefixed
     // the path a second time (#1709).
-    let db_prefix = if prefix.is_empty() { indexed_prefix.clone() } else { prefix.clone() };
+    let db_prefix = if prefix.is_empty() {
+        indexed_prefix.clone()
+    } else {
+        prefix.clone()
+    };
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -140,24 +193,31 @@ pub async fn recent_files(
             // keys the LIKE above does not cover). Fall through to the object
             // store listing instead of returning an empty Recent (#1709).
             if !values.is_empty() {
-                let items: Vec<FileListItem> = values.into_iter().map(|r| {
-                    let file_path = &r.file_path;
-                    let relative = if file_path.starts_with(&prefix) {
-                        file_path[prefix.len()..].to_string()
-                    } else {
-                        file_path.to_string()
-                    };
-                    FileListItem {
-                        is_dir: false,
-                        name: relative.rsplit('/').next().unwrap_or(relative.as_str()).to_string(),
-                        path: relative,
-                        size: r.file_size.unwrap_or(0) as u64,
-                        modified: r.last_modified.map(|d| d.to_rfc3339()),
-                        is_kb: r.file_type == "kb",
-                        is_public: false,
-                        bucket: None,
-                    }
-                }).collect();
+                let items: Vec<FileListItem> = values
+                    .into_iter()
+                    .map(|r| {
+                        let file_path = &r.file_path;
+                        let relative = if file_path.starts_with(&prefix) {
+                            file_path[prefix.len()..].to_string()
+                        } else {
+                            file_path.to_string()
+                        };
+                        FileListItem {
+                            is_dir: false,
+                            name: relative
+                                .rsplit('/')
+                                .next()
+                                .unwrap_or(relative.as_str())
+                                .to_string(),
+                            path: relative,
+                            size: r.file_size.unwrap_or(0) as u64,
+                            modified: r.last_modified.map(|d| d.to_rfc3339()),
+                            is_kb: r.file_type == "kb",
+                            is_public: false,
+                            bucket: None,
+                        }
+                    })
+                    .collect();
                 return Ok(Json(items));
             }
         }
@@ -166,10 +226,18 @@ pub async fn recent_files(
     let keys = drive
         .list_objects(&bucket, Some(&prefix))
         .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list recent: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to list recent: {e}"),
+            )
+        })?;
 
     let mut meta_map: HashMap<String, u64> = HashMap::new();
-    if let Ok(objects) = drive.list_objects_with_metadata(&bucket, Some(&prefix)).await {
+    if let Ok(objects) = drive
+        .list_objects_with_metadata(&bucket, Some(&prefix))
+        .await
+    {
         for obj in objects {
             meta_map.insert(obj.key, obj.size);
         }
@@ -188,10 +256,12 @@ pub async fn list_buckets(
 ) -> Result<Json<Vec<BucketListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
 
-    let bucket_names = drive
-        .list_all_buckets()
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
+    let bucket_names = drive.list_all_buckets().await.map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("Failed to list buckets: {e}"),
+        )
+    })?;
 
     // Tenant isolation (#1401): non-admins only discover buckets they are
     // entitled to — their personal user- bucket, the instance default, and
@@ -212,8 +282,10 @@ pub async fn list_buckets(
     // shapes from the name would also match a bucket that does not belong to
     // this bot. `None` means no filter, or an unresolvable bot (which matches
     // nothing rather than silently exposing every bucket).
-    let bot_bucket: Option<String> = params.bot.as_deref().and_then(|bot| {
-        match state.conn.get() {
+    let bot_bucket: Option<String> = params
+        .bot
+        .as_deref()
+        .and_then(|bot| match state.conn.get() {
             Ok(mut conn) => {
                 Some(botbasic_core::utils::bot_drive_location_for_name(&mut conn, bot).bucket)
             }
@@ -221,8 +293,7 @@ pub async fn list_buckets(
                 warn!("drive: bucket filter lookup failed for bot '{bot}': {e}");
                 None
             }
-        }
-    });
+        });
 
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
@@ -258,11 +329,21 @@ pub async fn create_bot(
         return Err(err(StatusCode::FORBIDDEN, "Administrator access required"));
     }
     let name = req.name.trim().to_lowercase();
-    if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars)."));
+    if name.is_empty()
+        || !name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    {
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars).",
+        ));
     }
     if name.len() < 3 || name.len() > 50 {
-        return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Bot name must be between 3 and 50 characters.",
+        ));
     }
 
     // Resolve the target bucket from the bots table: an org-hosted bot is
@@ -286,15 +367,32 @@ pub async fn create_bot(
     // siblings, so the existence test is on the bot's own key prefix, not on
     // the bucket name.
     let seeded_marker = format!("{}{name}.gbdrive/.keep", location.bot_prefix);
-    let existing = drive.list_objects(&bucket_name, Some(&seeded_marker)).await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to inspect bucket: {e}")))?;
+    let existing = drive
+        .list_objects(&bucket_name, Some(&seeded_marker))
+        .await
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to inspect bucket: {e}"),
+            )
+        })?;
     if !existing.is_empty() {
-        return Err(err(StatusCode::CONFLICT, &format!("Bot '{}' already exists", name)));
+        return Err(err(
+            StatusCode::CONFLICT,
+            &format!("Bot '{}' already exists", name),
+        ));
     }
 
     // Create bucket (a no-op for the org workspace, which already exists)
-    drive.create_bucket_if_not_exists(&bucket_name).await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to create bucket: {e}")))?;
+    drive
+        .create_bucket_if_not_exists(&bucket_name)
+        .await
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to create bucket: {e}"),
+            )
+        })?;
 
     // Seed default folder structure with .keep marker files
     let seed_paths = [
@@ -311,8 +409,15 @@ pub async fn create_bot(
             Vec::new()
         };
         let key = format!("{}{path}", location.bot_prefix);
-        drive.put_object(&bucket_name, &key, content, Some("text/plain")).await
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to seed {key}: {e}")))?;
+        drive
+            .put_object(&bucket_name, &key, content, Some("text/plain"))
+            .await
+            .map_err(|e| {
+                err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Failed to seed {key}: {e}"),
+                )
+            })?;
     }
 
     Ok(Json(CreateBotResponse {
@@ -320,4 +425,3 @@ pub async fn create_bot(
         status: "created".to_string(),
     }))
 }
-

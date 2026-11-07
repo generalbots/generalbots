@@ -176,6 +176,11 @@ def main() -> int:
     desktop_closure = feature_closure(features, features.get("desktop-local", []))
     if "all-apps" not in desktop_closure:
         errors.append("`desktop-local` does not include `all-apps`")
+    # #1820 — the desktop edition serves the Mail app and the Data Sources
+    # IMAP account routes. Keep the feature explicit so removing it from
+    # `all-apps` cannot leave those UI surfaces posting to absent routes.
+    if "mail" not in desktop_closure:
+        errors.append("`desktop-local` does not compile `mail` (IMAP account routes)")
 
     apps = registry_ids()
     if len(apps) != 68:

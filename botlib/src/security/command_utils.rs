@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
 use super::command_guard::SafeCommand;
 use super::command_validation::{validate_argument, CommandGuardError};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub fn safe_pdftotext(
     pdf_path: &std::path::Path,
@@ -28,9 +28,7 @@ pub fn safe_pdftotext(
     }
 }
 
-pub async fn safe_pdftotext_async(
-    pdf_path: &std::path::Path,
-) -> Result<String, CommandGuardError> {
+pub async fn safe_pdftotext_async(pdf_path: &std::path::Path) -> Result<String, CommandGuardError> {
     let parent = pdf_path
         .parent()
         .unwrap_or(std::path::Path::new("/tmp"))

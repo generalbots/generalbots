@@ -10,7 +10,35 @@ function chatNotice(message, type) {
   }
   console.info(message);
 }
-function addMessage(sender, content, msgId, reasoning) {
+// #1797 — long user turns start collapsed so a pasted essay does not push the
+// whole conversation off screen. Small turns are untouched.
+var GB_USER_COLLAPSE_CHARS = 600;
+var GB_USER_COLLAPSE_LINES = 8;
+
+function shouldCollapseUserMessage(text) {
+  if (!text) return false;
+  return text.length > GB_USER_COLLAPSE_CHARS ||
+    text.split("\n").length > GB_USER_COLLAPSE_LINES;
+}
+
+function collapseUserMessageIfNeeded(div, text) {
+  var textBox = div && div.querySelector(".gb-message-text");
+  if (!textBox || !shouldCollapseUserMessage(text)) return;
+  var toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "gb-message-toggle";
+  toggle.textContent = "Show more";
+  toggle.setAttribute("aria-expanded", "false");
+  textBox.classList.add("gb-message-collapsed");
+  toggle.addEventListener("click", function () {
+    var collapsed = textBox.classList.toggle("gb-message-collapsed");
+    toggle.textContent = collapsed ? "Show more" : "Show less";
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  });
+  textBox.parentNode.insertBefore(toggle, textBox.nextSibling);
+}
+
+function addMessage(sender, content, msgId, reasoning, timestamp) {
   var messages = document.getElementById("messages");
   if (!messages) return;
   if (sender === "bot") {
@@ -32,15 +60,21 @@ function addMessage(sender, content, msgId, reasoning) {
   var div = document.createElement("div");
   div.className = "message " + sender;
   if (msgId) div.id = msgId;
-  // Hover timestamp. Replayed history keeps its own stored time, so only
-  // stamp messages that are being added live.
-  if (!ChatState.suppressPersist) {
-    try {
-      div.dataset.time = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (e) { /* Intl unavailable — no timestamp is fine */ }
+  // Hover timestamp. Replayed history keeps its own stored time; live turns
+  // are stamped now. Server history currently carries no timestamp, so those
+  // bubbles simply omit the hover label rather than inventing one.
+  var messageTs = null;
+  if (typeof timestamp === "number") {
+    messageTs = timestamp;
+  } else if (timestamp) {
+    var parsedTs = Date.parse(timestamp);
+    if (!isNaN(parsedTs)) messageTs = parsedTs;
+  }
+  if (!messageTs && !ChatState.suppressPersist) messageTs = Date.now();
+  function stampMessage() {
+    if (messageTs && typeof attachMessageTimestamp === "function") {
+      attachMessageTimestamp(div, messageTs);
+    }
   }
 
   if (sender !== "user") setChatStatus("");
@@ -59,7 +93,9 @@ function addMessage(sender, content, msgId, reasoning) {
       shownContent = shownContent.replace(attachmentMatch[0], "").trim();
     }
     var processedContent = renderMentionInMessage(escapeHtml(shownContent));
-    div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
+    div.innerHTML = '<div class="message-content user-message"><div class="gb-message-text">' +
+      processedContent + "</div></div>";
+    collapseUserMessageIfNeeded(div, shownContent);
     if (userAttachmentName) {
       // Several files in one turn were joined as `📎 a.pdf, b.png`; show one
       // chip per file so each one can be previewed on its own.
@@ -113,6 +149,7 @@ function addMessage(sender, content, msgId, reasoning) {
         renderInlineArtifact(embeddedApp.html, embeddedApp.title)
       );
       messages.appendChild(div);
+      stampMessage();
       if (!ChatState.isUserScrolling) scrollToBottom(true);
       stickToBottom(1400);
       return;
@@ -121,6 +158,7 @@ function addMessage(sender, content, msgId, reasoning) {
       div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + "</div>";
       div.querySelector(".message-content").appendChild(renderInlineArtifact(content));
       messages.appendChild(div);
+      stampMessage();
       if (content && content.trim() !== "") div.appendChild(createCopyButton(content));
       if (!ChatState.isUserScrolling) scrollToBottom(true);
       return;
@@ -212,6 +250,7 @@ function addMessage(sender, content, msgId, reasoning) {
   }
 
   setupMentionClickHandlers(div);
+  if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
 }
 
 function isTagBalanced(html) {

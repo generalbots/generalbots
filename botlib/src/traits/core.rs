@@ -1,27 +1,46 @@
 use std::fmt::Debug;
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
-pub type BoxFutureResult = std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, BoxError>> + Send>>;
-pub type BoxFutureString = std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>;
-pub type BoxFutureUnit = std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>;
-pub type BoxFutureBool = std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, String>> + Send>>;
-pub type BoxFutureVecU8 = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>>;
-pub type BoxFutureVecString = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>>;
-pub type BoxFutureVecDriveObject = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<DriveObjectInfo>, String>> + Send>>;
-pub type BoxFutureOptionDriveMeta = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<DriveObjectMetadata>, String>> + Send>>;
-pub type BoxFutureDriveList = std::pin::Pin<Box<dyn std::future::Future<Output = Result<DriveListResult, String>> + Send>>;
-pub type BoxFutureOptionValue = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<serde_json::Value>, String>> + Send>>;
-pub type BoxFutureOptionString = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>>;
-pub type BoxFutureValue = std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>>;
-pub type BoxFutureVecValue = std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<serde_json::Value>, String>> + Send>>;
+pub type BoxFutureResult =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, BoxError>> + Send>>;
+pub type BoxFutureString =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>;
+pub type BoxFutureUnit =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>;
+pub type BoxFutureBool =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, String>> + Send>>;
+pub type BoxFutureVecU8 =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>>;
+pub type BoxFutureVecString =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>>;
+pub type BoxFutureVecDriveObject = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Vec<DriveObjectInfo>, String>> + Send>,
+>;
+pub type BoxFutureOptionDriveMeta = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Option<DriveObjectMetadata>, String>> + Send>,
+>;
+pub type BoxFutureDriveList =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<DriveListResult, String>> + Send>>;
+pub type BoxFutureOptionValue = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Option<serde_json::Value>, String>> + Send>,
+>;
+pub type BoxFutureOptionString =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send>>;
+pub type BoxFutureValue =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>>;
+pub type BoxFutureVecValue = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Vec<serde_json::Value>, String>> + Send>,
+>;
 /// Future that borrows the adapter, for trait methods that build a boxed
 /// future from `&self` (the channel-transport half of [`ChannelAdapter`]).
 pub type BoxFutureRefUnit<'a> =
     std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), BoxError>> + Send + 'a>>;
-pub type BoxFutureRefOptionString<'a> =
-    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send + 'a>>;
-pub type BoxFutureRefValue<'a> =
-    std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send + 'a>>;
+pub type BoxFutureRefOptionString<'a> = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Option<String>, String>> + Send + 'a>,
+>;
+pub type BoxFutureRefValue<'a> = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send + 'a>,
+>;
 
 /// The single LLM provider contract (#1498).
 ///
@@ -132,10 +151,7 @@ pub trait ChannelAdapter: Send + Sync + Debug {
 
     /// Normalises an inbound payload into chat text; `None` when the payload
     /// carries no message for this channel.
-    fn receive_message<'a>(
-        &'a self,
-        _payload: serde_json::Value,
-    ) -> BoxFutureRefOptionString<'a> {
+    fn receive_message<'a>(&'a self, _payload: serde_json::Value) -> BoxFutureRefOptionString<'a> {
         Box::pin(async { Ok(None) })
     }
 
@@ -151,7 +167,11 @@ pub trait ChannelAdapter: Send + Sync + Debug {
         Err("send_message_to_session: not implemented".to_string())
     }
 
-    fn add_connection(&self, session_id: &str, sender: std::sync::mpsc::Sender<String>) -> Result<(), String> {
+    fn add_connection(
+        &self,
+        session_id: &str,
+        sender: std::sync::mpsc::Sender<String>,
+    ) -> Result<(), String> {
         let _ = (session_id, sender);
         Err("add_connection: not implemented".to_string())
     }
@@ -224,30 +244,13 @@ pub trait DriveRepository: Send + Sync + Debug {
         content_type: Option<&str>,
     ) -> BoxFutureUnit;
 
-    fn get_object(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> BoxFutureVecU8;
+    fn get_object(&self, bucket: &str, key: &str) -> BoxFutureVecU8;
 
-    fn delete_object(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> BoxFutureUnit;
+    fn delete_object(&self, bucket: &str, key: &str) -> BoxFutureUnit;
 
-    fn copy_object(
-        &self,
-        bucket: &str,
-        from_key: &str,
-        to_key: &str,
-    ) -> BoxFutureUnit;
+    fn copy_object(&self, bucket: &str, from_key: &str, to_key: &str) -> BoxFutureUnit;
 
-    fn list_objects(
-        &self,
-        bucket: &str,
-        prefix: Option<&str>,
-    ) -> BoxFutureVecString;
+    fn list_objects(&self, bucket: &str, prefix: Option<&str>) -> BoxFutureVecString;
 
     fn list_objects_with_metadata(
         &self,
@@ -255,46 +258,22 @@ pub trait DriveRepository: Send + Sync + Debug {
         prefix: Option<&str>,
     ) -> BoxFutureVecDriveObject;
 
-    fn list_common_prefixes(
-        &self,
-        bucket: &str,
-        delimiter: &str,
-    ) -> BoxFutureVecString;
+    fn list_common_prefixes(&self, bucket: &str, delimiter: &str) -> BoxFutureVecString;
 
-    fn list_all_buckets(
-        &self,
-    ) -> BoxFutureVecString;
+    fn list_all_buckets(&self) -> BoxFutureVecString;
 
-    fn object_exists(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> BoxFutureBool;
+    fn object_exists(&self, bucket: &str, key: &str) -> BoxFutureBool;
 
-    fn get_object_metadata(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> BoxFutureOptionDriveMeta;
+    fn get_object_metadata(&self, bucket: &str, key: &str) -> BoxFutureOptionDriveMeta;
 
-    fn create_bucket_if_not_exists(
-        &self,
-        bucket: &str,
-    ) -> BoxFutureUnit;
+    fn create_bucket_if_not_exists(&self, bucket: &str) -> BoxFutureUnit;
 
     // Bucket deletion is only done at organization level (cloud),
     // not at the individual bot level.
 
-    fn delete_objects(
-        &self,
-        bucket: &str,
-        keys: Vec<String>,
-    ) -> BoxFutureUnit;
+    fn delete_objects(&self, bucket: &str, keys: Vec<String>) -> BoxFutureUnit;
 
-    fn head_bucket(
-        &self,
-        bucket: &str,
-    ) -> BoxFutureBool;
+    fn head_bucket(&self, bucket: &str) -> BoxFutureBool;
 
     fn list_objects_v2(
         &self,
@@ -311,24 +290,13 @@ pub trait DriveRepository: Send + Sync + Debug {
         content_type: Option<&str>,
     ) -> BoxFutureUnit;
 
-    fn download_file(
-        &self,
-        bucket: &str,
-        key: &str,
-        file_path: &str,
-    ) -> BoxFutureUnit;
+    fn download_file(&self, bucket: &str, key: &str, file_path: &str) -> BoxFutureUnit;
 
-    fn get_object_direct(
-        &self,
-        bucket: &str,
-        key: &str,
-    ) -> BoxFutureVecU8 {
+    fn get_object_direct(&self, bucket: &str, key: &str) -> BoxFutureVecU8 {
         self.get_object(bucket, key)
     }
 
-    fn list_buckets(
-        &self,
-    ) -> BoxFutureVecString {
+    fn list_buckets(&self) -> BoxFutureVecString {
         self.list_all_buckets()
     }
 }

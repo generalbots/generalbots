@@ -88,7 +88,10 @@ async fn prune_versions(
     key: &str,
 ) {
     let prefix = versions_prefix(scope, uid, key);
-    let Ok(mut objects) = drive.list_objects_with_metadata(bucket, Some(&prefix)).await else {
+    let Ok(mut objects) = drive
+        .list_objects_with_metadata(bucket, Some(&prefix))
+        .await
+    else {
         return;
     };
     if objects.len() <= VERSIONS_KEPT {
@@ -140,11 +143,7 @@ pub async fn list_versions(
     let mut versions: Vec<serde_json::Value> = by_key
         .into_iter()
         .map(|(key, size)| {
-            let stamp = key
-                .rsplit('/')
-                .next()
-                .unwrap_or_default()
-                .to_string();
+            let stamp = key.rsplit('/').next().unwrap_or_default().to_string();
             serde_json::json!({
                 "version": key,
                 "stamp": stamp,
@@ -192,7 +191,10 @@ pub async fn restore_version(
         .iter()
         .any(|prefix| version_belongs_to_file(prefix, &req.version))
     {
-        return Err(err(StatusCode::BAD_REQUEST, "version does not belong to this file"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "version does not belong to this file",
+        ));
     }
     // Keep the revision we are about to replace.
     snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;
@@ -200,7 +202,9 @@ pub async fn restore_version(
         .copy_object(&bucket, &req.version, &key)
         .await
         .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
-    Ok(Json(serde_json::json!({ "success": true, "path": req.path })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "path": req.path }),
+    ))
 }
 
 #[cfg(test)]
@@ -220,8 +224,10 @@ mod tests {
             versions_prefix(&FileScope::Bot, "", "docs/a.txt"),
             ".versions/docs/a.txt/"
         );
-        assert!(!versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt")
-            .contains("users/u-1/users/u-1"));
+        assert!(
+            !versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt")
+                .contains("users/u-1/users/u-1")
+        );
     }
 
     #[test]
@@ -232,13 +238,22 @@ mod tests {
             &format!("{prefix}20261101T120000000Z")
         ));
         assert!(
-            !version_belongs_to_file(&prefix, ".versions/users/u-1/docs/b.txt/20261101T120000000Z"),
+            !version_belongs_to_file(
+                &prefix,
+                ".versions/users/u-1/docs/b.txt/20261101T120000000Z"
+            ),
             "another file's history must be refused"
         );
         assert!(
-            !version_belongs_to_file(&prefix, ".versions/users/u-2/docs/a.txt/20261101T120000000Z"),
+            !version_belongs_to_file(
+                &prefix,
+                ".versions/users/u-2/docs/a.txt/20261101T120000000Z"
+            ),
             "another user's history must be refused"
         );
-        assert!(!version_belongs_to_file(&prefix, &prefix), "the directory itself is not a revision");
+        assert!(
+            !version_belongs_to_file(&prefix, &prefix),
+            "the directory itself is not a revision"
+        );
     }
 }

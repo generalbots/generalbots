@@ -27,11 +27,7 @@ pub struct QdrantStreamIngestor {
 }
 
 impl QdrantStreamIngestor {
-    pub fn new(
-        client: Arc<Qdrant>,
-        collection_name: String,
-        embedding_dim: u64,
-    ) -> Self {
+    pub fn new(client: Arc<Qdrant>, collection_name: String, embedding_dim: u64) -> Self {
         Self {
             client,
             collection_name,
@@ -167,10 +163,7 @@ impl QdrantStreamIngestor {
             return Ok(());
         }
 
-        let points = std::mem::replace(
-            &mut self.batch,
-            Vec::with_capacity(QDRANT_BATCH_SIZE),
-        );
+        let points = std::mem::replace(&mut self.batch, Vec::with_capacity(QDRANT_BATCH_SIZE));
 
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()

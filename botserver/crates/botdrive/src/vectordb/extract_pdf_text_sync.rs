@@ -47,7 +47,8 @@ pub fn extract_docx_text_sync(file_path: &Path) -> Result<String> {
         let mut byte_buf = [0u8; 8192];
         loop {
             use std::io::Read;
-            let n = reader.read(&mut byte_buf)
+            let n = reader
+                .read(&mut byte_buf)
                 .map_err(|e| anyhow::anyhow!("Failed to read XML chunk: {}", e))?;
             if n == 0 {
                 break;
@@ -96,9 +97,9 @@ pub fn extract_xlsx_text_sync(file_path: &Path) -> Result<String> {
                     .iter()
                     .map(|cell| match cell {
                         calamine::Data::Empty => String::new(),
-                        calamine::Data::String(s) | calamine::Data::DateTimeIso(s) | calamine::Data::DurationIso(s) => {
-                            sanitize_cell_text(s)
-                        }
+                        calamine::Data::String(s)
+                        | calamine::Data::DateTimeIso(s)
+                        | calamine::Data::DurationIso(s) => sanitize_cell_text(s),
                         calamine::Data::Float(f) => f.to_string(),
                         calamine::Data::Int(i) => i.to_string(),
                         calamine::Data::Bool(b) => b.to_string(),

@@ -158,7 +158,7 @@ async function previewFile(path, bucket) {
         const headers = { "Content-Type": "application/json" };
         const token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
         if (token) headers["Authorization"] = "Bearer " + token;
-        if (OFFICE_PREVIEW_EXT.indexOf(ext) !== -1) {
+        if (OFFICE_PREVIEW_EXT.indexOf(ext) !== -1 && !parseLocalBucket(previewBucket)) {
             const office = await fetch(
                 "/api/files/office-preview?bucket=" + encodeURIComponent(previewBucket) +
                 "&path=" + encodeURIComponent(path),
@@ -183,6 +183,13 @@ async function previewFile(path, bucket) {
 
     async function openFile(path, bucket) {
     try {
+        // #1801 — local files have no editor-app integration yet; the preview
+        // modal is the working viewer for every local type.
+        var localBucketName = bucket || currentBucket;
+        if (parseLocalBucket(localBucketName)) {
+            previewFile(path, localBucketName);
+            return;
+        }
         const fileBucket = bucket || getEffectiveBucket();
         const response = await apiRequest("/open", {
             method: "POST",

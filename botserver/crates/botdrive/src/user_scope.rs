@@ -26,9 +26,16 @@ pub fn get_user_bucket(user_id: &str) -> String {
         }
     }
     let sanitized = sanitized.trim_matches(|c| c == '-' || c == '.');
-    let sanitized = if sanitized.is_empty() { "local" } else { sanitized };
+    let sanitized = if sanitized.is_empty() {
+        "local"
+    } else {
+        sanitized
+    };
     // Bucket names are capped at 63 chars; keep room for the prefix.
-    let limited: String = sanitized.chars().take(63 - USER_BUCKET_PREFIX.len()).collect();
+    let limited: String = sanitized
+        .chars()
+        .take(63 - USER_BUCKET_PREFIX.len())
+        .collect();
     format!("{USER_BUCKET_PREFIX}{limited}")
 }
 
@@ -140,7 +147,10 @@ mod tests {
     fn user_bucket_sanitizes_invalid_characters() {
         // The local administrator signs in with an email, and S3 rejects `@`.
         assert_eq!(get_user_bucket("admin@localhost"), "user-admin-localhost");
-        assert_eq!(get_user_bucket("John.Doe+test@Example.COM"), "user-john.doe-test-example.com");
+        assert_eq!(
+            get_user_bucket("John.Doe+test@Example.COM"),
+            "user-john.doe-test-example.com"
+        );
         assert_eq!(get_user_bucket(""), "user-local");
         assert!(get_user_bucket(&"x".repeat(200)).chars().count() <= 63);
     }

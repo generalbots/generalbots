@@ -29,8 +29,14 @@ pub async fn export_archive(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket =
-        resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     let mut entries: Vec<String> = Vec::new();
@@ -100,7 +106,10 @@ pub async fn export_archive(
 
     let mut response = archive_bytes.into_response();
     let headers = response.headers_mut();
-    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/zip"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("application/zip"),
+    );
     headers.insert(
         header::CONTENT_DISPOSITION,
         HeaderValue::from_static("attachment; filename=\"general-bots-export.zip\""),

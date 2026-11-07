@@ -10,6 +10,15 @@ function bindTopTabs() {
             sessionStorage.setItem("drive-tab", currentTab);
             selectedFiles.clear();
             currentPath = "";
+            // #1801 — leaving the Home tab must restore MinIO discovery; the
+            // `local:home` bucket is not a real S3 bucket.
+            if (parseLocalBucket(currentBucket)) {
+                currentBucket = "";
+                currentGborgBucket = null;
+                currentGborgBranch = null;
+                bucketLayoutResolved = false;
+                currentBackend = "minio";
+            }
             updateSelectionBar();
 
             var nav = document.getElementById("drive-nav");
@@ -29,6 +38,9 @@ function bindTopTabs() {
                 case TAB_MYFILES:
                     loadMyFilesTab();
                     break;
+                case TAB_HOME:
+                    loadHomeTab();
+                    break;
                 case TAB_BOTS:
                     loadBotsTab();
                     break;
@@ -47,6 +59,11 @@ function bindTopTabs() {
     var savedTab = sessionStorage.getItem("drive-tab") || TAB_MYFILES;
     // Older sessions may remember a tab that no longer exists.
     if (["branchdrive", "bots", "root", "desktop", "external"].indexOf(savedTab) !== -1) {
+        savedTab = TAB_MYFILES;
+        sessionStorage.setItem("drive-tab", savedTab);
+    }
+    // Home only exists in the desktop edition.
+    if (savedTab === TAB_HOME && !isDesktopLocal()) {
         savedTab = TAB_MYFILES;
         sessionStorage.setItem("drive-tab", savedTab);
     }

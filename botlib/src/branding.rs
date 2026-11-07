@@ -1,4 +1,3 @@
-
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -223,7 +222,6 @@ impl From<ProductFile> for BrandingConfig {
         }
     }
 }
-
 
 pub fn init_branding() {
     let config = BrandingConfig::load();

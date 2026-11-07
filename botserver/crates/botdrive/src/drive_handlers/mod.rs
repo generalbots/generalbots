@@ -1,10 +1,14 @@
 // Drive HTTP handlers — Issue #589 per-user file scoping
 
-pub(crate) use botcore::shared::state::AppState;
 pub(crate) use crate::drive_types::*;
 pub(crate) use crate::user_scope;
-pub(crate) use axum::{ extract::{Path, Query, State, Extension}, http::StatusCode, response::Json, };
+pub(crate) use axum::{
+    extract::{Extension, Path, Query, State},
+    http::StatusCode,
+    response::Json,
+};
 pub(crate) use base64::Engine;
+pub(crate) use botcore::shared::state::AppState;
 pub(crate) use botsecurity_auth::auth_api::types::AuthenticatedUser;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
@@ -71,28 +75,28 @@ struct PublicLinkRow {
     revoked: bool,
 }
 
-mod cached_quota;
-mod list_files;
-mod move_file;
-mod search_files;
-mod share_recipients;
-mod share_email;
-mod export_archive;
-mod delete_bot;
-mod list_trash;
 mod ai_chat_handler;
+mod cached_quota;
+mod delete_bot;
+mod export_archive;
+mod list_files;
+mod list_trash;
+mod move_file;
 mod public_link_url;
+mod search_files;
+mod share_email;
+mod share_recipients;
 mod version_list_body;
 
-use cached_quota::*;
-pub use list_files::*;
-pub use move_file::*;
-pub use search_files::*;
-pub use share_recipients::*;
-pub use share_email::*;
-pub use export_archive::*;
-pub use delete_bot::*;
-pub use list_trash::*;
 pub use ai_chat_handler::*;
+use cached_quota::*;
+pub use delete_bot::*;
+pub use export_archive::*;
+pub use list_files::*;
+pub use list_trash::*;
+pub use move_file::*;
 pub use public_link_url::*;
+pub use search_files::*;
+pub use share_email::*;
+pub use share_recipients::*;
 pub use version_list_body::*;

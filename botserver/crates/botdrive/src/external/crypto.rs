@@ -43,25 +43,72 @@ static NONCE: AtomicU64 = AtomicU64::new(0);
 /// Mint the OAuth `state` for a connect request.
 ///
 /// Layout: `base64url(payload).base64url(hmac)` where payload is
-/// `{branch}:{provider}:{issued_at}:{nonce}`. The signature is what makes the
-/// callback safe: without it, any user could complete a flow and have the
-/// tokens stored against somebody else's branch.
+/// `{branch}:{provider}:{issued_at}:{nonce}` (plus `:{verifier}` for PKCE).
+/// The signature is what makes the callback safe: without it, any user could
+/// complete a flow and have the tokens stored against somebody else's branch.
 pub fn state_token(branch_id: Uuid, provider: Provider) -> String {
+    state_token_with_verifier(branch_id, provider, None)
+}
+
+/// Mint a state token that also carries the PKCE verifier. Public/desktop
+/// clients have no client secret, so the verifier must survive the browser
+/// round trip; the HMAC keeps it tamper-proof.
+pub fn state_token_with_verifier(
+    branch_id: Uuid,
+    provider: Provider,
+    verifier: Option<&str>,
+) -> String {
     let nonce = NONCE.fetch_add(1, Ordering::Relaxed);
     let issued = chrono::Utc::now().timestamp();
-    let payload = format!("{branch_id}:{}:{issued}:{nonce}", provider.as_str());
+    let mut payload = format!("{branch_id}:{}:{issued}:{nonce}", provider.as_str());
+    if let Some(verifier) = verifier.filter(|v| !v.is_empty()) {
+        payload.push(':');
+        payload.push_str(verifier);
+    }
     let encoded = b64(payload.as_bytes());
     // Signing cannot fail (the key is a fixed-size slice), so an empty
     // signature would only ever mean a bug; leaving the payload unsigned
     // would be the dangerous outcome, hence the empty second half.
-    let sig = sign(encoded.as_bytes()).map(|s| b64(&s)).unwrap_or_default();
+    let sig = sign(encoded.as_bytes())
+        .map(|s| b64(&s))
+        .unwrap_or_default();
     format!("{encoded}.{sig}")
+}
+
+/// Read the PKCE verifier from a state token. Callers must verify the state
+/// first; this decodes only.
+pub fn state_verifier(token: &str) -> Option<String> {
+    let (encoded, _) = token.split_once('.')?;
+    let text = String::from_utf8(b64_decode(encoded).ok()?).ok()?;
+    let parts: Vec<&str> = text.split(':').collect();
+    if parts.len() == 5 {
+        Some(parts[4].to_string())
+    } else {
+        None
+    }
+}
+
+/// Generate a PKCE code verifier (43–128 unreserved characters).
+pub fn code_verifier() -> String {
+    format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple())
+}
+
+/// Derive the S256 PKCE challenge from a verifier.
+pub fn code_challenge(verifier: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(verifier.as_bytes());
+    b64(&digest)
 }
 
 /// Verify a callback's `state` against the branch and provider it must belong
 /// to. Expiry is 15 minutes — long enough for a consent screen, short enough
 /// that a leaked URL is not replayable later.
-pub fn verify_state(token: &str, branch_id: Uuid, provider: Provider, now: chrono::DateTime<chrono::Utc>) -> bool {
+pub fn verify_state(
+    token: &str,
+    branch_id: Uuid,
+    provider: Provider,
+    now: chrono::DateTime<chrono::Utc>,
+) -> bool {
     const MAX_AGE_SECS: i64 = 900;
     let Some((encoded, sig)) = token.split_once('.') else {
         return false;
@@ -80,7 +127,7 @@ pub fn verify_state(token: &str, branch_id: Uuid, provider: Provider, now: chron
         return false;
     };
     let parts: Vec<&str> = text.split(':').collect();
-    if parts.len() != 4 {
+    if parts.len() != 4 && parts.len() != 5 {
         return false;
     }
     if parts[0] != branch_id.to_string() || parts[1] != provider.as_str() {
@@ -102,7 +149,7 @@ pub fn peek_state(token: &str) -> Option<(Uuid, Provider)> {
     let (encoded, _) = token.split_once('.')?;
     let text = String::from_utf8(b64_decode(encoded).ok()?).ok()?;
     let parts: Vec<&str> = text.split(':').collect();
-    if parts.len() != 4 {
+    if parts.len() != 4 && parts.len() != 5 {
         return None;
     }
     Some((Uuid::parse_str(parts[0]).ok()?, Provider::parse(parts[1])?))
@@ -113,7 +160,8 @@ pub fn peek_state(token: &str) -> Option<(Uuid, Provider)> {
 /// closed, never be accepted under a well-known key.
 fn sign(payload: &[u8]) -> Result<Vec<u8>, String> {
     let key = botsecurity_crypto::encryption::load_master_encryption_key();
-    let mut mac = HmacSha256::new_from_slice(&key).map_err(|e| format!("state key rejected: {e}"))?;
+    let mut mac =
+        HmacSha256::new_from_slice(&key).map_err(|e| format!("state key rejected: {e}"))?;
     mac.update(payload);
     Ok(mac.finalize().into_bytes().to_vec())
 }
@@ -122,7 +170,10 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    a.iter()
+        .zip(b.iter())
+        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+        == 0
 }
 
 fn b64(bytes: &[u8]) -> String {
@@ -171,7 +222,12 @@ mod tests {
     fn state_token_is_rejected_for_another_branch_or_provider() {
         let branch = Uuid::new_v4();
         let token = state_token(branch, Provider::OneDrive);
-        assert!(!verify_state(&token, Uuid::new_v4(), Provider::OneDrive, now()));
+        assert!(!verify_state(
+            &token,
+            Uuid::new_v4(),
+            Provider::OneDrive,
+            now()
+        ));
         assert!(!verify_state(&token, branch, Provider::GoogleDrive, now()));
     }
 
@@ -186,8 +242,18 @@ mod tests {
         // Any edit invalidates the signature.
         let mut tampered = token.clone();
         tampered.push('x');
-        assert!(!verify_state(&tampered, branch, Provider::GoogleDrive, now()));
-        assert!(!verify_state("no-dot-here", branch, Provider::GoogleDrive, now()));
+        assert!(!verify_state(
+            &tampered,
+            branch,
+            Provider::GoogleDrive,
+            now()
+        ));
+        assert!(!verify_state(
+            "no-dot-here",
+            branch,
+            Provider::GoogleDrive,
+            now()
+        ));
     }
 
     #[test]

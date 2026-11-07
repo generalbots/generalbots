@@ -35,17 +35,20 @@ pub async fn list_trash(
         .load::<Row>(&mut conn)
         .unwrap_or_default();
 
-        let items: Vec<TrashItem> = rows.into_iter().map(|r| TrashItem {
-            id: r.id,
-            user_id: r.user_id,
-            bucket: r.bucket,
-            path: r.path,
-            original_path: r.original_path,
-            is_dir: r.is_dir,
-            size: r.size as u64,
-            deleted_at: r.deleted_at,
-            expires_at: r.expires_at,
-        }).collect();
+        let items: Vec<TrashItem> = rows
+            .into_iter()
+            .map(|r| TrashItem {
+                id: r.id,
+                user_id: r.user_id,
+                bucket: r.bucket,
+                path: r.path,
+                original_path: r.original_path,
+                is_dir: r.is_dir,
+                size: r.size as u64,
+                deleted_at: r.deleted_at,
+                expires_at: r.expires_at,
+            })
+            .collect();
         return Ok(Json(items));
     }
     Ok(Json(vec![]))
@@ -58,8 +61,14 @@ pub async fn trash_file(
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket =
-        resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let bucket = resolve_bucket(
+        &state,
+        req.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let relative = normalize_path(&req.path);
     let key = scoped_key(&prefix, &req.path);
@@ -81,7 +90,12 @@ pub async fn trash_file(
         drive
             .put_object(&bucket, &trash_key, data, None)
             .await
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Trash move failed: {e}")))?;
+            .map_err(|e| {
+                err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Trash move failed: {e}"),
+                )
+            })?;
         let _ = drive.delete_object(&bucket, &key).await;
         diesel::sql_query(
             "INSERT INTO drive_trash (user_id, bucket, path, original_path, is_dir, size) \
@@ -95,7 +109,10 @@ pub async fn trash_file(
         .execute(&mut conn)
         .map_err(|e| {
             botlog::safe_error!("drive trash insert failed: {e}");
-            err(StatusCode::INTERNAL_SERVER_ERROR, "Could not record the trashed file")
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Could not record the trashed file",
+            )
         })?;
         botlog::safe_info!("File moved to trash: {key} -> {trash_key}");
         return Ok(Json(SuccessResponse { success: true }));
@@ -150,7 +167,10 @@ pub async fn trash_file(
     .execute(&mut conn)
     .map_err(|e| {
         botlog::safe_error!("drive trash folder insert failed: {e}");
-        err(StatusCode::INTERNAL_SERVER_ERROR, "Could not record the trashed folder")
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Could not record the trashed folder",
+        )
     })?;
 
     botlog::safe_info!("Folder moved to trash: {key} -> {trash_base}/{relative}");
@@ -197,7 +217,10 @@ pub async fn restore_trash(
     let mut restored = 0usize;
     if row.is_dir {
         let prefix = format!("{}/", row.path.trim_end_matches('/'));
-        let keys = drive.list_objects(&row.bucket, Some(&prefix)).await.unwrap_or_default();
+        let keys = drive
+            .list_objects(&row.bucket, Some(&prefix))
+            .await
+            .unwrap_or_default();
         for child in keys {
             if child.ends_with('/') {
                 continue;
@@ -215,7 +238,12 @@ pub async fn restore_trash(
             drive
                 .put_object(&row.bucket, &destination, data, None)
                 .await
-                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Restore failed: {e}")))?;
+                .map_err(|e| {
+                    err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Restore failed: {e}"),
+                    )
+                })?;
             let _ = drive.delete_object(&row.bucket, &child).await;
             restored += 1;
         }
@@ -224,12 +252,20 @@ pub async fn restore_trash(
         drive
             .put_object(&row.bucket, &row.original_path, data, None)
             .await
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Restore failed: {e}")))?;
+            .map_err(|e| {
+                err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Restore failed: {e}"),
+                )
+            })?;
         let _ = drive.delete_object(&row.bucket, &row.path).await;
         restored = 1;
     }
     if restored == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Trash item has no objects to restore"));
+        return Err(err(
+            StatusCode::NOT_FOUND,
+            "Trash item has no objects to restore",
+        ));
     }
 
     // Keep the row when the objects could not be written back, so the user can
@@ -240,7 +276,10 @@ pub async fn restore_trash(
         .execute(&mut conn)
         .map_err(|e| {
             botlog::safe_error!("drive trash row cleanup failed: {e}");
-            err(StatusCode::INTERNAL_SERVER_ERROR, "Restored, but could not clear the trash entry")
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Restored, but could not clear the trash entry",
+            )
         })?;
 
     botlog::safe_info!("Trash item restored: {}", row.original_path);
@@ -255,10 +294,7 @@ pub async fn purge_expired_trash(state: &Arc<AppState>) -> Result<usize, String>
         .drive
         .clone()
         .ok_or_else(|| "drive storage not configured".to_string())?;
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| format!("db pool: {e}"))?;
+    let mut conn = state.conn.get().map_err(|e| format!("db pool: {e}"))?;
 
     #[derive(QueryableByName)]
     struct Row {
@@ -339,12 +375,11 @@ pub async fn empty_trash(
             #[diesel(sql_type = Bool)]
             is_dir: bool,
         }
-        let rows = diesel::sql_query(
-            "SELECT bucket, path, is_dir FROM drive_trash WHERE user_id = $1"
-        )
-        .bind::<Text, _>(&uid)
-        .load::<Row>(&mut conn)
-        .unwrap_or_default();
+        let rows =
+            diesel::sql_query("SELECT bucket, path, is_dir FROM drive_trash WHERE user_id = $1")
+                .bind::<Text, _>(&uid)
+                .load::<Row>(&mut conn)
+                .unwrap_or_default();
 
         for row in &rows {
             if row.is_dir {
@@ -380,7 +415,12 @@ pub async fn upload_file_binary(
     drive
         .put_object(&bucket, &key, data, None)
         .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Upload failed: {e}")))?;
+        .map_err(|e| {
+            err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Upload failed: {e}"),
+            )
+        })?;
 
     Ok(Json(SuccessResponse { success: true }))
 }

@@ -33,7 +33,11 @@ impl BotServerClient {
         if !is_valid {
             error!("BotServerClient: invalid base URL, falling back to default");
         }
-        let url = if is_valid { url } else { DEFAULT_BOTSERVER_URL.to_string() };
+        let url = if is_valid {
+            url
+        } else {
+            DEFAULT_BOTSERVER_URL.to_string()
+        };
 
         let client = reqwest::Client::builder()
             .timeout(timeout)

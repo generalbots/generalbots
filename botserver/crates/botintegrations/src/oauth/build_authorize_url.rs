@@ -69,24 +69,27 @@ pub async fn start(
         )));
     }
     let config = provider_config(&provider).ok_or_else(|| {
-        error_response(StatusCode::NOT_FOUND, IntegrationError::Validation("unknown oauth provider".to_string()))
+        error_response(
+            StatusCode::NOT_FOUND,
+            IntegrationError::Validation("unknown oauth provider".to_string()),
+        )
     })?;
     let uuid = parse_uuid(&bot_id)?;
     let scope = resolve_scope(&state.pool, &user, uuid)
         .map_err(|error| error_response(StatusCode::FORBIDDEN, error))?;
 
     // The OAuth client is resolved bot → branch → platform, so an operator
-    // registers the provider app once and every user just clicks Connect.
-    let (client_config, vault_path) = state
-        .vault
-        .load_oauth_client(scope.org_id, scope.branch_id, scope.bot_id, &provider)
+    // registers the provider app once and every user just clicks Connect. A
+    // desktop build may instead carry a managed public client id, which is
+    // used only when no deployment-specific registration exists.
+    let (client_config, vault_path) = load_client_or_managed(&state, &scope, &provider)
         .await
         .map_err(|_| {
             log::warn!("oauth start: no client configuration for provider {provider}");
             error_response(
                 StatusCode::PRECONDITION_FAILED,
                 IntegrationError::Validation(format!(
-                    "no OAuth client registered for {provider}. Register it once at                      integrations/oauth/{provider} (client_id, client_secret) and every user                      can connect with their own account."
+                    "no OAuth client registered for {provider}. Register it once at                      integrations/oauth/{provider} (client_id, client_secret) and every user                      can connect with their own account. A desktop build can also inject                      a managed public client id (GB_OAUTH_GOOGLE_CLIENT_ID /                      GB_OAUTH_MICROSOFT_CLIENT_ID)."
                 )),
             )
         })?;
@@ -96,13 +99,19 @@ pub async fn start(
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| {
-            error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation(
-                "client_id missing from the provider oauth envelope".to_string(),
-            ))
+            error_response(
+                StatusCode::PRECONDITION_FAILED,
+                IntegrationError::Validation(
+                    "client_id missing from the provider oauth envelope".to_string(),
+                ),
+            )
         })?;
 
     let base = request_base(&headers).ok_or_else(|| {
-        error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("request host missing".to_string()))
+        error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("request host missing".to_string()),
+        )
     })?;
     // One stable callback for every bot: the bot id travels inside the
     // signed state, so an operator registers a single redirect URI with the
@@ -135,7 +144,8 @@ pub async fn start(
         "r": query.return_to,
         "t": chrono::Utc::now().timestamp(),
     });
-    let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_payload.to_string());
+    let encoded =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_payload.to_string());
     let signature = sign(&encoded, &signing_key()?)?;
 
     let url = build_authorize_url(
@@ -214,9 +224,8 @@ pub async fn save_client(
     Json(body): Json<ClientSetupBody>,
 ) -> Result<Json<Value>, ResponseError> {
     let bot_uuid = parse_uuid(&bot_id)?;
-    let scope = resolve_scope(&state.pool, &user, bot_uuid).map_err(|error| {
-        error_response(StatusCode::FORBIDDEN, error)
-    })?;
+    let scope = resolve_scope(&state.pool, &user, bot_uuid)
+        .map_err(|error| error_response(StatusCode::FORBIDDEN, error))?;
     if provider_config(&provider).is_none() {
         return Err(error_response(
             StatusCode::NOT_FOUND,

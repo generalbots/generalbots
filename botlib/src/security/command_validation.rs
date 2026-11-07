@@ -2,11 +2,8 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
-    HashSet::from([
-        ';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0',
-    ])
-});
+static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> =
+    LazyLock::new(|| HashSet::from([';', '|', '&', '$', '`', '<', '>', '\n', '\r', '\0']));
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandGuardError {
@@ -66,9 +63,7 @@ pub fn validate_argument(arg: &str) -> Result<(), CommandGuardError> {
         }
     }
 
-    let dangerous_patterns = [
-        "$(", "`", "&&", "||", ">>", "<<", "..", "//", "\\\\",
-    ];
+    let dangerous_patterns = ["$(", "`", "&&", "||", ">>", "<<", "..", "//", "\\\\"];
 
     for pattern in dangerous_patterns {
         if arg.contains(pattern) {
@@ -92,8 +87,10 @@ fn normalize_path_for_compare(p: &std::path::Path) -> String {
     } else {
         s.to_string()
     };
-    let s = if s.starts_with("Z:\\") || s.starts_with("Z:/")
-        || s.starts_with("z:\\") || s.starts_with("z:/")
+    let s = if s.starts_with("Z:\\")
+        || s.starts_with("Z:/")
+        || s.starts_with("z:\\")
+        || s.starts_with("z:/")
     {
         s.replacen("Z:\\", "/", 1)
             .replacen("Z:/", "/", 1)
@@ -184,10 +181,7 @@ mod tests {
         assert_eq!(sanitize_filename("my-file_v1.txt"), "my-file_v1.txt");
         assert_eq!(sanitize_filename("../../../etc/passwd"), "etcpasswd");
         assert_eq!(sanitize_filename(".hidden"), "hidden");
-        assert_eq!(
-            sanitize_filename("file;rm -rf.txt"),
-            "filerm-rf.txt"
-        );
+        assert_eq!(sanitize_filename("file;rm -rf.txt"), "filerm-rf.txt");
     }
 
     #[test]

@@ -8,7 +8,16 @@ async function loadFiles(path, bucket) {
     if (path !== undefined) currentPath = path;
     if (bucket !== undefined) currentBucket = bucket;
 
-    await discoverBuckets();
+    // #1801 — a `local:<root>` bucket stays on the local backend for every
+    // nested folder; MinIO discovery is skipped entirely there.
+    const localRoot = parseLocalBucket(currentBucket);
+    if (localRoot) {
+        currentBackend = "local";
+        currentLocalRoot = localRoot;
+    } else {
+        currentBackend = "minio";
+        await discoverBuckets();
+    }
 
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
@@ -16,21 +25,29 @@ async function loadFiles(path, bucket) {
     updateBreadcrumb();
 
     try {
-        const effectiveBucket = getEffectiveBucket();
         const params = new URLSearchParams();
-        if (effectiveBucket) params.set("bucket", effectiveBucket);
-        if (currentPath) params.set("path", currentPath);
-        params.set("scope", currentScope);
+        if (currentBackend === "local") {
+            params.set("backend", "local");
+            params.set("root", currentLocalRoot);
+            if (currentPath) params.set("path", currentPath);
+        } else {
+            const effectiveBucket = getEffectiveBucket();
+            if (effectiveBucket) params.set("bucket", effectiveBucket);
+            if (currentPath) params.set("path", currentPath);
+            params.set("scope", currentScope);
+        }
 
         var files = await apiRequest("/list?" + params.toString());
 
-        if (window.DriveOfflineSync) DriveOfflineSync.cacheFileListing(effectiveBucket, currentPath, files);
+        if (currentBackend !== "local" && window.DriveOfflineSync) DriveOfflineSync.cacheFileListing(getEffectiveBucket(), currentPath, files);
         renderFiles(files);
     } catch (err) {
         var msg = err.message || '';
         // Show a more user-friendly message for missing buckets
         if (msg.indexOf('NoSuchBucket') !== -1 || msg.indexOf('bucket does not exist') !== -1) {
             content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Welcome to your Drive</h3><p style="color:#94a3b8;">Drag files here or click Upload to get started.</p></div>';
+        } else if (currentBackend === "local") {
+            content.innerHTML = '<div class="empty-state"><h3>Could not read this folder</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles(\'' + escapeJs(currentPath || "") + '\', \'' + escapeJs(localBucket(currentLocalRoot)) + '\')">Try again</button></div>';
         } else {
             if (window.DriveOfflineSync) {
                 DriveOfflineSync.getCachedListing(getEffectiveBucket(), currentPath).then(function (cached) {

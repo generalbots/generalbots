@@ -10,8 +10,14 @@ pub async fn search_files(
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
-    let current_bucket =
-        resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let current_bucket = resolve_bucket(
+        &state,
+        params.bucket.as_deref(),
+        &scope,
+        Some(uid.as_str()),
+        None,
+        &user,
+    )?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let query = params.query.unwrap_or_default();
     let query_lower = query.trim().to_lowercase();
@@ -44,9 +50,11 @@ pub async fn search_files(
             }
         };
 
-        let mut sizes: std::collections::HashMap<String, u64> =
-            std::collections::HashMap::new();
-        if let Ok(objects) = drive.list_objects_with_metadata(bucket, Some(&prefix)).await {
+        let mut sizes: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+        if let Ok(objects) = drive
+            .list_objects_with_metadata(bucket, Some(&prefix))
+            .await
+        {
             for object in objects {
                 sizes.insert(object.key, object.size);
             }
@@ -164,11 +172,7 @@ async fn object_contains_query(
     name: &str,
     query_lower: &str,
 ) -> bool {
-    let ext = name
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let ext = name.rsplit('.').next().unwrap_or("").to_lowercase();
     let office = matches!(ext.as_str(), "pdf" | "docx" | "xlsx");
     if !is_text_like(&ext) && !office {
         return false;

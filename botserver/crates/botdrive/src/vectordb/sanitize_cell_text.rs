@@ -1,4 +1,3 @@
-
 /// Strip HTML tags/entities/whitespace noise from a spreadsheet cell
 /// value. The patterns are constants; if one somehow failed to compile
 /// the corresponding step is skipped instead of panicking (#1368).
@@ -10,7 +9,8 @@ pub(super) fn sanitize_cell_text(raw: &str) -> String {
     let s2 = crate::re_cache::cached_re!(r"<[^>]*>")
         .map(|re| re.replace_all(&s1, "").to_string())
         .unwrap_or_else(|| s1);
-    let s3 = s2.replace("&nbsp;", " ")
+    let s3 = s2
+        .replace("&nbsp;", " ")
         .replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")

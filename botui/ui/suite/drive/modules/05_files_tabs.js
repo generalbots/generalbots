@@ -117,6 +117,22 @@ async function loadMyFilesTab() {
     }
 }
 
+// ── Home tab (#1801): the desktop user's real home folder. The server keeps
+// every path inside an allowlisted root, hides dotfiles and skips symlinks
+// that escape it. Read-only in this slice: browse, preview and download.
+async function loadHomeTab() {
+    currentBackend = "local";
+    currentLocalRoot = "home";
+    currentScope = "user";
+    currentPath = "";
+    // Local rows use a synthetic bucket; clear the org pointers so the
+    // breadcrumb and effective-bucket helpers do not mix the two backends.
+    currentGborgBucket = null;
+    currentGborgBranch = null;
+    currentBucket = localBucket(currentLocalRoot);
+    await loadFiles("", currentBucket);
+}
+
 async function loadRootTab() {
     var path = buildPathRoot();
     if (!currentBucket) await discoverBuckets();

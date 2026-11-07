@@ -164,7 +164,9 @@ impl StorageSelection {
     ) -> Self {
         let backend = StorageBackend::from_name(backend_name);
         let region = match region.trim() {
-            "" | "auto" if !backend.requires_explicit_region() => backend.default_region().to_string(),
+            "" | "auto" if !backend.requires_explicit_region() => {
+                backend.default_region().to_string()
+            }
             "" => backend.default_region().to_string(),
             explicit => explicit.to_string(),
         };

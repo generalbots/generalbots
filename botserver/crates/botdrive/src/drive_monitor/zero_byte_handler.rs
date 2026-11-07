@@ -19,7 +19,8 @@ pub fn scan_for_empty_files(work_dir: &Path) -> Vec<String> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let bot_name = path.file_name()
+                let bot_name = path
+                    .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_default();
                 let gbdialog = path.join(format!("{}.gbdialog", bot_name));
@@ -28,10 +29,11 @@ pub fn scan_for_empty_files(work_dir: &Path) -> Vec<String> {
                         for file in files.flatten() {
                             let fpath = file.path();
                             if fpath.extension().is_some_and(|e| e == "bas" || e == "ast")
-                                && is_file_empty_or_missing(&fpath) {
-                                    needs_sync.push(bot_name.clone());
-                                    break;
-                                }
+                                && is_file_empty_or_missing(&fpath)
+                            {
+                                needs_sync.push(bot_name.clone());
+                                break;
+                            }
                         }
                     }
                 }

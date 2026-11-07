@@ -68,17 +68,16 @@ pub(super) fn resolve_bucket<'a>(
     if default.is_empty() {
         return Err(err(StatusCode::BAD_REQUEST, "No bucket specified"));
     }
-    Ok(user_scope::resolve_bucket_name(scope, user_id, bot_name, default))
+    Ok(user_scope::resolve_bucket_name(
+        scope, user_id, bot_name, default,
+    ))
 }
 /// Buckets the caller is entitled to address: their personal user- bucket,
 /// the instance default bucket, and one {slug}.gborg per org they belong to
 /// (via user_organizations or the signup-derived crm_contacts binding).
 pub(super) fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String> {
     let uid = get_user_id(user);
-    let mut allowed = vec![
-        user_scope::get_user_bucket(&uid),
-        state.bucket_name.clone(),
-    ];
+    let mut allowed = vec![user_scope::get_user_bucket(&uid), state.bucket_name.clone()];
     if let Some(email) = user.email.as_deref().filter(|e| !e.is_empty()) {
         if let Ok(mut conn) = state.conn.get() {
             #[derive(diesel::QueryableByName)]
@@ -122,9 +121,10 @@ pub(super) fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) ->
                                 // to. A standalone bot keeps its own
                                 // `{bot}.gbai`; an org bot resolves back to the
                                 // `.gborg` bucket already granted above.
-                                let bucket =
-                                    botbasic_core::utils::bot_drive_location_for_name(&mut conn, &b.name)
-                                        .bucket;
+                                let bucket = botbasic_core::utils::bot_drive_location_for_name(
+                                    &mut conn, &b.name,
+                                )
+                                .bucket;
                                 allowed.push(bucket);
                             }
                         }
@@ -141,7 +141,11 @@ pub(super) fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) ->
 /// Effective user-scope id: admins may address another user's scope
 /// (support tooling); everyone else is pinned to their own identity so a
 /// client-supplied user_id cannot impersonate another tenant's prefix.
-pub(super) fn effective_uid(state: &AppState, user: &AuthenticatedUser, requested: Option<&str>) -> String {
+pub(super) fn effective_uid(
+    state: &AppState,
+    user: &AuthenticatedUser,
+    requested: Option<&str>,
+) -> String {
     if is_platform_admin(state, user) {
         requested
             .map(|s| s.to_string())
@@ -150,11 +154,15 @@ pub(super) fn effective_uid(state: &AppState, user: &AuthenticatedUser, requeste
         get_user_id(user)
     }
 }
-pub(super) fn get_drive(state: &AppState) -> Result<&Arc<dyn botlib::traits::DriveRepository>, (StatusCode, Json<serde_json::Value>)> {
-    state
-        .drive
-        .as_ref()
-        .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "Drive storage not configured"))
+pub(super) fn get_drive(
+    state: &AppState,
+) -> Result<&Arc<dyn botlib::traits::DriveRepository>, (StatusCode, Json<serde_json::Value>)> {
+    state.drive.as_ref().ok_or_else(|| {
+        err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Drive storage not configured",
+        )
+    })
 }
 pub(super) fn normalize_path(path: &str) -> String {
     let trimmed = path.trim_matches('/');
@@ -204,20 +212,21 @@ pub(super) fn build_file_list_items(
         let parts: Vec<&str> = relative.splitn(2, '/').collect();
         if parts.len() == 2 {
             let dir_name = parts[0];
-            dirs.entry(dir_name.to_string()).or_insert_with(|| FileListItem {
-                name: dir_name.to_string(),
-                path: if prefix_trimmed.is_empty() {
-                    dir_name.to_string()
-                } else {
-                    format!("{prefix_trimmed}/{dir_name}")
-                },
-                is_dir: true,
-                size: 0,
-                modified: None,
-                is_kb: false,
-                is_public: false,
-                bucket: None,
-            });
+            dirs.entry(dir_name.to_string())
+                .or_insert_with(|| FileListItem {
+                    name: dir_name.to_string(),
+                    path: if prefix_trimmed.is_empty() {
+                        dir_name.to_string()
+                    } else {
+                        format!("{prefix_trimmed}/{dir_name}")
+                    },
+                    is_dir: true,
+                    size: 0,
+                    modified: None,
+                    is_kb: false,
+                    is_public: false,
+                    bucket: None,
+                });
         } else {
             let file_name = parts[0];
             let is_kb = key.contains(".gbkb");
@@ -252,7 +261,11 @@ pub(super) fn get_user_id(user: &AuthenticatedUser) -> String {
             return email.clone();
         }
     }
-    if user.user_id.is_nil() { "default".to_string() } else { user.user_id.to_string() }
+    if user.user_id.is_nil() {
+        "default".to_string()
+    } else {
+        user.user_id.to_string()
+    }
 }
 pub(super) fn is_admin_user(user: &AuthenticatedUser) -> bool {
     user.is_admin() || user.is_super_admin()

@@ -57,7 +57,6 @@ async fn sync_connection_inner(
     provider: Provider,
     mut report: SyncReport,
 ) -> SyncReport {
-
     let loaded = {
         match db::conn(pool) {
             Ok(mut conn) => db::get_connection(&mut conn, branch_id, provider),
@@ -87,10 +86,26 @@ async fn sync_connection_inner(
 
     let outcome = match provider {
         Provider::OneDrive => {
-            run_onedrive(&http, pool, branch_id, &token, connection.cursor.as_deref(), &mut report).await
+            run_onedrive(
+                &http,
+                pool,
+                branch_id,
+                &token,
+                connection.cursor.as_deref(),
+                &mut report,
+            )
+            .await
         }
         Provider::GoogleDrive => {
-            run_gdrive(&http, pool, branch_id, &token, connection.cursor.as_deref(), &mut report).await
+            run_gdrive(
+                &http,
+                pool,
+                branch_id,
+                &token,
+                connection.cursor.as_deref(),
+                &mut report,
+            )
+            .await
         }
     };
 
@@ -98,12 +113,17 @@ async fn sync_connection_inner(
         // `None` means the traversal did not close (page cap); the stored
         // cursor is left untouched so nothing is silently skipped.
         Ok(Some(cursor)) => {
-            let stored = db::conn(pool)
-                .and_then(|mut conn| db::store_cursor(&mut conn, branch_id, provider, Some(&cursor)));
+            let stored = db::conn(pool).and_then(|mut conn| {
+                db::store_cursor(&mut conn, branch_id, provider, Some(&cursor))
+            });
             match stored {
                 Ok(()) => info!(
                     "external drive {}: {} files, {} removed ({} pages) for branch {}",
-                    provider.as_str(), report.upserted, report.removed, report.pages, branch_id
+                    provider.as_str(),
+                    report.upserted,
+                    report.removed,
+                    report.pages,
+                    branch_id
                 ),
                 Err(e) => error!(
                     "external drive {}: pass succeeded but the cursor was not stored: {e}",
@@ -299,17 +319,16 @@ fn record_failure(
     err: &SyncError,
 ) -> SyncReport {
     let backoff = err.backoff_secs(connection.attempt_count.clamp(0, 8) as u32);
-    match db::conn(pool)
-        .and_then(|mut conn| {
-            db::store_failure(
-                &mut conn,
-                branch_id,
-                provider,
-                &err.to_string(),
-                err.needs_reauth(),
-                backoff,
-            )
-        }) {
+    match db::conn(pool).and_then(|mut conn| {
+        db::store_failure(
+            &mut conn,
+            branch_id,
+            provider,
+            &err.to_string(),
+            err.needs_reauth(),
+            backoff,
+        )
+    }) {
         Ok(()) => warn!(
             "external drive {}: sync failed for branch {} ({}), retrying in {}s",
             provider.as_str(),
@@ -372,9 +391,9 @@ pub fn spawn_scheduler(pool: DbPool) {
         info!("external drive scheduler started (every {interval_secs}s)");
         tokio::time::sleep(std::time::Duration::from_secs(start_delay_secs)).await;
         loop {
-            let due = match db::conn(&pool)
-                .and_then(|mut conn| db::list_due_connections(&mut conn, chrono::Utc::now(), DUE_BATCH))
-            {
+            let due = match db::conn(&pool).and_then(|mut conn| {
+                db::list_due_connections(&mut conn, chrono::Utc::now(), DUE_BATCH)
+            }) {
                 Ok(rows) => rows,
                 Err(e) => {
                     warn!("external drive scheduler: could not read due connections: {e}");

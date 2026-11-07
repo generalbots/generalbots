@@ -28,7 +28,10 @@ pub(super) type ApiResult<T> = Result<T, ApiError>;
 pub fn configure() -> axum::Router<Arc<AppState>> {
     use axum::routing::{get, post};
     axum::Router::new()
-        .route("/api/external-drives/connections", get(routes_files::list_connections))
+        .route(
+            "/api/external-drives/connections",
+            get(routes_files::list_connections),
+        )
         .route("/api/external-drives/files", get(routes_files::list_files))
         .route(
             "/api/external-drives/download/:provider/:remote_id",
@@ -42,7 +45,11 @@ pub fn configure() -> axum::Router<Arc<AppState>> {
 }
 
 pub(super) fn err(status: StatusCode, message: &str) -> ApiError {
-    log::warn!("external drive api error ({}): {}", status.as_u16(), message);
+    log::warn!(
+        "external drive api error ({}): {}",
+        status.as_u16(),
+        message
+    );
     (status, Json(serde_json::json!({ "error": message })))
 }
 
@@ -54,9 +61,17 @@ pub(super) fn err(status: StatusCode, message: &str) -> ApiError {
 /// account with no binding falls back to the global (nil) branch, which is what
 /// the suite does everywhere else.
 pub(super) fn caller_branch(state: &AppState, user: &AuthenticatedUser) -> Result<Uuid, ApiError> {
-    let mut conn = db::conn(&state.conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
-    let Some(email) = user.email.as_deref().filter(|e| !e.is_empty() && *e != "session-user") else {
+    let mut conn = db::conn(&state.conn).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("database unavailable: {e}"),
+        )
+    })?;
+    let Some(email) = user
+        .email
+        .as_deref()
+        .filter(|e| !e.is_empty() && *e != "session-user")
+    else {
         return Ok(Uuid::nil());
     };
     #[derive(diesel::QueryableByName)]
@@ -70,13 +85,22 @@ pub(super) fn caller_branch(state: &AppState, user: &AuthenticatedUser) -> Resul
     .bind::<diesel::sql_types::Text, _>(email)
     .get_result::<Row>(&mut conn)
     .optional()
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("tenant lookup failed: {e}")))?;
+    .map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("tenant lookup failed: {e}"),
+        )
+    })?;
     Ok(row.map(|r| r.branch_id).unwrap_or_else(Uuid::nil))
 }
 
 pub(super) fn parse_provider(value: &str) -> Result<Provider, ApiError> {
-    Provider::parse(value)
-        .ok_or_else(|| err(StatusCode::BAD_REQUEST, "provider must be onedrive or gdrive"))
+    Provider::parse(value).ok_or_else(|| {
+        err(
+            StatusCode::BAD_REQUEST,
+            "provider must be onedrive or gdrive",
+        )
+    })
 }
 
 fn header_value(headers: &HeaderMap, name: &str) -> Option<String> {
@@ -146,7 +170,11 @@ pub async fn oauth_callback(
 ) -> Response {
     let base = config::base_from_headers(&headers, None, None).unwrap_or_default();
     let back = |query: &str| {
-        let prefix = if base.is_empty() { "/drive".to_string() } else { format!("{base}/drive") };
+        let prefix = if base.is_empty() {
+            "/drive".to_string()
+        } else {
+            format!("{base}/drive")
+        };
         Redirect::to(&format!("{prefix}?{query}"))
     };
 
@@ -165,7 +193,10 @@ pub async fn oauth_callback(
         return back("external=error&reason=invalid_state").into_response();
     };
     if !crypto::verify_state(token, branch_id, provider, chrono::Utc::now()) {
-        log::warn!("external drive oauth state rejected for provider {}", provider.as_str());
+        log::warn!(
+            "external drive oauth state rejected for provider {}",
+            provider.as_str()
+        );
         return back("external=error&reason=invalid_state").into_response();
     }
     let Some(code) = params.code.as_deref().filter(|c| !c.is_empty()) else {
@@ -174,7 +205,8 @@ pub async fn oauth_callback(
     let Some(client) = config::client_for(provider) else {
         return back("external=error&reason=not_configured").into_response();
     };
-    let redirect_uri = config::redirect_uri(config::base_from_headers(&headers, None, None).as_deref());
+    let redirect_uri =
+        config::redirect_uri(config::base_from_headers(&headers, None, None).as_deref());
     let http = match engine::http_client() {
         Ok(c) => c,
         Err(_) => return back("external=error&reason=client_unavailable").into_response(),
@@ -291,8 +323,12 @@ pub async fn update_settings(
     let provider = parse_provider(&body.provider)?;
     let branch_id = caller_branch(&state, &user)?;
     let minutes = body.sync_minutes.clamp(5, 1440);
-    let mut conn = db::conn(&state.conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
+    let mut conn = db::conn(&state.conn).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("database unavailable: {e}"),
+        )
+    })?;
     let updated = diesel::sql_query(
         "UPDATE external_drive_connections SET sync_minutes = $3, updated_at = NOW()
          WHERE branch_id = $1 AND provider = $2",
@@ -319,8 +355,12 @@ pub async fn disconnect(
 ) -> ApiResult<Json<serde_json::Value>> {
     let provider = parse_provider(&body.provider)?;
     let branch_id = caller_branch(&state, &user)?;
-    let mut conn = db::conn(&state.conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("database unavailable: {e}")))?;
+    let mut conn = db::conn(&state.conn).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("database unavailable: {e}"),
+        )
+    })?;
     db::disconnect(&mut conn, branch_id, provider)
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &e))?;
     log::info!(
@@ -328,7 +368,9 @@ pub async fn disconnect(
         provider.as_str(),
         branch_id
     );
-    Ok(Json(serde_json::json!({ "provider": provider.as_str(), "connected": false })))
+    Ok(Json(
+        serde_json::json!({ "provider": provider.as_str(), "connected": false }),
+    ))
 }
 
 #[derive(Debug, Deserialize)]
