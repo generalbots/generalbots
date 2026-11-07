@@ -16,8 +16,9 @@ commented-out code.
 Production Rust excludes `bottest/`, test paths (`tests/`, `*_test.rs`,
 `*_tests.rs`, `test(s).rs`) and anything inside a `#[cfg(test)]` item. Comments
 are stripped first, so documentation is never counted. Generated `botbook`,
-`target/`, `node_modules/`, `vendor/`, the vendored `3rdparty/` crates and the
-vendored `last30days` skill are not first-party and are skipped.
+`target/`, `node_modules/`, `vendor/`, the vendored `3rdparty/` crates, the
+vendored `last30days` skill and captured `scripts/fixtures` pages are not
+first-party and are skipped.
 
 The baseline is a ceiling, not a snapshot: a count may stay equal or fall, never
 rise. When a change removes a deviation, lower the number in the same change
@@ -51,7 +52,12 @@ SKIP_DIRS = {
     "botserver-installers", "botserver-stack", "build", "dist", "node_modules",
     "target", "vendor", "venv", "work",
 }
-SKIP_PREFIXES = ("botskills/research/last30days",)
+SKIP_PREFIXES = (
+    "botskills/research/last30days",
+    # Captured HTML fixtures for the GB7 contract tests: third-party/marketing
+    # pages, not first-party UI, and deliberately kept verbatim.
+    "scripts/fixtures",
+)
 SCAN_EXTENSIONS = {".rs", ".js", ".html", ".css"}
 HARD_LIMIT = 450
 
