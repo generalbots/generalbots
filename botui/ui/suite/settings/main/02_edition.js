@@ -3,6 +3,15 @@
   "use strict";
   var S = window.__GBSettingsMain;
 
+function isDesktopEdition(config) {
+  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return true; }
+  if (!config) { return false; }
+  if (config.desktop === true || config.desktop_local === true || config.is_desktop === true) { return true; }
+  // Desktop-local product config ships with no_security; treat as desktop edition.
+  if (config.no_security === true) { return true; }
+  return false;
+}
+
 function isSlimEdition(config) {
   if (!config) { return false; }
   if (config.no_security === true) { return true; }
@@ -20,7 +29,62 @@ function hideSettingsSection(id) {
   if (nav) { nav.style.display = "none"; }
 }
 
+function hideSettingControl(control) {
+  if (!control) { return; }
+  var row = control.closest ? control.closest(".setting-row, .form-group") : null;
+  if (row) { row.style.display = "none"; }
+}
+
+function applyDesktopEditionVisibility() {
+  // #1838: DNS Management does not apply to the desktop edition.
+  hideSettingsSection("dns");
+  var dnsModal = document.getElementById("register-dns-modal");
+  if (dnsModal) { dnsModal.style.display = "none"; }
+
+  // #1837: Billing does not make sense in the desktop edition.
+  hideSettingsSection("billing");
+
+  // #1815: remove Marketing/news opt-in from desktop notifications.
+  hideSettingControl(document.querySelector('input[name="email_marketing"]'));
+
+  // #1837: reformulate Privacy for desktop (local, single-user context).
+  var privacy = document.getElementById("privacy-section");
+  if (privacy) {
+    var subtitle = privacy.querySelector(".section-header .subtitle");
+    if (subtitle) { subtitle.textContent = "Manage local privacy and data on this device"; }
+
+    var cards = privacy.querySelectorAll(".setting-card");
+    if (cards[0]) {
+      var h = cards[0].querySelector(".card-header h2");
+      if (h) { h.textContent = "Local Privacy"; }
+      hideSettingControl(cards[0].querySelector('[name="profile_visibility"]'));
+      var descs = cards[0].querySelectorAll(".setting-desc");
+      descs.forEach(function (d) {
+        var t = d.textContent || "";
+        if (t.indexOf("Show when") !== -1) { d.textContent = "Show your status in local conversations"; }
+        if (t.indexOf("read messages") !== -1) { d.textContent = "Let others know when you've read messages in local conversations"; }
+      });
+    }
+    if (cards[1]) {
+      var exportBtn = cards[1].querySelector('[hx-post="/api/user/data/export"]');
+      if (exportBtn) { exportBtn.removeAttribute("hx-post"); exportBtn.removeAttribute("hx-swap"); exportBtn.removeAttribute("hx-on::after-request"); exportBtn.textContent = "Export Local Data"; exportBtn.title = "Export data stored on this device"; }
+      var exportDesc = cards[1].querySelector(".setting-desc");
+      if (exportDesc) { exportDesc.textContent = "Export data stored on this device"; }
+      var exportHeadP = cards[1].querySelector(".card-header p");
+      if (exportHeadP) { exportHeadP.textContent = "Export data stored on this device"; }
+    }
+    if (cards[2]) { cards[2].style.display = "none"; }
+  }
+
+  var active = document.querySelector(".settings-section.active");
+  if (active && ["billing-section", "dns-section"].indexOf(active.id) !== -1) {
+    var profile = document.querySelector('.settings-nav a[href="#profile"]');
+    if (profile) { profile.click(); }
+  }
+}
+
 function applyEditionVisibility(config) {
+  if (isDesktopEdition(config)) { applyDesktopEditionVisibility(config); }
   if (!isSlimEdition(config)) { return; }
   ["billing", "vibe"].forEach(hideSettingsSection);
   document.querySelectorAll('[data-admin-only="true"]').forEach(function (node) {
@@ -34,21 +98,43 @@ function applyEditionVisibility(config) {
 }
 
 function initEditionVisibility() {
-  if (window.productConfig) { applyEditionVisibility(window.productConfig); return; }
-  var tries = 0;
-  var timer = setInterval(function () {
-    tries += 1;
+  var resolvedDesktop = false;
+  function run() {
     if (window.productConfig) {
-      clearInterval(timer);
+      resolvedDesktop = isDesktopEdition(window.productConfig);
       applyEditionVisibility(window.productConfig);
-    } else if (tries > 40) {
-      clearInterval(timer);
+      return true;
     }
-  }, 100);
+    // Desktop shell may be detectable before productConfig loads.
+    if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
+      resolvedDesktop = true;
+      applyDesktopEditionVisibility();
+    }
+    return false;
+  }
+  function reapply() {
+    if (resolvedDesktop || isDesktopEdition(window.productConfig)) {
+      resolvedDesktop = true;
+      applyDesktopEditionVisibility();
+    }
+    if (window.productConfig) { applyEditionVisibility(window.productConfig); }
+  }
+  if (!run()) {
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      if (run() || tries > 40) { clearInterval(timer); }
+    }, 100);
+  }
+  // Settings sections load via HTMX partials; reapply when content arrives.
+  document.body.addEventListener("htmx:afterSwap", reapply);
+  document.body.addEventListener("htmx:load", reapply);
 }
 
+  S.isDesktopEdition = isDesktopEdition;
   S.isSlimEdition = isSlimEdition;
   S.hideSettingsSection = hideSettingsSection;
+  S.applyDesktopEditionVisibility = applyDesktopEditionVisibility;
   S.applyEditionVisibility = applyEditionVisibility;
   S.initEditionVisibility = initEditionVisibility;
 })(window);
