@@ -1,0 +1,38 @@
+# General Bots OS — boot splash (Plymouth script theme).
+# White knockout of the official logo on black, with a thin progress bar in
+# the brand blue. The same PNG is embedded in the UKI via mkosi Splash=.
+
+screen.w = Window.GetWidth();
+screen.h = Window.GetHeight();
+
+logo.image = Image("logo.png");
+logo.scale = 0.42;
+logo.w = logo.image.GetWidth() * logo.scale;
+logo.h = logo.image.GetHeight() * logo.scale;
+logo.sprite = Sprite(logo.image.Scale(logo.w, logo.h));
+logo.sprite.SetX((screen.w - logo.w) / 2);
+logo.sprite.SetY((screen.h - logo.h) / 2);
+
+bar.w = screen.w * 0.25;
+bar.h = 4;
+bar.x = (screen.w - bar.w) / 2;
+bar.y = (screen.h + logo.h) / 2 + 48;
+
+bar.track = Sprite();
+bar.track.SetX(bar.x);
+bar.track.SetY(bar.y);
+bar.track.SetImage(Image.Rectangle(bar.w, bar.h, 1, 1, 1, 0.25));
+
+bar.fill = Sprite();
+bar.fill.SetX(bar.x);
+bar.fill.SetY(bar.y);
+bar.fill.SetImage(Image.Rectangle(1, bar.h, 0.23, 0.51, 0.96, 1));
+
+fun boot_progress(percent) {
+    width = bar.w * percent;
+    if (width < 1)
+        width = 1;
+    bar.fill.SetImage(Image.Rectangle(width, bar.h, 0.23, 0.51, 0.96, 1));
+}
+
+Plymouth.SetBootProgressFunction(boot_progress);

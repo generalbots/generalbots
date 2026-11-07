@@ -3,8 +3,8 @@ Description=General Bots kiosk shell (cage + General Bots desktop)
 Documentation=https://github.com/generalbots/generalbots
 # Serve nothing until user sessions and the network are up; getty@tty1 is
 # masked at build time (mkosi.finalize.chroot) — there is no greeter.
-After=systemd-user-sessions.service systemd-networkd.service systemd-logind.service
-Wants=network-online.target
+After=systemd-user-sessions.service systemd-networkd.service systemd-logind.service plymouth-quit-wait.service
+Wants=network-online.target plymouth-quit-wait.service
 Conflicts=getty@tty1.service
 ConditionPathExists=/opt/general-bots/start.sh
 

@@ -71,6 +71,22 @@ Vault, Zitadel, llama.cpp) into `/var/lib/gbdesk` — internet required on
 the first boot; the wizard then opens the suite fullscreen (the kiosk
 shell). A crash respawns the shell; there is no console login on the box.
 
+## Branding
+
+The official `logo.svg` (repo root) ships in the image and is used on every
+OS screen that can show a brand:
+
+| Screen | Artifact |
+|---|---|
+| systemd-boot / UKI splash (boot menu + early boot) | `Splash=/usr/share/generalbots/logo.png` (white knockout so it reads on the black boot screen), `UnifiedKernelImages=unsigned` |
+| Plymouth boot splash (root switch → kiosk shell) | theme `generalbots` under `/usr/share/plymouth/themes/generalbots/` (script + logo + progress bar), selected via `/etc/plymouth/plymouthd.conf`; `splash` on the kernel command line |
+| ISO 9660 volume label (firmware boot menus) | `ElToritoVolume=GeneralBotsOS` |
+| OS identity (`hostnamectl`, settings, icon lookups) | branded `/etc/os-release` + `/usr/share/pixmaps/general-bots.svg` (`LOGO=general-bots`) |
+| Suite / About window | shipped `logo.svg` served from `/usr/share/generalbots/` (consumers can reference it; see issue #1842 for the in-app artwork pass) |
+
+The PNGs are exported 512 px from the same SVG, with the white variant
+produced by recoloring (alpha preserved) — no third-party art.
+
 ## Next hardening steps (mkosi supports all of them)
 
 1. `--secure-boot` signed kernels + TPM 2.0 LUKS (IncusOS-style A/B updates

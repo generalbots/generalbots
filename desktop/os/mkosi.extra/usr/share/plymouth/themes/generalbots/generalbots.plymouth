@@ -1,0 +1,6 @@
+[Plymouth Theme]
+Name=General Bots
+Description=General Bots OS boot splash
+ModuleName=script
+ImageDir=/usr/share/plymouth/themes/generalbots
+ScriptFile=/usr/share/plymouth/themes/generalbots/generalbots.script

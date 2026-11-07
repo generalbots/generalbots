@@ -26,3 +26,19 @@ systemctl enable generalbots-shell.service systemd-networkd.service systemd-reso
 
 # 5. Kiosk state directory (stack, logs, workspace live here, not in /opt).
 install -d -m 0700 -o gbdesk -g gbdesk /var/lib/gbdesk
+
+# 6. Brand the OS identity everywhere an OS screen reads it: boot tools,
+#    `hostnamectl`, the Plymouth theme selector and desktop icon lookups.
+cat >/etc/os-release <<'EOF'
+NAME="General Bots OS"
+PRETTY_NAME="General Bots OS (Debian 13 base)"
+ID=general-bots-os
+ID_LIKE=debian
+VERSION_ID="1"
+VERSION="1 (trixie)"
+VERSION_CODENAME=trixie
+HOME_URL="https://generalbots.org"
+DOCUMENTATION_URL="https://docs.generalbots.org"
+SUPPORT_URL="https://github.com/generalbots/generalbots/issues"
+LOGO=general-bots
+EOF
