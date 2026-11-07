@@ -14,8 +14,7 @@ pub fn wizard_context() -> WizardContext {
 pub fn wizard_save_draft(draft: serde_json::Value) -> Result<(), String> {
     let stack = super::stack_path();
     std::fs::create_dir_all(&stack).map_err(|e| format!("create stack folder: {e}"))?;
-    let raw = serde_json::to_string_pretty(&draft)
-        .map_err(|e| format!("serialize draft: {e}"))?;
+    let raw = serde_json::to_string_pretty(&draft).map_err(|e| format!("serialize draft: {e}"))?;
     std::fs::write(super::draft_path(), raw).map_err(|e| format!("write draft: {e}"))
 }
 
@@ -98,10 +97,7 @@ pub fn wizard_open_url(app: tauri::AppHandle, url: String) -> Result<(), String>
 }
 
 #[tauri::command]
-pub async fn wizard_finish(
-    app: tauri::AppHandle,
-    request: FinishRequest,
-) -> Result<(), String> {
+pub async fn wizard_finish(app: tauri::AppHandle, request: FinishRequest) -> Result<(), String> {
     provision::finish(app, request).await
 }
 
@@ -188,9 +184,7 @@ pub fn wizard_save_admin(admin: super::AdminDraft) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn wizard_ai_accounts(
-    admin: super::AdminDraft,
-) -> Result<serde_json::Value, String> {
+pub async fn wizard_ai_accounts(admin: super::AdminDraft) -> Result<serde_json::Value, String> {
     api_request(reqwest::Method::GET, "/api/ai-accounts", &admin, None, 15).await
 }
 

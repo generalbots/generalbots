@@ -29,7 +29,21 @@ function vmToggleInlinePreview(card, url, path, convId) {
   expand.textContent = "Expand";
   expand.addEventListener("click", function () {
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = expanded ? "Collapse" : "Expand";
+    if (expanded) {
+      box.style.position = "sticky";
+      box.style.top = "0";
+      box.style.zIndex = "4";
+      box.style.width = "100%";
+      box.style.maxWidth = "100%";
+    } else {
+      box.style.position = "";
+      box.style.top = "";
+      box.style.zIndex = "";
+      box.style.width = "";
+      box.style.maxWidth = "";
+    }
   });
   head.appendChild(expand);
 
@@ -186,5 +200,12 @@ function vmShowPreviewUrl(url, path) {
     '<a class="gb-vm-preview-download" download="' + name + '" href="' + downloadUrl + '">Download</a>' +
     '<button type="button" class="gb-vm-preview-close" aria-label="Close preview">&times;</button></div>' +
     body;
+  var downloadLink = overlay.querySelector(".gb-vm-preview-download");
+  if (downloadLink) {
+    downloadLink.addEventListener("click", function (e) {
+      e.preventDefault();
+      vmDownload(downloadUrl, path.split("/").pop() || "file");
+    });
+  }
   overlay._gbUrl = url;
 }

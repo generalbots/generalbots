@@ -10,6 +10,45 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         return proto + '//' + location.host + '/api/terminal/ws?id=' + encodeURIComponent(sessionId);
     }
 
+    // #1841 — the backend returns capability categories; turn them into
+    // instructions. The raw payload is logged by the caller.
+    function errorMessage(data, status) {
+        const code = (data && (data.error || data.code)) || '';
+        const detail = data && (data.message || data.error);
+        if (code === 'agent_vm_unavailable') {
+            return 'Terminal requires the agent VM, which is not available in this build.';
+        }
+        if (code === 'no_workspace_vm') {
+            return 'No workspace VM is running. Send a message in chat to start your workspace, then reopen the terminal.';
+        }
+        if (code === 'vm_not_found' || code === 'vm_stopped') {
+            return 'Your workspace VM is not running. Send a message in chat to start it, then reopen the terminal.';
+        }
+        if (code === 'incus_unavailable') {
+            return 'Terminal needs Incus, but it is not installed or not available on this machine.';
+        }
+        if (code === 'terminal_forbidden') {
+            return 'The terminal cannot access the workspace VM. Check the Incus permissions.';
+        }
+        if (code === 'terminal_unavailable') {
+            return detail || 'Terminal is not available in this build.';
+        }
+        if (code === 'not_found' || status === 404) {
+            return 'Terminal is not available in this build (the terminal API is not compiled).';
+        }
+        return detail || ('HTTP ' + status);
+    }
+
+    // The product endpoint reports whether this binary ships both the PTY
+    // routes and the agent VM that hosts the workspace.
+    function capabilityMessage() {
+        const cfg = window.productConfig;
+        if (cfg && cfg.terminal_available === false) {
+            return 'Terminal requires the agent VM, which is not available in this desktop build.';
+        }
+        return '';
+    }
+
     /* ---- VM picker: exec into a project VM (Incus container) ---- */
     // Deep-linked from the Vibe ribbon → resolve THAT project's VM.
     // Opened standalone → list every VM across the user's vibe projects.
@@ -78,10 +117,23 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         }
     }
 
+    // #1841 — the chat workspace VM is the terminal's primary target. The
+    // project list alone left desktop users (who have no Vibe project) with an
+    // empty picker even though their agent VM existed.
+    function agentVmOptions() {
+        return apiGet('/api/agent/vm/status').then(function (data) {
+            if (!data || !data.has_vm || !data.vm_name) return [];
+            return [{
+                container: data.vm_name,
+                label: 'Workspace VM' + (data.status ? ' (' + data.status + ')' : ''),
+            }];
+        }).catch(function () { return []; });
+    }
+
     function loadVmOptions() {
         const projectId = projectFromContext();
         if (!projectId) {
-            // Standalone: list VMs across all of the user's projects.
+            // Standalone: the workspace VM first, then every project VM.
             apiGet('/api/vibe/projects').then(function (data) {
                 const projects = (data && (data.projects || (data.success && data.data && data.data.projects))) || [];
                 const jobs = projects.slice(0, 10).map(function (p) {
@@ -96,14 +148,18 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
                         });
                     }).catch(function () { return []; });
                 });
-                return Promise.all(jobs);
-            }).then(function (groups) {
+                return Promise.all([agentVmOptions()].concat(jobs));
+            }).then(function (results) {
+                const agent = results[0] || [];
+                const groups = results.slice(1);
                 const flat = [];
+                agent.forEach(function (o) { if (o.container) flat.push(o); });
                 groups.forEach(function (g) { if (Array.isArray(g)) flat.push.apply(flat, g); });
                 const list = flat.filter(function (o) { return o.container; });
-                // Prefer a running VM (label carries the status), else the first.
+                // Prefer the agent VM (it holds the conversation files), then a
+                // running project VM, then the first project VM.
                 const running = list.find(function (o) { return /run/i.test(o.label || ''); });
-                const pref = running || list[0] || null;
+                const pref = agent[0] || running || list[0] || null;
                 fillVmSelect(list, pref ? pref.container : null);
             }).catch(function () { vmOptionsLoaded = true; });
         } else {
@@ -130,7 +186,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
     app._vm = {
         getWsUrl: getWsUrl,
         getSelectedContainer: getSelectedContainer,
-        isReady: function () { return vmOptionsLoaded; }
+        isReady: function () { return vmOptionsLoaded; },
+        errorMessage: errorMessage,
+        capabilityMessage: capabilityMessage
     };
 
     if (vmSelect) {

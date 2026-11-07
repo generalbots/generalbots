@@ -198,6 +198,12 @@ pub async fn create_app_state(
         }
     }
 
+    // #1839 — desktop local installs authenticate from
+    // `conf/directory/admin-credentials.json`, not directory provisioning.
+    // Reconcile that account into `users` as an admin on every boot so the
+    // Settings → Users list sees it. No-op when the file is absent (Zitadel).
+    super::directory_setup::ensure_bootstrap_admin_user(&pool);
+
     let config_manager = ConfigManager::new(pool.clone());
 
     let _ = pool

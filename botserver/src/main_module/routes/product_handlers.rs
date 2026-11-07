@@ -17,6 +17,14 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
                 std::env::consts::ARCH,
             ),
         );
+        // #1841 — the Terminal app needs both the PTY routes and the agent VM
+        // that hosts the user's workspace. Advertise the real capability so
+        // the launcher can hide the app instead of offering a shell that can
+        // only answer "not_found".
+        object.insert(
+            "terminal_available".to_string(),
+            serde_json::json!(cfg!(feature = "terminal") && cfg!(feature = "agent-vm")),
+        );
         // Advertise optional capabilities the suite probes at boot. `agent-vm`
         // gates /api/agent/drive/*, which the chat attachment actions call;
         // without it the client can hide Save/Open instead of eating a 404.

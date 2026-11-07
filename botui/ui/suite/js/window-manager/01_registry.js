@@ -178,6 +178,9 @@ var embeddedApps = APPS_REGISTRY.slice();
 var catalogApps = null;
 var catalogLoaded = false;
 var productPreviewIds = {};
+// #1841 — Terminal needs both the PTY routes and the agent VM. The product
+// endpoint reports the combined capability; null means "not loaded yet".
+var productTerminalAvailable = null;
 // Apps explicitly listed in `.product`'s `apps=` line. They stay visible
 // even when they are not part of the always-on core set (weather, notes,
 // calculator …), because the product owner enabled them on purpose.
@@ -263,6 +266,14 @@ function rebuildAppsRegistry() {
   // every launcher via the toolwindow / `vibe-` prefix filters).
   embeddedApps.forEach(function (a) {
     if (known[a.id]) return;
+    // A catalog entry marked `compiled: false` is authoritative even for the
+    // always-on list: re-adding it put Terminal in builds that do not ship
+    // the terminal routes (#1841).
+    if (catalogLoaded && catalogApps) {
+      for (var c = 0; c < catalogApps.length; c++) {
+        if (catalogApps[c].id === a.id && catalogApps[c].compiled === false) return;
+      }
+    }
     if (catalogLoaded && !isAlwaysAppId(a.id) && String(a.id).indexOf("vibe") !== 0) return;
     var preview = isPreviewId(a.id);
     if (preview && !previewOn) return;
@@ -270,6 +281,13 @@ function rebuildAppsRegistry() {
     merged.push(a);
     known[a.id] = true;
   });
+
+  // The product result also wins over the embedded fallback when the catalog
+  // endpoint is unavailable: never offer Terminal in a build that reports it
+  // as unavailable.
+  if (productTerminalAvailable === false) {
+    merged = merged.filter(function (app) { return app.id !== "terminal"; });
+  }
 
   // #1544: Drive belongs to authenticated users. Anonymous visitors keep
   // chat but must not see the Drive entry point (the API is also guarded
@@ -338,6 +356,9 @@ function refreshAppsCatalog() {
         data.apps.forEach(function (id) {
           productAppIds[String(id)] = true;
         });
+      }
+      if (typeof data.terminal_available === "boolean") {
+        productTerminalAvailable = data.terminal_available;
       }
       rebuildAppsRegistry();
     })

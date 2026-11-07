@@ -202,7 +202,7 @@
     };
 
     window.deleteRecording = function (recordingId) {
-        if (!window.confirm('Delete this recording?')) return;
+        if (!(window.GBModal||{confirm:confirm}).confirm('Delete this recording?')) return;
         apiFetch('/api/meet/recordings/' + recordingId, { method: 'DELETE' })
             .then(function () {
                 window.showNotification('Recording deleted');

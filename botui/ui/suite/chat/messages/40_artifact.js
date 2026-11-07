@@ -14,7 +14,21 @@ function renderInlineArtifact(html, titleOverride) {
   expand.textContent = "Expand";
   expand.addEventListener("click", function () {
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = expanded ? "Collapse" : "Expand";
+    if (expanded) {
+      box.style.position = "sticky";
+      box.style.top = "0";
+      box.style.zIndex = "4";
+      box.style.width = "100%";
+      box.style.maxWidth = "100%";
+    } else {
+      box.style.position = "";
+      box.style.top = "";
+      box.style.zIndex = "";
+      box.style.width = "";
+      box.style.maxWidth = "";
+    }
   });
   head.appendChild(expand);
   var frame = document.createElement("iframe");
@@ -81,7 +95,21 @@ function toggleUserAttachmentPreview(chip, name) {
   expand.textContent = "Expand";
   expand.addEventListener("click", function () {
     box.classList.toggle("expanded");
-    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+    var expanded = box.classList.contains("expanded");
+    expand.textContent = expanded ? "Collapse" : "Expand";
+    if (expanded) {
+      box.style.position = "sticky";
+      box.style.top = "0";
+      box.style.zIndex = "4";
+      box.style.width = "100%";
+      box.style.maxWidth = "100%";
+    } else {
+      box.style.position = "";
+      box.style.top = "";
+      box.style.zIndex = "";
+      box.style.width = "";
+      box.style.maxWidth = "";
+    }
   });
   head.appendChild(expand);
 

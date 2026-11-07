@@ -110,6 +110,14 @@
    The frame scrolls internally and "Expand" grows it without leaving chat. */
 .gb-attachment-inline-body iframe { height: 320px; }
 .gb-attachment-inline.expanded .gb-attachment-inline-body iframe { height: 72vh; }
+.gb-attachment-inline.expanded {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+}
 /* Text-like artifacts (txt/csv/md/json) render as escaped text, scrollable. */
 .gb-attachment-inline-body .gb-attachment-inline-text {
   margin: 0; padding: 10px 12px; max-height: 320px; overflow: auto;

@@ -129,7 +129,7 @@
   }
 
   async function onAiAssist() {
-    const instruction = window.prompt("Descreva o que a IA deve planejar (ex: adicionar etapas de QA):");
+    const instruction = (window.GBModal||{prompt:prompt}).prompt("Descreva o que a IA deve planejar (ex: adicionar etapas de QA):");
     if (!instruction) return;
     const aiBtn = $("#aiAssistBtn");
     if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = "🤖 ..."; }
@@ -158,13 +158,13 @@
           Store.addTask(t);
           syncTaskToBackend(t, "create");
         });
-        window.alert(data.suggestions.length + " tarefa(s) sugerida(s) adicionada(s).");
+        (window.GBModal||{alert:alert}).alert(data.suggestions.length + " tarefa(s) sugerida(s) adicionada(s).");
       } else {
-        window.alert("IA: " + (data.error || "sem sugestões"));
+        (window.GBModal||{alert:alert}).alert("IA: " + (data.error || "sem sugestões"));
       }
     } catch (e) {
       console.error(e);
-      window.alert("Falha ao chamar a IA.");
+      (window.GBModal||{alert:alert}).alert("Falha ao chamar a IA.");
     } finally {
       if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = "🤖 IA Assist"; }
     }
@@ -194,13 +194,13 @@
         Store.data.id = Store.data.id || DEFAULT_PLAN_ID;
         Store.notify();
         Store.data.tasks.forEach(function (t) { syncTaskToBackend(t, "create"); });
-        window.alert("Plano importado com " + Store.data.tasks.length + " tarefa(s).");
+        (window.GBModal||{alert:alert}).alert("Plano importado com " + Store.data.tasks.length + " tarefa(s).");
       } else {
-        window.alert("Arquivo de plano inválido.");
+        (window.GBModal||{alert:alert}).alert("Arquivo de plano inválido.");
       }
     } catch (err) {
       console.error(err);
-      window.alert("Arquivo inválido.");
+      (window.GBModal||{alert:alert}).alert("Arquivo inválido.");
     }
     e.target.value = "";
   }

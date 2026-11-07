@@ -323,6 +323,9 @@
                 }
 
                 workspace.addEventListener("contextmenu", function (e) {
+                    // The desktop (wallpaper) menu is only for the wallpaper
+                    // background itself, not for windows, icons or widgets.
+                    if (e.target !== workspace) return;
                     e.preventDefault();
                     openDesktopMenu(e.clientX, e.clientY);
                 });

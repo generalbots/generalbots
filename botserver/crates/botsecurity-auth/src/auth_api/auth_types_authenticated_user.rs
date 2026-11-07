@@ -5,8 +5,8 @@ use uuid::Uuid;
 use axum::http::StatusCode;
 use axum::Json;
 
-use super::{BotAccess, Permission, Role};
 use super::auth_types_users::AuthRejection;
+use super::{BotAccess, Permission, Role};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticatedUser {
@@ -53,6 +53,27 @@ impl AuthenticatedUser {
             session_id: None,
             organization_id: None,
             metadata: HashMap::new(),
+        }
+    }
+
+    /// Identity for a single-user desktop install (`no_security=true` in the
+    /// product file). Such an install has no directory account and no bearer
+    /// token, so the local OS user is the only principal. The nil user id is
+    /// deliberate: Drive's `effective_uid` then keeps resolving to the
+    /// historical `default` folder, so files written before this identity
+    /// existed remain visible. Only the auth middleware inserts this
+    /// principal, and only when `require_auth` is false.
+    pub fn desktop_local() -> Self {
+        Self {
+            user_id: Uuid::nil(),
+            username: "local".to_string(),
+            email: None,
+            roles: vec![Role::User],
+            bot_access: HashMap::new(),
+            current_bot_id: None,
+            session_id: None,
+            organization_id: None,
+            metadata: HashMap::from([("desktop_local".to_string(), "true".to_string())]),
         }
     }
 
@@ -289,4 +310,3 @@ where
             })
     }
 }
-

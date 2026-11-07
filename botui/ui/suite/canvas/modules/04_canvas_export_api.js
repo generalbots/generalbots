@@ -161,18 +161,18 @@
             navigator.clipboard
                 .writeText(url)
                 .then(function () {
-                    window.alert("Share link copied to clipboard");
+                    (window.GBModal||{alert:alert}).alert("Share link copied to clipboard");
                 })
                 .catch(function () {
-                    window.alert("Share link: " + url);
+                    (window.GBModal||{alert:alert}).alert("Share link: " + url);
                 });
         } catch (ignore) {
-            window.alert("Share link: " + url);
+            (window.GBModal||{alert:alert}).alert("Share link: " + url);
         }
     }
 
     C.toggleCollaborate = function toggleCollaborate() {
-        window.alert(
+        (window.GBModal||{alert:alert}).alert(
             "Real-time collaboration needs a canvas session; open the Vibe or Docs app to collaborate live."
         );
     }

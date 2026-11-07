@@ -5,6 +5,38 @@
 // Plain global script: every function stays a page-level global, exactly
 // as before the split. Load order follows this directory's name order.
 
+// #1834 — the Open action is gated by the product's app list, not by the raw
+// agent-vm flag. An edition that ships the Sheet app can open an xlsx even
+// when the Drive publish step is unavailable (the handler falls back to the
+// server-rendered preview in that case).
+function vmOfficeAppAvailable(app) {
+  if (!app) return false;
+  var cfg = window.productConfig;
+  if (!cfg || !Array.isArray(cfg.apps)) return true;
+  var apps = cfg.apps.map(function (entry) {
+    return String(entry).toLowerCase();
+  });
+  return apps.indexOf(String(app).toLowerCase()) !== -1;
+}
+
+// One source of truth for the attachment actions so the inline-link, folder
+// and hydration card paths cannot drift apart again (#1834).
+function vmAttachmentButtons(path) {
+  var app = vmOfficeAppFor(path);
+  var open =
+    app && vmOfficeAppAvailable(app)
+      ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
+      : "";
+  return (
+    '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
+    open +
+    '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
+    (vmAgentDriveEnabled()
+      ? '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>'
+      : "")
+  );
+}
+
 // Replace <a href="vmfile:..."> anchors produced by marked with attachment
 // cards. Runs on the rendered HTML before it is inserted in the message.
 function renderVmFileLinks(html) {
@@ -29,16 +61,7 @@ function renderVmFileLinks(html) {
       '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener">' +
       vmEscapeHtml(name) +
       "</a>" +
-      '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
-      // Open publishes the output to Drive first, so it needs the same
-      // agent-vm capability as Save; without it the click could only fail.
-      (vmOfficeAppFor(parts.path) && vmAgentDriveEnabled()
-        ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
-        : "") +
-      '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
-      (vmAgentDriveEnabled()
-        ? '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>'
-        : "") +
+      vmAttachmentButtons(parts.path) +
       "</span>"
     );
   });
@@ -81,4 +104,19 @@ function vmNotifyError(err) {
   if (window.GBToasts && GBToasts.show) GBToasts.show("Attachment", message, "error");
   else if (window.showToast) window.showToast(message, "error");
   else console.error(message);
+}
+
+// #1834 — use the native Save dialog in the desktop WebView; the plain
+// anchor is the web-build fallback.
+function vmDownload(url, fileName) {
+  if (window.GBShared && typeof window.GBShared.download === "function") {
+    return window.GBShared.download(url, fileName);
+  }
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = fileName || "";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  return Promise.resolve(null);
 }

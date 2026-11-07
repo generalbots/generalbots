@@ -209,7 +209,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
         if (window.WindowManager && window.WindowManager.promptFloating) {
           window.WindowManager.promptFloating("Rename desktop", "Desktop name:", d.name, doRename);
         } else {
-          doRename(window.prompt("Desktop name:", d.name));
+          doRename((window.GBModal||{prompt:prompt}).prompt("Desktop name:", d.name));
         }
       });
       item.addEventListener("click", function (e) {
@@ -296,7 +296,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
         null,
         "Restore"
       );
-    } else if (window.confirm("Restore your last session (" + ids.length + " window(s))?")) {
+    } else if ((window.GBModal||{confirm:confirm}).confirm("Restore your last session (" + ids.length + " window(s))?")) {
       doRestore();
     }
   }

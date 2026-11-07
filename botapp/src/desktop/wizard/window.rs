@@ -56,10 +56,14 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
         .center()
         .visible(true);
 
-    builder
+    let result = builder
         .build()
         .map(|_| ())
-        .map_err(|e| format!("could not open the setup window: {e}"))
+        .map_err(|e| format!("could not open the setup window: {e}"));
+    if result.is_ok() {
+        crate::desktop::splash::hide(app);
+    }
+    result
 }
 
 /// Default entry point for packaged desktop builds: the sidecar serves both the
@@ -111,6 +115,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     let Some(url) = target else {
         warn!("no suite URL is configured");
         let _ = main.show();
+        crate::desktop::splash::hide(app);
         return;
     };
 
@@ -120,6 +125,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
     }
     let _ = main.show();
     let _ = main.set_focus();
+    crate::desktop::splash::hide(app);
 }
 
 /// Recreates the suite window after it has been destroyed (#1620).
@@ -165,7 +171,10 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         .resizable(true)
         .build()
         {
-            Ok(_) => info!("suite window recreated after it was destroyed"),
+            Ok(_) => {
+                info!("suite window recreated after it was destroyed");
+                crate::desktop::splash::hide(&handle);
+            }
             Err(e) => warn!("could not recreate the suite window: {e}"),
         }
     });

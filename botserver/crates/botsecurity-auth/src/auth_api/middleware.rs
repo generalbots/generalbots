@@ -1,9 +1,9 @@
 use super::{
+    auth_api_auth::authenticate_with_extracted_data,
+    auth_api_utils::ExtractedAuthData,
     config::AuthConfig,
     error::AuthError,
     types::{AuthenticatedUser, Permission, PublicPathAllowed, Role},
-    auth_api_auth::authenticate_with_extracted_data,
-    auth_api_utils::ExtractedAuthData,
 };
 use axum::{
     body::Body,
@@ -47,8 +47,9 @@ pub async fn auth_middleware_with_providers(
         info!("Path is public/anonymous, skipping auth: {}", path);
         // Public/anonymous paths must still resolve a supplied Bearer token
         // so handlers (e.g. the bot access check) can tell real users apart
-        // from anonymous callers. Fall back to anonymous when the token is
-        // absent or invalid; never reject on a bad token here.
+        // from anonymous callers. Fall back to the profile's anonymous/local
+        // identity when the token is absent or invalid; never reject on a bad
+        // token here.
         let extracted = ExtractedAuthData::from_request(&request, &state.config);
         let user = match authenticate_with_extracted_data(
             extracted,
@@ -59,8 +60,11 @@ pub async fn auth_middleware_with_providers(
         {
             Ok(user) => user,
             Err(e) => {
-                info!("Public path token resolution failed, allowing anonymous: {:?}", e);
-                AuthenticatedUser::anonymous()
+                info!(
+                    "Public path token resolution failed, using fallback identity: {:?}",
+                    e
+                );
+                fallback_user(&state.config)
             }
         };
         request.extensions_mut().insert(user);
@@ -78,7 +82,9 @@ pub async fn auth_middleware_with_providers(
             .unwrap_or_default();
         if !supplied.is_empty() && supplied == expected {
             info!("Internal token accepted for {} {}", method, path);
-            request.extensions_mut().insert(AuthenticatedUser::service("internal"));
+            request
+                .extensions_mut()
+                .insert(AuthenticatedUser::service("internal"));
             request.extensions_mut().insert(PublicPathAllowed);
             let response = next.run(request).await;
             info!("Internal path response status: {}", response.status());
@@ -115,15 +121,32 @@ pub async fn auth_middleware_with_providers(
         }
         Err(e) => {
             if !state.config.require_auth {
-                info!("Failed but not required, allowing anonymous: {:?}", e);
+                info!(
+                    "Failed but not required, using local desktop identity: {:?}",
+                    e
+                );
                 request
                     .extensions_mut()
-                    .insert(AuthenticatedUser::anonymous());
+                    .insert(AuthenticatedUser::desktop_local());
                 return next.run(request).await;
             }
             info!("Failed: {:?}", e);
             e.into_response()
         }
+    }
+}
+
+/// Principal used when a request carries no valid credential.
+///
+/// Normal deployments require auth, so the fallback stays anonymous (and RBAC
+/// normally rejects it). A single-user desktop install sets
+/// `require_auth=false`; there the local OS user owns the instance, so
+/// handlers receive an explicit local identity instead of an anonymous one.
+fn fallback_user(config: &AuthConfig) -> AuthenticatedUser {
+    if config.require_auth {
+        AuthenticatedUser::anonymous()
+    } else {
+        AuthenticatedUser::desktop_local()
     }
 }
 
@@ -135,9 +158,7 @@ pub async fn auth_middleware(
     let path = request.uri().path().to_string();
 
     if config.is_public_path(&path) || config.is_anonymous_allowed(&path) {
-        request
-            .extensions_mut()
-            .insert(AuthenticatedUser::anonymous());
+        request.extensions_mut().insert(fallback_user(&config));
         return Ok(next.run(request).await);
     }
 
@@ -150,7 +171,7 @@ pub async fn auth_middleware(
             if !config.require_auth {
                 request
                     .extensions_mut()
-                    .insert(AuthenticatedUser::anonymous());
+                    .insert(AuthenticatedUser::desktop_local());
                 return Ok(next.run(request).await);
             }
             Err(e)
@@ -373,4 +394,26 @@ pub async fn bot_operator_middleware(
     }
 
     Ok(next.run(request).await)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fallback_user_is_anonymous_unless_auth_is_optional() {
+        let authenticated = AuthConfig {
+            require_auth: true,
+            ..Default::default()
+        };
+        assert_eq!(fallback_user(&authenticated).username, "anonymous");
+
+        // Only the single-user desktop profile turns `require_auth` off.
+        let desktop = AuthConfig {
+            require_auth: false,
+            ..Default::default()
+        };
+        assert_eq!(fallback_user(&desktop).username, "local");
+        assert!(fallback_user(&desktop).has_role(&Role::User));
+    }
 }

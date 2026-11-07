@@ -99,6 +99,15 @@
 
         function doConnect() {
             statusText.textContent = 'Connecting...';
+            // #1841 — never call an endpoint this build does not ship.
+            const unavailable = app._vm.capabilityMessage();
+            if (unavailable) {
+                statusText.textContent = 'Unavailable';
+                wsStatus.textContent = 'WS: —';
+                terminal.write('\r\n\x1b[31m[' + unavailable + ']\x1b[0m\r\n');
+                terminal.write('\x1b[33m[Chat and file output keep working; the terminal needs the desktop edition\'s agent VM.]\x1b[0m\r\n');
+                return;
+            }
             const token =
                 (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) ||
                 localStorage.getItem('token') ||
@@ -112,8 +121,8 @@
             if (!container) {
                 statusText.textContent = 'No VM';
                 wsStatus.textContent = 'WS: —';
-                terminal.write('\r\n\x1b[31m[No project VM available for your account.]\x1b[0m\r\n');
-                terminal.write('\x1b[33m[Open Vibe, start a project (Play) to provision its VM, then reopen the terminal.]\x1b[0m\r\n');
+                terminal.write('\r\n\x1b[31m[No workspace VM available for your account.]\x1b[0m\r\n');
+                terminal.write('\x1b[33m[Send a message in chat to start your workspace VM, then reopen the terminal.]\x1b[0m\r\n');
                 return;
             }
             // The backend requires a session created via /api/terminal/create
@@ -132,18 +141,31 @@
                 },
                 body: JSON.stringify(body),
             })
-                .then(function (r) { return r.json(); })
-                .then(function (info) {
+                .then(function (r) {
+                    return r.text().then(function (text) {
+                        var data = {};
+                        try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { error: text }; }
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+                })
+                .then(function (result) {
                     connecting = false;
-                    if (!info || !info.id) throw new Error('no session id');
-                    openSocket(info.id);
+                    if (!result.ok || !result.data || !result.data.id) {
+                        // Raw payload for support; actionable category for the user.
+                        console.error('Terminal create failed:', result.status, result.data);
+                        statusText.textContent = 'Failed to start terminal';
+                        wsStatus.textContent = 'WS: Error';
+                        terminal.write('\r\n\x1b[31m[' + app._vm.errorMessage(result.data, result.status) + ']\x1b[0m\r\n');
+                        return;
+                    }
+                    openSocket(result.data.id);
                 })
                 .catch(function (e) {
                     connecting = false;
                     statusText.textContent = 'Failed to start terminal';
                     wsStatus.textContent = 'WS: Error';
-                    terminal.write('\r\n\x1b[31m[Failed to create terminal session: ' + e.message + ']\x1b[0m\r\n');
-                    reconnectTimer = setTimeout(connect, 3000);
+                    console.error('Terminal create request failed:', e);
+                    terminal.write('\r\n\x1b[31m[Terminal unavailable: ' + (e && e.message ? e.message : e) + ']\x1b[0m\r\n');
                 });
         }
 

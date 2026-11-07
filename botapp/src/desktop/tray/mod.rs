@@ -1,11 +1,18 @@
 use anyhow::Result;
 use botvideo::safe_command::SafeCommand;
-use serde::Serialize;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tauri::{AppHandle, Emitter, Manager};
-use tauri::tray::{TrayIcon, TrayIconBuilder};
+#[cfg(feature = "desktop-tray")]
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+#[cfg(feature = "desktop-tray")]
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
+use tauri::AppHandle;
+use tokio::sync::RwLock;
+
+mod menu;
+mod service;
+
+pub use menu::quit_requested;
+pub use service::{ServiceMonitor, ServiceStatus};
 
 #[derive(Clone)]
 pub struct TrayManager {
@@ -35,6 +42,8 @@ pub enum RunningMode {
 
 #[derive(Debug, Clone, Copy)]
 pub enum TrayEvent {
+    NewChat,
+    Files,
     Open,
     Settings,
     About,
@@ -97,106 +106,105 @@ impl TrayManager {
                 self.running_mode
             );
 
-            // Build menu items: New Chat, Files, ---, Settings, About, ---, Quit
-            macro_rules! menu_item {
-                ($id:expr, $label:expr) => {
-                    match MenuItem::with_id(app, $id, $label, true, None::<&str>) {
-                        Ok(item) => item,
-                        Err(e) => {
-                            log::error!("Failed to create menu item '{}': {e}", $label);
-                            return;
-                        }
+            let new_chat =
+                match MenuItem::with_id(app, menu::NEW_CHAT_ID, "New Chat", true, None::<&str>) {
+                    Ok(item) => item,
+                    Err(e) => {
+                        log::error!("Failed to create tray New Chat item: {e}");
+                        return;
                     }
                 };
-            }
-            macro_rules! separator {
-                () => {
-                    match PredefinedMenuItem::separator(app) {
-                        Ok(item) => item,
-                        Err(e) => {
-                            log::error!("Failed to create separator: {e}");
-                            return;
-                        }
+            let files = match MenuItem::with_id(app, menu::FILES_ID, "Files", true, None::<&str>) {
+                Ok(item) => item,
+                Err(e) => {
+                    log::error!("Failed to create tray Files item: {e}");
+                    return;
+                }
+            };
+            let settings =
+                match MenuItem::with_id(app, menu::SETTINGS_ID, "Settings", true, None::<&str>) {
+                    Ok(item) => item,
+                    Err(e) => {
+                        log::error!("Failed to create tray Settings item: {e}");
+                        return;
                     }
                 };
-            }
+            let about = match MenuItem::with_id(app, menu::ABOUT_ID, "About", true, None::<&str>) {
+                Ok(item) => item,
+                Err(e) => {
+                    log::error!("Failed to create tray About item: {e}");
+                    return;
+                }
+            };
+            let quit = match MenuItem::with_id(app, menu::QUIT_ID, "Quit", true, None::<&str>) {
+                Ok(item) => item,
+                Err(e) => {
+                    log::error!("Failed to create tray Quit item: {e}");
+                    return;
+                }
+            };
+            let first_separator = match PredefinedMenuItem::separator(app) {
+                Ok(item) => item,
+                Err(e) => {
+                    log::error!("Failed to create tray menu separator: {e}");
+                    return;
+                }
+            };
+            let second_separator = match PredefinedMenuItem::separator(app) {
+                Ok(item) => item,
+                Err(e) => {
+                    log::error!("Failed to create tray menu separator: {e}");
+                    return;
+                }
+            };
 
-            let new_chat_i = menu_item!("new-chat", "New Chat");
-            let files_i    = menu_item!("files",    "Files");
-            let sep1       = separator!();
-            let settings_i = menu_item!("settings", "Settings");
-            let about_i    = menu_item!("about",    "About");
-            let sep2       = separator!();
-            let quit_i     = menu_item!("quit",     "Quit");
-
-            let tray_menu = match Menu::new(app) {
+            let tray_menu = match Menu::with_items(
+                app,
+                &[
+                    &new_chat,
+                    &files,
+                    &first_separator,
+                    &settings,
+                    &about,
+                    &second_separator,
+                    &quit,
+                ],
+            ) {
                 Ok(menu) => menu,
                 Err(e) => {
                     log::error!("Failed to create tray menu: {e}");
                     return;
                 }
             };
-            let _ = tray_menu.append(&new_chat_i);
-            let _ = tray_menu.append(&files_i);
-            let _ = tray_menu.append(&sep1);
-            let _ = tray_menu.append(&settings_i);
-            let _ = tray_menu.append(&about_i);
-            let _ = tray_menu.append(&sep2);
-            let _ = tray_menu.append(&quit_i);
 
-            // Use the bundled app icon (defined in tauri.conf.json) instead of a
-            // generated red square.  Fall back to a plain white square only if the
-            // runtime returns None (should never happen in a normal Tauri build).
-            let icon = app.default_window_icon().cloned().unwrap_or_else(|| {
-                let w: u32 = 32;
-                let h: u32 = 32;
-                let rgba = vec![255u8; (w * h * 4) as usize]; // opaque white
-                tauri::image::Image::new_owned(rgba, w, h)
-            });
+            // The official bundled General Bots icon. It is decoded at compile
+            // time from the same PNG the installer uses, so the tray can never
+            // drift into a generated placeholder again (#1826).
+            let icon = tauri::include_image!("icons/icon.png");
 
             let tray_builder = TrayIconBuilder::with_id("main")
                 .menu(&tray_menu)
                 .tooltip("General Bots")
                 .icon(icon)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
-                    match event.id().as_ref() {
-                        "new-chat" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                            let _ = app.emit("tray:open-chat", ());
-                        }
-                        "files" => {
-                            let _ = app.emit("tray:open-files", ());
-                        }
-                        "settings" => {
-                            let _ = app.emit("tray:open-settings", ());
-                        }
-                        "about" => {
-                            let _ = app.emit("tray:open-about", ());
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        other => {
-                            log::warn!("Unknown tray menu event id: {other}");
-                        }
+                    if !menu::handle_menu_event(app, event.id().as_ref()) {
+                        log::debug!("Unhandled tray menu event: {}", event.id().as_ref());
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
-                    use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                    let app = tray.app_handle();
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } => menu::toggle_main_window(app),
+                        TrayIconEvent::DoubleClick {
+                            button: MouseButton::Left,
+                            ..
+                        } => menu::new_chat(app),
+                        _ => {}
                     }
                 });
 
@@ -208,7 +216,7 @@ impl TrayManager {
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to build tray icon: {}", e);
+                    log::error!("Failed to build tray icon: {e}");
                 }
             }
         }
@@ -248,6 +256,14 @@ impl TrayManager {
         drop(active);
 
         if is_active {
+            #[cfg(feature = "desktop-tray")]
+            if let Ok(handle) = self.tray_handle.lock() {
+                if let Some(tray) = handle.as_ref() {
+                    if let Err(e) = tray.set_tooltip(Some(tooltip)) {
+                        log::warn!("Failed to set tray tooltip: {e}");
+                    }
+                }
+            }
             log::debug!("Tray tooltip: {tooltip}");
         }
         Ok(())
@@ -309,119 +325,38 @@ impl TrayManager {
         result
     }
 
-    pub fn handle_event(&self, event: TrayEvent) {
+    pub fn handle_event(&self, app: &AppHandle, event: TrayEvent) {
         let mode = self.get_mode_string();
         match event {
+            TrayEvent::NewChat => {
+                log::info!("Tray event: New Chat (mode: {mode})");
+                menu::new_chat(app);
+            }
+            TrayEvent::Files => {
+                log::info!("Tray event: Files (mode: {mode})");
+                menu::open_app(app, "drive", false);
+            }
             TrayEvent::Open => {
                 log::info!("Tray event: Open main window (mode: {mode})");
+                menu::show_main_window(app);
             }
             TrayEvent::Settings => {
                 log::info!("Tray event: Open settings (mode: {mode})");
+                menu::open_app(app, "settings", false);
             }
             TrayEvent::About => {
                 log::info!("Tray event: Show about dialog (mode: {mode})");
+                menu::open_app(app, "about", false);
             }
             TrayEvent::Quit => {
                 log::info!("Tray event: Quit application (mode: {mode})");
+                menu::quit(app);
             }
         }
     }
 }
 
 impl Default for TrayManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Debug)]
-pub struct ServiceMonitor {
-    services: Vec<ServiceStatus>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ServiceStatus {
-    pub name: String,
-    pub running: bool,
-    pub port: u16,
-    pub url: String,
-}
-
-impl ServiceMonitor {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            services: vec![
-                ServiceStatus {
-                    name: "API".to_string(),
-                    running: false,
-                    port: 8080,
-                    url: "http://localhost:9000".to_string(),
-                },
-                ServiceStatus {
-                    name: "UI".to_string(),
-                    running: false,
-                    port: 3000,
-                    url: "http://localhost:3000".to_string(),
-                },
-            ],
-        }
-    }
-
-    pub fn add_service(&mut self, name: &str, port: u16) {
-        self.services.push(ServiceStatus {
-            name: name.to_string(),
-            running: false,
-            port,
-            url: format!("http://localhost:{port}"),
-        });
-    }
-
-    pub async fn check_services(&mut self) -> Vec<ServiceStatus> {
-        for service in &mut self.services {
-            service.running = Self::check_service(&service.url).await;
-        }
-        self.services.clone()
-    }
-
-    pub async fn check_service(url: &str) -> bool {
-        if !url.starts_with("http://") && !url.starts_with("https://") {
-            return false;
-        }
-
-        let Ok(client) = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(2))
-            .build()
-        else {
-            return false;
-        };
-
-        let health_url = format!("{}/health", url.trim_end_matches('/'));
-
-        client
-            .get(&health_url)
-            .send()
-            .await
-            .is_ok_and(|response| response.status().is_success())
-    }
-
-    #[must_use]
-    pub fn get_service(&self, name: &str) -> Option<&ServiceStatus> {
-        self.services.iter().find(|s| s.name == name)
-    }
-
-    #[must_use]
-    pub fn all_running(&self) -> bool {
-        self.services.iter().all(|s| s.running)
-    }
-
-    #[must_use]
-    pub fn any_running(&self) -> bool {
-        self.services.iter().any(|s| s.running)
-    }
-}
-
-impl Default for ServiceMonitor {
     fn default() -> Self {
         Self::new()
     }

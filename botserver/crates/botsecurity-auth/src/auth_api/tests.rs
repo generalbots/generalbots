@@ -1,5 +1,5 @@
-use super::{AuthConfig, AuthError};
 use super::super::types::*;
+use super::{AuthConfig, AuthError};
 use axum::http::StatusCode;
 
 #[test]
@@ -57,6 +57,23 @@ fn test_anonymous_user() {
     assert!(!anon.is_authenticated());
     assert!(anon.has_role(&Role::Anonymous));
     assert!(!anon.has_permission(&Permission::Read));
+}
+
+#[test]
+fn test_desktop_local_user() {
+    let local = AuthenticatedUser::desktop_local();
+    // The local owner is a real principal, not an anonymous visitor.
+    assert_eq!(local.username, "local");
+    assert!(local.has_role(&Role::User));
+    assert!(!local.has_role(&Role::Anonymous));
+    assert_eq!(
+        local.metadata.get("desktop_local").map(String::as_str),
+        Some("true")
+    );
+    // No directory account exists, so the nil id keeps Drive's user scope on
+    // the historical `default` folder instead of inventing a new bucket.
+    assert_eq!(local.user_id, uuid::Uuid::nil());
+    assert!(!local.is_authenticated());
 }
 
 #[test]
@@ -253,11 +270,7 @@ fn test_has_all_permissions() {
     let admin =
         AuthenticatedUser::new(uuid::Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
 
-    assert!(admin.has_all_permissions(&[
-        Permission::Read,
-        Permission::Write,
-        Permission::Delete
-    ]));
+    assert!(admin.has_all_permissions(&[Permission::Read, Permission::Write, Permission::Delete]));
     assert!(!admin.has_all_permissions(&[Permission::ManageSecrets]));
 }
 

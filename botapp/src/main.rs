@@ -7,9 +7,9 @@ mod desktop;
 
 #[cfg(feature = "desktop-local")]
 use desktop::sidecar::Sidecar;
+use desktop::tray::{RunningMode, ServiceMonitor, TrayEvent, TrayManager};
 #[cfg(feature = "desktop-local")]
 use desktop::wizard::WizardState;
-use desktop::tray::{RunningMode, ServiceMonitor, TrayEvent, TrayManager};
 
 #[tauri::command]
 async fn get_tray_status(tray: tauri::State<'_, TrayManager>) -> Result<bool, String> {
@@ -72,15 +72,21 @@ async fn set_tray_hostname(
 }
 
 #[tauri::command]
-fn handle_tray_event(tray: tauri::State<'_, TrayManager>, event: String) -> Result<(), String> {
+fn handle_tray_event(
+    app: tauri::AppHandle,
+    tray: tauri::State<'_, TrayManager>,
+    event: String,
+) -> Result<(), String> {
     let tray_event = match event.as_str() {
+        "new_chat" | "new-chat" | "newchat" => TrayEvent::NewChat,
+        "files" => TrayEvent::Files,
         "open" => TrayEvent::Open,
         "settings" => TrayEvent::Settings,
         "about" => TrayEvent::About,
         "quit" => TrayEvent::Quit,
         _ => return Err(format!("Unknown event: {event}")),
     };
-    tray.handle_event(tray_event);
+    tray.handle_event(&app, tray_event);
     Ok(())
 }
 
@@ -188,6 +194,22 @@ fn start_sidecar_and_show(app: &tauri::App) {
     });
 }
 
+#[cfg(target_os = "linux")]
+fn grant_webkit_permissions<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    use webkit2gtk::{PermissionRequestExt, WebViewExt};
+    tauri::plugin::Builder::new("generalbots-webkit-permissions")
+        .on_webview_ready(|webview| {
+            let _ = webview.with_webview(|platform| {
+                let wk = platform.inner();
+                wk.connect_permission_request(|_wv, request| {
+                    request.allow();
+                    true
+                });
+            });
+        })
+        .build()
+}
+
 fn main() {
     if let Some(code) = desktop::payload::handle_cli() {
         std::process::exit(code);
@@ -202,6 +224,8 @@ fn main() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        #[cfg(target_os = "linux")]
+        .plugin(grant_webkit_permissions())
         .manage(tray_manager)
         .manage(service_monitor);
 
@@ -212,6 +236,7 @@ fn main() {
 
     #[cfg(feature = "desktop-local")]
     let builder = builder.invoke_handler(tauri::generate_handler![
+        desktop::download::save_download,
         desktop::drive::list_files,
         desktop::drive::upload_file,
         desktop::drive::create_folder,
@@ -268,6 +293,7 @@ fn main() {
 
     #[cfg(not(feature = "desktop-local"))]
     let builder = builder.invoke_handler(tauri::generate_handler![
+        desktop::download::save_download,
         desktop::drive::list_files,
         desktop::drive::upload_file,
         desktop::drive::create_folder,
@@ -302,6 +328,10 @@ fn main() {
 
     let app = builder
         .setup(|app| {
+            // #1827 — show the topmost splash while the (possibly heavy) payload
+            // extraction and the server stack boot run.
+            desktop::splash::show(&app.handle());
+
             // #1633 — first run of the self-extracting build provisions the
             // embedded stack before the wizard or the sidecar looks for it.
             if let Err(error) = desktop::payload::extract_if_present() {
@@ -331,6 +361,7 @@ fn main() {
                 if let Some(win) = app.get_webview_window("main") {
                     let _ = win.show();
                 }
+                desktop::splash::hide(&app.handle());
             }
 
             // --- Tray icon ---
@@ -363,10 +394,17 @@ fn main() {
             app.run(move |app, event| {
                 #[cfg(feature = "desktop-local")]
                 if let tauri::RunEvent::ExitRequested { api, .. } = &event {
-                    // Closing the wizard must not take the suite down with it:
-                    // the main window is already answering, so keep the
-                    // process (and the sidecar) alive until it is gone.
-                    if app.get_webview_window("main").is_some() {
+                    // #1826 — an explicit Quit from the tray must terminate the
+                    // process even when the suite window still exists. The
+                    // tray handler stops the sidecar and sets this flag before
+                    // requesting exit.
+                    if desktop::tray::quit_requested() {
+                        info!("quitting from the tray: stopping the sidecar");
+                        sidecar.stop();
+                    } else if app.get_webview_window("main").is_some() {
+                        // Closing the wizard must not take the suite down with it:
+                        // the main window is already answering, so keep the
+                        // process (and the sidecar) alive until it is gone.
                         info!("keeping the app alive: the suite window still exists");
                         api.prevent_exit();
                     } else if desktop::activity::is_busy() {
@@ -374,7 +412,9 @@ fn main() {
                         // sidecar here truncated real answers (and the tool
                         // call that writes a PDF). Keep the process alive and
                         // bring the suite back so the result is visible.
-                        info!("a reply is in progress: keeping the app alive and reopening the suite");
+                        info!(
+                            "a reply is in progress: keeping the app alive and reopening the suite"
+                        );
                         api.prevent_exit();
                         desktop::wizard::ensure_suite_window(app);
                     } else {

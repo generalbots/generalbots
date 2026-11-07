@@ -108,7 +108,7 @@ async function createPlanDirectories(plan, basePath, bucket) {
                 }),
             });
         } catch (err) {
-            failures.push(relDir);
+            failures.push(relDir + " (" + uploadFailureReason(err) + ")");
             console.error("Folder create failed for " + relDir + ":", err);
         }
     }
@@ -145,7 +145,7 @@ async function uploadPlan(plan) {
             });
             uploaded++;
         } catch (err) {
-            failed.push(item.relPath);
+            failed.push(item.relPath + " (" + uploadFailureReason(err) + ")");
             console.error("Upload failed for " + item.relPath + ":", err);
         }
     }

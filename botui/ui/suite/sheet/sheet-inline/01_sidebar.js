@@ -200,7 +200,7 @@ function GBSheetRefreshNamedRanges(sheetId) {
 }
 window.GBSheetRefreshNamedRanges = GBSheetRefreshNamedRanges;
 function GBSheetCreateNamedRange(sheetId) {
-    var name = window.prompt("Nome do intervalo:", "");
+    var name = (window.GBModal||{prompt:prompt}).prompt("Nome do intervalo:", "");
     if (!name || !name.trim()) return;
     var sel = window.SheetAdvanced && window.SheetAdvanced.getSelection
         ? window.SheetAdvanced.getSelection() : null;

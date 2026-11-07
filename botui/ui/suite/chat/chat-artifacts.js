@@ -130,6 +130,13 @@ window.GBArtifacts = window.GBArtifacts || (function () {
   };
 })();
 
+function driveWriteFailure(res) {
+  return res.json().catch(function () { return {}; }).then(function (body) {
+    var detail = (body && (body.message || body.error)) || res.statusText || "request failed";
+    throw new Error("HTTP " + res.status + ": " + detail);
+  });
+}
+
 function openArtifactPanel(content, sourceEl) {
   var existing = document.getElementById("gb-artifact-panel");
   if (existing) existing.remove();
@@ -226,7 +233,7 @@ function openArtifactPanel(content, sourceEl) {
         }),
       })
         .then(function (res) {
-          if (!res.ok) throw new Error("HTTP " + res.status);
+          if (!res.ok) return driveWriteFailure(res);
           if (window.GBToasts) {
             GBToasts.show("Canvas", "Opening " + fileName + " in Canvas", "success");
           }
@@ -272,7 +279,7 @@ function openArtifactPanel(content, sourceEl) {
       }),
     })
       .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        if (!res.ok) return driveWriteFailure(res);
         if (window.GBToasts) {
           GBToasts.show("Saved", "File saved to Drive as " + path, "success");
         }

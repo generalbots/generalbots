@@ -1,14 +1,14 @@
-// #1551/#1642 GB6-16 — memory across conversations. The server copy
+// #1551/#1642/#1836 GB6-16 — memory across conversations. The server copy
 // (chat_preferences via /api/user/memory) is the source of truth the prompt
 // reads; localStorage is only a cache for offline rendering.
+// Reformulated: search, edit, sync status, per-bot scope; no bare key/value inputs.
 (function () {
     function storageKey() {
-        var bot = window.__INITIAL_BOT_NAME__ || "default";
-        return "gb_chat_memory_" + bot;
+        return "gb_user_memory_cache";
     }
     function load() {
-        try { return JSON.parse(localStorage.getItem(storageKey()) || "{}"); }
-        catch (e) { return {}; }
+        try { return JSON.parse(localStorage.getItem(storageKey()) || "[]"); }
+        catch (e) { return []; }
     }
     function save(mem) {
         try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
@@ -33,15 +33,16 @@
             return null;
         }
     }
-    async function serverPut(key, value) {
+    async function serverPut(key, value, botId) {
         if (!token()) return;
         try {
-            await fetch("/api/user/memory", {
+            var response = await fetch("/api/user/memory", {
                 method: "PUT",
                 headers: headers({ "Content-Type": "application/json" }),
-                body: JSON.stringify({ key: key, value: value }),
+                body: JSON.stringify({ key: key, value: value, bot_id: botId || null }),
             });
-        } catch (e) { /* offline: local cache still holds it */ }
+            if (!response.ok) throw new Error("save failed");
+        } catch (e) { /* offline: local cache still holds it */ throw e; }
     }
     async function serverDelete(key) {
         if (!token()) return;
@@ -56,91 +57,202 @@
         return String(value == null ? "" : value)
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-    function renderList(mem) {
+    function currentBotName() {
+        return window.__INITIAL_BOT_NAME__ || "default";
+    }
+    function setSyncStatus(status) {
+        var el = document.getElementById("gbMemorySyncStatus");
+        if (el) el.textContent = status;
+    }
+    var entries = [];
+    var query = "";
+    var scopeFilter = "all";
+    var editing = null;
+    var busy = false;
+
+    function filteredEntries() {
+        return entries.filter(function (e) {
+            if (scopeFilter === "global" && e.bot_id) return false;
+            if (scopeFilter === "bot" && !e.bot_id) return false;
+            if (query) {
+                var q = query.toLowerCase();
+                if (String(e.key || "").toLowerCase().indexOf(q) === -1 &&
+                    String(e.value || "").toLowerCase().indexOf(q) === -1) return false;
+            }
+            return true;
+        }).sort(function (a, b) {
+            return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+        });
+    }
+    function botLabel(botId) {
+        return botId ? ("bot " + String(botId).slice(0, 8)) : "global";
+    }
+    function renderList() {
         var list = document.getElementById("gbMemoryList");
         if (!list) return;
-        var keys = Object.keys(mem);
-        if (!keys.length) {
-            list.innerHTML = '<p class="setting-desc" style="padding:8px 0;">Nothing remembered yet. Tell the assistant "remember …" or add a fact below.</p>';
+        var botName = document.getElementById("gbMemoryBotName");
+        if (botName) botName.textContent = currentBotName();
+        var items = filteredEntries();
+        if (!items.length) {
+            list.innerHTML = '<p class="setting-desc" style="padding:8px 0;">Nothing remembered yet. The assistant adds facts as you chat; search or filter above.</p>';
             return;
         }
-        list.innerHTML = keys.map(function (key) {
-            return '<div class="setting-row" data-memory-key="' + esc(key) + '">' +
-                '<div class="setting-info"><span class="setting-title">' + esc(key) + '</span>' +
-                '<span class="setting-desc">' + esc(mem[key].value || "") + '</span></div>' +
-                '<button type="button" class="btn btn-secondary btn-sm gb-memory-forget">Forget</button>' +
-                "</div>";
+        list.innerHTML = items.map(function (e) {
+            var isEditing = editing && editing.key === e.key &&
+                String(editing.botId || "") === String(e.bot_id || "");
+            if (isEditing) {
+                return '<div class="setting-row" data-memory-key="' + esc(e.key) + '" data-memory-bot="' + esc(e.bot_id || "") + '">' +
+                    '<div class="setting-info" style="flex:1;">' +
+                        '<span class="setting-title">' + esc(e.key) + '</span>' +
+                        '<textarea class="input-sm gb-memory-edit-value" aria-label="Edit memory value" style="width:100%;margin-top:6px;min-height:60px;">' + esc(e.value || "") + '</textarea>' +
+                        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+                            '<select class="input-sm gb-memory-edit-scope" aria-label="Memory scope">' +
+                                '<option value="global"' + (e.bot_id ? "" : " selected") + '>Global (all bots)</option>' +
+                                '<option value="bot"' + (e.bot_id ? " selected" : "") + '>Bot-specific</option>' +
+                            '</select>' +
+                            '<span class="setting-desc">[' + esc(botLabel(e.bot_id)) + ']</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:8px;align-items:flex-start;">' +
+                        '<button type="button" class="btn btn-primary btn-sm gb-memory-save">Save</button>' +
+                        '<button type="button" class="btn btn-secondary btn-sm gb-memory-cancel">Cancel</button>' +
+                    '</div>' +
+                '</div>';
+            }
+            return '<div class="setting-row" data-memory-key="' + esc(e.key) + '" data-memory-bot="' + esc(e.bot_id || "") + '">' +
+                '<div class="setting-info">' +
+                    '<span class="setting-title">' + esc(e.key) + '</span>' +
+                    '<span class="setting-desc">' + esc(e.value || "") + '</span>' +
+                    '<span class="setting-desc" style="margin-left:8px;opacity:.7;">[' + esc(botLabel(e.bot_id)) + ']</span>' +
+                '</div>' +
+                '<div style="display:flex;gap:8px;">' +
+                    '<button type="button" class="btn btn-secondary btn-sm gb-memory-edit">Edit</button>' +
+                    '<button type="button" class="btn btn-secondary btn-sm gb-memory-forget">Forget</button>' +
+                '</div>' +
+            '</div>';
         }).join("");
     }
     async function refresh() {
-        var mem = load();
+        setSyncStatus("Syncing…");
+        var cached = load();
         var remote = await serverList();
         if (remote) {
-            // The server copy wins for every entry it holds; entries only this
-            // browser knew about are pushed once, then merged.
-            for (var i = 0; i < remote.length; i++) {
-                var entry = remote[i];
-                if (!entry || !entry.key) continue;
-                mem[entry.key] = {
-                    value: String(entry.value || "").substring(0, 500),
-                    _ts: Date.parse(entry.updated_at) || Date.now(),
+            entries = remote.map(function (r) {
+                return {
+                    key: r.key,
+                    value: String(r.value || "").substring(0, 2000),
+                    bot_id: r.bot_id || null,
+                    updated_at: r.updated_at || new Date().toISOString(),
                 };
-            }
-            var missing = Object.keys(load()).filter(function (key) {
-                return !remote.some(function (entry) { return entry.key === key; });
             });
-            for (var j = 0; j < missing.length; j++) {
-                var cached = load()[missing[j]];
-                if (cached && cached.value) await serverPut(missing[j], cached.value);
-            }
-            save(mem);
+            save(entries);
+            setSyncStatus("Synced");
+        } else {
+            entries = Array.isArray(cached) ? cached : [];
+            if (token()) setSyncStatus("Offline");
+            else setSyncStatus("Not signed in");
         }
-        renderList(mem);
+        var search = document.getElementById("gbMemorySearch");
+        if (search) query = search.value.trim();
+        var scope = document.getElementById("gbMemoryScope");
+        if (scope) scopeFilter = scope.value;
+        renderList();
     }
-    var busy = false;
     document.addEventListener("click", async function (e) {
         if (busy) return;
-        var forget = e.target.closest && e.target.closest(".gb-memory-forget");
-        if (forget) {
-            var row = forget.closest("[data-memory-key]");
-            var key = row && row.getAttribute("data-memory-key");
-            if (key) {
-                busy = true;
-                var mem = load();
-                delete mem[key];
-                save(mem);
-                await serverDelete(key);
-                renderList(mem);
+        var editBtn = e.target.closest && e.target.closest(".gb-memory-edit");
+        if (editBtn) {
+            var row = editBtn.closest("[data-memory-key]");
+            editing = {
+                key: row.getAttribute("data-memory-key"),
+                botId: row.getAttribute("data-memory-bot") || null,
+            };
+            renderList();
+            return;
+        }
+        var cancelBtn = e.target.closest && e.target.closest(".gb-memory-cancel");
+        if (cancelBtn) {
+            editing = null;
+            renderList();
+            return;
+        }
+        var saveBtn = e.target.closest && e.target.closest(".gb-memory-save");
+        if (saveBtn) {
+            var saveRow = saveBtn.closest("[data-memory-key]");
+            var key = saveRow.getAttribute("data-memory-key");
+            var oldBot = saveRow.getAttribute("data-memory-bot") || "";
+            var valueEl = saveRow.querySelector(".gb-memory-edit-value");
+            var scopeEl = saveRow.querySelector(".gb-memory-edit-scope");
+            var value = valueEl ? valueEl.value.trim() : "";
+            if (!value) return;
+            var newBotId = null;
+            if (scopeEl && scopeEl.value === "bot") newBotId = oldBot || null;
+            busy = true;
+            setSyncStatus("Syncing…");
+            try {
+                await serverPut(key, value.substring(0, 2000), newBotId);
+                var idx = entries.findIndex(function (en) {
+                    return en.key === key && String(en.bot_id || "") === String(oldBot || "");
+                });
+                if (idx !== -1) {
+                    entries[idx].value = value.substring(0, 2000);
+                    entries[idx].bot_id = newBotId;
+                    entries[idx].updated_at = new Date().toISOString();
+                } else {
+                    entries.push({ key: key, value: value.substring(0, 2000), bot_id: newBotId, updated_at: new Date().toISOString() });
+                }
+                save(entries);
+                editing = null;
+                setSyncStatus("Synced");
+                renderList();
+            } catch (err) {
+                setSyncStatus("Offline");
+            } finally {
                 busy = false;
             }
             return;
         }
-        if (e.target && e.target.id === "gbMemoryAdd") {
-            var keyEl = document.getElementById("gbMemoryKey");
-            var valueEl = document.getElementById("gbMemoryValue");
-            var addKey = keyEl && keyEl.value.trim();
-            var addValue = valueEl && valueEl.value.trim();
-            if (!addKey || !addValue) return;
+        var forgetBtn = e.target.closest && e.target.closest(".gb-memory-forget");
+        if (forgetBtn) {
+            var fRow = forgetBtn.closest("[data-memory-key]");
+            var fKey = fRow.getAttribute("data-memory-key");
+            var fBot = fRow.getAttribute("data-memory-bot") || "";
             busy = true;
-            var current = load();
-            current[addKey] = { value: addValue.substring(0, 500), _ts: Date.now() };
-            save(current);
-            await serverPut(addKey, addValue.substring(0, 500));
-            keyEl.value = "";
-            valueEl.value = "";
-            renderList(current);
+            setSyncStatus("Syncing…");
+            var fIdx = entries.findIndex(function (en) {
+                return en.key === fKey && String(en.bot_id || "") === String(fBot || "");
+            });
+            if (fIdx !== -1) entries.splice(fIdx, 1);
+            save(entries);
+            try { await serverDelete(fKey); setSyncStatus("Synced"); }
+            catch (e2) { setSyncStatus("Offline"); }
+            renderList();
             busy = false;
             return;
         }
         if (e.target && e.target.id === "gbMemoryClear") {
             if (!confirm("Forget every remembered fact (server and this browser)?")) return;
             busy = true;
-            var all = load();
-            var keys = Object.keys(all);
-            save({});
-            for (var k = 0; k < keys.length; k++) await serverDelete(keys[k]);
-            renderList({});
+            setSyncStatus("Syncing…");
+            var all = entries.slice();
+            entries = [];
+            save(entries);
+            for (var k = 0; k < all.length; k++) await serverDelete(all[k].key);
+            renderList();
+            setSyncStatus("Synced");
             busy = false;
+        }
+    });
+    document.addEventListener("input", function (e) {
+        if (e.target && e.target.id === "gbMemorySearch") {
+            query = e.target.value.trim();
+            renderList();
+        }
+    });
+    document.addEventListener("change", function (e) {
+        if (e.target && e.target.id === "gbMemoryScope") {
+            scopeFilter = e.target.value;
+            renderList();
         }
     });
     document.addEventListener("DOMContentLoaded", refresh);

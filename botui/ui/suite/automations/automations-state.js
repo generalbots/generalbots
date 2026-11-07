@@ -244,7 +244,7 @@ async function saveSchedule(event) {
 async function deleteSelectedSchedule() {
     if (!AutoState.editingId) return;
     const id = AutoState.editingId;
-    if (!window.confirm("Delete this schedule? Its run history will be kept." )) return;
+    if (!(window.GBModal||{confirm:confirm}).confirm("Delete this schedule? Its run history will be kept." )) return;
     try {
         await autoApi("/api/automations/schedules/" + encodeURIComponent(id), { method: "DELETE" });
         closeScheduleModal();

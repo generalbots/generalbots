@@ -3,13 +3,8 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Output, Stdio};
 use std::sync::LazyLock;
 
-static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    HashSet::from([
-        "rclone",
-        "notify-send",
-        "osascript",
-    ])
-});
+static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> =
+    LazyLock::new(|| HashSet::from(["rclone", "notify-send", "osascript"]));
 
 static FORBIDDEN_SHELL_CHARS: LazyLock<HashSet<char>> = LazyLock::new(|| {
     HashSet::from([

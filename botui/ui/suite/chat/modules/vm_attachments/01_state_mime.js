@@ -178,6 +178,9 @@ function vmOpenInOfficeApp(path, savedPath) {
   var app = vmOfficeAppFor(path);
   var target = vmSplitDrivePath(savedPath);
   if (!app || !target) throw new Error("this file has no editor app");
+  if (!vmOfficeAppAvailable(app)) {
+    throw new Error("this edition does not include the " + app + " app");
+  }
   if (!window.WindowManager || !window.WindowManager.openDeepLink) {
     throw new Error("desktop shell unavailable");
   }

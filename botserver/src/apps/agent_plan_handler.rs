@@ -20,7 +20,12 @@ pub(super) fn build_plan(goal: &str, app_hint: Option<&str>) -> Vec<serde_json::
     // Explicit app hint wins: single step opening that app.
     if let Some(hint) = app_hint {
         if let Some(app) = registry::all_apps().into_iter().find(|a| a.id == hint) {
-            return vec![step(&app.id, &app.title, &format!("Open {}", app.title), None)];
+            return vec![step(
+                &app.id,
+                &app.title,
+                &format!("Open {}", app.title),
+                None,
+            )];
         }
     }
 
@@ -85,13 +90,22 @@ pub(super) fn build_plan(goal: &str, app_hint: Option<&str>) -> Vec<serde_json::
 
     if steps.is_empty() {
         // Default: route to the Concierge so the user can refine the goal.
-        steps.push(step("concierge", "Concierge", "Refine goal in Concierge", None));
+        steps.push(step(
+            "concierge",
+            "Concierge",
+            "Refine goal in Concierge",
+            None,
+        ));
     }
 
     // Deduplicate by app id, keeping first occurrence order.
     let mut seen: Vec<String> = Vec::new();
     steps.retain(|s| {
-        let id = s.get("app").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let id = s
+            .get("app")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
         if seen.contains(&id) {
             false
         } else {
@@ -102,7 +116,12 @@ pub(super) fn build_plan(goal: &str, app_hint: Option<&str>) -> Vec<serde_json::
 
     steps
 }
-pub(super) fn step(app: &str, title: &str, action: &str, params: Option<&str>) -> serde_json::Value {
+pub(super) fn step(
+    app: &str,
+    title: &str,
+    action: &str,
+    params: Option<&str>,
+) -> serde_json::Value {
     json!({
         "app": app,
         "title": title,
@@ -169,7 +188,10 @@ pub(super) fn is_app_compiled(id: &str) -> bool {
         "browser" => cfg!(feature = "browser"),
         "integrations" => cfg!(feature = "integrations"),
         "sources" => cfg!(feature = "sources"),
-        "terminal" => cfg!(feature = "terminal"),
+        // #1841 — a terminal without the agent VM has no workspace to attach
+        // to, so the app is not compiled for launcher purposes unless both
+        // halves are present.
+        "terminal" => cfg!(feature = "terminal") && cfg!(feature = "agent-vm"),
         "canvas" => cfg!(feature = "canvas"),
         "workspace" => cfg!(feature = "workspaces"),
         "project" => cfg!(feature = "project"),

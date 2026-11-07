@@ -202,7 +202,8 @@
       [t("privacy.conversations"), t("privacy.conversations-dest", { path: draft.workspace.path || ctx.workspace_path }), t("privacy.always")],
       [t("privacy.keys"), t("privacy.keys-dest", { path: ctx.stack_path }), t("privacy.when-saved")],
       [t("privacy.prompts"), prompts, t("privacy.every-message")],
-      [t("privacy.services"), connected.length ? connected.join(", ") + t("privacy.only-actions") : t("privacy.no-service"), t("privacy.per-request")]
+      [t("privacy.services"), connected.length ? connected.join(", ") + t("privacy.only-actions") : t("privacy.no-service"), t("privacy.per-request")],
+      [t("privacy.crashes"), t("privacy.crash-off"), "—"]
     ];
   }
 
@@ -323,6 +324,7 @@
         '<div class="summary-row"><span>' + esc(t("finish.model")) + "</span><span>" + esc(modelLabel) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.connected")) + "</span><span>" + esc(connected.length ? connected.join(", ") : t("finish.none")) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.not-connected")) + "</span><span>" + esc(notConnected.length ? notConnected.join(", ") : t("finish.none")) + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.crash")) + "</span><span>" + esc(t("finish.off")) + "</span></div>" +
       "</div>" +
       '<div class="card" id="mediaCapabilitiesCard" style="margin-top:16px">' +
         '<div class="card-head"><span class="card-title">' + esc(t("finish.media-title")) + "</span>" +

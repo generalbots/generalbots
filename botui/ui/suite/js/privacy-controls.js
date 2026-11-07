@@ -1,11 +1,14 @@
-/* Privacy controls and opt-in telemetry (GB6-26).
- * All telemetry is OFF by default. The user must explicitly opt in.
- * Provides a settings panel for controlling data collection. */
+/* Privacy controls (local-only).
+ * This build has NO outbound telemetry, analytics, or crash reporting.
+ * Chat history, memory and settings stay on the device. The legacy
+ * telemetry fields are kept hard-wired to false so old settings, tests and
+ * callers cannot re-enable a sender that no longer exists. */
 "use strict";
 
 (function () {
   var PRIVACY_KEY = "gb_privacy_settings";
-  var TELEMETRY_KEY = "gb_telemetry_opted_in";
+  var LEGACY_TELEMETRY_KEY = "gb_telemetry_opted_in";
+  var LEGACY_TELEMETRY_LOG = "gb_telemetry_log";
 
   var defaults = {
     telemetry_enabled: false,
@@ -16,30 +19,36 @@
   };
 
   function loadSettings() {
+    var settings;
     try {
       var saved = JSON.parse(localStorage.getItem(PRIVACY_KEY) || "{}");
-      return Object.assign({}, defaults, saved);
-    } catch (e) { return Object.assign({}, defaults); }
+      settings = Object.assign({}, defaults, saved);
+    } catch (e) {
+      settings = Object.assign({}, defaults);
+    }
+    // Hard invariant: no telemetry, even if local storage was edited or a
+    // previous build saved an opt-in.
+    settings.telemetry_enabled = false;
+    settings.share_usage_stats = false;
+    settings.crash_reports = false;
+    return settings;
   }
 
   function saveSettings(settings) {
-    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(settings)); } catch (e) {}
-    localStorage.setItem(TELEMETRY_KEY, settings.telemetry_enabled ? "true" : "false");
+    var safe = Object.assign({}, settings, {
+      telemetry_enabled: false,
+      share_usage_stats: false,
+      crash_reports: false,
+    });
+    try { localStorage.setItem(PRIVACY_KEY, JSON.stringify(safe)); } catch (e) {}
+    try {
+      localStorage.removeItem(LEGACY_TELEMETRY_KEY);
+      localStorage.removeItem(LEGACY_TELEMETRY_LOG);
+    } catch (e) {}
   }
 
   function isTelemetryEnabled() {
-    return loadSettings().telemetry_enabled === true;
-  }
-
-  function sendTelemetryEvent(event, data) {
-    if (!isTelemetryEnabled()) return;
-    var entry = { event: event, data: data, timestamp: Date.now() };
-    try {
-      var log = JSON.parse(localStorage.getItem("gb_telemetry_log") || "[]");
-      log.push(entry);
-      if (log.length > 500) log = log.slice(-500);
-      localStorage.setItem("gb_telemetry_log", JSON.stringify(log));
-    } catch (e) {}
+    return false;
   }
 
   function clearAllUserData() {
@@ -80,13 +89,11 @@
       + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#f8fafc;">Privacy &amp; Data</h3><button onclick="document.getElementById(\'privacy-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>'
       + '<div style="background:#0f172a;border-radius:8px;padding:16px;margin-bottom:20px;">'
       + '<div style="color:#f8fafc;font-size:13px;font-weight:600;margin-bottom:8px;">Your data stays local</div>'
-      + '<div style="color:#94a3b8;font-size:12px;line-height:1.5;">Chat history, memory, and settings are stored on your device. Nothing is sent to external servers unless you explicitly enable telemetry below.</div>'
+      + '<div style="color:#94a3b8;font-size:12px;line-height:1.5;">Chat history, memory, and settings are stored on your device. This build has no outbound telemetry, analytics, or crash reporting.</div>'
       + '</div>'
-      + toggle("priv-telemetry", "Anonymous Telemetry", "Send anonymous usage statistics to help improve the app", settings.telemetry_enabled)
       + toggle("priv-history", "Save Chat History", "Keep conversation history locally", settings.save_chat_history)
       + toggle("priv-memory", "Chat Memory", "Remember preferences across conversations", settings.save_memory)
-      + toggle("priv-usage", "Share Usage Stats", "Include usage data in telemetry", settings.share_usage_stats)
-      + toggle("priv-crash", "Crash Reports", "Send anonymous crash reports", settings.crash_reports)
+      + '<div style="color:#64748b;font-size:12px;line-height:1.5;padding:12px 0;">Telemetry, usage statistics, and crash reports are permanently disabled and never leave this device.</div>'
       + '<div style="display:flex;gap:10px;margin-top:20px;">'
       + '<button onclick="GBPrivacy.save()" style="flex:1;background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-weight:500;">Save</button>'
       + '<button onclick="GBPrivacy.clearAll()" style="background:#dc2626;border:none;border-radius:6px;color:#fff;padding:10px;cursor:pointer;font-size:12px;">Delete All Data</button>'
@@ -105,11 +112,11 @@
 
   function saveFromPanel() {
     var settings = {
-      telemetry_enabled: !!document.getElementById("priv-telemetry") && document.getElementById("priv-telemetry").checked,
+      telemetry_enabled: false,
       save_chat_history: !!document.getElementById("priv-history") && document.getElementById("priv-history").checked,
       save_memory: !!document.getElementById("priv-memory") && document.getElementById("priv-memory").checked,
-      share_usage_stats: !!document.getElementById("priv-usage") && document.getElementById("priv-usage").checked,
-      crash_reports: !!document.getElementById("priv-crash") && document.getElementById("priv-crash").checked,
+      share_usage_stats: false,
+      crash_reports: false,
     };
     saveSettings(settings);
     var modal = document.getElementById("privacy-modal");
@@ -120,7 +127,6 @@
   window.GBPrivacy = {
     getSettings: loadSettings,
     isTelemetryEnabled: isTelemetryEnabled,
-    sendEvent: sendTelemetryEvent,
     showPanel: showPrivacyPanel,
     save: saveFromPanel,
     clearAll: clearAllUserData,

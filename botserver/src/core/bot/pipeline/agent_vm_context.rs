@@ -75,6 +75,10 @@ pub(super) async fn inject(
                      and that the user can keep chatting while it finishes. \
                      Background work continues when the user switches conversations; \
                      never assume a job was cancelled. \
+                     For news, current events, weather, prices or any informational \
+                     request about the outside world, do NOT use vm_exec: rely on \
+                     the web grounding injected for the turn or call the web.search \
+                     command and cite every source. \
                      Do NOT refuse tasks that require code execution — you have a \
                      full Linux VM available. Generate the program dynamically based \
                      on what the user needs."

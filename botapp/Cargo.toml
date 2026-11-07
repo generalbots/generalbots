@@ -61,3 +61,6 @@ tauri-build = "2"
 
 [lints]
 workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "=2.0", features = ["v2_40"] }

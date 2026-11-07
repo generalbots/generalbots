@@ -182,7 +182,7 @@
       var remove = event.target.closest(".settings-skill-remove");
       if (remove) {
         var id = remove.getAttribute("data-skill");
-        if (!window.confirm("Remove skill " + id + "?")) return;
+        if (!(window.GBModal||{confirm:confirm}).confirm("Remove skill " + id + "?")) return;
         fetch(
           BASE + "/" + encodeURIComponent(id) + "?bot_id=" + encodeURIComponent(botId()),
           { method: "DELETE", headers: headers() }

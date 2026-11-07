@@ -69,6 +69,17 @@ CDN_RE = re.compile(
     r"fonts\.googleapis|fonts\.gstatic|maxcdn\.|bootstrapcdn\.",
     re.IGNORECASE,
 )
+# #1817 — no outbound analytics/tracking SDKs in first-party code. Provider
+# catalog entries (e.g. a PostHog integration an operator may connect) are not
+# matched unless they actually initialise a tracker or load a known script.
+ANALYTICS_RE = re.compile(
+    r"googletagmanager\.com|google-analytics\.com|\bgtag\s*\(|\bfbq\s*\(|"
+    r"hotjar\.com|mixpanel\.init|posthog\.init|sentry\.init|amplitude\.init|"
+    r"segment\.(?:com|io)/v1|plausible\.io/js|umami\.is|matomo\.js|piwik\.js|"
+    r"clarity\.ms|newrelic\.com|bugsnag\.com|rollbar\.com|logrocket\.io|"
+    r"fullstory\.com",
+    re.IGNORECASE,
+)
 PROD_PATTERNS = {
     "rust_unwrap": re.compile(r"\.unwrap\s*\("),
     "rust_expect": re.compile(r"\.expect\s*\("),
@@ -120,6 +131,7 @@ RULE_META = {
     "raw_command_new": ("unassigned", "use SafeCommand (AGENTS.md: Command Execution)"),
     "backup_files": ("#1734", "delete it; backups live in /tmp (AGENTS.md)"),
     "cdn_refs": ("#1733", "vendor the asset locally (AGENTS.md: Local Assets Only)"),
+    "third_party_analytics": ("#1817", "remove it; this build sends no outbound telemetry (PRIVACY.md)"),
     "part_suffixed_rust": ("#1728", "use a self-describing name (AGENTS.md: splits)"),
     "part_suffixed_css": ("#1729", "rename the part after what it styles (AGENTS.md)"),
     "oversize_rs": ("#1730", "split at 350 lines, hard limit 450 (AGENTS.md)"),
@@ -257,6 +269,11 @@ def scan_tree() -> tuple[dict[str, list[Violation]], int]:
             # are already skipped by SKIP_DIRS.
             if ext == ".css" and "tailwindcss v" in text[:200].lower():
                 continue
+            for number, line in enumerate(text.split("\n"), 1):
+                if ANALYTICS_RE.search(line):
+                    found["third_party_analytics"].append(
+                        (rel, number, line.strip()[:120])
+                    )
             if lines > HARD_LIMIT:
                 found["oversize_" + ext[1:]].append((rel, 0, f"{lines} lines"))
             if ext == ".css" and is_part_suffixed_css(rel):

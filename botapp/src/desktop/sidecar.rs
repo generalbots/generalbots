@@ -74,10 +74,7 @@ impl Sidecar {
     pub fn start(&self, resource_dir: Option<PathBuf>) -> anyhow::Result<()> {
         let path = Self::botserver_path();
         if !path.exists() {
-            return Err(anyhow::anyhow!(
-                "botserver not found at {}",
-                path.display()
-            ));
+            return Err(anyhow::anyhow!("botserver not found at {}", path.display()));
         }
 
         let stack = Self::stack_path();

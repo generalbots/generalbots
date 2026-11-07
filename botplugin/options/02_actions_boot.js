@@ -36,8 +36,6 @@ document
                 document.getElementById("local-only").checked,
             storeOriginals:
                 document.getElementById("store-originals").checked,
-            analytics:
-                document.getElementById("analytics").checked,
             debugMode:
                 document.getElementById("debug-mode").checked,
             showPanel:

@@ -207,7 +207,11 @@ pub(super) async fn run_components(
             if details.is_empty() {
                 "A setup component failed. Open the log folder for details.".to_string()
             } else {
-                details.lines().last().unwrap_or("A setup component failed.").to_string()
+                details
+                    .lines()
+                    .last()
+                    .unwrap_or("A setup component failed.")
+                    .to_string()
             }
         });
         return Err(reason);

@@ -182,7 +182,7 @@ function startInlineEdit(itemId) {
 }
 
 async function deleteItem(itemId) {
-    if (!window.confirm("Delete this memory permanently?")) return;
+    if (!(window.GBModal||{confirm:confirm}).confirm("Delete this memory permanently?")) return;
     try {
         await memApi("/api/memory/items/" + encodeURIComponent(itemId), { method: "DELETE" });
         await loadItems();

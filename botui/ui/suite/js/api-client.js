@@ -167,8 +167,20 @@
         }
 
         if (response.status === 403) {
-          const error = new Error("Forbidden");
+          // Keep the server's JSON reason: CSRF, RBAC and tenant guards all
+          // answer 403 with a useful `message`, and a bare "Forbidden" hid
+          // the cause from every caller (e.g. desktop uploads, #1840).
+          let errorBody;
+          try {
+            errorBody = await response.json();
+          } catch {
+            errorBody = { error: response.statusText };
+          }
+          const error = new Error(
+            errorBody.message || errorBody.error || "Forbidden",
+          );
           error.status = 403;
+          error.body = errorBody;
           error.response = response;
           throw error;
         }

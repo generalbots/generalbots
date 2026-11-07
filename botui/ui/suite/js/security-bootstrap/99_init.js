@@ -11,6 +11,12 @@
       var originalSetHeader = XMLHttpRequest.prototype.setRequestHeader;
 
       XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+        // Do not let explicit credentials reach a third-party origin.
+        var sensitive = ["authorization", "x-session-id", "x-csrf-token"];
+        if (this._gbUrl && !self.isSameOrigin(this._gbUrl) &&
+            sensitive.indexOf(String(name).toLowerCase()) !== -1) {
+          return;
+        }
         this._gbHeaders = this._gbHeaders || {};
         this._gbHeaders[String(name).toLowerCase()] = value;
         return originalSetHeader.apply(this, arguments);
@@ -27,16 +33,18 @@
         var token = self.getToken();
         var sessionId = self.getSessionId();
         var headers = xhr._gbHeaders || {};
+        // Never send credentials to a third-party origin.
+        var sameOrigin = self.isSameOrigin(xhr._gbUrl);
 
         // Never duplicate an Authorization header already attached by the
         // htmx:configRequest interceptor ("Bearer A, Bearer A" breaks server
         // token parsing and silently downgrades requests to anonymous).
-        if (token && !this._gbSkipAuth && !headers["authorization"]) {
+        if (sameOrigin && token && !this._gbSkipAuth && !headers["authorization"]) {
           try {
             this.setRequestHeader("Authorization", "Bearer " + token);
           } catch (e) {}
         }
-        if (sessionId && !this._gbSkipAuth && !headers["x-session-id"]) {
+        if (sameOrigin && sessionId && !this._gbSkipAuth && !headers["x-session-id"]) {
           try {
             this.setRequestHeader("X-Session-ID", sessionId);
           } catch (e) {}

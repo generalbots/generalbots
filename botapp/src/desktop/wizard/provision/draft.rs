@@ -79,9 +79,8 @@ pub(super) async fn apply_integrations(request: &ProvisionRequest) {
         if service.client_id.trim().is_empty() {
             continue;
         }
-        let url = format!(
-            "http://127.0.0.1:8080/api/bots/{bot_id}/integrations/oauth/{provider}/client"
-        );
+        let url =
+            format!("http://127.0.0.1:8080/api/bots/{bot_id}/integrations/oauth/{provider}/client");
         let body = serde_json::json!({
             "client_id": service.client_id,
             "client_secret": if service.client_secret.is_empty() {

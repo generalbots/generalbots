@@ -46,7 +46,23 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     expand.textContent = "Expand";
     expand.addEventListener("click", function () {
       box.classList.toggle("expanded");
-      expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+      var expanded = box.classList.contains("expanded");
+      expand.textContent = expanded ? "Collapse" : "Expand";
+      // Expanded previews widen to the conversation width and stay pinned to
+      // the top of the scrolling transcript instead of scrolling away.
+      if (expanded) {
+        box.style.position = "sticky";
+        box.style.top = "0";
+        box.style.zIndex = "5";
+        box.style.width = "100%";
+        box.style.maxWidth = "100%";
+      } else {
+        box.style.position = "";
+        box.style.top = "";
+        box.style.zIndex = "";
+        box.style.width = "";
+        box.style.maxWidth = "";
+      }
     });
     head.appendChild(expand);
     var frame = document.createElement("iframe");

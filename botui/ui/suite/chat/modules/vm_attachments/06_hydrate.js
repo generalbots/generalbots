@@ -43,9 +43,7 @@ function vmRenderInlineReferences(root) {
         card.innerHTML =
           '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
           '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
-          '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
-          '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
-          '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';
+          vmAttachmentButtons(parts.path);
         card.querySelector(".gb-attachment-name").textContent =
           (hit[1] || "").trim() || parts.path.split("/").pop();
         replaced.appendChild(card);

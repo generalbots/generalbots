@@ -102,7 +102,7 @@
             if (window.WindowManager && window.WindowManager.promptFloating) {
                 window.WindowManager.promptFloating("Add text", "Text", "Heading", addLabel);
             } else {
-                addLabel(window.prompt("Text", "Heading"));
+                addLabel((window.GBModal||{prompt:prompt}).prompt("Text", "Heading"));
             }
             return;
         }

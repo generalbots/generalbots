@@ -62,7 +62,10 @@ mod tests {
     fn a_fresh_heartbeat_reports_the_turn_count() {
         let raw = r#"{"active_turns":1,"updated_at":1000}"#;
         assert_eq!(parse_active_turns(raw, 1000), Some(1));
-        assert_eq!(parse_active_turns(r#"{"active_turns":0,"updated_at":1000}"#, 1000), Some(0));
+        assert_eq!(
+            parse_active_turns(r#"{"active_turns":0,"updated_at":1000}"#, 1000),
+            Some(0)
+        );
     }
 
     #[test]
@@ -77,6 +80,9 @@ mod tests {
         assert_eq!(parse_active_turns("not json", 1000), None);
         assert_eq!(parse_active_turns(r#"{"active_turns":1}"#, 1000), None);
         assert_eq!(parse_active_turns(r#"{"updated_at":1000}"#, 1000), None);
-        assert_eq!(parse_active_turns(r#"{"active_turns":"one","updated_at":1000}"#, 1000), None);
+        assert_eq!(
+            parse_active_turns(r#"{"active_turns":"one","updated_at":1000}"#, 1000),
+            None
+        );
     }
 }

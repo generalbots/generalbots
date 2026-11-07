@@ -110,19 +110,22 @@
         // below would then attach a second copy (Bearer A, Bearer A), which
         // breaks server-side token parsing and silently degrades the request
         // to anonymous. Only attach when absent.
-        if (token && !event.detail.headers["Authorization"]) {
-          event.detail.headers["Authorization"] = "Bearer " + token;
-          console.log("[GBSecurity] Authorization header added");
-        } else if (!token) {
+        var sameOrigin = self.isSameOrigin(event.detail.path);
+        if (!token) {
           console.warn(
             "[GBSecurity] NO TOKEN - request will be unauthenticated",
           );
+        } else if (!sameOrigin) {
+          console.log("[GBSecurity] Authorization header skipped for cross-origin request");
+        } else if (!event.detail.headers["Authorization"]) {
+          event.detail.headers["Authorization"] = "Bearer " + token;
+          console.log("[GBSecurity] Authorization header added");
         } else {
           // Token exists but the header is already attached (previous pass)
           // — the request is authenticated, not anonymous.
           console.log("[GBSecurity] Authorization header already present");
         }
-        if (sessionId) {
+        if (sessionId && sameOrigin) {
           event.detail.headers["X-Session-ID"] = sessionId;
         }
       });
@@ -172,7 +175,14 @@
         // previous login.  A mismatched/expired JWT causes a spurious 401
         // that kills the bot-public check and cascades into a freeze.
         var resolvedUrl = typeof input === "string" ? input : input.url;
-        if (!self.isPublicEndpoint(resolvedUrl)) {
+        if (!self.isSameOrigin(resolvedUrl)) {
+          // Strip credentials a caller may have pre-attached: they must never
+          // reach a third-party origin.
+          ["Authorization", "authorization", "X-Session-ID", "x-session-id",
+            "X-CSRF-Token", "x-csrf-token"].forEach(function (name) {
+            delete init.headers[name];
+          });
+        } else if (!self.isPublicEndpoint(resolvedUrl)) {
           init.headers = self.buildAuthHeaders(init.headers);
         }
 

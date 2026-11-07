@@ -11,6 +11,15 @@
         document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"><\/script>');
         document.write('<script src="/suite/js/security-bootstrap/99_init.js?v=6"><\/script>');
     }
+    // #1821/#1839 — when Settings is opened in its own window/tab it is outside
+    // the desktop shell, so the security bootstrap that adds the Bearer token
+    // to HTMX/fetch/XHR requests must be loaded here too. Inside the desktop
+    // shell window.GBSecurity already exists and this block is a no-op.
+    if (window.top === window.self && !window.GBSecurity) {
+        document.write('<script src="/suite/js/security-bootstrap/01_tokens.js?v=7"><\/script>');
+        document.write('<script src="/suite/js/security-bootstrap/02_interceptors.js?v=7"><\/script>');
+        document.write('<script src="/suite/js/security-bootstrap/99_init.js?v=7"><\/script>');
+    }
 </script>
 
 <div class="gb-app settings-layout" data-gb-app="settings">
@@ -115,6 +124,7 @@
                     <line x1="9" y1="21" x2="15" y2="21"></line>
                 </svg>
                 <span data-i18n="settings-memory">Memory</span>
+<!-- Memory settings module: settings-memory.js calls the server API /api/user/memory (serverPut, serverDelete) -->
             </a>
             <a href="#billing" class="nav-item" onclick="showSection('billing', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

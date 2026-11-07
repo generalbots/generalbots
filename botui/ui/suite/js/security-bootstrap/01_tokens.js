@@ -208,6 +208,18 @@
       );
     },
 
+    // Credentials must never leak to third-party origins (weather, maps,
+    // analytics, user-supplied URLs). Only same-origin API calls get the
+    // bearer token and session id.
+    isSameOrigin: function (url) {
+      if (typeof url !== "string" || url.length === 0) return false;
+      try {
+        return new URL(url, window.location.href).origin === window.location.origin;
+      } catch (e) {
+        return false;
+      }
+    },
+
     handleUnauthorized: function (url) {
       if (window.__BOT_IS_PUBLIC__) return;
       console.warn("[GBSecurity] Unauthorized response from:", url);

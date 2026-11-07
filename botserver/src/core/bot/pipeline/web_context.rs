@@ -17,6 +17,10 @@ use super::sink::ChannelSink;
 use super::types::SessionIdentity;
 
 const MAX_RESULTS: usize = 5;
+
+// #1835 — re-exported from turn_hooks so the classifier stays available even
+// when the research/web-search features are disabled (the VM skip uses it).
+pub use super::turn_hooks::is_informational_request;
 const REGION: &str = "wt-wt";
 const SEARCH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(12);
 const MAX_QUERY_CHARS: usize = 160;

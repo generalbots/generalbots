@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::paths::{log_path, marker_path, progress_path, stack_path, workspace_path};
 use super::paths::{is_desktop_mode, is_first_run};
+use super::paths::{log_path, marker_path, progress_path, stack_path, workspace_path};
 use super::types::{ComponentSpec, WizardContext, COMPONENTS};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -57,7 +57,8 @@ pub(crate) fn context() -> WizardContext {
         log_path: log_path().to_string_lossy().to_string(),
         platform: std::env::consts::OS.to_string(),
         api_base: "http://127.0.0.1:8080".to_string(),
-        redirect_uri: "http://127.0.0.1:8080/api/integrations/oauth/{provider}/callback".to_string(),
+        redirect_uri: "http://127.0.0.1:8080/api/integrations/oauth/{provider}/callback"
+            .to_string(),
         resume_step,
         completed_components: progress.completed,
         components: components(),

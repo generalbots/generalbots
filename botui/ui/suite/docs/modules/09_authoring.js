@@ -227,7 +227,7 @@
     var a = article();
     if (!a) return;
     a.focus();
-    var url = window.prompt("Endereço do link (URL):", "https://");
+    var url = (window.GBModal||{prompt:prompt}).prompt("Endereço do link (URL):", "https://");
     if (!url || url === "https://") return;
     var selection = window.getSelection ? String(window.getSelection()) : "";
     if (selection.trim()) {
