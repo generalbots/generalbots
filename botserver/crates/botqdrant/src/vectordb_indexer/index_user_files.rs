@@ -45,7 +45,11 @@ impl VectorDBIndexer {
                                 }
                             }
                             Err(e) => {
-                                log::error!("Failed to generate embedding for file {}: {}", file.id, e);
+                                log::error!(
+                                    "Failed to generate embedding for file {}: {}",
+                                    file.id,
+                                    e
+                                );
                             }
                         }
                     }
@@ -62,7 +66,7 @@ impl VectorDBIndexer {
     }
 
     #[cfg(feature = "mail")]
-    async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
+    pub(crate) async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
         let pool = self.db_pool.clone();
 
         tokio::task::spawn_blocking(move || {
@@ -91,7 +95,7 @@ impl VectorDBIndexer {
     }
 
     #[cfg(feature = "mail")]
-    async fn get_unindexed_emails(
+    pub(crate) async fn get_unindexed_emails(
         &self,
         user_id: Uuid,
         account_id: &str,
