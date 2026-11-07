@@ -180,18 +180,55 @@ fn forget_tokens(needle: &str) -> Vec<String> {
         .collect()
 }
 
+/// True only for a pure whole-memory request: the extracted needle is exactly
+/// `everything`/`tudo` (optionally wrapped in punctuation). A phrase with a
+/// subject, such as "forget everything about writing in pt-BR", extracts the
+/// subject as the needle and must never select every row (#1790).
+fn is_whole_memory_request(needle: &str) -> bool {
+    let normalized: String = needle
+        .trim()
+        .trim_matches(|c: char| !c.is_alphanumeric())
+        .to_lowercase();
+    normalized == "everything" || normalized == "tudo"
+}
+
+/// Conservative stem match: two tokens of at least four characters match when
+/// their first four characters are equal ("writing"/"write", "tables"/"table").
+/// Shorter tokens never participate, so "pt"/"br" cannot match unrelated rows.
+fn shares_stem(left: &str, right: &str) -> bool {
+    let mut left_chars = left.chars();
+    let mut right_chars = right.chars();
+    for _ in 0..4 {
+        match (left_chars.next(), right_chars.next()) {
+            (Some(left), Some(right)) if left == right => {}
+            _ => return false,
+        }
+    }
+    true
+}
+
+fn token_matches(haystack: &str, wanted: &str) -> bool {
+    if wanted.chars().count() < 4 {
+        return false;
+    }
+    if haystack.contains(wanted) {
+        return true;
+    }
+    haystack
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|stored| !stored.is_empty())
+        .any(|stored| shares_stem(wanted, stored))
+}
+
 pub(super) fn select_forget_keys(rows: &[UserMemoryRow], needle: &str) -> Vec<String> {
-    let lower = needle.to_lowercase();
-    if lower.contains("everything") || lower.contains("tudo") {
+    if is_whole_memory_request(needle) {
         return rows.iter().map(|row| row.memory_key.clone()).collect();
     }
     let wanted = forget_tokens(needle);
     rows.iter()
         .filter(|row| {
             let haystack = format!("{} {}", row.memory_key, row.memory_value).to_lowercase();
-            wanted
-                .iter()
-                .any(|token| token.len() >= 4 && haystack.contains(token.as_str()))
+            wanted.iter().any(|token| token_matches(&haystack, token))
         })
         .map(|row| row.memory_key.clone())
         .collect()
@@ -212,6 +249,13 @@ mod tests {
         }
     }
 
+    fn pt_br_row() -> UserMemoryRow {
+        row(
+            "i-write-in-pt-br-and-prefer-tables",
+            "I write in pt-BR and prefer tables",
+        )
+    }
+
     #[test]
     fn forget_requests_are_detected_and_strip_the_prefix() {
         assert_eq!(
@@ -229,14 +273,16 @@ mod tests {
     }
 
     #[test]
+    fn forget_everything_about_a_subject_keeps_the_subject_as_the_needle() {
+        assert_eq!(
+            extract_forget_directive("Forget everything about writing in pt-BR"),
+            Some("writing in pt-BR".to_string())
+        );
+    }
+
+    #[test]
     fn forget_matches_the_stored_row_by_distinctive_token() {
-        let rows = vec![
-            row(
-                "i-write-in-pt-br-and-prefer-tables",
-                "I write in pt-BR and prefer tables",
-            ),
-            row("favourite-drink", "espresso"),
-        ];
+        let rows = vec![pt_br_row(), row("favourite-drink", "espresso")];
         let keys = select_forget_keys(
             &rows,
             "my preference about writing in pt-BR and preferring tables",
@@ -245,10 +291,94 @@ mod tests {
     }
 
     #[test]
-    fn forget_everything_selects_every_row() {
+    fn stem_match_handles_writing_and_write_both_ways() {
+        let longer = vec![row("i-write-in-pt-br", "I write in pt-BR")];
+        assert_eq!(
+            select_forget_keys(&longer, "writing"),
+            vec!["i-write-in-pt-br".to_string()]
+        );
+        let shorter = vec![row("style-note", "writing")];
+        assert_eq!(
+            select_forget_keys(&shorter, "write"),
+            vec!["style-note".to_string()]
+        );
+    }
+
+    #[test]
+    fn stem_match_handles_tables_and_table_both_ways() {
+        let plural_wanted = vec![row("preferred-table", "table")];
+        assert_eq!(
+            select_forget_keys(&plural_wanted, "tables"),
+            vec!["preferred-table".to_string()]
+        );
+        let singular_wanted = vec![row("preferred-tables", "tables")];
+        assert_eq!(
+            select_forget_keys(&singular_wanted, "table"),
+            vec!["preferred-tables".to_string()]
+        );
+    }
+
+    #[test]
+    fn two_letter_locale_tokens_are_dropped_safely() {
+        let rows = vec![pt_br_row(), row("favourite-drink", "espresso")];
+        assert!(select_forget_keys(&rows, "pt-BR").is_empty());
+        let needle = extract_forget_directive("Forget my preference in pt-BR")
+            .expect("the turn is an explicit forget request");
+        assert_eq!(needle, "my preference in pt-BR");
+        assert!(select_forget_keys(&rows, &needle).is_empty());
+    }
+
+    #[test]
+    fn forget_my_address_does_not_delete_the_pt_br_row() {
+        let rows = vec![pt_br_row(), row("favourite-drink", "espresso")];
+        let needle = extract_forget_directive("Forget my address")
+            .expect("the turn is an explicit forget request");
+        assert_eq!(needle, "my address");
+        assert!(select_forget_keys(&rows, &needle).is_empty());
+    }
+
+    #[test]
+    fn forget_everything_about_writing_in_pt_br_deletes_only_the_subject_row() {
+        let rows = vec![pt_br_row(), row("favourite-drink", "espresso")];
+        let needle = extract_forget_directive("Forget everything about writing in pt-BR")
+            .expect("the turn is an explicit forget request");
+        assert_eq!(needle, "writing in pt-BR");
+        assert_eq!(
+            select_forget_keys(&rows, &needle),
+            vec!["i-write-in-pt-br-and-prefer-tables".to_string()]
+        );
+    }
+
+    #[test]
+    fn pure_whole_memory_request_selects_every_row() {
         let rows = vec![row("a", "one"), row("b", "two")];
-        let keys = select_forget_keys(&rows, "everything");
-        assert_eq!(keys, vec!["a".to_string(), "b".to_string()]);
+        let english = extract_forget_directive("forget everything")
+            .expect("the turn is an explicit forget request");
+        assert_eq!(english, "everything");
+        assert_eq!(
+            select_forget_keys(&rows, &english),
+            vec!["a".to_string(), "b".to_string()]
+        );
+        let portuguese = extract_forget_directive("esqueça tudo")
+            .expect("the turn is an explicit forget request");
+        assert_eq!(portuguese, "tudo");
+        assert_eq!(
+            select_forget_keys(&rows, &portuguese),
+            vec!["a".to_string(), "b".to_string()]
+        );
+    }
+
+    #[test]
+    fn subject_bearing_needles_never_select_every_row() {
+        let rows = vec![pt_br_row(), row("favourite-drink", "espresso")];
+        assert_eq!(
+            select_forget_keys(&rows, "everything about writing in pt-BR"),
+            vec!["i-write-in-pt-br-and-prefer-tables".to_string()]
+        );
+        assert_eq!(
+            select_forget_keys(&rows, "tudo sobre writing in pt-BR"),
+            vec!["i-write-in-pt-br-and-prefer-tables".to_string()]
+        );
     }
 
     #[test]

@@ -178,12 +178,29 @@ pub async fn process_message_internal(
     // turn is persisted to chat_preferences; the prompt already reads that
     // table, so the next session starts knowing the preference.
     if msg_type == 1 {
-        crate::core::user_memory::capture_from_message(
+        let memory_reply = crate::core::user_memory::capture_from_message(
             &state.conn,
             user_id,
             Some(bot_uuid),
             &user_text,
         );
+        // #1790 — a forget turn must answer with the real outcome (including
+        // "no stored memory matched") instead of letting the LLM claim it
+        // removed something. Remember turns keep the normal LLM path.
+        if crate::core::user_memory::extract_forget_directive(&user_text).is_some() {
+            let reply = memory_reply.unwrap_or_else(|| {
+                "I could not update your stored memory. Please try again.".to_string()
+            });
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                format!("<p>{reply}</p>"),
+                "web",
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return Ok(());
+        }
     }
 
     // #1644/#1645 — an explicit URL or command request becomes a consent card.
