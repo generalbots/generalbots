@@ -1,5 +1,23 @@
 use axum::Json;
 
+/// `GET /api/whats-new` — the release notes compiled into this build.
+///
+/// The document is embedded with `include_str!`, so an offline desktop shows
+/// the notes for the version it is actually running, never a newer file fetched
+/// from the network. `scripts/whats_new.py` writes the file at release time.
+pub async fn get_whats_new() -> impl axum::response::IntoResponse {
+    (
+        [
+            (
+                axum::http::header::CONTENT_TYPE,
+                "text/markdown; charset=utf-8",
+            ),
+            (axum::http::header::CACHE_CONTROL, "no-cache"),
+        ],
+        include_str!("../../../../whatsnew.md"),
+    )
+}
+
 pub async fn get_product_config() -> Json<serde_json::Value> {
     // Optional routes that the suite probes at boot are advertised here so a
     // build without them can skip the request instead of logging a 404 every

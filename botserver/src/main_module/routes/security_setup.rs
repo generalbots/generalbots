@@ -74,6 +74,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
                 .add_anonymous_path("/healthz")
                 .add_anonymous_path("/api/health")
                 .add_anonymous_path("/api/product")
+                .add_anonymous_path("/api/whats-new")
                 .add_anonymous_path("/api/manifest")
                 .add_anonymous_path("/api/i18n")
                 .add_anonymous_path("/api/auth")
@@ -153,6 +154,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
                 .add_public_path("/suite")
                 .add_public_path("/themes")
                 .add_public_path("/api/product")
+                .add_public_path("/api/whats-new")
                 .add_public_path("/api/auth/suite-sso")
                 // Vibe domain forward-auth: Caddy calls this without a token;
                 // it validates the domain cookie/JWT itself (public gate).
