@@ -441,7 +441,7 @@ indicatif = "0.18.0"
 mimalloc = "0.1"
 
 # ─── SECRETS / VAULT ───
-vaultrs = "0.7"
+vaultrs = "0.8"
 
 # ─── CALENDAR / RSS ───
 icalendar = "0.17"
