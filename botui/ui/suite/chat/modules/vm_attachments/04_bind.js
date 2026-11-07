@@ -42,6 +42,30 @@ function vmReportSaved(data) {
   return message;
 }
 
+// #1834 — Open an office output in its built-in editor. Publishing to Drive
+// needs the agent VM; when the binary does not ship it (or the product has no
+// such app), fall back to the server-rendered Office preview so the button is
+// never a dead end.
+function vmOpenAttachment(conversationId, path) {
+  var fileName = String(path || "").split("/").pop() || "file";
+  var app = vmOfficeAppFor(fileName);
+  if (!app) {
+    throw new Error("this file has no editor app");
+  }
+  var canPublish = vmAgentDriveEnabled() && vmOfficeAppAvailable(app);
+  if (!canPublish) {
+    vmShowPreviewUrl(vmOfficePreviewUrl(conversationId, path), path);
+    return Promise.resolve(null);
+  }
+  return vmSaveToDrive(conversationId, ["output/" + fileName]).then(function (data) {
+    var saved = (data && data.saved) || [];
+    if (!saved.length) throw new Error("file was not saved to Drive");
+    vmOpenInOfficeApp(fileName, saved[0].path);
+    vmReportSaved(data);
+    return saved[0].path;
+  });
+}
+
 function vmBindAttachment(card) {
   if (!card || card.dataset.bound === "1") return;
   card.dataset.bound = "1";
@@ -121,12 +145,7 @@ function vmBindAttachment(card) {
             if (inlineViewable || officeDoc) {
               window.open(url, "_blank", "noopener");
             } else {
-              var link = document.createElement("a");
-              link.href = url;
-              link.download = fileName;
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
+              vmDownload(url, fileName);
             }
           })
           .catch(vmNotifyError);
@@ -143,7 +162,7 @@ function vmBindAttachment(card) {
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, [path]);
+          return vmSaveToDrive(convId, ["output/" + fileName]);
         })
         .then(vmReportSaved)
         .catch(vmNotifyError);
@@ -156,7 +175,7 @@ function vmBindAttachment(card) {
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, [path]);
+          return vmSaveToDrive(convId, ["output/" + fileName]);
         })
         .then(function (data) {
           var saved = (data && data.saved) || [];
@@ -172,12 +191,7 @@ function vmBindAttachment(card) {
       e.preventDefault();
       rawUrlFor()
         .then(function (url) {
-          var link = document.createElement("a");
-          link.href = url;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
+          return vmDownload(url, fileName);
         })
         .catch(vmNotifyError);
     });
