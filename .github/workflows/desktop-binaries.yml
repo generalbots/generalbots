@@ -223,7 +223,10 @@ jobs:
               sha256sum "$f" >> SHA256SUMS-linux
             fi
           done
-          ls -lh dist
+          # Inside dist/ (after the cd above) — listing `dist` again looks for
+          # dist/dist and aborts the job, which is why the Linux installer was
+          # never attached to a release (.35–.38 shipped Windows-only).
+          ls -lh
 
       # A published installer is only as good as its first run. This unpacks the
       # tarball built above on a clean runner, installs it, provisions the stack
