@@ -3,9 +3,9 @@ use botvideo::safe_command::SafeCommand;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 
 #[derive(Clone)]
 pub struct TrayManager {
@@ -97,6 +97,38 @@ impl TrayManager {
                 self.running_mode
             );
 
+            // Build menu items: New Chat, Files, ---, Settings, About, ---, Quit
+            macro_rules! menu_item {
+                ($id:expr, $label:expr) => {
+                    match MenuItem::with_id(app, $id, $label, true, None::<&str>) {
+                        Ok(item) => item,
+                        Err(e) => {
+                            log::error!("Failed to create menu item '{}': {e}", $label);
+                            return;
+                        }
+                    }
+                };
+            }
+            macro_rules! separator {
+                () => {
+                    match PredefinedMenuItem::separator(app) {
+                        Ok(item) => item,
+                        Err(e) => {
+                            log::error!("Failed to create separator: {e}");
+                            return;
+                        }
+                    }
+                };
+            }
+
+            let new_chat_i = menu_item!("new-chat", "New Chat");
+            let files_i    = menu_item!("files",    "Files");
+            let sep1       = separator!();
+            let settings_i = menu_item!("settings", "Settings");
+            let about_i    = menu_item!("about",    "About");
+            let sep2       = separator!();
+            let quit_i     = menu_item!("quit",     "Quit");
+
             let tray_menu = match Menu::new(app) {
                 Ok(menu) => menu,
                 Err(e) => {
@@ -104,30 +136,70 @@ impl TrayManager {
                     return;
                 }
             };
-            let quit_i = match MenuItem::with_id(app, "quit", "Quit", true, None::<&str>) {
-                Ok(item) => item,
-                Err(e) => {
-                    log::error!("Failed to create tray quit item: {e}");
-                    return;
-                }
-            };
+            let _ = tray_menu.append(&new_chat_i);
+            let _ = tray_menu.append(&files_i);
+            let _ = tray_menu.append(&sep1);
+            let _ = tray_menu.append(&settings_i);
+            let _ = tray_menu.append(&about_i);
+            let _ = tray_menu.append(&sep2);
             let _ = tray_menu.append(&quit_i);
 
-            // Create a simple red icon
-            let w = 32;
-            let h = 32;
-            let mut rgba = Vec::with_capacity((w * h * 4) as usize);
-            for _ in 0..(w * h) {
-                rgba.extend_from_slice(&[255, 0, 0, 255]); // Red
-            }
-            
-            let icon = tauri::image::Image::new_owned(rgba, w, h);
+            // Use the bundled app icon (defined in tauri.conf.json) instead of a
+            // generated red square.  Fall back to a plain white square only if the
+            // runtime returns None (should never happen in a normal Tauri build).
+            let icon = app.default_window_icon().cloned().unwrap_or_else(|| {
+                let w: u32 = 32;
+                let h: u32 = 32;
+                let rgba = vec![255u8; (w * h * 4) as usize]; // opaque white
+                tauri::image::Image::new_owned(rgba, w, h)
+            });
 
             let tray_builder = TrayIconBuilder::with_id("main")
                 .menu(&tray_menu)
                 .tooltip("General Bots")
-                .icon(icon);
-            
+                .icon(icon)
+                .on_menu_event(|app, event| {
+                    match event.id().as_ref() {
+                        "new-chat" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                            let _ = app.emit("tray:open-chat", ());
+                        }
+                        "files" => {
+                            let _ = app.emit("tray:open-files", ());
+                        }
+                        "settings" => {
+                            let _ = app.emit("tray:open-settings", ());
+                        }
+                        "about" => {
+                            let _ = app.emit("tray:open-about", ());
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        other => {
+                            log::warn!("Unknown tray menu event id: {other}");
+                        }
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                });
+
             match tray_builder.build(app) {
                 Ok(tray) => {
                     if let Ok(mut handle) = self.tray_handle.lock() {
