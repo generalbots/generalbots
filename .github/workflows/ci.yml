@@ -95,13 +95,8 @@ jobs:
 
   a11y:
     name: Accessibility and performance
-    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.full == 'true' || github.event.inputs.release_tag != '') }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     uses: ./.github/workflows/a11y-perf.yml
 
-  desktop:
-    name: Desktop binaries (no publish)
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '' }}
-    uses: ./.github/workflows/desktop-binaries.yml
-    with:
-      tag: ${{ github.event.inputs.release_tag }}
-      publish: false
+  # Desktop builds are triggered by release.yml (on tag) and manual dispatch;
+  # ci.yml only runs the lightweight gates.
