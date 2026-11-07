@@ -6,14 +6,36 @@ use super::render::render_result;
 use super::send;
 use super::super::types::SessionIdentity;
 
+/// User-facing message when the per-run time budget is exceeded.  The sandbox
+/// itself is fine — only this particular run took too long (#1803).
+fn budget_elapsed_message() -> String {
+    "The workspace run exceeded its time budget. Retry with a simpler request, or split the task into smaller steps.".to_string()
+}
+
+/// Returns `true` when the reason text describes a budget / timeout exhaustion
+/// rather than a workspace infrastructure failure.
+fn is_budget_elapsed(reason: &str) -> bool {
+    reason.contains("budget elapsed")
+}
+
 /// The truthful replacement for the dead-end "workspace is not available"
 /// phrase: show the concrete reason the VM subsystem reports (status is
 /// logged only, never shown), then one short pointer forward.
+///
+/// **Budget-elapsed errors must be caught by the caller before reaching this
+/// function** — see [`budget_elapsed_message`].  The guard here is a safety
+/// net so the misleading "restart the app" suffix never leaks into a budget
+/// error (#1803).
 fn workspace_failure_message(reason: &str) -> String {
     let trimmed = reason.trim();
     if trimmed.is_empty() {
         return "The workspace could not run this program. Start a new message and try again."
             .to_string();
+    }
+    // Safety net: a budget-elapsed reason must never get the sandbox/restart
+    // suffix — even if a caller forgets to check `is_budget_elapsed` first.
+    if is_budget_elapsed(trimmed) {
+        return budget_elapsed_message();
     }
     let clipped: String = trimmed.chars().take(320).collect();
     let clipped = if trimmed.chars().count() > 320 {
@@ -121,9 +143,13 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             let message = match result {
                 Err((status, reason)) => {
                     botlog::safe_warn!("background job workspace failure ({status}): {reason}");
-                    workspace_failure_message(&reason)
+                    if is_budget_elapsed(&reason) {
+                        budget_elapsed_message()
+                    } else {
+                        workspace_failure_message(&reason)
+                    }
                 }
-                Ok(None) => "The workspace became unavailable and the background job could not finish.".to_string(),
+                Ok(None) => "Workspace is starting \u{2014} retry in a moment.".to_string(),
                 Ok(Some((ok, stdout, stderr))) => {
                     render_result(user_id, session_id, ok, &stdout, &stderr).await
                 }
@@ -228,12 +254,16 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             botlog::safe_warn!(
                 "vm_exec workspace failure for session {session_id}: status={status} reason={reason}"
             );
-            let message = workspace_failure_message(&reason);
+            let message = if is_budget_elapsed(&reason) {
+                budget_elapsed_message()
+            } else {
+                workspace_failure_message(&reason)
+            };
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
         }
         Ok(None) => {
-            let message = "The workspace is not available right now. Start a new message and try again.";
+            let message = "Workspace is starting \u{2014} retry in a moment.";
             send(identity, message).await;
             super::persist(state, session_id, user_id, message).await;
         }
@@ -276,7 +306,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
 
 #[cfg(test)]
 mod workspace_failure_message_tests {
-    use super::workspace_failure_message;
+    use super::{budget_elapsed_message, is_budget_elapsed, workspace_failure_message};
 
     #[test]
     fn empty_reason_keeps_a_short_call_to_action() {
@@ -295,6 +325,9 @@ mod workspace_failure_message_tests {
         assert!(message.contains("container ag-uf4b70eb7-7e97"));
         assert!(message.contains("Operation not permitted"));
         assert!(message.starts_with("The workspace could not run this program: "));
+        // Workspace infrastructure failures keep the sandbox/restart guidance.
+        assert!(message.contains("sandbox host"));
+        assert!(message.contains("restarting the app"));
     }
 
     #[test]
@@ -304,5 +337,49 @@ mod workspace_failure_message_tests {
         assert!(message.contains('…'), "clip marker present");
         assert!(message.chars().count() < 500, "message stays readable");
         assert!(message.ends_with("brings the workspace up."));
+    }
+
+    // #1803 — budget-elapsed must never mention "sandbox host" or "restarting
+    // the app"; the workspace is fine, only the run took too long.
+    #[test]
+    fn budget_elapsed_detected_by_reason_string() {
+        assert!(is_budget_elapsed(
+            "the run budget elapsed before the workspace answered"
+        ));
+        assert!(!is_budget_elapsed("container timed out"));
+        assert!(!is_budget_elapsed(""));
+    }
+
+    #[test]
+    fn budget_elapsed_message_has_no_sandbox_or_restart_text() {
+        let msg = budget_elapsed_message();
+        assert!(
+            !msg.contains("sandbox host"),
+            "budget message must not mention sandbox host"
+        );
+        assert!(
+            !msg.contains("restarting the app"),
+            "budget message must not mention restarting the app"
+        );
+        assert!(msg.contains("time budget"), "must say what happened");
+        assert!(msg.contains("simpler request"), "must suggest a remedy");
+    }
+
+    #[test]
+    fn workspace_failure_message_safety_net_for_budget_reason() {
+        // Even if a caller forgets to check is_budget_elapsed and passes the
+        // reason through workspace_failure_message, the safety net catches it.
+        let msg = workspace_failure_message(
+            "the run budget elapsed before the workspace answered",
+        );
+        assert!(
+            !msg.contains("sandbox host"),
+            "safety net must strip sandbox text"
+        );
+        assert!(
+            !msg.contains("restarting the app"),
+            "safety net must strip restart text"
+        );
+        assert!(msg.contains("time budget"));
     }
 }
