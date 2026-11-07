@@ -6,7 +6,7 @@ declared in the root `Cargo.toml` and excluded via `[workspace] exclude`.
 | Directory | Upstream | Version | Local change |
 |-----------|----------|---------|--------------|
 | `docx-rs/` | [bokuweb/docx-rs](https://github.com/bokuweb/docx-rs) | 0.4.22 (MIT) | `zip` requirement raised from `^8.6.0` to `^9.0.4`; `src/` is byte-for-byte upstream. |
-| `umya-spreadsheet/` | [MathNya/umya-spreadsheet](https://github.com/MathNya/umya-spreadsheet) | 3.1.1 (MIT) | `zip` requirement raised from `^8.6.0` to `^9.0.4`, plus one `ZipFile::name()` call adapted to zip 9's `Result<Cow<str>, ZipError>` return in `src/reader/driver.rs`. |
+| `umya-spreadsheet/` | [MathNya/umya-spreadsheet](https://github.com/MathNya/umya-spreadsheet) | 3.1.1 (MIT) | `zip` requirement raised from `^8.6.0` to `^9.0.4`, one `ZipFile::name()` call adapted to zip 9's `Result<Cow<str>, ZipError>` return in `src/reader/driver.rs`, and two upstream test-vector passwords annotated with `// codeql[rust/hard-coded-cryptographic-value]` (fixed test data, not credentials). |
 
 ## Why
 
