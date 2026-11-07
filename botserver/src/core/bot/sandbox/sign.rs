@@ -14,7 +14,17 @@ use super::store::resource_hash;
 type HmacSha256 = Hmac<Sha256>;
 
 fn signing_key() -> Vec<u8> {
-    botsecurity_crypto::encryption::load_master_encryption_key()
+    // Tests run in parallel with other modules that may reload the master key
+    // from Vault/env; use a fixed test key so sign+verify in the same test
+    // cannot observe two different keys.
+    #[cfg(test)]
+    {
+        b"general-bots-sandbox-test-signing-key".to_vec()
+    }
+    #[cfg(not(test))]
+    {
+        botsecurity_crypto::encryption::load_master_encryption_key()
+    }
 }
 
 fn b64(input: &[u8]) -> String {
