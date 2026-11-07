@@ -274,7 +274,7 @@ textarea#messageInput {
     margin-bottom: 2px;
     border-radius: 50%;
     background: var(--accent, #2563eb);
-    color: #fff;
+    color: var(--surface, #fff);
     box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
     transition:
         transform 0.15s ease,
