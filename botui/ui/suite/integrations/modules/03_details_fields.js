@@ -104,6 +104,22 @@
         }).join("") + '</ul>';
     }
 
+    // #1854: the catalog ships auth.setup_steps as an ordered credential
+    // walkthrough. Render it as a numbered list so every provider shows a
+    // concrete 1-2-3 path instead of one prose paragraph.
+    function renderSetupSteps(value, fallback) {
+        var items = collectGuidance(value, []);
+        if (!items.length && fallback) {
+            items.push(fallback);
+        }
+        if (!items.length) {
+            return '<p class="integrations-readonly-note">No setup steps were published for this provider.</p>';
+        }
+        return '<ol class="integrations-guidance integrations-setup-steps">' + items.map(function (item) {
+            return '<li>' + namespace.escapeHtml(item) + '</li>';
+        }).join("") + '</ol>';
+    }
+
     function normalizeParams(params) {
         if (params && typeof params === "object" && !Array.isArray(params) && params.properties && typeof params.properties === "object") {
             var requiredNames = Array.isArray(params.required) ? params.required : [];
@@ -294,6 +310,7 @@
         collectGuidance: collectGuidance,
         renderFields: renderFields,
         renderGuidance: renderGuidance,
+        renderSetupSteps: renderSetupSteps,
         renderActions: renderActions,
         renderConnectSection: renderConnectSection,
         providerMark: providerMark,

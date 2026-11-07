@@ -1,3 +1,9 @@
+use super::auth_steps::{
+    API_KEY_STEPS, AWS_STEPS, BASIC_STEPS, GOOGLE_OAUTH2_STEPS, IMAP_STEPS, INSTAGRAM_OAUTH2_STEPS,
+    KEYLESS_STEPS, MICROSOFT_OAUTH2_STEPS, OAUTH2_STEPS, OPENAI_COMPATIBLE_STEPS, TELEGRAM_STEPS,
+    TOKEN_STEPS, TRELLO_KEY_TOKEN_STEPS, UNKNOWN_STEPS, UNSUPPORTED_STEPS, WHATSAPP_STEPS,
+    ZENDESK_TOKEN_STEPS,
+};
 use super::types::{AuthField, AuthMethod, AuthProfile, InputType};
 
 const fn field(
@@ -187,6 +193,7 @@ pub(crate) static OAUTH2: AuthProfile = AuthProfile {
     method: AuthMethod::OAuth2,
     fields: OAUTH_FIELDS,
     instructions: "Authorize through the provider OAuth 2.0 consent flow. OAuth credentials are stored only in the secrets vault.",
+    setup_steps: OAUTH2_STEPS,
     least_privilege: "Request only scopes required by enabled actions and prefer short-lived, refreshable grants.",
 };
 
@@ -194,6 +201,7 @@ pub(crate) static GOOGLE_OAUTH2: AuthProfile = AuthProfile {
     method: AuthMethod::OAuth2,
     fields: OAUTH_FIELDS,
     instructions: "Use Google OAuth 2.0 and grant access through the Google consent screen. Tokens remain outside LLM context.",
+    setup_steps: GOOGLE_OAUTH2_STEPS,
     least_privilege: "Select the narrowest Google API scopes needed by enabled actions; avoid broad Workspace scopes.",
 };
 
@@ -201,6 +209,7 @@ pub(crate) static MICROSOFT_OAUTH2: AuthProfile = AuthProfile {
     method: AuthMethod::OAuth2,
     fields: OAUTH_FIELDS,
     instructions: "Use Microsoft identity platform OAuth 2.0 for Microsoft Graph. Tokens remain in the secrets vault.",
+    setup_steps: MICROSOFT_OAUTH2_STEPS,
     least_privilege: "Prefer delegated permissions and the narrowest Graph scopes required by enabled actions.",
 };
 
@@ -208,6 +217,7 @@ pub(crate) static INSTAGRAM_OAUTH2: AuthProfile = AuthProfile {
     method: AuthMethod::OAuth2,
     fields: OAUTH_FIELDS,
     instructions: "Authorize through the Meta app consent screen with Instagram Graph API permissions. The connected Instagram account must be a Business or Creator account linked to a Facebook Page; Instagram personal accounts are not supported.",
+    setup_steps: INSTAGRAM_OAUTH2_STEPS,
     least_privilege: "Request only instagram_basic, instagram_content_publish, pages_show_list and pages_read_engagement; prefer a dedicated Meta app per tenant over a shared app.",
 };
 
@@ -269,6 +279,7 @@ pub(crate) static TELEGRAM: AuthProfile = AuthProfile {
     method: AuthMethod::Token,
     fields: TELEGRAM_FIELDS,
     instructions: "Create the bot via @BotFather and store the token in the secrets vault (Vault-only: the token is never written to config.csv). When a webhook secret is configured, deliveries must carry Telegram's signature header, otherwise unsigned deliveries are rejected.",
+    setup_steps: TELEGRAM_STEPS,
     least_privilege: "Use a dedicated bot token per tenant; disable unused channel bindings and inline keyboards.",
 };
 
@@ -276,6 +287,7 @@ pub(crate) static WHATSAPP: AuthProfile = AuthProfile {
     method: AuthMethod::Token,
     fields: WHATSAPP_FIELDS,
     instructions: "Create a WhatsApp Business app in the Meta developer portal and store the access token in the secrets vault (Vault-only: the token is never written to config.csv).",
+    setup_steps: WHATSAPP_STEPS,
     least_privilege: "Use a permanent System User token scoped to one phone number id; disable unused webhook fields and templates.",
 };
 
@@ -284,6 +296,7 @@ pub(crate) static KEYLESS: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: &[],
     instructions: "This provider requires no API key — free gateway models are used as-is.",
+    setup_steps: KEYLESS_STEPS,
     least_privilege: "No credentials are collected or stored for this provider.",
 };
 
@@ -291,6 +304,7 @@ pub(crate) static API_KEY: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: API_KEY_FIELDS,
     instructions: "Create a provider API key and store it in the secrets vault. The key is never included in LLM context.",
+    setup_steps: API_KEY_STEPS,
     least_privilege: "Use a dedicated restricted key and disable unused products, resources, and write permissions.",
 };
 
@@ -298,6 +312,7 @@ pub(crate) static TOKEN: AuthProfile = AuthProfile {
     method: AuthMethod::Token,
     fields: TOKEN_FIELDS,
     instructions: "Create a dedicated access token and store it in the secrets vault. Tokens are never exposed to the LLM.",
+    setup_steps: TOKEN_STEPS,
     least_privilege: "Grant only scopes needed by enabled actions and use an expiry when the provider supports one.",
 };
 
@@ -305,6 +320,7 @@ pub(crate) static ZENDESK_TOKEN: AuthProfile = AuthProfile {
     method: AuthMethod::Token,
     fields: ZENDESK_TOKEN_FIELDS,
     instructions: "In Zendesk Admin Center create an API token, then provide your tenant subdomain, account email and the token. All three are required for Basic {email}/token authentication over TLS.",
+    setup_steps: ZENDESK_TOKEN_STEPS,
     least_privilege: "Use a dedicated agent account whose role covers only ticket operations enabled here.",
 };
 
@@ -312,6 +328,7 @@ pub(crate) static TRELLO_KEY_TOKEN: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: TRELLO_KEY_TOKEN_FIELDS,
     instructions: "Create a Power-Up (or use your developer API key) on trello.com and generate a member token for it. Both the key and the token are stored in the secrets vault.",
+    setup_steps: TRELLO_KEY_TOKEN_STEPS,
     least_privilege: "Scope the token to read or write only the boards used by the enabled actions.",
 };
 
@@ -319,6 +336,7 @@ pub(crate) static BASIC: AuthProfile = AuthProfile {
     method: AuthMethod::Basic,
     fields: BASIC_FIELDS,
     instructions: "Use dedicated API credentials over TLS. Secrets are stored in the vault and excluded from LLM context.",
+    setup_steps: BASIC_STEPS,
     least_privilege: "Use a non-human integration account with only the permissions required by enabled actions.",
 };
 
@@ -326,6 +344,7 @@ pub(crate) static IMAP: AuthProfile = AuthProfile {
     method: AuthMethod::Protocol,
     fields: IMAP_FIELDS,
     instructions: "Connect with IMAP over TLS. Prefer OAuth or an app password when the mail provider supports it.",
+    setup_steps: IMAP_STEPS,
     least_privilege: "Use a dedicated mailbox or read-only mailbox grant unless message mutation is explicitly enabled.",
 };
 
@@ -333,6 +352,7 @@ pub(crate) static AWS: AuthProfile = AuthProfile {
     method: AuthMethod::AccessKey,
     fields: AWS_FIELDS,
     instructions: "Prefer workload identity or an assumed STS role. Use an IAM user only when workload identity or an STS role is unavailable. Attach a minimum custom IAM policy; never use root or AdministratorAccess. Credentials stay in the secrets vault and never enter LLM context.",
+    setup_steps: AWS_STEPS,
     least_privilege: "Scope the custom IAM policy to the exact actions and resource ARNs required. Use temporary STS credentials whenever possible and rotate long-lived keys.",
 };
 
@@ -340,6 +360,7 @@ pub(crate) static UNKNOWN: AuthProfile = AuthProfile {
     method: AuthMethod::Unknown,
     fields: &[],
     instructions: "Authentication must be verified against current official provider documentation before implementation.",
+    setup_steps: UNKNOWN_STEPS,
     least_privilege: "Do not collect credentials until the supported authentication method and minimum scopes are confirmed.",
 };
 
@@ -348,6 +369,7 @@ pub(crate) static UNSUPPORTED: AuthProfile = AuthProfile {
     fields: &[],
     instructions:
         "No supported official public API authentication flow is available for this catalog entry.",
+    setup_steps: UNSUPPORTED_STEPS,
     least_privilege: "Do not request or store credentials for unsupported providers.",
 };
 
@@ -375,5 +397,6 @@ pub(crate) static OPENAI_COMPATIBLE: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: OPENAI_COMPATIBLE_FIELDS,
     instructions: "Configure any OpenAI-compatible chat-completions endpoint (base URL + model) and store its API key in the secrets vault.",
+    setup_steps: OPENAI_COMPATIBLE_STEPS,
     least_privilege: "Use a dedicated restricted key and the narrowest endpoint access required.",
 };

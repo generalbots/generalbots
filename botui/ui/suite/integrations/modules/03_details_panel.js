@@ -6,6 +6,7 @@
     var collectGuidance = helpers.collectGuidance;
     var renderFields = helpers.renderFields;
     var renderGuidance = helpers.renderGuidance;
+    var renderSetupSteps = helpers.renderSetupSteps;
     var renderActions = helpers.renderActions;
     var renderConnectSection = helpers.renderConnectSection;
     var providerMark = helpers.providerMark;
@@ -131,6 +132,9 @@
             leastPrivilege.push(leastPrivilegeFallback);
         }
         var docsUrl = namespace.safeUrl(provider.official_docs);
+        var setupSteps = renderSetupSteps(provider.auth.setup_steps, provider.auth.instructions);
+        var setupNote = provider.auth.instructions ?
+            '<p class="integrations-readonly-note">' + namespace.escapeHtml(provider.auth.instructions) + '</p>' : '';
         var adapterTitle = "Configuration requires adapter";
         var adapterCopy = "Planned setup only. This control plane does not submit or persist credentials.";
         var adapterBlock = provider.llm_available ?
@@ -149,7 +153,7 @@
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Authentication</h4>' +
             '<span>' + namespace.escapeHtml(namespace.titleCase(provider.auth.method, "Not specified")) + '</span></div>' + renderFields(provider) + '</section>' +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Setup guidance</h4><span>Read only</span></div>' +
-            renderGuidance(provider.auth.instructions, "") + '</section>' +
+            setupSteps + setupNote + '</section>' +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Least-privilege guidance</h4><span>Recommended</span></div>' +
             renderGuidance(leastPrivilege, leastPrivilegeFallback) + '</section>' +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Actions</h4><span>' + provider.action_count + ' declared</span></div>' +

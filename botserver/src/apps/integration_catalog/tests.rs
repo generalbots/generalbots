@@ -38,6 +38,37 @@ fn provider_ids_and_names_are_unique() {
 }
 
 #[test]
+fn every_provider_publishes_a_vendor_link_and_numbered_setup_guide() {
+    // #1854: the Integrations detail panel must always offer a vendor help
+    // link and a numbered credential walkthrough, including unsupported
+    // providers (which explain why no credential should be collected).
+    let catalog = search(None, None, None);
+    for provider in &catalog.providers {
+        let docs = provider.official_docs.unwrap_or_default();
+        assert!(
+            docs.starts_with("https://"),
+            "{} must publish an https vendor help link, got {docs:?}",
+            provider.id
+        );
+        assert!(
+            provider.auth.setup_steps.len() >= 3,
+            "{} must publish at least three numbered setup steps, got {}",
+            provider.id,
+            provider.auth.setup_steps.len()
+        );
+        assert!(
+            provider
+                .auth
+                .setup_steps
+                .iter()
+                .all(|step| !step.trim().is_empty()),
+            "{} must not publish empty setup steps",
+            provider.id
+        );
+    }
+}
+
+#[test]
 fn github_and_stripe_flip_llm_available_without_status_drift() {
     let expectations = [("github", Status::Partial), ("stripe", Status::Built)];
     for (id, status) in expectations {

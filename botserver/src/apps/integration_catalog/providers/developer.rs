@@ -5,7 +5,7 @@ use super::super::actions::{
 };
 use super::super::auth::{API_KEY, AWS, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN};
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
-use super::{ProviderSpec, provider};
+use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
     // GitHub is a live adapter (#950 slice 2); the seed flips
@@ -30,8 +30,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Cursor",
         ProviderSpec {
             category: Category::Developer, strategy: Strategy::NewApp, status: Status::Built,
-            priority: Priority::Nice, module: None, official_docs: None, auth: &API_KEY,
-            actions: AI_PLATFORM_ACTIONS,
+            priority: Priority::Nice, module: None, official_docs: Some("https://docs.cursor.com/"),
+            auth: &API_KEY, actions: AI_PLATFORM_ACTIONS,
         },
     ),
     // AWS is the first provider with a live adapter (#950 slice 1); the
@@ -217,7 +217,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Hex",
         ProviderSpec {
             category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
-            priority: Priority::Nice, module: None, official_docs: None, auth: &TOKEN,
+            priority: Priority::Nice, module: None,
+            official_docs: Some("https://learn.hex.tech/docs/api/api-reference"), auth: &TOKEN,
             actions: DATA_PLATFORM_ACTIONS,
         },
     ),
@@ -226,8 +227,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Mintlify",
         ProviderSpec {
             category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
-            priority: Priority::Nice, module: None, official_docs: None, auth: &API_KEY,
-            actions: CONTENT_ACTIONS,
+            priority: Priority::Nice, module: None, official_docs: Some("https://mintlify.com/docs/api/"),
+            auth: &API_KEY, actions: CONTENT_ACTIONS,
         },
     ),
     provider(
@@ -235,7 +236,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Devin",
         ProviderSpec {
             category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
-            priority: Priority::Nice, module: None, official_docs: None, auth: &API_KEY,
+            priority: Priority::Nice, module: None,
+            official_docs: Some("https://docs.devin.ai/api-reference/overview"), auth: &API_KEY,
             actions: AI_PLATFORM_ACTIONS,
         },
     ),
