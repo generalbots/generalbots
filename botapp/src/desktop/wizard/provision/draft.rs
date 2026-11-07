@@ -25,7 +25,6 @@ pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
             "model": request.model.model,
         },
         "workspace": request.workspace,
-        "telemetry": request.telemetry,
         "display_name": request.display_name,
         "services": services,
     });

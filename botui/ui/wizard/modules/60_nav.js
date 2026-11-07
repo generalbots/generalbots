@@ -64,7 +64,6 @@
     el.next.textContent = t("finish.opening");
     B.finish({
       display_name: draft.display_name,
-      telemetry: draft.telemetry,
       model: draft.model,
       workspace: draft.workspace,
       services: draft.services,

@@ -76,7 +76,6 @@
         draft.model = Object.assign(draft.model, saved.model || {});
         draft.model.api_key = "";
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
-        draft.telemetry = !!saved.telemetry;
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
       }
