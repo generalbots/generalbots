@@ -277,8 +277,8 @@ pub async fn use_for_vibe(
             "OpenAI-compatible connection requires an endpoint and a model".to_string(),
         ));
     }
-    let default_url = default_url.unwrap();
-    let default_model = default_model.unwrap();
+    let default_url = default_url.unwrap_or_default();
+    let default_model = default_model.unwrap_or_default();
 
     // #1654/#1656 — subscription providers are per-user accounts. They are
     // never copied into the bot's shared Vibe config: require a linked account
