@@ -181,9 +181,6 @@ pub async fn get_storage_info(State(state): State<Arc<AppState>>) -> Html<String
 pub async fn get_storage_connections(State(_state): State<Arc<AppState>>) -> Html<String> {
 Html(
 r##"<div class="connections-empty">
-<p class="text-muted">No external storage connections configured</p>
-<button class="btn-secondary" onclick="showAddConnectionModal()">
-+ Add Connection
-</button>
-
+<p class="text-muted">No external storage connections configured.</p>
+<p class="text-muted" style="font-size:0.85em;">Use the Integrations section to connect cloud storage providers.</p>
 </div>"## .to_string(), ) }

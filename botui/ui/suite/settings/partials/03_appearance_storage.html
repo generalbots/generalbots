@@ -254,36 +254,9 @@
                     <h2>Storage Usage</h2>
                 </div>
                 <div class="storage-display" hx-get="/api/ui/user/storage" hx-trigger="load" hx-swap="innerHTML">
-                    <div class="storage-bar-container">
-                        <div class="storage-bar">
-                            <div class="storage-bar-fill" style="width: 45%"></div>
-                        </div>
-                        <div class="storage-stats">
-                            <span>4.5 GB used of 10 GB</span>
-                            <span>5.5 GB available</span>
-                        </div>
-                    </div></span>
-                    <div class="storage-breakdown">
-                        <div class="breakdown-item">
-                            <div class="breakdown-color" style="background: #3b82f6"></div>
-                            <span class="breakdown-label">Documents</span>
-                            <span class="breakdown-value">2.1 GB</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <div class="breakdown-color" style="background: #10b981"></div>
-                            <span class="breakdown-label">Images</span>
-                            <span class="breakdown-value">1.8 GB</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <div class="breakdown-color" style="background: #f59e0b"></div>
-                            <span class="breakdown-label">Videos</span>
-                            <span class="breakdown-value">0.4 GB</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <div class="breakdown-color" style="background: #6b7280"></div>
-                            <span class="breakdown-label">Other</span>
-                            <span class="breakdown-value">0.2 GB</span>
-                        </div>
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading storage information...</p>
                     </div>
                 </div>
             </div>
