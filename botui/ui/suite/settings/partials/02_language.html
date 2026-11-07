@@ -145,10 +145,33 @@
                         });
                     }
 
+                    function hasUnsavedSettingsChanges() {
+                        try {
+                            if (window.__gbSettingsDirty) return true;
+                            if (typeof window.gbHasUnsavedChanges === 'function' && window.gbHasUnsavedChanges()) {
+                                return true;
+                            }
+                            if (document.querySelector('[data-dirty="true"], .is-dirty, .settings-dirty, .unsaved')) {
+                                return true;
+                            }
+                        } catch (e) {}
+                        return false;
+                    }
+
+                    function confirmLanguageReload(locale) {
+                        if (!hasUnsavedSettingsChanges()) return true;
+                        var name = locale === 'pt-BR' ? 'Português (Brasil)' : locale || 'the selected language';
+                        return window.confirm(
+                            'Changing the language to ' + name +
+                            ' will reload the app. Unsaved changes may be lost. Continue?'
+                        );
+                    }
+
                     // #1304 — the <select> calls changeLanguage(value) but only
                     // selectLanguage(locale, element) existed, so choosing a
                     // language threw a ReferenceError and nothing happened.
                     window.changeLanguage = function (locale) {
+                        if (!confirmLanguageReload(locale)) return;
                         var element = null;
                         document.querySelectorAll('.language-option[data-locale]').forEach(function (btn) {
                             if (btn.dataset.locale === locale) element = btn;
@@ -157,6 +180,7 @@
                     };
 
                     window.selectLanguage = function (locale, element) {
+                        if (!confirmLanguageReload(locale)) return;
                         var buttons = document.querySelectorAll('.language-option[data-locale]');
                         buttons.forEach(function (btn) {
                             btn.style.borderColor = '#334155';
