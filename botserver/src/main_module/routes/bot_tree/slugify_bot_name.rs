@@ -93,10 +93,71 @@ pub(super) fn pool_conn(
         .get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))
 }
-/// GET /api/bots/list — all bots as JSON for the "New Bot" parent dropdown.
+/// Resolves the authenticated caller from the request extensions. The auth
+/// middleware inserts `AuthenticatedUser` for every authenticated request.
+fn requesting_user(req: &axum::extract::Request) -> Option<Uuid> {
+    req.extensions()
+        .get::<crate::security::auth_api::types::AuthenticatedUser>()
+        .filter(|user| user.is_authenticated())
+        .map(|user| user.user_id)
+}
+
+/// Platform admins (explicit superadmin, or a member of the reserved root org
+/// `default`) may see every bot. Everyone else is confined to the bots of the
+/// organizations they belong to (plus public bots).
+fn caller_is_platform_admin(
+    req: &axum::extract::Request,
+    state: &Arc<AppState>,
+) -> bool {
+    let Some(user) = req
+        .extensions()
+        .get::<crate::security::auth_api::types::AuthenticatedUser>()
+    else {
+        return false;
+    };
+    if user.is_super_admin() {
+        return true;
+    }
+    let Some(email) = user.email.as_deref().filter(|email| !email.is_empty()) else {
+        return false;
+    };
+    let Ok(mut conn) = pool_conn(state) else {
+        return false;
+    };
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct CountRow {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        count: i64,
+    }
+
+    diesel::sql_query(
+        "SELECT COUNT(*) AS count FROM user_organizations uo \
+         JOIN organizations o ON o.org_id = uo.org_id \
+         JOIN users u ON u.id = uo.user_id \
+         WHERE lower(u.email) = lower($1) AND o.slug = 'default'",
+    )
+    .bind::<diesel::sql_types::Text, _>(email)
+    .get_result::<CountRow>(&mut conn)
+    .map(|row| row.count > 0)
+    .unwrap_or(false)
+}
+
+/// GET /api/bots/list — bots visible to the caller, for the "New Bot" parent
+/// dropdown. Tenant isolation (#1782): a non-platform-admin only sees bots of
+/// the organizations it belongs to and public bots — never every tenant's.
 pub async fn handle_bots_list(
     State(state): State<Arc<AppState>>,
+    req: axum::extract::Request,
 ) -> axum::response::Response {
+    let Some(user_id) = requesting_user(&req) else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({ "error": "unauthorized" })),
+        )
+            .into_response();
+    };
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => return e.into_response(),
@@ -111,11 +172,23 @@ pub async fn handle_bots_list(
         name: String,
     }
 
-    let rows: Vec<BotRow> = diesel::sql_query(
-        "SELECT id, name FROM bots ORDER BY name ASC LIMIT 100",
-    )
-    .load::<BotRow>(&mut conn)
-    .unwrap_or_default();
+    let rows: Vec<BotRow> = if caller_is_platform_admin(&req, &state) {
+        diesel::sql_query(
+            "SELECT id, name FROM bots ORDER BY name ASC LIMIT 100",
+        )
+        .load::<BotRow>(&mut conn)
+        .unwrap_or_default()
+    } else {
+        diesel::sql_query(
+            "SELECT b.id, b.name FROM bots b \
+             WHERE b.is_public = true \
+                OR b.org_id IN (SELECT uo.org_id FROM user_organizations uo WHERE uo.user_id = $1) \
+             ORDER BY b.name ASC LIMIT 100",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load::<BotRow>(&mut conn)
+        .unwrap_or_default()
+    };
 
     let bots: Vec<serde_json::Value> = rows
         .into_iter()
@@ -125,7 +198,14 @@ pub async fn handle_bots_list(
     Json(serde_json::json!(bots)).into_response()
 }
 /// GET /api/bots/tree — HTML bot hierarchy (roots + sub-bots via parent_bot_id).
-pub async fn handle_bots_tree(State(state): State<Arc<AppState>>) -> Html<String> {
+/// Scoped to the caller's organizations for non-platform-admins (#1782).
+pub async fn handle_bots_tree(
+    State(state): State<Arc<AppState>>,
+    req: axum::extract::Request,
+) -> Html<String> {
+    let Some(user_id) = requesting_user(&req) else {
+        return Html(String::new());
+    };
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(_) => return Html(String::new()),
@@ -144,11 +224,23 @@ pub async fn handle_bots_tree(State(state): State<Arc<AppState>>) -> Html<String
         parent_bot_id: Option<Uuid>,
     }
 
-    let rows: Vec<BotRow> = diesel::sql_query(
-        "SELECT id, name, description, parent_bot_id FROM bots ORDER BY name ASC LIMIT 200",
-    )
-    .load::<BotRow>(&mut conn)
-    .unwrap_or_default();
+    let rows: Vec<BotRow> = if caller_is_platform_admin(&req, &state) {
+        diesel::sql_query(
+            "SELECT id, name, description, parent_bot_id FROM bots ORDER BY name ASC LIMIT 200",
+        )
+        .load::<BotRow>(&mut conn)
+        .unwrap_or_default()
+    } else {
+        diesel::sql_query(
+            "SELECT b.id, b.name, b.description, b.parent_bot_id FROM bots b \
+             WHERE b.is_public = true \
+                OR b.org_id IN (SELECT uo.org_id FROM user_organizations uo WHERE uo.user_id = $1) \
+             ORDER BY b.name ASC LIMIT 200",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load::<BotRow>(&mut conn)
+        .unwrap_or_default()
+    };
 
     if rows.is_empty() {
         return Html(
