@@ -10,6 +10,12 @@
 # (MinIO, Stalwart, Forgejo, Garage, Skytable) keep their own AGPL notices in
 # LICENSES-desktop.md / 3rdparty.toml — they are not Rust dependencies and are
 # therefore out of scope for this file.
+#
+# The two office-document crates (`docx-rs`, `umya-spreadsheet`) are vendored
+# under `3rdparty/` as path dependencies with only their `zip` requirement
+# raised to 9.x, so no pre-9 zip remains in the graph. They are local path
+# dependencies, not git sources; see the header of each vendored Cargo.toml for
+# the removal condition.
 
 [graph]
 all-features = true
@@ -50,20 +56,12 @@ ignore = [
       reason = "ttf-parser is unmaintained; used for font metrics in document rendering, no attacker-reachable parser loop of our own. Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0249",
       reason = "smartstring is unmaintained; used by an office-document crate on the write path. Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0367",
-      reason = "Zip extraction preserves SUID/SGID bits (fixed in zip 9.0.0). The only pre-9 copy is zip 8.6.0 via docx-rs 0.4.22 and umya-spreadsheet 3.1.1 (upstream pins ^8.6); every first-party dependency (botserver, calamine, ooxmlsdk, rust_xlsxwriter) is on 9.4.1. First-party code never calls ZipArchive::extract() and the one extraction loop uses enclosed_name(). Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0368",
-      reason = "ZipArchive::extract writes symlinks whose target escapes the destination (fixed in 9.0.0). zip 8.6.0 comes only from docx-rs/umya-spreadsheet (write/read of named parts); our extractors reject symlink entries and use enclosed_name(). Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0369",
-      reason = "Zip extraction applies Unix permissions through symlinks (fixed in 9.0.0). zip 8.6.0 comes only from docx-rs/umya-spreadsheet; extraction is unprivileged and confined with enclosed_name(). Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0370",
       reason = "zvariant is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build, never by botserver. Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0371",
       reason = "zbus_names is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0372",
       reason = "zvariant_derive is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0429",
-      reason = "ZipArchive::extract aborts the process on a symlink entry with a large declared size (fixed in 9.0.0). zip 8.6.0 comes only from docx-rs/umya-spreadsheet; a panic would be contained by the request task, and first-party code never calls extract(). Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0441",
       reason = "pin-utils is unmaintained (no advisory, no runtime sink we rely on). Accepted 2026-11-06, tracked in #1723." },
 ]

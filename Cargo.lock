@@ -1568,7 +1568,7 @@ dependencies = [
  "tokio",
  "urlencoding",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -1956,7 +1956,7 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -2062,7 +2062,7 @@ dependencies = [
  "tokio",
  "toml 0.8.2",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -2226,7 +2226,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -2280,7 +2280,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3022,7 +3022,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3457,7 +3457,7 @@ dependencies = [
  "vaultrs",
  "walkdir",
  "x509-parser 0.15.1",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3520,7 +3520,7 @@ dependencies = [
  "tokio",
  "umya-spreadsheet",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3564,7 +3564,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3607,7 +3607,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -3713,7 +3713,7 @@ dependencies = [
  "uuid",
  "which 7.0.3",
  "wiremock",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -4087,7 +4087,7 @@ dependencies = [
  "log",
  "quick-xml 0.42.0",
  "serde",
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -5402,8 +5402,6 @@ dependencies = [
 [[package]]
 name = "docx-rs"
 version = "0.4.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fdf00e8af6d0b3e92d4bbf9b76f773d8b84ea80f310324ad16cbdc2e653e02c"
 dependencies = [
  "base64 0.22.1",
  "crc32fast",
@@ -5413,7 +5411,7 @@ dependencies = [
  "serde_json",
  "smallvec",
  "thiserror 2.0.21",
- "zip 8.6.0",
+ "zip",
 ]
 
 [[package]]
@@ -8521,7 +8519,7 @@ dependencies = [
  "ooxmlsdk-derive",
  "quick-xml 0.41.0",
  "thiserror 2.0.21",
- "zip 9.4.1",
+ "zip",
  "zmij",
 ]
 
@@ -10336,7 +10334,7 @@ version = "0.102.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ca3d0e879a578c1313c2800ab0c6c029d38eed18098675e50341a30d32372ed"
 dependencies = [
- "zip 9.4.1",
+ "zip",
 ]
 
 [[package]]
@@ -12541,12 +12539,6 @@ dependencies = [
 
 [[package]]
 name = "typed-path"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54ec2755506471f54baf5e4bb5499d8e510cc1caf271270e778a736bd2d7336c"
-
-[[package]]
-name = "typed-path"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ce898823d8cd0f028662d2f349694b1af0a5cc9be83f1d213a00d3147445e1e"
@@ -12583,8 +12575,6 @@ dependencies = [
 [[package]]
 name = "umya-spreadsheet"
 version = "3.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "032a20340d2eac6e2e6c940e6b793cd3b68223d5f9412724cb7e32ef17c584d0"
 dependencies = [
  "aes 0.9.3",
  "base64 0.22.1",
@@ -12606,7 +12596,7 @@ dependencies = [
  "rgb",
  "sha2 0.11.0",
  "thousands",
- "zip 8.6.0",
+ "zip",
 ]
 
 [[package]]
@@ -14185,20 +14175,6 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "8.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d04a6b5381502aa6087c94c669499eb1602eb9c5e8198e534de571f7154809b"
-dependencies = [
- "crc32fast",
- "flate2",
- "indexmap 2.14.0",
- "memchr",
- "typed-path 0.12.4",
- "zopfli",
-]
-
-[[package]]
-name = "zip"
 version = "9.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23f17fbc870bfac28c6228aed7d6e6df352e26bf7015c4313727e16a7a01ce5e"
@@ -14220,7 +14196,7 @@ dependencies = [
  "ppmd-rust",
  "sha1 0.11.0",
  "time",
- "typed-path 0.13.0",
+ "typed-path",
  "windows-sys 0.61.2",
  "zeroize",
  "zopfli",

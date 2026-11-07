@@ -8,7 +8,7 @@
 # Every entry below is already triaged in `deny.toml` (cargo-deny is the
 # blocking Rust gate) or is a lockfile-only package that never enters the
 # shipping feature graph. Re-validate alongside the annual SECURITY.md
-# residual-risk review (last review: 2026-11-06).
+# residual-risk review (last review: 2026-11-07).
 #
 # Format: one advisory ID per line; everything after `#` is a comment.
 
@@ -24,22 +24,12 @@ RUSTSEC-2025-0100  # unic-ucd-ident - unmaintained unicode table
 RUSTSEC-2025-0134  # rustls-pemfile - unmaintained, folded into rustls
 RUSTSEC-2026-0192  # ttf-parser - unmaintained font metrics
 RUSTSEC-2026-0249  # smartstring - unmaintained, office write path
-RUSTSEC-2026-0367  # zip <9.0.0 - SUID bits on extract (transitive copies)
-RUSTSEC-2026-0368  # zip <9.0.0 - symlink target escape (transitive copies)
-RUSTSEC-2026-0369  # zip <9.0.0 - permissions through symlink (transitive)
 RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0371  # zbus_names - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0372  # zvariant_derive - unmaintained D-Bus, Tauri Linux only
-RUSTSEC-2026-0429  # zip <9.0.0 - symlink extract abort (transitive copies)
 RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
 
 # --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
-# GHSA equivalents published by OSV for the same zip advisories above.
-GHSA-8hxf-qr8p-62x4  # zip 8.6.0 - AES HMAC bypass on premature EOF (docx-rs/umya)
-GHSA-m665-v7pm-7grj  # zip 8.6.0 - parser differential (<9.0.5, docx-rs/umya)
-GHSA-9hj8-73fh-9963  # zip 8.6.0 - legacy decoder DoS via ZIP64 size (docx-rs/umya)
-GHSA-hjqx-j4rw-g7xv  # zip 8.6.0 - extract symlink target escape (docx-rs/umya)
-GHSA-q7v9-x93c-xqv3  # zip 8.6.0 - extract abort alias of RUSTSEC-2026-0429
 GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429
 # Lockfile-only: rkyv is present in Cargo.lock but never selected by any
 # shipping feature graph (`cargo deny --all-features` does not see it).

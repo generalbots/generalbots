@@ -38,8 +38,8 @@ then executes. It applies to the server and to the desktop edition alike.
   from a previous release silently disables the verification the provisioner
   performs.
 - ✅ Read the upstream release notes before bumping, and record any residual or
-  accepted risk in this file — the same way the `zip` and `accelerate` entries
-  below do — instead of leaving it undocumented.
+  accepted risk in this file — the same way the `accelerate` entry below does —
+  instead of leaving it undocumented.
 - ✅ Prefer the smallest surface that fixes the issue: bump the component, keep
   the URL on the vendor's own release page, and keep the pinned release
   immutable.
@@ -148,6 +148,13 @@ Current credential classes and their rotation action:
 - Licenses: MIT project policy. AGPL is acceptable only for bundled binaries
   whose notices are recorded; no GPL-family crate may be linked.
 - SBOM: produced in CI and kept as an artifact; never committed.
+- Two office-document crates are **vendored** under `3rdparty/` (`docx-rs`,
+  `umya-spreadsheet`) as path dependencies. They are unmodified upstream
+  sources except for raising their `zip` requirement to 9.x and, in
+  `umya-spreadsheet`, adapting one `ZipFile::name()` call to the zip-9
+  `Result` return. This keeps a single patched zip in the graph. The vendored
+  copies are removed as soon as a stable upstream release accepts zip ≥ 9; the
+  removal condition is recorded in each vendored `Cargo.toml`.
 - Vendored frontend assets are local (no CDN) and inventoried in the security
   review. An unreferenced library is removed, not kept "just in case".
 - Desktop installer payloads are verified against the checksums in
@@ -161,7 +168,6 @@ advisory still fails the gate.
 
 | Advisory family | Component | Why accepted | Review |
 |-----------------|-----------|--------------|--------|
-| zip extraction advisories | zip 8.6.0 via the two office-document parents | First-party zip is 9.x; the parents pin `^8.6` and no upstream release accepts 9 yet. We never call `ZipArchive::extract()`; the one extraction loop resolves every entry with `enclosed_name()` and rejects the rest. | 2027-11-06 |
 | glib iterator unsoundness | glib on the Tauri Linux desktop stack | Desktop-only; no server runtime exposure. Removed by the GTK4 desktop upgrade. | 2027-11-06 |
 | rkyv | lockfile only | Present in the lock but not selected by any shipping graph. No exposure. | 2027-11-06 |
 | Unmaintained build-time crates | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, pin-utils | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
@@ -172,7 +178,6 @@ pass):
 
 | Cluster | Current | Removed when |
 |---------|---------|--------------|
-| zip in office crates | 8.6.0 via two parents | a parent release accepts zip ≥ 9.0.5 |
 | GTK / Tauri desktop | glib 0.18 | GTK4 track lands |
 | Python model tooling | accelerate 1.1.1 | a release carries the fix |
 

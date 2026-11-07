@@ -1,0 +1,58 @@
+# Vendored copy of umya-spreadsheet 3.1.1 (MIT), from crates.io.
+# Upstream: https://github.com/MathNya/umya-spreadsheet
+#
+# Why this copy exists
+# --------------------
+# The published 3.1.1 pins `zip ^8.6.0`, which pulls a pre-9 zip carrying
+# RUSTSEC-2026-0367/0368/0369/0429 (and the GHSA aliases). The next release
+# that accepts zip 9 is 4.0.0-beta.1, and we do not ship beta dependencies.
+#
+# Changes against the published crate:
+#   * `zip` raised to 9.x (this file).
+#   * `src/reader/driver.rs`: `ZipFile::name()` returns
+#     `Result<Cow<str>, ZipError>` in zip 9, so the case-insensitive part-name
+#     scan now handles the `Result` instead of calling `str` methods on it.
+#
+# Remove this copy as soon as umya-spreadsheet ships a stable release that
+# depends on zip >= 9 and bump `[workspace.dependencies] umya-spreadsheet`
+# back to a registry requirement.
+
+[package]
+name = "umya-spreadsheet"
+version = "3.1.1"
+edition = "2021"
+rust-version = "1.89.0"
+authors = ["MathNya <umya.net.info@gmail.com>"]
+description = "umya-spreadsheet is a library written in pure Rust to read and write xlsx file."
+readme = "README.md"
+keywords = ["excel", "spreadsheet", "xlsx", "reader", "writer"]
+categories = ["parser-implementations", "encoding", "text-processing"]
+license = "MIT"
+repository = "https://github.com/MathNya/umya-spreadsheet"
+
+[lib]
+name = "umya_spreadsheet"
+path = "src/lib.rs"
+
+[dependencies]
+aes = "0.9"
+base64 = "0.22.1"
+byteorder = "1.5"
+cbc = "0.2"
+cfb = "0.14"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+encoding_rs = "0.8.35"
+fancy-regex = "0.18"
+hmac = "0.13"
+html5gum = "0.8"
+imagesize = "0.14"
+jiff = { version = "0.2", default-features = false }
+md-5 = "0.11"
+num-traits = "0.2.19"
+phf = { version = "0.14", features = ["macros"] }
+quick-xml = { version = "0.41", features = ["serialize"] }
+rand = "0.10"
+rgb = "0.8"
+sha2 = "0.11"
+thousands = "0.2.0"
+zip = { version = "9.0.4", default-features = false, features = ["deflate"] }

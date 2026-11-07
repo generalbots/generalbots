@@ -2,6 +2,13 @@
 [workspace]
 resolver = "2"
 default-members = ["botserver", "botui", "botlib", "botschema"]
+# Vendored office-document crates kept out of the workspace on purpose: they
+# are third-party code (MIT) with a minimal zip-9 patch, not workspace members.
+# See `3rdparty/*/Cargo.toml` for the change log and the removal condition.
+exclude = [
+  "3rdparty/docx-rs",
+  "3rdparty/umya-spreadsheet",
+]
 members = [
   "botlib",
   "botserver",
@@ -373,14 +380,17 @@ tar = "0.4"
 zstd = "0.14"
 
 # ─── DOCUMENT PROCESSING ───
-docx-rs = "0.4.22"
+# Vendored from crates.io with only the `zip` requirement raised to 9.x; see
+# `3rdparty/docx-rs/` and `3rdparty/umya-spreadsheet/`. Swap back to a registry
+# requirement once upstream ships a stable release that accepts zip >= 9.
+docx-rs = { path = "3rdparty/docx-rs" }
 ooxmlsdk = { version = "0.15", default-features = false }
 calamine = "0.38"
 spreadsheet-ods = "1.0"
 pdf-extract = "0.12.1"
 quick-xml = { version = "0.42", features = ["serialize"] }
 rust_xlsxwriter = "0.102"
-umya-spreadsheet = "3.1.1"
+umya-spreadsheet = { path = "3rdparty/umya-spreadsheet" }
 
 # ─── IMAGE / MEDIA ───
 png = "0.18"

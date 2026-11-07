@@ -1,0 +1,53 @@
+# Vendored copy of docx-rs 0.4.22 (MIT), from crates.io.
+# Upstream: https://github.com/bokuweb/docx-rs
+#
+# Why this copy exists
+# --------------------
+# The published 0.4.22 pins `zip ^8.6.0`, which pulls a pre-9 zip carrying
+# RUSTSEC-2026-0367/0368/0369/0429 (and the GHSA aliases). The only change in
+# this vendored tree is the `zip` requirement below, raised to 9.x. The
+# published source compiles unchanged against zip 9, so `src/` is byte-for-byte
+# upstream.
+#
+# Remove this copy as soon as a published docx-rs release depends on zip >= 9
+# and bump `[workspace.dependencies] docx-rs` back to a registry requirement.
+
+[package]
+name = "docx-rs"
+version = "0.4.22"
+edition = "2021"
+authors = ["bokuweb <bokuweb12@gmail.com>"]
+description = "A .docx file writer with Rust/WebAssembly."
+readme = "README.md"
+keywords = ["office", "word", "docx"]
+license = "MIT"
+repository = "https://github.com/bokuweb/docx-rs"
+
+[features]
+default = ["image"]
+wasm = ["wasm-bindgen", "ts-rs", "image"]
+
+[lib]
+name = "docx_rs"
+path = "src/lib.rs"
+
+[dependencies]
+base64 = "0.22.1"
+crc32fast = "1.5"
+image = { version = "0.25", default-features = false, features = [
+    "gif",
+    "jpeg",
+    "png",
+    "bmp",
+    "tiff",
+], optional = true }
+quick-xml = { version = "0.41", default-features = false, features = [
+    "encoding",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+smallvec = "1.15"
+thiserror = "2.0"
+ts-rs = { version = "12.0", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+zip = { version = "9.0.4", default-features = false, features = ["deflate"] }
