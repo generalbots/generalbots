@@ -67,7 +67,8 @@
       model: draft.model,
       workspace: draft.workspace,
       services: draft.services,
-      admin: draft.admin
+      admin: draft.admin,
+      network: draft.network
     }).then(function () {
       say(t("finish.opened"));
     }).catch(function (e) {

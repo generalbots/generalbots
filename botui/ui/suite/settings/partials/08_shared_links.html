@@ -157,6 +157,26 @@
         </article>
     </div>
 
+    <div class="setting-card shared-master-switch">
+        <div class="card-header">
+            <h2>Master peer switch</h2>
+            <p>Stop all P2P traffic for this installation. Offline mode keeps every
+            connection on <code>127.0.0.1</code>.</p>
+        </div>
+        <div class="inline-row">
+            <label for="peer-network-mode">Network mode</label>
+            <select id="peer-network-mode">
+                <option value="offline">Offline (default)</option>
+                <option value="p2p">P2P (opt-in)</option>
+            </select>
+            <button type="button" class="btn-secondary btn-sm" id="peer-master-switch">Apply</button>
+        </div>
+        <p class="shared-hint">
+            Persisted via <code>GB_PEER_NETWORK</code> for the desktop-local build;
+            changing it requires restarting the app.
+        </p>
+    </div>
+
     <div class="shared-links-footer">
         <button type="button" class="btn-secondary btn-sm" onclick="window.refreshSharedLinks && window.refreshSharedLinks()">
             Check again

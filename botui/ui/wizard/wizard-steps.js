@@ -219,6 +219,14 @@
         '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">' + esc(t("privacy.reveal-vault")) + "</button>" +
         '<span class="note" id="vaultNote">' + esc(t("privacy.vault-note")) + "</span>" +
       "</div>" +
+      '<div class="field" style="margin-top:12px">' +
+        '<label for="networkMode">' + esc("Network mode") + "</label>" +
+        '<select id="networkMode">' +
+          '<option value="offline"' + (draft.network && draft.network.mode === "offline" ? " selected" : "") + ">Offline (default)</option>" +
+          '<option value="p2p"' + (draft.network && draft.network.mode === "p2p" ? " selected" : "") + ">P2P (opt-in)</option>" +
+        "</select>" +
+        '<span class="hint">' + esc("Choose Offline or P2P. Can be changed later in Settings → Shared Links.") + "</span>" +
+      "</div>" +
       '<p class="note install-next">' + esc(t("privacy.next-note")) + "</p>";
   }
 
