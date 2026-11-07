@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# NOTE (#1795): this guard and its fixtures are ready, but the published page
-# at https://sites.pragmatismo.com.br/gb7features/ is the remaining dependency:
-# it still marks collaborative documents as Gap. Update that external page
-# before closing #1795; until then CI treats the live-page check as non-blocking.
 """CI guard for the published GB7 feature comparison (#1704, #1795).
 
 The comparison page lives on the public site, not in this repository, so
@@ -17,12 +13,11 @@ validates the live pages (or local fixtures) against the current contract:
 - every Follow-up and Gap row carries a tracked issue reference;
 - a voice row that promises interruptions/barge-in also references the
   duplex/barge-in implementation or #1792;
-- the test-scripts page is rebaselined (one gap negative-tested).
+- the test-scripts page is rebaselined (zero gaps after #1695 shipped).
 
-The former requirement that collaborative documents be the only Gap is gone:
-#1695 shipped, so the guard no longer expects any Gap. The fixtures under
-scripts/fixtures/ keep a negative case (legacy page) and the accepted updated
-page for --self-test.
+#1695 shipped collaborative documents, so the guard no longer expects any Gap.
+The fixtures under scripts/fixtures/ keep a negative case (legacy page) and
+the accepted updated page for --self-test.
 
 Usage:
     python3 scripts/gb7_features_check.py
@@ -164,12 +159,14 @@ def check_scripts(page: str) -> list[str]:
     errors = []
     if "four declared gaps" in page or "four\n      declared gaps" in page:
         errors.append("test scripts still describe four declared gaps")
-    if "Shipped checks and one honest gap" not in page:
-        errors.append("TS-05 is not rebaselined (missing new heading)")
-    if not re.search(r"<strong>1</strong>\s+gap negative-tested", page):
-        errors.append("script header does not say 1 gap negative-tested")
-    if "tracked in #1695" not in page and "#1695" not in page:
-        errors.append("TS-05 does not reference the tracked gap issue")
+    # #1695 shipped collaborative documents; no gap should remain.
+    if re.search(r"one honest gap|one declared gap", page, re.I):
+        errors.append(
+            "test scripts still reference a gap for collaborative documents "
+            "(shipped in #1695)"
+        )
+    if re.search(r"<strong>[1-9]\d*</strong>\s+gap", page):
+        errors.append("script header still reports gaps (should be 0 after #1695)")
     return errors
 
 
