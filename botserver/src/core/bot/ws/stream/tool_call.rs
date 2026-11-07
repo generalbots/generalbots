@@ -35,7 +35,10 @@ pub(super) async fn maybe_execute(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
+    let tool_args = tool_call
+        .get("arguments")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     log::info!(
         "LLM tool_call: executing tool '{}' with args: {}",
         raw_tool_name,
@@ -47,15 +50,18 @@ pub(super) async fn maybe_execute(
     let tool_name = match crate::core::bot::ws::handler::validate_bot_name(&raw_tool_name) {
         Ok(n) => n,
         Err(e) => {
-            log::warn!("LLM tool_call: invalid tool name '{}': {}", raw_tool_name, e);
+            log::warn!(
+                "LLM tool_call: invalid tool name '{}': {}",
+                raw_tool_name,
+                e
+            );
             return true;
         }
     };
 
     let work_path = botcore::shared::utils::get_work_path();
-    let rel_tool_path = format!(
-        "{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast"
-    );
+    let rel_tool_path =
+        format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
     if !crate::core::bot::ws::handler::verify_path_within_workdir(&rel_tool_path) {
         log::error!(
             "Path traversal detected in LLM tool_call for tool: {}",
@@ -64,9 +70,8 @@ pub(super) async fn maybe_execute(
         return true;
     }
 
-    let ast_path = format!(
-        "{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast"
-    );
+    let ast_path =
+        format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
     let ast_content = match tokio::fs::read_to_string(&ast_path).await {
         Ok(c) if !c.is_empty() => c,
         _ => {

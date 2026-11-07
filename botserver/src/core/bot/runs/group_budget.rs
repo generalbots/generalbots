@@ -67,7 +67,10 @@ where
     let mut total = 0u64;
     for entry in entries {
         total = total.saturating_add(entry.amount_milli);
-        match members.iter_mut().find(|member| member.user_id == entry.user_id) {
+        match members
+            .iter_mut()
+            .find(|member| member.user_id == entry.user_id)
+        {
             Some(member) => {
                 member.amount_milli = member.amount_milli.saturating_add(entry.amount_milli);
                 member.entries += 1;
@@ -151,9 +154,21 @@ mod tests {
         assert_eq!(
             report.members,
             vec![
-                MemberSpend { user_id: "bob".into(), amount_milli: 400, entries: 1 },
-                MemberSpend { user_id: "alice".into(), amount_milli: 350, entries: 2 },
-                MemberSpend { user_id: "carol".into(), amount_milli: 50, entries: 1 },
+                MemberSpend {
+                    user_id: "bob".into(),
+                    amount_milli: 400,
+                    entries: 1
+                },
+                MemberSpend {
+                    user_id: "alice".into(),
+                    amount_milli: 350,
+                    entries: 2
+                },
+                MemberSpend {
+                    user_id: "carol".into(),
+                    amount_milli: 50,
+                    entries: 1
+                },
             ]
         );
     }

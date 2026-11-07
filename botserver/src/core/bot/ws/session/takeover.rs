@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use axum::extract::ws::Message;
-use botevents::{Envelope, EventSource, EventType};
 use botcore::shared::state::AppState;
+use botevents::{Envelope, EventSource, EventType};
 use futures_util::SinkExt;
 use log::warn;
 use serde_json::Value;

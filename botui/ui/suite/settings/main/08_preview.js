@@ -90,7 +90,7 @@ function syncIndexAllDrive() {
 // #1675 — Integrations stays reachable in minimal/preview mode: the
 // desktop edition exposes MCP management there (the Integrations APP stays
 // hidden; this is a Settings section).
-var PREVIEW_ESSENTIAL_NAV = ["profile", "appearance", "language", "about", "versions", "integrations"];
+var PREVIEW_ESSENTIAL_NAV = ["profile", "appearance", "language", "about", "versions", "integrations", "shared-links"];
 var PREVIEW_HIDDEN_SECTIONS = [
   "security-section", "notifications-section", "storage-section",
   "vibe-section", "privacy-section",

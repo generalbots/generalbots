@@ -13,6 +13,7 @@ name: CI
 #   boteval       guards, unit tests and the evaluation gate (CI-only)
 #   botbook       mdBook rebuild and SUMMARY.md link check
 #   gb6 / gb7     published feature-contract fixtures
+#   product       always/preview/hidden classification and feature coverage
 #   windows       Windows agent/VM adapter compile check
 #
 # `workflow_dispatch` adds the heavy gates on request: `full` runs the
@@ -83,6 +84,10 @@ jobs:
   gb7:
     name: GB7 feature contract
     uses: ./.github/workflows/gb7-features.yml
+
+  product-profile:
+    name: Product profile contract
+    uses: ./.github/workflows/product-profile.yml
 
   windows:
     name: Windows agent adapters

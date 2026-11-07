@@ -30,8 +30,7 @@ use serde_json::{json, Value};
 const URI_PREFIX: &str = "ui://generated/";
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/mcp/apps", post(rpc).get(info))
+    Router::new().route("/api/mcp/apps", post(rpc).get(info))
 }
 
 async fn info() -> impl IntoResponse {
@@ -154,11 +153,7 @@ async fn list_resources(state: &AppState, bucket: &str) -> Result<Value, String>
     Ok(json!({ "resources": resources }))
 }
 
-async fn read_resource(
-    state: &AppState,
-    bucket: &str,
-    request: &Value,
-) -> Result<Value, String> {
+async fn read_resource(state: &AppState, bucket: &str, request: &Value) -> Result<Value, String> {
     let uri = request
         .pointer("/params/uri")
         .and_then(Value::as_str)
@@ -189,6 +184,9 @@ mod tests {
         );
         assert_eq!(hash_from_uri("ui://generated/short"), None);
         assert_eq!(hash_from_uri("https://example.com/app"), None);
-        assert_eq!(hash_from_uri(&format!("{URI_PREFIX}{}", "z".repeat(64))), None);
+        assert_eq!(
+            hash_from_uri(&format!("{URI_PREFIX}{}", "z".repeat(64))),
+            None
+        );
     }
 }

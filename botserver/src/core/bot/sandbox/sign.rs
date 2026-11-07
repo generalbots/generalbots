@@ -71,7 +71,8 @@ pub fn verify_resource(hash: &str, token: &str) -> Result<String, &'static str> 
         return Err("token does not cover this resource");
     }
     let provided = unb64(signature).ok_or("invalid signature encoding")?;
-    let mut mac = HmacSha256::new_from_slice(&signing_key()).map_err(|_| "signing key unavailable")?;
+    let mut mac =
+        HmacSha256::new_from_slice(&signing_key()).map_err(|_| "signing key unavailable")?;
     mac.update(format!("{exp}.{thread}.{hash}").as_bytes());
     mac.verify_slice(&provided)
         .map_err(|_| "invalid signature")?;
@@ -99,7 +100,10 @@ mod tests {
     #[test]
     fn round_trips_and_rejects_wrong_hash() {
         let token = sign_resource("thread-1", "abc123", 60);
-        assert_eq!(verify_resource("abc123", &token).expect("valid"), "thread-1");
+        assert_eq!(
+            verify_resource("abc123", &token).expect("valid"),
+            "thread-1"
+        );
         assert!(verify_resource("other", &token).is_err());
     }
 

@@ -1,5 +1,7 @@
 <link rel="stylesheet" href="/suite/settings/settings-panels.css?v=1" />
 <link rel="stylesheet" href="/suite/settings/settings-ledger.css?v=2" />
+<script src="/suite/js/auto-update.js?v=3"></script>
+<script src="/suite/js/auto-update-settings.js?v=1"></script>
 
 <script>
     // The settings fragment is also opened as a full page (admin deep link);
@@ -88,6 +90,17 @@
                     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
                 </svg>
                 <span data-i18n="settings-storage">Storage</span>
+            </a>
+            <!-- #1863 — Shared Links is a desktop-local surface: a public link is
+                 only useful when the recipient can reach the host that minted
+                 it. Shell-mode only; the server repeats the gate. -->
+            <a href="#shared-links" class="nav-item" data-shell-only="true" hidden
+                onclick="showSection('shared-links', this); window.loadSharedLinks && window.loadSharedLinks()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span data-i18n="settings-shared-links">Shared Links</span>
             </a>
             <!-- #1675 — Integrations shows the in-place section (MCP servers,
                  API keys, webhooks, OAuth). The full provider catalog window
@@ -220,6 +233,15 @@
                 </svg>
                 <span data-i18n="nav-organizations">Organizations</span>
             </a>
+            <a href="#updates" class="nav-item" data-shell-only="true" hidden
+                onclick="showSection('updates', this); window.GBUpdate && GBUpdate.renderSettings && GBUpdate.renderSettings()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3v12"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <path d="M5 21h14"></path>
+                </svg>
+                <span>Updates</span>
+            </a>
             <a href="#about" class="nav-item" onclick="openAboutWindow()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -252,6 +274,10 @@
      in browser/cloud deployments because the section is hidden and the panel
      only fetches after a shell-mode session opens it. -->
 <div hx-get="/suite/settings/partials/07_os.html" hx-trigger="load" hx-swap="outerHTML"></div>
+
+<!-- Shared Links (#1863): shell-mode only. The partial stays inert in a normal
+     browser/cloud deployment because the section and nav item are hidden. -->
+<div hx-get="/suite/settings/partials/08_shared_links.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
 <link rel="stylesheet" href="/suite/settings/settings-forms.css" />
 <link rel="stylesheet" href="/suite/settings/settings-controls.css" />

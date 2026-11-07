@@ -189,11 +189,10 @@ jobs:
       - name: Run botserver unit tests
         run: cargo test -p botserver --bin botserver
 
-  # #1621 — the slim desktop build must not report domain features it does not
-  # ship. Feature unification used to compile `botcore/default` through the
-  # workspace dependency, so /api/product advertised mail, CRM, tickets and
-  # friends for a binary that contains only Chat and Drive.
-  desktop-feature-manifest:
+  # #1811 — the manifest reports only the features the command line requested.
+  # This keeps the old feature-unification guard (a slim build must not inherit
+  # `botcore/default` through a workspace dependency).
+  feature-manifest:
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -223,5 +222,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-desktop-manifest-
 
-      - name: Desktop manifest reports only shipped features
-        run: cargo test -p botcore --no-default-features --features desktop-local,chat,drive desktop_manifest_lists_only_shipped_features
+      - name: Manifest reports only requested features
+        run: cargo test -p botcore --no-default-features --features desktop-local,chat,drive manifest_reports_only_requested_features

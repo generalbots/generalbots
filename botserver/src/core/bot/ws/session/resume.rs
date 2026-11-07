@@ -25,10 +25,7 @@ pub(super) async fn replay(
                     match envelope.to_json() {
                         Ok(mut frame) => {
                             if let Some(map) = frame.as_object_mut() {
-                                map.insert(
-                                    "gb_event".to_string(),
-                                    serde_json::Value::Bool(true),
-                                );
+                                map.insert("gb_event".to_string(), serde_json::Value::Bool(true));
                             }
                             let _ = ws_sender
                                 .lock()

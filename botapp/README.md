@@ -178,7 +178,8 @@ On hosts without FUSE 2 (`libfuse2t64` on Debian 13 / Ubuntu 24.04) start it
 with `APPIMAGE_EXTRACT_AND_RUN=1 ./generalbots-linux-x86_64.AppImage` or
 `--appimage-extract-and-run`.
 
-**Upgrading means replacing the file** — there is no in-app updater:
+**Upgrading means replacing the file** — the in-app check notifies you when a
+newer release exists but does not install it:
 
 1. Download the new AppImage and verify it against `SHA256SUMS-linux`.
 2. Quit the running app.
@@ -207,16 +208,27 @@ curl -s http://127.0.0.1:8080/api/health
 # {"status":"healthy","service":"botserver","version":"6.7.0",...}
 ```
 
-### Why there is no in-app auto-updater (yet)
+### Startup release check and opt-in updates
 
-Neither `tauri.conf.json` nor `tauri.desktop-local.conf.json` registers
-`tauri-plugin-updater` or contains a `plugins.updater` block: the Linux distro
-packages are built best effort and have never been published, and no signing
-key or release update manifest (`latest.json`) exists, so an updater would have
-nothing to check against. `GET /api/health` is the supported version surface;
-a Settings → About panel is follow-up UI work.
+`botapp/src/desktop/update.rs` asks GitHub for
+`repos/generalbots/generalbots/releases/latest` and compares the release tag
+with the running desktop version. The check runs from the suite shell at
+startup (at most once a day) and is also available from
+**Settings → Updates → Check now**. When a newer stable release exists, a
+non-blocking banner shows the version, release notes and platform asset, with
+**Update now** opening the official release page in the system browser.
+Nothing is downloaded or installed silently, and the check never runs on the
+web/server edition.
 
-Wiring the updater later is one change that must land together:
+The Settings toggle **Check for updates at startup** (stored as
+`gb-auto-update` in localStorage) turns the automatic check off; **Check now**
+still works. Users can dismiss a prompt or skip a specific version
+(`gb-auto-update-skip-version`). Release pages and asset links are restricted
+to `https://github.com/generalbots/generalbots/releases/…`.
+
+The check is not the Tauri updater: no signed updater manifest (`latest.json`)
+or signing key is published yet, so the install step remains the replace-file
+procedure above. Wiring the signed updater later still requires:
 
 1. Add `tauri-plugin-updater` to `botapp/Cargo.toml` and register
    `.plugin(tauri_plugin_updater::Builder::new().build())` in `src/main.rs`.
@@ -227,9 +239,11 @@ Wiring the updater later is one change that must land together:
    `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` to the build, publish the signed
    artifacts and `latest.json` with each release, and keep the public key in the
    repository.
-4. Surface the update check in the UI (Settings → About).
+4. Let `check_release_update` prefer the signed manifest and add the
+   download/verify/install/rollback flow (stopping the sidecar when
+   `desktop::activity::is_busy()` is false).
 
-Until then, upgrades are the replace-file procedure above.
+Until then, the release page link is the supported update path.
 
 ---
 

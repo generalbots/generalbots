@@ -8,26 +8,28 @@
 # Product name (replaces "General Bots" throughout the application)
 name=General Bots
 
-# Active apps (comma-separated list)
-# Stable surface: chat, drive (Explorer), vibe plus the everyday tools users
-# expect by default (#1430): Calculator, Sheets, Timer, Photos, Weather and
-# the Recycle Bin.
-# Every other application is declared under `preview_apps` below.
-# Core surfaces (settings, auth, admin) are always enabled regardless of this
-# list, so they remain reachable.
-apps=chat,drive,terminal,editor,integrations,clock-widget,jukebox,sheet,docs,slides,database,player,calculator,notes,photos,timer,weather
+# #1811 — This file is the ONLY always/preview/hidden split. The build
+# compiles every app (the `all-apps` Cargo feature is the default).
+#
+# Active apps (comma-separated list): always visible in every launcher.
+# Core surfaces (about, admin, settings, auth) are always available without
+# being listed here.
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
 # revealed only while Preview mode is on, which the user toggles with the
 # Preview switch in the left sidebar.
-# Everything in the suite catalog except the `apps` list above is preview.
+# Every registry app must appear exactly once in `apps`, `preview_apps` or
+# `hidden_apps` (core apps are the only exception).
 # The Vibe sub-surfaces (db/graph/metrics/members/deploy/metering) are NOT
 # listed here: they are toolwindow views inside the single Vibe app (#1429).
-# Ids are validated against the catalog in `src/apps/registry.rs` and the
-# feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
-# ignored by the launcher and should not be listed here.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace
+
+# Hidden applications: compiled and routed, but never advertised and refused
+# by the suite shell. #1626 keeps Research out of the default product; the
+# feature/surface `sources` is not a registry app and is hidden with it.
+hidden_apps=research,sources
 
 
 # Sidebar visibility

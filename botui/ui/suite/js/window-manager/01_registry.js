@@ -186,24 +186,16 @@ var productTerminalAvailable = null;
 // calculator …), because the product owner enabled them on purpose.
 var productAppIds = {};
 
-// #1409 — Permanently-visible surface. These apps are NEVER preview and are
-// always enabled, regardless of the product file: neither a catalog preview
-// flag nor a `preview_apps` entry can hide them. They are exactly what the
-// product owner listed as "must appear always", plus the workbench apps Vibe
-// drives (start menu / sidebar / command palette all read APPS_REGISTRY).
-// Every other app keeps the preview behaviour (hidden until Preview mode is
-// on). Mirrors `ALWAYS_APPS` in botserver/src/apps/mod.rs.
-var ALWAYS_APP_IDS = [
-  "about", "browser", "chat", "drive", "editor", "integrations", "settings", "terminal",
-  // Non-launcher surfaces stay reachable (mirrors backend CORE_APPS).
-  "admin", "auth",
-];
-function isAlwaysAppId(id) {
-  return ALWAYS_APP_IDS.indexOf(id) !== -1;
+// #1811 — only core surfaces are hardcoded here. Everything else is classified
+// by `.product`'s `apps` / `preview_apps` / `hidden_apps` lists, which the
+// catalog endpoint mirrors. Mirrors `CORE_APPS` in botserver/src/apps/mod.rs.
+var CORE_APP_IDS = ["about", "admin", "auth", "settings"];
+function isCoreAppId(id) {
+  return CORE_APP_IDS.indexOf(id) !== -1;
 }
 
 function isPreviewId(id) {
-  if (isAlwaysAppId(id)) return false;
+  if (isCoreAppId(id)) return false;
   if (productPreviewIds[id]) return true;
   if (!catalogApps) return false;
   for (var i = 0; i < catalogApps.length; i++) {
@@ -227,9 +219,10 @@ function toRegistryApp(a) {
     // #1386c — launcher visibility flag; surfaces that list apps to open
     // (start menu, sidebar rail) honour it, programmatic openers do not.
     launcher_default: a.launcher_default !== false,
-    // Catalog entries carry the authoritative enabled flag from the
-    // product file; the embedded fallback has no such field.
+    // Catalog entries carry the authoritative enabled/preview/hidden flags
+    // from the product file; the embedded fallback has no such fields.
     enabled: a.enabled !== false,
+    hidden: a.hidden === true,
     // #1289/#1291 — bot and vibe-app tiles deep-link their window (chat bot
     // binding, browser URL); launchFromMenu passes them to openDeepLink.
     deep_link_params: a.deep_link_params || null,
@@ -243,12 +236,14 @@ function rebuildAppsRegistry() {
   var known = {};
 
   base.forEach(function (a) {
-    if (a.compiled === false) return;
+    if (a.compiled === false || a.hidden === true) return;
+    if (typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
     var preview = !!a.preview || isPreviewId(a.id);
-    var always = isAlwaysAppId(a.id);
-    // A preview application is surfaced only while Preview mode is on.
-    // Permanently-visible apps ignore the preview gate entirely.
-    if (preview && !previewOn && !always) return;
+    var core = isCoreAppId(a.id);
+    // A preview application is surfaced only while Preview mode is on. Core
+    // surfaces are the only hardcoded exception; everything else follows the
+    // product profile.
+    if (preview && !previewOn && !core) return;
     if (!preview && a.hxGet === undefined && a.enabled === false) return;
     var app = toRegistryApp(a);
     app.preview = preview;
@@ -257,8 +252,8 @@ function rebuildAppsRegistry() {
   });
 
   // Embedded-only tiles (the true offline fallback, e.g. Calculator) survive
-  // a catalog load — but never a preview app the switch is holding back.
-  // The permanently-visible apps (#1409) surface even when the catalog has
+  // a catalog load — but never a preview app the switch is holding back, nor
+  // a hidden app. Core surfaces (#1811) surface even when the catalog has
   // loaded but omits them (e.g. before the backend catalog catches up).
   // #1429 — Vibe sub-surface toolwindows (`vibe-*`) are views inside the
   // single Vibe app, not catalog ids: they survive the catalog load so
@@ -266,6 +261,7 @@ function rebuildAppsRegistry() {
   // every launcher via the toolwindow / `vibe-` prefix filters).
   embeddedApps.forEach(function (a) {
     if (known[a.id]) return;
+    if (typeof window.isAppHidden === "function" && window.isAppHidden(a.id)) return;
     // A catalog entry marked `compiled: false` is authoritative even for the
     // always-on list: re-adding it put Terminal in builds that do not ship
     // the terminal routes (#1841).
@@ -274,7 +270,7 @@ function rebuildAppsRegistry() {
         if (catalogApps[c].id === a.id && catalogApps[c].compiled === false) return;
       }
     }
-    if (catalogLoaded && !isAlwaysAppId(a.id) && String(a.id).indexOf("vibe") !== 0) return;
+    if (catalogLoaded && !isCoreAppId(a.id) && String(a.id).indexOf("vibe") !== 0) return;
     var preview = isPreviewId(a.id);
     if (preview && !previewOn) return;
     a.preview = preview;
@@ -317,7 +313,7 @@ function rebuildAppsRegistry() {
     // catalog entries the backend marked enabled. The old core-only filter
     // hid product-enabled apps such as Weather until Preview mode was on.
     merged = merged.filter(function (app) {
-      return isAlwaysAppId(app.id) ||
+      return isCoreAppId(app.id) ||
         productAppIds[app.id] === true ||
         app.enabled === true;
     });
@@ -394,6 +390,6 @@ const CATEGORY_LABELS = {
   WM.CATEGORY_LABELS = CATEGORY_LABELS;
   WM.GBPreviewMode = GBPreviewMode;
   WM.refreshAppsCatalog = refreshAppsCatalog;
-  WM.isAlwaysAppId = isAlwaysAppId;
+  WM.isCoreAppId = isCoreAppId;
   WM.isPreviewId = isPreviewId;
 })(window);

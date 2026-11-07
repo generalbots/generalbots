@@ -8,11 +8,13 @@ impl BotManager {
     ) -> Option<BotTemplate> {
         let metadata_path = path.join("template.toml");
         let description = if metadata_path.exists() {
-            std::fs::read_to_string(&metadata_path).ok()
+            std::fs::read_to_string(&metadata_path)
+                .ok()
                 .and_then(|content| {
-                    toml::from_str::<toml::Value>(&content).ok()
-                        .and_then(|v| v.get("description")
-                            .and_then(|d| d.as_str().map(String::from)))
+                    toml::from_str::<toml::Value>(&content).ok().and_then(|v| {
+                        v.get("description")
+                            .and_then(|d| d.as_str().map(String::from))
+                    })
                 })
                 .unwrap_or_else(|| format!("Template loaded from {}", name))
         } else {
@@ -21,14 +23,19 @@ impl BotManager {
 
         let dialog_dir = path.join(format!("{}.gbdialog", name));
         let dialogs = if dialog_dir.exists() {
-            std::fs::read_dir(&dialog_dir).ok()
+            std::fs::read_dir(&dialog_dir)
+                .ok()
                 .map(|entries| {
-                    entries.flatten()
+                    entries
+                        .flatten()
                         .filter(|e| e.path().extension().is_some_and(|ext| ext == "bas"))
                         .filter_map(|e| {
                             let file_name = e.file_name().to_string_lossy().to_string();
                             let content = std::fs::read_to_string(e.path()).ok()?;
-                            Some(DialogFile { name: file_name, content })
+                            Some(DialogFile {
+                                name: file_name,
+                                content,
+                            })
                         })
                         .collect::<Vec<_>>()
                 })
@@ -118,7 +125,10 @@ impl BotManager {
         template_name: &str,
         bot_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Applying template '{}' to bucket '{}'", template_name, bucket);
+        info!(
+            "Applying template '{}' to bucket '{}'",
+            template_name, bucket
+        );
 
         let templates = self.templates.read().await;
         let template = templates
@@ -127,10 +137,15 @@ impl BotManager {
 
         for file in &template.files {
             let content = file.content.replace("{{botname}}", bot_name);
-            self.upload_file(bucket, &file.path, content.as_bytes()).await?;
+            self.upload_file(bucket, &file.path, content.as_bytes())
+                .await?;
         }
 
-        info!("Applied template '{}' ({} files)", template_name, template.files.len());
+        info!(
+            "Applied template '{}' ({} files)",
+            template_name,
+            template.files.len()
+        );
         Ok(())
     }
 
@@ -161,7 +176,12 @@ TALK response
             bot_name, bot_name
         );
 
-        self.upload_file(bucket, &format!("{}.gbdialog/start.bas", bot_name), start_script.as_bytes()).await?;
+        self.upload_file(
+            bucket,
+            &format!("{}.gbdialog/start.bas", bot_name),
+            start_script.as_bytes(),
+        )
+        .await?;
 
         info!("Default structure created");
         Ok(())
@@ -203,15 +223,25 @@ TALK response
 
     pub async fn get_bot_by_name(&self, org_slug: &str, bot_name: &str) -> Option<BotConfig> {
         let cache = self.bots_cache.read().await;
-        cache.values().find(|b| b.org_slug == org_slug && b.name == bot_name).cloned()
+        cache
+            .values()
+            .find(|b| b.org_slug == org_slug && b.name == bot_name)
+            .cloned()
     }
 
     pub async fn list_bots(&self, org_id: Uuid) -> Vec<BotConfig> {
         let cache = self.bots_cache.read().await;
-        cache.values().filter(|b| b.org_id == org_id).cloned().collect()
+        cache
+            .values()
+            .filter(|b| b.org_id == org_id)
+            .cloned()
+            .collect()
     }
 
-    pub async fn delete_bot(&self, bot_id: Uuid) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn delete_bot(
+        &self,
+        bot_id: Uuid,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let bot = self.get_bot(bot_id).await.ok_or("Bot not found")?;
         info!("Deleting bot: {} ({})", bot.name, bot_id);
 
@@ -252,7 +282,15 @@ pub async fn get_bot_config(
 
     let cfg = botcore::config::ConfigManager::new(state.conn.clone());
 
-    let sensitive_prefixes = ["llm-key", "llm-url", "llm-server", "secret", "token", "password", "api-key"];
+    let sensitive_prefixes = [
+        "llm-key",
+        "llm-url",
+        "llm-server",
+        "secret",
+        "token",
+        "password",
+        "api-key",
+    ];
     let mut map: HashMap<String, String> = if let Some(name) = params.get("bot_name") {
         let bot_uuid = bots::table
             .filter(bots::name.eq(name))
@@ -268,7 +306,11 @@ pub async fn get_bot_config(
         HashMap::new()
     }
     .into_iter()
-    .filter(|(k, _)| !sensitive_prefixes.iter().any(|prefix| k.to_lowercase().contains(prefix)))
+    .filter(|(k, _)| {
+        !sensitive_prefixes
+            .iter()
+            .any(|prefix| k.to_lowercase().contains(prefix))
+    })
     .collect();
 
     if let Some(name) = params.get("bot_name") {
@@ -277,7 +319,14 @@ pub async fn get_bot_config(
             .select(bots::is_public)
             .first(&mut conn)
             .unwrap_or(false);
-        map.insert("is_public".to_string(), if is_public_val { "true".to_string() } else { "false".to_string() });
+        map.insert(
+            "is_public".to_string(),
+            if is_public_val {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            },
+        );
     }
 
     Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))

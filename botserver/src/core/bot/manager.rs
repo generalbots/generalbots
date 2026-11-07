@@ -204,7 +204,9 @@ END IF
                         if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                             if !templates.contains_key(name) {
                                 debug!("Found template directory: {}", name);
-                                if let Some(template) = self.load_template_from_directory(&path, name) {
+                                if let Some(template) =
+                                    self.load_template_from_directory(&path, name)
+                                {
                                     templates.insert(name.to_string(), template);
                                     info!("Loaded template from filesystem: {}", name);
                                 }
@@ -260,9 +262,11 @@ END IF
         };
 
         if let Some(template_name) = &request.template {
-            self.apply_template(&bucket_name, template_name, &bot_name).await?;
+            self.apply_template(&bucket_name, template_name, &bot_name)
+                .await?;
         } else {
-            self.create_default_structure(&bucket_name, &bot_name).await?;
+            self.create_default_structure(&bucket_name, &bot_name)
+                .await?;
         }
 
         {

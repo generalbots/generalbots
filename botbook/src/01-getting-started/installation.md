@@ -122,9 +122,14 @@ Ubuntu 24.04); where FUSE is unavailable, start it with
 
 ### Updating an installation
 
-There is no in-app auto-updater in this build. The Tauri updater plugin is not
-registered and there is no `plugins.updater` configuration, so every upgrade
-replaces files on disk:
+The desktop shell checks the latest GitHub release at startup (at most once a
+day) and in **Settings → Updates → Check now**. When a newer stable release is
+available it shows a non-blocking prompt with the version and release notes;
+**Update now** opens the official release page. Nothing is downloaded or
+installed silently, and the check never runs in a browser/server deployment.
+
+The Tauri updater plugin is not registered and there is no `plugins.updater`
+configuration, so the install step still replaces files on disk:
 
 - **AppImage** — download the new `generalbots-linux-<arch>.AppImage`, verify
   it against `SHA256SUMS-linux`, quit the app, move the new file over the old
@@ -142,9 +147,10 @@ replaces files on disk:
 User data is never stored next to the package. The stack, logs, workspace and
 cached installers live in `~/.local/share/generalbots` (override with
 `BOTSERVER_STACK_PATH`), so it survives every upgrade above.
-`GET http://127.0.0.1:8080/api/health` reports the running version, and a
-Settings -> About surface is follow-up UI work. The maintainer-level rationale
-and the exact steps needed to wire the Tauri updater later are in
+`GET http://127.0.0.1:8080/api/health` reports the running version; the desktop
+build also exposes the version and the GitHub release check in
+**Settings → Updates**. The maintainer-level rationale and the exact steps
+needed to wire the signed Tauri updater later are in
 [`botapp/README.md`](https://github.com/generalbots/generalbots/blob/main/botapp/README.md#installing-and-upgrading).
 
 The macOS bundle is best effort and unsigned. It cannot run the Linux service

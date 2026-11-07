@@ -39,8 +39,9 @@ pub(crate) fn mentioned_project(
         .split(|c: char| c.is_whitespace() || c == ',' || c == '!' || c == '?' || c == '.')
         .find_map(|word| {
             let w = word.strip_prefix('@').filter(|s| !s.is_empty())?;
-            (w.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'))
-                .then(|| w.to_ascii_lowercase())
+            (w.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'))
+            .then(|| w.to_ascii_lowercase())
         });
     let Some(name) = mention else {
         return Ok(None);

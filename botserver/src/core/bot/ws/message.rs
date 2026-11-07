@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use axum::extract::ws::Message;
 use botcore::shared::state::AppState;
 use futures_util::SinkExt;
 use log::{debug, info, warn};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -22,9 +22,7 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
     let read_prompt = |gbot_dir: &str| -> Option<String> {
         let channel_file = format!("PROMPT-{}.md", channel.to_uppercase());
         let channel_file_lower = format!("PROMPT-{}.md", channel.to_lowercase());
-        let base = |f: &str| -> Option<String> {
-            std::fs::read_to_string(f).ok()
-        };
+        let base = |f: &str| -> Option<String> { std::fs::read_to_string(f).ok() };
         let channel_prompt = base(&format!("{}{}", gbot_dir, channel_file))
             .or_else(|| base(&format!("{}{}", gbot_dir, channel_file_lower)));
         let base_prompt = base(&format!("{}PROMPT.md", gbot_dir))
@@ -49,9 +47,15 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
     }
 
     // Fallback: {org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/
-    let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    let fallback_rel = format!(
+        "{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/",
+        org_id = org_id
+    );
     if org_id != nil_uuid && verify_path_within_workdir(&fallback_rel) {
-        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        let gbot_dir = format!(
+            "{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/",
+            org_id = org_id
+        );
         if let Some(p) = read_prompt(&gbot_dir) {
             return p;
         }
@@ -78,26 +82,22 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
     )
     .and_then(|path| std::fs::read_to_string(path).ok());
     if let Some(p) = channel_prompt {
-        let base = candidates
-            .iter()
-            .skip(2)
-            .find_map(|name| {
-                crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(
-                    &work_dir,
-                    bot_name,
-                    "gbot",
-                    name,
-                )
-                .and_then(|path| std::fs::read_to_string(path).ok())
-            });
+        let base = candidates.iter().skip(2).find_map(|name| {
+            crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(
+                &work_dir, bot_name, "gbot", name,
+            )
+            .and_then(|path| std::fs::read_to_string(path).ok())
+        });
         return match base {
             Some(b) => format!("{p}\n\n{b}"),
             None => p,
         };
     }
     let base_prompt = candidates.iter().skip(2).find_map(|name| {
-        crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(&work_dir, bot_name, "gbot", name)
-            .and_then(|path| std::fs::read_to_string(path).ok())
+        crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(
+            &work_dir, bot_name, "gbot", name,
+        )
+        .and_then(|path| std::fs::read_to_string(path).ok())
     });
     if let Some(p) = base_prompt {
         return p;
@@ -117,7 +117,11 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
         let global_css_path = format!("{}global.css", gbot_dir);
         let mut combined = match std::fs::read_to_string(&global_css_path) {
             Ok(c) => {
-                info!("global.css loaded from {} ({} bytes)", global_css_path, c.len());
+                info!(
+                    "global.css loaded from {} ({} bytes)",
+                    global_css_path,
+                    c.len()
+                );
                 c
             }
             Err(_) => String::new(),
@@ -176,9 +180,15 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
     }
 
     // Fallback: {org_id}.gborg path (nil UUID)
-    let fallback_rel = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+    let fallback_rel = format!(
+        "{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/",
+        org_id = org_id
+    );
     if org_id != nil_uuid && verify_path_within_workdir(&fallback_rel) {
-        let gbot_dir = format!("{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/", org_id = org_id);
+        let gbot_dir = format!(
+            "{work_dir}/{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbot/",
+            org_id = org_id
+        );
         let css = read_css(&gbot_dir);
         if !css.is_empty() {
             return css;
@@ -211,9 +221,13 @@ fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
         if !upper[14..].trim_start().starts_with('"') {
             continue;
         }
-        let Some(open) = trimmed.find('"') else { continue };
+        let Some(open) = trimmed.find('"') else {
+            continue;
+        };
         let rest = &trimmed[open + 1..];
-        let Some(close) = rest.find('"') else { continue };
+        let Some(close) = rest.find('"') else {
+            continue;
+        };
         // `ADD SUGGESTION "scan" AS "Scan a QR Code"` labels the chip with the
         // AS string; the first quoted value is only the command.
         let after = &rest[close + 1..];
@@ -277,31 +291,36 @@ pub async fn send_start_suggestions(
     let switchers = {
         #[cfg(feature = "chat")]
         {
-            crate::basic::keywords::switcher::get_switchers(
-                state.cache.as_ref(),
-                &bot_id,
-                &session,
-            )
+            crate::basic::keywords::switcher::get_switchers(state.cache.as_ref(), &bot_id, &session)
         }
         #[cfg(not(feature = "chat"))]
         Vec::new()
     };
     let sent = suggestions.len();
     if !suggestions.is_empty() || !switchers.is_empty() {
-        info!("ws_handler: sending {} suggestions and {} switchers on reconnect", suggestions.len(), switchers.len());
-        let _ = ws_sender.send(Message::Text(serde_json::json!({
-            "bot_id": bot_id,
-            "user_id": user_id.to_string(),
-            "session_id": session,
-            "channel": "web",
-            "content": "",
-            "message_type": 2,
-            "is_complete": true,
-            "suggestions": suggestions,
-            "switchers": switchers,
-            "context_length": 0,
-            "context_max_length": 0,
-        }).to_string())).await;
+        info!(
+            "ws_handler: sending {} suggestions and {} switchers on reconnect",
+            suggestions.len(),
+            switchers.len()
+        );
+        let _ = ws_sender
+            .send(Message::Text(
+                serde_json::json!({
+                    "bot_id": bot_id,
+                    "user_id": user_id.to_string(),
+                    "session_id": session,
+                    "channel": "web",
+                    "content": "",
+                    "message_type": 2,
+                    "is_complete": true,
+                    "suggestions": suggestions,
+                    "switchers": switchers,
+                    "context_length": 0,
+                    "context_max_length": 0,
+                })
+                .to_string(),
+            ))
+            .await;
     }
     sent
 }
@@ -347,10 +366,20 @@ pub async fn run_start_bas_on_connect(
         }
     }
 
-    let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);
+    let session_init_key = botlib::key_utils::build_key(
+        "",
+        &[
+            "start_bas_executed",
+            &bot_uuid.to_string(),
+            &session_id.to_string(),
+        ],
+    );
     if let Some(ref cache) = state.cache {
         if let Ok(mut conn) = cache.get_multiplexed_async_connection().await {
-            let _: Result<(), _> = redis::cmd("DEL").arg(&session_init_key).query_async(&mut conn).await;
+            let _: Result<(), _> = redis::cmd("DEL")
+                .arg(&session_init_key)
+                .query_async(&mut conn)
+                .await;
         }
     }
 
@@ -360,14 +389,22 @@ pub async fn run_start_bas_on_connect(
     let ast_content = {
         let mut found = String::new();
         let rel = format!("{bot_name}.gbdialog/start.ast");
-        match botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
+        match botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await
+        {
             Some(c) => {
-                info!("start.bas: found start.ast for {bot_name} ({} bytes)", c.len());
+                info!(
+                    "start.bas: found start.ast for {bot_name} ({} bytes)",
+                    c.len()
+                );
                 found = c;
             }
             None => {
                 let bas_rel = format!("{bot_name}.gbdialog/start.bas");
-                if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &bas_rel).await {
+                if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(
+                    &work_path, bot_name, &bas_rel,
+                )
+                .await
+                {
                     info!("start.bas: found start.bas (uncompiled) for {bot_name}");
                     found = c;
                 }
@@ -388,7 +425,10 @@ pub async fn run_start_bas_on_connect(
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
     let session_for_bas = botlib::models::UserSession {
-        id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_id_for_bas,
+        id: session_id,
+        user_id,
+        branch_id: Uuid::nil(),
+        bot_id: bot_id_for_bas,
         title: String::new(),
         context_data: serde_json::json!({"channel": "web"}),
         current_tool: None,
@@ -399,13 +439,15 @@ pub async fn run_start_bas_on_connect(
     };
     // #1369 — both values are consumed by the call and unused afterwards, so
     // they are moved instead of cloned (`UserSession` owns several Strings).
-    let exec_result = crate::basic::ScriptService::execute_script(
-        state_for_bas,
-        session_for_bas,
-        &ast_content,
-    ).await;
+    let exec_result =
+        crate::basic::ScriptService::execute_script(state_for_bas, session_for_bas, &ast_content)
+            .await;
     match exec_result {
-        Ok(result) => info!("start.bas: execution result (len={}): {}", result.len(), result),
+        Ok(result) => info!(
+            "start.bas: execution result (len={}): {}",
+            result.len(),
+            result
+        ),
         Err(e) => warn!("start.bas: execution error: {}", e),
     }
 
@@ -414,9 +456,13 @@ pub async fn run_start_bas_on_connect(
         match rx.try_recv() {
             Ok(response) => {
                 drained += 1;
-                botlog::safe_info!("start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
-                    drained, i32::from(response.message_type), response.session_id,
-                    response.content.chars().take(80).collect::<String>());
+                botlog::safe_info!(
+                    "start.bas: drained BotResponse[{}]: mtype={}, session={}, content='{}'",
+                    drained,
+                    i32::from(response.message_type),
+                    response.session_id,
+                    response.content.chars().take(80).collect::<String>()
+                );
                 if let Ok(json) = serde_json::to_string(&response) {
                     let _ = ws_sender.send(Message::Text(json)).await;
                 }

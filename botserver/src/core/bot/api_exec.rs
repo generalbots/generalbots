@@ -26,16 +26,74 @@ const MAX_BODY: usize = 60_000;
 
 /// Allowed path-param substitution keys (whitelist, not arbitrary injection).
 const ALLOWED_PARAM_KEYS: &[&str] = &[
-    "id", "item_id", "record_id", "user_id", "bot_id", "session_id", "team_id", "project_id",
-    "task_id", "ticket_id", "invoice_id", "order_id", "campaign_id", "check_id", "issue_id",
-    "verification_id", "rule_id", "account_id", "run_id", "enrollment_id", "channel_id",
-    "conversation_id", "minute_id", "recording_id", "workspace_id", "page_id", "file_id",
-    "deployment_id", "connector_id", "source_id", "note_id", "deck_id", "doc_id", "report_id",
-    "event_id", "meeting_id", "room_id", "story_id", "incident_id", "product_id", "media_id",
-    "queue_id", "agent_id", "group_id", "role_id", "case_id", "audit_id", "entry_id",
-    "transaction_id", "deal_id", "employee_id", "post_id", "canvas_id", "board_id", "plan_id",
-    "okr_id", "course_id", "message_id", "calendar_id", "camera_id", "clip_id", "export_id",
-    "layer_id", "recording_id", "job_id", "folder_id", "category_id", "price_list_id",
+    "id",
+    "item_id",
+    "record_id",
+    "user_id",
+    "bot_id",
+    "session_id",
+    "team_id",
+    "project_id",
+    "task_id",
+    "ticket_id",
+    "invoice_id",
+    "order_id",
+    "campaign_id",
+    "check_id",
+    "issue_id",
+    "verification_id",
+    "rule_id",
+    "account_id",
+    "run_id",
+    "enrollment_id",
+    "channel_id",
+    "conversation_id",
+    "minute_id",
+    "recording_id",
+    "workspace_id",
+    "page_id",
+    "file_id",
+    "deployment_id",
+    "connector_id",
+    "source_id",
+    "note_id",
+    "deck_id",
+    "doc_id",
+    "report_id",
+    "event_id",
+    "meeting_id",
+    "room_id",
+    "story_id",
+    "incident_id",
+    "product_id",
+    "media_id",
+    "queue_id",
+    "agent_id",
+    "group_id",
+    "role_id",
+    "case_id",
+    "audit_id",
+    "entry_id",
+    "transaction_id",
+    "deal_id",
+    "employee_id",
+    "post_id",
+    "canvas_id",
+    "board_id",
+    "plan_id",
+    "okr_id",
+    "course_id",
+    "message_id",
+    "calendar_id",
+    "camera_id",
+    "clip_id",
+    "export_id",
+    "layer_id",
+    "recording_id",
+    "job_id",
+    "folder_id",
+    "category_id",
+    "price_list_id",
 ];
 
 /// Path pattern to a concrete path using the provided params.
@@ -80,11 +138,16 @@ fn is_registered(method: &str, path: &str) -> bool {
 fn path_matches(template: &str, concrete: &str) -> bool {
     let t = template
         .split('/')
-        .map(|s| if s.starts_with(':') || (s.starts_with('{') && s.ends_with('}')) { "{}" } else { s })
+        .map(|s| {
+            if s.starts_with(':') || (s.starts_with('{') && s.ends_with('}')) {
+                "{}"
+            } else {
+                s
+            }
+        })
         .collect::<Vec<_>>();
     let c = concrete.split('/').collect::<Vec<_>>();
-    t.len() == c.len()
-        && t.iter().zip(c.iter()).all(|(a, b)| *a == "{}" || a == b)
+    t.len() == c.len() && t.iter().zip(c.iter()).all(|(a, b)| *a == "{}" || a == b)
 }
 
 /// Executes `method path` with a JSON body/query against the running server,
@@ -98,16 +161,28 @@ pub async fn exec_endpoint(
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
     let method_upper = method.to_uppercase();
-    if !matches!(method_upper.as_str(), "GET" | "POST" | "PUT" | "PATCH" | "DELETE") {
+    if !matches!(
+        method_upper.as_str(),
+        "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+    ) {
         return Err(format!("unsupported method '{method}'"));
     }
 
     let path = fill_path(path_template, params)?;
     if !is_registered(&method_upper, &path) {
-        return Err(format!("endpoint {method_upper} {path} is not a registered route"));
+        return Err(format!(
+            "endpoint {method_upper} {path} is not a registered route"
+        ));
     }
-    if crate::security::user_role::is_admin_only_endpoint(&state.conn, user_id, &method_upper, &path) {
-        return Err(format!("endpoint {method_upper} {path} requires the admin role"));
+    if crate::security::user_role::is_admin_only_endpoint(
+        &state.conn,
+        user_id,
+        &method_upper,
+        &path,
+    ) {
+        return Err(format!(
+            "endpoint {method_upper} {path} requires the admin role"
+        ));
     }
 
     #[cfg(feature = "consent")]
@@ -146,7 +221,10 @@ pub async fn exec_endpoint(
     // it into the AuthenticatedUser — more reliable than minting a fresh JWT which
     // must match a private claim contract. CSRF is also Bearer/known-header exempt.
     let mut req = client
-        .request(reqwest::Method::from_bytes(method_upper.as_bytes()).map_err(|e| e.to_string())?, &url)
+        .request(
+            reqwest::Method::from_bytes(method_upper.as_bytes()).map_err(|e| e.to_string())?,
+            &url,
+        )
         .header("X-User-ID", user_id.to_string())
         .header("Accept", "application/json");
     if let Some(bot) = bot_uuid {
@@ -177,7 +255,10 @@ pub async fn exec_endpoint(
         req = req.json(&Value::Object(body_obj));
     }
 
-    let resp = req.send().await.map_err(|e| format!("loopback request failed: {e}"))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("loopback request failed: {e}"))?;
     let status = resp.status();
     let body = resp
         .bytes()
@@ -190,7 +271,9 @@ pub async fn exec_endpoint(
     } else {
         match serde_json::from_slice(&body[..body.len().min(MAX_BODY)]) {
             Ok(v) => v,
-            Err(_) => json!({ "raw": String::from_utf8_lossy(&body[..body.len().min(4000)]).to_string() }),
+            Err(_) => {
+                json!({ "raw": String::from_utf8_lossy(&body[..body.len().min(4000)]).to_string() })
+            }
         }
     };
 
@@ -242,7 +325,10 @@ mod tests {
     #[test]
     fn test_path_matches() {
         assert!(path_matches("/api/tickets/:id", "/api/tickets/abc"));
-        assert!(path_matches("/api/tickets/{id}/comments", "/api/tickets/5/comments"));
+        assert!(path_matches(
+            "/api/tickets/{id}/comments",
+            "/api/tickets/5/comments"
+        ));
         assert!(!path_matches("/api/tickets/:id", "/api/users/abc"));
         assert!(!path_matches("/api/tickets/:id", "/api/tickets"));
     }

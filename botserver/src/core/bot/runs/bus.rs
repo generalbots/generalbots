@@ -259,7 +259,10 @@ mod tests {
     fn subscriber_receives_published_frames() {
         let bus = RunBus::new();
         let (_last, mut receiver) = bus.subscribe("thread-1");
-        bus.publish("thread-1", serde_json::json!({ "seq": 1, "type": "RUN_STARTED" }));
+        bus.publish(
+            "thread-1",
+            serde_json::json!({ "seq": 1, "type": "RUN_STARTED" }),
+        );
         let frame = receiver.try_recv().expect("frame delivered");
         assert_eq!(frame["seq"], 1);
     }

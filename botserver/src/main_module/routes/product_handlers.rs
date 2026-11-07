@@ -25,23 +25,9 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
             "terminal_available".to_string(),
             serde_json::json!(cfg!(feature = "terminal") && cfg!(feature = "agent-vm")),
         );
-        // Advertise optional capabilities the suite probes at boot. `agent-vm`
-        // gates /api/agent/drive/*, which the chat attachment actions call;
-        // without it the client can hide Save/Open instead of eating a 404.
-        #[cfg(any(feature = "consent", feature = "vibe", feature = "agent-vm"))]
-        {
-            let entry = object
-                .entry("compiled_features")
-                .or_insert_with(|| serde_json::json!([]));
-            if let Some(features) = entry.as_array_mut() {
-                #[cfg(feature = "consent")]
-                features.push(serde_json::json!("consent"));
-                #[cfg(feature = "vibe")]
-                features.push(serde_json::json!("vibe"));
-                #[cfg(feature = "agent-vm")]
-                features.push(serde_json::json!("agent-vm"));
-            }
-        }
+        // `compiled_features` is built in botcore::features (#1811), including
+        // consent/vibe/agent-vm. Do not append here: a second copy made the
+        // manifest disagree with the Cargo feature set.
         // #1747 — tell the desktop/wizard why terminal, browser and VM actions
         // cannot run (missing Incus/WSL wrapper). `null` means the backend is
         // available; the reason is shown instead of a generic VM failure.

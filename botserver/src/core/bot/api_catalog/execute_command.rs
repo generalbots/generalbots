@@ -25,19 +25,26 @@ pub async fn execute_command(
     };
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
-        "service.tax" | "tax.calculate" => execute_tax(state, &bot_uuid, str_of("service"), str_of("value")).await,
+        "service.tax" | "tax.calculate" => {
+            execute_tax(state, &bot_uuid, str_of("service"), str_of("value")).await
+        }
         #[cfg(feature = "banking")]
         "banking.diagnosis" => {
             let period = str_of("period");
-            let resp =
-                botbanking::cashflow::cashflow_diagnosis_inner(&state.conn, &bot_uuid, None, period.as_deref())
-                    .await
-                    .map_err(|e| e.to_string())?;
+            let resp = botbanking::cashflow::cashflow_diagnosis_inner(
+                &state.conn,
+                &bot_uuid,
+                None,
+                period.as_deref(),
+            )
+            .await
+            .map_err(|e| e.to_string())?;
             Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
         }
         #[cfg(feature = "banking")]
         "banking.import" => {
-            let file_key = str_of("file_key").ok_or_else(|| "params.file_key is required".to_string())?;
+            let file_key =
+                str_of("file_key").ok_or_else(|| "params.file_key is required".to_string())?;
             let period = str_of("period");
             let resp = botbanking::cashflow::cashflow_import_inner(
                 &state.conn,
@@ -54,7 +61,8 @@ pub async fn execute_command(
         }
         "drive.write" => {
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
-            let content = str_of("content_base64").ok_or_else(|| "params.content_base64 is required".to_string())?;
+            let content = str_of("content_base64")
+                .ok_or_else(|| "params.content_base64 is required".to_string())?;
             write_drive_file(state, &bot_uuid, &path, &content).await
         }
         "drive.file" => {
@@ -82,8 +90,12 @@ pub async fn execute_command(
                 })).collect::<Vec<_>>(),
             }))
         }
-        "apps.find" => Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) })),
-        "api.find" => Ok(json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) })),
+        "apps.find" => {
+            Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) }))
+        }
+        "api.find" => Ok(
+            json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) }),
+        ),
         "integrations.catalog.search" => {
             let providers = crate::apps::integration_catalog::llm_search(
                 str_of("q").as_deref(),
@@ -93,8 +105,8 @@ pub async fn execute_command(
             Ok(json!({ "provider_count": providers.len(), "providers": providers }))
         }
         "integrations.actions.list" => {
-            let provider = str_of("provider")
-                .ok_or_else(|| "params.provider is required".to_string())?;
+            let provider =
+                str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
             let actions = crate::apps::integration_catalog::llm_actions(&provider)
                 .ok_or_else(|| "integration provider not found".to_string())?;
             Ok(json!({
@@ -106,8 +118,8 @@ pub async fn execute_command(
         "integrations.invoke" => {
             #[cfg(feature = "integrations")]
             {
-                let provider = str_of("provider")
-                    .ok_or_else(|| "params.provider is required".to_string())?;
+                let provider =
+                    str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
                 let action =
                     str_of("action").ok_or_else(|| "params.action is required".to_string())?;
                 let mut action_params = serde_json::Map::new();
@@ -143,7 +155,9 @@ pub async fn execute_command(
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
             {
-                return Err("params.name must be alphanumeric (dashes/underscores allowed)".to_string());
+                return Err(
+                    "params.name must be alphanumeric (dashes/underscores allowed)".to_string(),
+                );
             }
             let server = str_of("server")
                 .map(|s| s.trim().to_string())
@@ -161,7 +175,10 @@ pub async fn execute_command(
                 ("Username", str_of("username").unwrap_or_default()),
                 ("Password", str_of("password").unwrap_or_default()),
                 ("Port", str_of("port").unwrap_or_default()),
-                ("Driver", str_of("driver").unwrap_or_else(|| "postgres".to_string())),
+                (
+                    "Driver",
+                    str_of("driver").unwrap_or_else(|| "postgres".to_string()),
+                ),
             ];
             let mut stored = 0usize;
             for (field, value) in entries {
@@ -214,15 +231,19 @@ pub async fn execute_command(
                         match latest {
                             Some(row) => (row.project_id.to_string(), row.project_name),
                             None => {
-                                if let Some(name) = str_of("project_name").filter(|n| !n.is_empty()) {
+                                if let Some(name) = str_of("project_name").filter(|n| !n.is_empty())
+                                {
                                     (name.clone(), name)
                                 } else {
-                                    return Err("params.project_id is required (no Vibe project found)".to_string());
+                                    return Err(
+                                        "params.project_id is required (no Vibe project found)"
+                                            .to_string(),
+                                    );
                                 }
                             }
                         }
                     }
-                }
+                },
             };
             if intent_text.trim().is_empty() {
                 return Err("params.intent is required".to_string());
@@ -254,7 +275,15 @@ pub async fn execute_command(
             if let Some(Value::Object(map)) = obj.get("params") {
                 params = map.clone();
             }
-            crate::core::bot::api_exec::exec_endpoint(state, user_id, Some(bot_uuid), &method, &path, &params).await
+            crate::core::bot::api_exec::exec_endpoint(
+                state,
+                user_id,
+                Some(bot_uuid),
+                &method,
+                &path,
+                &params,
+            )
+            .await
         }
         "crm.people.list" | "people.list" => list_people(state, &bot_uuid, None).await,
         "crm.people.search" | "people.search" => {
@@ -264,25 +293,40 @@ pub async fn execute_command(
         // #1441 P3 — pipeline/forecast/report commands so chat and WhatsApp can
         // answer CRM questions and capture leads without opening the suite.
         "crm.pipeline.forecast" => {
-            let periods = obj.get("periods").and_then(|v| v.as_u64()).unwrap_or(3).min(12) as i64;
+            let periods = obj
+                .get("periods")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(3)
+                .min(12) as i64;
             crate::core::bot::crm_commands::crm_forecast_command(state, &bot_uuid, periods).await
         }
         "crm.leads.create" => {
             crate::core::bot::crm_commands::crm_create_lead_command(state, &bot_uuid, obj).await
         }
-        "crm.leads.report" => crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await,
+        "crm.leads.report" => {
+            crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await
+        }
         // #1441 C8 — operate the pipeline from chat: create a deal, move a
         // stage, capture a contact.
-        "crm.deal.create" => crate::core::bot::crm_commands::crm_create_deal_command(state, &bot_uuid, obj).await,
-        "crm.deal.move-stage" => crate::core::bot::crm_commands::crm_move_deal_stage_command(state, &bot_uuid, obj).await,
-        "crm.contact.create" => crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, obj).await,
+        "crm.deal.create" => {
+            crate::core::bot::crm_commands::crm_create_deal_command(state, &bot_uuid, obj).await
+        }
+        "crm.deal.move-stage" => {
+            crate::core::bot::crm_commands::crm_move_deal_stage_command(state, &bot_uuid, obj).await
+        }
+        "crm.contact.create" => {
+            crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, obj).await
+        }
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
-        "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
+        "products.items.list" => {
+            list_products(state, &bot_uuid, str_of("category").as_deref()).await
+        }
         "tickets.list" => list_tickets(state, &bot_uuid).await,
         "drive.list" => list_drive_files(state, &bot_uuid, str_of("path").as_deref()).await,
         "drive.archive" => {
             let source = str_of("source").unwrap_or_default();
-            let dest = str_of("destination").ok_or_else(|| "params.destination is required".to_string())?;
+            let dest = str_of("destination")
+                .ok_or_else(|| "params.destination is required".to_string())?;
             archive_drive_files(state, &bot_uuid, &source, &dest).await
         }
         "payroll.diagnosis" => {
@@ -297,7 +341,9 @@ pub async fn execute_command(
         "tasks.autotask.create" | "tasks.autotask.run" => {
             let intent = str_of("intent").unwrap_or_default();
             if intent.trim().is_empty() {
-                return Err("the 'intent' parameter is required (what should be automated)".to_string());
+                return Err(
+                    "the 'intent' parameter is required (what should be automated)".to_string(),
+                );
             }
             let api = crate::autotask_host::ops::build_api(state);
             let response =
@@ -312,10 +358,14 @@ pub async fn execute_command(
             // when the command declares one, otherwise a clear error.
             if let Some(cmd) = command_by_name(name) {
                 if let Some(link) = cmd.deep_link {
-                    Ok(json!({ "navigate": true, "app": cmd.app, "label": cmd.label, "deep_link": link }))
+                    Ok(
+                        json!({ "navigate": true, "app": cmd.app, "label": cmd.label, "deep_link": link }),
+                    )
                 } else {
-                    Err(format!("command '{name}' is not executable from chat; open the {app} app instead",
-                        app = if cmd.app.is_empty() { "suite" } else { cmd.app }))
+                    Err(format!(
+                        "command '{name}' is not executable from chat; open the {app} app instead",
+                        app = if cmd.app.is_empty() { "suite" } else { cmd.app }
+                    ))
                 }
             } else {
                 Err(format!("unknown command '{name}'"))

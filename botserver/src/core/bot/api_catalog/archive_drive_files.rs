@@ -98,7 +98,7 @@ pub(super) async fn payroll_diagnosis(
          FROM billing_invoices WHERE branch_id = $1 \
          GROUP BY month_key ORDER BY month_key DESC LIMIT 12";
 
-    let rows: Vec<PayRow>; 
+    let rows: Vec<PayRow>;
     if let Some(p) = period {
         let month_prefix = format!("{p}%");
         rows = diesel::sql_query(filter)

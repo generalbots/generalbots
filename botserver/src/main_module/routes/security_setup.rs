@@ -86,6 +86,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
                 .add_anonymous_path("/api/marketing/track/")
                 .add_anonymous_path("/api/suggestions")
                 .add_anonymous_path("/api/client-errors")
+                // Opt-in peer-network foundation (#1864): peers are machines,
+                // not browser sessions, so they cannot carry a JWT. Each
+                // handler enforces GB_PEER_NETWORK and the optional
+                // GB_PEER_TOKEN itself; while disabled it returns 403.
+                .add_anonymous_path("/api/peer/*")
                 // #1342 — the app catalog feeds the desktop launcher, which must
                 // render for anonymous visitors of a public bot (the reported
                 // "Design app won't open" is the launcher grid failing on the

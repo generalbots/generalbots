@@ -6,7 +6,7 @@
   var WindowManager = WM.WindowManager;
   var APPS_REGISTRY = WM.APPS_REGISTRY;
   var CATEGORY_LABELS = WM.CATEGORY_LABELS;
-  var isAlwaysAppId = WM.isAlwaysAppId;
+  var isCoreAppId = WM.isCoreAppId;
 
   WM.defineMethods(WindowManager.prototype, {
   /* ─── START MENU ─── */
@@ -122,9 +122,9 @@
           // vibe-published apps `vibeapp-*`) never appear in the static
           // product `apps=` list; their presence in the catalog already IS
           // the server's visibility decision, so exempt them here.
-          // #1409 — the permanently-visible apps must show regardless of
-          // the product file too.
-          if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isAlwaysAppId(a.id)) return true;
+          // Core surfaces show even when not listed in `apps=`; every other
+          // app follows the product file (#1811).
+          if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isCoreAppId(a.id)) return true;
           return enabledApps.has(a.id);
         });
       }

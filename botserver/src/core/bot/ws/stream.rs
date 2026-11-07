@@ -78,9 +78,12 @@ pub async fn process_llm_response(
         bot_llm_provider.is_some(),
         env_key.len()
     );
-    match bot_llm_provider
-        .or_else(|| state.llm_provider.clone().map(move |p| (p, env_key.clone(), env_model.clone())))
-    {
+    match bot_llm_provider.or_else(|| {
+        state
+            .llm_provider
+            .clone()
+            .map(move |p| (p, env_key.clone(), env_model.clone()))
+    }) {
         Some((llm, llm_key, llm_model)) => {
             let result = turn::run(ws_sender, turn, llm, llm_key, llm_model, budget).await;
 
@@ -89,9 +92,7 @@ pub async fn process_llm_response(
             // here means the answer was produced without live sources.
             let citations = {
                 let mut pending = state.pending_citations.lock().await;
-                pending
-                    .remove(&session_id.to_string())
-                    .unwrap_or_default()
+                pending.remove(&session_id.to_string()).unwrap_or_default()
             };
 
             let final_resp = frames::final_frame(

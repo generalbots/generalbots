@@ -19,9 +19,7 @@ impl ChannelSink for RunBusSink {
             .map_err(|error| PipelineError::Transport(format!("run frame encode: {error}")))?;
         // #1756 — a completed assistant frame carries a non-empty id so tests
         // and clients can assert one message per turn without content dedupe.
-        if response.is_complete
-            && !response.content.is_empty()
-            && frame.get("message_id").is_none()
+        if response.is_complete && !response.content.is_empty() && frame.get("message_id").is_none()
         {
             if let Some(object) = frame.as_object_mut() {
                 object.insert(

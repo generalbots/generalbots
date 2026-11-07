@@ -7,10 +7,36 @@ use super::program_repair::repair_program;
 use super::render::render_result;
 use super::send;
 
+/// Time allowed beyond the requested program timeout to wake or provision the
+/// workspace and return its result.
+const WORKSPACE_OVERHEAD_SECS: u64 = 120;
+
+/// Overall budget for one `vm_exec` call, in milliseconds.
+fn workspace_budget_ms(timeout_ms: u64) -> u64 {
+    timeout_ms.saturating_add(WORKSPACE_OVERHEAD_SECS * 1_000)
+}
+
+/// A run timeout means the program took too long; it says nothing about the
+/// sandbox host being down, so it must not advise a restart or a wait.
+fn budget_exhausted_message(timeout_ms: u64) -> String {
+    let budget_secs = workspace_budget_ms(timeout_ms) / 1_000;
+    format!(
+        "The workspace run exceeded its {budget_secs}-second budget ({timeout_ms} ms program timeout plus {WORKSPACE_OVERHEAD_SECS} s of workspace overhead). This is a run timeout, not a host outage. Retry, reduce the task scope or split it into smaller steps, and check the budget: raise `timeout_ms` (max 120000 ms) if the work legitimately needs longer."
+    )
+}
+
+fn is_budget_exhausted(reason: &str) -> bool {
+    reason.to_ascii_lowercase().contains("run budget elapsed")
+}
+
 /// The truthful replacement for the dead-end "workspace is not available"
 /// phrase: show the concrete reason the VM subsystem reports (status is
-/// logged only, never shown), then one short pointer forward.
-fn workspace_failure_message(reason: &str) -> String {
+/// logged only, never shown), then one short pointer forward. A run-budget
+/// timeout is a distinct failure and gets its own guidance.
+fn workspace_failure_message(reason: &str, timeout_ms: u64) -> String {
+    if is_budget_exhausted(reason) {
+        return budget_exhausted_message(timeout_ms);
+    }
     let trimmed = reason.trim();
     if trimmed.is_empty() {
         return "The workspace could not run this program. Start a new message and try again."
@@ -118,7 +144,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             let message = match result {
                 Err((status, reason)) => {
                     botlog::safe_warn!("background job workspace failure ({status}): {reason}");
-                    workspace_failure_message(&reason)
+                    workspace_failure_message(&reason, timeout_ms)
                 }
                 Ok(None) => {
                     "The workspace became unavailable and the background job could not finish."
@@ -197,7 +223,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         code.len(),
         packages
     );
-    let budget = std::time::Duration::from_millis(timeout_ms.saturating_add(120_000));
+    let budget_ms = workspace_budget_ms(timeout_ms);
+    let budget = std::time::Duration::from_millis(budget_ms);
     let result = match tokio::time::timeout(
         budget,
         crate::core::bot::agent_vm_hook::exec_with_wake_result(
@@ -208,9 +235,11 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     {
         Ok(result) => result,
         Err(_) => {
-            botlog::safe_warn!("vm_exec exceeded its overall budget for session {session_id}");
+            botlog::safe_warn!(
+                "vm_exec exceeded its overall budget of {budget_ms} ms for session {session_id}"
+            );
             Err((
-                503,
+                504,
                 "the run budget elapsed before the workspace answered".to_string(),
             ))
         }
@@ -272,7 +301,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             botlog::safe_warn!(
                 "vm_exec workspace failure for session {session_id}: status={status} reason={reason}"
             );
-            let message = workspace_failure_message(&reason);
+            let message = workspace_failure_message(&reason, timeout_ms);
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
         }
@@ -347,7 +376,7 @@ mod workspace_failure_message_tests {
 
     #[test]
     fn empty_reason_keeps_a_short_call_to_action() {
-        let message = workspace_failure_message("   ");
+        let message = workspace_failure_message("   ", 60_000);
         assert_eq!(
             message,
             "The workspace could not run this program. Start a new message and try again."
@@ -358,6 +387,7 @@ mod workspace_failure_message_tests {
     fn the_reason_is_shown_so_the_cause_stays_actionable() {
         let message = workspace_failure_message(
             "container ag-uf4b70eb7-7e97 did not reach RUNNING within 60s; instance log: bpf_program_load_kernel: Operation not permitted",
+            60_000,
         );
         assert!(message.contains("container ag-uf4b70eb7-7e97"));
         assert!(message.contains("Operation not permitted"));
@@ -368,6 +398,7 @@ mod workspace_failure_message_tests {
     fn a_cold_start_reason_is_not_framed_as_a_dead_host() {
         let message = workspace_failure_message(
             "the workspace container ag-u58d054e0-619e is still starting after 900s; the first run downloads and unpacks the Incus image. Retry in a moment",
+            60_000,
         );
         assert!(message.contains("still starting"));
         assert!(!message.contains("restarting the app"));
@@ -375,9 +406,27 @@ mod workspace_failure_message_tests {
     }
 
     #[test]
+    fn a_budget_timeout_gets_timeout_guidance_not_host_guidance() {
+        let message = workspace_failure_message(
+            "the run budget elapsed before the workspace answered",
+            60_000,
+        );
+        assert!(message.contains("180-second budget"));
+        assert!(message.contains("60000 ms program timeout"));
+        assert!(message.contains("120 s of workspace overhead"));
+        assert!(message.contains("Retry"));
+        assert!(message.contains("split it into smaller steps"));
+        assert!(message.contains("check the budget"));
+        assert!(message.contains("`timeout_ms`"));
+        assert!(!message.contains("restart"));
+        assert!(!message.contains("Start a new message once"));
+        assert!(!message.contains("wait for"));
+    }
+
+    #[test]
     fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
         let long = "x".repeat(600);
-        let message = workspace_failure_message(&long);
+        let message = workspace_failure_message(&long, 60_000);
         assert!(message.contains('…'), "clip marker present");
         assert!(message.chars().count() < 500, "message stays readable");
         assert!(message.ends_with("Start a new message to retry."));

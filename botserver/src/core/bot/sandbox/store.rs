@@ -68,7 +68,12 @@ pub async fn publish_resource(
     if let Some(drive) = state.drive.as_ref() {
         let key = format!("_sandbox/ui/{hash}.html");
         if let Err(error) = drive
-            .put_object(bucket, &key, bytes.to_vec(), Some("text/html; charset=utf-8"))
+            .put_object(
+                bucket,
+                &key,
+                bytes.to_vec(),
+                Some("text/html; charset=utf-8"),
+            )
             .await
         {
             log::warn!("sandbox resource store failed: {error}");

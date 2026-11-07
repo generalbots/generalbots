@@ -16,25 +16,11 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
-/// Core apps that are always present regardless of feature flags.
-const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
-
-/// #1409 — Permanently-visible surface. These apps are NEVER preview and are
-/// always enabled, independent of the `.product` file: neither `preview_apps`
-/// nor a missing `apps=` entry can hide them. This is the exact set the
-/// product owner listed as "must appear always" plus the workbench apps Vibe
-/// drives (start menu / sidebar / command palette all resolve them by id).
-/// Every other app keeps the preview behaviour (hidden until Preview mode is
-/// on). Mirrors `ALWAYS_APP_IDS` in botui/ui/suite/js/window-manager.js.
-const ALWAYS_APPS: &[&str] = &[
-    "about",
-    "browser",
-    "chat",
-    "drive",
-    "editor",
-    "integrations",
-    "settings",
-];
+/// Core surfaces that are always present regardless of feature flags or the
+/// `.product` files. Everything else is classified by the product profile as
+/// always (`apps`), preview (`preview_apps`) or hidden (`hidden_apps`); #1811
+/// removed the hardcoded always-visible list that used to override it.
+const CORE_APPS: &[&str] = &["about", "admin", "auth", "settings"];
 
 /// In-memory app-install counters for the App Store (#1156). The frontend
 /// overlays these with per-user localStorage state; this endpoint provides a
@@ -57,17 +43,17 @@ pub struct AgentPlanBody {
     app: Option<String>,
 }
 
-mod installs;
-mod install_handler;
 mod agent_plan_handler;
 mod bot_launcher_apps;
 mod catalog_handler;
+mod install_handler;
+mod installs;
 
 pub use installs::*;
 // Explicit import: the `botuifragments::*` glob above also exports a
 // `register`, so the app-level one must shadow it by name.
-pub use installs::register;
-pub use install_handler::*;
 pub use agent_plan_handler::*;
 use bot_launcher_apps::*;
 pub use catalog_handler::*;
+pub use install_handler::*;
+pub use installs::register;

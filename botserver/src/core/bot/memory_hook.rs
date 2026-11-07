@@ -1,8 +1,8 @@
 //! Memory OS hook (issue #1178): recall injection before LLM calls and
 //! post-turn extraction. No-ops when the `memory-os` feature is disabled
 //! or the service was never initialized, preserving legacy behavior.
-use std::sync::{Arc, OnceLock};
 use botcore::shared::state::AppState;
+use std::sync::{Arc, OnceLock};
 use uuid::Uuid;
 
 static SERVICE: OnceLock<Arc<botmemory::MemoryService>> = OnceLock::new();
@@ -43,21 +43,14 @@ pub fn inject_recall(
             return;
         }
     };
-    let block = botmemory::recall::recall_block(
-        &mut conn,
-        user_id,
-        None,
-        query_hint,
-        512,
-    );
+    let block = botmemory::recall::recall_block(&mut conn, user_id, None, query_hint, 512);
     if block.is_empty() {
         return;
     }
     if let Some(arr) = messages_val.as_array_mut() {
         if let Some(idx) = arr.iter().position(|m| m["role"] == "system") {
             if let Some(content) = arr[idx]["content"].as_str() {
-                arr[idx]["content"] =
-                    serde_json::Value::String(format!("{content}\n\n{block}"));
+                arr[idx]["content"] = serde_json::Value::String(format!("{content}\n\n{block}"));
                 return;
             }
         }

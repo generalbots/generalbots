@@ -194,15 +194,45 @@ fn start_sidecar_and_show(app: &tauri::App) {
     });
 }
 
+/// Grants the local app access to the microphone and camera on WebKitGTK.
+///
+/// wry keeps WebKitGTK's MediaStream/WebRTC settings disabled by default, and
+/// WebKitGTK never shows a browser-style permission prompt. Without both the
+/// settings and the permission-request handler, `getUserMedia()` rejects with
+/// `NotAllowedError` and the chat mic/camera/live-voice buttons always fail.
 #[cfg(target_os = "linux")]
 fn grant_webkit_permissions<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
-    use webkit2gtk::{PermissionRequestExt, WebViewExt};
+    use webkit2gtk::glib::prelude::Cast;
+    use webkit2gtk::{
+        PermissionRequestExt, SettingsExt, UserMediaPermissionRequest,
+        UserMediaPermissionRequestExt, WebViewExt,
+    };
+
     tauri::plugin::Builder::new("generalbots-webkit-permissions")
         .on_webview_ready(|webview| {
             let _ = webview.with_webview(|platform| {
                 let wk = platform.inner();
+
+                if let Some(settings) = wk.settings() {
+                    settings.set_enable_media_stream(true);
+                    // Enabling WebRTC also enables MediaStream; keep both
+                    // explicit so live voice and Meet keep working even if
+                    // WebKit changes one of the defaults.
+                    settings.set_enable_webrtc(true);
+                }
+
                 wk.connect_permission_request(|_wv, request| {
-                    request.allow();
+                    let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() else {
+                        // Leave geolocation, notifications and other requests
+                        // to their own handlers.
+                        return false;
+                    };
+
+                    if media.is_for_audio_device() || media.is_for_video_device() {
+                        media.allow();
+                    } else {
+                        media.deny();
+                    }
                     true
                 });
             });
@@ -223,11 +253,12 @@ fn main() {
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
-        #[cfg(target_os = "linux")]
-        .plugin(grant_webkit_permissions())
-        .manage(tray_manager)
-        .manage(service_monitor);
+        .plugin(tauri_plugin_opener::init());
+
+    #[cfg(target_os = "linux")]
+    let builder = builder.plugin(grant_webkit_permissions());
+
+    let builder = builder.manage(tray_manager).manage(service_monitor);
 
     #[cfg(feature = "desktop-local")]
     let builder = builder
@@ -267,6 +298,8 @@ fn main() {
         get_tray_mode,
         get_running_modes,
         create_tray_with_mode,
+        desktop::update::check_release_update,
+        desktop::update::open_release_url,
         desktop::wizard::wizard_context,
         desktop::wizard::wizard_save_draft,
         desktop::wizard::wizard_load_draft,
@@ -324,6 +357,8 @@ fn main() {
         get_tray_mode,
         get_running_modes,
         create_tray_with_mode,
+        desktop::update::check_release_update,
+        desktop::update::open_release_url,
     ]);
 
     let app = builder

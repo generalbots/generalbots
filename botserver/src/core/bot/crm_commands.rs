@@ -49,7 +49,11 @@ pub(crate) async fn crm_forecast_command(
             weighted_total += v * w;
         }
     }
-    let per_period = if periods > 0 { weighted_total / periods as f64 } else { 0.0 };
+    let per_period = if periods > 0 {
+        weighted_total / periods as f64
+    } else {
+        0.0
+    };
     Ok(json!({
         "summary": format!(
             "Pipeline {open_count} open opportunities worth {pipeline_value:.2}; weighted forecast {weighted_total:.2} over {periods} month(s) ({per_period:.2}/month)."
@@ -69,7 +73,12 @@ pub(crate) async fn crm_create_lead_command(
     bot_uuid: &Uuid,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    let str_p = |k: &str| params.get(k).and_then(|v| v.as_str()).map(|s| s.to_string());
+    let str_p = |k: &str| {
+        params
+            .get(k)
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    };
     let title = str_p("title").unwrap_or_default();
     let email = str_p("email").filter(|e| !e.trim().is_empty());
     let first = str_p("first_name");
@@ -120,8 +129,17 @@ pub(crate) async fn crm_create_lead_command(
     let value: Option<f64> = params.get("value").and_then(|v| v.as_f64());
     let currency = str_p("currency").unwrap_or_else(|| "USD".to_string());
     let display_title = if title.is_empty() {
-        let name = [first.as_deref(), last.as_deref()].iter().flatten().copied().collect::<Vec<&str>>().join(" ");
-        if name.is_empty() { "Chat lead".to_string() } else { format!("Lead — {name}") }
+        let name = [first.as_deref(), last.as_deref()]
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<&str>>()
+            .join(" ");
+        if name.is_empty() {
+            "Chat lead".to_string()
+        } else {
+            format!("Lead — {name}")
+        }
     } else {
         title
     };
@@ -156,7 +174,12 @@ pub(crate) async fn crm_create_deal_command(
     bot_uuid: &Uuid,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    let str_p = |k: &str| params.get(k).and_then(|v| v.as_str()).map(|s| s.trim().to_string());
+    let str_p = |k: &str| {
+        params
+            .get(k)
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim().to_string())
+    };
     let title = str_p("title")
         .or_else(|| str_p("name"))
         .filter(|t| !t.is_empty())
@@ -236,15 +259,14 @@ pub(crate) async fn crm_move_deal_stage_command(
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
 
-    let previous: Option<Option<String>> = diesel::sql_query(
-        "SELECT stage FROM crm_deals WHERE id = $1 AND branch_id = $2",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(deal_id)
-    .bind::<diesel::sql_types::Uuid, _>(branch)
-    .load::<StageRow>(&mut conn)
-    .ok()
-    .and_then(|rows| rows.into_iter().next())
-    .map(|r| r.stage);
+    let previous: Option<Option<String>> =
+        diesel::sql_query("SELECT stage FROM crm_deals WHERE id = $1 AND branch_id = $2")
+            .bind::<diesel::sql_types::Uuid, _>(deal_id)
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .load::<StageRow>(&mut conn)
+            .ok()
+            .and_then(|rows| rows.into_iter().next())
+            .map(|r| r.stage);
 
     diesel::sql_query(
         "UPDATE crm_deals SET stage = $1, probability = $2, updated_at = NOW() \
@@ -276,7 +298,12 @@ pub(crate) async fn crm_create_contact_command(
     bot_uuid: &Uuid,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Value, String> {
-    let str_p = |k: &str| params.get(k).and_then(|v| v.as_str()).map(|s| s.trim().to_string());
+    let str_p = |k: &str| {
+        params
+            .get(k)
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim().to_string())
+    };
     let email = str_p("email").filter(|e| !e.is_empty());
     let first = str_p("first_name");
     let last = str_p("last_name");
@@ -323,7 +350,12 @@ fn ensure_contact(
     email: &Option<String>,
     params: &serde_json::Map<String, Value>,
 ) -> Result<Uuid, String> {
-    let str_p = |k: &str| params.get(k).and_then(|v| v.as_str()).map(|s| s.to_string());
+    let str_p = |k: &str| {
+        params
+            .get(k)
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    };
     let Some(mail) = email.clone() else {
         return Err("params.email is required".to_string());
     };
@@ -360,7 +392,11 @@ fn ensure_contact(
 }
 
 /// Find-or-create the account for `company` inside the branch (A2).
-fn ensure_account(conn: &mut diesel::PgConnection, branch: Uuid, company: &str) -> Result<Uuid, String> {
+fn ensure_account(
+    conn: &mut diesel::PgConnection,
+    branch: Uuid,
+    company: &str,
+) -> Result<Uuid, String> {
     let existing: Option<ContactIdRow> = diesel::sql_query(
         "SELECT id AS contact_id FROM crm_accounts WHERE branch_id = $1 AND name ILIKE $2 LIMIT 1",
     )
@@ -423,7 +459,10 @@ struct StageRollupRow {
 }
 
 /// #1441 P3 — leads-by-stage rollup for the chat surface.
-pub(crate) async fn crm_pipeline_report_command(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, String> {
+pub(crate) async fn crm_pipeline_report_command(
+    state: &Arc<AppState>,
+    bot_uuid: &Uuid,
+) -> Result<Value, String> {
     let branch = branch_scope(state, bot_uuid)?;
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
     let rows: Vec<StageRollupRow> = diesel::sql_query(
@@ -445,4 +484,3 @@ pub(crate) async fn crm_pipeline_report_command(state: &Arc<AppState>, bot_uuid:
         .collect();
     Ok(json!({ "summary": "Leads by stage", "stages": stages }))
 }
-

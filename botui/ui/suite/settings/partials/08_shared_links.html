@@ -1,0 +1,168 @@
+<link rel="stylesheet" href="/suite/settings/settings-shared-links.css?v=1" />
+
+<!-- #1863 — Shared Links (desktop-local / shell mode only).
+     A public link is only useful if the recipient can reach the host that
+     minted it. This panel shows the three reachability tiers, the URL this
+     installation currently produces, and the configuration each tier needs. -->
+<section id="shared-links-section" class="settings-section" data-shell-only="true" hidden>
+    <div class="section-header">
+        <h1>Shared Links</h1>
+        <p class="subtitle">Choose how a public file link reaches the person you send it to</p>
+    </div>
+
+    <div id="shared-links-reach-note" class="shared-links-reach-note" hidden>
+        <strong>Only this machine is reachable right now.</strong>
+        A copied loopback link (<code>127.0.0.1</code>) opens on the recipient's own
+        computer, not yours. Use a LAN address, set a domain, or wait for the free
+        General Bots address before sharing a link outside this machine.
+    </div>
+
+    <div class="shared-links-tiers">
+        <!-- Tier 1 — Local network -->
+        <article class="setting-card shared-tier" data-tier="lan">
+            <div class="card-header shared-tier-header">
+                <div class="shared-tier-title">
+                    <span class="shared-tier-index" aria-hidden="true">1</span>
+                    <div>
+                        <h2>This network</h2>
+                        <p>Anyone on your Wi-Fi or wired network</p>
+                    </div>
+                </div>
+                <span id="shared-lan-status" class="shared-status shared-status-pending">
+                    <span class="shared-status-dot"></span>Checking…
+                </span>
+            </div>
+
+            <div class="shared-url-row">
+                <span class="shared-url-label">On this computer</span>
+                <code id="shared-links-local-url">http://127.0.0.1:8080/api/files/public/…</code>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-local-url">Copy</button>
+            </div>
+            <div class="shared-url-row">
+                <span class="shared-url-label">On this network</span>
+                <code id="shared-links-lan-url">http://this-computer.local:8080/api/files/public/…</code>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-lan-url">Copy</button>
+            </div>
+
+            <p id="shared-lan-detail" class="shared-tier-detail">
+                Works for anyone on the same network. Nothing leaves this machine.
+            </p>
+
+            <div class="shared-config">
+                <h3>Configuration</h3>
+                <p>
+                    This tier is on by default: the local server listens on all
+                    interfaces. Open the network address from another device on the
+                    same network. If device-to-device traffic is blocked, allow
+                    inbound TCP port <code id="shared-links-port">8080</code> on this
+                    computer.
+                </p>
+                <p>
+                    If the <code>.local</code> name does not resolve, use this
+                    computer's IPv4 address instead (for example
+                    <code>http://192.168.1.20:8080</code>).
+                </p>
+            </div>
+        </article>
+
+        <!-- Tier 2 — Own domain -->
+        <article class="setting-card shared-tier" data-tier="domain">
+            <div class="card-header shared-tier-header">
+                <div class="shared-tier-title">
+                    <span class="shared-tier-index" aria-hidden="true">2</span>
+                    <div>
+                        <h2>My own domain</h2>
+                        <p>A name you control, reachable from the internet</p>
+                    </div>
+                </div>
+                <span id="shared-domain-status" class="shared-status shared-status-off">
+                    <span class="shared-status-dot"></span>Not configured
+                </span>
+            </div>
+
+            <div class="shared-url-row">
+                <span class="shared-url-label">Public link</span>
+                <code id="shared-links-domain-url">https://files.example.com/api/files/public/…</code>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-domain-url">Copy</button>
+            </div>
+
+            <p id="shared-domain-detail" class="shared-tier-detail">
+                Not configured — new links fall back to the local address above.
+            </p>
+
+            <div class="shared-config">
+                <h3>How to configure</h3>
+                <ol class="shared-steps">
+                    <li>
+                        Point a DNS record (for example
+                        <code>files.example.com</code>) at this computer's public
+                        address.
+                    </li>
+                    <li>
+                        Set the public base URL for this installation:
+                        <pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre>
+                        or, in the product file:
+                        <pre><code>public_base_url=https://files.example.com</code></pre>
+                    </li>
+                    <li>
+                        Restart the desktop app so new share links are composed
+                        against the domain; existing links keep their tokens.
+                    </li>
+                </ol>
+                <p class="shared-hint">
+                    The registrar token stays in the local vault and is never
+                    written to logs. Automatic DNS refresh and TLS certificates
+                    are part of the domain-provider work tracked in this issue;
+                    until that lands, keep the record updated at your registrar.
+                </p>
+            </div>
+        </article>
+
+        <!-- Tier 3 — Free General Bots address -->
+        <article class="setting-card shared-tier shared-tier-disabled" data-tier="free">
+            <div class="card-header shared-tier-header">
+                <div class="shared-tier-title">
+                    <span class="shared-tier-index" aria-hidden="true">3</span>
+                    <div>
+                        <h2>Free General Bots address</h2>
+                        <p>A name provided by General Bots, no domain needed</p>
+                    </div>
+                </div>
+                <span id="shared-free-status" class="shared-status shared-status-off">
+                    <span class="shared-status-dot"></span>Unavailable
+                </span>
+            </div>
+
+            <div class="shared-url-row">
+                <span class="shared-url-label">Public link</span>
+                <code id="shared-links-free-url">https://your-name.generalbots.org/api/files/public/…</code>
+            </div>
+
+            <p class="shared-tier-detail">
+                Not available yet. The desktop works offline, so this tier needs a
+                free DNS zone and a relay for machines that cannot be reached
+                directly. It ships disabled with the <code>botpublic</code> work
+                tracked in #1864.
+            </p>
+
+            <div class="shared-config">
+                <h3>What it will do</h3>
+                <p>
+                    The free account will hold a name — not your files. When a
+                    machine cannot be reached directly, the relay will keep only an
+                    encrypted copy of the shared file and that copy expires. There
+                    is nothing to configure until the relay is available.
+                </p>
+            </div>
+        </article>
+    </div>
+
+    <div class="shared-links-footer">
+        <button type="button" class="btn-secondary btn-sm" onclick="window.refreshSharedLinks && window.refreshSharedLinks()">
+            Check again
+        </button>
+        <span id="shared-links-checked" class="shared-links-checked"></span>
+    </div>
+</section>
+
+<script src="/suite/settings/settings-shared-links.js?v=1"></script>

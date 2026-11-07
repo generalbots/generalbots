@@ -11,11 +11,10 @@ features = ["database", "i18n", "http-client"]
 
 [features]
 # ===== DEFAULT =====
-# All apps except docs/slides (the two OOXML SDK consumers) — see allbutooxmlsdk
-# #1621 — `botcore/default` restores the domain feature set that used to arrive
-# through workspace feature unification. Slim bundles (desktop-local, chat-drive,
-# no-security) build without it and therefore report only what they ship.
-default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory", "terminal", "research", "consent", "digest", "botcore/default"]
+# #1811 — a normal build compiles every application. The `.product` file is the
+# only place that decides whether an app is always visible, preview or hidden;
+# Cargo no longer doubles as a second visibility map.
+default = ["all-apps", "botcore/default"]
 
 # Lean product profile: chat + drive only (no integrations app, no editor,
 # no Zitadel directory). Use with:
@@ -44,11 +43,15 @@ crawler = ["cache"]
 # Communication
 chat = ["automation", "cache", "botcore/chat"]
 people = ["automation", "drive", "cache", "dep:botpeople"]
-mail = ["automation", "drive", "cache", "digest", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail"]
+# #1820 — `mail` also enables the IMAP indexing path behind the Sources
+# Accounts tab and, when `sources` is compiled, its connectivity check. The
+# weak `botsources?/mail` reference keeps a mail-only build from pulling the
+# Sources crate in.
+mail = ["automation", "drive", "cache", "digest", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail", "botbasic_data/mail", "botsources?/mail"]
 # #1813 — weekly notification digest. Kept separate from `mail` so the
 # desktop-local/settings bundles can send through the platform notification
 # sender without pulling in IMAP, mail parsing or the full mail app.
-digest = ["automation", "drive", "cache", "dep:lettre"]
+digest = ["automation", "drive", "cache", "dep:lettre", "botcore/digest"]
 meet = ["automation", "drive", "cache", "dep:botmeet"]
 social = ["automation", "drive", "cache", "dep:botsocial", "dep:botchannels"]
 marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
@@ -85,14 +88,14 @@ web-search = ["llm", "dep:botresearch"]
 sources = ["automation", "drive", "cache", "dep:botsources"]
 
 # ===== AI OS (issues #1167-#1179) =====
-agent-vm = ["automation", "cache", "dep:botagent"]
-automations = ["automation", "cache", "llm", "dep:botautomation", "dep:botautotask"]
-marketplace = ["drive", "dep:botmarketplace"]
-connectors = ["automation", "cache", "rbac", "dep:botconnectors"]
-consent = ["dep:botconsent"]
-browser-policy = ["dep:botbrowserpolicy"]
-memory-os = ["llm", "dep:botmemory"]
-channel-bindings = ["dep:botchannelbindings"]
+agent-vm = ["automation", "cache", "dep:botagent", "botcore/agent-vm"]
+automations = ["automation", "cache", "llm", "dep:botautomation", "dep:botautotask", "botcore/automations"]
+marketplace = ["drive", "dep:botmarketplace", "botcore/marketplace"]
+connectors = ["automation", "cache", "rbac", "dep:botconnectors", "botcore/connectors"]
+consent = ["dep:botconsent", "botcore/consent"]
+browser-policy = ["dep:botbrowserpolicy", "botcore/browser-policy"]
+memory-os = ["llm", "dep:botmemory", "botcore/memory-os"]
+channel-bindings = ["dep:botchannelbindings", "botcore/channel-bindings"]
 
 # Analytics
 analytics = ["automation", "drive", "cache", "dep:botanalytics"]
@@ -123,14 +126,14 @@ compliance = ["automation", "drive", "cache", "legal", "dep:csv", "dep:botcompli
 timeseries = ["automation", "drive", "cache", "dep:bottimeseries"]
 weba = ["automation", "drive", "cache", "dep:botweba"]
 progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
-grpc = ["automation", "drive", "cache"]
-jemalloc = ["automation", "drive", "cache", "dep:mimalloc"]
+grpc = ["automation", "drive", "cache", "botcore/grpc"]
+jemalloc = ["automation", "drive", "cache", "dep:mimalloc", "botcore/jemalloc"]
 console = ["automation", "drive", "cache", "dep:crossterm", "dep:ratatui"]
 contacts = ["automation", "drive", "cache", "dep:botcontacts"]
-products = ["automation", "drive", "cache", "dep:botproducts", "botcloud/saas"]
+products = ["automation", "drive", "cache", "dep:botproducts", "botcloud/saas", "botcore/products"]
 legal = ["automation", "drive", "cache", "dep:botlegal"]
 attendance = ["automation", "drive", "cache", "dep:botattendance"]
-maintenance = ["automation", "drive", "cache", "dep:botmaintenance"]
+maintenance = ["automation", "drive", "cache", "dep:botmaintenance", "botcore/maintenance"]
 deployment = ["automation", "drive", "cache", "dep:botdeployment"]
 tax = ["automation", "drive", "cache", "dep:bottax"]
 vision = ["automation", "drive", "cache", "dep:botvision"]
@@ -156,10 +159,10 @@ vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
 # KB behaviour lives in `botmodelsbridge`/`botqdrant` and the `sources` feature.
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
-desktop = ["automation", "drive", "cache", "dep:botdesktop"]
-uifragments = ["dep:botuifragments"]
+desktop = ["automation", "drive", "cache", "dep:botdesktop", "botcore/desktop"]
+uifragments = ["dep:botuifragments", "botcore/uifragments"]
 saas = ["dep:botcloud", "billing", "providers", "botcloud/saas", "dep:botproducts"]
-providers = ["dep:botproviders"]
+providers = ["dep:botproviders", "botcore/providers"]
 
 # ===== BUNDLES (Optional - for convenience) =====
 minimal = ["chat"]
@@ -169,39 +172,29 @@ full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "
 embed-ui = ["dep:rust-embed"]
 sampledata = ["dep:botsampledata"]
 
-# Desktop-local: Chat + Drive for offline government distribution.
-# Deliberately minimal: mail, calendar, CRM, HR, billing, social, meet,
-# analytics and every other suite domain stay OUT of the binary. The product
-# file (`.product.desktop-local`) exposes only Chat and Drive, so compiling
-# those domains only bloats the installer and slows the build.
-# `agent-vm` is required: chat generates files (PDF/DOCX) inside the local
-# workspace container.
+# Desktop-local: the desktop/Tauri bundle now embeds the whole suite, just like
+# the normal build. The installer is larger and the build slower; #1811 accepts
+# that cost because `.product.desktop-local` — not Cargo — owns the
+# always/preview/hidden split.
 desktop-local = [
-    "chat", "drive", "agent-vm", "terminal", "security", "directory", "llm", "vectordb",
-    "settings", "no-security", "kb-extraction", "web-search",
-    # Drive's Connected tab: OneDrive/Google Drive consent surface.
-    "external_sync",
-    # #1713 — the comparison page advertises Agent Skills (SKILL.md), the
-    # connectors grants ledger, MCP management and reachability over messaging
-    # apps. The desktop edition must actually ship those surfaces; leaving them
-    # out made the published contract false for this bundle.
-    "sources", "connectors", "consent", "telegram", "whatsapp",
-    # #1632 item 8 — the everyday tools enabled in the launcher by default.
-    "sheet", "database", "player",
-    # #1707 — the office editors and the canvas ship in the desktop edition so
-    # Chat attachments can open in Docs/Sheets/Slides and drawn boards load.
-    # The botcore features advertise them in /api/product and /api/apps/catalog;
-    # without them the routes exist but the suite never offers the apps.
-    "docs", "slides", "canvas", "botcore/docs", "botcore/slides", "botcore/canvas",
-    # #1706 — the Goals app surfaces long-horizon goal runs (pause/resume), so
-    # the analytics surfaces and the goals API ship in the desktop edition too.
-    "analytics", "goals",
+    "all-apps",
+    "botcore/default",
     "botcore/desktop-local",
-    # #1621 — the infrastructure features the remaining crates use. The domain
-    # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)
-    # stay out, so /api/product reports the slim set this binary ships.
-    "botcore/cache", "botcore/automation", "botcore/tasks", "botcore/settings",
-    "botcore/llm", "botcore/directory", "botcore/security", "botcore/vectordb",
+]
+
+# #1811 — Every application feature. This is the default; slim bundles below
+# stay available for constrained builds. Keep it in sync with the app registry:
+# `scripts/product_profile_check.py` fails CI when a registry app has no
+# feature here.
+all-apps = [
+    "allbutooxmlsdk",
+    # The OOXML SDK consumers that allbutooxmlsdk deliberately leaves out.
+    "docs", "slides",
+    # AI OS and workbench features not covered by allbutooxmlsdk.
+    "agent-vm", "automations", "marketplace", "connectors", "consent",
+    "browser-policy", "memory-os", "channel-bindings",
+    "digest", "uifragments", "providers", "grpc", "jemalloc",
+    "progress-bars", "maintenance",
 ]
 
 allbutooxmlsdk = [

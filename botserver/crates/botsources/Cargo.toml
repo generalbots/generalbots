@@ -8,6 +8,10 @@ repository = "https://github.com/generalbots/generalbots"
 
 [features]
 drive = ["pdf-extract"]
+# #1820 — the Accounts tab validates IMAP credentials through the same
+# botemail session code the Mail app uses. Enabled by botserver's `mail`
+# feature only when `sources` is also compiled (weak dependency feature).
+mail = ["dep:botemail", "botemail/mail"]
 
 [dependencies]
 botlib = { workspace = true, features = ["database"] }
@@ -15,6 +19,7 @@ botschema = { workspace = true, features = ["integrations"] }
 axum = { workspace = true }
 base64 = { workspace = true }
 botcoresecrets = { workspace = true }
+botemail = { workspace = true, optional = true }
 botsecurity-core = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std", "serde"] }
 diesel = { workspace = true, features = ["extras", "postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
@@ -25,7 +30,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 zip = { workspace = true }

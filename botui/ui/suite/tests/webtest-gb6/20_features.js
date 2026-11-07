@@ -81,10 +81,14 @@ test("GB6-22: Offline sync with IndexedDB", function () {
   assert(src.indexOf("gb_drive_offline") !== -1, "IndexedDB name not found");
 });
 
-test("GB6-23: Auto-update checks /api/product", function () {
+test("GB6-23: Desktop auto-update checks GitHub releases", function () {
   var src = readFile("js/auto-update.js");
+  var settings = readFile("js/auto-update-settings.js");
   assert(src.indexOf("GBUpdate") !== -1, "GBUpdate not found");
-  assert(src.indexOf("/api/product") !== -1, "correct endpoint not found");
+  assert(src.indexOf("check_release_update") !== -1, "GitHub release command not used");
+  assert(src.indexOf("open_release_url") !== -1, "release link command not used");
+  assert(src.indexOf("gb-auto-update") !== -1, "opt-in preference key not found");
+  assert(settings.indexOf("/api/product") !== -1, "browser release-notes fallback missing");
   assert(src.indexOf("/api/product/version") === -1, "dead endpoint still referenced");
 });
 

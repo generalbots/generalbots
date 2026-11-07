@@ -1,8 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-pub use super::answer_mode_ops::*;
 pub use super::answer_mode_config::*;
+pub use super::answer_mode_ops::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnswerMode {

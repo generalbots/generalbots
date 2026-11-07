@@ -238,7 +238,9 @@ pub(super) fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_jso
 /// #1409 — "email is the same as mail": any product-file id spelled `email`
 /// is normalized to the canonical `mail` app id, so enabling/hiding email in
 /// `.product` behaves exactly as if the user wrote `mail`.
-pub(super) fn normalize_email_app_alias(mut ids: std::collections::HashSet<String>) -> std::collections::HashSet<String> {
+pub(super) fn normalize_email_app_alias(
+    mut ids: std::collections::HashSet<String>,
+) -> std::collections::HashSet<String> {
     if ids.remove("email") {
         ids.insert("mail".to_string());
     }

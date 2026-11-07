@@ -125,7 +125,13 @@ fn short_summary(app: &str, method: &str, path: &str) -> String {
         .trim_start_matches('/')
         .split('/')
         .skip(2)
-        .map(|s| if s.starts_with(':') || s.starts_with('{') { "record" } else { s })
+        .map(|s| {
+            if s.starts_with(':') || s.starts_with('{') {
+                "record"
+            } else {
+                s
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ");
     format!("{app}: {method} {noun} (via {path})")
@@ -137,10 +143,22 @@ mod tests {
 
     #[test]
     fn test_app_for_endpoint() {
-        assert_eq!(app_for_endpoint("/api/crm/contacts"), Some("crm".to_string()));
-        assert_eq!(app_for_endpoint("/api/files/list"), Some("drive".to_string()));
-        assert_eq!(app_for_endpoint("/api/email/send"), Some("mail".to_string()));
-        assert_eq!(app_for_endpoint("/api/nonexistent/x"), Some("nonexistent".to_string()));
+        assert_eq!(
+            app_for_endpoint("/api/crm/contacts"),
+            Some("crm".to_string())
+        );
+        assert_eq!(
+            app_for_endpoint("/api/files/list"),
+            Some("drive".to_string())
+        );
+        assert_eq!(
+            app_for_endpoint("/api/email/send"),
+            Some("mail".to_string())
+        );
+        assert_eq!(
+            app_for_endpoint("/api/nonexistent/x"),
+            Some("nonexistent".to_string())
+        );
         assert_eq!(app_for_endpoint("/cloud/partials/sidebar.html"), None);
     }
 
@@ -154,12 +172,19 @@ mod tests {
             command_name_for("tickets", "PUT", "/api/tickets/:id/status"),
             "tickets.item_status.update"
         );
-        assert_eq!(command_name_for("drive", "GET", "/api/files/list"), "drive.list.list");
+        assert_eq!(
+            command_name_for("drive", "GET", "/api/files/list"),
+            "drive.list.list"
+        );
     }
 
     #[test]
     fn test_derived_has_substantial_surface() {
         let cmds = derived_commands();
-        assert!(cmds.len() > 500, "expected a large harvested surface, got {}", cmds.len());
+        assert!(
+            cmds.len() > 500,
+            "expected a large harvested surface, got {}",
+            cmds.len()
+        );
     }
 }
