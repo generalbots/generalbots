@@ -155,8 +155,15 @@ function initWallpapers() {
 window.toggleCompactMode = function (checkbox) {
   var enabled = checkbox.checked;
   localStorage.setItem(STORAGE_KEYS.COMPACT_MODE, enabled);
+  // #1806 — apply to both <html> and <body> so the density change is truly
+  // global: CSS selectors anchored on either element will match, and the
+  // desktop shell (taskbar, sidebar, windows) reacts immediately.
+  document.documentElement.classList.toggle("compact-mode", enabled);
   document.body.classList.toggle("compact-mode", enabled);
   showToast(enabled ? "Compact mode enabled" : "Compact mode disabled");
+  window.dispatchEvent(
+    new CustomEvent("gb-compact-mode-changed", { detail: { compact: enabled } }),
+  );
 };
 window.toggleAnimations = function (checkbox) {
   var enabled = checkbox.checked;

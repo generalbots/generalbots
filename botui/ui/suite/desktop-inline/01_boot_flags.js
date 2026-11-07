@@ -23,6 +23,18 @@
                 }
             } catch (e) {}
             window.__BOT_IS_PUBLIC__ = false;
+            // #1806 — Apply global density preferences BEFORE first paint so
+            // the desktop shell never flashes in normal density then snaps to
+            // compact.  Read straight from localStorage (synchronous, no
+            // flicker).
+            try {
+                if (localStorage.getItem('gb-compact-mode') === 'true') {
+                    document.documentElement.classList.add('compact-mode');
+                }
+                if (localStorage.getItem('gb-animations') === 'false') {
+                    document.documentElement.classList.add('no-animations');
+                }
+            } catch (e) {}
             // Hide the shell from the very first paint: a private bot must
             // never flash an empty desktop before the auth gate resolves.
             document.documentElement.classList.add('gb-auth-gate');

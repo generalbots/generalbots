@@ -65,7 +65,17 @@ body {
     flex-direction: column;
 }
 
-/* Compact Mode - reduces spacing throughout the app */
+/* ============================================ */
+/* Compact Mode (#1806) — global density mode   */
+/*                                              */
+/* Applied via `compact-mode` class on <html>   */
+/* (boot flags) and <body> (settings toggle).   */
+/* Selectors use both anchors so the density    */
+/* change works before and after body exists.   */
+/* ============================================ */
+
+/* -- Spacing tokens (used by components below) -------------- */
+:root.compact-mode,
 body.compact-mode {
     --spacing-xs: 2px;
     --spacing-sm: 4px;
@@ -74,6 +84,7 @@ body.compact-mode {
     --spacing-xl: 16px;
 }
 
+/* -- Settings elements (original scope) --------------------- */
 body.compact-mode .app-header {
     height: 48px;
     padding: 0 0.5rem;
@@ -93,6 +104,122 @@ body.compact-mode .setting-card,
 body.compact-mode .settings-section {
     padding: 12px;
     margin-bottom: 12px;
+}
+
+/* -- Desktop taskbar ---------------------------------------- */
+:root.compact-mode {
+    --taskbar-h: 24px;
+}
+
+.compact-mode .toolbar-v15 {
+    height: var(--taskbar-h, 24px);
+}
+
+.compact-mode .taskbar-shell {
+    padding: 0 4px;
+    gap: 2px;
+}
+
+.compact-mode #startBtn {
+    padding: 2px 6px;
+}
+
+.compact-mode #startBtn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.compact-mode .taskbar-search {
+    height: 20px;
+    font-size: 11px;
+}
+
+.compact-mode .taskbar-clock {
+    font-size: 10px;
+    line-height: 1.2;
+    padding: 0 4px;
+}
+
+.compact-mode .tray-btn {
+    padding: 2px 4px;
+}
+
+.compact-mode .tray-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+/* -- Desktop sidebar ---------------------------------------- */
+.compact-mode .chat-sidebar {
+    width: 260px;
+}
+
+.compact-mode .chat-sidebar-toggle {
+    height: 36px;
+}
+
+.compact-mode .chat-sidebar-header {
+    padding: 4px 8px;
+}
+
+.compact-mode .chat-sidebar-new-chat {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.compact-mode .chat-sidebar-section-label {
+    padding: 2px 10px;
+    font-size: 10px;
+}
+
+.compact-mode .chat-sidebar-conversations {
+    gap: 1px;
+}
+
+/* -- Window chrome ------------------------------------------ */
+.compact-mode .window-header-glass {
+    height: 30px;
+    padding: 0 8px;
+    gap: 6px;
+}
+
+.compact-mode .window-header-glass .window-title {
+    font-size: 12px;
+}
+
+.compact-mode .window-header-glass .window-dot {
+    width: 10px;
+    height: 10px;
+}
+
+.compact-mode .window-header-glass .window-dot-controls {
+    gap: 5px;
+}
+
+/* -- Start menu --------------------------------------------- */
+.compact-mode .start-menu {
+    padding: 6px;
+}
+
+.compact-mode .start-menu-item {
+    padding: 4px 8px;
+    font-size: 12px;
+    gap: 6px;
+}
+
+/* -- Chat messages ------------------------------------------ */
+.compact-mode .message-row {
+    padding: 4px 8px;
+    gap: 6px;
+}
+
+.compact-mode .message-content {
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.compact-mode .chat-input-area {
+    padding: 4px 8px;
 }
 
 /* No Animations - disables all transitions and animations */

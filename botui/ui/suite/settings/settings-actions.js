@@ -122,7 +122,10 @@
             if (saved === null) return;
             input.checked = saved === 'true';
         });
-        document.body.classList.toggle('compact-mode', localStorage.getItem('gb-compact-mode') === 'true');
+        // #1806 — apply density to both <html> and <body> for global reach.
+        var isCompact = localStorage.getItem('gb-compact-mode') === 'true';
+        document.documentElement.classList.toggle('compact-mode', isCompact);
+        document.body.classList.toggle('compact-mode', isCompact);
         document.body.classList.toggle('no-animations', localStorage.getItem('gb-animations') === 'false');
         document.body.classList.toggle('sidebar-hidden', localStorage.getItem('gb-show-sidebar') === 'false');
     }
@@ -143,8 +146,13 @@
 
     window.toggleCompactMode = function (checkbox) {
         persistPref('gb-compact-mode', checkbox.checked);
+        // #1806 — apply to both <html> and <body> so compact density is global.
+        document.documentElement.classList.toggle('compact-mode', checkbox.checked);
         document.body.classList.toggle('compact-mode', checkbox.checked);
         showToast(checkbox.checked ? 'Compact mode enabled' : 'Compact mode disabled');
+        window.dispatchEvent(new CustomEvent('gb-compact-mode-changed', {
+            detail: { compact: checkbox.checked },
+        }));
     };
 
     window.toggleShowSidebar = function (checkbox) {
