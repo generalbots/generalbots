@@ -58,15 +58,19 @@ in the repository's `SECURITY.md` and the security report.
   listed.
 - Rotated the Vault unseal keys (5 shares, threshold 3, seal/unseal verified),
   verified the historical Zitadel and GCP credentials are dead at the
-  providers, and revoked the leaked WhatsApp system-user token. Only the
-  Azure Search/LUIS item remains, with no active consumer and no Azure
-  console access.
+  providers, and revoked the leaked WhatsApp system-user token. The Azure
+  Search host no longer resolves (decommissioned) and LUIS keys were never
+  committed, so that item is closed too.
+
+The recurring actions that keep this posture — daily gates, weekly dependency
+PRs, monthly OS patching, quarterly credential/access review and the annual
+assessment — are listed in `SECURITY.md` → *Security Maintenance Cadence*.
 
 ## Open items
 
 | Item | Tracking |
 |------|----------|
-| Rotate the Azure Search/LUIS keys (no active consumer; needs Azure console access) | issue #1761 |
+
 
 | Apply the parent dependency upgrades (quick-xml, git2, calamine, rsa, zip) | issues #1757, #1762–#1765 |
 
