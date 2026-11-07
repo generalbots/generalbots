@@ -6,9 +6,14 @@
 (function () {
   function addSkipNav() {
     if (document.getElementById("gb-skip-nav")) return;
+    // Prefer the always-present main landmark; #messages only exists after
+    // the chat app loads (and axe fails a skip link whose target is absent).
+    var target = document.getElementById("desktop-content");
+    if (target) target.setAttribute("tabindex", "-1");
     var skip = document.createElement("a");
     skip.id = "gb-skip-nav";
-    skip.href = "#messages";
+    skip.href = target ? "#desktop-content" : "#messages";
+    skip.tabIndex = 0;
     skip.textContent = "Skip to main content";
     skip.style.cssText = "position:fixed;top:-100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:#fff;padding:10px 20px;border-radius:0 0 8px 8px;z-index:999999;font-size:14px;font-weight:600;transition:top 0.2s;";
     skip.addEventListener("focus", function () { skip.style.top = "0"; });
