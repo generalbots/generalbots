@@ -335,7 +335,35 @@
         window.showSection("shared-links", nav);
       }
     }
+    wireMasterSwitch();
     refresh();
+  }
+
+  function wireMasterSwitch() {
+    var select = byId("peer-network-mode");
+    var button = byId("peer-master-switch");
+    if (!select || !button || button.getAttribute("data-wired") === "1") {
+      return;
+    }
+    button.setAttribute("data-wired", "1");
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var mode = (window.localStorage && window.localStorage.getItem("gb_peer_network_mode")) || "offline";
+      select.value = mode === "p2p" ? "p2p" : "offline";
+    } catch (e) {}
+    button.addEventListener("click", function () {
+      var chosen = select.value === "p2p" ? "p2p" : "offline";
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem("gb_peer_network_mode", chosen);
+        }
+      } catch (e) {}
+      var node = byId("shared-links-checked");
+      if (node) {
+        node.textContent = "Network mode set to " + chosen +
+          ". Restart the app for the change to take effect.";
+      }
+    });
   }
 
   window.loadSharedLinks = init;

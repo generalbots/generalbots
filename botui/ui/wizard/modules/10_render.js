@@ -247,6 +247,14 @@
   function bindPrivacy() {
     var reveal = document.getElementById("revealVaultBtn");
     if (reveal) { reveal.addEventListener("click", function () { B.openFolder("vault"); }); }
+    var mode = document.getElementById("networkMode");
+    if (mode) {
+      mode.addEventListener("change", function () {
+        draft.network = draft.network || { mode: "offline" };
+        draft.network.mode = mode.value === "p2p" ? "p2p" : "offline";
+        persistDraft();
+      });
+    }
   }
 
   App.renderRail = renderRail;

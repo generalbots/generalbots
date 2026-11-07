@@ -36,6 +36,7 @@ sent only while P2P is enabled and only to the configured relay.
 
 The peer-network foundation (identity, heartbeat, status endpoint) ships in
 `botserver/src/core/peer_network.rs` and
-`botserver/src/main_module/routes/peer_network.rs`. Payloads (shared folder,
-ask-my-bot, peer backup, calls, peer cache) and the signed home-site
-generator are tracked by issues #1866 and #1867.
+`botserver/src/main_module/routes/peer_network.rs`. Payloads (personal mesh, shared folder, drop box, ask-my-bot, peer backup,
+calls, peer cache) now ship in `botserver/src/core/peer_payloads.rs`, and the
+signed home-site generator ships in `botserver/src/core/home_site.rs`
+(issue #1867).
