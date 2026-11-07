@@ -1,0 +1,172 @@
+name: Desktop binaries (Linux arm64)
+
+# arm64 packaging for the desktop edition. Kept separate from
+# `desktop-binaries.yml` on purpose: the x86_64 release must never be blocked
+# by an arm64 runner or bundler regression.
+#
+# What this produces today: the tarball (`package.sh` with ARCH=aarch64), the
+# raw app/botserver binaries and the Tauri deb/rpm/AppImage, uploaded as a
+# workflow artifact. Publishing to the release is gated by the repository
+# variable PUBLISH_ARM64=true, because the runtime component matrix
+# (llama.cpp, PostgreSQL, Valkey, MinIO, Qdrant, Vault, Zitadel) is still
+# x86_64-only — see the tracking issue on the component arch matrix.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (for example v6.7.0)"
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  linux-arm64:
+    name: Linux arm64 binaries
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang mold pkg-config zstd \
+            libpq-dev libssl-dev liblzma-dev \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+
+      - name: Cache Cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-desktop-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-desktop-
+
+      - name: Build botserver (desktop-local)
+        run: cargo build -p botserver --release --no-default-features --features desktop-local
+
+      - name: Build botui
+        run: cargo build -p botui --release
+
+      - name: Build desktop shell
+        run: cargo build -p botapp --release --features desktop-local,custom-protocol
+
+      # The vendored drive binaries and the BotModels pythonbox are x86_64
+      # builds today, so the arm64 tarball ships without `installers/` until the
+      # component matrix grows arm64 variants. First run then downloads what it
+      # needs (and reports the component gap instead of failing silently).
+      - name: Assemble arm64 installer
+        run: |
+          set -euo pipefail
+          chmod +x desktop/linux/package.sh
+          TAG="${{ github.event.inputs.tag || github.ref_name || 'nightly' }}"
+          ./desktop/linux/package.sh "$TAG" target/release dist "" aarch64
+          cp target/release/botapp    dist/generalbots-linux-aarch64
+          cp target/release/botserver dist/botserver-linux-aarch64
+          chmod +x dist/generalbots-linux-aarch64 dist/botserver-linux-aarch64
+          (cd dist && sha256sum generalbots-linux-aarch64 botserver-linux-aarch64 >> SHA256SUMS-linux-aarch64)
+          ls -lh dist
+
+      - name: Install Tauri bundler
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Package deb, rpm and AppImage (arm64)
+        continue-on-error: true
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends rpm libfuse2
+          mkdir -p botapp/binaries
+          cp target/release/botserver \
+            botapp/binaries/botserver-aarch64-unknown-linux-gnu
+          cd botapp
+          cargo tauri build \
+            --features desktop-local,custom-protocol \
+            --config tauri.desktop-local.conf.json \
+            --bundles deb,rpm,appimage
+
+      - name: Collect arm64 packages
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name || 'nightly' }}"
+          shopt -s nullglob
+          collect() {
+            local glob="$1" stable="$2" versioned="$3"
+            for f in $glob; do
+              cp "$f" "dist/$stable"
+              cp "$f" "dist/$versioned"
+              return 0
+            done
+            echo "::warning::no package matched $glob — $stable will not be published"
+            return 0
+          }
+          collect "botapp/target/release/bundle/deb/*.deb target/release/bundle/deb/*.deb" \
+            generalbots-linux-aarch64.deb "generalbots-${TAG}-linux-aarch64.deb"
+          collect "botapp/target/release/bundle/rpm/*.rpm target/release/bundle/rpm/*.rpm" \
+            generalbots-linux-aarch64.rpm "generalbots-${TAG}-linux-aarch64.rpm"
+          collect "botapp/target/release/bundle/appimage/*.AppImage target/release/bundle/appimage/*.AppImage" \
+            generalbots-linux-aarch64.AppImage "generalbots-${TAG}-linux-aarch64.AppImage"
+          cd dist
+          for f in generalbots-linux-aarch64.deb "generalbots-${TAG}-linux-aarch64.deb" \
+                   generalbots-linux-aarch64.rpm "generalbots-${TAG}-linux-aarch64.rpm" \
+                   generalbots-linux-aarch64.AppImage "generalbots-${TAG}-linux-aarch64.AppImage"; do
+            if [ -f "$f" ]; then
+              sha256sum "$f" >> SHA256SUMS-linux-aarch64
+            fi
+          done
+          ls -lh dist
+
+      - name: Upload arm64 installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: linux-arm64-installer
+          path: dist/*
+          if-no-files-found: error
+
+  # Publishing is opt-in until the runtime components are available for
+  # arm64; a downloadable installer that cannot provision its stack would be
+  # worse than no artifact.
+  attach:
+    name: Attach arm64 assets (opt-in)
+    needs: linux-arm64
+    if: ${{ github.server_url == 'https://github.com' && vars.PUBLISH_ARM64 == 'true' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: linux-arm64-installer
+          path: dist
+      - name: Upload to the matching release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Linux arm64 desktop build"
+          gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
