@@ -75,11 +75,15 @@ if (document.readyState === "loading") {
     // initial desktop.html markup (not a swapped partial), so restoring only
     // on htmx:afterSwap misses loads where no swap occurs.
     restoreChatSidebar();
+    restoreCompactMode();
     hookChatSidebarAfterSwap();
+    hookCompactModeAfterSwap();
   });
 } else {
   restoreChatSidebar();
+  restoreCompactMode();
   hookChatSidebarAfterSwap();
+  hookCompactModeAfterSwap();
 }
 // window-manager.js loads in the <head>, before <body> exists, so attach
 // the htmx listener only once the body element is present (binding it at
@@ -91,4 +95,27 @@ function hookChatSidebarAfterSwap() {
   }
   if (document.readyState !== "loading") document.addEventListener("DOMContentLoaded", hookChatSidebarAfterSwap);
 }
+
+function restoreCompactMode() {
+  let compact = "false";
+  try {
+    compact = localStorage.getItem("gb-compact-mode") || "false";
+  } catch (e) {
+    /* storage unavailable — default off */
+  }
+  document.body.classList.toggle("compact-mode", compact === "true");
+}
+
+function hookCompactModeAfterSwap() {
+  if (window.htmx && document.body) {
+    document.body.addEventListener("htmx:afterSwap", restoreCompactMode);
+    return;
+  }
+  if (document.readyState !== "loading") document.addEventListener("DOMContentLoaded", hookCompactModeAfterSwap);
+}
+window.addEventListener("gb-compact-mode-changed", function (e) {
+  var enabled = !!(e && e.detail && e.detail.compact);
+  document.body.classList.toggle("compact-mode", enabled);
+});
+
 })(window);

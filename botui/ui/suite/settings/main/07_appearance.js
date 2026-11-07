@@ -157,7 +157,16 @@ window.toggleCompactMode = function (checkbox) {
   localStorage.setItem(STORAGE_KEYS.COMPACT_MODE, enabled);
   document.body.classList.toggle("compact-mode", enabled);
   showToast(enabled ? "Compact mode enabled" : "Compact mode disabled");
+  window.dispatchEvent(new CustomEvent("gb-compact-mode-changed", {
+    detail: { compact: enabled },
+  }));
 };
+window.addEventListener("gb-compact-mode-changed", function (e) {
+  var enabled = !!(e && e.detail && e.detail.compact);
+  var input = document.querySelector('[name="compact_mode"]');
+  if (input) input.checked = enabled;
+  document.body.classList.toggle("compact-mode", enabled);
+});
 window.toggleAnimations = function (checkbox) {
   var enabled = checkbox.checked;
   localStorage.setItem(STORAGE_KEYS.ANIMATIONS, enabled);

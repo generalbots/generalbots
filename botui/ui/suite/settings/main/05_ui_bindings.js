@@ -93,7 +93,7 @@ function loadSavedSettings() {
   var compactToggle = document.querySelector('[name="compact_mode"]');
   if (compactToggle) {
     compactToggle.checked = compactMode;
-    if (compactMode) document.body.classList.add("compact-mode");
+    document.body.classList.toggle("compact-mode", compactMode);
   }
   var animations = localStorage.getItem(STORAGE_KEYS.ANIMATIONS) !== "false";
   var animationsToggle = document.querySelector('[name="animations"]');

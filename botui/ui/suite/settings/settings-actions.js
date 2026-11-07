@@ -145,7 +145,16 @@
         persistPref('gb-compact-mode', checkbox.checked);
         document.body.classList.toggle('compact-mode', checkbox.checked);
         showToast(checkbox.checked ? 'Compact mode enabled' : 'Compact mode disabled');
+        window.dispatchEvent(new CustomEvent('gb-compact-mode-changed', {
+            detail: { compact: checkbox.checked },
+        }));
     };
+    window.addEventListener('gb-compact-mode-changed', function (e) {
+        var enabled = !!(e && e.detail && e.detail.compact);
+        var input = document.querySelector('[name="compact_mode"]');
+        if (input) input.checked = enabled;
+        document.body.classList.toggle('compact-mode', enabled);
+    });
 
     window.toggleShowSidebar = function (checkbox) {
         persistPref('gb-show-sidebar', checkbox.checked);
@@ -285,6 +294,29 @@
         applyPreferenceToggles();
         restoreLocaleSelects();
         bindDataPrefs();
+    }
+
+    // #1821 — a failed API-key/webhook request used to leave the panel looking
+    // empty (the 401 body has no list markup). Show the real status and an
+    // actionable message instead.
+    window.gbSettingsRequestError = function (target, event) {
+        if (!target || !event || !event.detail) return;
+        var status = event.detail.xhr ? event.detail.xhr.status : 0;
+        var message = status === 401
+            ? 'Your session is not authorized for this request. Sign in again from the desktop and retry.'
+            : 'Request failed' + (status ? ' (HTTP ' + status + ')' : '') + '. Please retry.';
+        target.innerHTML = '<div class="error-state"><p>' + message + '</p></div>';
+    };
+    if (!window.__gbSettingsRequestErrorBound) {
+        window.__gbSettingsRequestErrorBound = true;
+        document.addEventListener('htmx:responseError', function (event) {
+            var path = event.detail && event.detail.pathInfo
+                ? event.detail.pathInfo.requestPath
+                : '';
+            if (!/^\/api\/(user|admin)\//.test(path)) return;
+            var target = event.detail && event.detail.target;
+            if (target) window.gbSettingsRequestError(target, event);
+        });
     }
 
     if (document.readyState === 'loading') {
