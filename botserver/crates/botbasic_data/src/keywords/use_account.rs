@@ -4,6 +4,8 @@ use diesel::prelude::*;
 use log::info;
 use rhai::{Dynamic, Engine};
 #[cfg(feature = "mail")]
+use mailparse::MailHeaderMap;
+#[cfg(feature = "mail")]
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -218,8 +220,19 @@ async fn index_imap_account_emails(
         Err(e) => { log::error!("Failed to create Qdrant client: {e}"); return; }
     };
 
-    let collections = qdrant_client.list_collections().await.unwrap_or_default();
-    let exists = collections.collections.iter().any(|c| c.name == qdrant_collection);
+    let exists = qdrant_client
+        .list_collections()
+        .await
+        .map(|collections| {
+            collections
+                .collections
+                .iter()
+                .any(|c| c.name == qdrant_collection)
+        })
+        .unwrap_or_else(|e| {
+            log::warn!("Failed to list Qdrant collections for {qdrant_collection}: {e}");
+            false
+        });
     if !exists {
         if let Err(e) = qdrant_client.create_collection(qdrant_collection, 1536, "Cosine").await {
             log::error!("Failed to create Qdrant collection {qdrant_collection}: {e}");
