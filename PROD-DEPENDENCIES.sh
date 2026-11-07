@@ -4,10 +4,11 @@
 # Linux: verifies or installs everything needed to RUN the binaries through
 #        DEPENDENCIES.sh (the package matrix). Build tooling lives in
 #        DEV-DEPENDENCIES.sh.
-# macOS: reports whether the packaged desktop bundle can run here. The bundle
-#        has no dmg target and no macOS CI job, and agent mode has no native
-#        Incus daemon, so the script reports the platform as unsupported
-#        instead of pretending a download exists.
+# macOS: reports whether the packaged desktop bundle can run here. The dmg
+#        target and the GitHub-only macOS workflow exist, but the Linux service
+#        stack and the Incus agent have no native darwin builds, so the script
+#        reports exactly what is unavailable instead of pretending a complete
+#        local stack exists.
 # Windows uses PROD-DEPENDENCIES.ps1.
 #
 # Usage:
@@ -75,7 +76,10 @@ MSG
 fi
 
 config="$root/botapp/tauri.desktop-local.conf.json"
-workflow="$root/.github/workflows/desktop-binaries.yml"
+workflows=(
+    "$root/.github/workflows/desktop-binaries.yml"
+    "$root/.github/workflows/desktop-macos.yml"
+)
 
 ok() { printf '  [ok]      %s\n' "$1"; }
 missing() { printf '  [missing] %s\n' "$1"; }
@@ -85,19 +89,24 @@ show_install_guidance() {
     cat <<'MSG'
 No installation is performed by this script on macOS.
 
-macOS desktop bundle: NOT PUBLISHED
-  - botapp/tauri.desktop-local.conf.json has no dmg bundle target.
-  - .github/workflows/desktop-binaries.yml has no macOS job.
-  - Use the Linux x86_64 or Windows x64 desktop bundle.
+macOS desktop bundle: BEST EFFORT (UNSIGNED)
+  - botapp/tauri.desktop-local.conf.json configures the dmg/app targets.
+  - GitHub Actions builds it in .github/workflows/desktop-macos.yml.
+  - The Linux service stack (PostgreSQL, Valkey, MinIO/mc, Qdrant, Vault,
+    Zitadel, llama.cpp), the BotModels pythonbox and the Incus agent have no
+    native darwin builds. Use a Linux VM or a remote Incus host.
+  - Gatekeeper bypass for the unsigned app:
+    xattr -dr com.apple.quarantine "/Applications/General Bots.app"
 
 If you need a local development server on macOS:
   xcode-select --install
   cargo build -p botserver
   cargo build -p botui
-This is a source-tree development setup, not the packaged desktop edition.
+This is a source-tree development setup, not a fully provisioned desktop
+edition.
 
-Agent mode: Incus via WSL2 is unavailable on macOS. Run agent actions on a
-Linux host or on Windows with WSL2.
+Agent mode: Incus has no native daemon on macOS. Run agent actions on a Linux
+host, or configure a remote Incus endpoint (`incus remote add`).
 MSG
 }
 
@@ -124,27 +133,34 @@ else
     bundle_unsupported=1
 fi
 
-if [ -f "$workflow" ] && grep -Eq 'runs-on:[[:space:]]*macos|macos-latest|macos-[0-9]+' "$workflow"; then
-    ok "macOS job present in .github/workflows/desktop-binaries.yml"
+macos_job=""
+for candidate in "${workflows[@]}"; do
+    if [ -f "$candidate" ] && grep -Eq 'runs-on:[[:space:]]*macos|macos-latest|macos-[0-9]+' "$candidate"; then
+        macos_job="${candidate#"$root"/}"
+        break
+    fi
+done
+if [ -n "$macos_job" ]; then
+    ok "macOS job present in $macos_job"
 else
-    missing "no macOS job in .github/workflows/desktop-binaries.yml"
+    missing "no macOS job in desktop-binaries.yml or desktop-macos.yml"
     bundle_unsupported=1
 fi
 
 if [ "$bundle_unsupported" -eq 1 ]; then
-    info "supported desktop platforms are Linux x86_64 and Windows x64."
-    info "the download page and the first-run wizard must not offer macOS."
+    info "supported desktop targets are Linux x86_64, Windows x64 and macOS arm64 (best effort, unsigned)."
+    info "the download page and the first-run wizard must report unavailable macOS pieces."
 fi
 
 echo
 echo "--- Agent mode (Incus) ---"
-missing "agent mode is not supported on macOS (no WSL2, no native Incus daemon)."
-info "run agent actions on a Linux host or on Windows with WSL2."
+missing "agent mode needs remote Incus or a Linux VM on macOS (no native Incus daemon)."
+info "run agent actions on a Linux host, or configure a remote Incus endpoint."
 
 echo
 if [ "$bundle_unsupported" -eq 1 ]; then
-    echo "Result: UNSUPPORTED - the General Bots desktop bundle is not built for macOS."
+    echo "Result: UNSUPPORTED - the macOS desktop bundle configuration is incomplete."
     exit 2
 fi
-echo "Result: AGENT UNAVAILABLE - the desktop bundle could run, but agent mode cannot."
+echo "Result: PARTIAL SUPPORT - the macOS bundle is configured, but the Linux service stack and agent mode cannot run natively."
 exit 2

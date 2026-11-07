@@ -7,6 +7,10 @@
 # Binaries and the suite are copied under the prefix; the launcher and the
 # desktop entry point at it. Runtime state (stack, logs, workspace) is kept in
 # ~/.local/share/generalbots and survives reinstalls and upgrades.
+#
+# Upgrading is re-running this installer: the prefix is replaced, the data
+# directory is not touched. For the AppImage/deb/rpm update model and the
+# version endpoint (http://127.0.0.1:8080/api/health) see README.txt.
 set -euo pipefail
 
 # Resolve the symlink so a launcher installed elsewhere still finds the real

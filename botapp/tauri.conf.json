@@ -31,15 +31,8 @@
     "targets": "all",
     "icon": [
       "icons/icon.ico",
-      "icons/icon.png"
+      "icons/icon.png",
+      "icons/icon.icns"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://releases.pragmatismo.com.br/gb-desktop/{{target}}/{{arch}}/{{current_version}}"
-      ],
-      "pubkey": ""
-    }
   }
 }

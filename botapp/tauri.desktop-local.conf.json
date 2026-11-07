@@ -5,7 +5,14 @@
       "msi",
       "deb",
       "rpm",
-      "appimage"
+      "appimage",
+      "dmg",
+      "app"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png",
+      "icons/icon.icns"
     ],
     "resources": {
       "../botserver/.product.desktop-local": ".product.desktop-local",
@@ -38,8 +45,10 @@
     "linux": {
       "deb": {
         "depends": [
-          "libssl3",
-          "libwebkit2gtk-4.1-0"
+          "libssl3 | libssl3t64",
+          "libwebkit2gtk-4.1-0",
+          "libpq5",
+          "libgtk-3-0 | libgtk-3-0t64"
         ],
         "section": "net",
         "priority": "optional"
@@ -50,6 +59,9 @@
       "appimage": {
         "bundleMediaFramework": false
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
     },
     "shortDescription": "General Bots Desktop \u2014 Chat and Drive",
     "longDescription": "General Bots desktop edition with Chat and Drive for local use.",

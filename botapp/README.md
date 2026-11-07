@@ -102,8 +102,11 @@ xcode-select --install
 ```
 
 > The packaged desktop edition (`tauri.desktop-local.conf.json`) targets Linux
-> (`deb`, `AppImage`) and Windows (`nsis`, `msi`); it has no macOS `dmg` target.
-> The macOS steps above are for Tauri development only. Run
+> (`deb`, `rpm`, `AppImage`), Windows (`nsis`, `msi`) and macOS (`app`, `dmg`).
+> The macOS bundle is built best effort on a `macos-14` runner by
+> `.github/workflows/desktop-macos.yml` and ships unsigned. The Linux service
+> stack, the BotModels pythonbox and the native Incus agent are unavailable on
+> macOS (use a Linux VM or remote Incus); see `desktop/macos/README.md`. Run
 > `./PROD-DEPENDENCIES.sh --check` for the current status.
 
 **Windows:**
