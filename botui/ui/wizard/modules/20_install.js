@@ -208,7 +208,6 @@
     var request = {
       model: draft.model,
       workspace: draft.workspace,
-      telemetry: draft.telemetry,
       services: draft.services,
       display_name: draft.display_name
     };

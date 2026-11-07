@@ -202,8 +202,7 @@
       [t("privacy.conversations"), t("privacy.conversations-dest", { path: draft.workspace.path || ctx.workspace_path }), t("privacy.always")],
       [t("privacy.keys"), t("privacy.keys-dest", { path: ctx.stack_path }), t("privacy.when-saved")],
       [t("privacy.prompts"), prompts, t("privacy.every-message")],
-      [t("privacy.services"), connected.length ? connected.join(", ") + t("privacy.only-actions") : t("privacy.no-service"), t("privacy.per-request")],
-      [t("privacy.crashes"), draft.telemetry ? t("privacy.crash-on") : t("privacy.crash-off"), t("privacy.opt-in")]
+      [t("privacy.services"), connected.length ? connected.join(", ") + t("privacy.only-actions") : t("privacy.no-service"), t("privacy.per-request")]
     ];
   }
 
@@ -215,10 +214,6 @@
       '<p class="lead">' + esc(t("privacy.lead")) + "</p>" +
       '<table class="datamap"><thead><tr><th>' + esc(t("privacy.data")) + "</th><th>" + esc(t("privacy.destination")) + "</th><th>" + esc(t("privacy.trigger")) + "</th></tr></thead><tbody>" +
       rows + "</tbody></table>" +
-      '<div class="checkbox-row">' +
-        '<input type="checkbox" id="telemetryToggle"' + (draft.telemetry ? " checked" : "") + " />" +
-        '<label for="telemetryToggle">' + esc(t("privacy.telemetry")) + "</label>" +
-      "</div>" +
       '<div class="inline-row" style="margin-top:12px">' +
         '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">' + esc(t("privacy.reveal-vault")) + "</button>" +
         '<span class="note" id="vaultNote">' + esc(t("privacy.vault-note")) + "</span>" +
@@ -328,7 +323,6 @@
         '<div class="summary-row"><span>' + esc(t("finish.model")) + "</span><span>" + esc(modelLabel) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.connected")) + "</span><span>" + esc(connected.length ? connected.join(", ") : t("finish.none")) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.not-connected")) + "</span><span>" + esc(notConnected.length ? notConnected.join(", ") : t("finish.none")) + "</span></div>" +
-        '<div class="summary-row"><span>' + esc(t("finish.crash")) + "</span><span>" + esc(draft.telemetry ? t("finish.enabled") : t("finish.off")) + "</span></div>" +
       "</div>" +
       '<div class="card" id="mediaCapabilitiesCard" style="margin-top:16px">' +
         '<div class="card-head"><span class="card-title">' + esc(t("finish.media-title")) + "</span>" +
