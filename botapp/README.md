@@ -101,10 +101,11 @@ sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
 xcode-select --install
 ```
 
-> The packaged desktop edition (`tauri.desktop-local.conf.json`) targets Linux
-> (`deb`, `rpm`, `AppImage`), Windows (`nsis`, `msi`) and macOS (`app`, `dmg`).
-> The macOS bundle is built best effort on a `macos-14` runner by
-> `.github/workflows/desktop-macos.yml` and ships unsigned. The Linux service
+> The packaged desktop edition (`tauri.desktop-local.conf.json`) lists Linux
+> (`deb`, `rpm`, `AppImage`), Windows (`nsis`, `msi`) and macOS (`app`, `dmg`)
+> as bundle targets, but the Linux distro packages are best effort and have
+> never shipped in a release. The macOS bundle is built best effort on a
+> `macos-14` runner by `.github/workflows/desktop-macos.yml` and ships unsigned. The Linux service
 > stack, the BotModels pythonbox and the native Incus agent are unavailable on
 > macOS (use a Linux VM or remote Incus); see `desktop/macos/README.md`. Run
 > `./PROD-DEPENDENCIES.sh --check` for the current status.

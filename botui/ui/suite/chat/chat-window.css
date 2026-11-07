@@ -188,6 +188,62 @@
   color: var(--accent, #a78bfa);
 }
 
+/* #1831 — latest chip, content-type badges, per-attachment order label and
+   italic minor descriptive text. */
+#chat-app .gb-attachment-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--gb-surface, #f4f4f5);
+  border: 1px solid var(--gb-border, #e4e4e7);
+  color: var(--text-secondary, #71717a);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+#chat-app .gb-content-type-badge,
+#chat-app .gb-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #7c5cff) 12%, transparent);
+  color: var(--accent, #7c5cff);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+#chat-app .gb-attachment-desc,
+#chat-app .gb-attachment-minor {
+  flex-basis: 100%;
+  font-style: italic;
+  font-size: 11px;
+  color: var(--text-secondary, #71717a);
+  margin-top: 2px;
+}
+#chat-app .gb-latest-chip,
+#chat-app .gb-attachment-latest {
+  display: none;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #4f46e5 10%, var(--gb-surface, #fff));
+  color: #4f46e5;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+#chat-app .gb-attachment.is-latest .gb-latest-chip,
+#chat-app .gb-attachment.is-latest .gb-attachment-latest {
+  display: inline-flex;
+}
+
 /* ── 4. Console blocks: workspace tool output ──────────────────────── */
 
 #chat-app .gb-console {

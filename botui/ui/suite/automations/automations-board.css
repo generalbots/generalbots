@@ -210,3 +210,29 @@
   --ok: #30a46c;
   --warn: #f5a524;
 }
+
+.auto-section {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+.auto-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+}
+.auto-section-title {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 700;
+}
+.auto-section-subtitle {
+  font-size: .72rem;
+  color: var(--muted);
+}
+.auto-conversation-jobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: .9rem;
+}

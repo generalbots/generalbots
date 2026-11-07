@@ -79,6 +79,8 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/conversations/:conversation_id/autotasks", summary: "List the cron/systemd jobs a conversation owns, with live status, schedule and next run" },
         ApiEndpoint { method: "POST", path: "/api/conversations/:conversation_id/autotasks", summary: "Create a conversation autotask (title, schedule, command, kind=cron|systemd); installs a cron entry or systemd unit in the agent workspace" },
         ApiEndpoint { method: "POST", path: "/api/conversation-autotasks/:id/cancel", summary: "Stop a conversation autotask: removes the cron entry or disables the systemd unit and marks the row stopped" },
+        ApiEndpoint { method: "GET", path: "/api/conversation-autotasks", summary: "List all conversation cron/systemd jobs owned by the current user, across conversations" },
+        ApiEndpoint { method: "DELETE", path: "/api/conversation-autotasks/:id", summary: "Delete a conversation autotask: removes the workspace entry and deletes the row" },
 
         // File version history (GB6-14)
         ApiEndpoint { method: "POST", path: "/api/files/versions/list", summary: "List stored revisions of a Drive file (path, bucket, scope); every overwrite keeps the previous revision" },

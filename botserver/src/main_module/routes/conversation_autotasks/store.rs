@@ -24,6 +24,22 @@ pub(super) fn load_rows(
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))
 }
 
+/// Load every conversation autotask owned by `user_id`, across conversations.
+pub(super) fn load_all_rows(
+    state: &AppState,
+    user_id: Uuid,
+) -> Result<Vec<AutotaskRow>, ApiError> {
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+    table::table
+        .filter(table::user_id.eq(user_id))
+        .order(table::created_at.desc())
+        .load::<AutotaskRow>(&mut conn)
+        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))
+}
+
 /// Resolves the bot that owns a conversation and refuses another user's
 /// session. `user_sessions.user_id` is text in the canonical schema, so the
 /// lookup binds text and parses the owner back into a UUID.

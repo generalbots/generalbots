@@ -17,7 +17,7 @@ mod types;
 mod workspace;
 
 pub(super) use types::AutotaskRow;
-pub use handlers::{cancel, create, list};
+pub use handlers::{cancel, create, delete, list, list_all};
 pub use reconcile::reconcile_on_boot;
 pub use types::CreateAutotaskRequest;
 
@@ -25,7 +25,7 @@ use std::sync::Arc;
 
 use axum::extract::Json;
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::Router;
 use botcore::shared::state::AppState;
 use serde_json::{json, Value};
@@ -65,5 +65,7 @@ pub fn router() -> Router<Arc<AppState>> {
             "/api/conversations/:conversation_id/autotasks",
             get(list).post(create),
         )
+        .route("/api/conversation-autotasks", get(list_all))
         .route("/api/conversation-autotasks/:id/cancel", post(cancel))
+        .route("/api/conversation-autotasks/:id", delete(delete))
 }
