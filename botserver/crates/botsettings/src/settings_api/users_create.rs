@@ -7,26 +7,44 @@ pub async fn users_create(
 ) -> impl IntoResponse {
     let mut conn = match get_conn(&state) {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())),
+        None => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Database unavailable".to_string()),
+            )
+        }
     };
     let caller_id = match resolve_user_id(&state, &headers) {
         Ok(id) => id,
         Err(e) => return e,
     };
     if !is_admin_user(&state, caller_id) {
-        return (StatusCode::FORBIDDEN, Html("Admin role required".to_string()));
+        return (
+            StatusCode::FORBIDDEN,
+            Html("Admin role required".to_string()),
+        );
     }
 
     let username = form.username.unwrap_or_default();
     let email = form.email.unwrap_or_default();
     let password = form.password.unwrap_or_default();
     if username.trim().is_empty() || email.trim().is_empty() || password.len() < 8 {
-        return (StatusCode::BAD_REQUEST, Html("Username, email and a password of at least 8 characters are required".to_string()));
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(
+                "Username, email and a password of at least 8 characters are required".to_string(),
+            ),
+        );
     }
 
     let hash = match hash_password(&password) {
         Ok(h) => h,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to hash password".to_string())),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to hash password".to_string()),
+            )
+        }
     };
     let is_admin = form.role.as_deref() == Some("admin");
 
@@ -42,11 +60,23 @@ pub async fn users_create(
     .execute(&mut conn);
 
     match inserted {
-        Ok(1) => (StatusCode::OK, Html(format!("User <strong>{}</strong> created", html_escape(&username)))),
-        Ok(_) => (StatusCode::CONFLICT, Html("A user with this email already exists".to_string())),
+        Ok(1) => (
+            StatusCode::OK,
+            Html(format!(
+                "User <strong>{}</strong> created",
+                html_escape(&username)
+            )),
+        ),
+        Ok(_) => (
+            StatusCode::CONFLICT,
+            Html("A user with this email already exists".to_string()),
+        ),
         Err(e) => {
             log::error!("users_create insert failed: {e}");
-            (StatusCode::INTERNAL_SERVER_ERROR, Html("Failed to create user".to_string()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("Failed to create user".to_string()),
+            )
         }
     }
 }

@@ -80,7 +80,10 @@ pub(crate) fn record_activity(
 
 /// Resolve the (resource_type, resource_id) a comment belongs to, so mutating
 /// handlers can write an audit trail against the parent resource.
-pub(crate) fn comment_resource(conn: &mut PgConnection, id: uuid::Uuid) -> Option<(String, String)> {
+pub(crate) fn comment_resource(
+    conn: &mut PgConnection,
+    id: uuid::Uuid,
+) -> Option<(String, String)> {
     #[derive(QueryableByName)]
     struct ResRow {
         #[diesel(sql_type = Text)]

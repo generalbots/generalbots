@@ -140,9 +140,16 @@ pub async fn resolve_comment(
         .get()
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
 
-    let resolved_by: Option<String> = if req.resolved { Some(uid.clone()) } else { None };
-    let resolved_at: Option<chrono::DateTime<chrono::Utc>> =
-        if req.resolved { Some(chrono::Utc::now()) } else { None };
+    let resolved_by: Option<String> = if req.resolved {
+        Some(uid.clone())
+    } else {
+        None
+    };
+    let resolved_at: Option<chrono::DateTime<chrono::Utc>> = if req.resolved {
+        Some(chrono::Utc::now())
+    } else {
+        None
+    };
 
     let changed = if user.is_admin() || user.is_super_admin() {
         diesel::sql_query(
@@ -172,9 +179,16 @@ pub async fn resolve_comment(
     };
 
     if changed == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Comment not found or not yours to resolve"));
+        return Err(err(
+            StatusCode::NOT_FOUND,
+            "Comment not found or not yours to resolve",
+        ));
     }
-    botlog::safe_info!("collab comment {} set resolved={} by {uid}", id, req.resolved);
+    botlog::safe_info!(
+        "collab comment {} set resolved={} by {uid}",
+        id,
+        req.resolved
+    );
 
     let action = if req.resolved { "resolve" } else { "reopen" };
     if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {
@@ -189,7 +203,9 @@ pub async fn resolve_comment(
         );
     }
 
-    Ok(Json(serde_json::json!({ "success": true, "resolved": req.resolved })))
+    Ok(Json(
+        serde_json::json!({ "success": true, "resolved": req.resolved }),
+    ))
 }
 
 /// `POST /api/collab/comments/read` — mark a resource's comments as read up to
@@ -200,7 +216,10 @@ pub async fn mark_comments_read(
     Json(req): Json<ReadBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let uid = collab_user_id(&user);
     let mut conn = state
@@ -231,7 +250,10 @@ pub async fn unread_count(
     Query(params): Query<CommentQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let uid = collab_user_id(&user);
     let ty_prefix = if params.include_children {
@@ -283,7 +305,10 @@ pub async fn update_presence(
     Json(req): Json<PresenceBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let uid = collab_user_id(&user);
     let name = collab_user_name(&user);
@@ -318,7 +343,10 @@ pub async fn list_presence(
     Query(params): Query<CommentQuery>,
 ) -> Result<Json<Vec<PresenceItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -357,16 +385,16 @@ pub async fn list_activity(
     Query(params): Query<ActivityQuery>,
 ) -> Result<Json<Vec<ActivityItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let before = params
         .before
         .as_deref()
-        .map(|s| {
-            chrono::DateTime::parse_from_rfc3339(s)
-                .map(|d| d.with_timezone(&chrono::Utc))
-        })
+        .map(|s| chrono::DateTime::parse_from_rfc3339(s).map(|d| d.with_timezone(&chrono::Utc)))
         .transpose()
         .map_err(|_| err(StatusCode::BAD_REQUEST, "Invalid `before` cursor"))?;
 
@@ -415,11 +443,14 @@ pub async fn record_activity_event(
     Json(req): Json<RecordActivityBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     const ALLOWED: &[&str] = &[
-        "create", "edit", "comment", "delete", "resolve", "reopen",
-        "reaction", "share", "restore", "transfer",
+        "create", "edit", "comment", "delete", "resolve", "reopen", "reaction", "share", "restore",
+        "transfer",
     ];
     if !ALLOWED.contains(&req.action.as_str()) {
         return Err(err(StatusCode::BAD_REQUEST, "Invalid action"));

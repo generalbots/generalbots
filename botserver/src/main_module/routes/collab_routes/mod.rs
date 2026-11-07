@@ -6,6 +6,7 @@
 // All endpoints are authenticated (JWT via the platform auth middleware,
 // which inserts `AuthenticatedUser` before handlers run).
 
+use crate::security::auth_api::types::AuthenticatedUser;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -14,7 +15,6 @@ use axum::{
     Extension, Router,
 };
 use botcore::shared::state::AppState;
-use crate::security::auth_api::types::AuthenticatedUser;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as SqlUuid};
 use diesel::PgConnection;
@@ -28,19 +28,21 @@ use std::sync::Arc;
 // response payloads), comments, engagement (reactions, resolve, presence,
 // activity), versions and permissions. Items that handlers share are
 // re-exported here; the route table stays in this root.
-mod helpers;
-mod dto;
 mod comments;
+mod dto;
 mod engagement;
-mod versions;
+mod helpers;
+#[cfg(feature = "mail")]
+mod notification_email;
 mod permissions;
+mod versions;
 
-pub(crate) use helpers::*;
-pub use dto::*;
 pub use comments::*;
+pub use dto::*;
 pub use engagement::*;
-pub use versions::*;
+pub(crate) use helpers::*;
 pub use permissions::*;
+pub use versions::*;
 
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -53,27 +55,20 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
             get(list_comments).post(create_comment),
         )
         .route("/api/collab/comments/:id", delete(delete_comment))
-        .route(
-            "/api/collab/comments/:id/resolve",
-            post(resolve_comment),
-        )
-        .route(
-            "/api/collab/comments/:id/reactions",
-            post(toggle_reaction),
-        )
+        .route("/api/collab/comments/:id/resolve", post(resolve_comment))
+        .route("/api/collab/comments/:id/reactions", post(toggle_reaction))
         .route("/api/collab/comments/read", post(mark_comments_read))
         .route("/api/collab/comments/unread", get(unread_count))
         .route("/api/collab/mentions/me", get(my_mentions))
         .route(
             "/api/collab/permissions",
-            get(list_permissions).post(grant_permission).delete(revoke_permission),
+            get(list_permissions)
+                .post(grant_permission)
+                .delete(revoke_permission),
         )
         .route("/api/collab/permissions/transfer", post(transfer_ownership))
         .route("/api/collab/permissions/me", get(my_role))
-        .route(
-            "/api/collab/links",
-            get(list_links).post(create_link),
-        )
+        .route("/api/collab/links", get(list_links).post(create_link))
         .route("/api/collab/links/:token", delete(revoke_link))
         .route(
             "/api/collab/presence",

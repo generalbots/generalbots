@@ -17,7 +17,10 @@ pub async fn list_permissions(
     Query(params): Query<PermissionsQuery>,
 ) -> Result<Json<Vec<PermissionItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -54,7 +57,10 @@ pub async fn grant_permission(
     Json(req): Json<GrantBody>,
 ) -> Result<Json<PermissionItem>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     if !valid_grantee_type(&req.grantee_type) {
         return Err(err(StatusCode::BAD_REQUEST, "Invalid grantee_type"));
@@ -114,7 +120,10 @@ pub async fn revoke_permission(
     Json(req): Json<RevokeBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let grantee = req.grantee_id.trim().to_string();
     let mut conn = state
@@ -160,7 +169,10 @@ pub async fn transfer_ownership(
     Json(req): Json<TransferBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let new_owner = req.new_owner_id.trim().to_string();
     if new_owner.is_empty() || new_owner.len() > 255 {
@@ -217,7 +229,10 @@ pub async fn my_role(
     Query(params): Query<PermissionsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -238,7 +253,10 @@ pub async fn create_link(
     Json(req): Json<LinkBody>,
 ) -> Result<Json<LinkItem>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     if !valid_editable_role(&req.role) {
         return Err(err(StatusCode::BAD_REQUEST, "Invalid role"));
@@ -300,7 +318,10 @@ pub async fn list_links(
     Query(params): Query<PermissionsQuery>,
 ) -> Result<Json<Vec<LinkItem>>, (StatusCode, Json<serde_json::Value>)> {
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Invalid resource_type/resource_id",
+        ));
     }
     let mut conn = state
         .conn
@@ -351,15 +372,14 @@ pub async fn revoke_link(
         #[diesel(sql_type = Text)]
         pub(crate) resource_id: String,
     }
-    let target = diesel::sql_query(
-        "SELECT resource_type, resource_id FROM resource_links WHERE token = $1",
-    )
-    .bind::<Text, _>(&token)
-    .load::<LinkResource>(&mut conn)
-    .map_err(|e| err(StatusCode::NOT_FOUND, &format!("link: {e}")))?
-    .into_iter()
-    .next()
-    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Link not found"))?;
+    let target =
+        diesel::sql_query("SELECT resource_type, resource_id FROM resource_links WHERE token = $1")
+            .bind::<Text, _>(&token)
+            .load::<LinkResource>(&mut conn)
+            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("link: {e}")))?
+            .into_iter()
+            .next()
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Link not found"))?;
 
     if !owner_or_admin(&mut conn, &user, &target.resource_type, &target.resource_id) {
         return Err(err(StatusCode::FORBIDDEN, "Owner only"));

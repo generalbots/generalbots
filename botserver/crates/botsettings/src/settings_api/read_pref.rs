@@ -1,6 +1,10 @@
 use super::*;
 
-pub fn read_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str) -> serde_json::Value {
+pub fn read_pref(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+    key: &str,
+) -> serde_json::Value {
     diesel::sql_query(
         "SELECT preference_value::text AS value FROM user_preferences WHERE user_id = $1 AND preference_key = $2",
     )
@@ -12,7 +16,12 @@ pub fn read_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str
     .and_then(|v| serde_json::from_str(&v).ok())
     .unwrap_or(serde_json::Value::Null)
 }
-pub fn write_pref(conn: &mut diesel::PgConnection, user_id: uuid::Uuid, key: &str, value: &serde_json::Value) {
+pub fn write_pref(
+    conn: &mut diesel::PgConnection,
+    user_id: uuid::Uuid,
+    key: &str,
+    value: &serde_json::Value,
+) {
     let json = value.to_string();
     let _ = diesel::sql_query(
         "INSERT INTO user_preferences (id, user_id, preference_key, preference_value, created_at, updated_at)

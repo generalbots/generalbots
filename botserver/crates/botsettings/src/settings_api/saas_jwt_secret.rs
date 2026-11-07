@@ -15,7 +15,11 @@ pub(super) fn saas_jwt_secret() -> String {
     let stack = std::env::var("BOTSERVER_STACK_PATH")
         .ok()
         .filter(|p| !p.trim().is_empty())
-        .or_else(|| std::env::var("GBO_STACK_PATH").ok().filter(|p| !p.trim().is_empty()))
+        .or_else(|| {
+            std::env::var("GBO_STACK_PATH")
+                .ok()
+                .filter(|p| !p.trim().is_empty())
+        })
         .unwrap_or_else(|| "/opt/gbo".to_string());
     let config_path = format!("{stack}/conf/system/directory_config.json");
     if let Ok(content) = std::fs::read_to_string(&config_path) {
@@ -32,7 +36,11 @@ pub(super) fn saas_jwt_secret() -> String {
     std::env::var("SAAS_JWT_SECRET")
         .ok()
         .filter(|s| !s.trim().is_empty())
-        .or_else(|| std::env::var("JWT_SECRET").ok().filter(|s| !s.trim().is_empty()))
+        .or_else(|| {
+            std::env::var("JWT_SECRET")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+        })
         .unwrap_or_else(|| "dev-secret-key-change-in-production-minimum-32-chars".to_string())
 }
 /// #1457 — verifies a stateless SaaS cloud JWT and returns the caller's
@@ -61,7 +69,10 @@ pub(super) fn user_id_from_saas_jwt(token: &str) -> Option<uuid::Uuid> {
         return None;
     }
     Some(uuid::Uuid::parse_str(sub).unwrap_or_else(|_| {
-        uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes())
+        uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_DNS,
+            format!("zitadel:{sub}").as_bytes(),
+        )
     }))
 }
 /// Fallback user resolution for fragment handlers without a request context.
@@ -89,11 +100,16 @@ pub fn resolve_user_id(
         .and_then(|a| a.strip_prefix("Bearer "))
         .map(|s| s.to_string());
     let Some(token) = token else {
-        return Err((StatusCode::UNAUTHORIZED, Html("Missing bearer token".to_string())));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Html("Missing bearer token".to_string()),
+        ));
     };
 
-    let mut conn = get_conn(state)
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())))?;
+    let mut conn = get_conn(state).ok_or((
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Html("Database unavailable".to_string()),
+    ))?;
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -120,13 +136,19 @@ pub fn resolve_user_id(
         if let Some(user_id) = user_id_from_saas_jwt(&token) {
             return Ok(user_id);
         }
-        return Err((StatusCode::UNAUTHORIZED, Html("No valid session for token".to_string())));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Html("No valid session for token".to_string()),
+        ));
     };
 
     let parsed: serde_json::Value = serde_json::from_str(&row.user_data).unwrap_or_default();
     let uid = parsed.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
     if uid.is_empty() {
-        return Err((StatusCode::UNAUTHORIZED, Html("Invalid session user".to_string())));
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Html("Invalid session user".to_string()),
+        ));
     }
 
     match uuid::Uuid::parse_str(uid) {
@@ -156,25 +178,66 @@ pub(super) fn is_admin_user(state: &Arc<AppState>, user_id: uuid::Uuid) -> bool 
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(&mut conn)
     .unwrap_or_default();
-    names.iter().any(|g| g.name.to_lowercase().contains("admin"))
+    names
+        .iter()
+        .any(|g| g.name.to_lowercase().contains("admin"))
 }
 pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/user/profile", get(settings_profile::user_profile_get).put(settings_profile::user_profile_put))
-        .route("/api/user/desktops", get(settings_profile::user_desktops_get).put(settings_profile::user_desktops_put))
+        .route(
+            "/api/user/profile",
+            get(settings_profile::user_profile_get).put(settings_profile::user_profile_put),
+        )
+        .route(
+            "/api/user/desktops",
+            get(settings_profile::user_desktops_get).put(settings_profile::user_desktops_put),
+        )
         .route("/api/user/password", post(settings_profile::user_password))
-        .route("/api/user/api-keys", get(settings_credentials::api_keys_list).post(settings_credentials::api_keys_create))
-        .route("/api/user/api-keys/:key_id", axum::routing::delete(settings_credentials::api_keys_delete))
-        .route("/api/user/api-keys/:key_id/rotate", post(settings_credentials::api_keys_rotate))
-        .route("/api/user/webhooks", get(settings_webhooks::webhooks_list).post(settings_webhooks::webhooks_create))
-        .route("/api/user/webhooks/:webhook_id", axum::routing::delete(settings_webhooks::webhooks_delete))
-        .route("/api/user/webhooks/:webhook_id/test", post(settings_webhooks::webhooks_test))
-        .route("/api/user/webhooks/:webhook_id/deliveries", get(settings_webhooks::webhook_deliveries_list))
-        .route("/api/user/billing/plan", get(settings_billing::billing_plan))
-        .route("/api/user/billing/invoices", get(settings_billing::billing_invoices))
-        .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))
+        .route(
+            "/api/user/api-keys",
+            get(settings_credentials::api_keys_list).post(settings_credentials::api_keys_create),
+        )
+        .route(
+            "/api/user/api-keys/:key_id",
+            axum::routing::delete(settings_credentials::api_keys_delete),
+        )
+        .route(
+            "/api/user/api-keys/:key_id/rotate",
+            post(settings_credentials::api_keys_rotate),
+        )
+        .route(
+            "/api/user/webhooks",
+            get(settings_webhooks::webhooks_list).post(settings_webhooks::webhooks_create),
+        )
+        .route(
+            "/api/user/webhooks/:webhook_id",
+            axum::routing::delete(settings_webhooks::webhooks_delete),
+        )
+        .route(
+            "/api/user/webhooks/:webhook_id/test",
+            post(settings_webhooks::webhooks_test),
+        )
+        .route(
+            "/api/user/webhooks/:webhook_id/deliveries",
+            get(settings_webhooks::webhook_deliveries_list),
+        )
+        .route(
+            "/api/user/billing/plan",
+            get(settings_billing::billing_plan),
+        )
+        .route(
+            "/api/user/billing/invoices",
+            get(settings_billing::billing_invoices),
+        )
+        .route(
+            "/api/user/billing/payment-methods",
+            get(settings_billing::billing_payment_methods),
+        )
         .route("/api/user/data/export", post(settings_billing::data_export))
-        .route("/api/user/usage/summary", get(crate::settings_usage::usage_summary))
+        .route(
+            "/api/user/usage/summary",
+            get(crate::settings_usage::usage_summary),
+        )
         .route(
             "/api/user/memory",
             get(crate::settings_memory::list).put(crate::settings_memory::upsert),
@@ -183,7 +246,10 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
             "/api/user/memory/:key",
             axum::routing::delete(crate::settings_memory::delete),
         )
-        .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
+        .route(
+            "/api/user/notifications/preferences",
+            get(notif_prefs_get).put(notif_prefs_put),
+        )
         .route("/api/oauth/:provider/connect", post(oauth_connect_handler))
         .route("/api/groups/create", post(groups_create))
         .route("/api/users/create", post(users_create))
