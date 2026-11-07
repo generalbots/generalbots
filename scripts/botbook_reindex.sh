@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Rebuild the BotBook and verify the committed HTML/search index is current.
+# Rebuild the BotBook and verify it produces a usable search index.
 #
-# mdBook writes the search index (searchindex-<hash>.js) and every rendered
-# page under botbook/book/. The directory is tracked so the published site can
-# be served without a build step; that also means a source edit that was not
-# followed by `mdbook build` silently leaves readers on an old index.
+# botbook/book/ is generated (and git-ignored) on purpose: the published site
+# is built from botbook/src, not from a checked-in HTML tree. A source edit
+# that breaks a page or a SUMMARY link is therefore invisible until a build
+# runs, and the search index (searchindex-<hash>.js) is the part most likely to
+# go stale or missing.
 #
 # Usage: scripts/botbook_reindex.sh
-# Exit codes: 0 the committed book matches the sources; 1 a rebuild is needed
-# or the build failed.
+# Exit codes: 0 the book and search index were produced; 1 the build failed,
+# the index is missing/empty, or SUMMARY.md points at a page that does not
+# exist.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,10 +37,23 @@ fi
 
 echo "botbook_reindex: $index ($size bytes)"
 
-if ! git diff --quiet -- botbook/book; then
-    echo "botbook_reindex: botbook/book is stale; commit the regenerated book" >&2
-    git status --porcelain -- botbook/book | head -20 >&2
-    exit 1
-fi
+# SUMMARY.md is the only TOC mdBook renders; a link to a missing file drops the
+# page from the sidebar and 404s for readers.
+python3 - <<'PY'
+import re
+import sys
+from pathlib import Path
 
-echo "botbook_reindex: committed book is in sync with botbook/src"
+src = Path("botbook/src")
+summary = (src / "SUMMARY.md").read_text(encoding="utf-8")
+links = re.findall(r"\]\((\./[^)#]+\.md)\)", summary)
+missing = [link for link in links if not (src / link[2:]).exists()]
+if missing:
+    print("botbook_reindex: SUMMARY.md points at missing pages:", file=sys.stderr)
+    for link in missing[:20]:
+        print(f"  {link}", file=sys.stderr)
+    sys.exit(1)
+print(f"botbook_reindex: {len(links)} SUMMARY links resolve")
+PY
+
+echo "botbook_reindex: book and search index rebuilt"

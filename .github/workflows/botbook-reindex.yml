@@ -1,9 +1,9 @@
 name: BotBook reindex
 
-# #1796 — botbook/book/ is tracked so it can be served without a build step.
-# A source edit that is not followed by `mdbook build` leaves the committed
-# search index and pages stale. This job rebuilds the book on a clean runner
-# and fails when the result differs from the committed tree.
+# #1796 — botbook/book/ is generated and git-ignored. This job rebuilds the
+# book from botbook/src on a clean runner, fails when the build produces no
+# search index, and fails when SUMMARY.md points at a page that does not exist.
+# It is the reindex gate for a docs change.
 on:
   push:
     paths:
