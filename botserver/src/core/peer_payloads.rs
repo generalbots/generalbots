@@ -11,6 +11,7 @@
 //! module.
 
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use uuid::Uuid;
 
 /// Kind of payload being exchanged between peers.
@@ -183,6 +184,12 @@ fn unix_now() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs())
         .unwrap_or(0)
+}
+
+static GLOBAL_STORE: OnceLock<PeerPayloadStore> = OnceLock::new();
+
+pub fn global_store() -> &'static PeerPayloadStore {
+    GLOBAL_STORE.get_or_init(|| PeerPayloadStore::new(300))
 }
 
 #[cfg(test)]
