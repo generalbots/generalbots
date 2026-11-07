@@ -76,7 +76,7 @@ impl TerminalSession {
             .unwrap_or_default()
     }
 
-    fn append_output(&self, data: String) {
+    pub(super) fn append_output(&self, data: String) {
         if let Ok(mut buf) = self.buffer.lock() {
             if buf.len() >= TERMINAL_BUFFER_LINES {
                 buf.pop_front();
