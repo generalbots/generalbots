@@ -7,17 +7,20 @@
 //! identity.
 
 use axum::{
-    extract::Json,
+    extract::{Json, Query},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
+use serde::Deserialize;
 use botcore::shared::state::AppState;
 use serde_json::json;
 use std::sync::Arc;
 
+use crate::core::home_site::{HomeSite, HomeSiteGenerator};
 use crate::core::peer_network::{self, HeartbeatRequest, PeerError, PeerNetwork, RegisterRequest};
+use crate::core::peer_payloads::{self, PeerPayload, PeerPayloadKind};
 
 /// Routes are merged into the main API router.
 pub fn configure_peer_routes() -> Router<Arc<AppState>> {
@@ -25,6 +28,11 @@ pub fn configure_peer_routes() -> Router<Arc<AppState>> {
         .route("/api/peer/status", get(status))
         .route("/api/peer/register", post(register))
         .route("/api/peer/heartbeat", post(heartbeat))
+        .route("/api/peer/enable", post(enable))
+        .route("/api/peer/disable", post(disable))
+        .route("/api/peer/home-site", get(home_site))
+        .route("/api/peer/payloads", post(enqueue_payload))
+        .route("/api/peer/payloads", get(list_payloads))
 }
 
 /// `GET /api/peer/status` — this node's identity and the live peer table.
@@ -57,6 +65,99 @@ pub async fn heartbeat(headers: HeaderMap, Json(request): Json<HeartbeatRequest>
     match network.heartbeat(request) {
         Ok(peer) => (StatusCode::OK, Json(json!({ "ok": true, "peer": peer }))).into_response(),
         Err(error) => error_response(error),
+    }
+}
+
+/// `POST /api/peer/enable` — turn the peer network on at runtime.
+pub async fn enable(headers: HeaderMap) -> Response {
+    let network = peer_network::global();
+    if let Err(error) = authorize(&headers, network) {
+        return error_response(error);
+    }
+    network.enable();
+    (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
+}
+
+/// `POST /api/peer/disable` — stop all P2P traffic at runtime.
+pub async fn disable(headers: HeaderMap) -> Response {
+    let network = peer_network::global();
+    if let Err(error) = authorize(&headers, network) {
+        return error_response(error);
+    }
+    network.disable();
+    (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
+}
+
+#[derive(Deserialize)]
+struct PeerPayloadQuery {
+    recipient: Option<uuid::Uuid>,
+}
+
+/// `POST /api/peer/payloads` — enqueue an encrypted payload for a peer.
+pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload>) -> Response {
+    let network = peer_network::global();
+    if let Err(error) = authorize(&headers, network) {
+        return error_response(error);
+    }
+    if !network.enabled() {
+        return error_response(PeerError::Disabled);
+    }
+    match peer_payloads::global_store().enqueue(request.clone()) {
+        Ok(payload) => (StatusCode::OK, Json(json!({ "ok": true, "payload": payload }))).into_response(),
+        Err(message) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": "payload_store_full", "message": message })),
+        )
+            .into_response(),
+    }
+}
+
+/// `GET /api/peer/payloads?recipient=<uuid>` — pending payloads for a recipient.
+pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQuery>) -> Response {
+    let network = peer_network::global();
+    if let Err(error) = authorize(&headers, network) {
+        return error_response(error);
+    }
+    if !network.enabled() {
+        return error_response(PeerError::Disabled);
+    }
+    let Some(recipient) = query.recipient else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "missing_recipient", "message": "recipient query parameter is required" })),
+        )
+            .into_response();
+    };
+    let payloads = peer_payloads::global_store().pending_for(recipient);
+    (StatusCode::OK, Json(json!({ "ok": true, "payloads": payloads }))).into_response()
+}
+
+/// `GET /api/peer/home-site` — the signed home site for this node (if P2P).
+pub async fn home_site(headers: HeaderMap) -> Response {
+    let network = peer_network::global();
+    if let Err(error) = authorize(&headers, network) {
+        return error_response(error);
+    }
+    if !network.enabled() {
+        return error_response(PeerError::Disabled);
+    }
+    let signing_key = std::env::var("GB_PEER_SIGNING_KEY")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| network.identity().map(|id| id.node_id.to_string()).unwrap_or_default());
+    match network.identity() {
+        Some(identity) => {
+            let site: HomeSite = HomeSiteGenerator::generate(
+                identity.name.clone(),
+                identity.node_id,
+                format!("{} on General Bots", identity.name),
+                "Welcome to my peer home site.",
+                0,
+                &signing_key,
+            );
+            (StatusCode::OK, Json(json!({ "ok": true, "site": site }))).into_response()
+        }
+        None => error_response(PeerError::Disabled),
     }
 }
 

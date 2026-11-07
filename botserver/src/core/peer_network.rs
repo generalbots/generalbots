@@ -126,13 +126,23 @@ impl PeerConfig {
             .unwrap_or(DEFAULT_HEARTBEAT_TTL_SECS)
             .max(1);
 
+        let data_dir = default_data_dir();
+        let env_enabled_raw = std::env::var(ENV_ENABLED).ok();
+        let enabled = match env_enabled_raw {
+            Some(value) => matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
+            None => data_dir
+                .as_ref()
+                .map(|dir| std::fs::read_to_string(dir.join("mode.json")).unwrap_or_default())
+                .map(|raw| raw.trim().eq_ignore_ascii_case("p2p"))
+                .unwrap_or(false),
+        };
         Self {
-            enabled: env_truthy(ENV_ENABLED),
+            enabled,
             node_id,
             node_name: env_non_empty(ENV_NODE_NAME),
             advertise_address: env_non_empty(ENV_ADVERTISE_ADDR),
             heartbeat_ttl_seconds,
-            data_dir: default_data_dir(),
+            data_dir,
             token: env_non_empty(ENV_TOKEN),
         }
     }
@@ -179,12 +189,19 @@ impl std::error::Error for PeerError {}
 /// Node identity plus the registration/heartbeat table.
 pub struct PeerNetwork {
     config: PeerConfig,
-    identity: Option<NodeIdentity>,
+    identity: RwLock<Option<NodeIdentity>>,
     peers: RwLock<HashMap<Uuid, PeerRecord>>,
+    /// Runtime override for the opt-in flag. `None` follows `config.enabled`.
+    runtime_enabled: RwLock<Option<bool>>,
+    mode_file: Option<PathBuf>,
 }
 
 impl PeerNetwork {
     pub fn new(config: PeerConfig) -> Self {
+        let mode_file = config
+            .data_dir
+            .as_ref()
+            .map(|dir| dir.join("mode.json"));
         let identity = if config.enabled {
             Some(load_or_create_identity(&config))
         } else {
@@ -192,8 +209,10 @@ impl PeerNetwork {
         };
         Self {
             config,
-            identity,
+            identity: RwLock::new(identity),
             peers: RwLock::new(HashMap::new()),
+            runtime_enabled: RwLock::new(None),
+            mode_file,
         }
     }
 
@@ -202,15 +221,49 @@ impl PeerNetwork {
     }
 
     pub fn enabled(&self) -> bool {
+        if let Some(value) = *self.runtime_enabled.read().unwrap_or_else(|p| p.into_inner()) {
+            return value;
+        }
         self.config.enabled
     }
 
-    pub fn identity(&self) -> Option<&NodeIdentity> {
-        self.identity.as_ref()
+    pub fn identity(&self) -> Option<NodeIdentity> {
+        self.identity.read().unwrap_or_else(|p| p.into_inner()).clone()
+    }
+
+    /// Turn the peer network on or off at runtime. When turning on, the node
+    /// identity is created lazily if it does not exist yet.
+    pub fn set_enabled(&self, value: bool) {
+        *self.runtime_enabled.write().unwrap_or_else(|p| p.into_inner()) = Some(value);
+        if value {
+            let mut identity = self.identity.write().unwrap_or_else(|p| p.into_inner());
+            if identity.is_none() {
+                *identity = Some(load_or_create_identity(&self.config));
+            }
+        }
+        self.persist_mode(value);
+    }
+
+    pub fn enable(&self) {
+        self.set_enabled(true);
+    }
+
+    pub fn disable(&self) {
+        self.set_enabled(false);
     }
 
     pub fn advertise_address(&self) -> Option<&str> {
         self.config.advertise_address.as_deref()
+    }
+
+    fn persist_mode(&self, value: bool) {
+        if let Some(path) = &self.mode_file {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let payload = if value { "p2p" } else { "offline" };
+            let _ = std::fs::write(path, payload);
+        }
     }
 
     pub fn heartbeat_ttl_seconds(&self) -> u64 {
@@ -241,7 +294,7 @@ impl PeerNetwork {
         if !self.enabled() {
             return Err(PeerError::Disabled);
         }
-        if self.identity.as_ref().map(|identity| identity.node_id) == Some(request.node_id) {
+        if self.identity().map(|identity| identity.node_id) == Some(request.node_id) {
             return Err(PeerError::Invalid(
                 "a node cannot register itself as a peer".to_string(),
             ));
@@ -323,7 +376,7 @@ impl PeerNetwork {
 
         PeerStatus {
             enabled: true,
-            node: self.identity.clone(),
+            node: self.identity(),
             advertise_address: self.advertise_address().map(str::to_string),
             heartbeat_ttl_seconds: self.heartbeat_ttl_seconds(),
             peer_count: list.len(),
