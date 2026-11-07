@@ -72,9 +72,10 @@ async fn create_terminal(
         Some(c) => c,
         None => {
             return (
-                axum::http::StatusCode::FORBIDDEN,
+                axum::http::StatusCode::NOT_FOUND,
                 Json(serde_json::json!({
-                    "error": "Host shell denied: send a message in chat to start your workspace VM, then reopen the terminal."
+                    "error": "no_workspace",
+                    "detail": "No agent VM found. Start a workspace in Chat first."
                 })),
             );
         }

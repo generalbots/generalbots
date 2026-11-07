@@ -165,7 +165,16 @@ const botCoderTerminal = {
             body: JSON.stringify({ container: container }),
         }).then((r) => r.json()).then((data) => {
             if (!data || !data.id) {
-                this.term.write('\r\n\x1b[31mTerminal session failed: ' + ((data && data.error) || 'unknown error') + '\x1b[0m\r\n');
+                const errCode = data && data.error;
+                let errMsg;
+                if (errCode === 'not_found' || errCode === 'no_workspace') {
+                    errMsg = 'No workspace VM found. Send a message in Chat first to start your workspace, then retry.';
+                } else if (errCode === 'forbidden' || (typeof errCode === 'string' && errCode.startsWith('Host shell denied'))) {
+                    errMsg = 'Terminal access requires an active workspace. Open Chat and start a task first.';
+                } else {
+                    errMsg = errCode || 'unknown error';
+                }
+                this.term.write('\r\n\x1b[31mTerminal session failed — ' + errMsg + '\x1b[0m\r\n');
                 return;
             }
             this.sessionId = data.id;
