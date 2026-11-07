@@ -402,9 +402,8 @@ mod tests {
     #[test]
     fn test_convert_password_to_key() {
         let key_salt = hex!("3aa973eec73c98c4710021730ef5b513");
-        // codeql[rust/hard-coded-cryptographic-value]
         // Fixed test vector from the upstream suite, not a credential.
-        let password = "password";
+        let password = "password"; // codeql[rust/hard-coded-cryptographic-value]
 
         let key = key::convert_password_to_key(
             password,
@@ -434,9 +433,8 @@ mod tests {
     #[test]
     fn test_encrypt_verifier_hash() {
         let key_salt = hex!("3aa973eec73c98c4710021730ef5b513");
-        // codeql[rust/hard-coded-cryptographic-value]
         // Fixed test vector from the upstream suite, not a credential.
-        let password = "password";
+        let password = "password"; // codeql[rust/hard-coded-cryptographic-value]
 
         // Verifier hash input
         let verifier_hash_input = hex!("8f54777cba87efa55ea2db8399873815");
