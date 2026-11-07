@@ -66,8 +66,11 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        # Build the source ref (branch/tag that triggered the run). `inputs.tag`
+        # is the *release* tag name to publish — it may not exist yet on
+        # workflow_dispatch, so checking it out breaks the run.
         with:
-          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
+          ref: ${{ github.ref }}
 
       - name: Install system dependencies
         run: |
@@ -349,8 +352,9 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        # Build the source ref, not the release tag name (which may not exist yet).
         with:
-          ref: ${{ inputs.tag || github.event.inputs.tag || github.ref }}
+          ref: ${{ github.ref }}
 
       - name: Install PostgreSQL client libraries (libpq)
         shell: pwsh
