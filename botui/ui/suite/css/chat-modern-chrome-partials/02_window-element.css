@@ -8,8 +8,8 @@
 .window-element-glass .window-statusbar {
     border-top: 1px solid var(--gb-border-soft, #ececef);
     box-shadow: none;
-    background: #fafafa;
-    color: #71717a;
+    background: var(--gb-bg, #fafafa);
+    color: var(--gb-muted, #71717a);
 }
 
 
@@ -66,7 +66,7 @@
     width: 100%;
     height: 440px;
     border: 0;
-    background: #fff;
+    background: var(--gb-surface);
 }
 
 #chat-app .gb-inline-artifact.expanded .gb-inline-artifact-frame {
@@ -103,7 +103,7 @@
     font-weight: 500;
     letter-spacing: 0.02em;
     text-transform: none;
-    color: #a1a1aa;
+    color: var(--gb-muted);
 }
 #chat-app .gb-console[open] > summary.gb-console-head::after { content: "Hide log"; }
 #chat-app .gb-console:not([open]) > pre { display: none; }
@@ -147,10 +147,10 @@
 /* #1693 — live SVG/HTML preview while the model draws it. */
 .gb-live-artifact {
     margin-top: 8px;
-    border: 1px solid rgba(24, 24, 27, 0.09);
+    border: 1px solid var(--gb-border);
     border-radius: 12px;
     overflow: hidden;
-    background: #fff;
+    background: var(--gb-surface);
     max-width: 560px;
 }
 .gb-live-artifact-head {
@@ -158,21 +158,21 @@
     align-items: center;
     gap: 8px;
     padding: 7px 10px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
-    background: #f7f7f8;
+    border-bottom: 1px solid var(--gb-border-soft);
+    background: var(--gb-surface-muted);
 }
 .gb-live-artifact-title {
     flex: 1;
     font-size: 12px;
     font-weight: 600;
-    color: #52525b;
+    color: var(--gb-muted);
 }
 .gb-live-artifact-body iframe {
     display: block;
     width: 100%;
     height: 280px;
     border: 0;
-    background: #fff;
+    background: var(--gb-surface);
 }
 .gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
 
@@ -193,7 +193,7 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 14px;
-    background: #fff;
+    background: var(--gb-surface, #fff);
     box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
     font-family: inherit;
 }
@@ -201,20 +201,20 @@
     display: flex;
     align-items: center;
     padding: 12px 14px;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+    border-bottom: 1px solid var(--gb-border-soft, #ececef);
 }
 .gb-drive-picker-title {
     flex: 1;
     font-size: 14px;
     font-weight: 600;
-    color: #18181b;
+    color: var(--gb-text, #18181b);
 }
 .gb-drive-picker-close {
     border: 0;
     background: transparent;
     font-size: 20px;
     line-height: 1;
-    color: #71717a;
+    color: var(--gb-muted, #71717a);
     cursor: pointer;
     padding: 2px 6px;
 }
@@ -225,8 +225,8 @@
     gap: 2px;
     padding: 8px 14px;
     font-size: 12px;
-    color: #52525b;
-    border-bottom: 1px solid rgba(24, 24, 27, 0.05);
+    color: var(--gb-muted, #52525b);
+    border-bottom: 1px solid var(--gb-border-soft, #ececef);
 }
 .gb-drive-picker-crumb-btn {
     border: 0;
