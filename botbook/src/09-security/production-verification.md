@@ -1,5 +1,8 @@
 # Production Security Verification (2026-11-06)
 
+The consolidated penetration-test results are in
+[Production Penetration Test — Results (2026-11-06)](./production-pentest-results.md).
+
 This page records the production verification performed on 2026-11-06 with the
 owner's authorization. It is the user-facing summary of the detailed evidence
 in the repository's `SECURITY.md` and the security report.
