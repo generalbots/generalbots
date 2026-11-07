@@ -35,7 +35,19 @@
         var configuration = {};
         collectFieldValues(provider, form, secrets, configuration);
         try {
-            var payload = await namespace.fetchJson(namespace.connectionsUrl(), {
+            // #1823: never POST to the current page when workspace context is missing.
+            if (typeof namespace.fetchContext === "function") {
+                await namespace.fetchContext(root);
+            }
+            var url = namespace.connectionsUrl();
+            if (!url) {
+                progress.hidden = true;
+                errorLine.textContent = "No active bot/workspace context. Open a workspace with an active bot before connecting integrations.";
+                errorLine.hidden = false;
+                namespace.announce(root, provider.name + " needs a workspace context");
+                return;
+            }
+            var payload = await namespace.fetchJson(url, {
                 method: "POST",
                 body: {
                     provider_slug: provider.id,
