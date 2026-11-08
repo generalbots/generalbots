@@ -179,7 +179,7 @@ fn start_sidecar_and_show(app: &tauri::App) {
         // A previous run may have left the sidecar alive (for example when the
         // window was closed without a graceful exit). Reuse it instead of
         // starting a second listener on the same port.
-        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 2).await;
+        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 5).await;
         if !already_running {
             let sidecar = handle.state::<Sidecar>().inner().clone();
             if let Err(e) = sidecar.start(resource_dir.clone()) {
