@@ -88,8 +88,15 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "kind": a.kind,
                 "widget": a.widget,
                 // Core surfaces stay pinned so about/admin/settings are
-                // reachable even though they are not in `apps=`.
-                "launcher_default": core || a.launcher_default,
+                // reachable even though they are not in `apps=`. #1811 — an
+                // app the product lists under `apps=` is a standalone app the
+                // owner wants reachable by hand, so it is launcher-visible
+                // too: the start menu and the sidebar rail hide
+                // `launcher_default: false` entries, which previously left
+                // the desktop launcher with the four core surfaces only.
+                // Preview apps keep the registry default (hidden) until
+                // Preview mode turns them on.
+                "launcher_default": core || enabled.contains(id) || a.launcher_default,
                 "enabled": is_enabled,
                 "preview": is_preview,
                 "hidden": is_hidden,
