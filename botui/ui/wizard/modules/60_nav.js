@@ -28,7 +28,14 @@
     var check = S.validate(state.step, draft);
     if (!check.ok) { say(check.reason); showInlineError(check.reason); return; }
     if (state.step === 7 && !state.provisioning.ready && !state.skipped) {
-      if (hostLocked()) { say(t("host.blocked-say")); return; }
+      if (hostLocked()) {
+        if (window.GBWizardHost && window.GBWizardHost.windowsAgentBlocked(state.host.result)) {
+          say(t("host.agent-wsl-say"));
+        } else {
+          say(t("host.blocked-say"));
+        }
+        return;
+      }
       startProvisioning();
       return;
     }

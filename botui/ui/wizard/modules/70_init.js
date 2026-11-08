@@ -78,6 +78,7 @@
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
+        if (saved.skip_all_agentic_work === true) { draft.skip_all_agentic_work = true; }
       }
       state.resumed = !!state.context.resume_step;
       state.provisioning.components = (state.context.completed_components || []).map(function (id) {

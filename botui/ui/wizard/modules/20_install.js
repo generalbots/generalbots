@@ -13,6 +13,7 @@
   function goTo(step) { return App.goTo(step); }
   function openModal(options) { return App.openModal(options); }
   function say(text) { return App.say(text); }
+  function persistDraft() { return App.persistDraft(); }
 
   /* The install step owns the installer: it checks the host first, reports
      every component and keeps the action buttons together. */
@@ -33,6 +34,19 @@
         state.host.acknowledged = true;
         renderHostCheck();
         startProvisioning();
+      });
+    }
+    var skipAgent = document.getElementById("hostSkipAgentBtn");
+    if (skipAgent) {
+      skipAgent.addEventListener("click", function () {
+        // Explicit Chat/Drive-only choice: bypass WSL2/agent requirements and
+        // persist so re-runs remember (#1937).
+        draft.skip_all_agentic_work = true;
+        persistDraft();
+        renderHostCheck();
+        if (!hostLocked() && !state.provisioning.running && !state.provisioning.ready) {
+          startProvisioning();
+        }
       });
     }
     if (state.provisioning.running) {
@@ -199,8 +213,12 @@
 
   function startProvisioning() {
     if (state.provisioning.running || state.provisioning.ready) { return; }
-    if (state.host.result && state.host.result.status === "desktop-blocked") {
-      say(t("host.blocked-say"));
+    if (hostLocked()) {
+      if (window.GBWizardHost && window.GBWizardHost.windowsAgentBlocked(state.host.result)) {
+        say(t("host.agent-wsl-say"));
+      } else {
+        say(t("host.blocked-say"));
+      }
       return;
     }
     setProvisionUi(true);
@@ -209,7 +227,8 @@
       model: draft.model,
       workspace: draft.workspace,
       services: draft.services,
-      display_name: draft.display_name
+      display_name: draft.display_name,
+      skip_all_agentic_work: draft.skip_all_agentic_work === true
     };
     pollStatus();
     B.provision(request).then(function () {

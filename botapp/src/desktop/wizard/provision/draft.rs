@@ -27,6 +27,7 @@ pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
         "workspace": request.workspace,
         "display_name": request.display_name,
         "services": services,
+        "skip_all_agentic_work": request.skip_all_agentic_work,
     });
     let raw = serde_json::to_string_pretty(&draft)
         .map_err(|e| std::io::Error::other(format!("serialize draft: {e}")))?;

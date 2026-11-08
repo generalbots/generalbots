@@ -103,6 +103,10 @@ pub(super) async fn run_components(
         .env("GB_WIZARD_LLM_MODEL", &request.model.model)
         .env("GB_WIZARD_LLM_KEY", &request.model.api_key)
         .env("GB_WIZARD_LLM_PROVIDER", &request.model.provider)
+        .env(
+            "GB_WIZARD_SKIP_AGENTIC_WORK",
+            if request.skip_all_agentic_work { "1" } else { "0" },
+        )
         // Mirror start.sh: the bundled installers cover the small services;
         // the wizard may fetch the rest once unless GB_DESKTOP_OFFLINE=1.
         // This keeps a Windows first run from stopping at the first component

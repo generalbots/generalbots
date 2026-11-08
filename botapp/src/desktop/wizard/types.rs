@@ -123,6 +123,10 @@ pub struct ProvisionRequest {
     pub services: std::collections::HashMap<String, ServiceClient>,
     #[serde(default)]
     pub display_name: String,
+    /// When true, agent-related setup (WSL2/Incus VM work on Windows) is
+    /// skipped so Chat/Drive-only installs can proceed without WSL2.
+    #[serde(default)]
+    pub skip_all_agentic_work: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -157,4 +161,8 @@ pub struct FinishRequest {
     pub admin: AdminDraft,
     #[serde(default)]
     pub network: NetworkDraft,
+    /// Persisted choice from the install step; allows re-runs to remember that
+    /// agent-related setup was intentionally skipped.
+    #[serde(default)]
+    pub skip_all_agentic_work: bool,
 }

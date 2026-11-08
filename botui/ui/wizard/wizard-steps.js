@@ -270,6 +270,7 @@
         '<div class="inline-row" style="margin-top:10px">' +
           '<button type="button" class="btn btn-secondary btn-sm" id="hostRecheckBtn">' + esc(t("host.recheck")) + "</button>" +
           '<button type="button" class="btn btn-primary btn-sm" id="hostContinueBtn" hidden>' + esc(t("host.continue")) + "</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm" id="hostSkipAgentBtn" hidden>' + esc(t("host.skip-agentic")) + "</button>" +
         "</div>" +
       "</div>" +
       '<div class="component-board" id="componentList"></div>' +

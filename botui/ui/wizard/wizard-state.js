@@ -112,7 +112,10 @@
       model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
       workspace: { path: "", size: "standard" },
       services: {},
-      network: { mode: "p2p" }
+      network: { mode: "p2p" },
+      // Windows agent mode requires WSL2; Chat/Drive-only users can skip all
+      // agent-related setup. Persisted so re-runs remember the choice (#1937).
+      skip_all_agentic_work: false
     },
     provisioning: {
       running: false,
