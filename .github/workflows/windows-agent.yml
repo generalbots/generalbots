@@ -3,11 +3,7 @@ name: Windows agent VM adapter
 on:
   # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
   workflow_call:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-
+  workflow_dispatch:
 permissions:
   contents: read
 

@@ -7,22 +7,6 @@ name: Product profile contract
 on:
   # Reusable from `.github/workflows/ci.yml`; direct triggers are preserved.
   workflow_call:
-  push:
-    paths:
-      - "botserver/.product"
-      - "botserver/.product.desktop-local"
-      - "botserver/Cargo.toml"
-      - "botserver/src/apps/registry/**"
-      - "scripts/product_profile_check.py"
-      - ".github/workflows/product-profile.yml"
-  pull_request:
-    paths:
-      - "botserver/.product"
-      - "botserver/.product.desktop-local"
-      - "botserver/Cargo.toml"
-      - "botserver/src/apps/registry/**"
-      - "scripts/product_profile_check.py"
-      - ".github/workflows/product-profile.yml"
   workflow_dispatch:
 
 permissions:

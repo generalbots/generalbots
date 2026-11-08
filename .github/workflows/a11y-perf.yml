@@ -15,16 +15,6 @@ name: Accessibility and performance gate
 on:
   # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
   workflow_call:
-  push:
-    paths:
-      - "botui/ui/suite/**"
-      - ".github/scripts/a11y_perf_gate.mjs"
-      - ".github/workflows/a11y-perf.yml"
-  pull_request:
-    paths:
-      - "botui/ui/suite/**"
-      - ".github/scripts/a11y_perf_gate.mjs"
-      - ".github/workflows/a11y-perf.yml"
   workflow_dispatch:
 
 permissions:

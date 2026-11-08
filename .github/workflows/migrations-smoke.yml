@@ -7,16 +7,6 @@ name: Migrations smoke
 on:
   # Reusable from `.github/workflows/ci.yml`; existing triggers are preserved.
   workflow_call:
-  push:
-    paths:
-      - "botserver/migrations/**"
-      - "botserver/src/main_module/migrations.rs"
-      - ".github/workflows/migrations-smoke.yml"
-  pull_request:
-    paths:
-      - "botserver/migrations/**"
-      - "botserver/src/main_module/migrations.rs"
-      - ".github/workflows/migrations-smoke.yml"
   workflow_dispatch:
 
 permissions:
