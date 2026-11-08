@@ -105,8 +105,10 @@
         </div>
         <div style="padding:16px">
             <div class="db-form-group">
-                <label>Table Name</label>
-                <input type="text" id="new-table-name" placeholder="my_table" class="db-input" pattern="[a-z_][a-z0-9_]*">
+                <label for="new-table-name">Table Name</label>
+                <!-- #1944 — data-gb-field lets the __ui_plan__ executor fill this
+                     input by field name instead of guessing a selector. -->
+                <input type="text" id="new-table-name" name="table_name" data-gb-field="Table Name" placeholder="my_table" class="db-input" pattern="[a-z_][a-z0-9_]*">
             </div>
             <div class="db-form-group">
                 <label>Columns</label>
@@ -118,8 +120,8 @@
                         <label class="db-checkbox"><input type="checkbox" checked disabled> NOT NULL</label>
                     </div>
                     <div class="db-column-row">
-                        <input type="text" placeholder="column_name" class="db-input">
-                        <select class="db-select">
+                        <input type="text" placeholder="column_name" data-gb-field="Column Name" class="db-input">
+                        <select class="db-select" data-gb-field="Column Type">
                             <option>VARCHAR(255)</option><option>TEXT</option><option>INTEGER</option>
                             <option>BIGINT</option><option>DECIMAL</option><option>BOOLEAN</option>
                             <option>DATE</option><option>TIMESTAMPTZ</option><option>JSONB</option>

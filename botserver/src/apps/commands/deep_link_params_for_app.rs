@@ -167,7 +167,10 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("docs", "open → document list → open a doc into the editor"),
     ("sheet", "open → spreadsheet loads from drive params → write cells via formula bar"),
     ("drive", "open → tab bar (Bots/My Files/Shared/Public/Root) → navigate folders → open/select files"),
-    ("database", "open → schema loads → pick a table → run queries"),
+    (
+        "database",
+        "open → schema loads → to CREATE a table click + New Table → fill Table Name → fill Column Name → select Column Type → click Create Table; to query pick a table → run queries",
+    ),
     ("social", "open → feed auto-loads → create a post via New Post"),
     ("hr", "open → employees list loads → switch tabs (Recruitment/Attendance/Performance)"),
     ("compliance", "open → checks load → switch tabs (Checks/Issues/Audit Log/Risks)"),

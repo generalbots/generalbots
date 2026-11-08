@@ -333,8 +333,10 @@
             var container = document.getElementById('new-table-columns');
             var row = document.createElement('div');
             row.className = 'db-column-row';
-            row.innerHTML = '<input type="text" placeholder="column_name" class="db-input">'
-                + '<select class="db-select"><option>VARCHAR(255)</option><option>TEXT</option><option>INTEGER</option>'
+            // #1944 — keep the automation field names identical to the static
+            // row so a __ui_plan__ fill/select step works on added columns too.
+            row.innerHTML = '<input type="text" placeholder="column_name" data-gb-field="Column Name" class="db-input">'
+                + '<select class="db-select" data-gb-field="Column Type"><option>VARCHAR(255)</option><option>TEXT</option><option>INTEGER</option>'
                 + '<option>BIGINT</option><option>DECIMAL</option><option>BOOLEAN</option>'
                 + '<option>DATE</option><option>TIMESTAMPTZ</option><option>JSONB</option></select>'
                 + '<label class="db-checkbox"><input type="checkbox"> PK</label>'
