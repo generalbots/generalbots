@@ -35,7 +35,7 @@ name: BotModels pythonbox bundle
 # confirm a bundle exists; it never builds anything.
 
 on:
-  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  # Reusable from `.github/workflows/release.yml`; existing triggers stay.
   workflow_call:
     inputs:
       python_version:

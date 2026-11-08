@@ -19,7 +19,7 @@ name: CI
 # `workflow_dispatch` adds the heavy gates on request: `full` runs the
 # accessibility/performance audit, and `release_tag` additionally builds the
 # desktop binaries for that tag (without publishing — publishing belongs to
-# `.github/workflows/release-all.yml`).
+# `.github/workflows/release.yml`).
 #
 # The per-workflow triggers are intentionally kept: the repository is mirrored
 # to Forgejo and maintainers still dispatch individual gates directly.

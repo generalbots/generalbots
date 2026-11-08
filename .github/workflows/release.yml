@@ -1,4 +1,4 @@
-name: Release all
+name: Release
 
 # #1851 — one all-inclusive binary release.
 #
@@ -57,7 +57,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: release-all-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

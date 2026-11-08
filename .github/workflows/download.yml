@@ -3,8 +3,8 @@ name: Download (all variants)
 # Builds the desktop edition on GitHub-hosted runners and attaches it to a
 # GitHub Release ("release folder"). Manual runs need a tag; pushing a v* tag
 # runs it automatically, and `.github/workflows/release.yml` dispatches the
-# all-inclusive `.github/workflows/release-all.yml` with the next product
-# version on every merge to main (#1851). When release-all calls this workflow
+# all-inclusive `.github/workflows/release.yml` with the next product
+# version on every merge to main (#1851). When release calls this workflow
 # it passes `publish: false`, so the product release has a single publisher.
 # Public repository: runner minutes are free.
 #
@@ -28,7 +28,7 @@ name: Download (all variants)
 # layout.
 
 on:
-  # Reusable from `.github/workflows/ci.yml` and `.github/workflows/release-all.yml`.
+  # Reusable from `.github/workflows/ci.yml` and `.github/workflows/release.yml`.
   # Manual dispatch is preserved so the workflow keeps working on its own.
   workflow_call:
     inputs:
@@ -37,7 +37,7 @@ on:
         required: false
         type: string
       publish:
-        description: "Publish the product release (release-all.yml sets false)"
+        description: "Publish the product release (release.yml sets false)"
         required: false
         default: true
         type: boolean
