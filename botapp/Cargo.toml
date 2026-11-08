@@ -52,6 +52,9 @@ default = ["desktop"]
 desktop = ["desktop-tray"]
 desktop-tray = []
 desktop-local = []
+# #1925: thin client (UI only, remote botserver) and mobile targets — stubs
+thin-client = []
+mobile = []
 # Production-style asset embedding. `tauri build` enables it; a debug build
 # with it serves the bundled suite/wizard instead of the dev server.
 custom-protocol = ["tauri/custom-protocol"]

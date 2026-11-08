@@ -192,6 +192,10 @@ desktop-local = [
     "botcore/desktop-local",
 ]
 
+# #1925: thin client and mobile variant stubs (no sidecar/local services)
+thin-client = []
+mobile = []
+
 # #1811 — Every application feature. This is the default; slim bundles below
 # stay available for constrained builds. Keep it in sync with the app registry:
 # `scripts/product_profile_check.py` fails CI when a registry app has no
