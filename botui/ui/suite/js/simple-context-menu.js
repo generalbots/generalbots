@@ -179,6 +179,16 @@
 
   function onContextMenu(e) {
     if (e.defaultPrevented) return;
+    // Drive files and folders (HTMX app) own their context menu with
+    // actions like Download, Rename or Duplicate. That handler registers its
+    // document listener later than this one (the drive app is injected after
+    // the shell), so this menu must step aside for those targets — otherwise
+    // two menus appear at once. Not preventDefault: the drive handler then
+    // runs normally.
+    if (typeof e.target.closest === "function" &&
+        e.target.closest(".file-card, .drive-file-item")) {
+      return;
+    }
     e.preventDefault();
     buildMenu(e.clientX, e.clientY);
   }
