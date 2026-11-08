@@ -65,6 +65,11 @@ pub(super) async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
+    // #1968 — resolve the peer-node configuration once, after the secrets
+    // manager is ready, so Vault `secret/gbo/peer` is read before the first
+    // request. Only the source of each key is logged, never a value.
+    crate::core::peer_network::log_startup_configuration();
+
     let noise_filters = crate::main_module::get_noise_filters();
 
     let rust_log = match std::env::var("RUST_LOG") {

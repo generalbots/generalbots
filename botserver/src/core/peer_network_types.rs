@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{OnceLock, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -12,6 +12,34 @@ pub const ENV_ADVERTISE_ADDR: &str = "GB_PEER_ADVERTISE_ADDR";
 pub const ENV_HEARTBEAT_TTL: &str = "GB_PEER_HEARTBEAT_TTL_SECS";
 pub const ENV_DATA_DIR: &str = "GB_PEER_DATA_DIR";
 pub const ENV_TOKEN: &str = "GB_PEER_TOKEN";
+pub const ENV_SIGNING_KEY: &str = "GB_PEER_SIGNING_KEY";
+
+/// Canonical Vault path for peer-node settings (#1968). A deployed node is
+/// configured from here; the `GB_PEER_*` variables above override it for dev,
+/// test and one-off runs.
+pub const SECRET_PATH: &str = "gbo/peer";
+
+/// Where an effective setting came from. `GET /api/peer/status` reports this so
+/// an operator can confirm a node reads Vault; the value itself is never
+/// reported.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfigSource {
+    Env,
+    Vault,
+    ProdFile,
+    Default,
+}
+
+impl ConfigSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Env => "env",
+            Self::Vault => "vault",
+            Self::ProdFile => "prod-file",
+            Self::Default => "default",
+        }
+    }
+}
 
 const DEFAULT_HEARTBEAT_TTL_SECS: u64 = 90;
 const MAX_PEERS: usize = 1024;
@@ -101,6 +129,9 @@ pub struct PeerStatus {
     pub heartbeat_ttl_seconds: u64,
     pub peer_count: usize,
     pub peers: Vec<PeerRecord>,
+    /// Origin of each effective setting (`env`, `vault`, `prod-file`,
+    /// `mode-file`, `default`) — never the value itself (#1968).
+    pub config_sources: BTreeMap<String, String>,
 }
 
 /// Runtime configuration, separated from process state so the module is
@@ -115,41 +146,99 @@ pub struct PeerConfig {
     /// Directory holding `node.json`; `None` keeps identity process-local.
     pub data_dir: Option<PathBuf>,
     pub token: Option<String>,
+    /// Home-site signing key (`GB_PEER_SIGNING_KEY` / Vault `signing-key`).
+    /// `None` falls back to the node id.
+    pub signing_key: Option<String>,
+    /// Where each effective value came from. Never carries a value.
+    pub sources: BTreeMap<String, &'static str>,
 }
 
 impl PeerConfig {
-    /// Read the opt-in configuration from the environment. Disabled unless
-    /// `GB_PEER_NETWORK` is explicitly truthy.
-    pub fn from_env() -> Self {
-        let node_id = env_non_empty(ENV_NODE_ID).and_then(|raw| {
-            Uuid::parse_str(&raw)
-                .map_err(|error| log::warn!("Ignoring invalid {ENV_NODE_ID}: {error}"))
-                .ok()
+    /// Resolve the effective configuration (#1968).
+    ///
+    /// Precedence, highest first:
+    ///
+    /// 1. process environment (`GB_PEER_*`) — dev, test, one-off runs
+    /// 2. Vault `secret/gbo/peer` — canonical for a deployed node
+    /// 3. the legacy `~/.prod` file (token only)
+    /// 4. built-in defaults — and the persisted `mode.json` for the on/off flag
+    pub fn load() -> Self {
+        let vault = vault_settings();
+        let mut sources: BTreeMap<String, &'static str> = BTreeMap::new();
+
+        let (node_id_raw, node_id_source) = resolve(ENV_NODE_ID, "node-id", &vault);
+        sources.insert("node-id".to_string(), node_id_source.as_str());
+        let node_id = node_id_raw.and_then(|raw| match Uuid::parse_str(&raw) {
+            Ok(id) => Some(id),
+            Err(error) => {
+                log::warn!(
+                    "Ignoring invalid node-id from {ENV_NODE_ID} or {SECRET_PATH}: {error}"
+                );
+                None
+            }
         });
-        let heartbeat_ttl_seconds = env_non_empty(ENV_HEARTBEAT_TTL)
-            .and_then(|raw| raw.parse::<u64>().ok())
+
+        let (node_name, node_name_source) = resolve(ENV_NODE_NAME, "node-name", &vault);
+        sources.insert("node-name".to_string(), node_name_source.as_str());
+
+        let (advertise, advertise_source) = resolve(ENV_ADVERTISE_ADDR, "advertise-addr", &vault);
+        let (advertise_address, advertise_source) = match advertise {
+            Some(value) => (Some(value), advertise_source),
+            None => (Some(RELAY_ENDPOINT.to_string()), ConfigSource::Default),
+        };
+        sources.insert("advertise-addr".to_string(), advertise_source.as_str());
+
+        let (configured_dir, dir_source) = resolve(ENV_DATA_DIR, "data-dir", &vault);
+        let (data_dir, dir_source) = match configured_dir {
+            Some(value) => (Some(PathBuf::from(value)), dir_source),
+            None => (default_data_dir(), ConfigSource::Default),
+        };
+        sources.insert("data-dir".to_string(), dir_source.as_str());
+
+        let (ttl_raw, ttl_source) = resolve(ENV_HEARTBEAT_TTL, "heartbeat-ttl-secs", &vault);
+        let heartbeat_ttl_seconds = ttl_raw
+            .and_then(|raw| raw.trim().parse::<u64>().ok())
             .unwrap_or(DEFAULT_HEARTBEAT_TTL_SECS)
             .max(1);
+        sources.insert("heartbeat-ttl-secs".to_string(), ttl_source.as_str());
 
-        let data_dir = default_data_dir();
-        let env_enabled_raw = std::env::var(ENV_ENABLED).ok();
-        let enabled = match env_enabled_raw {
-            Some(value) => matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"),
-            None => data_dir
-                .as_ref()
-                .map(|dir| std::fs::read_to_string(dir.join("mode.json")).unwrap_or_default())
-                .map(|raw| raw.trim().eq_ignore_ascii_case("p2p"))
-                .unwrap_or(false),
+        let (token, token_source) = resolve(ENV_TOKEN, "token", &vault);
+        sources.insert("token".to_string(), token_source.as_str());
+
+        let (signing_key, signing_key_source) = resolve(ENV_SIGNING_KEY, "signing-key", &vault);
+        sources.insert("signing-key".to_string(), signing_key_source.as_str());
+
+        let (enabled_raw, enabled_source) = resolve(ENV_ENABLED, "enabled", &vault);
+        let enabled = match enabled_raw.as_deref() {
+            Some(raw) => parse_flag(raw),
+            None => persisted_enabled(data_dir.as_deref()),
         };
+        let enabled_origin = if enabled_raw.is_some() {
+            enabled_source.as_str()
+        } else if data_dir.is_some() {
+            "mode-file"
+        } else {
+            "default"
+        };
+        sources.insert("enabled".to_string(), enabled_origin);
+
         Self {
             enabled,
             node_id,
-            node_name: env_non_empty(ENV_NODE_NAME),
-            advertise_address: env_non_empty(ENV_ADVERTISE_ADDR).or_else(|| Some(RELAY_ENDPOINT.to_string())),
+            node_name,
+            advertise_address,
             heartbeat_ttl_seconds,
             data_dir,
-            token: env_non_empty(ENV_TOKEN).or_else(|| read_prod_value(ENV_TOKEN)).or_else(|| read_prod_value("GB_PEER_TOKEN")),
+            token,
+            signing_key,
+            sources,
         }
+    }
+
+    /// Environment-driven constructor kept for existing callers; it now
+    /// resolves Vault first (#1968).
+    pub fn from_env() -> Self {
+        Self::load()
     }
 
     /// The explicit "off" state used by tests and by callers that do not want
@@ -163,8 +252,63 @@ impl PeerConfig {
             heartbeat_ttl_seconds: DEFAULT_HEARTBEAT_TTL_SECS,
             data_dir: None,
             token: None,
+            signing_key: None,
+            sources: BTreeMap::new(),
         }
     }
+}
+
+/// `secret/gbo/peer` as read now; empty when Vault is unavailable, which leaves
+/// the env variables and defaults in charge.
+fn vault_settings() -> BTreeMap<String, String> {
+    botcoresecrets::peer_secret_sync().unwrap_or_default()
+}
+
+/// Env → Vault → `~/.prod` for one setting.
+fn resolve(
+    key_env: &str,
+    vault_key: &str,
+    vault: &BTreeMap<String, String>,
+) -> (Option<String>, ConfigSource) {
+    pick(
+        env_non_empty(key_env),
+        vault
+            .get(vault_key)
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        read_prod_value(key_env),
+    )
+}
+
+/// The precedence rule itself, split out so it is testable without touching
+/// process-wide environment variables.
+fn pick(
+    env: Option<String>,
+    vault: Option<String>,
+    prod_file: Option<String>,
+) -> (Option<String>, ConfigSource) {
+    match (env, vault, prod_file) {
+        (Some(value), ..) => (Some(value), ConfigSource::Env),
+        (None, Some(value), _) => (Some(value), ConfigSource::Vault),
+        (None, None, Some(value)) => (Some(value), ConfigSource::ProdFile),
+        (None, None, None) => (None, ConfigSource::Default),
+    }
+}
+
+fn parse_flag(raw: &str) -> bool {
+    matches!(
+        raw.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+/// The `mode.json` written by the Settings toggle, used when neither the
+/// environment nor Vault states a preference.
+fn persisted_enabled(data_dir: Option<&Path>) -> bool {
+    data_dir
+        .map(|dir| std::fs::read_to_string(dir.join("mode.json")).unwrap_or_default())
+        .map(|raw| raw.trim().eq_ignore_ascii_case("p2p"))
+        .unwrap_or(false)
 }
 
 /// Errors returned by the registry. The HTTP layer maps these to status codes.

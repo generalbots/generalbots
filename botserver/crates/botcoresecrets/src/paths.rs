@@ -19,6 +19,10 @@ impl SecretPaths {
     pub const APP: &'static str = "gbo/system/app";
     pub const MODELS: &'static str = "gbo/system/models";
     pub const VDI: &'static str = "gbo/vdi";
+    /// Peer-network settings (#1968): `enabled`, `node-id`, `node-name`,
+    /// `advertise-addr`, `data-dir`, `heartbeat-ttl-secs`, `token`,
+    /// `signing-key`.
+    pub const PEER: &'static str = "gbo/peer";
 
     pub fn tenant_infrastructure(tenant: &str) -> String {
         format!("gbo/tenants/{}/infrastructure", tenant)

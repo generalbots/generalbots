@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     fn enabled_config(dir: &Path, ttl_seconds: u64) -> PeerConfig {
         PeerConfig {
@@ -11,7 +12,63 @@ mod tests {
             heartbeat_ttl_seconds: ttl_seconds,
             data_dir: Some(dir.to_path_buf()),
             token: None,
+            signing_key: None,
+            sources: BTreeMap::new(),
         }
+    }
+
+    #[test]
+    fn environment_beats_vault_and_vault_beats_the_prod_file() {
+        assert_eq!(
+            pick(Some("env".into()), Some("vault".into()), Some("prod".into())),
+            (Some("env".to_string()), ConfigSource::Env)
+        );
+        assert_eq!(
+            pick(None, Some("vault".into()), Some("prod".into())),
+            (Some("vault".to_string()), ConfigSource::Vault)
+        );
+        assert_eq!(
+            pick(None, None, Some("prod".into())),
+            (Some("prod".to_string()), ConfigSource::ProdFile)
+        );
+        assert_eq!(pick(None, None, None), (None, ConfigSource::Default));
+    }
+
+    #[test]
+    fn flags_accept_the_documented_spellings() {
+        for raw in ["1", "true", "YES", " on "] {
+            assert!(parse_flag(raw), "{raw} should enable the node");
+        }
+        for raw in ["0", "false", "off", ""] {
+            assert!(!parse_flag(raw), "{raw} should not enable the node");
+        }
+    }
+
+    #[test]
+    fn disabled_config_carries_no_secret_and_no_sources() {
+        let config = PeerConfig::disabled();
+
+        assert!(config.token.is_none());
+        assert!(config.signing_key.is_none());
+        assert!(config.sources.is_empty());
+    }
+
+    #[test]
+    fn signing_key_falls_back_to_the_node_id() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let network = PeerNetwork::new(enabled_config(dir.path(), 30));
+        let node_id = network.identity().expect("identity").node_id;
+
+        assert_eq!(network.signing_key(), node_id.to_string());
+    }
+
+    #[test]
+    fn configured_signing_key_wins_over_the_node_id() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut config = enabled_config(dir.path(), 30);
+        config.signing_key = Some("from-vault".to_string());
+
+        assert_eq!(PeerNetwork::new(config).signing_key(), "from-vault");
     }
 
     fn registration(name: &str) -> RegisterRequest {

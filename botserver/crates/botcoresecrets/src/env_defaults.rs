@@ -101,6 +101,23 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         "models" | "gbo/models" | "system/models" => {
             secrets.insert("url".into(), String::new());
         }
+        "peer" | "gbo/peer" | "system/peer" => {
+            // #1968 — peer-node settings live in Vault `secret/gbo/peer`.
+            // Without Vault every field stays empty so the `GB_PEER_*`
+            // variables and the built-in defaults apply unchanged.
+            for key in [
+                "enabled",
+                "node-id",
+                "node-name",
+                "advertise-addr",
+                "data-dir",
+                "heartbeat-ttl-secs",
+                "token",
+                "signing-key",
+            ] {
+                secrets.insert(key.into(), String::new());
+            }
+        }
         "vdi" | "gbo/vdi" | "system/vdi" => {
             // Default VDI connection (host/port/name) — never hardcoded in the
             // repository; provisioned at deploy time in Vault `secret/gbo/vdi`.

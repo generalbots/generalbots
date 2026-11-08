@@ -32,6 +32,62 @@ Each desktop generates a local peer identity on first run. The identity is
 stored in the local Vault and never transmitted in plaintext. Heartbeats are
 sent only while P2P is enabled and only to the configured relay.
 
+## Configuration (Vault)
+
+A deployed node is configured from Vault `secret/gbo/peer`. Precedence, highest
+first:
+
+1. process environment (`GB_PEER_*`) — dev, test and one-off overrides
+2. Vault `secret/gbo/peer` — the canonical source for a deployed node
+3. the legacy `~/.prod` file (only for `GB_PEER_TOKEN`)
+4. built-in defaults (and the persisted `mode.json` for the on/off flag)
+
+| Key | Env override | Meaning |
+|-----|--------------|---------|
+| `enabled` | `GB_PEER_NETWORK` | `1`/`true`/`yes`/`on` joins the mesh |
+| `node-id` | `GB_PEER_NODE_ID` | stable UUID; generated and persisted when empty |
+| `node-name` | `GB_PEER_NODE_NAME` | display name; `general-bots-<id8>` when empty |
+| `advertise-addr` | `GB_PEER_ADVERTISE_ADDR` | address relayed to peers (default `relay.generalbots.org`) |
+| `data-dir` | `GB_PEER_DATA_DIR` | where `node.json` and `mode.json` live |
+| `heartbeat-ttl-secs` | `GB_PEER_HEARTBEAT_TTL_SECS` | peer expiry, default 90 |
+| `token` | `GB_PEER_TOKEN` | shared bearer token for machine callers; empty disables the check |
+| `signing-key` | `GB_PEER_SIGNING_KEY` | home-site signing key; empty falls back to the node id |
+
+`GET /api/peer/status` returns `config_sources`, the origin of each key
+(`env`, `vault`, `prod-file`, `mode-file`, `default`), so an operator can prove
+a node really reads Vault. Token and signing key are never printed — the boot
+log reports them as `configured` or `absent`.
+
+### Enabling the public node (`peer.generalbots.org`)
+
+```bash
+vault kv put secret/gbo/peer \
+  enabled=1 \
+  node-name=peer \
+  advertise-addr=relay.generalbots.org \
+  token="$(openssl rand -hex 32)" \
+  signing-key="$(openssl rand -hex 32)"
+sudo systemctl restart botserver
+
+curl -s http://127.0.0.1:8080/api/peer/status | jq .config_sources
+# { "enabled": "vault", "node-name": "vault", "token": "vault", ... }
+```
+
+Nothing peer-specific belongs in the systemd unit: only `VAULT_ADDR`,
+`VAULT_TOKEN` and the CA path live there, and the values above are read from
+Vault at boot.
+
+### Token rotation
+
+```bash
+vault kv put secret/gbo/peer token="$(openssl rand -hex 32)"
+sudo systemctl restart botserver   # configuration is resolved once, at boot
+```
+
+Rotate `signing-key` the same way; home sites regenerated after the restart carry
+the new signature. The token is only checked on peer endpoints, so a restart is
+the entire rollout — peers never need the previous value.
+
 ## Status
 
 The peer-network foundation (identity, heartbeat, status endpoint) ships in
