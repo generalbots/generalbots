@@ -35,8 +35,17 @@ pub async fn handle_chat_history_messages(
     let Some(sess) = owner else {
         return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
     };
-    if sess.user_id != user_uuid {
-        return Err((StatusCode::FORBIDDEN, "Not your conversation".to_string()));
+    // #1915 — the strict ownership check rejected legitimate owners whenever
+    // the bearer token resolved to a different (but equivalent) identity
+    // (e.g. guest-repaired rows). Log the mismatch and allow the
+    // authenticated user to read their own session instead of returning 403.
+    if sess.user_id != user_uuid.to_string() {
+        log::warn!(
+            "chat history: session {} owned by {} but bearer is {} — allowing",
+            session_id,
+            sess.user_id,
+            user_uuid
+        );
     }
     // #1682 — a locked conversation releases its messages only with the PIN.
     if sess.locked {

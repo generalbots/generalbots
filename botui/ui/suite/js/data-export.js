@@ -39,7 +39,7 @@
 
   function collectSettings() {
     var settings = {};
-    var keys = ["gb_theme", "gb_sync_folder", "gb_setup_complete", "gb_setup_user_name", "gb_telemetry_opted_in", "gb_privacy_settings"];
+    var keys = ["gb_theme", "gb_sync_folder", "gb_setup_complete", "gb_setup_user_name", "gb_privacy_settings"];
     keys.forEach(function (k) {
       var val = localStorage.getItem(k);
       if (val !== null) settings[k] = val;

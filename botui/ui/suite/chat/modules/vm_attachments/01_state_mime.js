@@ -110,6 +110,7 @@ function vmFilePreviewable(path) {
 function vmInlineKind(path) {
   var mime = vmFileMimeType(path);
   if (mime.indexOf("image/") === 0) return "image";
+  if (mime.indexOf("audio/") === 0) return "audio";
   if (mime === "application/pdf") return "pdf";
   if (mime === "text/html") return "html";
   if (
