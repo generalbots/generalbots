@@ -383,28 +383,40 @@
     } catch (e) { /* CustomEvent unavailable */ }
   }
 
-  function bind() {
-    var mic = micButton();
-    if (mic && !mic.dataset.bound) {
-      mic.dataset.bound = "1";
-      mic.addEventListener("click", function () {
-        if (state.duplex) {
-          setDuplex(false);
-          return;
-        }
-        if (state.recording) stop();
-        else start();
-      });
+  // #1892 — the composer is injected by the chat partial, which can land
+  // after this module boots (and is re-rendered on app switches). Binding the
+  // buttons directly meant a button rendered later had no handler at all: the
+  // click was a silent no-op with no toast. Delegate once at document level so
+  // every current and future #voiceBtn/#voiceDuplexBtn is live.
+  function onVoiceClick(event) {
+    var target = event.target;
+    if (!target || typeof target.closest !== "function") return;
+    if (target.closest("#voiceBtn")) {
+      if (state.duplex) {
+        setDuplex(false);
+        return;
+      }
+      if (state.recording) stop();
+      else start();
+      return;
     }
-    var duplex = duplexButton();
-    if (duplex && !duplex.dataset.bound) {
-      duplex.dataset.bound = "1";
-      duplex.addEventListener("click", function () {
-        setDuplex(!state.duplex);
-      });
+    if (target.closest("#voiceDuplexBtn")) {
+      setDuplex(!state.duplex);
+    }
+  }
+
+  function bind() {
+    if (!document.dataset.gbVoiceBound) {
+      document.dataset.gbVoiceBound = "1";
+      document.addEventListener("click", onVoiceClick, false);
     }
     paint();
   }
+
+  // The partial can appear after DOMContentLoaded (and after a bot switch), so
+  // repaint whenever the composer shows up with the voice buttons inside.
+  window.addEventListener("gb-chat-ready", bind);
+  if (document.readyState !== "loading") bind();
 
   window.addEventListener("gb-chat-bot-complete", function () {
     if (state.duplex && state.mode !== "duplex") scheduleNext();
