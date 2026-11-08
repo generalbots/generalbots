@@ -17,6 +17,8 @@ pub struct ComponentDownload {
     pub sha256: String,
     #[serde(default)]
     pub sha256_arm64: String,
+    #[serde(default)]
+    pub sha256_win: String,
 }
 
 impl ComponentDownload {
@@ -27,7 +29,7 @@ impl ComponentDownload {
             (
                 self.url_win.as_deref().unwrap_or(&self.url),
                 self.filename_win.as_deref().unwrap_or(&self.filename),
-                &self.sha256,
+                if self.url_win.is_some() { &self.sha256_win } else { &self.sha256 },
             )
         } else if aarch64 && self.url_arm64.is_some() {
             (
@@ -70,11 +72,12 @@ impl ComponentDownload {
     pub(super) fn sha256_for_url(&self, url: &str) -> Option<&str> {
         if self.url == url {
             Some(&self.sha256)
+        } else if self.url_win.as_deref() == Some(url) {
+            Some(&self.sha256_win)
         } else if self.url_arm64.as_deref() == Some(url) {
             Some(&self.sha256_arm64)
         } else {
-            // No Windows checksum is pinned in 3rdparty.toml yet; never verify
-            // a Windows archive against the Linux hash.
+            // Unrecognized URLs must not inherit another archive's digest.
             None
         }
     }
@@ -95,6 +98,7 @@ mod tests {
             filename_arm64: Some("minio-arm64".to_string()),
             sha256: "x86".to_string(),
             sha256_arm64: "arm".to_string(),
+            sha256_win: "win".to_string(),
         }
     }
 
@@ -131,7 +135,7 @@ mod tests {
             (
                 "https://example.com/minio-windows-amd64.exe",
                 "minio.exe",
-                "x86"
+                "win"
             )
         );
     }
@@ -141,7 +145,15 @@ mod tests {
         let c = component();
         assert_eq!(c.sha256_for_url("https://example.com/minio-linux-amd64"), Some("x86"));
         assert_eq!(c.sha256_for_url("https://example.com/minio-linux-arm64"), Some("arm"));
-        assert_eq!(c.sha256_for_url("https://example.com/minio-windows-amd64.exe"), None);
+        assert_eq!(c.sha256_for_url("https://example.com/minio-windows-amd64.exe"), Some("win"));
+    }
+
+    #[test]
+    fn windows_without_a_pinned_hash_never_uses_the_linux_hash() {
+        let mut c = component();
+        c.sha256_win.clear();
+        assert_eq!(c.variant(true, false).2, "");
+        assert_eq!(c.sha256_for_url("https://example.com/minio-windows-amd64.exe"), Some(""));
     }
 
     #[test]

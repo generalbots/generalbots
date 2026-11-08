@@ -31,7 +31,11 @@ pub(super) async fn main() -> std::io::Result<()> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
+        if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
+    } else {
         dotenvy::dotenv().ok();
+    }
     }
 
     let env_path_early = std::path::Path::new("./.env");
@@ -141,7 +145,11 @@ pub(super) async fn main() -> std::io::Result<()> {
     trace!("Bootstrap config phase complete");
     trace!("Reloading dotenv...");
     if std::env::var("GBO_NO_DOTENV").as_deref() != Ok("1") {
-        dotenv().ok();
+if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
+    } else {
+        dotenvy::dotenv().ok();
+    }
     }
 
     let pool = init_database(&progress_tx).await?;

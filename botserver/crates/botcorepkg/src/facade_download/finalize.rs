@@ -59,7 +59,9 @@ pub fn run_commands_with_password(
     } else {
         PathBuf::from("/opt/gbo/logs")
     };
-    let db_password = if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
+    let db_password = if !commands.iter().any(|cmd| cmd.contains("{{DB_PASSWORD}}")) {
+        String::new()
+    } else if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
         env_pwd
     } else if !db_password_override.is_empty() {
         db_password_override.to_string()
@@ -140,8 +142,9 @@ pub fn run_commands_with_password(
                     if stderr.is_empty() { "<empty>" } else { stderr.as_str() },
                     display_cmd
                 );
-                #[cfg(not(target_os = "windows"))]
-                if !rendered_cmd.trim_end().ends_with("|| true") {
+                let command_is_best_effort = rendered_cmd.trim_end().ends_with("|| true")
+                    || rendered_cmd.trim_end().ends_with("|| ver > nul");
+                if !command_is_best_effort {
                     return Err(anyhow::anyhow!(
                         "'{}' failed while installing {} (exit {:?}): {}",
                         display_cmd,

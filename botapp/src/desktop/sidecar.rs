@@ -108,6 +108,42 @@ impl Sidecar {
             .join("stack")
     }
 
+    #[cfg(target_os = "windows")]
+    pub(crate) fn prepare_windows_runtime(installers: &std::path::Path) -> anyhow::Result<std::ffi::OsString> {
+        let stack = Self::stack_path();
+        // Diesel's PostgreSQL client is dynamically linked on Windows.
+        // Keep libpq and its runtime dependencies beside botserver.exe so
+        // Windows can resolve them without relying on the build machine's
+        // PostgreSQL installation or inherited PATH.
+        let runtime_dlls = [
+            "libpq.dll",
+            "libcrypto-3-x64.dll",
+            "libssl-3-x64.dll",
+            "libiconv-2.dll",
+            "libintl-9.dll",
+            "libwinpthread-1.dll",
+            "liblz4.dll",
+            "libzstd.dll",
+            "zlib1.dll",
+        ];
+        for name in runtime_dlls {
+            let destination = stack.join(name);
+            let source = installers.join(name);
+            if source.is_file() && source != destination {
+                std::fs::copy(&source, &destination).map_err(|e| {
+                    anyhow::anyhow!("could not stage PostgreSQL runtime file {name}: {e}")
+                })?;
+            } else if !destination.is_file() {
+                return Err(anyhow::anyhow!(
+                    "PostgreSQL runtime file {name} is missing from the desktop bundle"
+                ));
+            }
+        }
+        let mut paths = vec![stack];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+        Ok(std::env::join_paths(paths)?)
+    }
+
     pub fn start(&self, resource_dir: Option<PathBuf>) -> anyhow::Result<()> {
         let path = Self::botserver_path();
         if !path.exists() {
@@ -210,8 +246,12 @@ impl Sidecar {
         let opened_inode = file_inode(&log_path);
 
         let mut command = Command::new(&path);
+        #[cfg(target_os = "windows")]
+        command.env("PATH", Self::prepare_windows_runtime(&installers)?);
         command
             .current_dir(&stack)
+            .env_remove("DATABASE_URL")
+            .env_remove("PG_URL")
             .env("BOTSERVER_STACK_PATH", &stack)
             .env("BOTSERVER_INSTALLERS_PATH", &installers)
             // The desktop bundle carries only the small vendored components

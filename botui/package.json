@@ -10,6 +10,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "monaco-editor": "^0.45.0"
+    "monaco-editor": "^0.45.0",
+    "playwright": "^1.64.1"
   }
 }

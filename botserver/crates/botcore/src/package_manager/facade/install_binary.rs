@@ -63,7 +63,9 @@ impl PackageManager {
             PathBuf::from("/opt/gbo/logs")
         };
 
-        let db_password = if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
+        let db_password = if !commands.iter().any(|cmd| cmd.contains("{{DB_PASSWORD}}")) {
+            String::new()
+        } else if let Ok(env_pwd) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
             env_pwd
         } else if !db_password_override.is_empty() {
             db_password_override.to_string()
@@ -148,10 +150,7 @@ impl PackageManager {
                         if stderr.is_empty() { "<empty>" } else { stderr.as_str() },
                         display_cmd
                     );
-                    // Windows post-install scripts rely on idempotent
-                    // non-zero exits (for example CREATE DATABASE already
-                    // exists); keep their historical behaviour.
-                    #[cfg(not(target_os = "windows"))]
+                    // A failed prerequisite must stop setup on every platform.
                     if !rendered_cmd.trim_end().ends_with("|| true") {
                         return Err(anyhow::anyhow!(
                             "'{}' failed while installing {} (exit {:?}): {}",

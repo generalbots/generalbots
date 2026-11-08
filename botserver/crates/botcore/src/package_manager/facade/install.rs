@@ -1,6 +1,14 @@
 use super::*;
 
 impl PackageManager {
+    #[cfg(windows)]
+    pub fn prepare_installed_windows_component(&self, name: &str) -> Result<()> {
+        let component = self.components.get(name)
+            .context(format!("Component '{name}' not found"))?;
+        self.run_commands(&component.pre_install_cmds_windows, "local", name)?;
+        self.run_commands(&component.post_install_cmds_windows, "local", name)
+    }
+
     pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {
         let component = self
             .components

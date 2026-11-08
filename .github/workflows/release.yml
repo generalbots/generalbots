@@ -458,6 +458,20 @@ jobs:
           if (-not $pg) { throw "PostgreSQL install directory not found" }
           "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
           "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+          $stage = 'dist\installers'
+          $resources = 'botserver\botserver-installers'
+          New-Item -ItemType Directory -Force $stage, $resources | Out-Null
+          $runtimeDlls = @(
+            'libpq.dll', 'libcrypto-3-x64.dll', 'libssl-3-x64.dll',
+            'libiconv-2.dll', 'libintl-9.dll', 'libwinpthread-1.dll',
+            'liblz4.dll', 'libzstd.dll', 'zlib1.dll'
+          )
+          foreach ($name in $runtimeDlls) {
+            $dll = Join-Path "$($pg.FullName)\bin" $name
+            if (-not (Test-Path $dll)) { throw "PostgreSQL runtime DLL is missing: $name" }
+            Copy-Item $dll $stage -Force
+            Copy-Item $dll $resources -Force
+          }
 
       - name: Install Rust
         shell: pwsh
@@ -706,6 +720,7 @@ jobs:
           New-Item -ItemType Directory -Force dist/payload/bin | Out-Null
           New-Item -ItemType Directory -Force dist/payload/ui | Out-Null
           Copy-Item target/release/botserver.exe dist/payload/botserver.exe
+          Copy-Item dist/installers/*.dll dist/payload/ -Force
           Copy-Item -Recurse botui/ui/suite  dist/payload/ui/suite
           Copy-Item -Recurse botui/ui/themes dist/payload/ui/themes
           Copy-Item botserver/.product.desktop-local dist/payload/
@@ -731,6 +746,16 @@ jobs:
           try {
             .\dist\generalbots.exe --extract-only
             if ($LASTEXITCODE -ne 0) { throw 'the payload could not be extracted' }
+            # The runner has PostgreSQL on PATH; a release must also load on
+            # a machine without that developer installation.
+            $savedRuntimePath = $env:PATH
+            try {
+              $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+              & (Join-Path $check 'botserver.exe') --help | Out-Null
+              if ($LASTEXITCODE -ne 0) { throw 'the packaged server is missing a runtime DLL' }
+            } finally {
+              $env:PATH = $savedRuntimePath
+            }
           } finally {
             $env:BOTSERVER_STACK_PATH = $previousStack
           }
@@ -776,7 +801,7 @@ jobs:
     # Linux is the supported first-run artifact; it must not wait for the
     # best-effort Windows job. Windows assets are attached by `release-windows`
     # when (and only when) that job is green.
-    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
+    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' && true && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:
       - name: Download Linux installer
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -890,7 +915,7 @@ jobs:
     # to the Linux tag after publication — the Windows build gets its own
     # `-windows` pre-release tag (#1804), which never takes "latest".
     continue-on-error: true
-    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
+    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && true && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:
       - name: Download Windows binaries
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0

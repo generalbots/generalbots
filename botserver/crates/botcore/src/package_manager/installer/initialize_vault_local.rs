@@ -155,7 +155,12 @@ impl PackageManager {
                 .ok_or_else(|| anyhow::anyhow!("Invalid init.json path: no parent directory"))?
         )?;
         std::fs::write(&init_json, serde_json::to_string_pretty(&init_json_val)?)?;
-        info!("Created {}", init_json.display());
+        {
+            let abs = crate::os_abstraction::get_abstraction();
+            let _ = abs.set_readonly_owner(&init_json)
+                .map_err(|e| warn!("Failed to set permissions on {}: {}", init_json.display(), e));
+        }
+        info!("Created {} (chmod 600)", init_json.display());
 
         // Create .env file with Vault credentials
         let env_file = std::path::PathBuf::from(".env");
@@ -198,6 +203,11 @@ VAULT_CACERT={}
         } else {
             std::fs::write(&env_file, env_content.trim_start())?;
             info!("Created .env with Vault config");
+        }
+        {
+            let abs = crate::os_abstraction::get_abstraction();
+            let _ = abs.set_readonly_owner(&env_file)
+                .map_err(|e| warn!("Failed to set permissions on {}: {}", env_file.display(), e));
         }
 
         // Create vault-unseal-keys file in botserver directory (next to .env)

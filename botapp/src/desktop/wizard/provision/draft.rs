@@ -32,7 +32,18 @@ pub(super) fn save_draft(request: &ProvisionRequest) -> std::io::Result<()> {
         .map_err(|e| std::io::Error::other(format!("serialize draft: {e}")))?;
     let stack = stack_path();
     std::fs::create_dir_all(&stack)?;
-    std::fs::write(draft_path(), raw)
+    let path = draft_path();
+    std::fs::write(&path, raw)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = std::fs::metadata(&path) {
+            let mut permissions = metadata.permissions();
+            permissions.set_mode(0o600);
+            let _ = std::fs::set_permissions(&path, permissions);
+        }
+    }
+    Ok(())
 }
 
 /// Stores the OAuth client ids/secrets the user entered, through the running

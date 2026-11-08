@@ -97,7 +97,7 @@ pub fn get_database_url_sync() -> anyhow::Result<String> {
             };
             let _ = tx.send(result);
         });
-        if let Ok(url) = rx.recv().map_err(|e| anyhow::anyhow!("Channel error: {}", e))? {
+        if let Ok(Ok(url)) = rx.recv_timeout(std::time::Duration::from_secs(10)) {
             std::env::set_var("DATABASE_URL", &url);
             return Ok(url);
         }

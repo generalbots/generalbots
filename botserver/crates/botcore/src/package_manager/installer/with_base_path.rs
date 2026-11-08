@@ -74,6 +74,11 @@ impl PackageManager {
             }
 
             // Generate qdrant config.yaml if missing
+            #[cfg(windows)]
+            if component.name == "tables" {
+                return Self::start_windows_tables(&bin_path, &data_path, &logs_path);
+            }
+
             if component.name == "vector_db" {
                 let qdrant_conf = conf_path.join("vector_db/config.yaml");
                 if !qdrant_conf.exists() {
@@ -142,6 +147,54 @@ impl PackageManager {
                 } else {
                     evaluated_envs.insert(k.clone(), v.clone());
                 }
+            }
+
+            #[cfg(target_os = "windows")]
+            if component.name == "llm" {
+                let direct = bin_path.join("llama-server.exe");
+                let executable = if direct.is_file() { direct } else { bin_path.join("bin/llama-server.exe") };
+                let spawn_model = |port: &str, model: &str, embedding: bool| -> Result<std::process::Child> {
+                    let log = std::fs::OpenOptions::new().create(true).append(true)
+                        .open(logs_path.join(if embedding { "embedding.log" } else { "llm.log" }))?;
+                    let mut command = SafeCommand::new(&executable.to_string_lossy())?
+                        .arg("--port")?.arg(port)?.arg("--host")?.arg("127.0.0.1")?
+                        .arg("-m")?.arg(&data_path.join(model).to_string_lossy())?
+                        .arg("--ubatch-size")?.arg("512")?.working_dir(&bin_path)?;
+                    if embedding {
+                        command = command.arg("--embeddings")?.arg("--pooling")?.arg("mean")?
+                            .arg("--n-gpu-layers")?.arg("0")?.arg("--ctx-size")?.arg("512")?;
+                    }
+                    command = command.stdout(std::process::Stdio::from(log.try_clone()?))
+                        .stderr(std::process::Stdio::from(log));
+                    command.spawn().map_err(Into::into)
+                };
+                let _embedding = spawn_model("8082", "bge-small-en-v1.5-f32.gguf", true)?;
+                return spawn_model("8081", "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf", false);
+            }
+
+            #[cfg(target_os = "windows")]
+            if component.name == "directory" {
+                let log = std::fs::OpenOptions::new().create(true).append(true)
+                    .open(logs_path.join("zitadel.log"))?;
+                let initialized = std::fs::metadata(conf_path.join("directory/admin-pat.txt"))
+                    .map(|metadata| metadata.len() > 0).unwrap_or(false);
+                let mut command = SafeCommand::new(&bin_path.join("zitadel.exe").to_string_lossy())?
+                    .arg(if initialized { "start" } else { "start-from-init" })?
+                    .arg("--masterkey")?.arg("MasterkeyNeedsToHave32Characters")?
+                    .arg("--tlsMode")?.arg("disabled")?
+                    .working_dir(&bin_path)?;
+                if !initialized {
+                    command = command.arg("--steps")?
+                        .arg(&conf_path.join("directory/zitadel-init-steps.yaml").to_string_lossy())?;
+                }
+                for (key, value) in &evaluated_envs {
+                    if !value.is_empty() {
+                        command = command.env(key, value)?;
+                    }
+                }
+                command = command.stdout(std::process::Stdio::from(log.try_clone()?))
+                    .stderr(std::process::Stdio::from(log));
+                return command.spawn().map_err(Into::into);
             }
 
             trace!(
@@ -215,6 +268,48 @@ impl PackageManager {
         } else {
             Err(anyhow::anyhow!("Component not found: {}", component))
         }
+    }
+
+    #[cfg(windows)]
+    fn start_windows_tables(bin: &std::path::Path, data: &std::path::Path, logs: &std::path::Path) -> Result<std::process::Child> {
+        let pgdata = data.join("pgdata");
+        std::fs::create_dir_all(data)?;
+        std::fs::create_dir_all(logs)?;
+        if !pgdata.join("PG_VERSION").is_file() {
+            let result = SafeCommand::new(&bin.join("bin/initdb.exe").to_string_lossy())?
+                .args(&["--encoding=UTF8", "--no-locale", "-D", &pgdata.to_string_lossy(), "-U", "gbuser", "--auth=trust"])?
+                .execute()?;
+            if !result.status.success() {
+                return Err(anyhow::anyhow!("Local database initialization failed; check the database logs"));
+            }
+        }
+        let sql = |statement: &str| -> Result<std::process::Output> {
+            Ok(SafeCommand::new(&bin.join("bin/psql.exe").to_string_lossy())?
+                .args(&["-w", "-v", "ON_ERROR_STOP=1", "-h", "localhost", "-p", "5432", "-U", "gbuser", "-d", "postgres", "-tAc", statement])?
+                .env("PGCONNECT_TIMEOUT", "5")?.env("PGOPTIONS", "-c statement_timeout=30000")?
+                .execute()?)
+        };
+        if !sql("SELECT 1")?.status.success() {
+            let log = std::fs::OpenOptions::new().create(true).append(true).open(logs.join("pgctl.log"))?;
+            let mut command = SafeCommand::new(&bin.join("bin/pg_ctl.exe").to_string_lossy())?
+                .args(&["-D", &pgdata.to_string_lossy(), "-l", &logs.join("postgresql.log").to_string_lossy(), "start", "-w", "-t", "30"])?
+                .stdout(std::process::Stdio::from(log.try_clone()?)).stderr(std::process::Stdio::from(log));
+            // Wait for pg_ctl itself, never for EOF on pipes inherited by the
+            // long-lived Windows postgres/cmd descendants.
+            if !command.spawn()?.wait()?.success() {
+                return Err(anyhow::anyhow!("Local database startup failed; check pgctl.log"));
+            }
+        }
+        let exists = sql("SELECT 1 FROM pg_database WHERE datname = 'botserver'")?;
+        if !exists.status.success() {
+            return Err(anyhow::anyhow!("Local database did not accept SQL connections"));
+        }
+        if String::from_utf8_lossy(&exists.stdout).trim() != "1" {
+            if !sql("CREATE DATABASE botserver WITH OWNER gbuser")?.status.success() {
+                return Err(anyhow::anyhow!("Could not create the local application database"));
+            }
+        }
+        SafeCommand::noop_child().map_err(Into::into)
     }
 
     /// Resolves the on-disk program for a component, if it can be determined
@@ -303,6 +398,11 @@ impl PackageManager {
             .unwrap_or(false);
         if check_ok {
             return true;
+        }
+        // A listening socket is not proof that a database or identity provider
+        // can serve requests (orphaned Windows children can retain sockets).
+        if matches!(component_name, "tables" | "directory" | "llm") {
+            return false;
         }
         // A component bound to its declared port is running even when the
         // bundled check command assumes a different scheme (for example a

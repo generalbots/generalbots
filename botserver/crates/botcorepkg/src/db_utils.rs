@@ -14,7 +14,8 @@ pub fn get_database_url_sync() -> Result<String> {
         };
         let _ = tx.send(result);
     });
-    rx.recv().map_err(|e| anyhow::anyhow!("Channel error: {}", e))?
+    rx.recv_timeout(std::time::Duration::from_secs(10))
+        .map_err(|e| anyhow::anyhow!("Database credential lookup did not finish: {e}"))?
 }
 
 pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {

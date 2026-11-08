@@ -83,9 +83,14 @@ pub(super) async fn run_components(
     std::fs::create_dir_all(log_path()).map_err(|e| format!("could not create logs: {e}"))?;
 
     let mut command = tokio::process::Command::new(&binary);
+    #[cfg(target_os = "windows")]
+    command.env("PATH", Sidecar::prepare_windows_runtime(&installers)
+        .map_err(|e| format!("could not prepare Windows runtime: {e}"))?);
     command
         .arg("--provision-stack")
         .current_dir(&stack)
+        .env_remove("DATABASE_URL")
+        .env_remove("PG_URL")
         .env("BOTSERVER_STACK_PATH", &stack)
         .env("BOTSERVER_INSTALLERS_PATH", &installers)
         .env("GB_WIZARD_WORKSPACE", &workspace)

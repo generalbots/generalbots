@@ -114,7 +114,7 @@ fn component_plan() -> Vec<Component> {
         Component {
             id: "directory",
             label: "Identity provider",
-            timeout_secs: 90,
+            timeout_secs: 300,
             optional: false,
             start: true,
             unavailable: None,
@@ -175,7 +175,8 @@ async fn provision_component(
         return Ok(());
     }
 
-    if !pm.is_installed(component.id) {
+    let already_installed = pm.is_installed(component.id);
+    if !already_installed {
         progress(
             component.id,
             "starting",
@@ -202,6 +203,16 @@ async fn provision_component(
             progress(component.id, "failed", &reason, started);
             return Err(reason);
         }
+    }
+
+    #[cfg(windows)]
+    if already_installed && component.id == "directory" && !pm.is_running(component.id) {
+        progress(component.id, "starting", "Preparing identity-provider configuration", started);
+        pm.prepare_installed_windows_component(component.id).map_err(|e| {
+            let reason = format!("Identity provider configuration failed: {e}");
+            progress(component.id, "failed", &reason, started);
+            reason
+        })?;
     }
 
     if let Some(program) = pm.executable_path(component.id) {
@@ -235,6 +246,7 @@ async fn provision_component(
         return Ok(());
     }
 
+    let mut spawned_child = None;
     if !pm.is_running(component.id) {
         if std::env::var("GB_WIZARD_DEBUG").is_ok() {
             eprintln!(
@@ -250,7 +262,9 @@ async fn provision_component(
             &format!("Starting {}", component.label.to_lowercase()),
             started,
         );
-        if let Err(e) = pm.start(component.id) {
+        match pm.start(component.id) {
+          Ok(child) => spawned_child = Some(child),
+          Err(e) => {
             let message = e.to_string();
             let already_running = message.contains("Already running")
                 || message.contains("already running")
@@ -260,15 +274,28 @@ async fn provision_component(
                 progress(component.id, "failed", &reason, started);
                 return Err(reason);
             }
+          }
         }
     }
 
-    for _ in 0..component.timeout_secs {
+    let deadline = Instant::now() + Duration::from_secs(component.timeout_secs);
+    while Instant::now() < deadline {
         if pm.is_running(component.id) {
             progress(component.id, "ready", "Ready", started);
             return Ok(());
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    if component.id == "directory" {
+        if let Some(mut child) = spawned_child {
+            if matches!(child.try_wait(), Ok(None)) {
+                match child.kill() {
+                    Ok(()) => { let _ = child.wait(); }
+                    Err(e) => log::warn!("could not stop timed-out identity provider: {e}"),
+                }
+            }
+        }
     }
 
     let reason = format!(
@@ -310,7 +337,11 @@ async fn apply_llm_choice() {
     if url.trim().is_empty() || model.trim().is_empty() {
         return;
     }
-    dotenvy::dotenv().ok();
+    if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
+    } else {
+        dotenvy::dotenv().ok();
+    }
 
     // On a first run the stack `.env` (and therefore VAULT_TOKEN) is written by
     // the assistant's first boot, which happens after provisioning. The Vault
@@ -334,7 +365,11 @@ async fn apply_llm_choice() {
         .map(|v| v.trim().is_empty())
         .unwrap_or(true)
     {
-        std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
+        std::env::set_var("VAULT_ADDR", if cfg!(target_os = "windows") {
+            "http://127.0.0.1:8200"
+        } else {
+            "https://127.0.0.1:8200"
+        });
     }
     if std::env::var("VAULT_CACERT").is_err() {
         let ca = stack.join("conf/system/certificates/ca/ca.crt");

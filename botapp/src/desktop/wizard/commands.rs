@@ -15,7 +15,18 @@ pub fn wizard_save_draft(draft: serde_json::Value) -> Result<(), String> {
     let stack = super::stack_path();
     std::fs::create_dir_all(&stack).map_err(|e| format!("create stack folder: {e}"))?;
     let raw = serde_json::to_string_pretty(&draft).map_err(|e| format!("serialize draft: {e}"))?;
-    std::fs::write(super::draft_path(), raw).map_err(|e| format!("write draft: {e}"))
+    let path = super::draft_path();
+    std::fs::write(&path, raw).map_err(|e| format!("write draft: {e}"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = std::fs::metadata(&path) {
+            let mut permissions = metadata.permissions();
+            permissions.set_mode(0o600);
+            let _ = std::fs::set_permissions(&path, permissions);
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -82,7 +93,10 @@ pub fn wizard_provision_status(state: tauri::State<'_, WizardState>) -> super::P
 }
 
 #[tauri::command]
-pub fn wizard_reset_stack(confirmation: String) -> Result<(), String> {
+pub fn wizard_reset_stack(confirmation: String, state: tauri::State<'_, WizardState>) -> Result<(), String> {
+    if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err("Cancel the running setup before resetting the stack.".to_string());
+    }
     system::reset_stack(&confirmation)
 }
 

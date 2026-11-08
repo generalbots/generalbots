@@ -3,7 +3,6 @@
 //! unless the user explicitly asked to test a model provider.
 
 use super::{log_path, stack_path, workspace_path, ModelRequest};
-use log::warn;
 use serde::Serialize;
 use std::path::Path;
 
@@ -220,8 +219,11 @@ pub fn reset_stack(confirmation: &str) -> Result<(), String> {
             "Type the folder name ({name}) to confirm the reset."
         ));
     }
+    #[cfg(windows)]
+    stop_windows_stack(&stack)?;
     let entries = std::fs::read_dir(&stack).map_err(|e| format!("read stack folder: {e}"))?;
-    for entry in entries.flatten() {
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("read stack entry: {e}"))?;
         let path = entry.path();
         let result = if path.is_dir() {
             std::fs::remove_dir_all(&path)
@@ -229,8 +231,43 @@ pub fn reset_stack(confirmation: &str) -> Result<(), String> {
             std::fs::remove_file(&path)
         };
         if let Err(e) = result {
-            warn!("reset stack: could not remove {}: {e}", path.display());
+            return Err(format!("Reset could not remove {}: {e}", path.display()));
         }
+    }
+    crate::desktop::payload::extract_if_present()
+        .map_err(|e| format!("could not restore the bundled programs after reset: {e}"))?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn stop_windows_stack(stack: &Path) -> Result<(), String> {
+    use botlib::security::command_guard::SafeCommand;
+    let pg_ctl = stack.join("bin/tables/bin/pg_ctl.exe");
+    let pgdata = stack.join("data/tables/pgdata");
+    if pg_ctl.is_file() && pgdata.join("postmaster.pid").is_file() {
+        let status = SafeCommand::new(&pg_ctl.to_string_lossy())
+            .and_then(|c| c.args(&["-D", &pgdata.to_string_lossy(), "status"]))
+            .and_then(|c| c.execute()).map_err(|e| format!("check local database: {e}"))?;
+        if status.status.success() {
+        let output = SafeCommand::new(&pg_ctl.to_string_lossy())
+            .and_then(|c| c.args(&["-D", &pgdata.to_string_lossy(), "stop", "-m", "fast", "-w", "-t", "30"]))
+            .and_then(|c| c.execute()).map_err(|e| format!("stop local database: {e}"))?;
+        if !output.status.success() {
+            return Err("The local database could not be stopped; reset has not deleted any files.".to_string());
+        }
+        } else if status.status.code() != Some(3) {
+            return Err("The local database state could not be checked; reset has not deleted any files.".to_string());
+        }
+    }
+    let script = "$ErrorActionPreference='Stop'; $root=[IO.Path]::GetFullPath($env:GB_RESET_STACK).TrimEnd('\\')+'\\'; Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -and $_.ProcessId -ne [int]$env:GB_RESET_APP_PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }";
+    let output = SafeCommand::new("powershell")
+        .and_then(|c| c.args(&["-NoProfile", "-NonInteractive", "-Command"]))
+        .and_then(|c| c.trusted_arg(script))
+        .and_then(|c| c.env("GB_RESET_STACK", &stack.to_string_lossy()))
+        .and_then(|c| c.env("GB_RESET_APP_PID", &std::process::id().to_string()))
+        .and_then(|c| c.execute()).map_err(|e| format!("stop local services: {e}"))?;
+    if !output.status.success() {
+        return Err("The local services could not be stopped; reset has not deleted any files.".to_string());
     }
     Ok(())
 }
