@@ -203,13 +203,40 @@ pub async fn data_export(
     .and_then(|r| r.data)
     .unwrap_or(serde_json::Value::Null);
 
+    #[derive(Debug, diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct PrefRow {
+        #[diesel(sql_type = diesel::sql_types::Varchar)]
+        preference_key: String,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+        preference_value: serde_json::Value,
+    }
+    let prefs_raw: Vec<PrefRow> = diesel::sql_query(
+        "SELECT preference_key, preference_value FROM user_preferences WHERE user_id = $1 ORDER BY preference_key",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .load(&mut conn)
+    .unwrap_or_default();
+    let sensitive = ["token", "key", "secret", "password", "credential", "auth", "cookie", "session"];
+    let preferences: Vec<serde_json::Value> = prefs_raw
+        .into_iter()
+        .map(|r| {
+            let k = r.preference_key.to_lowercase();
+            let redacted = sensitive.iter().any(|x| k.contains(x));
+            serde_json::json!({
+                "key": r.preference_key,
+                "value": if redacted { serde_json::json!("[redacted]") } else { r.preference_value },
+            })
+        })
+        .collect();
+
     let manifest = serde_json::json!({
         "format": "general-bots-export-v1",
         "exported_at": chrono::Utc::now().to_rfc3339(),
         "user_id": user_id,
-        "includes": ["profile.json", "manifest.json"],
+        "includes": ["profile.json", "preferences.json", "manifest.json"],
         "excludes": ["passwords", "api_keys", "tokens", "vault_secrets", "credentials"],
-        "notes": "Export is scoped to the authenticated user. Some datasets may be omitted when unavailable.",
+        "notes": "Export is scoped to the authenticated user. Preference values with sensitive-looking keys are redacted. Some datasets may be omitted when unavailable.",
     });
 
     // Build ZIP in memory, then verify we still have headroom before returning.
@@ -229,6 +256,8 @@ pub async fn data_export(
         archive.write_all(serde_json::to_string_pretty(&manifest).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
         archive.start_file("profile.json", opts).map_err(|e| e.to_string())?;
         archive.write_all(serde_json::to_string_pretty(&profile).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
+        archive.start_file("preferences.json", opts).map_err(|e| e.to_string())?;
+        archive.write_all(serde_json::to_string_pretty(&preferences).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
         archive.finish().map_err(|e| e.to_string())?;
         Ok(cursor.into_inner())
     })();
