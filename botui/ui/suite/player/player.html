@@ -14,23 +14,15 @@
             <input
                 type="search"
                 placeholder="Search files..."
-                hx-get="/api/files/list"
-                hx-trigger="keyup changed delay:300ms"
-                hx-target="#file-list"
-                hx-swap="innerHTML"
                 name="q"
+                oninput="if (window.filterFiles) window.filterFiles('all', this.value)"
             />
         </div>
 
         <nav class="sidebar-nav">
             <div class="nav-section">
                 <h3>Recent</h3>
-                <div
-                    id="recent-files"
-                    hx-get="/api/files/list?filter=recent&types=media"
-                    hx-trigger="load"
-                    hx-swap="innerHTML"
-                >
+                <div id="recent-files">
                     <div class="loading-placeholder">Loading...</div>
                 </div>
             </div>
@@ -74,12 +66,10 @@
                         🖼️
                     </button>
                 </div>
-                <div
-                    id="file-list"
-                    hx-get="/api/files/list?types=media"
-                    hx-trigger="load, fileUploaded from:body"
-                    hx-swap="innerHTML"
-                >
+                <!-- #1953 — /api/files/list is a JSON endpoint; HTMX injected the
+                     raw JSON here and the player looked empty. The list is loaded
+                     and rendered by modules/01_player_media.js. -->
+                <div id="file-list">
                     <div class="loading-placeholder">Loading files...</div>
                 </div>
             </div>

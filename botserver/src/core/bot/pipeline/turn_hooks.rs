@@ -268,12 +268,29 @@ async fn ingest_single_attachment(
             note: attachment_note,
         };
     }
+    // #1947 — the composer sends attachments inline as base64. A file that is
+    // too large never reaches the server intact, and the user only saw their
+    // message without the attachment. Report the limit explicitly.
+    const MAX_ATTACHMENT_B64: usize = 12 * 1024 * 1024;
+    if b64.len() > MAX_ATTACHMENT_B64 {
+        log::warn!(
+            "chat attachment too large: {fname} ({} base64 bytes, limit {MAX_ATTACHMENT_B64})",
+            b64.len()
+        );
+        user_text = format!(
+            "{user_text}\n\n📎 {fname} (larger than 8 MB and was not stored — share it from Drive or split it)"
+        );
+        return AttachmentResult {
+            user_text,
+            note: attachment_note,
+        };
+    }
     let data = match base64::engine::general_purpose::STANDARD.decode(b64) {
         Ok(data) => data,
         Err(error) => {
-            log::warn!("chat attachment decode failed: {error}");
+            log::warn!("chat attachment decode failed for {fname}: {error}");
             user_text = format!(
-                "{user_text}\n\n📎 {fname} (the file could not be decoded and was not stored)"
+                "{user_text}\n\n📎 {fname} (the file could not be decoded and was not stored — attach it again)"
             );
             return AttachmentResult {
                 user_text,
