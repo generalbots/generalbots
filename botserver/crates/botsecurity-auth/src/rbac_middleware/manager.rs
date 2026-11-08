@@ -106,6 +106,18 @@ impl RbacManager {
             return result;
         }
 
+        // #1875 — self-service routes act only on the caller's own records:
+        // every /api/user/* handler resolves the user from the bearer token and
+        // never accepts a target user id from the request. They are not in the
+        // route table, so the default-deny policy rejected POST
+        // /api/user/api-keys with 403 even for a fully authenticated user.
+        if user.is_authenticated() && path.starts_with("/api/user/") {
+            let result = AccessDecisionResult::allow("Self-service user route")
+                .with_rule("/api/user/*".to_string());
+            self.cache_result(&cache_key, &result).await;
+            return result;
+        }
+
         if self.config.default_deny {
             let path_matches: Vec<String> = routes
                 .iter()
