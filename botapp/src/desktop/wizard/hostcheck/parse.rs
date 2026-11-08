@@ -147,8 +147,10 @@ pub(super) fn windows(output: &str, exit_code: i32, script: &Path) -> HostCheckR
         }
         // When the Windows payload has no BotModels pythonbox in installers/,
         // media is reported as an optional gap rather than a desktop blocker.
+        // Keep the script's own severity ([warn]) instead of escalating to
+        // missing — no published pythonbox release exists for Windows yet, so
+        // escalation would create a permanently unfixable "missing" item.
         let is_media = message.to_ascii_lowercase().contains("pythonbox");
-        let status = if is_media { "missing" } else { status };
         items.push(HostCheckItem {
             feature: if is_media { "media" } else { section }.to_string(),
             kind: "runtime".to_string(),
@@ -247,7 +249,8 @@ mod tests {
     fn windows_exit_one_blocks_the_desktop() {
         let result = windows_result(WINDOWS_DESKTOP, 1);
         assert!(!result.desktop_ready);
-        assert!(!result.media_ready);
+        // pythonbox is [warn] not [missing], so media stays ready
+        assert!(result.media_ready);
         assert_eq!(result.status, "desktop-blocked");
         assert!(result
             .items
@@ -255,7 +258,7 @@ mod tests {
             .any(|item| item.remediation.contains("EdgeWebView2") || item.name.contains("libpq")));
         let media = result.items.iter().find(|item| item.feature == "media");
         assert!(media.is_some());
-        assert_eq!(media.map(|item| item.remediation.as_str()), Some(""));
+        assert_eq!(media.map(|item| item.status.as_str()), Some("warn"));
     }
 
     #[test]
@@ -264,7 +267,8 @@ mod tests {
         assert!(result.desktop_ready);
         assert!(!result.agent_ready);
         assert_eq!(result.status, "limited");
-        assert!(!result.media_ready);
+        // pythonbox is [warn] not [missing], so media stays ready
+        assert!(result.media_ready);
     }
 
     #[test]

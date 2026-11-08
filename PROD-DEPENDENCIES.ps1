@@ -169,6 +169,7 @@ function Invoke-Native {
     )
     $lines = & $FilePath @Arguments 2>&1
     $code = $LASTEXITCODE
+    if ($null -eq $code) { $code = 0 }
     $text = (@($lines) | ForEach-Object { "$_" }) -join "`n"
     return [pscustomobject]@{
         ExitCode = $code
