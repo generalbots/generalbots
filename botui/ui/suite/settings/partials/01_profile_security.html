@@ -116,18 +116,16 @@
                             <label>Website</label>
                             <input type="url" name="website" placeholder="https://example.com">
                         </div>
+                        <!-- #1888 — the timezone has exactly one control:
+                             Language & region. The profile form still carries
+                             the value (hidden) so both stores converge. -->
                         <div class="form-group">
                             <label>Timezone</label>
-                            <select name="timezone">
-                                <option value="UTC">UTC</option>
-                                <option value="America/New_York">Eastern Time</option>
-                                <option value="America/Chicago">Central Time</option>
-                                <option value="America/Denver">Mountain Time</option>
-                                <option value="America/Los_Angeles">Pacific Time</option>
-                                <option value="Europe/London">London</option>
-                                <option value="Europe/Paris">Paris</option>
-                                <option value="Asia/Tokyo">Tokyo</option>
-                            </select>
+                            <p class="settings-hint profile-timezone-hint">
+                                Set in <a href="#language" class="info-link"
+                                    onclick="showSection('language', document.querySelector('.settings-nav a[href=\'#language\']')); return false;">Language &amp; region</a>.
+                            </p>
+                            <input type="hidden" name="timezone" id="profile-timezone">
                         </div>
                     </div>
                 </div>

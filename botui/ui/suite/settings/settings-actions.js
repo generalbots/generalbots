@@ -127,7 +127,48 @@
         document.body.classList.toggle('sidebar-hidden', localStorage.getItem('gb-show-sidebar') === 'false');
     }
 
+    // #1888 — Language & region owns the only timezone control. The select is
+    // populated from the runtime IANA list (with the shipped options as the
+    // fallback), and the profile form mirrors the same value in a hidden field.
+    var TIMEZONE_FALLBACKS = [
+        'America/Sao_Paulo', 'America/New_York', 'America/Chicago',
+        'America/Denver', 'America/Los_Angeles', 'Europe/London',
+        'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai',
+        'Australia/Sydney', 'UTC'
+    ];
+
+    function timezoneList() {
+        try {
+            if (typeof Intl.supportedValuesOf === 'function') {
+                var zones = Intl.supportedValuesOf('timeZone');
+                if (Array.isArray(zones) && zones.length) return zones;
+            }
+        } catch (e) { /* older runtimes keep the fallback list */ }
+        return TIMEZONE_FALLBACKS;
+    }
+
+    function fillTimezoneSelect() {
+        var select = document.getElementById('timezone-select');
+        if (!select || select.getAttribute('data-filled') === '1') return;
+        var saved = localStorage.getItem('gb-timezone') || 'UTC';
+        var zones = timezoneList();
+        if (zones.indexOf(saved) === -1) zones = zones.concat([saved]);
+        select.innerHTML = zones.map(function (zone) {
+            return '<option value="' + zone + '">' + zone + '</option>';
+        }).join('');
+        select.value = saved;
+        select.setAttribute('data-filled', '1');
+    }
+
+    function syncProfileTimezone() {
+        var hidden = document.getElementById('profile-timezone');
+        if (!hidden) return;
+        var saved = localStorage.getItem('gb-timezone');
+        if (saved) hidden.value = saved;
+    }
+
     function restoreLocaleSelects() {
+        fillTimezoneSelect();
         var selects = {
             'date-format-select': 'gb-date-format',
             'time-format-select': 'gb-time-format',
@@ -139,6 +180,7 @@
             var saved = localStorage.getItem(selects[id]);
             if (select && saved) select.value = saved;
         });
+        syncProfileTimezone();
     }
 
     window.toggleCompactMode = function (checkbox) {
@@ -192,6 +234,9 @@
     window.changeTimezone = function (tz) {
         if (!tz) return;
         persistPref('gb-timezone', tz);
+        // Keep the profile form's hidden field on the same value so the next
+        // profile save writes the regional choice to the server (#1888).
+        syncProfileTimezone();
         showToast('Timezone updated');
     };
 
@@ -324,3 +369,9 @@
     } else {
         initPreferences();
     }
+    // Settings sections arrive through HTMX; re-restore when the profile or
+    // regional partials are swapped in (#1888).
+    document.addEventListener('htmx:afterSwap', function () {
+        fillTimezoneSelect();
+        syncProfileTimezone();
+    });
