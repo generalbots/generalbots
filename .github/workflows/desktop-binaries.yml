@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # Build the source ref (branch/tag that triggered the run). `inputs.tag`
         # is the *release* tag name to publish — it may not exist yet on
         # workflow_dispatch, so checking it out breaks the run.
@@ -351,7 +351,7 @@ jobs:
     # Windows runner failure must not hide the Linux binaries from the release.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # Build the source ref, not the release tag name (which may not exist yet).
         with:
           ref: ${{ github.ref }}
