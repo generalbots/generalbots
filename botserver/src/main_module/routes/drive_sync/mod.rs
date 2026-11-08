@@ -19,12 +19,12 @@ use std::{
 };
 
 
-/// How often the server checks for jobs that are due.
 mod handlers;
 mod rsync_engine;
 
 pub use handlers::*;
 
+/// How often the server checks for jobs that are due.
 const TICK_SECONDS: u64 = 30;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
