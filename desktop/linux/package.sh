@@ -12,7 +12,7 @@
 # download simulation and the release asset are byte-for-byte the same layout.
 set -euo pipefail
 
-VERSION="${1:?version is required (for example v6.7.0)}"
+VERSION="${1:?version is required (for example v7.0.0)}"
 # Artifacts are named from the version, not the tag: v6.7.1 -> 6.7.1.
 VERSION="${VERSION#v}"
 TARGET="${2:?target directory is required (for example target/release)}"

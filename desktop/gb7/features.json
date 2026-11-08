@@ -1,6 +1,6 @@
 {
   "product": "General Bots 6 — Desktop edition (Chat + Drive)",
-  "contract_url": "https://sites.pragmatismo.com.br/gb6features/",
+  "contract_url": "https://sites.pragmatismo.com.br/gb7features/",
   "note": "The page is generated from this record. A `shipped` status requires an executed automated test artifact *and* a live verification (browser or release) for user-facing features. Live browser verification is currently blocked: the dev binary predates these commits and AGENTS.md forbids building/running without authorization.",
   "statuses": {
     "shipped": "Implemented, covered by executed automated tests, and verified live (browser or release) where the feature is user-facing.",
@@ -9,7 +9,7 @@
   },
   "features": [
     {
-      "id": "GB6-08",
+      "id": "GB7-08",
       "title": "Web search with citations",
       "promise": "Answers that use the web show clickable sources and never present unverified claims as fact.",
       "status": "shipped",
@@ -17,11 +17,11 @@
         "issue": "#1635",
         "tests": [
           "botserver/src/core/bot/pipeline/web_context.rs",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser (sidecar, Chrome CDP): Web on + 'who wrote Hamlet?' rendered 5 source chips (rsc.org.uk, britannica.com, wikipedia x2, books.google.com).",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "cargo test -p botserver --bin botserver: web_context::citation_carries_title_url_and_host PASS; node webtest_gb6.js: ISSUE #1635 PASS (94/94 suite)"
+        "automated": "cargo test -p botserver --bin botserver: web_context::citation_carries_title_url_and_host PASS; node webtest_gb7.js: ISSUE #1635 PASS (94/94 suite)"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -30,7 +30,7 @@
       }
     },
     {
-      "id": "GB6-09",
+      "id": "GB7-09",
       "title": "Artifacts and generated documents",
       "promise": "The assistant can produce a document the user can preview, keep in Drive and open later.",
       "status": "shipped",
@@ -38,11 +38,11 @@
         "issue": "#1636",
         "tests": [
           "botui/ui/suite/chat/chat-artifacts.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: a 722-word markdown answer offered 'Open as document'; panel showed title 'Quarterly Report', 'Markdown document · 722 words' and the body.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "node webtest_gb6.js: BEHAVE GB6-09 detector + sanitizer PASS and artifact wiring PASS"
+        "automated": "node webtest_gb7.js: BEHAVE GB7-09 detector + sanitizer PASS and artifact wiring PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -51,7 +51,7 @@
       }
     },
     {
-      "id": "GB6-10",
+      "id": "GB7-10",
       "title": "Model picker with plain-language trade-offs",
       "promise": "The user can switch models and sees a one-line explanation of each option.",
       "status": "shipped",
@@ -60,9 +60,9 @@
         "tests": [
           "botserver/src/core/bot/pipeline/enriched_llm.rs",
           "botui/ui/suite/chat/chat-init.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
-        "e2e": "Browser: Fast -> reflection/beam-free returned FAST-TIER-OK; Quality -> cohere/north-mini-code:free returned QUALITY-TIER-OK; server logged each tier's model. Balanced falls back to the default and is disabled. Screenshot /tmp/gb6_47_tiers.png.",
+        "e2e": "Browser: Fast -> reflection/beam-free returned FAST-TIER-OK; Quality -> cohere/north-mini-code:free returned QUALITY-TIER-OK; server logged each tier's model. Balanced falls back to the default and is disabled. Screenshot /tmp/gb7_47_tiers.png.",
         "note": "Two distinct Kilo models configured and exercised live on 2026-11-03.",
         "automated": "Browser: picker lists the real model per tier; unconfigured tiers are disabled. Routing code selects llm-model-<tier>; only auto is configured in this stack."
       },
@@ -73,7 +73,7 @@
       }
     },
     {
-      "id": "GB6-11",
+      "id": "GB7-11",
       "title": "Search across all files",
       "promise": "One search box finds files across all folders by name and content.",
       "status": "shipped",
@@ -81,7 +81,7 @@
         "issue": "#1638",
         "tests": [
           "botserver/crates/botdrive/src/drive_handlers/search_files.rs",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: name search found nested files and a content-only query 'zebra-quasar-77' found the document; sizes shown from metadata.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
@@ -94,7 +94,7 @@
       }
     },
     {
-      "id": "GB6-12",
+      "id": "GB7-12",
       "title": "File previews",
       "promise": "Files open in a preview instead of forcing a download.",
       "status": "shipped",
@@ -113,7 +113,7 @@
       }
     },
     {
-      "id": "GB6-13",
+      "id": "GB7-13",
       "title": "Share and export a file",
       "promise": "The user can create a shareable link and download/export any file.",
       "status": "shipped",
@@ -122,11 +122,11 @@
         "tests": [
           "botui/ui/suite/drive/modules/08_modals.js",
           "botserver/crates/botdrive/src/drive_handlers/export_archive.rs",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: created a 7-day link, public URL returned HTTP 200 with the file, and the email section delivered the link/expiry through SMTP.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "node webtest_gb6.js: BEHAVE GB6-13 7-day/never expiry PASS and share+export wiring PASS; cargo test -p botdrive --lib compiled export/trash handlers (66 passed)"
+        "automated": "node webtest_gb7.js: BEHAVE GB7-13 7-day/never expiry PASS and share+export wiring PASS; cargo test -p botdrive --lib compiled export/trash handlers (66 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -135,7 +135,7 @@
       }
     },
     {
-      "id": "GB6-14",
+      "id": "GB7-14",
       "title": "Version history and trash",
       "promise": "Deleted files go to Trash (restorable) and edits keep prior versions.",
       "status": "shipped",
@@ -144,11 +144,11 @@
         "tests": [
           "botserver/crates/botdrive/src/drive_handlers/list_trash.rs",
           "botui/ui/suite/drive/modules/98_actions.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: delete moved the file to Trash with 30 days left; Restore emptied Trash.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "node webtest_gb6.js: GB6-14 trash routing + retention tests PASS; cargo test -p botdrive --lib compiled trash/restore/purge (66 passed)"
+        "automated": "node webtest_gb7.js: GB7-14 trash routing + retention tests PASS; cargo test -p botdrive --lib compiled trash/restore/purge (66 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -157,7 +157,7 @@
       }
     },
     {
-      "id": "GB6-15",
+      "id": "GB7-15",
       "title": "Attachments in chat",
       "promise": "Drag or attach a file in chat; the answer uses it immediately.",
       "status": "shipped",
@@ -165,7 +165,7 @@
         "issue": "#1641",
         "tests": [
           "botserver/src/core/bot/pipeline/attachment_text.rs",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: attached a text file containing ORANGE-42; the answer returned exactly ORANGE-42.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
@@ -178,7 +178,7 @@
       }
     },
     {
-      "id": "GB6-16",
+      "id": "GB7-16",
       "title": "Memory across conversations",
       "promise": "User preferences persist and are visible/editable in settings.",
       "status": "shipped",
@@ -187,11 +187,11 @@
         "tests": [
           "botserver/src/core/user_memory.rs",
           "botui/ui/suite/settings/index.html",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: 'remember my favorite color is teal' stored the fact; the next turn answered 'Teal.'",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "cargo test -p botserver --bin botserver: user_memory 6 tests PASS; node GB6-16 + ISSUE #1642 PASS"
+        "automated": "cargo test -p botserver --bin botserver: user_memory 6 tests PASS; node GB7-16 + ISSUE #1642 PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -200,7 +200,7 @@
       }
     },
     {
-      "id": "GB6-18",
+      "id": "GB7-18",
       "title": "Connectors with consent",
       "promise": "A user connects an account, sees exactly what is shared, and can revoke it in one click.",
       "status": "partial",
@@ -209,7 +209,7 @@
         "tests": [
           "botserver/crates/botdrive/src/external/types.rs",
           "botui/ui/suite/drive/modules/11_external.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": null,
         "note": "Blocked: the Connected tab shows the requested scopes, but the OAuth consent round-trip needs Gmail/Outlook client credentials and a test account; none are configured.",
@@ -222,7 +222,7 @@
       }
     },
     {
-      "id": "GB6-19",
+      "id": "GB7-19",
       "title": "Computer use — browser actions",
       "promise": "The user approves a browser task, watches it run, and gets the result in chat.",
       "status": "shipped",
@@ -231,7 +231,7 @@
         "tests": [
           "botserver/src/core/computer_use.rs",
           "botserver/src/main_module/routes/computer_use_routes.rs",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: URL consent card -> Allow -> server fetch -> chat shows 'Opened: Example Domain' with URL and text.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
@@ -244,7 +244,7 @@
       }
     },
     {
-      "id": "GB6-20",
+      "id": "GB7-20",
       "title": "Computer use — terminal actions",
       "promise": "Commands run only with explicit approval and a visible audit trail.",
       "status": "shipped",
@@ -253,9 +253,9 @@
         "tests": [
           "botserver/src/main_module/routes/computer_use_routes/terminal_rules.rs",
           "botui/ui/suite/chat/modules/61_terminal_use.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
-        "e2e": "Browser: terminal consent -> exit code 0, output GB6-TERMINAL-OK, and /api/terminal/audit row with decision approved.",
+        "e2e": "Browser: terminal consent -> exit code 0, output GB7-TERMINAL-OK, and /api/terminal/audit row with decision approved.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
         "automated": "cargo test -p botserver --bin botserver: terminal_rules tests PASS (135 total); node ISSUE #1645 consent+audit PASS"
       },
@@ -266,7 +266,7 @@
       }
     },
     {
-      "id": "GB6-25",
+      "id": "GB7-25",
       "title": "Usage and cost transparency",
       "promise": "A simple usage view shows tokens/cost per period and per model.",
       "status": "shipped",
@@ -275,11 +275,11 @@
         "tests": [
           "botserver/crates/botsettings/src/settings_usage.rs",
           "botui/ui/suite/js/usage-stats.js",
-          "botui/ui/suite/tests/webtest_gb6.js"
+          "botui/ui/suite/tests/webtest_gb7.js"
         ],
         "e2e": "Browser: usage panel showed recorded messages, per-day/per-model tables and 'cost unavailable - no price list configured'.",
         "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "cargo test -p botsettings --lib: 4 price-list tests PASS (14 total); node BEHAVE GB6-25 dedupe/totals PASS"
+        "automated": "cargo test -p botsettings --lib: 4 price-list tests PASS (14 total); node BEHAVE GB7-25 dedupe/totals PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
@@ -288,7 +288,7 @@
       }
     },
     {
-      "id": "GB6-31",
+      "id": "GB7-31",
       "title": "Chat opens on launch",
       "promise": "The desktop opens directly in the conversation, not on an empty shell.",
       "status": "shipped",
@@ -309,7 +309,7 @@
   ],
   "epic": {
     "issue": "#1650",
-    "title": "GB6 parity: make the published 14-feature contract true in src",
+    "title": "GB7 parity: make the published 14-feature contract true in src",
     "definition_of_done": [
       "Every child issue is implemented in source and linked from the record.",
       "Every shipped feature has a live verification artifact (browser or release) in addition to automated tests.",
@@ -317,8 +317,8 @@
       "No feature claims verification without date, commit and environment."
     ],
     "removed_from_scope": [
-      "GB6-22",
-      "GB6-24"
+      "GB7-22",
+      "GB7-24"
     ],
     "verification": {
       "date": "2026-11-03",
@@ -328,11 +328,11 @@
         "cargo test -p botcore --lib (93 passed)",
         "cargo test -p botserver --bin botserver (135 passed, 1 ignored)",
         "cargo test -p botapp (6 passed)",
-        "node botui/ui/suite/tests/webtest_gb6.js (94 passed)",
-        "python3 scripts/gb6_features_check.py (OK, 14 shipped)",
-        "sidecar (desktop-local) + Chrome CDP 1440x900: manual use-case pass, screenshots /tmp/gb6_*.png"
+        "node botui/ui/suite/tests/webtest_gb7.js (94 passed)",
+        "python3 scripts/gb7_features_check.py (OK, 14 shipped)",
+        "sidecar (desktop-local) + Chrome CDP 1440x900: manual use-case pass, screenshots /tmp/gb7_*.png"
       ],
-      "browser_e2e": "PARTIAL 2026-11-03: 13 features passed the sidecar browser pass; GB6-18 (OAuth consent round-trip) is blocked on Gmail/Outlook client credentials. The live v6.7.0 release was published and the stable download URL verified (HTTP 200 + checksum).",
+      "browser_e2e": "PARTIAL 2026-11-03: 13 features passed the sidecar browser pass; GB7-18 (OAuth consent round-trip) is blocked on Gmail/Outlook client credentials. The live v6.7.0 release was published and the stable download URL verified (HTTP 200 + checksum).",
       "blocked_on": [
         "Gmail/Outlook OAuth client credentials (#1643)"
       ],

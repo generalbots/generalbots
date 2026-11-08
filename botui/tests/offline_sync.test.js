@@ -1,5 +1,5 @@
 "use strict";
-/* GB6-22 (#1573) — local-folder sync guarantees. Zero-dependency test
+/* GB7-22 (#1573) — local-folder sync guarantees. Zero-dependency test
  * (run: node tests/offline_sync.test.js)
  *
  * A headless run cannot pick a real folder, but the property that matters most

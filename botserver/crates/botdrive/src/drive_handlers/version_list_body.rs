@@ -1,4 +1,4 @@
-//! File version history (GB6-14).
+//! File version history (GB7-14).
 //!
 //! Every overwrite of an existing object first copies the previous revision to
 //! `.versions/{user}/{path}/{timestamp}` in the same bucket. The history is

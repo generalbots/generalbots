@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""CI guard for the GB6 feature record (#1649).
+"""CI guard for the GB7 feature record (#1649).
 
 Fails when:
 - a feature is missing from / extra to the published contract,
 - a `shipped` feature has no end-to-end evidence,
 - a referenced test file does not exist,
 - the checked-in page differs from what the record generates,
-- the removed features GB6-22 / GB6-24 reappear.
+- the removed features GB7-22 / GB7-24 reappear.
 
 Usage:
-    python3 scripts/gb6_features_check.py
-    python3 scripts/gb6_features_check.py --record /tmp/bad.json
+    python3 scripts/gb7_desktop_features_check.py
+    python3 scripts/gb7_desktop_features_check.py --record /tmp/bad.json
 """
 
 from __future__ import annotations
@@ -22,32 +22,32 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RECORD = ROOT / "desktop" / "gb6" / "features.json"
-PAGE = ROOT / "desktop" / "gb6" / "index.html"
-GENERATOR = ROOT / "desktop" / "gb6" / "generate_features.py"
+RECORD = ROOT / "desktop" / "gb7" / "features.json"
+PAGE = ROOT / "desktop" / "gb7" / "index.html"
+GENERATOR = ROOT / "desktop" / "gb7" / "generate_features.py"
 
 EXPECTED_IDS = {
-    "GB6-08",
-    "GB6-09",
-    "GB6-10",
-    "GB6-11",
-    "GB6-12",
-    "GB6-13",
-    "GB6-14",
-    "GB6-15",
-    "GB6-16",
-    "GB6-18",
-    "GB6-19",
-    "GB6-20",
-    "GB6-25",
-    "GB6-31",
+    "GB7-08",
+    "GB7-09",
+    "GB7-10",
+    "GB7-11",
+    "GB7-12",
+    "GB7-13",
+    "GB7-14",
+    "GB7-15",
+    "GB7-16",
+    "GB7-18",
+    "GB7-19",
+    "GB7-20",
+    "GB7-25",
+    "GB7-31",
 }
-REMOVED_IDS = {"GB6-22", "GB6-24"}
+REMOVED_IDS = {"GB7-22", "GB7-24"}
 ALLOWED_STATUSES = {"shipped", "partial", "not_shipped"}
 
 
 def load_generator():
-    spec = importlib.util.spec_from_file_location("gb6_generate", GENERATOR)
+    spec = importlib.util.spec_from_file_location("gb7_generate", GENERATOR)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -113,11 +113,11 @@ def main() -> int:
         if actual != expected:
             errors.append(
                 f"{args.page} is stale: run "
-                "python3 desktop/gb6/generate_features.py"
+                "python3 desktop/gb7/generate_features.py"
             )
 
     if errors:
-        print("GB6 feature record: FAIL")
+        print("GB7 feature record: FAIL")
         for error in errors:
             print(f"  - {error}")
         return 1
@@ -131,7 +131,7 @@ def main() -> int:
 
     shipped = sum(1 for feature in features if feature.get("status") == "shipped")
     print(
-        f"GB6 feature record: OK ({len(features)} features, {shipped} shipped, "
+        f"GB7 feature record: OK ({len(features)} features, {shipped} shipped, "
         f"page matches the record)"
     )
     return 0

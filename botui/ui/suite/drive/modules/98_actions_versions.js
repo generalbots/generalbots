@@ -1,7 +1,7 @@
 /* Drive Module v2.0 — 98 File Actions (version history) */
 "use strict";
 
-// ── Version history (server-backed, GB6-14) ──────────────────────────
+// ── Version history (server-backed, GB7-14) ──────────────────────────
 async function showVersionHistory(path) {
     var bucket = driveBucketForPath(path);
     var fileName = path.split("/").pop() || "file";

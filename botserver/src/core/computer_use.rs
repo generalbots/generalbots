@@ -1,4 +1,4 @@
-//! Computer-use action registry (GB6-19/GB6-20).
+//! Computer-use action registry (GB7-19/GB7-20).
 //!
 //! The assistant proposes a browser or terminal action; the suite polls the
 //! pending queue, asks the user for consent, executes it and posts the result

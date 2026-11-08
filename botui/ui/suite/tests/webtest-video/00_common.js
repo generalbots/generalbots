@@ -1,5 +1,5 @@
 /**
- * GB6 + BBSIA Web Automation — Playwright Video Evidence Suite
+ * GB7 + BBSIA Web Automation — Playwright Video Evidence Suite
  *
  * Each test shows visual overlays: title → steps → result, with pauses
  * so the recorded video has meaningful content.
@@ -35,7 +35,7 @@ function startServer() {
       if (u === "/api/product") {
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({
-          name: "General Bots", version: "6.7.0-test",
+          name: "General Bots", version: "7.0.0-test",
           apps: ["chat", "drive"], preview_apps: ["designer", "fraud"],
           no_security: true, suite_default_app: "chat",
         }));
@@ -93,7 +93,7 @@ function overlayScript(tcId, title, desc, stepLabels) {
       if(document.getElementById('_ovStyle')) return;
       var s=document.createElement('style');s.id='_ovStyle';s.textContent=${JSON.stringify(OVERLAY_CSS)};document.head.appendChild(s);
       var o=document.createElement('div');o.id='_ov';
-      o.innerHTML='<div class="tag">GB6+BBSIA EVIDENCE</div><div class="tcid">${tcId}</div>'
+      o.innerHTML='<div class="tag">GB7+BBSIA EVIDENCE</div><div class="tcid">${tcId}</div>'
         +'<h1>${title.replace(/'/g,"\\'")}</h1><div class="desc">${desc.replace(/'/g,"\\'")}</div>'
         +'<div class="steps">${stepLabels.map((l,i) => `<div class="step" id="_s${i}"><div class="icon">${i+1}</div><span>${l.replace(/'/g,"\\'")}</span></div>`).join("")}</div>'
         +'<div class="result" id="_res"></div><div class="detail" id="_det"></div>';

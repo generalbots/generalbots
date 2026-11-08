@@ -19,7 +19,7 @@ async function main(TESTS) {
   const results = [];
 
   console.log("\n" + "=".repeat(60));
-  console.log("GB6+BBSIA VIDEO EVIDENCE — " + TESTS.length + " tests");
+  console.log("GB7+BBSIA VIDEO EVIDENCE — " + TESTS.length + " tests");
   console.log("=".repeat(60) + "\n");
 
   for (const tc of TESTS) {

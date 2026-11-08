@@ -1,4 +1,4 @@
-/* Data export and backup (GB6-24).
+/* Data export and backup (GB7-24).
  * Collects all user data from localStorage, chat history, drive
  * metadata, and settings into a JSON bundle the user can download.
  * Also supports importing a backup to restore state. */
@@ -74,7 +74,7 @@
     }
   }
 
-  // GB6-24 — importing arbitrary JSON into localStorage is the riskiest part
+  // GB7-24 — importing arbitrary JSON into localStorage is the riskiest part
   // of the backup feature: a crafted file could overwrite the session token or
   // exhaust storage. The bundle is validated against an explicit allowlist
   // before anything is written, and credentials are never restored.
@@ -220,7 +220,7 @@
     exportAll: exportAllData,
     importBackup: importBackup,
     showDialog: showExportDialog,
-    // GB6-24 — exposed so the validation contract can be tested without
+    // GB7-24 — exposed so the validation contract can be tested without
     // driving a file picker; the importer is its only production caller.
     validateBackup: sanitizeBackup,
   };

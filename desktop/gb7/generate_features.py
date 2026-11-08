@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Generate the GB6 feature page from desktop/gb6/features.json (#1649).
+"""Generate the GB7 feature page from desktop/gb7/features.json (#1649).
 
 The page is a build artifact: edit the record, run this script, commit both.
-`scripts/gb6_features_check.py` fails CI when they disagree or when a
+`scripts/gb7_features_check.py` fails CI when they disagree or when a
 `shipped` feature lacks end-to-end evidence.
 """
 
@@ -14,8 +14,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RECORD = ROOT / "desktop" / "gb6" / "features.json"
-PAGE = ROOT / "desktop" / "gb6" / "index.html"
+RECORD = ROOT / "desktop" / "gb7" / "features.json"
+PAGE = ROOT / "desktop" / "gb7" / "index.html"
 
 STATUS_LABEL = {
     "shipped": "Shipped",
@@ -121,8 +121,8 @@ a {{ color: #93c5fd; }}
 </tbody>
 </table>
 <footer>
-Generated from <code>desktop/gb6/features.json</code> by
-<code>desktop/gb6/generate_features.py</code>. Editing this page by hand does
+Generated from <code>desktop/gb7/features.json</code> by
+<code>desktop/gb7/generate_features.py</code>. Editing this page by hand does
 not change the record and fails the CI check.
 </footer>
 </main>

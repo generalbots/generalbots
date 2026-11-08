@@ -1,6 +1,6 @@
 # AutoTask LLM Executor - Prompt Guide
 
-**Version:** 6.7.0
+**Version:** 7.0.0
 **Purpose:** Guide LLM to generate and execute automated tasks using BASIC scripts
 
 ---

@@ -82,11 +82,11 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/conversation-autotasks", summary: "List all conversation cron/systemd jobs owned by the current user, across conversations" },
         ApiEndpoint { method: "DELETE", path: "/api/conversation-autotasks/:id", summary: "Delete a conversation autotask: removes the workspace entry and deletes the row" },
 
-        // File version history (GB6-14)
+        // File version history (GB7-14)
         ApiEndpoint { method: "POST", path: "/api/files/versions/list", summary: "List stored revisions of a Drive file (path, bucket, scope); every overwrite keeps the previous revision" },
         ApiEndpoint { method: "POST", path: "/api/files/versions/restore", summary: "Restore a Drive file revision by version key; the current content is snapshotted first" },
 
-        // Computer use (GB6-19/GB6-20): proposal -> consent -> execution
+        // Computer use (GB7-19/GB7-20): proposal -> consent -> execution
         ApiEndpoint { method: "POST", path: "/api/computer/actions", summary: "Propose a browser or terminal action for a conversation (session_id, kind, action); the suite asks the user for consent" },
         ApiEndpoint { method: "GET", path: "/api/computer/actions/pending", summary: "Poll the actions awaiting consent for a session (session_id, kind=browser|terminal)" },
         ApiEndpoint { method: "GET", path: "/api/computer/actions/:id", summary: "Read one computer-use action with the user's decision and its result" },

@@ -2,12 +2,12 @@
 
 <p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
 
-**Version:** 6.7.0  
+**Version:** 7.0.0  
 **Purpose:** Test infrastructure for General Bots ecosystem
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-6.7.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
+[![Version](https://img.shields.io/badge/version-7.0.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
 [![Kind](https://img.shields.io/badge/kind-test%20infrastructure-6f42c1.svg)](./tests)
 [![Contributors](https://img.shields.io/github/contributors/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/graphs/contributors)
 [![Issues](https://img.shields.io/github/issues/generalbots/generalbots)](https://github.com/generalbots/generalbots/issues)
@@ -336,7 +336,7 @@ All testing documentation is located in `botbook/src/17-testing/`:
 - **USE SELF** - In impl blocks, use Self not type name
 - **Reuse bootstrap** - Don't duplicate botserver installation logic
 - **Parallel safe** - Each test gets unique ports and directories
-- **Version 6.7.0** - Do not change without approval
+- **Version 7.0.0** - Do not change without approval
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 
 ---

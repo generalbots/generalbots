@@ -1,6 +1,6 @@
 /**
- * webtest_gb6 — syntax validation of shipped feature scripts
- * Split from webtest_gb6.js for #1731; keeps the original test order.
+ * webtest_gb7 — syntax validation of shipped feature scripts
+ * Split from webtest_gb7.js for #1731; keeps the original test order.
  */
 "use strict";
 

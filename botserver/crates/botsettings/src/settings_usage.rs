@@ -1,4 +1,4 @@
-//! Usage and cost transparency (GB6-25).
+//! Usage and cost transparency (GB7-25).
 //!
 //! The suite used to estimate tokens from character counts and price them with
 //! a hardcoded table, so a reply streamed in several chunks was counted several

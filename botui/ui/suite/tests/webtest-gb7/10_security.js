@@ -1,6 +1,6 @@
 /**
- * webtest_gb6 — security and functionality fixes (SEC-01..07, FUNC-01..05)
- * Split from webtest_gb6.js for #1731; keeps the original test order.
+ * webtest_gb7 — security and functionality fixes (SEC-01..07, FUNC-01..05)
+ * Split from webtest_gb7.js for #1731; keeps the original test order.
  */
 "use strict";
 

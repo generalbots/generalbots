@@ -1,4 +1,4 @@
-//! Computer-use HTTP surface (GB6-19 / GB6-20).
+//! Computer-use HTTP surface (GB7-19 / GB7-20).
 //!
 //! `POST /api/computer/actions` lets the assistant (or a tool) propose a
 //! browser or terminal action for a conversation. The suite polls

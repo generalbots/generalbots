@@ -209,7 +209,7 @@ diesel::table! {
     }
 }
 
-// GB6-16 — persisted chat preferences, read into the conversation prompt.
+// GB7-16 — persisted chat preferences, read into the conversation prompt.
 // `bot_id` NULL means the entry applies to every bot for that user.
 //
 // This is a separate table from the canonical `user_memories` (owner/branch/

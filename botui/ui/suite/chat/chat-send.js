@@ -224,7 +224,7 @@ function sendMessage(messageContent, extra) {
       ChatState.offlineQueue.push(sentPayload);
       if (typeof connectWebSocket === "function") connectWebSocket();
     }, 6000);
-    // GB6-15: the attachment leaves the composer with a visible outcome
+    // GB7-15: the attachment leaves the composer with a visible outcome
     // instead of silently disappearing.
     if (files.length) {
       notify((files.length === 1 ? "Attachment sent: " : "Attachments sent: ") + fileNames, "success");
@@ -235,7 +235,7 @@ function sendMessage(messageContent, extra) {
     window.dispatchEvent(new CustomEvent("gb-chat-message-sent", {
       detail: {
         session_id: ChatState.currentSessionId,
-        // GB6-25 — the input is cleared before this event fires, so the usage
+        // GB7-25 — the input is cleared before this event fires, so the usage
         // panel must receive the text length (and model) with the event.
         content_length: (content || "").length,
         model: selectedModel,

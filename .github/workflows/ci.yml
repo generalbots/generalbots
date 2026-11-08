@@ -12,7 +12,7 @@ name: CI
 #   quality       structural adequacy baseline (AGENTS.md rules)
 #   boteval       guards, unit tests and the evaluation gate (CI-only)
 #   botbook       mdBook rebuild and SUMMARY.md link check
-#   gb6 / gb7     published feature-contract fixtures
+#   gb7 / gb7-desktop  published feature-contract fixtures
 #   product       always/preview/hidden classification and feature coverage
 #   windows       Windows agent/VM adapter compile check
 #
@@ -77,9 +77,9 @@ jobs:
     name: BotBook
     uses: ./.github/workflows/botbook-reindex.yml
 
-  gb6:
-    name: GB6 feature contract
-    uses: ./.github/workflows/gb6-features.yml
+  gb7-desktop:
+    name: GB7 desktop feature contract
+    uses: ./.github/workflows/gb7-desktop-features.yml
 
   gb7:
     name: GB7 feature contract

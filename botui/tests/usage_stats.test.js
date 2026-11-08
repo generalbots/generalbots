@@ -1,5 +1,5 @@
 "use strict";
-/* GB6-25 (#1576) — usage counts. Zero-dependency test
+/* GB7-25 (#1576) — usage counts. Zero-dependency test
  * (run: node tests/usage_stats.test.js)
  *
  * Guards the two defects recorded in the issue: a streamed reply counted once

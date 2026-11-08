@@ -1,4 +1,4 @@
-//! Persisted user memory (GB6-16).
+//! Persisted user memory (GB7-16).
 //!
 //! Preferences edited in Settings → Memory live in `chat_preferences`; this module
 //! is the server-side reader that puts them into the conversation prompt, so a

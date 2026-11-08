@@ -66,7 +66,7 @@
   border-color: var(--accent, #7aa2ff);
 }
 
-/* ── Artifacts panel (GB6-09) ── */
+/* ── Artifacts panel (GB7-09) ── */
 .gb-artifact-btn {
   display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;
   padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border, #333);
@@ -170,7 +170,7 @@
 }
 .gb-artifact-saved:hover { text-decoration: underline; }
 
-/* ── Model picker (GB6-10) ── */
+/* ── Model picker (GB7-10) ── */
 .gb-model-picker {
   appearance: none; -webkit-appearance: none;
   background: var(--surface-2, #1e1e2e); color: var(--text-secondary, #888);
@@ -180,7 +180,7 @@
 }
 .gb-model-picker:focus { outline: none; border-color: var(--accent, #7aa2ff); color: var(--text, #e5e5e5); }
 
-/* ── Chat drag-drop overlay (GB6-15) ── */
+/* ── Chat drag-drop overlay (GB7-15) ── */
 .gb-chat-drag { outline: 2px dashed var(--accent, #7aa2ff); outline-offset: -4px; background: rgba(37, 99, 235, 0.05); }
 #fileChip { cursor: pointer; padding: 2px 8px; border-radius: 4px; background: var(--surface-2, #1e1e2e); color: var(--text-secondary, #888); font-size: 11px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

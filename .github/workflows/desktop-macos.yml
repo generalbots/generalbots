@@ -52,7 +52,7 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: "Existing release tag (for example v6.7.0). Defaults to the caller ref."
+        description: "Existing release tag (for example v7.0.0). Defaults to the caller ref."
         required: false
         type: string
       publish:
@@ -63,7 +63,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing release tag (for example v6.7.0)."
+        description: "Existing release tag (for example v7.0.0)."
         required: true
         type: string
   push:

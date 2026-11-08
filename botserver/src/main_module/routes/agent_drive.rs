@@ -154,7 +154,7 @@ pub async fn save_output(
 }
 
 /// `POST /api/agent/drive/share` — publishes one output file and returns a
-/// public link (#1551 GB6-12). The video/file never leaves Drive: the VM copy
+/// public link (#1551 GB7-12). The video/file never leaves Drive: the VM copy
 /// is saved under the conversation folder, then a token row is minted for that
 /// exact object, so the link keeps working after the conversation is deleted.
 pub async fn share_output(

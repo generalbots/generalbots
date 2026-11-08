@@ -1,4 +1,4 @@
-/* Computer Use — browser actions (GB6-19).
+/* Computer Use — browser actions (GB7-19).
  * Listens for bot messages with action_type:"browser" and executes safe
  * browser actions after user consent: open URL, extract page text, take
  * screenshot via html2canvas, fill form fields, click elements. */
@@ -45,7 +45,7 @@
     // new model turn, so the chat must stop saying "Waiting for the model…".
     if (typeof clearChatPending === "function") clearChatPending();
     if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
-    // GB6-19 — persist the outcome for the action the server proposed, so the
+    // GB7-19 — persist the outcome for the action the server proposed, so the
     // assistant can read it even when the tab reconnects. The WS frame below
     // stays as the live path.
     if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
@@ -255,7 +255,7 @@
     }
   });
 
-  // GB6-19 — poll the action queue and replay entries as the same frames the
+  // GB7-19 — poll the action queue and replay entries as the same frames the
   // pipeline emits. A server producer therefore reaches the consent UI without
   // a new WebSocket message type.
   function pollPendingBrowser() {

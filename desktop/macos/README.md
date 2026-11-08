@@ -106,7 +106,7 @@ Chat and Drive still open and work against whatever backend the user
 configures; the missing pieces are the local stack and the agent/media tools.
 
 The running version is reported by `GET http://127.0.0.1:8080/api/health`
-(`{"service":"botserver","version":"6.7.0",...}`), and the data directory is
+(`{"service":"botserver","version":"7.0.0",...}`), and the data directory is
 `~/.local/share/generalbots`. A Settings -> About surface is follow-up UI work.
 
 ## Build locally

@@ -30,7 +30,7 @@ on:
   workflow_call:
     inputs:
       release:
-        description: "Release to take the tarball from ('latest' or e.g. v6.7.0)"
+        description: "Release to take the tarball from ('latest' or e.g. v7.0.0)"
         required: false
         type: string
       artifact:
@@ -40,7 +40,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: "Release to take the tarball from ('latest' or e.g. v6.7.0)"
+        description: "Release to take the tarball from ('latest' or e.g. v7.0.0)"
         required: false
         default: "latest"
         type: string
