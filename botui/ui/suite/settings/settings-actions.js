@@ -1,10 +1,13 @@
     // #1304 — Integrations lives in its own app window; Settings just opens
     // it (window manager when available, desktop route otherwise).
     window.openIntegrationsWindow = function () {
+        // #1884 — the Integrations app owns the MCP catalog; ask it for the
+        // Sources tab directly so the deep link lands where the work happens.
+        var params = { tab: 'sources' };
         if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
-            window.WindowManager.openDeepLink('integrations', {});
+            window.WindowManager.openDeepLink('integrations', params);
         } else if (window.openDeepLink) {
-            window.openDeepLink('integrations', {});
+            window.openDeepLink('integrations', params);
         } else {
             window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener');
         }
