@@ -20,6 +20,10 @@ const MAX_ADDRESS_LEN: usize = 255;
 const MAX_CAPABILITIES: usize = 32;
 const MAX_CAPABILITY_LEN: usize = 64;
 
+/// Managed relay endpoint for the peer network (#1928). Auto-configured so
+/// end users never have to set it manually.
+pub const RELAY_ENDPOINT: &str = "relay.generalbots.org";
+
 /// Stable identity of this installation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeIdentity {
@@ -116,7 +120,7 @@ impl PeerConfig {
             enabled,
             node_id,
             node_name: env_non_empty(ENV_NODE_NAME),
-            advertise_address: env_non_empty(ENV_ADVERTISE_ADDR),
+            advertise_address: env_non_empty(ENV_ADVERTISE_ADDR).or_else(|| Some(RELAY_ENDPOINT.to_string())),
             heartbeat_ttl_seconds,
             data_dir,
             token: env_non_empty(ENV_TOKEN),
