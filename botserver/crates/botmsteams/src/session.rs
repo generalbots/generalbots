@@ -31,6 +31,9 @@ pub struct UserSession {
     pub session_id: Option<String>,
     pub data: Option<serde_json::Value>,
     pub expires_at: Option<chrono::DateTime<Utc>>,
+    // #1682 — locked conversations (6.8.7-chat-lock).
+    pub locked: bool,
+    pub lock_pin_hash: Option<String>,
 }
 
 pub fn find_or_create_session(
