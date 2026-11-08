@@ -4,6 +4,1276 @@
      first. Do not edit by hand: `generate --version` replaces that section.
      Sections start at v6.7.7; earlier releases predate this file. -->
 
+## v7.0.19 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.18 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.17 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.16 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.15 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.14 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.13 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.12 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+- Human review (#1923)
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.11 — 2026-11-08
+
+### Other
+- _extra v1.3.0 — CI build errors (#1924)
+
+## v7.0.10 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop (Linux): botserver sidecar takes ~60s to become ready on cold boot (#1920)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+
+## v7.0.9 — 2026-11-08
+
+### Other
+- Desktop (Linux): suite window never navigates from tauri://localhost to sidecar origin (#1919)
+- Desktop: botapp diagnostic logs never flush to botserver-sidecar.log (block-buffered stdout) (#1921)
+- Desktop: could not mint a desktop session on cold boot (login race, ~2.5 min of retries) (#1922)
+
+## v7.0.8 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+- simplify workflow volume — consolidate ~15 push-triggered workflows into fewer gates (#1918)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+
+## v7.0.7 — 2026-11-08
+
+### Security
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+
+### Fixes
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- MinIO drive-bin fetch fails with 504 Gateway Timeout (desktop-binaries.yml) (#1917)
+
+## v7.0.6 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+- VM agent (Vibe) has no gateway to botmodels services — falls back to PIL/numpy instead of using BLIP/SD/etc. (#1907)
+- desktop: add inline speaker/play button for voice/audio attachments in chat (#1908)
+- VM (Vibe): gateway catalog + prompt surface for botmodels services and consent-gated GB user data (#1909)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+- desktop: full-duplex voice unavailable — always falls back to turn-based (listening…) (#1910)
+- desktop: voice message not transcribed — bot can't read audio content (STT not wired) (#1911)
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- desktop: Intel VA-API video driver init failure + X11 GrabKey failure in stderr (media playback & global hotkeys) (#1913)
+- web: /manifest.webmanifest returns 401 — PWA manifest inaccessible, service worker fails to register (#1914)
+- web: chat session message history returns 403 Forbidden for own sessions (#1915)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+
+## v7.0.5 — 2026-11-08
+
+### Fixes
+- desktop: cold-boot race — sidecar 2s timeout causes 'asset not found: api/*' storm and failed session minting (#1912)
+- web: missing i18n translation keys (deploy.*, common.cancel, tab-strip) (#1916)
+
+## v7.0.4 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+- desktop(botapp): rename Tauri bundle identifier from br.com.pragmatismo.botapp to org.generalbots.* (#1870)
+- chat: green indicator dots on chat window scrollbar should stay fixed (not move) (#1871)
+- settings(OS): show log files in Operating System settings (#1874)
+- settings: add button in Integrations settings to open the Integrations window (#1878)
+- settings(OS): Restart uses obsolete JavaScript dialogs; replace with app-native UI (#1879)
+- settings: "This workspace" key-information header card (identity, edition badge, plan, storage, versions) (#1881)
+- settings: one Preview control with honest copy; per-edition essential nav; RBAC above preview (#1882)
+- settings/apps: "API Keys" name collision — Personal access tokens vs Model providers (BYOK) (#1883)
+- settings/integrations: stop re-rendering app content — status card + deep link (MCP, skills) (#1884)
+- settings/billing: remove hardcoded fake data; read-only plan card + Cloud deep link (#1885)
+- settings/memory: one editor for personal memory (Memory app + chat become deep links) (#1886)
+- settings/security: one story per deployment (directory-backed) + console fallback fix (#1887)
+- settings: one timezone control (Language & region owns it; profile links, no duplicate select) (#1888)
+- settings: declarative nav renderer + explicit edition key in .product / /api/product (#1889)
+- rename all gb6/GB6 references to gb7/GB7 and renumber versions 6.x.x → 7.0.x (#1891)
+- desktop: LIVE/realtime captures nothing + add first-run device chooser with mic/camera hardware test (#1893)
+- desktop: remove right-click context menu from splash screen and system menu (#1894)
+- desktop: show Drive icon above settings gear in collapsed left bar (#1900)
+- desktop: replace useless suggestions (translate/calculate) with useful ones; show only last VM agent output (#1902)
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+
+### Fixes
+- chat: scrollbar/content auto-descends during LLM response without user interaction (#1872)
+- settings(OS): right-side panel is rendered below/misaligned (#1873)
+- settings: Create API key fails with 'Request failed (HTTP 403). Please retry.' (#1875)
+- chat: New Conversation should bring chat window to front and restore if minimized (#1876)
+- settings: Share Links is broken and right pane overlays/appears above content (#1877)
+- desktop: clicking the microphone button does nothing (no capture, no error feedback) (#1892)
+- desktop: sidecar log silently dead — no output written since boot (stale inode), requests/errors unlogged (#1895)
+- desktop: bot-generated artifact opens as blank window — tool:save OK but artifact never published to the render store (#1896)
+- desktop: clicking the web search toggle does nothing (no state change, no search, no error) (#1897)
+- desktop: clicking camera freezes the whole app (getUserMedia never resolves, no authorization prompt) (#1898)
+- desktop: web search does not run when clicked (no sources, no error) (#1899)
+- desktop: generated .docx download fails in chat (#1901)
+- desktop: quick-files click opens explorer instead of the file (#1903)
+- desktop build fails to compile: botapp wizard (unused import + AppHandle borrow mismatch) (#1904)
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+
+### Other
+- settings: redraw the tree for the three realities (Cloud / Desktop / OS) with preview mode and zero duplicated information [EPIC] (#1880)
+- Desktop (desktop-local): cold boot leaves main window on tauri://localhost; relative /api/* calls fail with 'asset not found' (#1890)
+
+## v7.0.3 — 2026-11-08
+
+### Features
+- desktop: professional branded splash screen with real progress (large transparent logo, live status, dismiss at 100%) (#1906)
+
+### Fixes
+- desktop: .pptx opens with slide content rendered below the slide view — main window layout needs review (#1905)
+
+## v7.0.2 — 2026-11-08
+
+### Changes
+- fix(chat): collapse older VM agent outputs behind expand toggle (#1902)
+- fix(botapp): compile wizard (unused import + borrow for watch_boot_ready) (#1904)
+- fix(desktop): show Drive icon above settings gear in collapsed rail (#1900)
+- fix(sidebar): quick-files carry full path and bucket on click (#1903)
+- fix(drive): serve .docx/.xlsx/.pptx with correct MIME types (#1901)
+
+## v7.0.1 — 2026-11-08
+
+### Changes
+- chat: replace the projector's blocking dialogs with an in-app banner (#1879)
+- refactor(pipeline): keep exec.rs under the 450-line limit
+- test: reconcile the static suites with the split feature modules
+
+## v7.0.0 — 2026-11-08
+
+### Changes
+- chore: rename gb6 to gb7 everywhere and move the version to 7.0.0 (#1891)
+- chat: never let a hung camera request freeze the desktop app (#1898)
+- chat: fail loudly when a live voice session captures no audio (#1893)
+- apps: never open a blank generated-app window (#1896)
+
+## v6.7.37 — 2026-11-08
+
+### Changes
+- desktop: reveal the suite only after it reaches the sidecar origin (#1890)
+- merge: reconcile the alm mirror with main
+- desktop: prove the sidecar log is live on every boot (#1895)
+- chat: make the web-search toggle always flip and confirm (#1897)
+- chat: keep the mic button live when the composer renders late (#1892)
+- docs(botbook): peer network privacy model and reachability tiers (#1869)
+- fix(drive): use optional-secret exchange/refresh for managed public OAuth clients (#1868)
+- ci(desktop): checkout the source ref, not the release tag input
+- fix(botqdrant): use log::error! instead of bare error! macro (#1858)
+- fix(botqdrant): expose mail helper methods as pub(crate) (#1858)
+- fix(botqdrant): re-export mail types so botqdrant/mail feature compiles (#1858)
+- fix(auth): make non_empty take &str and wrap env value in closure (#1802)
+- fix(auth): non_empty takes String for and_then compatibility (#1802)
+- fix(adequacy): regenerate baseline and remove expect in handlers_lifecycle (#1847)
+- fix(ci): remove desktop job with inputs reference that caused startup failure (#1851)
+- feat: managed OAuth config, Drive Home/local FS, chat UX polish, IMAP desktop gating (#1802 #1801 #1797 #1820)
+- feat: webkit media permissions, run-budget copy, GitHub update check, shared links, product compile, peer network (#1833 #1803 #1862 #1863 #1811 #1864)
+- fix(ci): use github.event.inputs in dispatch-only job conditions (#1851)
+- feat: macOS dmg, agent-vm cold start, tours, live status bar, CI unification, OS panel, i18n (#1786 #1798 #1850 #1849 #1851 #1852 #1853)
+- fix(release): tag version bumps instead of pushing to protected main (#1804)
+- feat: packaging/release, weekly digest, VM browser tabs, credential guides (#1787 #1788 #1793 #1804 #1813 #1843 #1859)
+- docs(integrations): vendor help links and numbered credential setup guides (#1854)
+- fix(notifications): wire Direct Messages email preference and notification sender (#1858)
+- feat(chat): stream step-by-step workspace progress (#1807)
+- fix(kb): fall back to local hash embeddings when local server is skipped (#1799)
+- fix(automations): avoid delete handler/route name collision (#1819)
+- fix(integrations): re-apply borrow in use_for_vibe JSON response (#1847)
+- fix: document best-effort distro packages + automations conversation jobs (#1848, #1819)
+- fix(chat): content-type badges and italic descriptions for attachments (#1831)
+- fix(settings): remove hardcoded Connected Cloud Storage fallback (#1814)
+- wip: batch commit of agent and employee in-progress changes across suite, settings, chat, and botapp
+- ci(desktop): list dist from inside dist when collecting Linux packages
+- fix(chat): send output/ path for PPTX open/save (#1805)
+- fix(settings): make Compact Mode a global density mode (#1806)
+- fix(chat): replace hardcoded light colors with theme variables in rail/composer (#1809)
+- fix(about): use official logo asset instead of 404ing /logo.svg (#1842)
+- chore: ignore personal Claude settings
+- desktop-local: fix #1817 remove unused telemetry switch and default usage tracking to off
+- desktop-local: fix #1826 tray icon uses app icon, full menu wired with real event handlers
+- desktop-local: fix #1816 guard push subscription against null VAPID key and wire badge/notification toggles
+- desktop-local: fix #1813 mark unimplemented settings toggles as coming soon
+- desktop-local: fix #1814 replace hardcoded storage state with real data and remove dead modal
+- desktop-local: fix #1795 mark collaborative documents as shipped in gb7features check
+- desktop-local: fix #1805 pass full path to vmSaveToDrive instead of basename
+- desktop-local: fix #1839 fix Users nav duplication, admin flag, and settings auth
+
+## v6.7.36 — 2026-11-08
+
+### Changes
+- desktop: hide the WebView context menu on the splash and shell (#1894)
+- fix(settings): allow authenticated self-service routes through RBAC (#1875)
+- feat(settings): MCP and skills render as status where the app can open (#1884)
+- feat(memory): Settings is the single memory editor (#1886)
+- fix(settings): one security story per deployment (#1887)
+- feat(settings): one Preview control in System, RBAC above preview (#1882)
+- feat(settings): "This workspace" key-information card (#1881)
+- feat(settings): declarative nav registry and explicit edition key (#1889)
+- fix(settings): qualify the two credential families that both said API Keys (#1883)
+- fix(settings): one timezone control owned by Language & region (#1888)
+- fix(settings): remove the fake billing data from Settings (#1885)
+- fix(chat): New Conversation restores and focuses the chat window (#1876)
+- feat(settings): list, view and download log files in OS settings (#1874)
+- fix(settings): restart uses an app dialog instead of window.prompt (#1879)
+- feat(settings): Open Integrations action in the Integrations section (#1878)
+- fix(settings): render Shared Links inside the content column and refresh it (#1877)
+- fix(settings): load the OS panel inside the settings content column (#1873)
+
+## v6.7.35 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.34 — 2026-11-08
+
+### Changes
+- fix(chat): stop unprompted auto-descend and stabilize scrollbar markers (#1871, #1872)
+- desktop-local: rename bundle identifier to org.generalbots.botapp (#1870)
+
+## v6.7.33 — 2026-11-08
+
+### Changes
+- desktop-local: embed the suite into the sidecar binary (#1811)
+- desktop-local: launchers show every product apps= entry (#1811)
+
+## v6.7.32 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.31 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.30 — 2026-11-08
+
+### Changes
+- desktop-local: serious static splash that closes when the suite really boots (#1830)
+
+## v6.7.29 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.28 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.27 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.26 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.25 — 2026-11-08
+
+## v6.7.24 — 2026-11-08
+
+## v6.7.23 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.22 — 2026-11-08
+
+### Changes
+- desktop-local: fix #1841 show helpful message when terminal workspace VM not found
+
+## v6.7.21 — 2026-11-08
+
+### Changes
+- fix(botserver): resolve desktop-local compile errors in bin
+
+## v6.7.20 — 2026-11-08
+
+### Changes
+- fix(botmsteams): align UserSession model with canonical user_sessions schema
+
+## v6.7.19 — 2026-11-08
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.18 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.17 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.16 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.15 — 2026-11-07
+
 ## v6.7.10 — 2026-11-07
 
 Packaging-only release: no user-facing changes.
