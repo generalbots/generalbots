@@ -136,7 +136,7 @@ members = [
 ]
 
 [workspace.package]
-version = "7.0.0"
+version = "7.0.29"
 edition = "2021"
 license = "MIT"
 authors = ["General Bots"]
