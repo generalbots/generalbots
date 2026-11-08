@@ -125,7 +125,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         let _ = main.show();
         let _ = main.set_focus();
         crate::desktop::splash::raise(app);
-        crate::desktop::splash::watch_boot_ready(app.clone());
+        crate::desktop::splash::watch_boot_ready(&app.clone());
         return;
     }
 
@@ -160,7 +160,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         // app). Keep the splash on top of it and let the `gb-boot-ready`
         // fragment decide when the splash closes.
         crate::desktop::splash::raise(&splash_app);
-        crate::desktop::splash::watch_boot_ready(splash_app.clone());
+        crate::desktop::splash::watch_boot_ready(&splash_app.clone());
     });
 }
 
@@ -212,7 +212,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
                 // #1830 — same handoff as reveal_suite: the recreated window
                 // has to boot before anything is on screen.
                 crate::desktop::splash::raise(&handle);
-                crate::desktop::splash::watch_boot_ready(handle.clone());
+                crate::desktop::splash::watch_boot_ready(&handle.clone());
             }
             Err(e) => warn!("could not recreate the suite window: {e}"),
         }

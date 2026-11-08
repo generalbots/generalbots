@@ -32,7 +32,7 @@ pub use window::{ensure_suite_window, open_window, reveal_suite};
 
 pub(crate) use handoff::write_admin_credentials_draft;
 pub(crate) use paths::{
-    draft_path, installers_path, log_path, marker_path, progress_path, stack_path, workspace_path,
+    draft_path, installers_path, log_path, progress_path, stack_path, workspace_path,
 };
 pub(crate) use progress::{context, write_progress, ProgressMarker};
 
