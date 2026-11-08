@@ -149,6 +149,15 @@
     margin-bottom: 48px;
 }
 
+/* A section header that also hosts an action (e.g. "Open Integrations"). */
+.settings-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
 .settings-section h2 {
     font-size: 24px;
     font-weight: 600;

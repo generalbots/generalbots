@@ -1,8 +1,15 @@
         <!-- Integrations Section -->
         <section id="integrations-section" class="settings-section">
-            <div class="section-header">
-                <h1 data-i18n="settings-integrations">Integrations</h1>
-                <p class="subtitle">Connect external services and manage API access</p>
+            <div class="section-header settings-section-head">
+                <div>
+                    <h1 data-i18n="settings-integrations">Integrations</h1>
+                    <p class="subtitle">Connect external services and manage API access</p>
+                </div>
+                <!-- #1878 — one explicit way into the Integrations app from the
+                     settings section that talks about it. -->
+                <button type="button" class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">
+                    Open Integrations
+                </button>
             </div>
 
             <!-- API Keys -->
