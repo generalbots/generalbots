@@ -1,0 +1,118 @@
+/* =============================================================================
+   APP IDENTITY (#1952) — one memorable hue per suite app, one coherent system.
+
+   Inventory & assignment (high-visibility surfaces first). Each app owns a hue,
+   used only for accents: a hairline at the top of its surface, a soft wash, and
+   the tint of its empty-state headings. Layout, spacing, typography and every
+   existing token stay untouched, so nothing here can reflow an app.
+
+     chat 152 (brand green)   drive 210 (blue)      database 265 (violet)
+     vibe 190 (teal)          photos 330 (rose)     player 12  (ember)
+     settings 220 (slate)     tasks 48  (amber)     mail 200   (azure)
+     calendar 0 (crimson)     meet 175 (mint)       docs 215   (indigo)
+     sheet 140 (grass)        social 315 (magenta)  hr 240     (periwinkle)
+     compliance 30 (ochre)    kyc 205 (steel)       tax 95     (olive)
+     analytics 280 (iris)     monitoring 10 (rust)  attendant 160 (jade)
+     campaigns 25 (marigold)  pos 130 (lime)        retail 350 (brick)
+     research 185 (lagoon)    video 300 (orchid)    learn 260  (violet)
+     admin 218 (cobalt)       weather 200 (sky)     integrations 250 (plum)
+     minutes 170 (sea)        design 290 (amethyst)
+
+   Review checklist (design/product): hue distinguishable from neighbours in
+   both themes; accent never used for text on its own (only tints/borders);
+   wash alpha <= 0.06 so content contrast is unchanged; no animation added;
+   no external asset; drop a row here when an app is retired.
+   ========================================================================== */
+
+:root {
+  --gb-identity-hue: 152;
+  --gb-identity-accent: hsl(var(--gb-identity-hue) 62% 52%);
+  --gb-identity-line: hsl(var(--gb-identity-hue) 62% 52% / 0.55);
+  --gb-identity-wash: hsl(var(--gb-identity-hue) 62% 52% / 0.055);
+  --gb-identity-tint: hsl(var(--gb-identity-hue) 58% 46% / 0.14);
+}
+
+/* One rule per app so both the app surface and its launcher tile share a hue. */
+:is([data-gb-app="chat"], [data-app-id="chat"]) { --gb-identity-hue: 152; }
+:is([data-gb-app="drive"], [data-app-id="drive"]) { --gb-identity-hue: 210; }
+:is([data-gb-app="database"], [data-app-id="database"]) { --gb-identity-hue: 265; }
+:is([data-gb-app="vibe"], [data-app-id="vibe"]) { --gb-identity-hue: 190; }
+:is([data-gb-app="photos"], [data-app-id="photos"]) { --gb-identity-hue: 330; }
+:is([data-gb-app="player"], [data-app-id="player"]) { --gb-identity-hue: 12; }
+:is([data-gb-app="settings"], [data-app-id="settings"]) { --gb-identity-hue: 220; }
+:is([data-gb-app="tasks"], [data-app-id="tasks"]) { --gb-identity-hue: 48; }
+:is([data-gb-app="mail"], [data-app-id="mail"]) { --gb-identity-hue: 200; }
+:is([data-gb-app="calendar"], [data-app-id="calendar"]) { --gb-identity-hue: 0; }
+:is([data-gb-app="meet"], [data-app-id="meet"]) { --gb-identity-hue: 175; }
+:is([data-gb-app="docs"], [data-app-id="docs"]) { --gb-identity-hue: 215; }
+:is([data-gb-app="sheet"], [data-app-id="sheet"]) { --gb-identity-hue: 140; }
+:is([data-gb-app="social"], [data-app-id="social"]) { --gb-identity-hue: 315; }
+:is([data-gb-app="hr"], [data-app-id="hr"]) { --gb-identity-hue: 240; }
+:is([data-gb-app="compliance"], [data-app-id="compliance"]) { --gb-identity-hue: 30; }
+:is([data-gb-app="kyc"], [data-app-id="kyc"]) { --gb-identity-hue: 205; }
+:is([data-gb-app="tax"], [data-app-id="tax"]) { --gb-identity-hue: 95; }
+:is([data-gb-app="analytics"], [data-app-id="analytics"]) { --gb-identity-hue: 280; }
+:is([data-gb-app="monitoring"], [data-app-id="monitoring"]) { --gb-identity-hue: 10; }
+:is([data-gb-app="attendant"], [data-app-id="attendant"]) { --gb-identity-hue: 160; }
+:is([data-gb-app="campaigns"], [data-app-id="campaigns"]) { --gb-identity-hue: 25; }
+:is([data-gb-app="pos"], [data-app-id="pos"]) { --gb-identity-hue: 130; }
+:is([data-gb-app="retail"], [data-app-id="retail"]) { --gb-identity-hue: 350; }
+:is([data-gb-app="research"], [data-app-id="research"]) { --gb-identity-hue: 185; }
+:is([data-gb-app="video"], [data-app-id="video"]) { --gb-identity-hue: 300; }
+:is([data-gb-app="learn"], [data-app-id="learn"]) { --gb-identity-hue: 260; }
+:is([data-gb-app="admin"], [data-app-id="admin"]) { --gb-identity-hue: 218; }
+:is([data-gb-app="weather"], [data-app-id="weather"]) { --gb-identity-hue: 200; }
+:is([data-gb-app="integrations"], [data-app-id="integrations"]) { --gb-identity-hue: 250; }
+:is([data-gb-app="minutes"], [data-app-id="minutes"]) { --gb-identity-hue: 170; }
+:is([data-gb-app="designer"], [data-app-id="designer"]) { --gb-identity-hue: 290; }
+
+/* App surface: an inset hairline (no box growth) plus a soft corner wash. */
+[data-gb-app] {
+  box-shadow: inset 0 2px 0 0 var(--gb-identity-line);
+  background-image: radial-gradient(
+    120% 60% at 100% 0%,
+    var(--gb-identity-wash),
+    transparent 62%
+  );
+}
+
+/* Headings inherit the app's identity without competing with body text. */
+[data-gb-app] > header h1,
+[data-gb-app] > .app-header h1,
+[data-gb-app] .gb-app-title {
+  color: var(--gb-identity-accent);
+}
+
+/* Empty states are the most-seen "no content" surface: give them the hue. */
+[data-gb-app] .empty-state,
+[data-gb-app] .empty-message,
+[data-gb-app] .gb-empty,
+[data-gb-app] .loading-placeholder {
+  border-color: var(--gb-identity-tint);
+}
+
+[data-gb-app] .empty-state h2,
+[data-gb-app] .empty-state h3,
+[data-gb-app] .empty-message strong {
+  color: var(--gb-identity-accent);
+}
+
+/* Launcher tiles: a 3px identity notch on the tile's leading edge. */
+[data-app-id] {
+  box-shadow: inset 3px 0 0 0 var(--gb-identity-line);
+}
+
+/* A tile is a control, not a surface: keep its own hover elevation intact. */
+[data-app-id]:hover,
+[data-app-id]:focus-visible {
+  box-shadow:
+    inset 3px 0 0 0 var(--gb-identity-accent),
+    var(--gb-tile-shadow, 0 6px 18px rgb(0 0 0 / 0.18));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-gb-app],
+  [data-app-id] {
+    transition: none;
+  }
+}
