@@ -160,7 +160,7 @@ function applyDesktopEditionVisibility() {
       });
     }
     if (cards[1]) {
-      var exportBtn = cards[1].querySelector('[hx-post="/api/user/data/export"]');
+      var exportBtn = cards[1].querySelector('button[onclick*="downloadDataExport"], [hx-post="/api/user/data/export"]');
       if (exportBtn) { exportBtn.removeAttribute("hx-post"); exportBtn.removeAttribute("hx-swap"); exportBtn.removeAttribute("hx-on::after-request"); exportBtn.textContent = "Export Local Data"; exportBtn.title = "Export data stored on this device"; }
       var exportDesc = cards[1].querySelector(".setting-desc");
       if (exportDesc) { exportDesc.textContent = "Export data stored on this device"; }
