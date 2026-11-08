@@ -66,9 +66,12 @@ fn botmodels_endpoint(state: &Arc<AppState>, bot_uuid: Uuid) -> Option<(String, 
 
     // get_config returns Ok("") for a missing key, so distinguish an explicit
     // false from no setting before falling back to the environment.
+    // #1911 — default to enabled so STT/vision work when BotModels is reachable,
+    // even if the bot has no explicit botmodels-enabled config entry. The
+    // endpoint resolution below falls back to localhost:8085.
     let enabled = match cfg.get_config(&bot_uuid, "botmodels-enabled", None) {
         Ok(value) if !value.trim().is_empty() => value.eq_ignore_ascii_case("true"),
-        _ => std::env::var("BOTMODELS_HOST").is_ok(),
+        _ => true,
     };
     if !enabled {
         return None;

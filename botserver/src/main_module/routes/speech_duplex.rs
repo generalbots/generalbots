@@ -43,9 +43,10 @@ fn botmodels_endpoint(state: &Arc<AppState>, bot_uuid: Uuid) -> Option<(String, 
     // `get_config` answers `Ok("")` for a missing key, so an explicit false is
     // the only value that disables the service; no setting means "follow the
     // environment", matching the attachment transcription path.
+    // #1910/#1911 — default to enabled so duplex/STT work when BotModels is reachable.
     let enabled = match cfg.get_config(&bot_uuid, "botmodels-enabled", None) {
         Ok(value) if !value.trim().is_empty() => value.eq_ignore_ascii_case("true"),
-        _ => std::env::var("BOTMODELS_HOST").is_ok(),
+        _ => true,
     };
     if !enabled {
         return None;
