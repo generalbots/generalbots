@@ -50,6 +50,10 @@ function applyShellModeVisibility(config) {
       node.setAttribute("hidden", "");
     }
   });
+  // #1877 — panels that only make sense in shell mode (OS, Shared Links)
+  // lazy-load their data. They are revealed after productConfig arrives, so
+  // announce the transition and let each panel refresh itself.
+  window.dispatchEvent(new CustomEvent("gb-shell-mode-changed", { detail: { shell: shell } }));
   if (shell) { return; }
   var active = document.querySelector(".settings-section.active");
   if (active && active.id === "os-section") {

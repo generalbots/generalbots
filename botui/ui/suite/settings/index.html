@@ -278,15 +278,15 @@
              column. Loading it as a sibling of .settings-layout rendered the
              section below the sidebar, outside the settings grid. -->
         <div hx-get="/suite/settings/partials/07_os.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <!-- Shared Links (#1863/#1877): same rule as the OS panel — the
+             section belongs inside the content column, otherwise it is laid
+             out below the sidebar and overlaps the page. -->
+        <div hx-get="/suite/settings/partials/08_shared_links.html" hx-trigger="load" hx-swap="outerHTML"></div>
     </main>
 </div>
 
 <!-- Dialogs (loaded in parallel; opened on demand) -->
 <div hx-get="/suite/settings/partials/06_dialogs.html" hx-trigger="load" hx-swap="outerHTML"></div>
-
-<!-- Shared Links (#1863): shell-mode only. The partial stays inert in a normal
-     browser/cloud deployment because the section and nav item are hidden. -->
-<div hx-get="/suite/settings/partials/08_shared_links.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
 <link rel="stylesheet" href="/suite/settings/settings-forms.css" />
 <link rel="stylesheet" href="/suite/settings/settings-controls.css" />
