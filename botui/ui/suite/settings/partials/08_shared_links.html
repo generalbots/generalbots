@@ -149,9 +149,10 @@
                 <h3>What it will do</h3>
                 <p>
                     The free account will hold a name — not your files. When a
-                    machine cannot be reached directly, the relay will keep only an
-                    encrypted copy of the shared file and that copy expires. There
-                    is nothing to configure until the relay is available.
+                    machine cannot be reached directly, the managed relay
+                    (<code>relay.generalbots.org</code>) keeps only an encrypted
+                    copy of the shared file and that copy expires. No manual
+                    relay configuration is required.
                 </p>
             </div>
         </article>
@@ -172,8 +173,8 @@
             <button type="button" class="btn-secondary btn-sm" id="peer-master-switch">Apply</button>
         </div>
         <p class="shared-hint">
-            Persisted via <code>GB_PEER_NETWORK</code> for the desktop-local build;
-            changing it requires restarting the app.
+            The relay endpoint is managed automatically. Changing this setting
+            may require restarting the app to take full effect.
         </p>
     </div>
 
