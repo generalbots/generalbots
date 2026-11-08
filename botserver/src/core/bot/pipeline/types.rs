@@ -71,3 +71,13 @@ impl From<String> for PipelineError {
         Self::Session(msg)
     }
 }
+
+pub type PipelineFn = std::sync::Arc<
+    dyn Fn(
+            botlib::models::UserMessage,
+            tokio::sync::mpsc::Sender<botlib::models::BotResponse>,
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = PipelineResult<()>> + Send>>
+        + Send
+        + Sync,
+>;
