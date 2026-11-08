@@ -79,3 +79,6 @@ docs_url=https://docs.generalbots.org
 
 # Copyright text (optional - {year} will be replaced with current year)
 copyright=© {year} {name}. All rights reserved.
+
+# #1889 — explicit deployment edition (cloud | desktop | os).
+edition=cloud
