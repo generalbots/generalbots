@@ -101,6 +101,7 @@ window.DriveModule = {
     toggleStarFromButton: toggleStarFromButton,
     refreshRowStars: refreshRowStars,
     shareFile: shareFile,
+    shareFolder: shareFolder,
     createShareLinkNow: createShareLinkNow,
     revokeShareLinkFromModal: revokeShareLinkFromModal,
     shareWithRecipient: shareWithRecipient,

@@ -1,0 +1,15 @@
+[package]
+name = "botpublic"
+version.workspace = true
+edition = "2021"
+description = "P2P payloads and public profile for General Bots — #1866 #1867 (in progress)"
+license = "MIT"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
+keywords = ["bot", "p2p", "public", "profile", "dropbox"]
+categories = ["api-bindings", "web-programming"]
+
+[dependencies]
+
+[lints]
+workspace = true

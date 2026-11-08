@@ -215,8 +215,13 @@ function showContextMenu(x, y, path, type, bucket) {
     var isStarred = (window._starredPaths && window._starredPaths[path]) ||
         sessionStorage.getItem("drive-tab") === "starred";
     var html = '';
+    // #1866 — folders get an "Open" + "Share folder" (drop box stub); files get
+    // the full action set including the existing per-file "Share link" and
+    // "Copy link" actions. The shareFolder function in 98_actions_extra.js
+    // shows a "coming soon" dialog until the botpublic relay ships.
     html += isFolder
         ? '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.loadFiles(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.open + '<span>Open</span></div>'
+        + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.shareFolder(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.link + '<span>Share folder</span></div>'
         : '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.openFile(\'' + ep + '\', \'' + eb + '\')">' + icons.open + '<span>Open</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.previewFile(\'' + ep + '\', \'' + eb + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>Preview</span></div>'
         + '<div class="context-menu-item" onclick="' + hideMenu + 'DriveModule.downloadFile(\'' + ep + '\', \'' + eb + '\')">' + icons.download + '<span>Download</span></div>'

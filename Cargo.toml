@@ -132,6 +132,7 @@ members = [
   "botserver/crates/botkyc",
   "botserver/crates/bottimeclock",
   "botserver/crates/bottax",
+  "botserver/crates/botpublic",
 ]
 
 [workspace.package]
@@ -262,6 +263,7 @@ botpos = { path = "botserver/crates/botpos" }
 bothandoff = { path = "botserver/crates/bothandoff" }
 botkyc = { path = "botserver/crates/botkyc" }
 bottimeclock = { path = "botserver/crates/bottimeclock" }
+botpublic = { path = "botserver/crates/botpublic" }
 botdomains = { path = "botserver/crates/botdomains" }
 # #1621 — botcore declares the domain feature set in its own `default`. Every
 # dependent crate used to inherit it, so a slim product build still compiled and
