@@ -166,7 +166,6 @@
       window.GBSidebarSections.bindPinReorder();
       window.GBSidebarSections.renderActions();
       window.GBSidebarSections.renderQuickFiles();
-      window.GBSidebarSections.enhanceUserCard();
     }
 
     if (window.GBSidebarHistory) {
@@ -184,16 +183,14 @@
       if (window.GBSidebarSections) {
         window.GBSidebarSections.renderPins();
         window.GBSidebarSections.renderActions();
-        window.GBSidebarSections.enhanceUserCard();
-      }
+        }
     });
     window.addEventListener("i18n:localeChanged", function () {
       refreshSectionLabels();
       if (window.GBSidebarSections) {
         window.GBSidebarSections.renderPins();
         window.GBSidebarSections.renderActions();
-        window.GBSidebarSections.enhanceUserCard();
-      }
+        }
     });
 
     // #1596/#1614 — the product config resolves after boot, so re-render the

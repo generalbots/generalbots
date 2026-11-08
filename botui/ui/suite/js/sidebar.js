@@ -250,6 +250,22 @@
     settingsBtn.addEventListener("click", openSettingsWindow);
     menu.appendChild(settingsBtn);
 
+    // Billing lives here too (it used to come from the second, duplicate user
+    // menu in sidebar-sections.js — see #1983). Only offered when the product
+    // actually ships the app, so the item never does nothing.
+    var hasBilling = (window.APPS_REGISTRY || []).some(function (a) {
+      return a && a.id === "billing";
+    });
+    if (hasBilling) {
+      var billingBtn = document.createElement("div");
+      billingBtn.style.cssText = "padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px";
+      billingBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Billing';
+      billingBtn.addEventListener("click", function () {
+        if (window.openDeepLink) window.openDeepLink("billing", {});
+      });
+      menu.appendChild(billingBtn);
+    }
+
     var sep = document.createElement("div");
     sep.style.cssText = "border-top:1px solid var(--border,#333)";
     menu.appendChild(sep);

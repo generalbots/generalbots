@@ -1,0 +1,103 @@
+/* Slides app — layout and header (#1976).
+
+   The app shipped without a stylesheet: `.slides-main` was a plain block
+   container, so the outline sidebar and the presentation viewport stacked
+   vertically instead of sitting side by side, and the presentation name had
+   no formatting at all. Everything here is theme-driven. */
+
+.slides-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface, #0f172a);
+  color: var(--text, #f8fafc);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+
+.slides-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 6px 14px;
+  background: var(--win-titlebar-bg, var(--surface-raised, #1e293b));
+  border-bottom: 1px solid var(--win-titlebar-sep, var(--border, #334155));
+}
+
+.slides-toolbar .toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.slides-title-input {
+  min-width: 12ch;
+  max-width: 34ch;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text, #f8fafc);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  transition: background 120ms, border-color 120ms;
+}
+
+.slides-title-input:hover {
+  background: var(--win-caption-hover, rgba(148, 163, 184, 0.12));
+}
+
+.slides-title-input:focus {
+  outline: none;
+  background: var(--surface, #0f172a);
+  border-color: var(--primary, var(--accent, #3b82f6));
+}
+
+.slides-save-status {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ── Body: outline beside the viewport ─────────────────────── */
+
+.slides-main {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.slides-main > .slides-sidebar {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.slides-main > .slides-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Narrow windows / mobile shell: the outline becomes a strip on top, but the
+   viewport keeps the full width instead of being squeezed next to it. */
+@media (max-width: 760px) {
+  .slides-main {
+    flex-direction: column;
+  }
+
+  .slides-main > .slides-sidebar {
+    width: 100% !important;
+    max-height: 34%;
+  }
+}

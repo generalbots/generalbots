@@ -83,6 +83,24 @@ jobs:
           key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-check-
+      # #1985 — the runner image exports PQ_LIB_DIR=C:\pgsql\pgsql\lib, a path
+      # that does not exist, so pq-sys aborted in its build script before any
+      # crate was compiled. Install libpq, validate it, and point every later
+      # step at the real directory (same layout as release.yml).
+      - name: Install libpq (PostgreSQL client libraries)
+        shell: pwsh
+        run: |
+          choco install postgresql16 --no-progress -y
+          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Sort-Object Name | Select-Object -Last 1
+          if (-not $pg) { throw "PostgreSQL install directory not found" }
+          $lib = Join-Path $pg.FullName "lib"
+          if (-not (Test-Path (Join-Path $lib "libpq.dll"))) {
+            throw "libpq.dll not found in $lib"
+          }
+          "PQ_LIB_DIR=$lib" >> $env:GITHUB_ENV
+          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+
       - name: Check the Windows agent/VM adapters
         run: cargo check --lib -p botagent -p botvibe
 

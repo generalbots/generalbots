@@ -1,0 +1,128 @@
+/* Database app toolbar (#1980).
+
+   `#db-toolbar` had no rules of its own, so it rendered as an unstyled row of
+   buttons next to the Goals/suite toolbars. This gives it the same design
+   language: one heading area on the left with the current table and its size,
+   grouped actions on the right, responsive wrapping in narrow windows. */
+
+.db-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 8px 14px;
+  background: var(--win-titlebar-bg, var(--surface-raised, #1b1b22));
+  border-bottom: 1px solid var(--win-titlebar-sep, var(--border, #2a2a33));
+}
+
+.db-toolbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.db-table-name {
+  color: var(--text, #f1f1f4);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-row-count {
+  color: var(--text-secondary, #8b8b96);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.db-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Divider between the query/data actions and the add-row primary action. */
+.db-toolbar-right > .db-select,
+.db-toolbar-right > .db-btn[data-tool="add"] {
+  margin-left: 4px;
+}
+
+.db-toolbar .db-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border, #33333d);
+  border-radius: 7px;
+  background: var(--surface, #1e1e26);
+  color: var(--text-secondary, #c3c3cc);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.db-toolbar .db-btn:hover {
+  background: var(--win-caption-hover, rgba(148, 163, 184, 0.12));
+  color: var(--text, #f1f1f4);
+}
+
+.db-toolbar .db-btn:focus-visible {
+  outline: 2px solid var(--primary, var(--accent, #3b82f6));
+  outline-offset: 1px;
+}
+
+.db-toolbar .db-btn[aria-label="Export CSV"],
+.db-toolbar .db-btn[data-tool="export"] {
+  /* Export/import are secondary, data-moving actions. */
+  color: var(--text-secondary, #b9b9c4);
+}
+
+.db-toolbar .db-btn-primary {
+  background: var(--primary, var(--accent, #3b82f6));
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+.db-toolbar .db-btn-primary:hover {
+  filter: brightness(1.06);
+  color: #fff;
+}
+
+.db-toolbar .db-select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border, #33333d);
+  border-radius: 7px;
+  background: var(--surface, #1e1e26);
+  color: var(--text-secondary, #c3c3cc);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+/* Narrow windows: the action row becomes a scrollable strip under the name so
+   no action is clipped out of reach. */
+@media (max-width: 720px) {
+  .db-toolbar {
+    align-items: flex-start;
+  }
+
+  .db-toolbar-right {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+}
