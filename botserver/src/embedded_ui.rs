@@ -2,16 +2,31 @@
 use axum::{
     body::Body,
     http::{header, Request, Response, StatusCode},
+    response::IntoResponse,
     Router,
 };
 #[cfg(not(feature = "embed-ui"))]
 use axum::Router;
 
+// The desktop edition embeds the suite instead of depending on a `ui/` folder
+// next to the sidecar (#1811 roadmap): the release tarball, the single-file
+// self-extractor, the raw `botserver-linux-x86_64` artifact and the Tauri
+// deb/rpm/AppImage all then answer `/suite/desktop.html` from inside the
+// binary. A `ui/` folder on disk still wins when present (see
+// `run_axum_server.rs`), so the payload copies shipped by the packaging
+// pipeline keep the same behavior (custom edited UI, hot reload policies).
+//
+// BotUI is a sibling crate in the monorepo, hence the `..` folders; those are
+// resolved at compile time and are relative to the botserver manifest.
 #[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]
-#[folder = "ui"]
-#[prefix = "suite"]
-struct EmbeddedUi;
+#[folder = "../botui/ui/suite"]
+struct EmbeddedSuite;
+
+#[cfg(feature = "embed-ui")]
+#[derive(RustEmbed)]
+#[folder = "../botui/ui/themes"]
+struct EmbeddedThemes;
 
 #[cfg(feature = "embed-ui")]
 fn get_mime_type(path: &str) -> &'static str {
@@ -50,32 +65,53 @@ fn get_mime_type(path: &str) -> &'static str {
     }
 }
 
+/// Answers a suite file with the copy embedded in this binary.
+///
+/// The client-side shell routes applications (`/drive`, `/chat/...`), so a
+/// lookup miss is answered with `desktop.html` for user-facing paths — the
+/// same contract `fallback_response` implements for the on-disk layout —
+/// while API, DAV and webhook paths get an explicit 404 so missing routes
+/// stay visible.
 #[cfg(feature = "embed-ui")]
 async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
-    let path = req.uri().path().trim_start_matches('/');
+    let requested = req.uri().path().trim_start_matches('/');
 
-    let file_path = if path.is_empty() || path == "/" {
-        "index.html"
+    // `/themes/*` is its own nest on the disk layout; in the embedded tree the
+    // files live under botui/ui/themes with the prefix already stripped.
+    if let Some(theme_rel) = requested.strip_prefix("themes/") {
+        if let Some(content) = EmbeddedThemes::get(theme_rel) {
+            return Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, get_mime_type(theme_rel))
+                .header(header::CACHE_CONTROL, "public, max-age=3600")
+                .body(Body::from(content.data.into_owned()))
+                .unwrap_or_else(|_| {
+                    Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Body::from("Internal Server Error"))
+                        .unwrap_or_else(|_| Response::new(Body::from("Critical Error")))
+                });
+        }
+    }
+
+    // Everything else belongs to the suite tree, addressed without the
+    // `/suite` prefix. Requests for `/suite` or `/` open the desktop shell —
+    // botui/ui/suite has no index.html; the suite is a routed application.
+    let rel = if requested.is_empty() || requested == "suite" {
+        "desktop.html".to_string()
     } else {
-        path
+        requested.strip_prefix("suite/").unwrap_or(requested).to_string()
     };
 
-    let file_path = file_path.strip_prefix("suite/").unwrap_or(file_path);
-
-    log::trace!("Serving embedded file: {}", file_path);
-
     let try_paths = [
-        file_path.to_string(),
-        format!("{}/index.html", file_path.trim_end_matches('/')),
-        format!("{}.html", file_path),
+        rel.clone(),
+        format!("{}/index.html", rel.trim_end_matches('/')),
+        format!("{}.html", rel),
     ];
 
     for try_path in &try_paths {
-        if let Some(content) = EmbeddedUi::get(try_path) {
+        if let Some(content) = EmbeddedSuite::get(try_path) {
             let mime = get_mime_type(try_path);
-
-            log::trace!("Found embedded file: {} with MIME type: {}", try_path, mime);
-
             return Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, mime)
@@ -90,23 +126,61 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
         }
     }
 
-    log::warn!("Embedded file not found: {} (tried paths: {:?})", file_path, try_paths);
+    // Not found in the embedded tree. Mirror the on-disk fallback: machine
+    // facing paths report the miss instead of a 200 HTML answer, user-facing
+    // paths receive the desktop shell so the client router takes over.
+    let machine_facing = ["api/", "caldav", "webhook", ".well-known/"]
+        .iter()
+        .any(|prefix| requested.starts_with(prefix));
+    if machine_facing {
+        return (
+            StatusCode::NOT_FOUND,
+            axum::Json(serde_json::json!({
+                "error": "not_found",
+                "message": "No route matches this path",
+                "path": format!("/{requested}"),
+            })),
+        )
+            .into_response();
+    }
 
-    Response::builder()
-        .status(StatusCode::NOT_FOUND)
-        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
-        .body(Body::from(
-            r#"<!DOCTYPE html>
+    match EmbeddedSuite::get("desktop.html") {
+        Some(shell) => Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .header(header::CACHE_CONTROL, "no-cache")
+            .body(Body::from(shell.data.into_owned()))
+            .unwrap_or_else(|_| {
+                Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Body::from("Internal Server Error"))
+                    .unwrap_or_else(|_| Response::new(Body::from("Critical Error")))
+            }),
+        None => {
+            if requested.is_empty() || requested == "suite" {
+                log::warn!("Embedded UI is empty: desktop.html not found at build time");
+            }
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                .body(Body::from(
+                    r#"<!DOCTYPE html>
 <html>
 <head><title>404 Not Found</title></head>
 <body>
 <h1>404 - Not Found</h1>
 <p>The requested file was not found in embedded UI.</p>
-<p><a href="/">Go to Home</a></p>
 </body>
 </html>"#,
-        ))
-        .unwrap_or_else(|_| Response::new(Body::from("500 Internal Server Error")))
+                ))
+                .unwrap_or_else(|_| {
+                    Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Body::from("Internal Server Error"))
+                        .unwrap_or_else(|_| Response::new(Body::from("Critical Error")))
+                })
+        }
+    }
 }
 
 #[cfg(feature = "embed-ui")]
@@ -117,18 +191,18 @@ pub fn embedded_ui_router() -> Router {
 
 #[cfg(feature = "embed-ui")]
 pub fn has_embedded_ui() -> bool {
-    let has_index = EmbeddedUi::get("index.html").is_some();
+    let has_index = EmbeddedSuite::get("desktop.html").is_some();
     if has_index {
-        log::info!("Embedded UI detected - index.html found");
+        log::info!("Embedded UI detected - desktop.html found");
     } else {
-        log::warn!("No embedded UI found - index.html not embedded");
+        log::warn!("No embedded UI found - desktop.html not embedded");
     }
     has_index
 }
 
 #[cfg(feature = "embed-ui")]
 pub fn list_embedded_files() -> Vec<String> {
-    let files: Vec<String> = EmbeddedUi::iter().map(|f| f.to_string()).collect();
+    let files: Vec<String> = EmbeddedSuite::iter().map(|f| f.to_string()).collect();
     log::debug!("Embedded UI contains {} files", files.len());
     files
 }

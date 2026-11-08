@@ -120,6 +120,18 @@ currently published. The AppImage, when produced, still uses the host WebKitGTK
 Ubuntu 24.04); where FUSE is unavailable, start it with
 `APPIMAGE_EXTRACT_AND_RUN=1` or `--appimage-extract-and-run`.
 
+### Embedded suite UI
+
+The desktop sidecar carries the whole suite inside the `botserver` binary
+(`desktop-local` builds the `embed-ui` feature). The packaged `ui/` folder in
+the tarball payload and the single-file executable still takes precedence via
+`BOTUI_PATH`, so an edited file on disk wins without a rebuild — but the
+`.deb`, `.rpm` and `.AppImage` bundles and the raw `botserver-*` artifacts,
+which ship no suite folder at all, now serve `/suite`, `/themes` and the
+client-routed application paths (`/drive`, `/chat/…`) straight from the
+compiled-in copy. API, DAV and webhook paths keep their explicit 404s so a
+missing route is never masked by the shell.
+
 ### Updating an installation
 
 The desktop shell checks the latest GitHub release at startup (at most once a
