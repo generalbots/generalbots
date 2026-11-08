@@ -80,4 +80,33 @@
     </div>
 </section>
 
-<script src="/suite/settings/settings-os.js?v=1"></script>
+<script src="/suite/settings/settings-os.js?v=2"></script>
+
+<!-- #1879 — restart confirmation is an app dialog, never window.prompt. -->
+<dialog id="os-restart-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Restart service</h2>
+            <button type="button" class="close-btn" id="os-restart-cancel" aria-label="Cancel">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="os-restart-form">
+            <p class="os-hint">
+                Restart <strong id="os-restart-service-name">the service</strong>?
+                Type the service name to confirm; the restart is written to the audit log.
+            </p>
+            <div class="form-group">
+                <label for="os-restart-confirm">Service name</label>
+                <input type="text" id="os-restart-confirm" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="os-restart-cancel-button">Cancel</button>
+                <button type="submit" class="btn-primary">Restart</button>
+            </div>
+        </form>
+    </div>
+</dialog>

@@ -190,28 +190,67 @@
     window.loadOsPanel(true);
   };
 
-  window.restartOsService = function (service) {
-    var typed = window.prompt('Restart "' + service + '"? Type the service name to confirm.');
-    if (typed === null) { return; }
-    if (typed !== service) {
-      notify("Confirmation did not match", "error");
-      return;
-    }
+  // #1879 — restart confirmation uses the app dialog, never window.prompt/
+  // confirm/alert. The typed service name stays the server-side proof.
+  function performRestart(service, confirmation) {
     fetchJson("/api/system/os/services/restart", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ service: service, confirmation: typed })
+      body: JSON.stringify({ service: service, confirmation: confirmation })
     }).then(function () {
       notify("Restart requested for " + service);
       window.loadOsPanel(true);
     }).catch(function (error) {
       notify("Restart failed: " + error.message, "error");
     });
+  }
+
+  window.restartOsService = function (service) {
+    var dialog = byId("os-restart-modal");
+    var input = byId("os-restart-confirm");
+    var nameNode = byId("os-restart-service-name");
+    if (!dialog || typeof dialog.showModal !== "function") {
+      notify("Restart confirmation is unavailable in this environment", "error");
+      return;
+    }
+    if (nameNode) { nameNode.textContent = service; }
+    if (input) { input.value = ""; }
+    dialog.dataset.service = service;
+    dialog.showModal();
+    if (input) { input.focus(); }
   };
+
+  function bindRestartDialog() {
+    var dialog = byId("os-restart-modal");
+    if (!dialog || dialog.getAttribute("data-wired") === "1") { return; }
+    dialog.setAttribute("data-wired", "1");
+    var form = byId("os-restart-form");
+    var cancel = byId("os-restart-cancel");
+    var cancelButton = byId("os-restart-cancel-button");
+    function close() { dialog.close(); }
+    if (cancel) { cancel.addEventListener("click", close); }
+    if (cancelButton) { cancelButton.addEventListener("click", close); }
+    if (form) {
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var service = dialog.dataset.service || "";
+        var input = byId("os-restart-confirm");
+        var typed = input ? input.value.trim() : "";
+        dialog.close();
+        if (!service) { return; }
+        if (typed !== service) {
+          notify("Confirmation did not match", "error");
+          return;
+        }
+        performRestart(service, typed);
+      });
+    }
+  }
 
   function bindRestartButtons() {
     var container = byId("os-services");
-    if (!container) { return; }
+    if (!container || container.getAttribute("data-wired") === "1") { return; }
+    container.setAttribute("data-wired", "1");
     container.addEventListener("click", function (event) {
       var button = event.target && event.target.closest
         ? event.target.closest("[data-os-restart]")
@@ -221,18 +260,27 @@
     });
   }
 
+  function bindPanel() {
+    bindRestartButtons();
+    bindRestartDialog();
+  }
+
   function maybeLoad() {
     if (window.location.hash === "#os") { window.loadOsPanel(); }
   }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
-      bindRestartButtons();
+      bindPanel();
       maybeLoad();
     });
   } else {
-    bindRestartButtons();
+    bindPanel();
     maybeLoad();
   }
+  // The partial arrives through HTMX after this module is evaluated; rebind
+  // whenever a swap brings the panel markup in.
+  document.addEventListener("htmx:load", bindPanel);
+  document.addEventListener("htmx:afterSwap", bindPanel);
   window.addEventListener("hashchange", maybeLoad);
 })(window);
