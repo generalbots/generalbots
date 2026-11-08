@@ -39,7 +39,7 @@ pub async fn handle_chat_history_messages(
     // the bearer token resolved to a different (but equivalent) identity
     // (e.g. guest-repaired rows). Log the mismatch and allow the
     // authenticated user to read their own session instead of returning 403.
-    if sess.user_id != user_uuid.to_string() {
+    if sess.user_id.to_string() != user_uuid.to_string() {
         log::warn!(
             "chat history: session {} owned by {} but bearer is {} — allowing",
             session_id,
