@@ -134,6 +134,12 @@ missing route is never masked by the shell.
 
 ### Updating an installation
 
+The bundle identifier was renamed to `org.generalbots.botapp` (#1870). On the
+first launch of the renamed build, botapp copies the WebKit profile
+(`localStorage`, cache) from the legacy `br.com.pragmatismo.botapp` data
+folder so existing installs keep their sessions and settings; the legacy
+folder is left in place as a backup.
+
 The desktop shell checks the latest GitHub release at startup (at most once a
 day) and in **Settings → Updates → Check now**. When a newer stable release is
 available it shows a non-blocking prompt with the version and release notes;

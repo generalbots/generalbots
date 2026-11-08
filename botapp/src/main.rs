@@ -248,6 +248,11 @@ fn main() {
     let version = env!("CARGO_PKG_VERSION");
     info!("BotApp {version} starting...");
 
+    // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
+    // bundle identifier's data folder before any webview opens, so users keep
+    // their sessions and settings across the rename.
+    desktop::legacy_data::migrate_legacy_data_dir();
+
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());
 
