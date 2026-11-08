@@ -38,17 +38,17 @@ pub fn seed_default_products(conn: &mut PgConnection, branch_id: Uuid) {
 
 fn seed_categories(conn: &mut PgConnection, branch_id: Uuid) -> Vec<ProductCategory> {
     let cats = vec![
-        ("Plans", "Subscription plans for the SaaS platform", "plans", 1),
-        ("VMs", "Virtual machines and compute instances", "vms", 2),
-        ("GPU", "GPU-accelerated compute instances", "gpu", 3),
-        ("Storage", "Persistent storage volumes", "storage", 4),
-        ("Numbers", "Phone numbers (local and toll-free)", "numbers", 5),
-        ("Domains", "Custom domain registration and renewal", "domains", 6),
-        ("LLM Tokens", "Language model token packages", "llm-tokens", 7),
+        ("Plans", "Subscription plans for the SaaS platform", 1),
+        ("VMs", "Virtual machines and compute instances", 2),
+        ("GPU", "GPU-accelerated compute instances", 3),
+        ("Storage", "Persistent storage volumes", 4),
+        ("Numbers", "Phone numbers (local and toll-free)", 5),
+        ("Domains", "Custom domain registration and renewal", 6),
+        ("LLM Tokens", "Language model token packages", 7),
     ];
 
     let mut inserted = Vec::new();
-    for (name, description, slug, sort_order) in cats {
+    for (name, description, sort_order) in cats {
         let cat = ProductCategory {
             id: Uuid::new_v4(),
             org_id: None,
