@@ -1,8 +1,8 @@
 /* #1865 — Settings → Network.
  *
  * Reads/writes the runtime network mode preference (Offline or P2P) via
- * localStorage key "gb_peer_network_mode". A permanent change requires
- * restarting the app or editing stack/conf/.env directly.
+ * localStorage key "gb_peer_network_mode". The relay is managed automatically;
+ * restart the app to apply a permanent change.
  */
 (function (window) {
   "use strict";
