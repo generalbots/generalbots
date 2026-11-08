@@ -119,6 +119,10 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         return;
     };
 
+    // #1919 — WebKitGTK does not realise a hidden webview, so navigate() on
+    // a window created with visible:false never changes the URL. Reveal the
+    // window first (the always-on-top splash stays above it) before navigating.
+    let _ = main.show();
     let url = suite_url_with_token(url, token);
     if let Err(e) = main.navigate(url.clone()) {
         warn!("could not navigate the suite window: {e}");

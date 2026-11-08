@@ -62,8 +62,12 @@ pub fn compact_format(buf: &mut Formatter, record: &Record) -> std::io::Result<(
 }
 
 pub fn init_compact_logger(default_filter: &str) {
+    // #1921 — botlib runs as a redirected sidecar in the desktop shell, where
+    // stdout is block-buffered and `info!` lines never reach the log file. A
+    // LineWriter flushes on every newline so diagnostic output is visible live.
+    let stdout = std::io::LineWriter::new(std::io::stdout());
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(default_filter))
-        .target(env_logger::Target::Stdout)
+        .target(env_logger::Target::Pipe(Box::new(stdout)))
         .format(compact_format)
         .init();
 }
