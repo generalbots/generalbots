@@ -236,6 +236,7 @@ credentials live in Vault, one path per service, seeded on first boot:
 | `secret/gbo/drive` | `host`, `port`, `accesskey`, `secret`, `bucket`, `backend` |
 | `secret/gbo/cache` | `host`, `port`, `password`, `url` |
 | `secret/gbo/llm` | `url`, `model`, `openai_key` |
+| `secret/gbo/peer` | `enabled`, `node-id`, `node-name`, `advertise-addr`, `data-dir`, `heartbeat-ttl-secs`, `token`, `signing-key` |
 
 Point those at your own instances with `vault kv put` before the first start.
 Per-bot settings (`server-port`, `llm-model`, …) do go in the bot's

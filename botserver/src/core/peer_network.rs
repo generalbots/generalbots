@@ -16,6 +16,14 @@
 //! | `GB_PEER_HEARTBEAT_TTL_SECS` | Peer expiry, default 90 seconds |
 //! | `GB_PEER_DATA_DIR` | Directory for `node.json` |
 //! | `GB_PEER_TOKEN` | Optional shared bearer token for machine callers |
+//! | `GB_PEER_SIGNING_KEY` | Home-site signing key; falls back to the node id |
+//!
+//! #1968 — Vault is the canonical source for a deployed node:
+//! `secret/gbo/peer` carries `enabled`, `node-id`, `node-name`,
+//! `advertise-addr`, `data-dir`, `heartbeat-ttl-secs`, `token` and
+//! `signing-key`. Precedence, highest first: process environment →
+//! `secret/gbo/peer` → legacy `~/.prod` → built-in default. Only the origin of
+//! each value is ever logged, never the value.
 //!
 //! The registration table is intentionally in memory: a peer that stops
 //! heartbeating expires, and it re-registers on its next boot. Node identity is
@@ -112,6 +120,25 @@ impl PeerNetwork {
         self.config.token.as_deref()
     }
 
+    /// Home-site signing key: `GB_PEER_SIGNING_KEY` → Vault
+    /// `secret/gbo/peer` `signing-key` → the node id (#1968).
+    pub fn signing_key(&self) -> String {
+        self.config.signing_key.clone().unwrap_or_else(|| {
+            self.identity()
+                .map(|identity| identity.node_id.to_string())
+                .unwrap_or_default()
+        })
+    }
+
+    /// Which source supplied each setting. Never includes a value.
+    pub fn config_sources(&self) -> BTreeMap<String, String> {
+        self.config
+            .sources
+            .iter()
+            .map(|(key, source)| (key.clone(), (*source).to_string()))
+            .collect()
+    }
+
     /// Add or replace a peer registration. Heartbeats refresh `last_heartbeat`;
     /// `first_seen` is preserved across re-registration.
     pub fn register(&self, request: RegisterRequest) -> Result<PeerRecord, PeerError> {
@@ -201,6 +228,7 @@ impl PeerNetwork {
                 heartbeat_ttl_seconds: self.heartbeat_ttl_seconds(),
                 peer_count: 0,
                 peers: Vec::new(),
+                config_sources: self.config_sources(),
             };
         }
 
@@ -219,6 +247,7 @@ impl PeerNetwork {
             heartbeat_ttl_seconds: self.heartbeat_ttl_seconds(),
             peer_count: list.len(),
             peers: list,
+            config_sources: self.config_sources(),
         }
     }
 }
@@ -230,22 +259,41 @@ pub fn global() -> &'static PeerNetwork {
     GLOBAL.get_or_init(PeerNetwork::from_env)
 }
 
+/// Resolve the peer configuration at boot (#1968), after the secrets manager is
+/// ready, so Vault `secret/gbo/peer` is read before the first request and the
+/// global instance is fixed once instead of on first traffic.
+///
+/// Logs the origin of each setting; values (token, signing key) are reported as
+/// `configured` / `absent` only.
+pub fn log_startup_configuration() {
+    let network = global();
+    let token_source = network
+        .config_sources()
+        .get("token")
+        .cloned()
+        .unwrap_or_else(|| "default".to_string());
+    log::info!(
+        "peer network: enabled={} node={} advertise={} token={} (token source: {token_source})",
+        network.enabled(),
+        network
+            .identity()
+            .map(|identity| identity.name)
+            .unwrap_or_else(|| "none".to_string()),
+        network.advertise_address().unwrap_or("none"),
+        if network.token().is_some() {
+            "configured"
+        } else {
+            "absent"
+        },
+    );
+    log::debug!("peer network config sources: {:?}", network.config_sources());
+}
+
 fn env_non_empty(key: &str) -> Option<String> {
     std::env::var(key)
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
-}
-
-fn env_truthy(key: &str) -> bool {
-    env_non_empty(key)
-        .map(|value| {
-            matches!(
-                value.to_ascii_lowercase().as_str(),
-                "1" | "true" | "yes" | "on"
-            )
-        })
-        .unwrap_or(false)
 }
 
 fn default_data_dir() -> Option<PathBuf> {

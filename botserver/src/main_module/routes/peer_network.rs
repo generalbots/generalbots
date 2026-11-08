@@ -141,10 +141,9 @@ pub async fn home_site(headers: HeaderMap) -> Response {
     if !network.enabled() {
         return error_response(PeerError::Disabled);
     }
-    let signing_key = std::env::var("GB_PEER_SIGNING_KEY")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| network.identity().map(|id| id.node_id.to_string()).unwrap_or_default());
+    // #1968 — `GB_PEER_SIGNING_KEY` → Vault `secret/gbo/peer` `signing-key`
+    // → the node id, resolved once in `PeerConfig::load`.
+    let signing_key = network.signing_key();
     match network.identity() {
         Some(identity) => {
             let site: HomeSite = HomeSiteGenerator::generate(
