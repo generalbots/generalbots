@@ -34,7 +34,13 @@
         fetch('/api/auth/directory-config')
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (cfg) {
-                if (cfg && cfg.issuer_url) window.__gbDirectoryIssuer = String(cfg.issuer_url).replace(/\/$/, '');
+                if (cfg && cfg.issuer_url) {
+            window.__gbDirectoryIssuer = String(cfg.issuer_url).replace(/\/$/, '');
+            // #1887 — directory-backed deployments own password/2FA. The local
+            // password form would mutate a credential the directory never sees.
+            var passwordCard = document.getElementById('security-password-card');
+            if (passwordCard) passwordCard.style.display = 'none';
+        }
             })
             .catch(function () { /* link falls back below */ });
     })();
@@ -44,10 +50,14 @@
             : null;
         if (target) {
             window.open(target, '_blank', 'noopener');
-        } else if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
-            window.WindowManager.openDeepLink('admin', {});
         } else {
-            window.open('/suite/settings/index.html?view=admin', '_blank', 'noopener');
+            // #1887 — no issuer means the directory address is unavailable.
+            // Never deep-link personal security into Administration; say what
+            // happened and leave the button inert.
+            if (typeof showToast === 'function') {
+                showToast('Directory address unavailable', 'error');
+            }
+            console.warn('openZitadelConsole: no directory issuer configured');
         }
         return false;
     };
@@ -81,6 +91,30 @@
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
     }
+
+    // #1887 — clearing the local cache: shell confirmation when available,
+    // otherwise the action runs with a toast. No window.confirm.
+    window.clearLocalCache = function () {
+        function clear() {
+            try {
+                Object.keys(localStorage)
+                    .filter(function (k) { return k.indexOf('gb_') === 0 || k.indexOf('gb-') === 0; })
+                    .forEach(function (k) { localStorage.removeItem(k); });
+                showToast('Local cache cleared');
+            } catch (e) {
+                showToast('Could not clear the cache', 'error');
+            }
+        }
+        if (window.WindowManager && typeof window.WindowManager.confirmFloating === 'function') {
+            window.WindowManager.confirmFloating(
+                'Clear local cache',
+                'Remove cached settings and drafts from this browser profile?',
+                clear
+            );
+            return;
+        }
+        clear();
+    };
 
     function showToast(message, type = 'success') {
         if (window.showNotification) {

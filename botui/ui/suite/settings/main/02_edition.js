@@ -63,11 +63,40 @@ function isShellMode(config) {
     config.no_security === true;
 }
 
+// #1887 — one security story per deployment. A no-security / single-user OS
+// install has no directory: password, 2FA and session listings are absent and
+// a single "Local data" card takes their place. Directory-backed clouds keep
+// the session/device lists and let settings-actions.js hide the local password
+// card once an issuer is known.
+function applySecurityStory(config) {
+  var noSecurity = !!(config && config.no_security === true) || currentEdition(config) === "os";
+  var password = document.getElementById("security-password-card");
+  var twofa = document.getElementById("security-2fa-card");
+  var sessions = document.getElementById("security-sessions-card");
+  var devices = document.getElementById("security-devices-card");
+  var local = document.getElementById("security-local-card");
+  if (noSecurity) {
+    [password, twofa, sessions, devices].forEach(function (card) {
+      if (card) { card.style.display = "none"; }
+    });
+    if (local) {
+      local.hidden = false;
+      local.style.display = "";
+    }
+    return;
+  }
+  if (local) {
+    local.hidden = true;
+    local.style.display = "none";
+  }
+}
+
 function applyShellModeVisibility(config) {
   var shell = isShellMode(config);
   if (document.body) {
     document.body.classList.toggle("gb-shell-mode", shell);
   }
+  applySecurityStory(config);
   document.querySelectorAll('[data-shell-only="true"]').forEach(function (node) {
     if (shell) {
       node.removeAttribute("hidden");
@@ -204,6 +233,7 @@ function initEditionVisibility() {
 }
 
   S.currentEdition = currentEdition;
+  S.applySecurityStory = applySecurityStory;
   S.isDesktopEdition = isDesktopEdition;
   S.isSlimEdition = isSlimEdition;
   S.isShellMode = isShellMode;
