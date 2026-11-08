@@ -239,25 +239,31 @@ pub async fn data_export(
         "notes": "Export is scoped to the authenticated user. Preference values with sensitive-looking keys are redacted. Some datasets may be omitted when unavailable.",
     });
 
-    // Build ZIP in memory, then verify we still have headroom before returning.
-    let mut cursor = std::io::Cursor::new(Vec::new());
-    {
-        let mut archive = match zip::ZipWriter::new(&mut cursor).start_file::<_, ()>("manifest.json", Default::default()).map(|_| zip::ZipWriter::new(&mut cursor)) {
-            Ok(_) => zip::ZipWriter::new(&mut cursor),
-            Err(_) => zip::ZipWriter::new(&mut cursor),
-        };
-        // Rebuild cleanly.
-    }
-    let mut cursor = std::io::Cursor::new(Vec::new());
+    // Build ZIP in memory.
     let build = (|| -> Result<Vec<u8>, String> {
+        use std::io::Write;
+        let mut cursor = std::io::Cursor::new(Vec::new());
         let mut archive = zip::ZipWriter::new(&mut cursor);
-        let opts = zip::write::FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
-        archive.start_file("manifest.json", opts).map_err(|e| e.to_string())?;
-        archive.write_all(serde_json::to_string_pretty(&manifest).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
-        archive.start_file("profile.json", opts).map_err(|e| e.to_string())?;
-        archive.write_all(serde_json::to_string_pretty(&profile).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
-        archive.start_file("preferences.json", opts).map_err(|e| e.to_string())?;
-        archive.write_all(serde_json::to_string_pretty(&preferences).unwrap_or_default().as_bytes()).map_err(|e| e.to_string())?;
+        let opts = zip::write::FileOptions::<()>::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        archive
+            .start_file("manifest.json", opts)
+            .map_err(|e| e.to_string())?;
+        archive
+            .write_all(serde_json::to_string_pretty(&manifest).unwrap_or_default().as_bytes())
+            .map_err(|e| e.to_string())?;
+        archive
+            .start_file("profile.json", opts)
+            .map_err(|e| e.to_string())?;
+        archive
+            .write_all(serde_json::to_string_pretty(&profile).unwrap_or_default().as_bytes())
+            .map_err(|e| e.to_string())?;
+        archive
+            .start_file("preferences.json", opts)
+            .map_err(|e| e.to_string())?;
+        archive
+            .write_all(serde_json::to_string_pretty(&preferences).unwrap_or_default().as_bytes())
+            .map_err(|e| e.to_string())?;
         archive.finish().map_err(|e| e.to_string())?;
         Ok(cursor.into_inner())
     })();
