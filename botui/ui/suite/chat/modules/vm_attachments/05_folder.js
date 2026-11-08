@@ -189,6 +189,7 @@ function vmGroupAttachments(anchor) {
       '<span class="gb-folder-icon">\u{1F4C1}</span>' +
       '<span class="gb-folder-title">output</span>' +
       '<span class="gb-folder-count"></span>' +
+      '<button type="button" class="gb-folder-toggle gb-attachment-btn">Show older</button>' +
       (vmAgentDriveEnabled()
         ? '<button type="button" class="gb-folder-save gb-attachment-btn">Save to Drive</button>'
         : "") +
@@ -221,6 +222,34 @@ function vmGroupAttachments(anchor) {
         })
         .then(vmReportSaved)
         .catch(vmNotifyError);
+    });
+  }
+
+  // #1902 — only the most recent run's output is shown inline; older runs
+  // collapse behind an expand control so empty/older bullets don't bury the
+  // latest result.
+  var toggle = folder.querySelector(".gb-folder-toggle");
+  if (toggle && !toggle.dataset.bound) {
+    toggle.dataset.bound = "1";
+    var pane = anchor && anchor.closest ? anchor.closest(".chat-pane-messages") : null;
+    var isLatest = true;
+    try {
+      var bots = (pane || document).querySelectorAll(".message.bot");
+      if (bots.length && anchor !== bots[bots.length - 1]) isLatest = false;
+    } catch (e) { /* default expanded */ }
+    if (!isLatest) {
+      grid.style.display = "none";
+      toggle.textContent = "Show older output";
+      toggle.dataset.collapsed = "1";
+    } else {
+      toggle.textContent = "Hide output";
+      toggle.dataset.collapsed = "0";
+    }
+    toggle.addEventListener("click", function () {
+      var collapsed = toggle.dataset.collapsed === "1";
+      grid.style.display = collapsed ? "" : "none";
+      toggle.dataset.collapsed = collapsed ? "0" : "1";
+      toggle.textContent = collapsed ? "Hide output" : "Show older output";
     });
   }
 }
