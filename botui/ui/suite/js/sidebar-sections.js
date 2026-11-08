@@ -383,6 +383,16 @@
         },
       },
     ];
+    // Billing opens its deep link only when the product actually ships the
+    // app — desktop products keep Billing out of the launcher (it is a
+    // preview app there), and the user menu must not offer a menu item that
+    // does nothing. Web products keep it: their registry contains billing.
+    items = items.filter(function (entry) {
+      if (entry.label !== tr("sidebar-billing", "Billing")) return true;
+      return (window.APPS_REGISTRY || []).some(function (a) {
+        return a && a.id === "billing";
+      });
+    });
     items.forEach(function (entry) {
       var item = document.createElement("div");
       item.className = "desktop-context-item";
