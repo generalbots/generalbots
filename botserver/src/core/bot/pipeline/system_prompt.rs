@@ -94,10 +94,35 @@ pub(super) fn build(
             crate::core::bot::api_catalog::api_command_instructions(&role),
         )
     };
+    // #1939 — the delivery policy only makes sense where the model can act
+    // (web/desktop); a channel without an action surface gets prose only.
+    let delivery = if channel == "web" {
+        delivery_policy_block()
+    } else {
+        String::new()
+    };
     format!(
-        "{channel_prompt}\n\n{}",
+        "{channel_prompt}\n\n{}\n\n{delivery}",
         capability_block(channel, client_caps)
     )
+}
+
+/// #1939 — “ask, done” delivery policy: produce the artifact the user asked
+/// for, in that format, using the open-source ecosystem instead of a
+/// hand-rolled substitute. The safety envelope is unchanged: this text only
+/// shapes the plan, every execution still passes the command/path/budget
+/// guards.
+#[must_use]
+pub fn delivery_policy_block() -> String {
+    [
+        "DELIVERY POLICY (ask, done)",
+        "- When the user names a deliverable or file type (pdf, pptx, xlsx, csv, png, zip, .fig, code, …), aim for that exact artifact and leave it where this client can fetch it.",
+        "- Prefer a maintained open-source library or command-line tool that already produces that format. If you are unsure which one is current, search the web first instead of guessing from memory, then use it.",
+        "- Install what the task needs in the sandbox, but keep installs, execution and file writes inside the existing limits (packages allowlist, time and size budgets, path and command guards).",
+        "- Never substitute a different format silently. If the exact format cannot be produced reliably, say so after checking the available open-source paths and offer the closest alternative that you can verify.",
+        "- Deliver quietly: no plan-only replies, no “here is how you would do it” when the work can be done now.",
+    ]
+    .join("\n")
 }
 
 /// Per-session capability block (#1678). The model must not offer a surface

@@ -9,6 +9,13 @@ use super::internal;
 use super::paths::{CLAUDE_HOME, CLAUDE_USER, PROMPT_B64, PROMPT_TXT};
 use super::status::run_script;
 
+/// #1939 — delivery policy for VM agent turns.
+const DELIVERY_DIRECTIVE: &str = "Deliver the exact artifact the user asked for, in the requested \
+format. Prefer a maintained open-source library or command-line tool that already produces it, and \
+search the web first when unsure which one is current. Install what the task needs, but stay inside \
+the sandbox limits. Never substitute another format silently: if the exact format cannot be produced \
+reliably, say so and offer the closest alternative you can verify.";
+
 /// Runs one non-interactive turn with the subscription. The prompt is base64
 /// encoded on the host, so quotes, newlines and shell metacharacters are data.
 pub async fn run_prompt(
@@ -20,6 +27,9 @@ pub async fn run_prompt(
     if prompt.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Empty prompt".to_string()));
     }
+    // #1939 — the subscription agent gets the same “ask, done” policy as the
+    // chat prompt: exact requested format, open-source tooling first.
+    let prompt = format!("{DELIVERY_DIRECTIVE}\n\n{prompt}");
     let model = sanitize_model(model);
     let model_arg = if model.is_empty() {
         String::new()
@@ -31,7 +41,7 @@ pub async fn run_prompt(
          chown {user}:{user} {b64_path}; chmod 600 {b64_path}; \
          base64 -d {b64_path} > {txt_path}; chown {user}:{user} {txt_path}; chmod 600 {txt_path}; \
          timeout 300 su {user} -s /bin/sh -c 'cd {home} && claude -p \"$(cat {txt_path})\" --output-format text{model_arg}'",
-        payload = b64(prompt),
+        payload = b64(prompt.as_str()),
         b64_path = PROMPT_B64,
         txt_path = PROMPT_TXT,
         user = CLAUDE_USER,
