@@ -162,7 +162,7 @@ pub async fn process_llm_response(
                                 .collect();
                             if !cleaned.trim().is_empty() {
                                 let mut sm = state.session_manager.lock().await;
-                                let _ = sm.rename_session_if_untitled(session_id, user_id, &cleaned);
+                                let _ = sm.ensure_title_from_message(session_id, user_id, &cleaned);
                             }
                         }
                         Err(e) => log::debug!("conversation title generation failed: {e}"),

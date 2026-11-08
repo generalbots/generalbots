@@ -37,8 +37,8 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             data_download_list: get_component_url("mc").map(|url| vec![url]).unwrap_or_default(),
             exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
             check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\minio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}\\drive\\certs > {{LOGS_PATH}}\\minio.log 2>&1".to_string()),
-            check_cmd_windows: Some("curl -sf --connect-timeout 2 -m 5 --cacert {{CONF_PATH}}\\drive\\certs\\CAs\\ca.crt https://127.0.0.1:9100/minio/health/live >NUL 2>&1".to_string()),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\minio.exe server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 > {{LOGS_PATH}}\\minio.log 2>&1".to_string()),
+            check_cmd_windows: Some("curl -sf --connect-timeout 2 -m 5 http://127.0.0.1:9100/minio/health/live >NUL 2>&1".to_string()),
             container: None,
         },
     );
@@ -94,7 +94,11 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
                 "chmod +x ./bin/*".to_string(),
                 "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -A -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
             ],
-            pre_install_cmds_windows: Vec::new(),
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
+                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
+                "if not exist {{CONF_PATH}} mkdir {{CONF_PATH}}".to_string(),
+            ],
             post_install_cmds_windows: vec![
                 "if not exist \"{{DATA_PATH}}\\pgdata\\PG_VERSION\" \"{{BIN_PATH}}\\bin\\initdb.exe\" --encoding=UTF8 --no-locale -D \"{{DATA_PATH}}\\pgdata\" -U gbuser --auth=trust".to_string(),
                 "echo data_directory = '{{DATA_PATH}}\\pgdata' > \"{{CONF_PATH}}\\postgresql.conf\"".to_string(),

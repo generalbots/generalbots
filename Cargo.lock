@@ -3474,9 +3474,11 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sha2 0.10.9",
+ "sysinfo",
  "tokio",
  "tracing",
  "uuid",
+ "zip",
 ]
 
 [[package]]

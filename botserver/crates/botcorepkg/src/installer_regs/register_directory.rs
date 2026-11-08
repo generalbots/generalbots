@@ -70,6 +70,7 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
             ],
             post_install_cmds_macos: Vec::new(),
             pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
                 "if not exist {{CONF_PATH}}\\directory mkdir {{CONF_PATH}}\\directory".to_string(),
                 "if not exist {{LOGS_PATH}}\\directory mkdir {{LOGS_PATH}}\\directory".to_string(),
                 "echo FirstInstance: > {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
