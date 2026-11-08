@@ -68,6 +68,19 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dtolnay/rust-toolchain@stable
+      # #1954 — this job compiled the whole dependency graph on every run.
+      # The key is check-specific so it never collides with the release build's
+      # `cargo-desktop-` cache (different profile, different target contents).
+      - name: Cache Cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-check-
       - name: Check the Windows agent/VM adapters
         run: cargo check --lib -p botagent -p botvibe
 
