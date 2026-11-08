@@ -54,7 +54,7 @@
     assert(ready, "wizard renders with the stack stopped and no network");
 
     var rail = document.querySelectorAll("#railSteps .rail-step");
-    assert(rail.length === 7, "seven steps are present", String(rail.length));
+    assert(rail.length === 8, "eight steps are present", String(rail.length));
     assert(rail[0].getAttribute("aria-current") === "step", "rail marks the current step");
 
     var body = text("#stepBody");
@@ -119,8 +119,16 @@
       "data map states that crash reports go nowhere by default");
 
     click("#nextBtn");
+    await waitFor(function () { return window.GBWizard.state.step === 6; }, 1500);
+    assert(window.GBWizard.state.step === 6, "network mode step is reachable");
+    assert(!!document.getElementById("networkModeP2P"), "P2P radio button is on screen");
+    assert(!!document.getElementById("networkModeOffline"), "Offline radio button is on screen");
+    var p2pRadio = document.getElementById("networkModeP2P");
+    assert(!!p2pRadio && p2pRadio.checked, "P2P is selected by default");
+
+    click("#nextBtn");
     // `next()` renders the installer synchronously, before the first timer.
-    assert(window.GBWizard.state.step === 6, "install step is reachable");
+    assert(window.GBWizard.state.step === 7, "install step is reachable");
     assert(!!document.getElementById("installPercent"), "installer progress is on screen");
     assert(!!document.getElementById("hostReadiness"), "host readiness is checked before services start");
     var hostChecked = await waitFor(function () {
@@ -136,8 +144,8 @@
       return window.GBWizard.state.provisioning.ready === true;
     }, 12000);
     assert(provisioned, "provisioning reaches ready");
-    await waitFor(function () { return window.GBWizard.state.step === 7; }, 1500);
-    assert(window.GBWizard.state.step === 7, "finish step is reachable");
+    await waitFor(function () { return window.GBWizard.state.step === 8; }, 1500);
+    assert(window.GBWizard.state.step === 8, "finish step is reachable");
     assert(text("#stepBody").indexOf("Workspace") !== -1, "finish summarises the choices");
     assert(text("#stepBody").indexOf("Administrator account") !== -1,
       "finish shows the administrator account");

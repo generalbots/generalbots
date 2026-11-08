@@ -66,7 +66,7 @@
     stopAccountTimer();
     var deadline = Date.now() + 300000;
     function tick() {
-      if (state.step !== 7) { return; }
+      if (state.step !== 8) { return; }
       B.aiStatus(provider, draft.admin).then(function (data) {
         var account = (data && data.account) || data || {};
         var status = account.status || "unlinked";

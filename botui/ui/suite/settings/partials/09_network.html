@@ -1,0 +1,48 @@
+<!-- #1865 — Network mode settings panel (desktop-local only).
+     Reads/writes the GB_NETWORK_MODE runtime preference via localStorage
+     (gb_peer_network_mode). A permanent change requires re-running the wizard
+     or editing stack/conf/.env directly. -->
+<section id="network-section" class="settings-section" data-shell-only="true" hidden>
+    <div class="section-header">
+        <h1>Network</h1>
+        <p class="subtitle">Control whether this installation participates in the peer network</p>
+    </div>
+
+    <article class="setting-card">
+        <div class="card-header">
+            <h2>P2P Network</h2>
+            <span id="network-mode-badge" class="shared-status shared-status-off">
+                <span class="shared-status-dot"></span>Offline
+            </span>
+        </div>
+        <p>
+            <strong>Offline</strong> — every connection stays on <code>127.0.0.1</code>.
+            Shared links work on your local network only.<br />
+            <strong>P2P</strong> — enables future features such as free shared-link relaying
+            and peer discovery. No data leaves this machine until you explicitly share
+            something.
+        </p>
+
+        <div class="inline-row" style="margin-top:12px">
+            <label for="network-mode-select">Network mode</label>
+            <select id="network-mode-select">
+                <option value="p2p">P2P (recommended)</option>
+                <option value="offline">Offline</option>
+            </select>
+            <button type="button" class="btn-secondary btn-sm" id="network-mode-apply">Apply</button>
+        </div>
+        <p class="shared-hint" style="margin-top:8px">
+            This preference is saved locally and takes effect after the app restarts.
+            To set a permanent value, re-run the first-run wizard or edit
+            <code>stack/conf/.env</code> directly (<code>GB_NETWORK_MODE=offline</code>
+            or <code>GB_NETWORK_MODE=p2p</code>).
+        </p>
+        <p id="network-mode-status" class="note" role="status" style="margin-top:8px"></p>
+    </article>
+
+    <div class="shared-links-footer">
+        <span class="shared-links-checked" id="network-checked"></span>
+    </div>
+</section>
+
+<script src="/suite/settings/settings-network.js?v=1"></script>

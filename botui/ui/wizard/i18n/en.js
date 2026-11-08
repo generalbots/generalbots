@@ -19,6 +19,7 @@ window.GBWizardLocales["en"] = {
   "step.workspace": "Workspace",
   "step.services": "Connect services",
   "step.privacy": "Privacy",
+  "step.network": "Network mode",
   "step.install": "Install",
   "step.finish": "Finish",
 
@@ -27,8 +28,16 @@ window.GBWizardLocales["en"] = {
   "heading.workspace": "Choose a workspace",
   "heading.services": "Connect services",
   "heading.privacy": "What leaves this machine",
+  "heading.network": "Choose your network mode",
   "heading.install": "Setting up this machine",
   "heading.finish": "Ready to open the assistant",
+
+  "network.lead": "Control whether this installation joins the peer network or stays entirely offline.",
+  "network.p2p.title": "P2P — Join peer network (recommended)",
+  "network.p2p.desc": "Enables future features such as free shared-link relaying and peer discovery. No data leaves this machine until you explicitly share something.",
+  "network.offline.title": "Offline — No network identity",
+  "network.offline.desc": "Keeps every connection on 127.0.0.1. No peer features; shared links work on your local network only.",
+  "network.note": "You can change this later in Settings — Network.",
 
   "welcome.lead": "Runs on this machine; nothing leaves it unless you connect a service.",
   "welcome.note1": "This setup creates a private workspace, starts the local services the assistant needs, and opens the assistant when everything answers.",

@@ -38,8 +38,8 @@
 
   function canAdvance() {
     if (state.provisioning.running) { return false; }
-    if (state.step === 6) { return state.provisioning.ready || state.skipped; }
-    if (state.step === 7) { return state.provisioning.ready || state.skipped || !state.context.first_run; }
+    if (state.step === 7) { return state.provisioning.ready || state.skipped; }
+    if (state.step === 8) { return state.provisioning.ready || state.skipped || !state.context.first_run; }
     return S.validate(state.step, draft).ok;
   }
 
@@ -58,7 +58,7 @@
     el.heading.textContent = S.heading(state.step);
     el.body.innerHTML = S.render(state.step, draft, state.context);
     if (el.stepError) { el.stepError.hidden = true; el.stepError.textContent = ""; }
-    if (state.step === 5) { renderComponents(); }
+    if (state.step === 7) { renderComponents(); }
     bindStep();
     el.heading.focus();
     say(t("wizard.step-say", { current: state.step, total: state.totalSteps, title: S.heading(state.step) }));
@@ -125,8 +125,9 @@
 
     if (state.step === 4) { bindServices(); }
     if (state.step === 5) { bindPrivacy(); }
-    if (state.step === 6) { bindInstall(); }
-    if (state.step === 7) { bindFinish(); }
+    if (state.step === 6) { bindNetwork(); }
+    if (state.step === 7) { bindInstall(); }
+    if (state.step === 8) { bindFinish(); }
   }
 
   function bindModelDetail() {
@@ -247,14 +248,16 @@
   function bindPrivacy() {
     var reveal = document.getElementById("revealVaultBtn");
     if (reveal) { reveal.addEventListener("click", function () { B.openFolder("vault"); }); }
-    var mode = document.getElementById("networkMode");
-    if (mode) {
-      mode.addEventListener("change", function () {
-        draft.network = draft.network || { mode: "offline" };
-        draft.network.mode = mode.value === "p2p" ? "p2p" : "offline";
+  }
+
+  function bindNetwork() {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="networkMode"]'), function (input) {
+      input.addEventListener("change", function () {
+        draft.network = draft.network || { mode: "p2p" };
+        draft.network.mode = input.value === "offline" ? "offline" : "p2p";
         persistDraft();
       });
-    }
+    });
   }
 
   App.renderRail = renderRail;
@@ -267,4 +270,5 @@
   App.checkWorkspace = checkWorkspace;
   App.bindServices = bindServices;
   App.bindPrivacy = bindPrivacy;
+  App.bindNetwork = bindNetwork;
 })();

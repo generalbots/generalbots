@@ -135,6 +135,14 @@ pub struct AdminDraft {
     pub user_id: String,
 }
 
+/// Network mode chosen on the wizard Network step.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct NetworkDraft {
+    /// `"p2p"` or `"offline"` (default). Persisted as GB_NETWORK_MODE.
+    #[serde(default)]
+    pub mode: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FinishRequest {
     #[serde(default)]
@@ -147,4 +155,6 @@ pub struct FinishRequest {
     pub services: std::collections::HashMap<String, ServiceClient>,
     #[serde(default)]
     pub admin: AdminDraft,
+    #[serde(default)]
+    pub network: NetworkDraft,
 }

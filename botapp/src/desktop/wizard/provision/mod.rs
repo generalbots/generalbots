@@ -53,7 +53,7 @@ async fn provision_inner(
     save_draft(&request).map_err(|e| format!("could not save the setup choices: {e}"))?;
     let _ = super::write_progress(&ProgressMarker {
         completed: Vec::new(),
-        step: 5,
+        step: 6, // network mode step — resume here if provisioning is interrupted
     });
 
     run_components(app, state, &request).await?;

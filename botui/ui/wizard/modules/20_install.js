@@ -171,7 +171,7 @@
     if (start) { start.textContent = t("install.complete"); start.disabled = true; }
     updateInstallProgress();
     renderFooter();
-    if (state.step === 6) { goTo(7); }
+    if (state.step === 7) { goTo(8); }
   }
 
   function pollStatus() {

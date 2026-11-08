@@ -17,7 +17,7 @@
 
   function goTo(step) {
     if (step < 1 || step > state.totalSteps) { return; }
-    if (step !== 7) { stopAccountTimer(); }
+    if (step !== 8) { stopAccountTimer(); }
     state.step = step;
     render();
     persistDraft();
@@ -27,11 +27,7 @@
     if (state.step === state.totalSteps) { finish(); return; }
     var check = S.validate(state.step, draft);
     if (!check.ok) { say(check.reason); showInlineError(check.reason); return; }
-    if (state.step === 5) {
-      goTo(6);
-      return;
-    }
-    if (state.step === 6 && !state.provisioning.ready && !state.skipped) {
+    if (state.step === 7 && !state.provisioning.ready && !state.skipped) {
       if (hostLocked()) { say(t("host.blocked-say")); return; }
       startProvisioning();
       return;
