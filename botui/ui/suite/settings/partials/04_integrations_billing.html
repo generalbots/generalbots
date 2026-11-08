@@ -12,10 +12,11 @@
                 </button>
             </div>
 
-            <!-- API Keys -->
+            <!-- #1883 — personal access tokens (gb_…), distinct from the
+                 model-provider keys owned by the Integrations app. -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>API Keys</h2>
+                    <h2>Personal access tokens</h2>
                     <div class="card-actions" style="display:flex;gap:8px;align-items:center">
                         <a class="btn-secondary btn-sm"
                             href="https://docs.generalbots.org/08-rest-api-tools/user-security.html#api-keys"
@@ -28,10 +29,11 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Create Key
+                            Create token
                         </button>
                     </div>
                 </div>
+                <p class="setting-desc" style="padding:0 20px 12px;">Tokens you mint for calling the API as yourself (<code>gb_…</code>). Model-provider keys live in the Integrations app.</p>
                 <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="empty-state">
@@ -189,8 +191,7 @@
         <!-- Vibe Section -->
         <section id="vibe-section" class="settings-section">
             <div class="section-header">
-                <h1 data-i18n="settings-vibe">Vibe</h1>
-                <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → LLM Providers (BYOK) or the Cloud store.</p>
+                <h1 data-i18n="settings-vibe">Vibe</h1>                    <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → Model providers (BYOK) or the Cloud store.</p>
             </div>
 
             <div class="setting-card">

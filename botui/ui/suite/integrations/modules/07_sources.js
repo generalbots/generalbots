@@ -16,7 +16,7 @@
         { id: "repositories", label: "Repositories", endpoint: "/api/ui/sources/repositories", kind: "fragment" },
         { id: "models", label: "Models", endpoint: "/api/ui/sources/models", kind: "fragment" },
         { id: "accounts", label: "Accounts", endpoint: "/api/ui/sources/accounts", kind: "fragment" },
-        { id: "api-keys", label: "API Keys", endpoint: "/api/ui/sources/api-keys", kind: "fragment" }
+        { id: "api-keys", label: "Model providers (BYOK)", endpoint: "/api/ui/sources/api-keys", kind: "fragment" }
     ];
 
     namespace.sourceDefinition = function (id) {

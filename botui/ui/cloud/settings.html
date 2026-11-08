@@ -90,10 +90,12 @@
 
       <div class="divider"></div>
 
-      <!-- BYOK API Keys -->
+      <!-- #1883 — account-level model-provider keys. Platform Vault keys keep
+           their own editor in the Integrations app (Model providers (BYOK)). -->
       <div class="settings-section">
         <div class="settings-card">
-          <div class="settings-card-title">Bring Your Own Key (BYOK)</div>
+          <div class="settings-card-title">Model providers (account)</div>
+          <div class="settings-card-desc">Keys this billing account uses to reach model providers. Platform-wide keys stored in Vault are managed in the Integrations app.</div>
           <div id="byok-list">
             <p style="color:var(--muted);font-size:.85rem">Loading providers...</p>
           </div>

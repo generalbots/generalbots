@@ -119,7 +119,7 @@
 <dialog id="create-api-key-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 data-i18n="settings-create-api-key">Create API Key</h2>
+            <h2 data-i18n="settings-create-api-key">Create personal access token</h2>
             <button type="button" class="close-btn" onclick="document.getElementById('create-api-key-modal').close()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -130,7 +130,7 @@
         <form hx-post="/api/user/api-keys" hx-target="#create-api-key-result" hx-swap="innerHTML"
             hx-on::after-request="if(event.detail.successful) { htmx.ajax('GET', '/api/user/api-keys', { target: '#api-keys-list', swap: 'innerHTML' }); }">
             <div class="form-group">
-                <label data-i18n="settings-api-key-name">Key Name</label>
+                <label data-i18n="settings-api-key-name">Token name</label>
                 <input type="text" name="name" required placeholder="Production key">
             </div>
             <div class="form-group">
@@ -147,7 +147,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn-secondary"
                     onclick="document.getElementById('create-api-key-modal').close()">Cancel</button>
-                <button type="submit" class="btn-primary">Create Key</button>
+                <button type="submit" class="btn-primary">Create token</button>
             </div>
         </form>
     </div>
