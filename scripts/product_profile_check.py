@@ -185,6 +185,12 @@ def main() -> int:
     apps = registry_ids()
     if len(apps) != 68:
         errors.append(f"expected 68 registry apps, found {len(apps)}")
+    missing_feature_map = sorted(apps - set(APP_FEATURES))
+    extra_feature_map = sorted(set(APP_FEATURES) - apps - CORE_APPS)
+    if missing_feature_map:
+        errors.append(f"APP_FEATURES missing registry ids: {', '.join(missing_feature_map)}")
+    if extra_feature_map:
+        errors.append(f"APP_FEATURES has unknown non-core ids: {', '.join(extra_feature_map)}")
 
     known = apps | NON_APP_SURFACES
     for path in PRODUCT_FILES:
