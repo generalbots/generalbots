@@ -58,11 +58,20 @@
     // conversation and are dropped.
     var seen = { "tab-default": true };
     var keep = [];
+    // #1949 — a persisted strip used to come back with EVERY previous
+    // conversation stacked above the fresh one (reported as ~5 duplicate
+    // chats). Keep at most two most-recent distinct conversations besides the
+    // default tab, plus whatever session this page load is actually on.
+    var RESTORED_LIMIT = 2;
+    var restored = 0;
+    var currentSession = (window.ChatState && ChatState.currentSessionId) || null;
     GBTabs.state.tabs.forEach(function (tab) {
       if (tab.id === "tab-default") { keep.unshift(tab); return; }
       if (tab.fresh && tab.fresh > BOOT_AT + 1500) { keep.push(tab); return; }
       if (tab.sessionId && !seen[tab.sessionId]) {
         seen[tab.sessionId] = true;
+        if (currentSession && tab.sessionId !== currentSession && restored >= RESTORED_LIMIT) return;
+        if (!currentSession || tab.sessionId !== currentSession) restored++;
         tab.restored = true;
         keep.push(tab);
       }

@@ -149,8 +149,13 @@ pub async fn update_user(
     let is_admin = role == "admin";
     let is_active = status != "inactive";
 
+    // #1943 — `users.email` is UNIQUE: skip the write when another row already
+    // owns the address instead of emitting a raw `users_email_key` violation.
     let result = diesel::sql_query(
-        "UPDATE users SET username = $1, email = $2, is_admin = $3, is_active = $4, updated_at = NOW() WHERE id = $5",
+        "UPDATE users SET username = $1, email = $2, is_admin = $3, is_active = $4, updated_at = NOW() \
+         WHERE id = $5 AND NOT EXISTS ( \
+           SELECT 1 FROM users other \
+           WHERE other.id <> $5 AND lower(other.email) = lower($2))",
     )
     .bind::<diesel::sql_types::Text, _>(&username)
     .bind::<diesel::sql_types::Text, _>(&email)
@@ -160,6 +165,17 @@ pub async fn update_user(
     .execute(&mut conn);
 
     match result {
+        Ok(0) => {
+            log::warn!(
+                "User {} not updated: {} is already in use or the user no longer exists",
+                id,
+                email
+            );
+            (
+                StatusCode::CONFLICT,
+                Html("Email already in use by another user".to_string()),
+            )
+        }
         Ok(_) => (
             StatusCode::OK,
             Html(load_users_rows(

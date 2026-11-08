@@ -92,7 +92,7 @@
   <div class="logo-wrap" aria-hidden="true">
     <img class="logo" src="logo.svg" alt="" />
   </div>
-  <div class="status" id="splashStatus" role="status" aria-live="polite" aria-atomic="true">Starting General Bots…</div>
+  <div class="status" id="splashStatus" role="status" aria-live="polite" aria-atomic="true">Starting services…</div>
   <div class="progress" role="progressbar" id="splashProgress" aria-label="Startup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <div class="progress-bar" id="splashBar"></div>
   </div>
@@ -161,7 +161,7 @@
         if (progress < 95) setProgress(92, "Preparing workspace…");
       }
 
-      setProgress(2, "Starting General Bots…");
+      setProgress(2, "Starting services…");
       poll();
       timer = setInterval(poll, 900);
     })();

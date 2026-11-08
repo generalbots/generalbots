@@ -142,12 +142,28 @@ pub async fn user_profile_put(
     };
 
     if let Some(email) = form.email.as_deref() {
-        if !email.trim().is_empty() {
-            let _ =
-                diesel::sql_query("UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2")
-                    .bind::<diesel::sql_types::Text, _>(email)
-                    .bind::<diesel::sql_types::Uuid, _>(user_id)
-                    .execute(&mut conn);
+        let email = email.trim();
+        if !email.is_empty() {
+            // #1943 — `users.email` is UNIQUE. Guard the write so an address
+            // already owned by another row is skipped with a clear log instead
+            // of raising a raw `users_email_key` violation every profile save.
+            let updated = diesel::sql_query(
+                "UPDATE users SET email = $1, updated_at = NOW() \
+                 WHERE id = $2 AND NOT EXISTS ( \
+                   SELECT 1 FROM users other \
+                   WHERE other.id <> $2 AND lower(other.email) = lower($1))",
+            )
+            .bind::<diesel::sql_types::Text, _>(email)
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .execute(&mut conn);
+
+            match updated {
+                Ok(0) => log::warn!(
+                    "Profile email update skipped for user {user_id}: {email} is already in use"
+                ),
+                Ok(_) => {}
+                Err(e) => log::warn!("Profile email update failed for user {user_id}: {e}"),
+            }
         }
     }
 

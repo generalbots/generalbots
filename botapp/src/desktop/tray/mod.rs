@@ -200,10 +200,12 @@ impl TrayManager {
                             button_state: MouseButtonState::Up,
                             ..
                         } => menu::toggle_main_window(app),
+                        // #1940 — a double click is the "search" gesture:
+                        // show the suite and focus the omnibox, not a new chat.
                         TrayIconEvent::DoubleClick {
                             button: MouseButton::Left,
                             ..
-                        } => menu::new_chat(app),
+                        } => menu::focus_search(app),
                         _ => {}
                     }
                 });

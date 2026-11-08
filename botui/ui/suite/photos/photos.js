@@ -17,11 +17,13 @@
 
     fetch("/api/files/list?scope=user&_=" + Date.now())
       .then(function (r) {
-        if (!r.ok) throw new Error("list failed");
+        if (!r.ok) throw new Error("Drive listing failed (HTTP " + r.status + ")");
         return r.json();
       })
-      .then(function (items) {
-        const images = (items || []).filter(function (f) {
+      .then(function (payload) {
+        // The drive list endpoint answers either a bare array or {files:[…]}.
+        const items = Array.isArray(payload) ? payload : (payload && (payload.files || payload.items)) || [];
+        const images = items.filter(function (f) {
           return !f.is_dir && IMG_EXT.test(f.name || f.path);
         });
         if (!images.length) {
@@ -67,6 +69,11 @@
           const url = "data:image/png;base64," + data.content;
           tile.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(f.name) + '" />';
           tile.dataset.url = url;
+          return;
+        }
+        if (tile && !tile.dataset.warned) {
+          tile.dataset.warned = "1";
+          tile.title = f.name + " — preview unavailable (download it from Drive)";
         }
       })
       .catch(function () {})
@@ -88,7 +95,26 @@
             img.src = url;
             lightbox.style.display = "flex";
           } else {
-            window.open("/api/files/download", "_blank");
+            // The download endpoint is POST-only: opening the bare URL opened
+            // a 405 page. Fetch the file and show it in the lightbox.
+            const path = tile.getAttribute("data-path");
+            fetch("/api/files/download", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path: path, scope: "user" }),
+            })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                if (data && data.content) {
+                  img.src = "data:image/png;base64," + data.content;
+                  lightbox.style.display = "flex";
+                } else {
+                  renderError(new Error("This image could not be loaded from Drive."));
+                }
+              })
+              .catch(function () {
+                renderError(new Error("This image could not be loaded from Drive."));
+              });
           }
         }
       });

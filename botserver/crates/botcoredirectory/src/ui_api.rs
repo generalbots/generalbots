@@ -4,7 +4,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use diesel::RunQueryDsl;
+use diesel::{OptionalExtension, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -70,11 +70,46 @@ async fn update_user_json(
     }
 
     if let Some(email) = &payload.email {
-        diesel::sql_query("UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2")
-            .bind::<diesel::sql_types::Text, _>(email)
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        let email = email.trim();
+        // #1943 — `users.email` is UNIQUE. Only write it when no other row owns
+        // the address, and answer 409 instead of surfacing a raw constraint
+        // violation (`users_email_key`).
+        let updated = diesel::sql_query(
+            "UPDATE users SET email = $1, updated_at = NOW() \
+             WHERE id = $2 AND NOT EXISTS ( \
+               SELECT 1 FROM users other \
+               WHERE other.id <> $2 AND lower(other.email) = lower($1))",
+        )
+        .bind::<diesel::sql_types::Text, _>(email)
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .execute(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+
+        if updated == 0 {
+            #[derive(diesel::QueryableByName)]
+            #[diesel(check_for_backend(diesel::pg::Pg))]
+            struct CurrentEmail {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                email: String,
+            }
+            let current = diesel::sql_query("SELECT email FROM users WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .get_result::<CurrentEmail>(&mut conn)
+                .optional()
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+            match current {
+                // Same address (differing only by case): the guarded update is
+                // a no-op on purpose, not a conflict.
+                Some(row) if row.email.eq_ignore_ascii_case(email) => {}
+                Some(_) => {
+                    return Err((
+                        StatusCode::CONFLICT,
+                        "Email already in use by another user".to_string(),
+                    ))
+                }
+                None => return Err((StatusCode::NOT_FOUND, "User not found".to_string())),
+            }
+        }
     }
 
     if let Some(is_admin) = payload.role.as_deref().map(|r| r == "admin") {

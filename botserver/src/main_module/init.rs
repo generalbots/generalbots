@@ -183,6 +183,14 @@ pub async fn run_bootstrap(
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
 
+        // #1942 — `app_templates` is created on demand by the templates
+        // handlers. Bootstrap used to run the sync before the table existed,
+        // logging `relation "app_templates" does not exist` on every start.
+        #[cfg(feature = "templates")]
+        if let Err((_, message)) = bottemplates::storage::ensure_schema_sync() {
+            warn!("Failed to ensure app_templates schema: {}", message);
+        }
+
         if let Err(e) = bootstrap.sync_templates_to_database() {
             warn!("Failed to sync templates to database: {}", e);
         } else {

@@ -79,6 +79,32 @@ pub(super) fn new_chat(app: &AppHandle) {
     eval_on_main(app, script);
 }
 
+/// Brings the suite forward and focuses the search box (omnibox) so the user
+/// can type immediately (#1940). The omnibox lives in the desktop shell's
+/// header and is hidden until the profile loads, so retry briefly after
+/// opening the home surface.
+pub(super) fn focus_search(app: &AppHandle) {
+    show_main_window(app);
+    let script = r#"(function(){
+        var attempts = 0;
+        function focusBox() {
+            var input = document.getElementById("omniboxInput");
+            if (!input) return false;
+            var box = document.getElementById("omnibox");
+            if (box) box.style.display = "";
+            input.focus();
+            if (typeof input.select === "function") input.select();
+            return true;
+        }
+        if (focusBox()) return;
+        if (window.openDeepLink) window.openDeepLink("home", {}, {});
+        var timer = setInterval(function(){
+            if (focusBox() || ++attempts > 40) clearInterval(timer);
+        }, 250);
+    })();"#;
+    eval_on_main(app, script);
+}
+
 /// Opens (or focuses) one of the suite apps.
 pub(super) fn open_app(app: &AppHandle, app_id: &str, fresh_window: bool) {
     show_main_window(app);

@@ -200,8 +200,10 @@ pub async fn list_groups(State(state): State<Arc<AppState>>) -> axum::Json<serde
         name: String,
     }
 
+    // `rbac_user_groups` is the membership table (user_id, group_id) — it has
+    // no `name` column (#1942). The group itself lives in `rbac_groups`.
     let rows: Vec<GroupRow> =
-        diesel::sql_query("SELECT id, name FROM rbac_user_groups ORDER BY name")
+        diesel::sql_query("SELECT id, name FROM rbac_groups ORDER BY name")
             .load::<GroupRow>(&mut conn)
             .unwrap_or_default();
 

@@ -29,7 +29,11 @@ pub async fn billing_plan(
             #[diesel(sql_type = diesel::sql_types::Uuid)]
             branch_id: uuid::Uuid,
         }
-        diesel::sql_query("SELECT branch_id FROM crm_contacts WHERE user_id = $1 LIMIT 1")
+        // `crm_contacts` has no `user_id` column — the owning user is
+        // `owner_id` (#1942). The old name failed with
+        // `column "user_id" does not exist`, so every plan lookup fell back to
+        // the global branch.
+        diesel::sql_query("SELECT branch_id FROM crm_contacts WHERE owner_id = $1 LIMIT 1")
             .bind::<diesel::sql_types::Uuid, _>(uid)
             .get_result::<BranchRow>(&mut conn)
             .ok()
@@ -50,8 +54,14 @@ pub async fn billing_plan(
     // Bound parameter, never string-interpolated: branch_id comes from the
     // session's own contact row, and the fallback is the nil (global) branch.
     let scope_branch = branch_id.unwrap_or_else(uuid::Uuid::nil);
+    // `billing_recurring` has no `plan_name` column (#1942). The plan label is
+    // persisted in `description` as `{plan} - {detail}` (see
+    // botvibe::metering and botbilling::process_expiring_subscriptions), so the
+    // first segment is the plan name.
     let plan: Option<PlanRow> = diesel::sql_query(
-        "SELECT COALESCE(plan_name, 'free') AS plan, COALESCE(status, 'active') AS status, amount
+        "SELECT COALESCE(NULLIF(split_part(description, ' - ', 1), ''), 'free') AS plan,
+                COALESCE(status, 'active') AS status,
+                amount
          FROM billing_recurring WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(scope_branch)
