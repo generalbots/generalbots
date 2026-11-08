@@ -12,6 +12,13 @@ fn admin_credentials_path() -> PathBuf {
         .join("admin-credentials.json")
 }
 
+fn desktop_session_path() -> PathBuf {
+    stack_path()
+        .join("conf")
+        .join("directory")
+        .join("desktop-session.json")
+}
+
 /// Mints a real suite session for the wizard administrator.
 ///
 /// The desktop edition has no browser login hop between the wizard and the
@@ -19,7 +26,23 @@ fn admin_credentials_path() -> PathBuf {
 /// signs that account in through the same `/api/auth/login` route the suite
 /// uses, so the desktop opens with a server-verified identity and the agent VM
 /// is only ever provisioned for a logged-in account.
+///
+/// To avoid keeping a plaintext password on disk (#1929), the minted token is
+/// persisted to `desktop-session.json` on the first successful login and the
+/// password is scrubbed from `admin-credentials.json`. Subsequent boots reuse
+/// the cached token and never read the password again.
 pub async fn mint_desktop_session() -> Option<String> {
+    // 1) Reuse a previously minted token if present.
+    if let Ok(raw) = std::fs::read_to_string(desktop_session_path()) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
+            if let Some(token) = json.get("access_token").and_then(|v| v.as_str()) {
+                if !token.is_empty() {
+                    return Some(token.to_string());
+                }
+            }
+        }
+    }
+
     #[derive(serde::Deserialize)]
     struct Credentials {
         email: String,
@@ -54,10 +77,33 @@ pub async fn mint_desktop_session() -> Option<String> {
         return None;
     }
     let body: serde_json::Value = response.json().await.ok()?;
-    body.get("access_token")
+    let token = body
+        .get("access_token")
         .and_then(|value| value.as_str())
-        .filter(|token| !token.is_empty())
-        .map(str::to_string)
+        .filter(|t| !t.is_empty())
+        .map(str::to_string)?;
+
+    // Persist the token for future boots.
+    let _ = std::fs::write(
+        desktop_session_path(),
+        serde_json::json!({ "access_token": token }).to_string(),
+    );
+
+    // Scrub the plaintext password from admin-credentials.json, keeping the
+    // identity fields (email, user_id) that botserver still needs.
+    if let Ok(content) = std::fs::read_to_string(admin_credentials_path()) {
+        if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(obj) = json.as_object_mut() {
+                obj.remove("password");
+            }
+            let _ = std::fs::write(
+                admin_credentials_path(),
+                serde_json::to_string_pretty(&json).unwrap_or_default(),
+            );
+        }
+    }
+
+    Some(token)
 }
 
 /// The sidecar accepts connections shortly after `/api/product` answers, so a

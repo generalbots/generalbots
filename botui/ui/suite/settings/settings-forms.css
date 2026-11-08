@@ -131,6 +131,9 @@
         border-radius: 8px;
         transition: all 0.2s;
         margin-bottom: 4px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
     }
 
     .nav-item:hover {

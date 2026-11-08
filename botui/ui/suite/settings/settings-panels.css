@@ -12,6 +12,8 @@
     background: var(--surface);
     border-right: 1px solid var(--border);
     overflow-y: auto;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    font-size: 14px;
 }
 
 .settings-nav {
