@@ -47,5 +47,13 @@
   <img class="logo" src="logo.svg" alt="General Bots" />
   <div class="title">General Bots</div>
   <div class="status">Starting General Bots</div>
+  <script>
+    /* #1894 — the boot splash is native chrome, not a web page: right-click
+       must do nothing (no Back / Reload / Inspect). A reload here re-runs
+       provisioning, which is exactly what the splash must never trigger. */
+    document.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+    });
+  </script>
 </body>
 </html>
