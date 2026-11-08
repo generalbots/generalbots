@@ -3,39 +3,39 @@
     <div class="modal-backdrop" onclick="newProject.close()"></div>
     <div class="modal-content" style="max-width: 640px">
         <div class="modal-header">
-            <h2 data-i18n="deploy.new_project">New Project</h2>
+            <h2 data-i18n="deploy-new-project">New Project</h2>
             <button class="close-btn" onclick="newProject.close()">&times;</button>
         </div>
 
         <div class="modal-body">
             <div class="form-group">
-                <label data-i18n="deploy.project_type">Project Type</label>
+                <label data-i18n="deploy-project-type">Project Type</label>
                 <div class="project-type-selector" id="projectTypeSelector">
                     <div class="type-card" data-type="bot" onclick="newProject.selectType('bot')">
                         <span class="type-icon">🤖</span>
-                        <span class="type-name" data-i18n="deploy.type_bot">Bot</span>
-                        <span class="type-desc" data-i18n="deploy.type_bot_desc">Chat scripts via .gbdialog</span>
+                        <span class="type-name" data-i18n="deploy-type-bot">Bot</span>
+                        <span class="type-desc" data-i18n="deploy-type-bot-desc">Chat scripts via .gbdialog</span>
                     </div>
                     <div class="type-card" data-type="app-htmx" onclick="newProject.selectType('app-htmx')">
                         <span class="type-icon">📱</span>
-                        <span class="type-name" data-i18n="deploy.type_app">App</span>
-                        <span class="type-desc" data-i18n="deploy.type_app_desc">Full-stack app in Incus container</span>
+                        <span class="type-name" data-i18n="deploy-type-app">App</span>
+                        <span class="type-desc" data-i18n="deploy-type-app-desc">Full-stack app in Incus container</span>
                     </div>
                     <div class="type-card" data-type="site" onclick="newProject.selectType('site')">
                         <span class="type-icon">🌐</span>
-                        <span class="type-name" data-i18n="deploy.type_site">Site</span>
-                        <span class="type-desc" data-i18n="deploy.type_site_desc">Static site via Caddy</span>
+                        <span class="type-name" data-i18n="deploy-type-site">Site</span>
+                        <span class="type-desc" data-i18n="deploy-type-site-desc">Static site via Caddy</span>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="newProjectName" data-i18n="deploy.project_name">Project Name</label>
+                <label for="newProjectName" data-i18n="deploy-project-name">Project Name</label>
                 <input type="text" id="newProjectName" placeholder="my-project" required />
             </div>
 
             <div class="form-group" id="frameworkGroup" style="display:none">
-                <label for="newProjectFramework" data-i18n="deploy.framework">Framework</label>
+                <label for="newProjectFramework" data-i18n="deploy-framework">Framework</label>
                 <select id="newProjectFramework">
                     <option value="htmx">HTMX</option>
                     <option value="react">React</option>
@@ -44,17 +44,17 @@
             </div>
 
             <div class="form-group">
-                <label for="newProjectOrg" data-i18n="deploy.organization">Organization</label>
+                <label for="newProjectOrg" data-i18n="deploy-organization">Organization</label>
                 <input type="text" id="newProjectOrg" placeholder="generalbots" />
             </div>
 
             <div class="form-group">
-                <label for="newProjectDomain" data-i18n="deploy.custom_domain">Custom Domain (optional)</label>
+                <label for="newProjectDomain" data-i18n="deploy-custom-domain">Custom Domain (optional)</label>
                 <input type="text" id="newProjectDomain" placeholder="app.example.com" />
             </div>
 
             <div class="form-group">
-                <label for="newProjectEnv" data-i18n="deploy.environment">Environment</label>
+                <label for="newProjectEnv" data-i18n="deploy-environment">Environment</label>
                 <select id="newProjectEnv">
                     <option value="development">Development</option>
                     <option value="staging">Staging</option>
@@ -66,8 +66,8 @@
         </div>
 
         <div class="modal-footer">
-            <button class="btn-cancel" onclick="newProject.close()" data-i18n="common.cancel">Cancel</button>
-            <button class="btn-primary" onclick="newProject.create()" data-i18n="deploy.create_project">Create Project</button>
+            <button class="btn-cancel" onclick="newProject.close()" data-i18n="common-cancel">Cancel</button>
+            <button class="btn-primary" onclick="newProject.create()" data-i18n="deploy-create-project">Create Project</button>
         </div>
     </div>
 </div>

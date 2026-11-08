@@ -345,3 +345,25 @@ a11y-error = Error
 a11y-success = Success
 a11y-warning = Warning
 a11y-info = Information
+
+# Deploy (new project dialog)
+deploy-new-project = New Project
+deploy-project-type = Project Type
+deploy-type-bot = Bot
+deploy-type-bot-desc = Create a conversational AI bot
+deploy-type-app = App
+deploy-type-app-desc = Create a web application
+deploy-type-site = Site
+deploy-type-site-desc = Create a website
+deploy-project-name = Project Name
+deploy-framework = Framework
+deploy-organization = Organization
+deploy-custom-domain = Custom Domain
+deploy-environment = Environment
+deploy-create-project = Create Project
+
+# Tab strip
+tab-strip = Conversations
+
+# Common cancel alias
+common-cancel = Cancel
