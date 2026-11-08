@@ -12,7 +12,6 @@ name: CI
 #   quality       structural adequacy baseline (AGENTS.md rules)
 #   boteval       guards, unit tests and the evaluation gate (CI-only)
 #   botbook       mdBook rebuild and SUMMARY.md link check
-#   gb7 / gb7-desktop  published feature-contract fixtures
 #   product       always/preview/hidden classification and feature coverage
 #   windows       Windows agent/VM adapter compile check
 #
