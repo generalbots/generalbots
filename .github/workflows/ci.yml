@@ -67,7 +67,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@3c5f78293f330550c0f310828672e8983145305a # stable
       - name: Check the Windows agent/VM adapters
         run: cargo check --lib -p botagent -p botvibe
 
