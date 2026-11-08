@@ -80,6 +80,15 @@ fn write_network_mode(mode: &str) -> Result<(), String> {
     };
     std::fs::write(&env_path, &updated)
         .map_err(|e| format!("write network mode to .env: {e}"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = std::fs::metadata(&env_path) {
+            let mut permissions = metadata.permissions();
+            permissions.set_mode(0o600);
+            let _ = std::fs::set_permissions(&env_path, permissions);
+        }
+    }
     info!("wizard: GB_NETWORK_MODE={mode} written to {}", env_path.display());
     Ok(())
 }

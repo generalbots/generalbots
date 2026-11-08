@@ -62,6 +62,8 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 "echo 'Waiting for PAT token in logs...'; for i in $(seq 1 30); do sync; if grep -q -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null; then echo \"PAT token found in logs after $((i*2)) seconds\"; break; fi; sleep 2; done".to_string(),
                 "if [ ! -f '{{CONF_PATH}}/directory/admin-pat.txt' ]; then grep -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null | head -1 > {{CONF_PATH}}/directory/admin-pat.txt && echo 'PAT extracted from logs' || echo 'Could not extract PAT from logs'; fi".to_string(),
                 "sync; sleep 1; if [ -f '{{CONF_PATH}}/directory/admin-pat.txt' ] && [ -s '{{CONF_PATH}}/directory/admin-pat.txt' ]; then echo 'PAT token created successfully'; cat {{CONF_PATH}}/directory/admin-pat.txt; else echo 'WARNING: PAT file not found or empty'; fi".to_string(),
+                "chmod 600 {{CONF_PATH}}/directory/admin-pat.txt {{CONF_PATH}}/directory/machine-key.json {{CONF_PATH}}/system/directory_config.json 2>/dev/null || true".to_string(),
+                "chmod 700 {{CONF_PATH}}/directory 2>/dev/null || true".to_string(),
             ],
             pre_install_cmds_macos: vec![
                 "mkdir -p {{CONF_PATH}}/directory".to_string(),
