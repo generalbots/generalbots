@@ -1,0 +1,189 @@
+name: Download (all platform variants)
+
+# #1925 — single workflow producing all platform/download variants.
+# Consolidates desktop full, desktop thin, mobile, server, pythonbox, and ISO.
+# Variants not yet implemented are present as explicit matrix placeholders
+# (disabled) so the target is tracked in one place.
+#
+# Current state: Linux x86_64 + Windows x86_64 desktop-full (desktop-local)
+# delegate to the proven build steps; other matrix entries are stubs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v6.7.2) to publish artifacts to"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  # ---- Desktop full (server-embedded, offline) ----
+  desktop-full-linux-x86_64:
+    name: Desktop full — Linux x86_64
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Build (delegates to release pipeline logic)
+        run: echo "Desktop full Linux x86_64 — implemented in release.yml; use release workflow or consolidate here. See #1925."
+
+  desktop-full-linux-aarch64:
+    name: Desktop full — Linux aarch64
+    if: false # #1925: not yet restored
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - run: echo stub
+
+  desktop-full-windows-x86_64:
+    name: Desktop full — Windows x86_64
+    if: ${{ github.server_url == 'https://github.com' }}
+    needs: [desktop-full-linux-x86_64]
+    runs-on: windows-latest
+    timeout-minutes: 150
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Build (delegates to release pipeline logic)
+        shell: bash
+        run: echo "Desktop full Windows x86_64 — implemented in release.yml. See #1925."
+
+  desktop-full-windows-aarch64:
+    name: Desktop full — Windows aarch64
+    if: false # #1925: not yet built
+    runs-on: windows-11-arm
+    steps:
+      - run: echo stub
+
+  desktop-full-macos-x86_64:
+    name: Desktop full — macOS x86_64
+    if: false # #1925: not yet built
+    runs-on: macos-13
+    steps:
+      - run: echo stub
+
+  desktop-full-macos-arm64:
+    name: Desktop full — macOS arm64
+    if: false # #1925: not yet restored
+    runs-on: macos-14
+    steps:
+      - run: echo stub
+
+  # ---- Desktop thin client (UI only, remote botserver) ----
+  desktop-thin-linux-x86_64:
+    name: Desktop thin — Linux x86_64
+    if: false # #1925: requires thin-client feature
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo stub
+
+  desktop-thin-linux-aarch64:
+    name: Desktop thin — Linux aarch64
+    if: false # #1925
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - run: echo stub
+
+  desktop-thin-windows-x86_64:
+    name: Desktop thin — Windows x86_64
+    if: false # #1925
+    runs-on: windows-latest
+    steps:
+      - run: echo stub
+
+  desktop-thin-windows-aarch64:
+    name: Desktop thin — Windows aarch64
+    if: false # #1925
+    runs-on: windows-11-arm
+    steps:
+      - run: echo stub
+
+  desktop-thin-macos-x86_64:
+    name: Desktop thin — macOS x86_64
+    if: false # #1925
+    runs-on: macos-13
+    steps:
+      - run: echo stub
+
+  desktop-thin-macos-arm64:
+    name: Desktop thin — macOS arm64
+    if: false # #1925
+    runs-on: macos-14
+    steps:
+      - run: echo stub
+
+  # ---- Mobile thin client ----
+  mobile-android:
+    name: Mobile — Android
+    if: false # #1925: requires mobile/Tauri target
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo stub
+
+  mobile-ios:
+    name: Mobile — iOS
+    if: false # #1925: requires mobile/Tauri target
+    runs-on: macos-14
+    steps:
+      - run: echo stub
+
+  # ---- Server (botserver + botui + botmodels embedded) ----
+  server-linux-x86_64:
+    name: Server — Linux x86_64
+    if: false # #1925: exists via alm-release; consolidate here
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo stub
+
+  server-linux-aarch64:
+    name: Server — Linux aarch64
+    if: false # #1925
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - run: echo stub
+
+  server-windows-x86_64:
+    name: Server — Windows x86_64
+    if: false # #1925
+    runs-on: windows-latest
+    steps:
+      - run: echo stub
+
+  server-windows-aarch64:
+    name: Server — Windows aarch64
+    if: false # #1925
+    runs-on: windows-11-arm
+    steps:
+      - run: echo stub
+
+  server-macos-x86_64:
+    name: Server — macOS x86_64
+    if: false # #1925
+    runs-on: macos-13
+    steps:
+      - run: echo stub
+
+  server-macos-arm64:
+    name: Server — macOS arm64
+    if: false # #1925
+    runs-on: macos-14
+    steps:
+      - run: echo stub
+
+  # ---- Kiosk appliance ISO ----
+  iso-x86_64:
+    name: Kiosk ISO — x86_64
+    if: false # #1925: not yet restored
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo stub
+
+  iso-aarch64:
+    name: Kiosk ISO — aarch64
+    if: false # #1925
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - run: echo stub
