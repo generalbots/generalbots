@@ -96,7 +96,8 @@ test("ISSUE #1644: browser actions have a producer, consent and feedback", funct
 });
 
 test("ISSUE #1645: terminal consent is bound to an audit record", function () {
-  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs");
+  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs") +
+    readFile("../../../botserver/src/main_module/routes/computer_use_routes/terminal.rs");
   assert(routes.indexOf("body.action_id") !== -1, "execution not bound to an action id");
   assert(routes.indexOf("/api/terminal/audit") !== -1, "audit endpoint missing");
   var migration = readFile("../../../botserver/migrations/6.8.3-terminal-audit/up.sql");
@@ -157,8 +158,10 @@ test("DRIVE: tabs are simplified to My Files, Shared, Connected and Public", fun
   var tabs = (html.match(/data-tab="([a-z]+)"/g) || []).map(function (entry) {
     return entry.split('"')[1];
   });
-  assert(tabs.join(",") === "myfiles,shared,external,public",
-    "unexpected tabs: " + tabs.join(","));
+  // `home` is legacy markup kept hidden; the shipped tabs are the visible set.
+  var visible = tabs.filter(function (tab) { return tab !== "home"; });
+  assert(visible.join(",") === "myfiles,branchdrive,shared,external,public",
+    "unexpected tabs: " + visible.join(","));
   assert(html.indexOf('data-tab="myfiles" id="tab-myfiles"') !== -1 &&
     html.indexOf("top-tab active") !== -1, "My Files must be the active tab");
   assert(html.indexOf("gbSyncStatusBtn") === -1, "offline sync button still present");

@@ -237,5 +237,13 @@ window.GBWizardLocales["ko"] = {
   "nav.ready": "준비됨",
   "nav.retry": "다시 시도",
   "common.yes": "예",
-  "common.no": "아니요"
+  "common.no": "아니요",
+  "step.network": "네트워크 모드",
+  "heading.network": "네트워크 모드를 선택하세요",
+  "network.lead": "이 설치가 피어 네트워크에 참여할지 완전히 오프라인으로 유지할지 제어합니다.",
+  "network.p2p.title": "P2P — 피어 네트워크 참여(권장)",
+  "network.p2p.desc": "공유 링크 무료 중계와 피어 검색 같은 향후 기능을 활성화합니다. 직접 공유하기 전까지는 이 컴퓨터에서 어떤 데이터도 나가지 않습니다.",
+  "network.offline.title": "오프라인 — 네트워크 ID 없음",
+  "network.offline.desc": "모든 연결을 127.0.0.1로 유지합니다. 피어 기능은 없으며 공유 링크는 로컬 네트워크에서만 작동합니다.",
+  "network.note": "이 설정은 나중에 설정 — 네트워크에서 변경할 수 있습니다.",
 };

@@ -237,5 +237,13 @@ window.GBWizardLocales["fr"] = {
   "nav.ready": "Prêt",
   "nav.retry": "Réessayer",
   "common.yes": "Oui",
-  "common.no": "Non"
+  "common.no": "Non",
+  "step.network": "Mode réseau",
+  "heading.network": "Choisissez votre mode réseau",
+  "network.lead": "Contrôlez si cette installation rejoint le réseau pair-à-pair ou reste entièrement hors ligne.",
+  "network.p2p.title": "P2P — Rejoindre le réseau pair-à-pair (recommandé)",
+  "network.p2p.desc": "Active des fonctionnalités futures comme le relais gratuit de liens partagés et la découverte de pairs. Aucune donnée ne quitte cette machine tant que vous ne partagez rien explicitement.",
+  "network.offline.title": "Hors ligne — Aucune identité réseau",
+  "network.offline.desc": "Maintient toutes les connexions sur 127.0.0.1. Aucune fonctionnalité pair-à-pair ; les liens partagés ne fonctionnent que sur votre réseau local.",
+  "network.note": "Vous pouvez modifier ceci plus tard dans Paramètres — Réseau.",
 };

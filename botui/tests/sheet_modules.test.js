@@ -50,6 +50,7 @@ function loadModules() {
   const sandbox = {
     window: {},
     document: {
+      dispatchEvent: function () {},
       body: { appendChild: function () {}, removeChild: function () {} },
       createElement: function () { return noopEl; },
       getElementById: function () { return null; },

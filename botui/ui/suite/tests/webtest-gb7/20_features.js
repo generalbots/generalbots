@@ -147,21 +147,21 @@ test("BBSIA-01: drive/02_api.js — no admin self-assignment for public bot", fu
 });
 
 test("BBSIA-02: gb-preview-changed event dispatched by GBPreviewMode.set()", function () {
-  var src = readFile("js/window-manager.js");
+  var src = readFile("js/window-manager/01_registry.js") + readFile("js/window-manager/06_deeplinks.js");
   assert(src.indexOf("gb-preview-changed") !== -1, "gb-preview-changed event not found");
   assert(src.indexOf('new CustomEvent("gb-preview-changed"') !== -1, "CustomEvent dispatch not found");
 });
 
 test("BBSIA-03: deep-link blocking for preview apps when preview OFF", function () {
-  var src = readFile("js/window-manager.js");
+  var src = readFile("js/window-manager/01_registry.js") + readFile("js/window-manager/06_deeplinks.js");
   assert(src.indexOf("isPreviewId(appId)") !== -1, "preview check in openDeepLink not found");
 });
 
 test("BBSIA-04: settings preview mode toggle exists", function () {
-  var settingsHtml = fs.readFileSync(path.join(SUITE_DIR, "settings/index.html"), "utf8");
+  var settingsHtml = fs.readFileSync(path.join(SUITE_DIR, "settings/partials/10_system.html"), "utf8");
   assert(settingsHtml.indexOf("settings-preview-toggle") !== -1, "preview toggle not in settings");
   assert(settingsHtml.indexOf("togglePreviewMode") !== -1, "togglePreviewMode handler not in settings HTML");
-  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/settings-main.js"), "utf8");
+  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/main/08_preview.js"), "utf8");
   assert(settingsJs.indexOf("togglePreviewMode") !== -1, "togglePreviewMode not in settings JS");
   assert(settingsJs.indexOf("gb-preview-changed") !== -1, "gb-preview-changed listener not in settings JS");
 });
@@ -180,8 +180,8 @@ test("BBSIA-06: 99_init.js under 350 lines (file split)", function () {
 });
 
 test("BBSIA-07: 98_actions.js loaded in drive.html", function () {
-  var driveHtml = fs.readFileSync(path.join(SUITE_DIR, "drive/drive.html"), "utf8");
-  assert(driveHtml.indexOf("98_actions.js") !== -1, "98_actions.js not referenced in drive.html");
+  var loader = fs.readFileSync(path.join(SUITE_DIR, "drive/drive-module-loader.js"), "utf8");
+  assert(loader.indexOf("98_actions.js") !== -1, "98_actions.js not loaded by the drive module loader");
 });
 
 // ═══════════════════════════════════════════════════════════════════

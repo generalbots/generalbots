@@ -11,7 +11,8 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const MODULE = path.join(__dirname, "..", "ui", "suite", "drive", "modules", "12_offline_sync.js");
+const MODULES_DIR = path.join(__dirname, "..", "ui", "suite", "drive", "modules");
+const MODULE = path.join(MODULES_DIR, "12_offline_sync_folder.js");
 
 let passed = 0;
 let failed = 0;
@@ -67,7 +68,12 @@ const sandbox = {
   fetch: function () { return Promise.resolve({ ok: true, json: function () { return Promise.resolve({}); } }); },
   CustomEvent: function () {},
 };
-vm.runInNewContext(fs.readFileSync(MODULE, "utf8"), sandbox, { filename: MODULE });
+// The folder module extends the base sync API, so both load in one context.
+vm.createContext(sandbox);
+for (const file of ["12_offline_sync.js", "12_offline_sync_folder.js"]) {
+  const full = path.join(MODULES_DIR, file);
+  vm.runInContext(fs.readFileSync(full, "utf8"), sandbox, { filename: full });
+}
 const sync = window.DriveOfflineSync;
 
 // 1. The conflict copy keeps the original name and extension and is distinct.

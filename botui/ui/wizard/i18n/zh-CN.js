@@ -237,5 +237,13 @@ window.GBWizardLocales["zh-CN"] = {
   "nav.ready": "就绪",
   "nav.retry": "重试",
   "common.yes": "是",
-  "common.no": "否"
+  "common.no": "否",
+  "step.network": "网络模式",
+  "heading.network": "选择您的网络模式",
+  "network.lead": "控制此安装是加入对等网络还是完全保持离线。",
+  "network.p2p.title": "P2P — 加入对等网络（推荐）",
+  "network.p2p.desc": "启用未来功能，例如免费共享链接中继和对等发现。在您明确共享之前，不会有任何数据离开这台机器。",
+  "network.offline.title": "离线 — 无网络身份",
+  "network.offline.desc": "将所有连接保持在 127.0.0.1。没有对等功能；共享链接仅在您的本地网络上有效。",
+  "network.note": "您可以稍后在“设置 — 网络”中更改。",
 };

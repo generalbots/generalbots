@@ -71,6 +71,7 @@ test("BEHAVE GB7-09: artifact HTML sanitizer strips scripts and handlers", funct
 
 test("BEHAVE GB7-25: usage tracking counts a message once and totals it", function () {
   var storage = memoryStorage();
+  storage.setItem("gb_usage_stats_enabled", "true");
   var window = {};
   window.addEventListener = function () {};
   var context = loadScript("js/usage-stats.js", {

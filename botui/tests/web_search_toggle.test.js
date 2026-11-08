@@ -84,13 +84,20 @@ function makeButton() {
       if (selector === ".web-search-label") return label;
       return null;
     },
+    closest: function (selector) {
+      return selector === "#webSearchBtn" ? this : null;
+    },
     click: function () {
       if (listeners.click) listeners.click({ preventDefault: function () {} });
+      if (documentClick) {
+        documentClick({ target: this, preventDefault: function () {} });
+      }
     },
   };
 }
 
 let label = null;
+let documentClick = null;
 
 function loadModule(options) {
   const opts = options || {};
@@ -98,19 +105,25 @@ function loadModule(options) {
   const button = makeButton();
   label = { textContent: "Web on" };
   const window = {
+    removeEventListener: function () {},
     __INITIAL_BOT_NAME__: opts.bot || "demo",
     ChatState: { currentUserId: opts.user || "user-1" },
     localStorage: storage,
     dispatchEvent: function () {},
+    addEventListener: function () {},
+    removeEventListener: function () {},
   };
   const sandbox = {
     window: window,
     document: {
       readyState: "complete",
+      dataset: {},
       getElementById: function (id) {
         return id === "webSearchBtn" ? button : null;
       },
-      addEventListener: function () {},
+      addEventListener: function (type, handler) {
+        if (type === "click") documentClick = handler;
+      },
     },
     CustomEvent: function (type, init) {
       return { type: type, detail: init && init.detail };
