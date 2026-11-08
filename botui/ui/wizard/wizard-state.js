@@ -8,6 +8,7 @@
     { id: "workspace", key: "step.workspace" },
     { id: "services", key: "step.services" },
     { id: "privacy", key: "step.privacy" },
+    { id: "network", key: "step.network" },
     { id: "install", key: "step.install" },
     { id: "finish", key: "step.finish" }
   ];
@@ -111,7 +112,7 @@
       model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
       workspace: { path: "", size: "standard" },
       services: {},
-      network: { mode: "offline" }
+      network: { mode: "p2p" }
     },
     provisioning: {
       running: false,

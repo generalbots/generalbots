@@ -219,15 +219,32 @@
         '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">' + esc(t("privacy.reveal-vault")) + "</button>" +
         '<span class="note" id="vaultNote">' + esc(t("privacy.vault-note")) + "</span>" +
       "</div>" +
-      '<div class="field" style="margin-top:12px">' +
-        '<label for="networkMode">' + esc("Network mode") + "</label>" +
-        '<select id="networkMode">' +
-          '<option value="offline"' + (draft.network && draft.network.mode === "offline" ? " selected" : "") + ">Offline (default)</option>" +
-          '<option value="p2p"' + (draft.network && draft.network.mode === "p2p" ? " selected" : "") + ">P2P (opt-in)</option>" +
-        "</select>" +
-        '<span class="hint">' + esc("Choose Offline or P2P. Can be changed later in Settings → Shared Links.") + "</span>" +
-      "</div>" +
       '<p class="note install-next">' + esc(t("privacy.next-note")) + "</p>";
+  }
+
+  function renderNetwork(draft) {
+    var p2p = draft.network && draft.network.mode === "p2p";
+    return '' +
+      '<p class="lead">' + esc(t("network.lead")) + "</p>" +
+      '<div class="card">' +
+        '<div class="field-grid">' +
+          '<div class="field">' +
+            '<label class="radio-label">' +
+              '<input type="radio" name="networkMode" id="networkModeP2P" value="p2p"' + (p2p ? " checked" : "") + " />" +
+              " " + esc(t("network.p2p.title")) +
+            "</label>" +
+            '<span class="hint">' + esc(t("network.p2p.desc")) + "</span>" +
+          "</div>" +
+          '<div class="field">' +
+            '<label class="radio-label">' +
+              '<input type="radio" name="networkMode" id="networkModeOffline" value="offline"' + (!p2p ? " checked" : "") + " />" +
+              " " + esc(t("network.offline.title")) +
+            "</label>" +
+            '<span class="hint">' + esc(t("network.offline.desc")) + "</span>" +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+      '<p class="note">' + esc(t("network.note")) + "</p>";
   }
 
   /* The Borland-style install screen: one prominent progress bar, then a
@@ -351,8 +368,9 @@
       case 3: return renderWorkspace(draft, ctx);
       case 4: return renderServices(draft, ctx);
       case 5: return renderPrivacy(draft, ctx);
-      case 6: return renderInstall(draft, ctx);
-      case 7: return renderFinish(draft, ctx);
+      case 6: return renderNetwork(draft);
+      case 7: return renderInstall(draft, ctx);
+      case 8: return renderFinish(draft, ctx);
       default: return "<p>" + esc(t("wizard.unknown-step")) + "</p>";
     }
   }
@@ -364,8 +382,9 @@
       case 3: return t("heading.workspace");
       case 4: return t("heading.services");
       case 5: return t("heading.privacy");
-      case 6: return t("heading.install");
-      case 7: return t("heading.finish");
+      case 6: return t("heading.network");
+      case 7: return t("heading.install");
+      case 8: return t("heading.finish");
       default: return t("wizard.title");
     }
   }

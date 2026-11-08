@@ -52,15 +52,55 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     Ok(())
 }
 
+/// Writes `GB_NETWORK_MODE=<mode>` to `stack/conf/.env`, creating or updating
+/// the existing file. The botserver reads this on startup to gate peer features.
+fn write_network_mode(mode: &str) -> Result<(), String> {
+    let dir = stack_path().join("conf");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("create conf dir for .env: {e}"))?;
+    let env_path = dir.join(".env");
+    let key = "GB_NETWORK_MODE";
+    let new_line = format!("{key}={mode}");
+    let existing = std::fs::read_to_string(&env_path).unwrap_or_default();
+    let updated = if existing.lines().any(|l| l.starts_with(&format!("{key}="))) {
+        let lines: Vec<String> = existing
+            .lines()
+            .map(|l| {
+                if l.starts_with(&format!("{key}=")) {
+                    new_line.clone()
+                } else {
+                    l.to_string()
+                }
+            })
+            .collect();
+        lines.join("\n") + "\n"
+    } else if existing.is_empty() {
+        format!("{new_line}\n")
+    } else {
+        format!("{existing}{new_line}\n")
+    };
+    std::fs::write(&env_path, &updated)
+        .map_err(|e| format!("write network mode to .env: {e}"))?;
+    info!("wizard: GB_NETWORK_MODE={mode} written to {}", env_path.display());
+    Ok(())
+}
+
 /// Opens the suite once the stack answers, and closes the wizard.
 pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), String> {
     let stack = stack_path();
     std::fs::create_dir_all(&stack).map_err(|e| format!("create stack folder: {e}"))?;
     write_admin_credentials(request)?;
+
+    // Persist the network mode chosen on the wizard Network step.
+    let network_mode = if request.network.mode == "p2p" { "p2p" } else { "offline" };
+    if let Err(e) = write_network_mode(network_mode) {
+        warn!("wizard: could not persist network mode: {e}");
+    }
+
     let marker = serde_json::json!({
         "completed_at": chrono::Utc::now().to_rfc3339(),
         "desktop_local": cfg!(feature = "desktop-local"),
         "workspace": workspace_path().to_string_lossy(),
+        "network_mode": network_mode,
     });
     let raw =
         serde_json::to_string_pretty(&marker).map_err(|e| format!("serialize marker: {e}"))?;
