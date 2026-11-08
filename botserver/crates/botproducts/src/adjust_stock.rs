@@ -284,7 +284,6 @@ pub async fn create_category(
         name: req.name,
         description: req.description,
         parent_id: req.parent_id,
-        slug: req.slug,
         image_url: req.image_url,
         sort_order: max_order.unwrap_or(0) + 1,
         is_active: true,

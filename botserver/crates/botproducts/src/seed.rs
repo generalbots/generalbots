@@ -57,7 +57,6 @@ fn seed_categories(conn: &mut PgConnection, branch_id: Uuid) -> Vec<ProductCateg
             name: name.to_string(),
             description: Some(description.to_string()),
             parent_id: None,
-            slug: Some(slug.to_string()),
             image_url: None,
             sort_order,
             is_active: true,
@@ -77,9 +76,11 @@ fn seed_categories(conn: &mut PgConnection, branch_id: Uuid) -> Vec<ProductCateg
 }
 
 fn find_category_id(categories: &[ProductCategory], slug: &str) -> Option<Uuid> {
+    // `slug` is no longer a column (6.8.15 trim); match by the
+    // name-derived slug (lowercase, spaces -> hyphens) instead.
     categories
         .iter()
-        .find(|c| c.slug.as_deref() == Some(slug))
+        .find(|c| c.name.to_lowercase().replace(' ', "-") == slug)
         .map(|c| c.id)
 }
 

@@ -98,7 +98,7 @@ pub struct Service {
 }
 
 /// Field order matches the canonical `product_categories` declaration; the
-/// database makes `org_id`/`bot_id` nullable and `slug` optional, and adds
+/// database makes `org_id`/`bot_id` nullable, and adds
 /// `display_order`/`updated_at`.
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = product_categories)]
@@ -180,6 +180,14 @@ pub struct ProductVariant {
     pub attributes: serde_json::Value,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
+    pub global_trade_number: Option<String>,
+    pub net_weight: Option<BigDecimal>,
+    pub gross_weight: Option<BigDecimal>,
+    pub width: Option<BigDecimal>,
+    pub height: Option<BigDecimal>,
+    pub length: Option<BigDecimal>,
+    pub color: Option<String>,
+    pub size: Option<String>,
     pub images: Option<serde_json::Value>,
 }
 
