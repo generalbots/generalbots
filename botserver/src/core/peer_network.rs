@@ -1,3 +1,27 @@
+//! Opt-in peer-network foundation (#1864).
+//!
+//! This is deliberately the smallest useful slice of the `botpublic` epic: a
+//! stable node identity, an in-memory registration/heartbeat table and a status
+//! view. Nothing is sent to another node, and nothing is exposed unless the
+//! operator opts in with `GB_PEER_NETWORK=1`.
+//!
+//! Environment:
+//!
+//! | Variable | Meaning |
+//! |---|---|
+//! | `GB_PEER_NETWORK` | `1`/`true`/`yes`/`on` enables the node endpoints |
+//! | `GB_PEER_NODE_ID` | Stable UUID; otherwise generated and persisted |
+//! | `GB_PEER_NODE_NAME` | Display name; otherwise `general-bots-<id8>` |
+//! | `GB_PEER_ADVERTISE_ADDR` | Optional address relayed to other peers |
+//! | `GB_PEER_HEARTBEAT_TTL_SECS` | Peer expiry, default 90 seconds |
+//! | `GB_PEER_DATA_DIR` | Directory for `node.json` |
+//! | `GB_PEER_TOKEN` | Optional shared bearer token for machine callers |
+//!
+//! The registration table is intentionally in memory: a peer that stops
+//! heartbeating expires, and it re-registers on its next boot. Node identity is
+//! the only durable piece, written to `node.json` under the data/stack
+//! directory so the same install keeps the same id across restarts.
+
 include!("peer_network_types.rs");
 
 pub struct PeerNetwork {
