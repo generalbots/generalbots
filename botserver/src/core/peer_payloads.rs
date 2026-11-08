@@ -220,7 +220,7 @@ mod tests {
         let from = Uuid::new_v4();
         let to = Uuid::new_v4();
         let store = PeerPayloadStore::new(60);
-        let payload = PeerPayload::new(PeerPayloadKind::AskMyBot, from, to, "hi", 1000);
+        let payload = PeerPayload::new(PeerPayloadKind::AskMyBot, from, to, "hi", unix_now());
         store.enqueue(payload.clone()).expect("enqueue");
         assert_eq!(store.len(), 1);
         let pending = store.pending_for(to);
