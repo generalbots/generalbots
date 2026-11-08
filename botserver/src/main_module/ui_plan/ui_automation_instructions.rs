@@ -76,6 +76,11 @@ Contract — emit exactly:
 
 Rules:
 - Only use app ids from the list above; default to the app matching the user's request.
+- App-backed intents (#1944): when the request names one of the applications above
+  ("open the Database app and create a table", "use Weather for this city"), the
+  answer MUST be a `__ui_plan__` for that app. Never route such a request to a
+  VM, terminal, container or other agent execution path — those are for work the
+  suite has no application for.
 - `fill` values must be plain text without HTML.
 - When unsure of a field name, use the label text shown in the form.
 - Keep plans minimal: open, fill the requested fields, submit.
@@ -124,6 +129,22 @@ plan should navigate the app realistically instead of guessing buttons.
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #1945 — the catalogue must be generated from the registry, so an app
+    /// added there becomes discoverable without touching the prompt. A
+    /// hand-maintained list silently hid newly enabled apps from the model.
+    #[test]
+    fn every_registered_app_reaches_the_catalogue() {
+        let (apps, _, _) = catalog_lines(|_| true);
+        for app in crate::apps::registry::all_apps() {
+            assert!(
+                apps.iter()
+                    .any(|line| line.contains(&format!("(id: {})", app.id))),
+                "{} is missing from the UI automation catalogue",
+                app.id
+            );
+        }
+    }
 
     #[test]
     fn only_enabled_apps_enter_the_prompt_catalogue() {
