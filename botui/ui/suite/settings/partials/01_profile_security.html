@@ -238,9 +238,7 @@
                         <span class="setting-title">Export local data</span>
                         <span class="setting-desc">Download the data stored on this device</span>
                     </div>
-                    <button type="button" class="btn-secondary btn-sm"
-                        hx-post="/api/user/data/export" hx-swap="none"
-                        hx-on::after-request="showToast('Export started')">Export</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="downloadDataExport()">Export</button>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">

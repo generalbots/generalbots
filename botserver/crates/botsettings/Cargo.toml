@@ -38,6 +38,8 @@ hex = { workspace = true }
 hmac = { workspace = true }
 jsonwebtoken = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+zip = { workspace = true }
+sysinfo = { workspace = true }
 
 [lints]
 workspace = true

@@ -101,3 +101,35 @@ function showToast(message, type) {
   S.debounce = debounce;
   S.showToast = showToast;
 })(window);
+
+window.downloadDataExport = async function downloadDataExport() {
+  var token = (window.SettingsApp && SettingsApp.getAuthToken) ? SettingsApp.getAuthToken() : (localStorage.getItem('gb_token') || '');
+  try {
+    (SettingsApp.showToast || window.showToast || function(){})('Preparing export…');
+    var res = await fetch('/api/user/data/export', {
+      method: 'POST',
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
+    var ct = (res.headers.get('Content-Type') || '').toLowerCase();
+    if (!res.ok || ct.indexOf('application/zip') === -1) {
+      var msg = 'Export failed';
+      try { var j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+      (SettingsApp.showToast || window.showToast || alert)(msg, 'error');
+      return;
+    }
+    var blob = await res.blob();
+    var cd = res.headers.get('Content-Disposition') || '';
+    var m = /filename="?([^";]+)"?/.exec(cd);
+    var name = m ? m[1] : 'generalbots-export.zip';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    (SettingsApp.showToast || window.showToast || function(){})('Export downloaded');
+  } catch (e) {
+    (SettingsApp.showToast || window.showToast || alert)('Export failed', 'error');
+  }
+};

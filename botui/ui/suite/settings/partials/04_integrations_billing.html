@@ -261,10 +261,7 @@
                         <span class="setting-title">Export Data</span>
                         <span class="setting-desc">Download all your data in a portable format</span>
                     </div>
-                    <button class="btn-secondary" hx-post="/api/user/data/export" hx-swap="none"
-                        hx-on::after-request="showToast('Export started. You will receive an email when ready.')">
-                        Request Export
-                    </button>
+                    <button class="btn-secondary" type="button" onclick="downloadDataExport()">Export Data</button>
                 </div>
             </div>
 
