@@ -330,4 +330,41 @@ impl SessionManager {
             .execute(&mut conn)?;
         Ok(true)
     }
+
+    /// #1948 — stores an auto-generated title only while the conversation is
+    /// still untitled. A user-set title (or one written by an earlier turn) is
+    /// never overwritten; returns `false` when nothing was written.
+    pub fn rename_session_if_untitled(
+        &mut self,
+        sess_id: Uuid,
+        owner_id: Uuid,
+        new_title: &str,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
+        let trimmed: String = new_title.trim().chars().take(80).collect();
+        if trimmed.is_empty() {
+            return Ok(false);
+        }
+        let mut conn = self.pool.get()?;
+        let current: Option<String> = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .filter(user_sessions::user_id.eq(owner_id.to_string()))
+            .select(user_sessions::title)
+            .first(&mut conn)
+            .optional()?;
+        let Some(current) = current else {
+            return Ok(false);
+        };
+        let current = current.trim();
+        let placeholder = current.is_empty()
+            || current.eq_ignore_ascii_case("new conversation")
+            || current.eq_ignore_ascii_case("nova conversa")
+            || current.eq_ignore_ascii_case("untitled");
+        if !placeholder {
+            return Ok(false);
+        }
+        diesel::update(user_sessions::table.filter(user_sessions::id.eq(sess_id)))
+            .set(user_sessions::title.eq(&trimmed))
+            .execute(&mut conn)?;
+        Ok(true)
+    }
 }

@@ -85,6 +85,11 @@ pub async fn process_llm_response(
             .map(move |p| (p, env_key.clone(), env_model.clone()))
     }) {
         Some((llm, llm_key, llm_model)) => {
+            // #1948 — keep owned copies of the resolved provider so the title
+            // task below survives the turn (`turn::run` consumes the originals).
+            let title_provider = llm.clone();
+            let title_key = llm_key.clone();
+            let title_model = llm_model.clone();
             let result = turn::run(ws_sender, turn, llm, llm_key, llm_model, budget).await;
 
             // #1635 — drain the sources for this turn. The frame below is the
@@ -119,6 +124,49 @@ pub async fn process_llm_response(
             {
                 let mut sm = state.session_manager.lock().await;
                 let _ = sm.save_message(session_id, user_id, 2, &result.full_response, 2);
+            }
+
+            // #1948 — title the conversation from its first request with a
+            // parallel, non-blocking LLM call. Only the first exchange is
+            // considered, and an existing (possibly user-set) title is never
+            // overwritten.
+            let is_first_exchange = {
+                let mut sm = state.session_manager.lock().await;
+                sm.get_conversation_history(session_id, user_id, Some(3))
+                    .map(|history| history.len() <= 2)
+                    .unwrap_or(false)
+            };
+            if is_first_exchange && !user_text.trim().is_empty() {
+                let state = Arc::clone(state);
+                let user_text = user_text.to_string();
+                tokio::spawn(async move {
+                    let prompt = format!(
+                        "Create a short conversation title (at most 6 words, no quotes, \
+                         no trailing period) for this first user request:\n{user_text}"
+                    );
+                    let messages = serde_json::json!([{ "role": "user", "content": prompt }]);
+                    match title_provider
+                        .generate(&user_text, &messages, &title_model, &title_key)
+                        .await
+                    {
+                        Ok(title) => {
+                            let cleaned: String = title
+                                .trim()
+                                .trim_matches('"')
+                                .trim_matches('\'')
+                                .replace('\n', " ")
+                                .replace('\r', " ")
+                                .chars()
+                                .take(80)
+                                .collect();
+                            if !cleaned.trim().is_empty() {
+                                let mut sm = state.session_manager.lock().await;
+                                let _ = sm.rename_session_if_untitled(session_id, user_id, &cleaned);
+                            }
+                        }
+                        Err(e) => log::debug!("conversation title generation failed: {e}"),
+                    }
+                });
             }
         }
         None => {

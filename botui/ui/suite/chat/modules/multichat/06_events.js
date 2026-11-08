@@ -184,14 +184,16 @@
   /// Restored tabs are labelled "Chat 1" from the persisted store. Rename
   /// them from the conversation history so the strip shows what each tab is.
   var titlesSynced = false;
-  function syncTabTitles() {
-    if (titlesSynced) return;
+  function syncTabTitles(force) {
+    if (titlesSynced && !force) return;
     if (!window.GBTabs || !GBTabs.state) return;
     var pending = GBTabs.state.tabs.filter(function (st) {
       return st.sessionId && st.id !== "tab-default";
     });
     if (!pending.length) return;
-    titlesSynced = true;
+    // A forced sync (after the first reply, #1948) re-reads titles once the
+    // server has persisted the auto-generated one; the boot sync stays one-shot.
+    if (!force) titlesSynced = true;
     fetch("/api/chat/history/sessions?limit=50", {
       headers: { Authorization: "Bearer " + MC.token() },
     })
@@ -236,6 +238,25 @@
     GBTabs.renderStrip = wrapped;
   })();
   /* ── Published for the sibling multichat modules ── */
+
+  // #1948 — the server names a conversation with a parallel LLM call after
+  // the first reply. Refresh restored tab labels once that reply has landed so
+  // the strip stops showing a generic "Chat N" for the rest of the session.
+  (function hookBotMessagesForTitles() {
+    if (!window.addMessage || window.addMessage.__mcTitleHook) return;
+    var orig = window.addMessage;
+    var refreshed = false;
+    var hooked = function (sender) {
+      var out = orig.apply(this, arguments);
+      if (sender === "bot" && !refreshed) {
+        refreshed = true;
+        setTimeout(function () { MC.syncTabTitles(true); }, 2500);
+      }
+      return out;
+    };
+    hooked.__mcTitleHook = true;
+    window.addMessage = hooked;
+  })();
 
   MC.installStockRenderGuard = installStockRenderGuard;
   MC.pruneTabs = pruneTabs;
