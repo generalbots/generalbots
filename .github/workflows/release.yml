@@ -2,8 +2,8 @@ name: Release
 
 # #1851 — one all-inclusive binary release.
 #
-# Triggered on every push to main (bumps version, tags, builds and publishes)
-# and by manual dispatch with an existing tag. It calls the existing platform builders as reusable workflows
+# Triggered only by manual dispatch — with an existing tag, a version bump or
+# an explicit version — and never by a push. It calls the existing platform builders as reusable workflows
 # (they keep their own triggers for standalone runs), then publishes exactly
 # one normal release at the product tag:
 #
@@ -23,15 +23,10 @@ name: Release
 # and `alm-release.yml` still publishes its own component pre-release on the
 # normal main-branch trigger, so the Forgejo runner keeps working unchanged.
 #
+# NOTE: a push to `main` no longer publishes a release — releases are only cut
+# on purpose, by dispatching this workflow (with a tag, a bump or a version).
+#
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - "**.md"
-      - "botbook/**"
-      - "issues/**"
-      - "work/**"
-      - "target/**"
   workflow_dispatch:
     inputs:
       tag:
