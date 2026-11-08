@@ -1,0 +1,334 @@
+[default]
+description = "Default permissions for app commands (wizard, tray, sync, drive)"
+permissions = [
+    "allow-save-download",
+    "allow-list-files",
+    "allow-upload-file",
+    "allow-create-folder",
+    "allow-delete-path",
+    "allow-get-home-dir",
+    "allow-get-sync-status",
+    "allow-start-sync",
+    "allow-stop-sync",
+    "allow-configure-remote",
+    "allow-check-rclone-installed",
+    "allow-list-remotes",
+    "allow-get-sync-folder",
+    "allow-set-sync-folder",
+    "allow-get-tray-status",
+    "allow-start-tray",
+    "allow-stop-tray",
+    "allow-show-notification",
+    "allow-update-tray-status",
+    "allow-set-tray-tooltip",
+    "allow-get-tray-hostname",
+    "allow-set-tray-hostname",
+    "allow-handle-tray-event",
+    "allow-check-services",
+    "allow-add-service",
+    "allow-get-service",
+    "allow-all-services-running",
+    "allow-any-service-running",
+    "allow-get-tray-mode",
+    "allow-get-running-modes",
+    "allow-create-tray-with-mode",
+    "allow-check-release-update",
+    "allow-open-release-url",
+    "allow-wizard-context",
+    "allow-wizard-save-draft",
+    "allow-wizard-load-draft",
+    "allow-wizard-check-workspace",
+    "allow-wizard-pick-folder",
+    "allow-wizard-host-check",
+    "allow-wizard-media-capabilities",
+    "allow-wizard-test-model",
+    "allow-wizard-provision",
+    "allow-wizard-cancel-provision",
+    "allow-wizard-provision-status",
+    "allow-wizard-reset-stack",
+    "allow-wizard-open-folder",
+    "allow-wizard-open-url",
+    "allow-wizard-save-admin",
+    "allow-wizard-ai-accounts",
+    "allow-wizard-ai-connect",
+    "allow-wizard-ai-status",
+    "allow-wizard-ai-disconnect",
+    "allow-wizard-ai-code",
+    "allow-wizard-ai-use-chat",
+    "allow-wizard-finish",
+]
+
+[[permission]]
+identifier = "allow-save-download"
+description = "Allow the save_download command"
+commands.allow = ["save_download"]
+
+[[permission]]
+identifier = "allow-list-files"
+description = "Allow the list_files command"
+commands.allow = ["list_files"]
+
+[[permission]]
+identifier = "allow-upload-file"
+description = "Allow the upload_file command"
+commands.allow = ["upload_file"]
+
+[[permission]]
+identifier = "allow-create-folder"
+description = "Allow the create_folder command"
+commands.allow = ["create_folder"]
+
+[[permission]]
+identifier = "allow-delete-path"
+description = "Allow the delete_path command"
+commands.allow = ["delete_path"]
+
+[[permission]]
+identifier = "allow-get-home-dir"
+description = "Allow the get_home_dir command"
+commands.allow = ["get_home_dir"]
+
+[[permission]]
+identifier = "allow-get-sync-status"
+description = "Allow the get_sync_status command"
+commands.allow = ["get_sync_status"]
+
+[[permission]]
+identifier = "allow-start-sync"
+description = "Allow the start_sync command"
+commands.allow = ["start_sync"]
+
+[[permission]]
+identifier = "allow-stop-sync"
+description = "Allow the stop_sync command"
+commands.allow = ["stop_sync"]
+
+[[permission]]
+identifier = "allow-configure-remote"
+description = "Allow the configure_remote command"
+commands.allow = ["configure_remote"]
+
+[[permission]]
+identifier = "allow-check-rclone-installed"
+description = "Allow the check_rclone_installed command"
+commands.allow = ["check_rclone_installed"]
+
+[[permission]]
+identifier = "allow-list-remotes"
+description = "Allow the list_remotes command"
+commands.allow = ["list_remotes"]
+
+[[permission]]
+identifier = "allow-get-sync-folder"
+description = "Allow the get_sync_folder command"
+commands.allow = ["get_sync_folder"]
+
+[[permission]]
+identifier = "allow-set-sync-folder"
+description = "Allow the set_sync_folder command"
+commands.allow = ["set_sync_folder"]
+
+[[permission]]
+identifier = "allow-get-tray-status"
+description = "Allow the get_tray_status command"
+commands.allow = ["get_tray_status"]
+
+[[permission]]
+identifier = "allow-start-tray"
+description = "Allow the start_tray command"
+commands.allow = ["start_tray"]
+
+[[permission]]
+identifier = "allow-stop-tray"
+description = "Allow the stop_tray command"
+commands.allow = ["stop_tray"]
+
+[[permission]]
+identifier = "allow-show-notification"
+description = "Allow the show_notification command"
+commands.allow = ["show_notification"]
+
+[[permission]]
+identifier = "allow-update-tray-status"
+description = "Allow the update_tray_status command"
+commands.allow = ["update_tray_status"]
+
+[[permission]]
+identifier = "allow-set-tray-tooltip"
+description = "Allow the set_tray_tooltip command"
+commands.allow = ["set_tray_tooltip"]
+
+[[permission]]
+identifier = "allow-get-tray-hostname"
+description = "Allow the get_tray_hostname command"
+commands.allow = ["get_tray_hostname"]
+
+[[permission]]
+identifier = "allow-set-tray-hostname"
+description = "Allow the set_tray_hostname command"
+commands.allow = ["set_tray_hostname"]
+
+[[permission]]
+identifier = "allow-handle-tray-event"
+description = "Allow the handle_tray_event command"
+commands.allow = ["handle_tray_event"]
+
+[[permission]]
+identifier = "allow-check-services"
+description = "Allow the check_services command"
+commands.allow = ["check_services"]
+
+[[permission]]
+identifier = "allow-add-service"
+description = "Allow the add_service command"
+commands.allow = ["add_service"]
+
+[[permission]]
+identifier = "allow-get-service"
+description = "Allow the get_service command"
+commands.allow = ["get_service"]
+
+[[permission]]
+identifier = "allow-all-services-running"
+description = "Allow the all_services_running command"
+commands.allow = ["all_services_running"]
+
+[[permission]]
+identifier = "allow-any-service-running"
+description = "Allow the any_service_running command"
+commands.allow = ["any_service_running"]
+
+[[permission]]
+identifier = "allow-get-tray-mode"
+description = "Allow the get_tray_mode command"
+commands.allow = ["get_tray_mode"]
+
+[[permission]]
+identifier = "allow-get-running-modes"
+description = "Allow the get_running_modes command"
+commands.allow = ["get_running_modes"]
+
+[[permission]]
+identifier = "allow-create-tray-with-mode"
+description = "Allow the create_tray_with_mode command"
+commands.allow = ["create_tray_with_mode"]
+
+[[permission]]
+identifier = "allow-check-release-update"
+description = "Allow the check_release_update command"
+commands.allow = ["check_release_update"]
+
+[[permission]]
+identifier = "allow-open-release-url"
+description = "Allow the open_release_url command"
+commands.allow = ["open_release_url"]
+
+[[permission]]
+identifier = "allow-wizard-context"
+description = "Allow the wizard_context command"
+commands.allow = ["wizard_context"]
+
+[[permission]]
+identifier = "allow-wizard-save-draft"
+description = "Allow the wizard_save_draft command"
+commands.allow = ["wizard_save_draft"]
+
+[[permission]]
+identifier = "allow-wizard-load-draft"
+description = "Allow the wizard_load_draft command"
+commands.allow = ["wizard_load_draft"]
+
+[[permission]]
+identifier = "allow-wizard-check-workspace"
+description = "Allow the wizard_check_workspace command"
+commands.allow = ["wizard_check_workspace"]
+
+[[permission]]
+identifier = "allow-wizard-pick-folder"
+description = "Allow the wizard_pick_folder command"
+commands.allow = ["wizard_pick_folder"]
+
+[[permission]]
+identifier = "allow-wizard-host-check"
+description = "Allow the wizard_host_check command"
+commands.allow = ["wizard_host_check"]
+
+[[permission]]
+identifier = "allow-wizard-media-capabilities"
+description = "Allow the wizard_media_capabilities command"
+commands.allow = ["wizard_media_capabilities"]
+
+[[permission]]
+identifier = "allow-wizard-test-model"
+description = "Allow the wizard_test_model command"
+commands.allow = ["wizard_test_model"]
+
+[[permission]]
+identifier = "allow-wizard-provision"
+description = "Allow the wizard_provision command"
+commands.allow = ["wizard_provision"]
+
+[[permission]]
+identifier = "allow-wizard-cancel-provision"
+description = "Allow the wizard_cancel_provision command"
+commands.allow = ["wizard_cancel_provision"]
+
+[[permission]]
+identifier = "allow-wizard-provision-status"
+description = "Allow the wizard_provision_status command"
+commands.allow = ["wizard_provision_status"]
+
+[[permission]]
+identifier = "allow-wizard-reset-stack"
+description = "Allow the wizard_reset_stack command"
+commands.allow = ["wizard_reset_stack"]
+
+[[permission]]
+identifier = "allow-wizard-open-folder"
+description = "Allow the wizard_open_folder command"
+commands.allow = ["wizard_open_folder"]
+
+[[permission]]
+identifier = "allow-wizard-open-url"
+description = "Allow the wizard_open_url command"
+commands.allow = ["wizard_open_url"]
+
+[[permission]]
+identifier = "allow-wizard-save-admin"
+description = "Allow the wizard_save_admin command"
+commands.allow = ["wizard_save_admin"]
+
+[[permission]]
+identifier = "allow-wizard-ai-accounts"
+description = "Allow the wizard_ai_accounts command"
+commands.allow = ["wizard_ai_accounts"]
+
+[[permission]]
+identifier = "allow-wizard-ai-connect"
+description = "Allow the wizard_ai_connect command"
+commands.allow = ["wizard_ai_connect"]
+
+[[permission]]
+identifier = "allow-wizard-ai-status"
+description = "Allow the wizard_ai_status command"
+commands.allow = ["wizard_ai_status"]
+
+[[permission]]
+identifier = "allow-wizard-ai-disconnect"
+description = "Allow the wizard_ai_disconnect command"
+commands.allow = ["wizard_ai_disconnect"]
+
+[[permission]]
+identifier = "allow-wizard-ai-code"
+description = "Allow the wizard_ai_code command"
+commands.allow = ["wizard_ai_code"]
+
+[[permission]]
+identifier = "allow-wizard-ai-use-chat"
+description = "Allow the wizard_ai_use_chat command"
+commands.allow = ["wizard_ai_use_chat"]
+
+[[permission]]
+identifier = "allow-wizard-finish"
+description = "Allow the wizard_finish command"
+commands.allow = ["wizard_finish"]

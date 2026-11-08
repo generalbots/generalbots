@@ -483,6 +483,342 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`",
+          "type": "string",
+          "const": "default",
+          "markdownDescription": "Default permissions for app commands (wizard, tray, sync, drive)\n#### This default permission set includes:\n\n- `allow-save-download`\n- `allow-list-files`\n- `allow-upload-file`\n- `allow-create-folder`\n- `allow-delete-path`\n- `allow-get-home-dir`\n- `allow-get-sync-status`\n- `allow-start-sync`\n- `allow-stop-sync`\n- `allow-configure-remote`\n- `allow-check-rclone-installed`\n- `allow-list-remotes`\n- `allow-get-sync-folder`\n- `allow-set-sync-folder`\n- `allow-get-tray-status`\n- `allow-start-tray`\n- `allow-stop-tray`\n- `allow-show-notification`\n- `allow-update-tray-status`\n- `allow-set-tray-tooltip`\n- `allow-get-tray-hostname`\n- `allow-set-tray-hostname`\n- `allow-handle-tray-event`\n- `allow-check-services`\n- `allow-add-service`\n- `allow-get-service`\n- `allow-all-services-running`\n- `allow-any-service-running`\n- `allow-get-tray-mode`\n- `allow-get-running-modes`\n- `allow-create-tray-with-mode`\n- `allow-check-release-update`\n- `allow-open-release-url`\n- `allow-wizard-context`\n- `allow-wizard-save-draft`\n- `allow-wizard-load-draft`\n- `allow-wizard-check-workspace`\n- `allow-wizard-pick-folder`\n- `allow-wizard-host-check`\n- `allow-wizard-media-capabilities`\n- `allow-wizard-test-model`\n- `allow-wizard-provision`\n- `allow-wizard-cancel-provision`\n- `allow-wizard-provision-status`\n- `allow-wizard-reset-stack`\n- `allow-wizard-open-folder`\n- `allow-wizard-open-url`\n- `allow-wizard-save-admin`\n- `allow-wizard-ai-accounts`\n- `allow-wizard-ai-connect`\n- `allow-wizard-ai-status`\n- `allow-wizard-ai-disconnect`\n- `allow-wizard-ai-code`\n- `allow-wizard-ai-use-chat`\n- `allow-wizard-finish`"
+        },
+        {
+          "description": "Allow the add_service command",
+          "type": "string",
+          "const": "allow-add-service",
+          "markdownDescription": "Allow the add_service command"
+        },
+        {
+          "description": "Allow the all_services_running command",
+          "type": "string",
+          "const": "allow-all-services-running",
+          "markdownDescription": "Allow the all_services_running command"
+        },
+        {
+          "description": "Allow the any_service_running command",
+          "type": "string",
+          "const": "allow-any-service-running",
+          "markdownDescription": "Allow the any_service_running command"
+        },
+        {
+          "description": "Allow the check_rclone_installed command",
+          "type": "string",
+          "const": "allow-check-rclone-installed",
+          "markdownDescription": "Allow the check_rclone_installed command"
+        },
+        {
+          "description": "Allow the check_release_update command",
+          "type": "string",
+          "const": "allow-check-release-update",
+          "markdownDescription": "Allow the check_release_update command"
+        },
+        {
+          "description": "Allow the check_services command",
+          "type": "string",
+          "const": "allow-check-services",
+          "markdownDescription": "Allow the check_services command"
+        },
+        {
+          "description": "Allow the configure_remote command",
+          "type": "string",
+          "const": "allow-configure-remote",
+          "markdownDescription": "Allow the configure_remote command"
+        },
+        {
+          "description": "Allow the create_folder command",
+          "type": "string",
+          "const": "allow-create-folder",
+          "markdownDescription": "Allow the create_folder command"
+        },
+        {
+          "description": "Allow the create_tray_with_mode command",
+          "type": "string",
+          "const": "allow-create-tray-with-mode",
+          "markdownDescription": "Allow the create_tray_with_mode command"
+        },
+        {
+          "description": "Allow the delete_path command",
+          "type": "string",
+          "const": "allow-delete-path",
+          "markdownDescription": "Allow the delete_path command"
+        },
+        {
+          "description": "Allow the get_home_dir command",
+          "type": "string",
+          "const": "allow-get-home-dir",
+          "markdownDescription": "Allow the get_home_dir command"
+        },
+        {
+          "description": "Allow the get_running_modes command",
+          "type": "string",
+          "const": "allow-get-running-modes",
+          "markdownDescription": "Allow the get_running_modes command"
+        },
+        {
+          "description": "Allow the get_service command",
+          "type": "string",
+          "const": "allow-get-service",
+          "markdownDescription": "Allow the get_service command"
+        },
+        {
+          "description": "Allow the get_sync_folder command",
+          "type": "string",
+          "const": "allow-get-sync-folder",
+          "markdownDescription": "Allow the get_sync_folder command"
+        },
+        {
+          "description": "Allow the get_sync_status command",
+          "type": "string",
+          "const": "allow-get-sync-status",
+          "markdownDescription": "Allow the get_sync_status command"
+        },
+        {
+          "description": "Allow the get_tray_hostname command",
+          "type": "string",
+          "const": "allow-get-tray-hostname",
+          "markdownDescription": "Allow the get_tray_hostname command"
+        },
+        {
+          "description": "Allow the get_tray_mode command",
+          "type": "string",
+          "const": "allow-get-tray-mode",
+          "markdownDescription": "Allow the get_tray_mode command"
+        },
+        {
+          "description": "Allow the get_tray_status command",
+          "type": "string",
+          "const": "allow-get-tray-status",
+          "markdownDescription": "Allow the get_tray_status command"
+        },
+        {
+          "description": "Allow the handle_tray_event command",
+          "type": "string",
+          "const": "allow-handle-tray-event",
+          "markdownDescription": "Allow the handle_tray_event command"
+        },
+        {
+          "description": "Allow the list_files command",
+          "type": "string",
+          "const": "allow-list-files",
+          "markdownDescription": "Allow the list_files command"
+        },
+        {
+          "description": "Allow the list_remotes command",
+          "type": "string",
+          "const": "allow-list-remotes",
+          "markdownDescription": "Allow the list_remotes command"
+        },
+        {
+          "description": "Allow the open_release_url command",
+          "type": "string",
+          "const": "allow-open-release-url",
+          "markdownDescription": "Allow the open_release_url command"
+        },
+        {
+          "description": "Allow the save_download command",
+          "type": "string",
+          "const": "allow-save-download",
+          "markdownDescription": "Allow the save_download command"
+        },
+        {
+          "description": "Allow the set_sync_folder command",
+          "type": "string",
+          "const": "allow-set-sync-folder",
+          "markdownDescription": "Allow the set_sync_folder command"
+        },
+        {
+          "description": "Allow the set_tray_hostname command",
+          "type": "string",
+          "const": "allow-set-tray-hostname",
+          "markdownDescription": "Allow the set_tray_hostname command"
+        },
+        {
+          "description": "Allow the set_tray_tooltip command",
+          "type": "string",
+          "const": "allow-set-tray-tooltip",
+          "markdownDescription": "Allow the set_tray_tooltip command"
+        },
+        {
+          "description": "Allow the show_notification command",
+          "type": "string",
+          "const": "allow-show-notification",
+          "markdownDescription": "Allow the show_notification command"
+        },
+        {
+          "description": "Allow the start_sync command",
+          "type": "string",
+          "const": "allow-start-sync",
+          "markdownDescription": "Allow the start_sync command"
+        },
+        {
+          "description": "Allow the start_tray command",
+          "type": "string",
+          "const": "allow-start-tray",
+          "markdownDescription": "Allow the start_tray command"
+        },
+        {
+          "description": "Allow the stop_sync command",
+          "type": "string",
+          "const": "allow-stop-sync",
+          "markdownDescription": "Allow the stop_sync command"
+        },
+        {
+          "description": "Allow the stop_tray command",
+          "type": "string",
+          "const": "allow-stop-tray",
+          "markdownDescription": "Allow the stop_tray command"
+        },
+        {
+          "description": "Allow the update_tray_status command",
+          "type": "string",
+          "const": "allow-update-tray-status",
+          "markdownDescription": "Allow the update_tray_status command"
+        },
+        {
+          "description": "Allow the upload_file command",
+          "type": "string",
+          "const": "allow-upload-file",
+          "markdownDescription": "Allow the upload_file command"
+        },
+        {
+          "description": "Allow the wizard_ai_accounts command",
+          "type": "string",
+          "const": "allow-wizard-ai-accounts",
+          "markdownDescription": "Allow the wizard_ai_accounts command"
+        },
+        {
+          "description": "Allow the wizard_ai_code command",
+          "type": "string",
+          "const": "allow-wizard-ai-code",
+          "markdownDescription": "Allow the wizard_ai_code command"
+        },
+        {
+          "description": "Allow the wizard_ai_connect command",
+          "type": "string",
+          "const": "allow-wizard-ai-connect",
+          "markdownDescription": "Allow the wizard_ai_connect command"
+        },
+        {
+          "description": "Allow the wizard_ai_disconnect command",
+          "type": "string",
+          "const": "allow-wizard-ai-disconnect",
+          "markdownDescription": "Allow the wizard_ai_disconnect command"
+        },
+        {
+          "description": "Allow the wizard_ai_status command",
+          "type": "string",
+          "const": "allow-wizard-ai-status",
+          "markdownDescription": "Allow the wizard_ai_status command"
+        },
+        {
+          "description": "Allow the wizard_ai_use_chat command",
+          "type": "string",
+          "const": "allow-wizard-ai-use-chat",
+          "markdownDescription": "Allow the wizard_ai_use_chat command"
+        },
+        {
+          "description": "Allow the wizard_cancel_provision command",
+          "type": "string",
+          "const": "allow-wizard-cancel-provision",
+          "markdownDescription": "Allow the wizard_cancel_provision command"
+        },
+        {
+          "description": "Allow the wizard_check_workspace command",
+          "type": "string",
+          "const": "allow-wizard-check-workspace",
+          "markdownDescription": "Allow the wizard_check_workspace command"
+        },
+        {
+          "description": "Allow the wizard_context command",
+          "type": "string",
+          "const": "allow-wizard-context",
+          "markdownDescription": "Allow the wizard_context command"
+        },
+        {
+          "description": "Allow the wizard_finish command",
+          "type": "string",
+          "const": "allow-wizard-finish",
+          "markdownDescription": "Allow the wizard_finish command"
+        },
+        {
+          "description": "Allow the wizard_host_check command",
+          "type": "string",
+          "const": "allow-wizard-host-check",
+          "markdownDescription": "Allow the wizard_host_check command"
+        },
+        {
+          "description": "Allow the wizard_load_draft command",
+          "type": "string",
+          "const": "allow-wizard-load-draft",
+          "markdownDescription": "Allow the wizard_load_draft command"
+        },
+        {
+          "description": "Allow the wizard_media_capabilities command",
+          "type": "string",
+          "const": "allow-wizard-media-capabilities",
+          "markdownDescription": "Allow the wizard_media_capabilities command"
+        },
+        {
+          "description": "Allow the wizard_open_folder command",
+          "type": "string",
+          "const": "allow-wizard-open-folder",
+          "markdownDescription": "Allow the wizard_open_folder command"
+        },
+        {
+          "description": "Allow the wizard_open_url command",
+          "type": "string",
+          "const": "allow-wizard-open-url",
+          "markdownDescription": "Allow the wizard_open_url command"
+        },
+        {
+          "description": "Allow the wizard_pick_folder command",
+          "type": "string",
+          "const": "allow-wizard-pick-folder",
+          "markdownDescription": "Allow the wizard_pick_folder command"
+        },
+        {
+          "description": "Allow the wizard_provision command",
+          "type": "string",
+          "const": "allow-wizard-provision",
+          "markdownDescription": "Allow the wizard_provision command"
+        },
+        {
+          "description": "Allow the wizard_provision_status command",
+          "type": "string",
+          "const": "allow-wizard-provision-status",
+          "markdownDescription": "Allow the wizard_provision_status command"
+        },
+        {
+          "description": "Allow the wizard_reset_stack command",
+          "type": "string",
+          "const": "allow-wizard-reset-stack",
+          "markdownDescription": "Allow the wizard_reset_stack command"
+        },
+        {
+          "description": "Allow the wizard_save_admin command",
+          "type": "string",
+          "const": "allow-wizard-save-admin",
+          "markdownDescription": "Allow the wizard_save_admin command"
+        },
+        {
+          "description": "Allow the wizard_save_draft command",
+          "type": "string",
+          "const": "allow-wizard-save-draft",
+          "markdownDescription": "Allow the wizard_save_draft command"
+        },
+        {
+          "description": "Allow the wizard_test_model command",
+          "type": "string",
+          "const": "allow-wizard-test-model",
+          "markdownDescription": "Allow the wizard_test_model command"
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",

@@ -205,14 +205,17 @@ async fn provision_component(
         }
     }
 
+    // A stack reset removes conf/ and data/ but leaves bin/ intact, so
+    // is_installed() returns true while the config files are gone.  Re-run the
+    // pre/post-install commands for every already-installed component to
+    // regenerate directories and configuration that the binary alone doesn't
+    // carry.
     #[cfg(windows)]
-    if already_installed && component.id == "directory" && !pm.is_running(component.id) {
-        progress(component.id, "starting", "Preparing identity-provider configuration", started);
-        pm.prepare_installed_windows_component(component.id).map_err(|e| {
-            let reason = format!("Identity provider configuration failed: {e}");
-            progress(component.id, "failed", &reason, started);
-            reason
-        })?;
+    if already_installed && !pm.is_running(component.id) {
+        progress(component.id, "starting", &format!("Preparing {} configuration", component.label.to_lowercase()), started);
+        if let Err(e) = pm.prepare_installed_windows_component(component.id) {
+            log::warn!("Pre-install commands for {} failed: {e}", component.id);
+        }
     }
 
     if let Some(program) = pm.executable_path(component.id) {
@@ -436,7 +439,14 @@ pub async fn run() -> std::io::Result<()> {
         .map(|value| value.trim().is_empty())
         .unwrap_or(true)
     {
-        std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
+        std::env::set_var(
+            "VAULT_ADDR",
+            if cfg!(target_os = "windows") {
+                "http://127.0.0.1:8200"
+            } else {
+                "https://127.0.0.1:8200"
+            },
+        );
     }
     let tenant = std::env::var("GB_TENANT")
         .ok()
