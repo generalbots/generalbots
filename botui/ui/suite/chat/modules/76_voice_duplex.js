@@ -32,6 +32,11 @@
     lastTranscript: "",
     lastTranscriptAt: 0,
     sayToken: 0,
+    // #1893 — a live session that never receives a single microphone sample
+    // used to look connected while capturing nothing. Count the frames and
+    // fail loudly when the count stays at zero.
+    captured: 0,
+    captureTimer: null,
   };
 
   function tr(key, fallback) {
@@ -77,6 +82,10 @@
     if (d.connectTimer) {
       clearTimeout(d.connectTimer);
       d.connectTimer = null;
+    }
+    if (d.captureTimer) {
+      clearTimeout(d.captureTimer);
+      d.captureTimer = null;
     }
     if (d.speechEndTimer) {
       clearTimeout(d.speechEndTimer);
@@ -215,7 +224,21 @@
       applyLive("listening");
       if (window.GBVoiceAudio) {
         window.GBVoiceAudio.startMic(handleSamples).then(function () {
-          if (!d.active || d.mode !== "duplex") window.GBVoiceAudio.stop();
+          if (!d.active || d.mode !== "duplex") {
+            window.GBVoiceAudio.stop();
+            return;
+          }
+          // #1893 — connected is not the same as capturing. If no frame
+          // arrives, say why instead of leaving a silent live session.
+          if (d.captureTimer) clearTimeout(d.captureTimer);
+          d.captureTimer = setTimeout(function () {
+            d.captureTimer = null;
+            if (!d.active || d.mode !== "duplex" || d.captured > 0) return;
+            fail(tr(
+              "chat-voice-capture-silent",
+              "the microphone is producing no audio — check the input device",
+            ));
+          }, 4000);
         }).catch(function () {
           fail(tr("chat-voice-mic-failed", "microphone could not start for duplex voice"));
         });
@@ -348,6 +371,11 @@
 
   function handleSamples(samples, inputRate, rms) {
     if (!d.active || d.mode !== "duplex") return;
+    d.captured += 1;
+    if (d.captureTimer) {
+      clearTimeout(d.captureTimer);
+      d.captureTimer = null;
+    }
     d.level = Math.min(1, (rms || 0) * 8);
     if (d.speaking) {
       if ((rms || 0) >= BARGE_RMS) {
@@ -372,6 +400,7 @@
     d.reason = "";
     d.botId = (options && options.botId) || (window.ChatState && window.ChatState.currentBotId) || "";
     d.botName = (options && options.botName) || (window.ChatState && window.ChatState.currentBotName) || "";
+    d.captured = 0;
     setPhase("connecting");
     connect();
     return true;
