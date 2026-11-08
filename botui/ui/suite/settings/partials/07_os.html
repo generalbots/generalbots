@@ -53,6 +53,21 @@
             </div>
         </div>
 
+        <!-- #1874 — the files themselves: where they live, how big they are
+             and a way to view or download each one. -->
+        <div class="setting-card">
+            <div class="card-header">
+                <div>
+                    <h2>Log files</h2>
+                    <p>Files this installation writes, with location and size</p>
+                </div>
+                <button type="button" class="btn-secondary btn-sm" onclick="window.loadOsPanel && window.loadOsPanel(true)">Refresh</button>
+            </div>
+            <div id="os-log-files" class="os-log-file-list">
+                <p class="os-empty">Open the panel to load log files.</p>
+            </div>
+        </div>
+
         <div class="setting-card">
             <div class="card-header">
                 <div>
@@ -80,7 +95,7 @@
     </div>
 </section>
 
-<script src="/suite/settings/settings-os.js?v=2"></script>
+<script src="/suite/settings/settings-os.js?v=3"></script>
 
 <!-- #1879 — restart confirmation is an app dialog, never window.prompt. -->
 <dialog id="os-restart-modal" class="modal">

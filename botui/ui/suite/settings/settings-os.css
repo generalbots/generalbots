@@ -164,6 +164,52 @@
   overflow-wrap: anywhere;
 }
 
+/* #1874 — log files list */
+.os-log-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.os-log-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.os-log-file-row:last-child {
+  border-bottom: 0;
+}
+
+.os-log-file-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.os-log-file-service {
+  color: var(--text, #e5e7eb);
+  font-size: 14px;
+}
+
+.os-log-file-path {
+  color: var(--text-secondary, #9ca3af);
+  font-family: "Fira Code", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.os-log-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .os-empty {
   margin: 0;
   color: var(--text-secondary, #9ca3af);
