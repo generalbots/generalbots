@@ -66,7 +66,48 @@
       input.addEventListener("input", () => this._filterStartMenu());
     }
 
+    const previewSwitch = menu.querySelector("#startMenuPreviewSwitch");
+    if (previewSwitch) {
+      previewSwitch.addEventListener("change", () => {
+        // Persisting calls refreshAppsCatalog(), which re-dispatches
+        // `gb-apps-catalog-loaded`; _refreshStartMenuBody() runs from that
+        // event so the menu is not rebuilt twice.
+        if (window.GBPreviewMode) window.GBPreviewMode.set(previewSwitch.checked);
+        else this._refreshStartMenuBody();
+      });
+    }
+    if (!this._startMenuPreviewHandler) {
+      this._startMenuPreviewHandler = (e) => {
+        if (!this.startMenuOpen) return;
+        const sw = document.querySelector("#startMenuPreviewSwitch");
+        const on = window.GBPreviewMode ? window.GBPreviewMode.isOn() : !!(e && e.detail && e.detail.preview);
+        if (sw) sw.checked = on;
+        this._refreshStartMenuBody();
+      };
+      window.addEventListener("gb-preview-changed", this._startMenuPreviewHandler);
+      window.addEventListener("gb-apps-catalog-loaded", this._startMenuPreviewHandler);
+    }
+
     document.addEventListener("keydown", this._startMenuKeyHandler);
+  },
+
+  _refreshStartMenuBody() {
+    if (!this.startMenuOpen) return;
+    const body = document.getElementById("startMenuBody");
+    if (!body) return;
+    const input = document.getElementById("startMenuSearchInput");
+    const query = input ? input.value : "";
+    // Rebuild the generated menu body so category/recent lists reflect the
+    // current preview/compiled/catalog state, then restore the filter.
+    const full = this._buildStartMenuHTML();
+    const tmp = document.createElement("div");
+    tmp.innerHTML = full;
+    const nextBody = tmp.querySelector("#startMenuBody");
+    if (nextBody) body.innerHTML = nextBody.innerHTML;
+    if (input && query) {
+      input.value = query;
+      this._filterStartMenu();
+    }
   },
 
   closeStartMenu() {
@@ -91,18 +132,22 @@
             return !(typeof window.isAppHidden === "function" && window.isAppHidden(a));
           }))
       : null;
+    const previewOn = !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
 
     let html = `<div class="start-menu-search-wrap"><div class="start-menu-search">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="startMenuSearchInput" placeholder="${tr('start-menu-search-placeholder', 'Type to find an app…')}"/>
-    </div></div>`;
+    </div><label class="gb-side-switch start-menu-preview-switch" title="${tr('sidebar-preview-hint', 'Show the applications that are still in preview')}"><span class="gb-side-preview-label">${tr('sidebar-preview', 'Preview mode')}</span><input type="checkbox" id="startMenuPreviewSwitch"${previewOn ? " checked" : ""} aria-label="${tr('sidebar-preview-toggle', 'Toggle preview mode')}"><span class="gb-side-switch-slider"></span></label></div>`;
 
     html += `<div class="start-menu-body" id="startMenuBody">`;
 
     if (recent.length > 0) {
       html += `<div class="start-menu-recent"><div class="start-menu-section-title">${tr('start-menu-recent', 'Recent')}</div><div class="start-menu-grid">`;
       recent.forEach(function (app) {
-        if (!enabledApps || enabledApps.has(app.id)) {
+        // APPS_REGISTRY is the rebuilt catalog view (#1811); allow apps it
+        // surfaces (including preview apps when preview mode is on).
+        var inRegistry = (window.APPS_REGISTRY || APPS_REGISTRY).some(function (a) { return a.id === app.id; });
+        if (!enabledApps || enabledApps.has(app.id) || inRegistry || app.preview) {
           html += this._appTileHTML(app);
         }
       }.bind(this));
@@ -123,8 +168,10 @@
           // product `apps=` list; their presence in the catalog already IS
           // the server's visibility decision, so exempt them here.
           // Core surfaces show even when not listed in `apps=`; every other
-          // app follows the product file (#1811).
+          // app follows the product file (#1811). Preview apps surfaced by
+          // the rebuilt registry are allowed when preview mode is on.
           if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isCoreAppId(a.id)) return true;
+          if (a.preview) return true;
           return enabledApps.has(a.id);
         });
       }
