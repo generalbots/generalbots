@@ -1,7 +1,44 @@
 use log::{info, warn};
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
+
+/// Writes the timestamped boot banner into the sidecar log (#1895).
+///
+/// The banner is the proof that the file being read is the file this boot is
+/// writing: a log without a banner for the running process is stale.
+fn write_boot_banner(file: &std::fs::File, path: &Path) {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    let mut handle = file;
+    if let Err(e) = writeln!(
+        handle,
+        "\n=== generalbots sidecar boot (unix {stamp}, app {}) log={} ===",
+        env!("CARGO_PKG_VERSION"),
+        path.display()
+    ) {
+        warn!("could not write the sidecar boot banner: {e}");
+    }
+    if let Err(e) = handle.flush() {
+        warn!("could not flush the sidecar boot banner: {e}");
+    }
+}
+
+/// Inode of `path`, used to detect a log file re-created under the sidecar.
+#[cfg(unix)]
+fn file_inode(path: &Path) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    std::fs::metadata(path).ok().map(|meta| meta.ino())
+}
+
+/// Windows has no inode to compare; the banner still proves freshness.
+#[cfg(not(unix))]
+fn file_inode(_path: &Path) -> Option<u64> {
+    None
+}
 
 /// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
 /// of [`Sidecar`] (for example a temporary taken from Tauri's managed state)
@@ -161,6 +198,17 @@ impl Sidecar {
             .open(&log_path)
             .ok();
 
+        // #1895 — this file is the only diagnostic channel on a packaged
+        // desktop install, and it must be provable that the running sidecar
+        // writes to it. Stamp every boot, remember the inode the sidecar is
+        // appending to, and warn if the path is re-created behind its back
+        // (a rotation that truncates leaves the process appending to an
+        // orphaned inode: the log never updates again).
+        if let Some(ref file) = log_file {
+            write_boot_banner(file, &log_path);
+        }
+        let opened_inode = file_inode(&log_path);
+
         let mut command = Command::new(&path);
         command
             .current_dir(&stack)
@@ -209,6 +257,19 @@ impl Sidecar {
             child.id(),
             log_path.display()
         );
+
+        // #1895 — a path whose inode changed after spawn means every later
+        // line from this sidecar is lost in an unlinked file. Say so loudly;
+        // the launcher keeps a stable inode by opening in append mode, so a
+        // mismatch is a real bug rather than a normal rotation.
+        if let (Some(before), Some(after)) = (opened_inode, file_inode(&log_path)) {
+            if before != after {
+                warn!(
+                    "sidecar log {} was re-created after the sidecar opened it — output is going to an orphaned file; never truncate this path while the sidecar runs",
+                    log_path.display()
+                );
+            }
+        }
         match self.inner.child.lock() {
             Ok(mut slot) => *slot = Some(child),
             Err(poisoned) => {
