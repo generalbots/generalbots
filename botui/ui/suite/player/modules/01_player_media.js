@@ -260,16 +260,14 @@
     function toggleMute() {
         if (!currentPlayer) return;
         currentPlayer.muted = !currentPlayer.muted;
-        document.getElementById("volume-icon").textContent = currentPlayer.muted
-            ? "🔇"
-            : "🔊";
+        // #1978 — themed SVG instead of the speaker emoji.
+        document.getElementById("volume-icon").innerHTML = volumeIcon(currentPlayer.muted);
     }
 
     function setVolume(value) {
         if (!currentPlayer) return;
         currentPlayer.volume = value / 100;
-        document.getElementById("volume-icon").textContent =
-            value == 0 ? "🔇" : "🔊";
+        document.getElementById("volume-icon").innerHTML = volumeIcon(value == 0);
     }
 
     function setPlaybackSpeed(speed) {
@@ -357,8 +355,15 @@
         return token ? { Authorization: "Bearer " + token } : {};
     }
 
+    function volumeIcon(muted) {
+        if (window.GBIcons) return window.GBIcons.html(muted ? "volumeOff" : "volume", 16);
+        return muted ? "&#128263;" : "&#128266;";
+    }
+
     function kindIcon(kind) {
-        return kind === "audio" ? "🎵" : kind === "video" ? "🎬" : kind === "image" ? "🖼️" : "📄";
+        var name = kind === "audio" ? "music" : kind === "video" ? "film" : kind === "image" ? "image" : "file";
+        if (window.GBIcons) return window.GBIcons.html(name, 15);
+        return "";
     }
 
     function renderMediaList() {

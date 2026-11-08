@@ -3,7 +3,7 @@
 (function (app) {
   "use strict";
 
-  const { state, escapeHtml, showNotification } = app;
+  const { state, escapeHtml, humanizeText, showNotification } = app;
 
   // =============================================================================
   // GOAL RUNS (#1706)
@@ -77,8 +77,10 @@
 
     container.innerHTML = runs
       .map((run) => {
-        const last = run.last_value == null ? "—" : run.last_value;
-        const target = run.target_value == null ? "—" : run.target_value;
+        // #1979 — values are authored by API callers/agents and can arrive as
+        // objects or JSON strings; the card shows them as words, not JSON.
+        const last = humanizeText(run.last_value) || "—";
+        const target = humanizeText(run.target_value) || "—";
         const progress = Number(run.progress_percent || 0);
         const canPause = run.status === "running";
         const canResume = run.status === "paused";
@@ -97,7 +99,7 @@
           </div>
           <div class="run-meta">
             <span>checkpoints <strong>${run.checkpoints}</strong></span>
-            <span>value <strong>${last}</strong> / ${target}</span>
+            <span>value <strong>${escapeHtml(last)}</strong> / ${escapeHtml(target)}</span>
             <span>every <strong>${run.interval_seconds}s</strong></span>
             <span class="run-id" title="${run.id}">${String(run.id).slice(0, 8)}</span>
           </div>

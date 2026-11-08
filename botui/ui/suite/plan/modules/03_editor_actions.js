@@ -28,7 +28,7 @@
           '<label>Tags (vírgula)<input id="f-tags" value="' + (task.tags || []).join(", ").replace(/"/g, "&quot;") + '" /></label>' +
         '</div>' +
         '<div class="plan-modal-footer">' +
-          '<button class="plan-btn plan-btn-secondary" id="plan-comment" onclick="openPlanTaskComments(\'' + task.id + '\', \'' + (task.title || "").replace(/'/g, "\\'") + '\')">💬</button>' +
+          '<button class="plan-btn plan-btn-secondary" id="plan-comment" onclick="openPlanTaskComments(\'' + task.id + '\', \'' + (task.title || "").replace(/'/g, "\\'") + '\')">' + (window.GBIcons ? window.GBIcons.html("chat", 14) : "") + '</button>' +
           '<button class="plan-btn plan-btn-secondary" id="plan-cancel">Cancelar</button>' +
           '<button class="plan-btn plan-btn-primary" id="plan-save">Salvar</button>' +
         '</div>' +
@@ -132,7 +132,7 @@
     const instruction = (window.GBModal||{prompt:prompt}).prompt("Descreva o que a IA deve planejar (ex: adicionar etapas de QA):");
     if (!instruction) return;
     const aiBtn = $("#aiAssistBtn");
-    if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = "🤖 ..."; }
+    if (aiBtn) { aiBtn.disabled = true; aiBtn.innerHTML = (window.GBIcons ? window.GBIcons.html("robot", 15) + " " : "") + "..."; }
     const context = JSON.stringify({ title: Store.data.title, tasks: Store.data.tasks });
     try {
       const res = await fetch("/api/plan/ai/assist", {
@@ -166,7 +166,7 @@
       console.error(e);
       (window.GBModal||{alert:alert}).alert("Falha ao chamar a IA.");
     } finally {
-      if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = "🤖 IA Assist"; }
+      if (aiBtn) { aiBtn.disabled = false; aiBtn.innerHTML = (window.GBIcons ? window.GBIcons.html("robot", 15) + " " : "") + "IA Assist"; }
     }
   }
 

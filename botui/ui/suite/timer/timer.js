@@ -108,7 +108,10 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  // #1981 — the fragment is injected into an already-loaded desktop window,
+  // where DOMContentLoaded has long fired; wiring only to that event left the
+  // timer with dead buttons. Boot now if the document is past parsing.
+  function boot() {
     document.querySelectorAll(".timer-mode").forEach(function (m) {
       m.addEventListener("click", function () {
         setMode(parseInt(m.dataset.min, 10), m.dataset.label);
@@ -123,7 +126,13 @@
     const resetBtn = document.getElementById("timerReset");
     if (resetBtn) resetBtn.addEventListener("click", reset);
     setMode(25, "Focus");
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
 
   window.GBTimer = { start: start, pause: pause, reset: reset, setMode: setMode };
 })();

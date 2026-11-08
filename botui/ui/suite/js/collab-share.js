@@ -54,7 +54,14 @@
       "#gb-share-dialog .gbs-link-text{flex:1;color:#e2e8f0;font-size:12px;font-family:monospace;",
       "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
       "#gb-share-dialog .gbs-error{color:#f87171;font-size:12px;}",
-      "#gb-share-dialog .gbs-hint{color:#64748b;font-size:12px;}"
+      "#gb-share-dialog .gbs-hint{color:#64748b;font-size:12px;}",
+      "#gb-share-dialog .gbs-warning{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);",
+      "border-radius:8px;padding:10px 12px;color:#fcd34d;font-size:12px;line-height:1.5;display:none;}",
+      "#gb-share-dialog .gbs-warning strong{display:block;color:#fbbf24;font-size:12px;margin-bottom:4px;}",
+      "#gb-share-dialog .gbs-warning-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}",
+      "#gb-share-dialog .gbs-warning-actions button{background:rgba(245,158,11,.18);",
+      "border:1px solid rgba(245,158,11,.55);border-radius:6px;color:#fbbf24;font-size:12px;",
+      "padding:5px 10px;cursor:pointer;}"
     ].join("");
     var style = document.createElement("style");
     style.id = CSS_ID;
@@ -87,6 +94,73 @@
       });
   }
 
+  /**
+   * #1977 — is a shared link actually reachable?
+   *
+   * A link built from `window.location.origin` only works when the origin is
+   * reachable by the people opening it: either this installation is served on
+   * its own domain (`GB_PUBLIC_BASE_URL` / `public_base_url` in /api/product),
+   * or P2P is enabled so a peer address exists. On localhost with neither, the
+   * old dialog silently produced unusable `http://localhost:...` links.
+   */
+  function sharingConfig() {
+    var cfg = window.productConfig || {};
+    var ownDomain = String(
+      window.GB_PUBLIC_BASE_URL || cfg.public_base_url || cfg.publicBaseUrl || cfg.public_url || ""
+    ).trim().replace(/\/+$/, "");
+    var p2p = false;
+    try {
+      p2p = localStorage.getItem("gb_peer_network_mode") === "p2p";
+    } catch (_) { /* storage blocked: treat as disabled */ }
+    var peer = cfg.peer || {};
+    if (peer.enabled === true) p2p = true;
+    var relay = (peer && peer.relay) || window.GB_PEER_RELAY || "";
+    var host = String(window.location.hostname || "").toLowerCase();
+    var loopback = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+    // Non-loopback hosts are already reachable by name/IP, so their origin is a
+    // usable base without extra configuration.
+    var linkBase = ownDomain || (loopback ? "" : window.location.origin);
+    return {
+      ownDomain: ownDomain,
+      p2p: p2p,
+      relay: relay,
+      linkBase: linkBase,
+      viable: !!linkBase,
+    };
+  }
+
+  function openSettings() {
+    if (window.openDeepLink) {
+      window.openDeepLink("settings", {});
+      return;
+    }
+    window.location.href = "/settings";
+  }
+
+  function renderSharingWarning() {
+    var box = document.getElementById("gbs-config-warning");
+    if (!box) return;
+    var cfg = sharingConfig();
+    if (cfg.viable) {
+      box.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+    box.style.display = "block";
+    box.innerHTML =
+      "<strong>Shared links are not reachable yet</strong>" +
+      "This installation is only reachable on localhost, so a link here opens nowhere. " +
+      "Set up one of these first: enable <b>P2P</b> in Settings → Network, or point " +
+      "<b>Shared Links</b> at your own domain." +
+      '<div class="gbs-warning-actions">' +
+      '<button type="button" data-settings="shared-links">Open Shared Links</button>' +
+      '<button type="button" data-settings="network">Open Network</button>' +
+      "</div>";
+    box.querySelectorAll("[data-settings]").forEach(function (btn) {
+      btn.addEventListener("click", openSettings);
+    });
+  }
+
   function build() {
     ensureCss();
     if (overlay && overlay.parentNode) return overlay;
@@ -99,6 +173,7 @@
           '<button class="gbs-close" title="Close">×</button>' +
         '</div>' +
         '<div class="gbs-body">' +
+          '<div class="gbs-warning" id="gbs-config-warning" role="status"></div>' +
           '<div class="gbs-section">Invite people</div>' +
           '<div class="gbs-row">' +
             '<input id="gbs-email" type="email" placeholder="name@example.com" />' +
@@ -146,6 +221,7 @@
 
   function refresh() {
     err("");
+    renderSharingWarning();
     return api("/api/collab/permissions?resource_type=" + encodeURIComponent(state.resourceType) +
       "&resource_id=" + encodeURIComponent(state.resourceId))
       .then(function (grants) {
@@ -169,9 +245,12 @@
       })
       .then(function (links) {
         var list = document.getElementById("gbs-links");
+        var linkBase = sharingConfig().linkBase;
         list.innerHTML = links.map(function (l) {
-          var url = window.location.origin + "/suite/docs/" + encodeURIComponent(state.resourceId) +
-            "?link=" + l.token;
+          // #1977 — compose from the configured base, not an origin that may
+          // resolve to localhost for everyone but this machine.
+          var url = (linkBase || window.location.origin) + "/suite/docs/" +
+            encodeURIComponent(state.resourceId) + "?link=" + l.token;
           return '<div class="gbs-link">' +
             '<span class="gbs-link-text">' + esc(url) + '</span>' +
             '<button class="gbs-btn gbs-ghost" data-copy="' + esc(url) + '">Copy</button>' +
@@ -229,6 +308,12 @@
   }
 
   function createLink() {
+    var cfg = sharingConfig();
+    if (!cfg.viable) {
+      renderSharingWarning();
+      err("Set up P2P or your own domain before creating a shared link.");
+      return;
+    }
     var role = document.getElementById("gbs-link-role").value;
     api("/api/collab/links", {
       method: "POST",

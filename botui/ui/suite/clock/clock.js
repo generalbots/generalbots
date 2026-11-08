@@ -27,6 +27,7 @@ window.GBClockApp = window.GBClockApp || {};
     tRunning: false,
     tTimer: null,
     audioCtx: null,
+    visibilityBound: false,
   };
 
   function root() {
@@ -43,10 +44,18 @@ window.GBClockApp = window.GBClockApp || {};
   // ── World time ───────────────────────────────────────────────
 
   function fillTimezones(select) {
+    if (!select) return;
     var zones = FALLBACK_ZONES;
     try {
       if (Intl.supportedValuesOf) zones = Intl.supportedValuesOf("timeZone");
     } catch (e) { /* keep fallback list */ }
+    var guess = "";
+    try { guess = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    // #1950/#1981 — a system zone such as Etc/UTC, Asia/Calcutta or a fixed
+    // offset is not always in `supportedValuesOf`, and the old code then fell
+    // back to the first alphabetical option (Africa/Abidjan), so the clock
+    // showed the wrong time. Offer the real zone first instead.
+    if (guess && zones.indexOf(guess) === -1) zones = [guess].concat(zones);
     select.innerHTML = "";
     zones.forEach(function (zone) {
       var opt = document.createElement("option");
@@ -55,9 +64,7 @@ window.GBClockApp = window.GBClockApp || {};
       opt.textContent = label + " (" + zone + ")";
       select.appendChild(opt);
     });
-    var guess = "UTC";
-    try { guess = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
-    if (zones.indexOf(guess) !== -1) select.value = guess;
+    if (guess) select.value = guess;
   }
 
   function tickClock() {
@@ -86,18 +93,38 @@ window.GBClockApp = window.GBClockApp || {};
   }
 
   function startClock() {
-    if (state.clockTimer) return;
+    if (state.clockTimer || document.hidden) return;
     tickClock();
     state.clockTimer = setInterval(tickClock, 1000);
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) {
-        clearInterval(state.clockTimer);
-        state.clockTimer = null;
-      } else {
-        startClock();
-      }
-    });
+    // Register the visibility hook once: the old code added another listener
+    // every time the tab came back, so N window switches left N listeners and
+    // N intervals racing on the same display.
+    if (!state.visibilityBound) {
+      state.visibilityBound = true;
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+          clearInterval(state.clockTimer);
+          state.clockTimer = null;
+        } else {
+          startClock();
+        }
+      });
+    }
   }
+
+  /// Stops every timer. Called by the desktop when the app window closes, so a
+  /// closed clock no longer ticks (and no longer keeps a listener alive).
+  app.destroy = function () {
+    clearInterval(state.clockTimer);
+    state.clockTimer = null;
+    if (state.swRunning) {
+      state.swAccumulated += Date.now() - state.swStartTs;
+      state.swRunning = false;
+    }
+    clearInterval(state.swTimer);
+    state.swTimer = null;
+    pauseTimer();
+  };
 
   // ── Stopwatch ────────────────────────────────────────────────
 

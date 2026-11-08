@@ -9,21 +9,21 @@
         </div>
         <div class="plan-toolbar-center">
             <div class="plan-view-tabs">
-                <button class="plan-view-tab active" data-view="kanban">📋 Kanban</button>
-                <button class="plan-view-tab" data-view="gantt">📅 Gantt</button>
-                <button class="plan-view-tab" data-view="list">📊 Lista</button>
+                <button class="plan-view-tab active" data-view="kanban"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg> Kanban</button>
+                <button class="plan-view-tab" data-view="gantt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/></svg> Gantt</button>
+                <button class="plan-view-tab" data-view="list"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="4" y2="11"/><line x1="10" y1="20" x2="10" y2="4"/><line x1="16" y1="20" x2="16" y2="8"/><line x1="22" y1="20" x2="22" y2="14"/></svg> Lista</button>
             </div>
             <span class="plan-toolbar-divider"></span>
             <button class="plan-btn plan-btn-primary" id="newTaskBtn">+ Nova Tarefa</button>
-            <button class="plan-btn plan-btn-secondary" id="aiAssistBtn">🤖 IA Assist</button>
-            <button class="plan-btn plan-btn-secondary" id="exportBtn">⬇ Exportar</button>
-            <button class="plan-btn plan-btn-secondary" id="importBtn">⬆ Importar</button>
+            <button class="plan-btn plan-btn-secondary" id="aiAssistBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><line x1="12" y1="3" x2="12" y2="8"/><circle cx="9" cy="13.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="1.2" fill="currentColor" stroke="none"/><line x1="9" y1="16.5" x2="15" y2="16.5"/></svg> IA Assist</button>
+            <button class="plan-btn plan-btn-secondary" id="exportBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar</button>
+            <button class="plan-btn plan-btn-secondary" id="importBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar</button>
         </div>
         <div class="plan-toolbar-right">
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
-            <button class="plan-btn plan-btn-secondary" id="commentsBtn" onclick="openPlanComments()" title="Comments">💬 Comentários</button>
+            <button class="plan-btn plan-btn-secondary" id="commentsBtn" onclick="openPlanComments()" title="Comments"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Comentários</button>
         </div>
     </div>
 

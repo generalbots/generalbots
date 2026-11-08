@@ -138,9 +138,9 @@
             .map(function (l) {
                 return (
                     '<div class="layer-item' + (l.id === C.activeLayerId ? " active" : "") + '" data-layer-id="' + l.id + '">' +
-                    '<span class="layer-visibility" data-act="vis">' + (l.hidden ? "🚫" : "👁️") + "</span>" +
+                    '<span class="layer-visibility" data-act="vis">' + (l.hidden ? (window.GBIcons ? window.GBIcons.html("eyeOff", 14) : "hidden") : (window.GBIcons ? window.GBIcons.html("eye", 14) : "visible")) + "</span>" +
                     '<span class="layer-name">' + l.name + "</span>" +
-                    '<span class="layer-lock" data-act="lock">' + (l.locked ? "🔒" : "🔓") + "</span>" +
+                    '<span class="layer-lock" data-act="lock">' + (l.locked ? (window.GBIcons ? window.GBIcons.html("lock", 14) : "locked") : (window.GBIcons ? window.GBIcons.html("unlock", 14) : "unlocked")) + "</span>" +
                     "</div>"
                 );
             })

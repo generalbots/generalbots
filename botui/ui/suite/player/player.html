@@ -42,28 +42,28 @@
                         data-type="video"
                         onclick="filterFiles('video')"
                     >
-                        🎬
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><line x1="8" y1="4.5" x2="8" y2="19.5"/><line x1="16" y1="4.5" x2="16" y2="19.5"/><line x1="2.5" y1="9.5" x2="21.5" y2="9.5"/><line x1="2.5" y1="14.5" x2="21.5" y2="14.5"/></svg>
                     </button>
                     <button
                         class="filter-btn"
                         data-type="audio"
                         onclick="filterFiles('audio')"
                     >
-                        🎵
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
                     </button>
                     <button
                         class="filter-btn"
                         data-type="document"
                         onclick="filterFiles('document')"
                     >
-                        📄
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                     </button>
                     <button
                         class="filter-btn"
                         data-type="image"
                         onclick="filterFiles('image')"
                     >
-                        🖼️
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="2.5"/><circle cx="8.5" cy="9" r="1.6"/><polyline points="21 16 16 11 5 20.5"/></svg>
                     </button>
                 </div>
                 <!-- #1953 — /api/files/list is a JSON endpoint; HTMX injected the
@@ -96,7 +96,7 @@
                     disabled
                     onclick="addCurrentToPlaylist()"
                 >
-                    <span>➕</span>
+                    <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
                 </button>
                 <button
                     class="btn-icon"
@@ -105,7 +105,7 @@
                     disabled
                     onclick="downloadFile()"
                 >
-                    <span>📥</span>
+                    <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
                 </button>
                 <button
                     class="btn-icon"
@@ -114,7 +114,7 @@
                     disabled
                     onclick="shareFile()"
                 >
-                    <span>🔗</span>
+                    <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></svg></span>
                 </button>
                 <button
                     class="btn-icon"
@@ -123,7 +123,7 @@
                     disabled
                     onclick="toggleFullscreen()"
                 >
-                    <span>⛶</span>
+                    <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 9 4 4 9 4"/><polyline points="15 4 20 4 20 9"/><polyline points="20 15 20 20 15 20"/><polyline points="9 20 4 20 4 15"/></svg></span>
                 </button>
             </div>
         </header>
@@ -141,7 +141,7 @@
             <!-- Audio Player -->
             <div id="audio-player" class="media-player hidden">
                 <div class="audio-visualizer" id="audio-visualizer">
-                    <div class="album-art">🎵</div>
+                    <div class="album-art"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></div>
                 </div>
                 <audio id="audio-element" controls>
                     <source src="" type="audio/mpeg" />
@@ -165,34 +165,34 @@
                     <div id="slide-content"></div>
                 </div>
                 <div class="slide-navigation">
-                    <button class="nav-btn" onclick="prevSlide()">←</button>
+                    <button class="nav-btn" onclick="prevSlide()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg></button>
                     <span id="slide-counter">1 / 1</span>
-                    <button class="nav-btn" onclick="nextSlide()">→</button>
+                    <button class="nav-btn" onclick="nextSlide()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
                 </div>
             </div>
 
             <!-- Empty State -->
             <div id="empty-state" class="empty-state">
-                <div class="empty-state-icon">🎬</div>
+                <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><line x1="8" y1="4.5" x2="8" y2="19.5"/><line x1="16" y1="4.5" x2="16" y2="19.5"/><line x1="2.5" y1="9.5" x2="21.5" y2="9.5"/><line x1="2.5" y1="14.5" x2="21.5" y2="14.5"/></svg></div>
                 <h2>No Media Selected</h2>
                 <p>Select a file from the sidebar to start viewing</p>
                 <div class="supported-formats">
                     <h4>Supported Formats</h4>
                     <div class="format-grid">
                         <div class="format-item">
-                            <span class="format-icon">🎬</span>
+                            <span class="format-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><line x1="8" y1="4.5" x2="8" y2="19.5"/><line x1="16" y1="4.5" x2="16" y2="19.5"/><line x1="2.5" y1="9.5" x2="21.5" y2="9.5"/><line x1="2.5" y1="14.5" x2="21.5" y2="14.5"/></svg></span>
                             <span class="format-label">MP4, WebM, OGV</span>
                         </div>
                         <div class="format-item">
-                            <span class="format-icon">🎵</span>
+                            <span class="format-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span>
                             <span class="format-label">MP3, WAV, OGG</span>
                         </div>
                         <div class="format-item">
-                            <span class="format-icon">📄</span>
+                            <span class="format-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>
                             <span class="format-label">PDF, TXT, MD</span>
                         </div>
                         <div class="format-item">
-                            <span class="format-icon">🖼️</span>
+                            <span class="format-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="2.5"/><circle cx="8.5" cy="9" r="1.6"/><polyline points="21 16 16 11 5 20.5"/></svg></span>
                             <span class="format-label">PNG, JPG, GIF</span>
                         </div>
                     </div>
@@ -241,7 +241,7 @@
                         onclick="toggleMute()"
                         data-i18n-title="player-volume"
                     >
-                        <span id="volume-icon">🔊</span>
+                        <span id="volume-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 3 9 3 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></span>
                     </button>
                     <input
                         type="range"
@@ -272,7 +272,7 @@
     <!-- Playlist Panel -->
     <aside class="playlist-panel collapsed" id="playlist-panel">
         <button class="panel-toggle" onclick="togglePlaylistPanel()">
-            <span>📋</span>
+            <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg></span>
         </button>
         <div class="panel-content">
             <h3>Playlist</h3>

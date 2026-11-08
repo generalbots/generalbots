@@ -91,7 +91,10 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       '<div class="chat-sidebar-conv-time"></div>' +
        '<button type="button" class="chat-sidebar-conv-lock" ' +
        'aria-label="Lock conversation" title="Lock conversation">' +
-       '\u{1F512}</button>' +
+       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" ' +
+       'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+       '<rect x="4" y="10" width="16" height="10" rx="2"></rect>' +
+       '<path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></button>' +
        '<button type="button" class="chat-sidebar-conv-rename" ' +
        'aria-label="Rename conversation" title="Rename conversation">' +
        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
@@ -201,7 +204,14 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     var lockedToggle = document.createElement("button");
     lockedToggle.type = "button";
     lockedToggle.className = "chat-sidebar-conv-locked-toggle";
-    lockedToggle.textContent = "\u{1F512} Locked conversations";
+    // #1982 — a themed SVG instead of the padlock emoji, which ignored the
+    // palette and rendered differently on every platform.
+    lockedToggle.innerHTML =
+      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<rect x="4" y="10" width="16" height="10" rx="2"></rect>' +
+      '<path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>' +
+      '<span>Locked conversations</span>';
     lockedToggle.addEventListener("click", function (e) {
       e.preventDefault();
       mod.showLocked();

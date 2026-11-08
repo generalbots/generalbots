@@ -76,11 +76,20 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  // #1981 — Notes is injected into an already-loaded desktop window, where
+  // DOMContentLoaded never fires again; boot directly in that case so the
+  // Add button and the restored notes work.
+  function boot() {
     const addBtn = document.getElementById("notesAdd");
     if (addBtn) addBtn.addEventListener("click", add);
     render();
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
 
   window.GBNotes = { add: add, render: render };
 })();

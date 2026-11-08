@@ -8,6 +8,14 @@
   const promptNewTask = (...args) => app.promptNewTask(...args);
   const openTaskEditor = (...args) => app.openTaskEditor(...args);
 
+  // #1978 — a themed SVG in an element (el() appends strings as text nodes).
+  function iconEl(name) {
+    const span = document.createElement("span");
+    span.className = "gb-icon";
+    span.innerHTML = window.GBIcons ? window.GBIcons.html(name, 14) : "";
+    return span;
+  }
+
   function renderKanban() {
     const root = $("#plan-content");
     if (!root) return;
@@ -64,11 +72,11 @@
             class: "plan-card-comment-btn",
             title: "Comments",
             onclick: function (e) { e.stopPropagation(); openPlanTaskComments(t.id, t.title); }
-          }, "💬")
+          }, iconEl("chat"))
         ]),
         el("div", { class: "plan-card-meta" }, [
           t.assignee ? el("span", { class: "plan-card-avatar", title: t.assignee }, t.assignee.charAt(0).toUpperCase()) : null,
-          t.end ? el("span", { class: "plan-card-date" }, "📅 " + fmtDate(t.end)) : null,
+          t.end ? el("span", { class: "plan-card-date" }, [iconEl("calendar"), " " + fmtDate(t.end)]) : null,
           t.tags && t.tags.length ? el("span", { class: "plan-card-tags" }, t.tags.map(function (tg) { return el("span", { class: "plan-tag" }, tg); })) : null
         ].filter(Boolean)),
         t.progress != null ? el("div", { class: "plan-card-progress" }, [

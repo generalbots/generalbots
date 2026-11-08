@@ -236,3 +236,25 @@
     color: var(--sentient-text-secondary, #94a3b8);
     font-size: 11px;
 }
+
+
+/* #1978 — emoji were replaced by inline SVG in Slides, Docs, Player, Plan and
+   Photos; keep those icons vertically centred in their controls. */
+.btn-icon > svg,
+.sidebar-tab > svg,
+.sidebar-panel-btn > svg,
+.nav-btn > svg,
+.plan-btn > svg,
+.plan-view-tab > svg,
+.photos-refresh > svg,
+.photos-lb-close > svg,
+.sp-btn > svg {
+  vertical-align: middle;
+}
+
+.plan-btn,
+.plan-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

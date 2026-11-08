@@ -46,7 +46,7 @@
       .map(function (f, i) {
         return (
           '<div class="photo-tile" data-i="' + i + '" data-path="' + escapeAttr(f.path) + '" title="' + escapeHtml(f.name) + '">' +
-          '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:24px">🖼</div>' +
+          '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:24px">' + (window.GBIcons ? window.GBIcons.html("image", 26) : "") + '</div>' +
           "</div>"
         );
       })
