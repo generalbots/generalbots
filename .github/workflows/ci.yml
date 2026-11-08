@@ -83,7 +83,12 @@ jobs:
 
   windows:
     name: Windows agent adapters
-    uses: ./.github/workflows/windows-agent.yml
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check the Windows agent/VM adapters
+        run: cargo check --lib -p botagent -p botvibe
 
   a11y:
     name: Accessibility and performance
