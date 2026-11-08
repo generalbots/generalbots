@@ -2985,6 +2985,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "botpublic"
+version = "7.0.0"
+
+[[package]]
 name = "botqdrant"
 version = "7.0.0"
 dependencies = [

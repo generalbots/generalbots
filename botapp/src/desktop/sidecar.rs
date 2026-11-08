@@ -250,6 +250,8 @@ impl Sidecar {
         command.env("PATH", Self::prepare_windows_runtime(&installers)?);
         command
             .current_dir(&stack)
+            .env_remove("DATABASE_URL")
+            .env_remove("PG_URL")
             .env("BOTSERVER_STACK_PATH", &stack)
             .env("BOTSERVER_INSTALLERS_PATH", &installers)
             // The desktop bundle carries only the small vendored components

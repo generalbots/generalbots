@@ -114,7 +114,7 @@ impl PackageManager {
         // Looking it up by id made every Vulkan host fail with
         // "Checksum verification failed for 'llm'".
         let expected = cache.checksum_for_url(url)
-            .or_else(|| cache.get_component(component).map(|info| info.sha256.clone()))
+            .or_else(|| cache.get_component(component).map(|info| info.effective_sha256().to_string()))
             .unwrap_or_default();
         if !expected.is_empty() {
             // Verify the file the resolver actually selected: bundled
@@ -156,7 +156,8 @@ impl PackageManager {
         }
 
         let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(15))
+            .read_timeout(std::time::Duration::from_secs(120))
             .user_agent("botserver-package-manager/1.0")
             .build()?;
         let mut last_error = None;

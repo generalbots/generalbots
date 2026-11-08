@@ -89,6 +89,8 @@ pub(super) async fn run_components(
     command
         .arg("--provision-stack")
         .current_dir(&stack)
+        .env_remove("DATABASE_URL")
+        .env_remove("PG_URL")
         .env("BOTSERVER_STACK_PATH", &stack)
         .env("BOTSERVER_INSTALLERS_PATH", &installers)
         .env("GB_WIZARD_WORKSPACE", &workspace)

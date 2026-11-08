@@ -17,6 +17,8 @@ pub struct ComponentDownload {
     pub sha256: String,
     #[serde(default)]
     pub sha256_arm64: String,
+    #[serde(default)]
+    pub sha256_win: String,
 }
 
 impl ComponentDownload {
@@ -27,7 +29,7 @@ impl ComponentDownload {
             (
                 self.url_win.as_deref().unwrap_or(&self.url),
                 self.filename_win.as_deref().unwrap_or(&self.filename),
-                &self.sha256,
+                if self.url_win.is_some() { &self.sha256_win } else { &self.sha256 },
             )
         } else if aarch64 && self.url_arm64.is_some() {
             (
@@ -83,6 +85,7 @@ mod tests {
             filename_arm64: Some("llama-arm64.tar.gz".to_string()),
             sha256: "x86".to_string(),
             sha256_arm64: "arm".to_string(),
+            sha256_win: "win".to_string(),
         }
     }
 
@@ -115,5 +118,13 @@ mod tests {
     fn windows_uses_the_win_variant() {
         let c = component();
         assert_eq!(c.variant(true, true).1, "llama-win.zip");
+        assert_eq!(c.variant(true, true).2, "win");
+    }
+
+    #[test]
+    fn windows_without_a_pinned_hash_never_uses_the_linux_hash() {
+        let mut c = component();
+        c.sha256_win.clear();
+        assert_eq!(c.variant(true, false).2, "");
     }
 }

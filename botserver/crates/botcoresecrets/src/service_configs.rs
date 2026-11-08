@@ -190,8 +190,11 @@ impl SecretsManager {
     pub async fn get_database_url(&self) -> Result<String> {
         if let Ok(url) = std::env::var("DATABASE_URL") {
             let url = url.trim().to_string();
-            if !url.is_empty() {
+            if url.starts_with("postgres://") || url.starts_with("postgresql://") {
                 return Ok(url);
+            }
+            if !url.is_empty() {
+                log::warn!("Ignoring DATABASE_URL that is not a PostgreSQL URL");
             }
         }
         let (host, port, db, user, pass) = self.get_database_config().await?;

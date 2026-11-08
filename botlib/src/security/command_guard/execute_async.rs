@@ -79,7 +79,9 @@ impl SafeCommand {
     pub fn noop_child() -> Result<Child, CommandGuardError> {
         #[cfg(target_os = "windows")]
         {
+            use std::os::windows::process::CommandExt;
             std::process::Command::new("cmd")
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
                 .args(["/C", "exit /b 0"])
                 .spawn()
                 .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))

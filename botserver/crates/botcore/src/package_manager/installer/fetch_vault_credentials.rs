@@ -4,7 +4,11 @@ impl PackageManager {
     pub(super) fn fetch_vault_credentials() -> HashMap<String, String> {
         let mut credentials = HashMap::new();
 
+        if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        dotenvy::from_path(std::path::PathBuf::from(stack).join(".env")).ok();
+    } else {
         dotenvy::dotenv().ok();
+    }
 
         let base_path = std::env::var("BOTSERVER_STACK_PATH")
             .map(std::path::PathBuf::from)

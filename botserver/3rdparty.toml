@@ -41,6 +41,8 @@ filename_win = "minio.exe"
 filename_arm64 = "minio"
 sha256 = "7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
 sha256_arm64 = "5c83cd2cf151717ba0243f73e1c7802ff36e272b67144bdd7f1f7d684fd6f03d"
+sha256_win = "af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4"
+
 
 [components.mc]
 name = "MinIO Client (mc)"
@@ -53,6 +55,8 @@ filename_win = "mc.exe"
 filename_arm64 = "mc"
 sha256 = "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
 sha256_arm64 = "14c8c9616cfce4636add161304353244e8de383b2e2752c0e9dad01d4c27c12c"
+sha256_win = "c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157"
+
 
 [components.tables]
 name = "PostgreSQL Database"
@@ -65,6 +69,8 @@ filename_win = "postgresql-18.6-1-windows-x64-binaries.zip"
 filename_arm64 = "postgresql-18.6.1-aarch64-unknown-linux-gnu.tar.gz"
 sha256 = "e84b02dd8d0ce5879fb697330a789231c8b8f8d958dae3ad4d90fecc710b1315"
 sha256_arm64 = "1ab47fa2f06ff70454309ad02e5d89c46488300d43977231481fd6b160b9d556"
+sha256_win = "fbe23da234ee31547bf8a36d29dfd81e82b849df2d2b78d2eecb43d360252f8c"
+
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
@@ -79,6 +85,8 @@ filename_arm64 = "valkey-9.1.3-jammy-arm64.tar.gz"
 note = "Windows: Uses Microsoft Redis port. For production, use Memurai or Docker."
 sha256 = "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
 sha256_arm64 = "33e0ac674548424746528b947ef65538d624ef69478445158d690d02ce6c8e36"
+sha256_win = "5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e"
+
 
 [components.cache_win]
 name = "Valkey Cache (Windows - via Memurai)"
@@ -94,6 +102,8 @@ url_win = "https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_
 filename = "caddy_2.11.9_linux_amd64.tar.gz"
 filename_win = "caddy_2.11.9_windows_amd64.zip"
 sha256 = "5b8cb7faf8726a2028ad96a66e54e6e81e8f361bc6175e5d22bbd997cc5177fb"
+sha256_win = "ad93112d335ee687100c4c9f11bced16ca590377976b7fe7883882b9e797e472"
+
 
 [components.email]
 name = "Stalwart Mail Server"
@@ -122,6 +132,8 @@ url_arm64 = "https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitade
 filename_arm64 = "zitadel-linux-arm64.tar.gz"
 sha256 = "2e99a33409ffe0a527ea640d157c6c1e3f74823f3cffc6b538fd1c5cef4cfc9c"
 sha256_arm64 = "2be0184a5efe877d3ddca9fa80f9e53e410d4f86e3530212d4c9a1f169d5664b"
+sha256_win = "dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405"
+
 
 [components.alm]
 name = "Forgejo Git Server"
@@ -197,6 +209,8 @@ url_arm64 = "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-a
 filename_arm64 = "qdrant-aarch64-unknown-linux-musl.tar.gz"
 sha256 = "b03a64616a1f41ddab78b480a318466541765f19835318113b1821cbea8df52c"
 sha256_arm64 = ""
+sha256_win = "6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be"
+
 
 [components.timeseries_db]
 name = "InfluxDB Time Series Database"
@@ -217,6 +231,7 @@ filename_win = "vault_2.2.1_windows_amd64.zip"
 filename_arm64 = "vault_2.2.1_linux_arm64.zip"
 sha256 = "079435de8ff146bdec4cdbe3be71d672ef4e59e4df6af0f2dba672e71be21a68"
 sha256_arm64 = "b8d3a7611ce996dcad8702355895a3f8657dab73311fd8f7f1b797e251aba29a"
+sha256_win = "ec0544b354adf70e11db5247b9fa5e7046f70bf0c654944e0095780b5f056342"
 
 [components.observability]
 name = "Vector Log Aggregator"

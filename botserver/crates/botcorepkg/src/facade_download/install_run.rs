@@ -118,7 +118,8 @@ pub async fn download_with_reqwest(url: &str, target_file: &std::path::Path, com
         std::fs::create_dir_all(parent)?;
     }
     let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .read_timeout(std::time::Duration::from_secs(120))
         .user_agent("botserver-package-manager/1.0")
         .build()?;
     let mut last_error = None;

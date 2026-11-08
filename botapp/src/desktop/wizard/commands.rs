@@ -93,7 +93,10 @@ pub fn wizard_provision_status(state: tauri::State<'_, WizardState>) -> super::P
 }
 
 #[tauri::command]
-pub fn wizard_reset_stack(confirmation: String) -> Result<(), String> {
+pub fn wizard_reset_stack(confirmation: String, state: tauri::State<'_, WizardState>) -> Result<(), String> {
+    if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err("Cancel the running setup before resetting the stack.".to_string());
+    }
     system::reset_stack(&confirmation)
 }
 
