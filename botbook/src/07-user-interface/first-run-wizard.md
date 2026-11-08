@@ -74,9 +74,13 @@ Before starting any bundled service, the wizard runs the matching check read-onl
 (`wizard_host_check` in `botapp/src/desktop/wizard/hostcheck/`) and renders
 **Desktop shell / Agent VM / Media tools** readiness plus the exact remediation
 command. Only a failing desktop-shell result disables **Start setup** and the
-Next button; agent and media gaps are optional and expose **Continue anyway**.
-A missing script, an unsupported platform or a timed-out check never blocks
-setup.
+Next button. Agent and media gaps are generally optional and may expose
+**Continue anyway**; on Windows, when agent-related setup is selected and the
+agent backend/WSL2 prerequisites are not ready, the wizard blocks that agent
+path (no Continue-anyway bypass for that case), shows remediation (for example
+`wsl --install -d Debian`), and offers **Skip ALL Agentic Work** for a
+Chat/Drive-only setup. A missing script, an unsupported platform or a timed-out
+check never blocks setup.
 
 On Windows, `botagent` executes a single binary name. It cannot read `incus`
 from the Windows `PATH`, so agent mode also requires `AGENT_INCUS_BIN` to point
