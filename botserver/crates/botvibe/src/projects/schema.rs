@@ -104,8 +104,9 @@ pub struct CreateProjectRequest {
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
     pub environment: Option<String>,
-    /// `native` (default), `git` (Forgejo-backed) or `github` (clone an
-    /// external repository) — see `Project::source_control`.
+    /// `native`, `git` (default, Forgejo-backed), `github` (clone an external
+    /// repository) or `import` (#1951 — clone it, then push it into internal
+    /// Git) — see `Project::source_control`.
     pub source_control: Option<String>,
     /// External repository URL for `source_control = "github"` (the
     /// repository is cloned into the workspace at creation).

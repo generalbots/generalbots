@@ -25,7 +25,10 @@
     // is required), so the agent edits a checkout of the caller's repo.
     var SOURCE_CONTROLS = [
         { id: "internal", name: "Internal", sub: "Platform source control (Forgejo), per-deploy branches + dev→prod" },
-        { id: "github", name: "GitHub URL", sub: "Clone an external GitHub repository into the workspace" }
+        { id: "github", name: "GitHub URL", sub: "Clone an external GitHub repository into the workspace" },
+        // #1951 — clone the external repository, then push it into internal
+        // Git (ALM) and keep that as origin, so the project is versioned here.
+        { id: "import", name: "Import", sub: "Import an existing repository into internal Git and start work" }
     ];
     var FRAMEWORKS = {
         // Web is htmx-only: the website template ships as an htmx page, so the
@@ -86,10 +89,14 @@
 
     // GitHub mode needs a clone URL; shown only when that source is selected.
     function cloneUrlHtml() {
-        if (!SOURCE_CONTROLS[state.source] || SOURCE_CONTROLS[state.source].id !== "github") {
+        var current = SOURCE_CONTROLS[state.source];
+        if (!current || (current.id !== "github" && current.id !== "import")) {
             return "";
         }
-        return '<label class="vibe-np-label" for="vnpCloneUrl">GitHub repository URL</label>' +
+        var label = current.id === "import"
+            ? "Repository URL to import (cloned, then pushed into internal Git)"
+            : "GitHub repository URL";
+        return '<label class="vibe-np-label" for="vnpCloneUrl">' + esc(label) + '</label>' +
             '<input type="url" id="vnpCloneUrl" class="vibe-np-input" placeholder="https://github.com/owner/repo.git"' +
             ' value="' + esc(state.cloneUrl || "") + '">';
     }
@@ -218,11 +225,13 @@
 
         var source = SOURCE_CONTROLS[state.source] || SOURCE_CONTROLS[0];
         var cloneUrl = "";
-        if (source.id === "github") {
+        if (source.id === "github" || source.id === "import") {
             var cloneInput = document.getElementById("vnpCloneUrl");
             cloneUrl = cloneInput ? cloneInput.value.trim() : "";
             if (!cloneUrl) {
-                if (err) err.textContent = "A GitHub repository URL is required for GitHub source control.";
+                if (err) err.textContent = source.id === "import"
+                    ? "A repository URL is required to import into internal Git."
+                    : "A GitHub repository URL is required for GitHub source control.";
                 return;
             }
         }
@@ -231,7 +240,7 @@
             project_type: kind.project_type,
             environment: env,
             framework: frameworkEl ? frameworkEl.value : null,
-            source_control: source.id === "internal" ? "git" : "github",
+            source_control: source.id === "internal" ? "git" : source.id,
             clone_url: cloneUrl || null,
             // #1312 — the description is the LLM scaffold prompt: the AI
             // generates the starter files from it instead of a hardcoded

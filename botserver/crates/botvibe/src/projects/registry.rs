@@ -79,6 +79,10 @@ impl ProjectRegistry {
         // import, native = legacy rows only).
         let source_control = match req.source_control.as_deref() {
             Some("github") => "github",
+            // #1951 — an imported project is cloned from the caller's repo and
+            // then pushed into internal Git, so it is a git-mode project from
+            // that point on.
+            Some("import") => "import",
             _ => "git",
         };
         let environment = req.environment.clone().unwrap_or_else(|| "development".to_string());

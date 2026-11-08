@@ -76,9 +76,12 @@ pub(crate) async fn create_run(
                         error!("Vibe: git-mode wiring for project {pid} failed: {e}");
                     }
                 }
-                "github" => {
+                // #1951 — an imported project shares the external clone and
+                // then publishes it into internal Git, so the same wiring runs
+                // on a run that auto-creates it.
+                "github" | "import" => {
                     if let Err(e) = crate::git_mode::ensure_github_clone(&p).await {
-                        error!("Vibe: github-mode wiring for project {pid} failed: {e}");
+                        error!("Vibe: {}-mode wiring for project {pid} failed: {e}", p.source_control);
                     }
                 }
                 _ => {}

@@ -124,7 +124,10 @@ pub(crate) async fn create_project(
             // #1271 — github-mode clones the caller's repository into the
             // workspace; seeding the built-in template first would make the
             // clone target non-empty and fail. Clone replaces the seed.
-            let wants_seed = p.source_control != "github";
+            // #1951 — an import replaces the seed with the caller's checkout, exactly
+            // like a github clone: scaffolding first would leave generated files
+            // mixed into the imported tree.
+            let wants_seed = p.source_control != "github" && p.source_control != "import";
             if wants_seed {
                 log::info!(
                     "Vibe create: seeding project {} (key={key}, desc={})",
@@ -156,7 +159,7 @@ pub(crate) async fn create_project(
             // the project still works in native mode until ALM is configured.
             // github-mode projects clone the caller's external repository into
             // the workspace instead (payload.clone_url).
-            if p.source_control == "github" {
+            if (p.source_control == "github" || p.source_control == "import") {
                 if let Err(e) = crate::git_mode::ensure_github_clone(&p).await {
                     log::error!("github-mode wiring for project {} failed: {e}", p.id);
                 }

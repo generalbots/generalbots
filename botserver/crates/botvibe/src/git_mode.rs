@@ -139,7 +139,9 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
 /// `project.payload.clone_url`. Idempotent: an existing `.git` checkout is
 /// left untouched (re-runs of creation).
 pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
-    if project.source_control != "github" {
+    // #1951 — `import` performs the same external clone and then publishes the
+    // checkout into the platform's own Git (below), so it shares this path.
+    if project.source_control != "github" && project.source_control != "import" {
         return Ok(());
     }
     // Path-injection guard: the project name arrives from the REST body and
@@ -225,6 +227,95 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
         "Vibe github-mode {}: cloned {} into workspace",
         project.name, clone_url
     );
+    if project.source_control == "import" {
+        import_into_internal(project, &cwd).await?;
+    }
+    Ok(())
+}
+
+/// #1951 — publishes an imported checkout into the internal Git (ALM/Forgejo)
+/// and leaves that repository as `origin`, so Run/Deploy treat the project
+/// like any other git-mode one.
+async fn import_into_internal(project: &Project, cwd: &Path) -> Result<(), String> {
+    let (alm_base, alm_token, _org) = botcoresecrets::alm_config();
+    if alm_base.is_empty() || alm_token.is_empty() {
+        return Err(format!(
+            "import project '{}' needs ALM config (vault secret/gbo/alm) — got base='{alm_base}' token={}",
+            project.name,
+            if alm_token.is_empty() { "empty" } else { "set" }
+        ));
+    }
+    let org = VmLifecycle::alm_org(project.branch_id);
+    let repo = VmLifecycle::alm_repo(&project.name);
+    let client = botdeployment::ForgejoClient::new(alm_base.clone(), alm_token.clone());
+    if let Err(e) = client
+        .create_repository(
+            &org,
+            &repo,
+            &format!("Imported project {}", project.name),
+            false,
+        )
+        .await
+    {
+        return Err(format!("import create Forgejo repo {org}/{repo}: {e}"));
+    }
+    let internal_url = format!("{}/{org}/{repo}.git", alm_base.trim_end_matches('/'));
+    let auth_url = add_token_to_url(&internal_url, &alm_token);
+    // The external remote is replaced on purpose: after the import the
+    // internal repository is the source of truth.
+    let _ = run(
+        "git",
+        &[
+            "remote".to_string(),
+            "remove".to_string(),
+            "origin".to_string(),
+        ],
+        cwd,
+        15,
+    );
+    git(
+        cwd,
+        &["remote", "add", "origin", &auth_url],
+        "remote add origin (import)",
+    )?;
+    let push = run(
+        "git",
+        &[
+            "push".to_string(),
+            "--all".to_string(),
+            "--force".to_string(),
+            "origin".to_string(),
+        ],
+        cwd,
+        600,
+    )
+    .map_err(|e| format!("import push --all: {e}"))?;
+    if push.exit_code != Some(0) {
+        return Err(format!(
+            "import push --all {org}/{repo}: {}",
+            push.stderr.trim()
+        ));
+    }
+    if let Ok(tags) = run(
+        "git",
+        &[
+            "push".to_string(),
+            "--tags".to_string(),
+            "--force".to_string(),
+            "origin".to_string(),
+        ],
+        cwd,
+        120,
+    ) {
+        if tags.exit_code != Some(0) {
+            warn!(
+                "Vibe import {}: push --tags failed: {}",
+                project.name,
+                tags.stderr.trim()
+            );
+        }
+    }
+    info!("Vibe import {}: pushed to internal {org}/{repo}", project.name);
     Ok(())
 }
 
