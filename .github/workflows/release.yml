@@ -56,6 +56,9 @@ permissions:
   contents: write
   actions: read
 
+env:
+  PYTHON_VERSION: "3.12"
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -748,10 +751,15 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'the payload could not be extracted' }
             # The runner has PostgreSQL on PATH; a release must also load on
             # a machine without that developer installation.
+            $serverExe = Join-Path $check 'botserver.exe'
+            if (-not (Test-Path $serverExe)) {
+              $found = Get-ChildItem -Path $check -Filter 'botserver.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($found) { $serverExe = $found.FullName }
+            }
             $savedRuntimePath = $env:PATH
             try {
               $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
-              & (Join-Path $check 'botserver.exe') --help | Out-Null
+              & $serverExe --help | Out-Null
               if ($LASTEXITCODE -ne 0) { throw 'the packaged server is missing a runtime DLL' }
             } finally {
               $env:PATH = $savedRuntimePath
