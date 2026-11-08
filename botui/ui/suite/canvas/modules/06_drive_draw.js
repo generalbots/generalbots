@@ -301,39 +301,67 @@
         }, null, 2);
 
         var name = canvasTitle();
+
+        // #1975 — the saved file must carry the name the user typed, otherwise
+        // renaming a canvas left the old filename on the drive and searching
+        // for the new name found nothing. Same-folder rename, sanitized once.
+        function desiredName(folder) {
+            var safe = String(name || "Untitled Canvas")
+                .replace(/[\/\\?%*:|"<>]/g, "-")
+                .replace(/\.draw$/i, "");
+            if (!safe) safe = "Untitled Canvas";
+            var file = safe + ".draw";
+            return folder ? folder + "/" + file : file;
+        }
+
+        function writeDraw(path, scope, bucket) {
+            var writeBody = { path: path, content: btoa(content), scope: scope };
+            if (bucket) writeBody.bucket = bucket;
+            return api("/api/files/write", {
+                method: "POST",
+                body: JSON.stringify(writeBody),
+            }).then(function () {
+                window.__CANVAS_FILE_PATH = path;
+                setStatus("Saved · " + path.split("/").pop() + " ✓");
+            });
+        }
+
         if (!f.bucket && !f.path) {
-            // Standalone canvas: download a local .draw file.
-            var blob = new Blob([content], { type: "application/json" });
-            var link = document.createElement("a");
-            link.download = name + ".draw";
-            link.href = URL.createObjectURL(blob);
-            link.click();
-            setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
-            setStatus("Saved (download)");
+            // Standalone canvas: keep a copy in the caller's Drive so the name
+            // is searchable; fall back to a local download when Drive answers
+            // nothing (offline or desktop-local without an account).
+            writeDraw(desiredName(""), "user", null).catch(function () {
+                var blob = new Blob([content], { type: "application/json" });
+                var link = document.createElement("a");
+                link.download = name + ".draw";
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
+                setStatus("Saved (download)");
+            });
             return;
         }
 
-        var path = f.path;
-        if (!path) {
-            // New file: derive a fresh .draw path inside the launch folder.
-            var safeName = name.replace(/[\/\\?%*:|"<>]/g, "-").replace(/\.draw$/i, "") + ".draw";
-            path = f.folder ? f.folder + "/" + safeName : safeName;
-            window.__CANVAS_FILE_PATH = path;
-        }
+        var folder = f.folder ||
+            (f.path && f.path.indexOf("/") !== -1 ? f.path.substring(0, f.path.lastIndexOf("/")) : "");
+        var target = desiredName(folder);
+        var previous = f.path || "";
 
-        var writeBody = {
-            path: path,
-            content: btoa(content),
-            scope: f.scope,
-        };
-        if (f.bucket) writeBody.bucket = f.bucket;
-        api("/api/files/write", {
-            method: "POST",
-            body: JSON.stringify(writeBody),
-        })
-            .then(function () {
-                setStatus("Saved · " + path.split("/").pop() + " ✓");
-            })
+        var rename = previous && previous !== target
+            ? api("/api/files/move", {
+                method: "POST",
+                body: JSON.stringify({
+                    source_path: previous,
+                    dest_path: target,
+                    scope: f.scope,
+                    source_bucket: f.bucket || null,
+                    dest_bucket: f.bucket || null,
+                }),
+            }).catch(function () { /* no old file to rename: write anyway */ })
+            : Promise.resolve();
+
+        rename
+            .then(function () { return writeDraw(target, f.scope, f.bucket); })
             .catch(function () {
                 setStatus("Save failed");
             });

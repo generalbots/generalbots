@@ -227,20 +227,64 @@ async function createFolder() {
     await doCreate(name);
 }
 
+/* #1974 — Recent is "everything I opened", not "what happens to be in the tab
+ * I am standing in": bot/workspace files and the caller's own user-scope files
+ * are fetched separately and merged, newest first. One unavailable scope never
+ * empties the list. */
+async function fetchRecentEntries() {
+    var scopes = ["bot", "user"];
+    var entries = [];
+    var seen = {};
+    for (var i = 0; i < scopes.length; i++) {
+        var scope = scopes[i];
+        var params = new URLSearchParams();
+        params.set("scope", scope);
+        if (currentBucket) params.set("bucket", getEffectiveBucket());
+        try {
+            var files = await apiRequest("/recent?" + params.toString());
+            (files || []).forEach(function (file) {
+                var path = file.path || file.name || "";
+                if (!path) return;
+                var key = ((file.bucket || currentBucket || "") + "|" + path).toLowerCase();
+                if (seen[key]) return;
+                seen[key] = true;
+                entries.push({
+                    is_dir: !!file.is_dir,
+                    name: file.name || path.split("/").pop(),
+                    path: path,
+                    size: file.size || 0,
+                    modified: file.modified,
+                    is_kb: !!file.is_kb,
+                    is_public: !!file.is_public,
+                    bucket: file.bucket || null,
+                    scope: scope,
+                });
+            });
+        } catch (err) {
+            if (window.console) console.warn("drive: recent " + scope + " unavailable", err);
+        }
+    }
+    entries.sort(function (a, b) {
+        var am = a.modified ? Date.parse(a.modified) : 0;
+        var bm = b.modified ? Date.parse(b.modified) : 0;
+        return bm - am;
+    });
+    return entries;
+}
+
 async function loadRecentFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
     content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
-    try {
-        const params = new URLSearchParams();
-        params.set("scope", currentScope);
-        if (currentBucket) params.set("bucket", getEffectiveBucket());
-        const files = await apiRequest("/recent?" + params.toString());
-        renderFiles(files);
-    } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>No recent files</h3></div>';
+    var entries = await fetchRecentEntries();
+    if (!entries.length) {
+        content.innerHTML = '<div class="empty-state"><h3>No recent files</h3><p>Files you open or upload show up here, from every Drive location.</p></div>';
+        return;
     }
+    renderFiles(entries);
 }
+
+window.fetchRecentEntries = fetchRecentEntries;
 
 
 // ── Trash and search (kept in the core file: the UI test harness loads

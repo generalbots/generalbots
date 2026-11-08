@@ -22,6 +22,7 @@
         '/suite/drive/modules/98_actions_versions.js',
         '/suite/drive/modules/98_actions_extra.js',
         '/suite/drive/modules/13_sync.js',
+        '/suite/drive/modules/14_quick_open.js',
         '/suite/drive/modules/99_init.js',
     ];
     window.DriveAI = window.DriveAI || null;

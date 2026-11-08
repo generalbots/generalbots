@@ -340,12 +340,13 @@ function bindSearchInput() {
             loadFiles(currentPath, currentBucket);
         }
     });
-    // Ctrl/Cmd+K focuses the box from anywhere in the Drive window.
+    // #1973 — Ctrl/Cmd+K opens the recent-files quick list (14_quick_open.js)
+    // instead of merely focusing the box the user could just click. The box
+    // still handles full-content search.
     document.addEventListener("keydown", function(e) {
         if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
             e.preventDefault();
-            searchInput.focus();
-            searchInput.select();
+            if (window.DriveQuickOpen) window.DriveQuickOpen.toggle();
         }
     });
 }

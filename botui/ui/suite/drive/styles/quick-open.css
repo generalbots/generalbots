@@ -1,0 +1,127 @@
+/* Drive quick open palette (#1973) — Ctrl/Cmd+K overlay listing recent files
+   from every Drive location. Theme-neutral: every colour comes from the suite
+   tokens the theme manager publishes. */
+
+.gb-quickopen {
+    position: fixed;
+    inset: 0;
+    z-index: 4200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12vh 16px 16px;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(2px);
+}
+
+.gb-quickopen[hidden] {
+    display: none;
+}
+
+.gb-quickopen-panel {
+    width: min(620px, 100%);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--surface, var(--card-bg, #ffffff));
+    border: 1px solid var(--border-color, var(--border, rgba(128, 128, 128, 0.28)));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.gb-quickopen-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, var(--border, rgba(128, 128, 128, 0.35)));
+    background: var(--surface-hover, var(--surface, transparent));
+    color: var(--text, inherit);
+    outline: none;
+}
+
+.gb-quickopen-input:focus {
+    border-color: var(--accent, var(--primary, #2563eb));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #2563eb) 22%, transparent);
+}
+
+.gb-quickopen-list {
+    overflow-y: auto;
+    max-height: 52vh;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    scrollbar-width: thin;
+}
+
+.gb-quickopen-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.gb-quickopen-list::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.45);
+    border-radius: 6px;
+}
+
+.gb-quickopen-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "name scope"
+        "path scope";
+    gap: 0 12px;
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px;
+    text-align: left;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text, inherit);
+    cursor: pointer;
+    font: inherit;
+}
+
+.gb-quickopen-row:hover,
+.gb-quickopen-row.active {
+    background: var(--surface-hover, rgba(128, 128, 128, 0.14));
+}
+
+.gb-quickopen-name {
+    grid-area: name;
+    font-size: 13.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gb-quickopen-path {
+    grid-area: path;
+    font-size: 11.5px;
+    color: var(--text-secondary, #6b7280);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gb-quickopen-scope {
+    grid-area: scope;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #6b7280);
+    border: 1px solid var(--border-color, rgba(128, 128, 128, 0.35));
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.gb-quickopen-empty,
+.gb-quickopen-status {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-secondary, #6b7280);
+}

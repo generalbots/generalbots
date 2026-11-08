@@ -93,27 +93,49 @@
         document.getElementById("btn-add-playlist").disabled = false;
 
         const streamUrl = `/api/player/default/stream/${path}`;
+        openMedia(streamUrl, type);
+    }
 
-        switch (type) {
-            case "video":
-                showVideoPlayer(streamUrl);
-                break;
-            case "audio":
-                showAudioPlayer(streamUrl);
-                break;
-            case "document":
-            case "pdf":
-                showDocumentViewer(streamUrl);
-                break;
-            case "image":
-                showImageViewer(streamUrl);
-                break;
-            case "presentation":
-                showPresentationViewer(streamUrl);
-                break;
-            default:
-                showDocumentViewer(streamUrl);
+    // #1971 — a viewer must never display the endpoint's JSON error body. The
+    // document frame used to be pointed straight at the stream URL, so any
+    // non-file answer (404 JSON, an auth error, a metadata object) was painted
+    // on screen as raw JSON. Fetch first, inspect the content type, and only
+    // then hand a real object URL to the viewer.
+    async function openMedia(url, type) {
+        try {
+            const response = await fetch(url, { headers: playerAuthHeaders() });
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status);
+            }
+            const contentType = (response.headers.get("content-type") || "").toLowerCase();
+            if (contentType.indexOf("json") !== -1) {
+                throw new Error("this file cannot be previewed in the player");
+            }
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            if (type === "image") showImageViewer(blobUrl);
+            else if (type === "video") showVideoPlayer(blobUrl);
+            else if (type === "audio") showAudioPlayer(blobUrl);
+            else showDocumentViewer(blobUrl);
+        } catch (err) {
+            showPlayerError(
+                "Could not open " +
+                    (currentFile && currentFile.name ? currentFile.name : "this file") +
+                    ": " +
+                    String(err.message || err),
+            );
         }
+    }
+
+    function showPlayerError(message) {
+        hideAllPlayers();
+        const empty = document.getElementById("empty-state");
+        if (!empty) return;
+        empty.classList.remove("hidden");
+        const title = empty.querySelector("h2");
+        if (title) title.textContent = "Could not play this file";
+        const hint = empty.querySelector("p");
+        if (hint) hint.textContent = message;
     }
 
     function hideAllPlayers() {
@@ -129,6 +151,9 @@
     function showVideoPlayer(url) {
         const player = document.getElementById("video-player");
         const video = document.getElementById("video-element");
+        video.onerror = function () {
+            showPlayerError("This video format cannot be played here. Download it to open in a media app.");
+        };
         video.src = url;
         player.classList.remove("hidden");
         document.getElementById("playback-controls").classList.remove("hidden");
@@ -139,6 +164,9 @@
     function showAudioPlayer(url) {
         const player = document.getElementById("audio-player");
         const audio = document.getElementById("audio-element");
+        audio.onerror = function () {
+            showPlayerError("This audio format cannot be played here. Download it to open in a media app.");
+        };
         audio.src = url;
         player.classList.remove("hidden");
         document.getElementById("playback-controls").classList.remove("hidden");
@@ -156,15 +184,19 @@
     function showImageViewer(url) {
         const viewer = document.getElementById("image-viewer");
         const img = document.getElementById("image-element");
+        img.onerror = function () {
+            showPlayerError("This image could not be decoded. Download it to open it locally.");
+        };
         img.src = url;
         viewer.classList.remove("hidden");
     }
 
     function showPresentationViewer(url) {
+        // #1971 — this used to show an empty deck with a "1 / 1" counter and
+        // never load the file. Render the slides through the document viewer.
+        showDocumentViewer(url);
         const viewer = document.getElementById("presentation-viewer");
-        viewer.classList.remove("hidden");
-        currentSlide = 0;
-        updateSlideCounter();
+        if (viewer) viewer.classList.add("hidden");
     }
 
     function setupMediaEvents(media) {
@@ -464,14 +496,7 @@
             else showVideoPlayer(url);
         } catch (err) {
             console.error("player: media load failed", err);
-            const empty = document.getElementById("empty-state");
-            if (empty) {
-                empty.classList.remove("hidden");
-                const title = empty.querySelector("h2");
-                if (title) title.textContent = "Could not play this file";
-                const hint = empty.querySelector("p");
-                if (hint) hint.textContent = String(err.message || err);
-            }
+            showPlayerError(String(err.message || err));
         }
     }
 
@@ -485,6 +510,9 @@
 
     window.filterFiles = filterFiles;
     window.loadMediaList = loadMediaList;
+    // Playlists (and deep links) open a file by path; keeping this on `window`
+    // is also how the JSON guard in openMedia is exercised.
+    window.loadFile = loadFile;
     // The desktop injects app HTML after the page has loaded, so listening for
     // DOMContentLoaded alone would never fire there.
     if (document.readyState === "loading") {
