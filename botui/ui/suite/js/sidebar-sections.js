@@ -200,18 +200,19 @@
             ? data.files
             : [];
         files.slice(0, 5).forEach(function (f) {
-          var fileName = String(f.name || f.path || "");
+          var filePath = String(f.path || f.name || "");
+          var fileName = filePath.split("/").pop() || filePath;
           var appId = appForFile(fileName);
           var item = document.createElement("div");
           item.className = "gb-file-item";
-          item.title = fileName;
+          item.title = filePath;
           item.innerHTML =
             '<span class="gb-file-icon">' + fileIcon(fileName) + "</span>" +
             '<span class="gb-file-name"></span>';
           item.querySelector(".gb-file-name").textContent = fileName;
           item.addEventListener("click", function () {
             if (window.openDeepLink) {
-              window.openDeepLink(appId, { path: fileName });
+              window.openDeepLink(appId, { path: filePath, file: filePath, bucket: f.bucket || undefined });
             }
           });
           host.appendChild(item);
