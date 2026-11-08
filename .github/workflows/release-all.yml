@@ -50,23 +50,9 @@ jobs:
     with:
       publish: false
 
-  desktop:
-    name: Linux and Windows desktop
-    uses: ./.github/workflows/desktop-binaries.yml
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
-      publish: false
-
-  macos:
-    name: macOS desktop
-    uses: ./.github/workflows/desktop-macos.yml
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
-      publish: false
-
-  arm64:
-    name: Linux arm64 desktop
-    uses: ./.github/workflows/desktop-linux-arm64.yml
+  download:
+    name: Download (all variants)
+    uses: ./.github/workflows/download.yml
     with:
       tag: ${{ inputs.tag || github.ref_name }}
       publish: false
@@ -77,17 +63,9 @@ jobs:
     with:
       publish: false
 
-  iso:
-    name: Appliance image
-    needs: [desktop]
-    uses: ./.github/workflows/desktop-os-iso.yml
-    with:
-      release: ${{ inputs.tag || github.ref_name }}
-      artifact: linux-installer
-
   publish:
     name: Publish the all-inclusive release
-    needs: [server, desktop, macos, arm64, pythonbox, iso]
+    needs: [server, download, pythonbox]
     if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' && needs.server.result == 'success' && needs.desktop.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -170,7 +148,7 @@ jobs:
           # ALM publishes the server binaries next to its own MANIFEST.json.
           # Keep that manifest under a distinct name and prefix the binaries so
           # they cannot overwrite the desktop-local `botserver-linux-x86_64`
-          # that desktop-binaries.yml already put in dist/.
+          # that download.yml already put in dist/.
           if [ -d dist/alm ]; then
             if [ -f dist/alm/botserver-linux-x86_64 ]; then
               mv dist/alm/botserver-linux-x86_64 "dist/generalbots-${VERSION}-server-linux-x86_64"

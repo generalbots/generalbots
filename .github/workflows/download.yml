@@ -1,4 +1,4 @@
-name: Desktop binaries
+name: Download (all variants)
 
 # Builds the desktop edition on GitHub-hosted runners and attaches it to a
 # GitHub Release ("release folder"). Manual runs need a tag; pushing a v* tag

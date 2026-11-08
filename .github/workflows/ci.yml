@@ -77,14 +77,6 @@ jobs:
     name: BotBook
     uses: ./.github/workflows/botbook-reindex.yml
 
-  gb7-desktop:
-    name: GB7 desktop feature contract
-    uses: ./.github/workflows/gb7-desktop-features.yml
-
-  gb7:
-    name: GB7 feature contract
-    uses: ./.github/workflows/gb7-features.yml
-
   product-profile:
     name: Product profile contract
     uses: ./.github/workflows/product-profile.yml

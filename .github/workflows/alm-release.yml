@@ -17,7 +17,7 @@ name: ALM release binaries
 #
 # ALM builds are component releases (#1804): they are published as pre-releases
 # and never take /releases/latest. The product line is vMAJOR.MINOR.PATCH,
-# published by `.github/workflows/release.yml` + `desktop-binaries.yml`.
+# published by `.github/workflows/release.yml` + `download.yml`.
 #
 # The release URL for a given build (public repository, no token needed):
 #   https://github.com/generalbots/generalbots/releases/download/alm-<stamp>-<sha>/MANIFEST.json
@@ -35,7 +35,7 @@ name: ALM release binaries
 # and /api/slides/* route is absent; without the botui features /suite/docs,
 # /suite/sheet and /suite/slides are not mounted at all and the desktop request
 # is parsed as a bot named "docs.html" (Access denied).
-# Release tarballs for end users stay in `.github/workflows/desktop-binaries.yml`.
+# Release tarballs for end users stay in `.github/workflows/download.yml`.
 
 on:
   # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
