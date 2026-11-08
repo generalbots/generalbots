@@ -1,6 +1,7 @@
 <!-- #1865 — Network mode settings panel (desktop-local only).
      Reads/writes the GB_NETWORK_MODE runtime preference via localStorage
-     (gb_peer_network_mode). Relay is managed automatically. -->
+     (gb_peer_network_mode). The relay is fixed to peer.generalbots.org and
+     published by /api/product (#1969). -->
 <section id="network-section" class="settings-section" data-shell-only="true" hidden>
     <div class="section-header">
         <h1>Network</h1>
@@ -32,8 +33,9 @@
         </div>
         <p class="shared-hint" style="margin-top:8px">
             This preference is saved locally and takes effect after the app restarts.
-            The relay endpoint is managed automatically (<code>relay.generalbots.org</code>);
-            no manual configuration is required.
+            The relay endpoint is fixed (<code id="network-relay-host">peer.generalbots.org</code>);
+            peer and home-site resolution always uses it, so no manual configuration
+            is required.
         </p>
         <p id="network-mode-status" class="note" role="status" style="margin-top:8px"></p>
     </article>

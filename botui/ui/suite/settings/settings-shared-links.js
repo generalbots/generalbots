@@ -14,6 +14,10 @@
   var LAN_URL_ID = "shared-links-lan-url";
   var DOMAIN_URL_ID = "shared-links-domain-url";
   var FREE_URL_ID = "shared-links-free-url";
+  var RELAY_HOST_ID = "shared-links-relay-host";
+  // #1969 — the relay is fixed; the Network panel publishes the authoritative
+  // value (from /api/product) as window.GB_PEER_RELAY.
+  var RELAY_HOST_FALLBACK = "peer.generalbots.org";
 
   var loading = false;
 
@@ -200,6 +204,7 @@
   function renderFree() {
     setStatus("shared-free-status", "Unavailable", "off");
     setText(FREE_URL_ID, linkTemplate("https://your-name.generalbots.org"));
+    setText(RELAY_HOST_ID, window.GB_PEER_RELAY || RELAY_HOST_FALLBACK);
   }
 
   function renderReachNote(lanBase) {

@@ -73,9 +73,19 @@ fn read_prod_value(key: &str) -> Option<String> {
 }
 
 
-/// Managed relay endpoint for the peer network (#1928). Auto-configured so
-/// end users never have to set it manually.
-pub const RELAY_ENDPOINT: &str = "relay.generalbots.org";
+/// Fixed relay endpoint for peer and home-site resolution (#1928, #1969).
+///
+/// The desktop client never discovers or guesses a relay: it always resolves
+/// through this host, which is published in the `/api/product` manifest. A node
+/// may still advertise a different address to its peers with `advertise-addr`
+/// (env or Vault) — that is its own reachability, not the client's lookup.
+pub const RELAY_ENDPOINT: &str = "peer.generalbots.org";
+
+/// Scheme-qualified form of [`RELAY_ENDPOINT`], for clients that need to build
+/// a URL without re-deciding the scheme.
+pub fn relay_url() -> String {
+    format!("https://{RELAY_ENDPOINT}")
+}
 
 /// Stable identity of this installation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

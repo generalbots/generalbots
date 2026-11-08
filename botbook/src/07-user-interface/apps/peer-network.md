@@ -47,7 +47,7 @@ first:
 | `enabled` | `GB_PEER_NETWORK` | `1`/`true`/`yes`/`on` joins the mesh |
 | `node-id` | `GB_PEER_NODE_ID` | stable UUID; generated and persisted when empty |
 | `node-name` | `GB_PEER_NODE_NAME` | display name; `general-bots-<id8>` when empty |
-| `advertise-addr` | `GB_PEER_ADVERTISE_ADDR` | address relayed to peers (default `relay.generalbots.org`) |
+| `advertise-addr` | `GB_PEER_ADVERTISE_ADDR` | address relayed to peers (default `peer.generalbots.org`) |
 | `data-dir` | `GB_PEER_DATA_DIR` | where `node.json` and `mode.json` live |
 | `heartbeat-ttl-secs` | `GB_PEER_HEARTBEAT_TTL_SECS` | peer expiry, default 90 |
 | `token` | `GB_PEER_TOKEN` | shared bearer token for machine callers; empty disables the check |
@@ -58,13 +58,26 @@ first:
 a node really reads Vault. Token and signing key are never printed — the boot
 log reports them as `configured` or `absent`.
 
+### Desktop client (#1969)
+
+The desktop client never discovers a relay. `GET /api/product` publishes a
+`peer` object — `{ "relay": "peer.generalbots.org", "relay_url":
+"https://peer.generalbots.org", "enabled": <bool>, "node_id": <uuid|null> }` —
+and the suite resolves peers and home sites through that host
+(`window.GB_PEER_RELAY`). Settings → Network and Settings → Shared Links read
+the value from there instead of hardcoding it. The object never carries the
+token, the signing key or the node's advertise address.
+
+`advertise-addr` is separate: it is the address this node tells peers to reach,
+and it defaults to the same relay host.
+
 ### Enabling the public node (`peer.generalbots.org`)
 
 ```bash
 vault kv put secret/gbo/peer \
   enabled=1 \
   node-name=peer \
-  advertise-addr=relay.generalbots.org \
+  advertise-addr=peer.generalbots.org \
   token="$(openssl rand -hex 32)" \
   signing-key="$(openssl rand -hex 32)"
 sudo systemctl restart botserver

@@ -209,4 +209,29 @@ mod tests {
             Err(PeerError::Invalid(_))
         ));
     }
+
+    /// #1969 — the desktop client resolves peers and home sites through one
+    /// fixed relay, so the host may never depend on local configuration or on
+    /// discovery.
+    #[test]
+    fn client_resolves_peers_through_the_fixed_relay() {
+        assert_eq!(RELAY_ENDPOINT, "peer.generalbots.org");
+        assert_eq!(relay_url(), "https://peer.generalbots.org");
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut config = enabled_config(dir.path(), 30);
+        config.advertise_address = Some("10.0.0.7:9000".to_string());
+        let network = PeerNetwork::new(config);
+
+        assert_eq!(network.relay_endpoint(), "peer.generalbots.org");
+        let manifest = network.client_manifest();
+        assert_eq!(manifest["relay"], "peer.generalbots.org");
+        assert_eq!(manifest["relay_url"], "https://peer.generalbots.org");
+        assert_eq!(manifest["enabled"], true);
+        assert!(manifest["node_id"].is_string());
+        // The client manifest never carries a credential or a peer address.
+        assert!(manifest.get("token").is_none());
+        assert!(manifest.get("signing_key").is_none());
+        assert!(manifest.get("advertise_address").is_none());
+    }
 }

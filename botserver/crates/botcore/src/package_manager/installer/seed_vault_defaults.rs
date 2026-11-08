@@ -32,7 +32,7 @@ impl PackageManager {
                     ("enabled".to_string(), "0".to_string()),
                     ("node-id".to_string(), "".to_string()),
                     ("node-name".to_string(), "".to_string()),
-                    ("advertise-addr".to_string(), "relay.generalbots.org".to_string()),
+                    ("advertise-addr".to_string(), "peer.generalbots.org".to_string()),
                     ("data-dir".to_string(), "".to_string()),
                     ("heartbeat-ttl-secs".to_string(), "90".to_string()),
                     ("token".to_string(), "".to_string()),

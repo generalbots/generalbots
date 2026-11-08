@@ -43,6 +43,13 @@ pub async fn get_product_config() -> Json<serde_json::Value> {
             "terminal_available".to_string(),
             serde_json::json!(cfg!(feature = "terminal") && cfg!(feature = "agent-vm")),
         );
+        // #1969 — the desktop client resolves peers and home sites through one
+        // fixed relay (`peer.generalbots.org`). Publishing it here keeps the
+        // host out of the frontend and out of reach of ad-hoc discovery.
+        object.insert(
+            "peer".to_string(),
+            crate::core::peer_network::global().client_manifest(),
+        );
         // `compiled_features` is built in botcore::features (#1811), including
         // consent/vibe/agent-vm. Do not append here: a second copy made the
         // manifest disagree with the Cargo feature set.

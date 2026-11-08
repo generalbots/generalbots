@@ -9,6 +9,32 @@
 
   var STORAGE_KEY = "gb_peer_network_mode";
 
+  /* #1969 — peer and home-site resolution always goes through one fixed
+   * relay. The backend publishes it in `/api/product`; the constant below is
+   * only the fallback for a build that predates the manifest field. */
+  var DEFAULT_RELAY = "peer.generalbots.org";
+
+  function renderRelay(host) {
+    var resolved = host || DEFAULT_RELAY;
+    window.GB_PEER_RELAY = resolved;
+    var el = byId("network-relay-host");
+    if (el) { el.textContent = resolved; }
+  }
+
+  function loadRelay() {
+    renderRelay(DEFAULT_RELAY);
+    fetch("/api/product", { cache: "no-store" })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (data && data.peer && data.peer.relay) {
+          renderRelay(String(data.peer.relay));
+        }
+      })
+      .catch(function () {});
+  }
+
   function byId(id) {
     return document.getElementById(id);
   }
@@ -78,6 +104,7 @@
   }
 
   window.loadNetworkSettings = init;
+  loadRelay();
 
   document.addEventListener("htmx:load", function () {
     if (byId("network-section")) { init(); }
