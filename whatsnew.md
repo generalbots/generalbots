@@ -4,6 +4,365 @@
      first. Do not edit by hand: `generate --version` replaces that section.
      Sections start at v6.7.7; earlier releases predate this file. -->
 
+## v6.7.33 — 2026-11-08
+
+### Changes
+- desktop-local: embed the suite into the sidecar binary (#1811)
+- desktop-local: launchers show every product apps= entry (#1811)
+
+## v6.7.32 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.31 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.30 — 2026-11-08
+
+### Changes
+- desktop-local: serious static splash that closes when the suite really boots (#1830)
+
+## v6.7.29 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.28 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.27 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.26 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.25 — 2026-11-08
+
+## v6.7.24 — 2026-11-08
+
+## v6.7.23 — 2026-11-08
+
+### Features
+- General Bots OS edition: finish the kiosk appliance image (green boot smoke, release channel, Secure Boot/TPM/A-B, branding) (#1846)
+
+## v6.7.22 — 2026-11-08
+
+### Changes
+- desktop-local: fix #1841 show helpful message when terminal workspace VM not found
+
+## v6.7.21 — 2026-11-08
+
+### Changes
+- fix(botserver): resolve desktop-local compile errors in bin
+
+## v6.7.20 — 2026-11-08
+
+### Changes
+- fix(botmsteams): align UserSession model with canonical user_sessions schema
+
+## v6.7.19 — 2026-11-08
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.18 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.17 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.16 — 2026-11-07
+
+### Security
+- rotate the credentials exposed in git history (#1725) (#1761)
+- sec(web): authenticated cross-tenant isolation test (needs two test tenants) (#1782)
+- sec(web): bot list/tree exposed every tenant's bots (cross-tenant enumeration) (#1785)
+- privacy: remove telemetry and behavioral tracking from General Bots; guarantee no outbound analytics (#1817)
+
+### Features
+- desktop: local-first data — Home folder tab in Drive, local music/gallery/files, and one file API over local FS + MinIO (#1801)
+- auth: ship managed Google/Microsoft OAuth client IDs for the public desktop build (#1802)
+- release: unify release names and auto-increment the patch version on main (latest download links currently 404) (#1804)
+- settings: Compact Mode only affects the Settings window; make it a global density mode (#1806)
+- chat: stream step-by-step workspace progress (infra, VM, generation) on slow machines (#1807)
+- product: compile every app by default and make .product files the only always/preview/hidden split (#1811)
+- settings: remove Marketing/news opt-in and marketing email/tracking mechanisms from desktop (#1815)
+- integrations: expose every Rust LLM provider and show the wizard-selected Kilo provider as connected (#1818)
+- automations: list conversation cron/systemd jobs with cancel, open-conversation and delete actions (#1819)
+- IMAP integration is a no-op in desktop-local: compile/mount botemail or remove the UI (#1820)
+- suite: one simple context menu everywhere (copy/paste/cut/select all, DuckDuckGo search, Wikipedia definition); desktop menu only on the wallpaper (#1825)
+- tray: only "Quit" in menu (and it does nothing), icon is a generated red square instead of the GB logo (#1826)
+- desktop: 90s-style topmost splash with the official GB logo while the server stack boots on first run (#1827)
+- screensaver: default "gblogo" scene should use the official generalbots.org artwork, not the invented gear/robot animation (#1828)
+- chat: Expand should widen the preview and pin it to top: 0 while scrolling (live preview, inline attachment, artifacts) (#1829)
+- chat: add "show more…" control for past messages (server capped at 500, local fallback silently truncated to 200) (#1830)
+- chat attachments: latest chip, content-type badges, per-attachment order label and italic minor descriptive text (#1831)
+- default bot: remove "Translate text" and "Calculate" from the start-chat suggestions (translate tool POSTs user text to libretranslate.com) (#1832)
+- settings: reformulate the Memory window (search, edit, sync status, per-bot scope; no bare key/value inputs) (#1836)
+- settings: Privacy and Billing sections do not make sense in the desktop edition — reformulate Privacy, remove Billing (#1837)
+- about: deep brand-artwork pass built on the official generalbots.org logo SVG (current /logo.svg image 404s into a generic circles fallback) (#1842)
+- browser-in-VM: single container browser on an X session (VNC-like streaming) with a shared, green-badged VM tab strip across conversations (#1843)
+- suite: replace all legacy alert/confirm/prompt dialogs with the suite modal language (Drive "New folder" still uses window.prompt) (#1844)
+
+### Fixes
+- agent-vm: first workspace run still fails with "Agent VM operation failed" during a cold Incus start (#1798)
+- desktop: local embedding server skipped (model not installed) while embeddings still point to localhost:8082 (#1799)
+- desktop: migration pipeline aborts at 6.8.10-goal-run-instruction (goal_runs missing), leaving 6.8.x schema unapplied (#1800)
+- agent-vm: "run budget elapsed" errors wrongly recommend restarting the app / waiting for the sandbox host (#1803)
+- chat: Open/Save on generated PPTX returns 404 "no longer in the conversation output" (basename sent instead of output/ path) (#1805)
+- settings: Preview Mode switch and the left-bar preview switch do not stay in sync (#1808)
+- chat: dark themes keep hardcoded light colors in the chat rail and composer (#1809)
+- settings: "Show Sidebar" does not hide the left rail, and the rail toggle ignores the setting (#1810)
+- settings: changing language reloads the whole app with no unsaved-data warning (#1812)
+- settings: Weekly Digest is a no-op; add end-to-end coverage for mentions and "Use all Drive files" (#1813)
+- settings: Connected Cloud Storage is a dead hardcoded state and storage usage is partly fake (#1814)
+- settings: push notifications fail (null applicationServerKey) and badge/desktop notification switches are not applied (#1816)
+- settings: API key creation and Add Webhook fail in standalone Settings; add botbook docs links (#1821)
+- integrations: GitHub Connect posts to the current page (405) and shows "control plane may be unreachable" when context has no bot id (#1823)
+- desktop: mic/camera/live voice always fail — WebKitGTK permission request never granted; error copy wrongly tells users to allow it in "the browser" (#1833)
+- file output: Download click does nothing in the desktop window (xlsx); office outputs need an explicit Open button (#1834)
+- chat: news/informational requests get routed into the agent VM instead of web grounding; references never shown (#1835)
+- settings: remove the DNS Management section from the desktop edition (#1838)
+- settings: admin user missing from Users (is_admin=false, empty list) and "Users" nav item shown twice (#1839)
+- desktop: file uploads fail silently with "N upload(s) failed" — /api/files/write needs an anonymous/no_security identity path (#1840)
+- terminal app: session fails with "Terminal session failed — not_found" (agent-vm absent from desktop-local, sanitized error hides the cause) (#1841)
+- desktop: context-menu selected/hover items have a contrast problem on light themes (undefined --surface-hover, duplicate rules, no focus state) (#1845)
+- botintegrations fails to compile — String passed where &str is expected in use_for_vibe (regression from #1818) (#1847)
+- release: the .deb/.rpm/.AppImage bundler never produces artifacts (no release has ever shipped a distro package) yet READMEs advertise them (#1848)
+
+### Other
+- desktop: add a macOS .dmg target (unsigned first) — bundler, darwin components, signing (#1786)
+- packaging(deb/rpm): libssl3 does not exist on Debian 13/Ubuntu 24.04 and libpq5 is missing (#1787)
+- desktop: AppImage install/update story — wire the Tauri updater or document replace-file upgrades (#1788)
+- Linux arm64 build + runtime component arch matrix (#1789)
+- memory: 'forget everything about X' misses rows when the wording differs by a suffix (writing ≠ write) (#1790)
+- a11y: the served desktop page scores 88 while the static page scores 100 (color-contrast, missing main landmark) (#1791)
+- voice: the published page promises interruptions; the client is still turn-based (no barge-in) (#1792)
+- windows: the desktop payload ships no installers/ cache and no BotModels pythonbox (#1793)
+- botmodels: first-run venv resolves multi-GB wheels from PyPI (not offline) and needs root for libzbar (#1794)
+- gb7features page: collaborative documents still marked No/Gap although #1695 shipped (#1795)
+- botbook reindex (#1796)
+- Human Review (#1797)
+
+## v6.7.15 — 2026-11-07
+
 ## v6.7.10 — 2026-11-07
 
 Packaging-only release: no user-facing changes.
