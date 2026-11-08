@@ -148,7 +148,33 @@
     }
   }
 
+  // #1876 — bring the chat window to the front, restoring it when minimized.
+  // The windows live in the desktop shell's WindowManager; outside it (standalone
+  // chat page) the function is a no-op.
+  function focusChatWindow() {
+    var wm = window.WindowManager;
+    if (!wm || typeof wm.getWindow !== "function") return false;
+    var win = wm.getWindow("chat");
+    if (!win) return false;
+    try {
+      if (win.isMinimized && typeof wm.restoreWindow === "function") {
+        wm.restoreWindow("chat");
+      } else if (typeof wm.focus === "function") {
+        wm.focus("chat");
+      } else if (typeof wm.focusWindow === "function") {
+        wm.focusWindow("chat");
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+  window.GBFocusChatWindow = focusChatWindow;
+
   function newConversation() {
+    // #1876 — a new conversation is a chat action: the chat window must be
+    // restored when minimized and raised above the other windows first.
+    focusChatWindow();
     // A new conversation is a new TAB in the same chat window. Mounting a
     // parallel tab costs no reload, keeps the strip visible, and the user can
     // switch back with one click. The reload is only the fallback for a chat
