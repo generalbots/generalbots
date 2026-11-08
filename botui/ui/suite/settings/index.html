@@ -273,6 +273,24 @@
 
     <!-- Main Content Area -->
     <main class="settings-main">
+        <!-- #1881 — key information first: who am I, where am I, and what is
+             this deployment. Read-only status only; every chip deep-links into
+             the surface that owns the value. -->
+        <section id="workspace-card" class="workspace-card" aria-labelledby="workspace-card-title">
+            <div class="workspace-card-head">
+                <div>
+                    <h2 id="workspace-card-title">This workspace</h2>
+                    <p id="workspace-identity" class="workspace-line">Loading identity…</p>
+                </div>
+                <span id="workspace-edition" class="workspace-badge" title="Deployment edition">—</span>
+            </div>
+            <div class="workspace-chips">
+                <button type="button" class="workspace-chip" id="workspace-plan" title="Plan managed on the Cloud portal">Plan: —</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="storage">Storage</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="versions">Versions</button>
+                <button type="button" class="workspace-chip" id="workspace-preview">Preview: —</button>
+            </div>
+        </section>
         <div hx-get="/suite/settings/partials/01_profile_security.html" hx-trigger="load" hx-swap="outerHTML"></div>
         <!-- Operating System panel (#1852/#1873): loaded INSIDE the content
              column. Loading it as a sibling of .settings-layout rendered the
@@ -291,6 +309,8 @@
 <link rel="stylesheet" href="/suite/settings/settings-forms.css" />
 <link rel="stylesheet" href="/suite/settings/settings-controls.css" />
 <link rel="stylesheet" href="/suite/settings/settings-responsive.css" />
+<link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" />
+<script src="/suite/settings/settings-workspace-card.js?v=1"></script>
 
 <!-- Sidebar overlay for mobile -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSettingsSidebar()"></div>
