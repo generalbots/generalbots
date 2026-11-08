@@ -1,3 +1,4 @@
 /* windows: ordered partials (issue #1731). Do not reorder, keep @import order. */
 @import url("windows-partials/01_root.css");
 @import url("windows-partials/02_window-dot.css");
+@import url("windows-partials/03_scrollbars.css");

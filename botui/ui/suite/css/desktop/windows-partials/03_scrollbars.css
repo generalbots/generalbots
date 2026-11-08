@@ -1,0 +1,69 @@
+/* Thin scrollbars for app windows and canvas/designer/VDI tool panels (#1972).
+   Split out of 02_window-dot.css to keep that partial inside the file-size
+   limit. Loaded last so these rules win over the OS default. */
+
+/* ── Thin scrollbars inside app windows and their tool panels (#1972) ──
+   The canvas/designer/VDI panels inherited the OS-sized scrollbar, which is
+   far wider than the chrome it lives in. One rule keeps every panel consistent
+   and theme-neutral. */
+.gb-window-content,
+.window-element,
+.window-element-glass,
+.window-body,
+.toolbox-panel,
+.toolbox-section,
+.magic-content,
+.vdi-dashboard,
+.vdi-quick-connect,
+.vdi-canvas-toolbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--win-scroll-thumb, rgba(128,128,128,0.45)) transparent;
+}
+
+.gb-window-content::-webkit-scrollbar,
+.window-element::-webkit-scrollbar,
+.window-element-glass::-webkit-scrollbar,
+.window-body::-webkit-scrollbar,
+.toolbox-panel::-webkit-scrollbar,
+.toolbox-section::-webkit-scrollbar,
+.magic-content::-webkit-scrollbar,
+.vdi-dashboard::-webkit-scrollbar,
+.vdi-quick-connect::-webkit-scrollbar,
+.vdi-canvas-toolbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.gb-window-content::-webkit-scrollbar-track,
+.window-element::-webkit-scrollbar-track,
+.window-element-glass::-webkit-scrollbar-track,
+.window-body::-webkit-scrollbar-track,
+.toolbox-panel::-webkit-scrollbar-track,
+.toolbox-section::-webkit-scrollbar-track,
+.magic-content::-webkit-scrollbar-track,
+.vdi-dashboard::-webkit-scrollbar-track,
+.vdi-quick-connect::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gb-window-content::-webkit-scrollbar-thumb,
+.window-element::-webkit-scrollbar-thumb,
+.window-element-glass::-webkit-scrollbar-thumb,
+.window-body::-webkit-scrollbar-thumb,
+.toolbox-panel::-webkit-scrollbar-thumb,
+.toolbox-section::-webkit-scrollbar-thumb,
+.magic-content::-webkit-scrollbar-thumb,
+.vdi-dashboard::-webkit-scrollbar-thumb,
+.vdi-quick-connect::-webkit-scrollbar-thumb {
+  background: var(--win-scroll-thumb, rgba(128,128,128,0.45));
+  border-radius: 6px;
+}
+
+.gb-window-content::-webkit-scrollbar-thumb:hover,
+.window-element::-webkit-scrollbar-thumb:hover,
+.toolbox-panel::-webkit-scrollbar-thumb:hover,
+.magic-content::-webkit-scrollbar-thumb:hover,
+.vdi-dashboard::-webkit-scrollbar-thumb:hover {
+  background: var(--win-scroll-thumb-hover, rgba(128,128,128,0.70));
+}
+

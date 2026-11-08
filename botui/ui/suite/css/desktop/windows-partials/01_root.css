@@ -9,7 +9,10 @@
 :root {
   --gb-bg: var(--bg-primary, var(--bg, var(--surface, #ffffff)));
   --app-bg: var(--gb-bg);
-  --win-bg: var(--glass-bg, var(--surface, #161616));
+  /* #1970 — window chrome follows the active theme. `--surface` is published
+     by the theme manager for every theme, so the title bar and status bar stop
+     being permanently dark on light themes. */
+  --win-bg: var(--glass-bg, var(--surface, var(--card-bg, #161616)));
   --win-blur: var(--glass-backdrop, blur(16px) saturate(150%));
   --win-radius: 14px;
   --win-border-width: 1.5px;
@@ -25,10 +28,16 @@
     0 10px 28px rgba(0,0,0,.24),
     0 28px 72px rgba(0,0,0,.34),
     inset 0 1px 0 rgba(255,255,255,.06);
-  --win-titlebar-bg: var(--glass-bg, #18181e);
-  --win-titlebar-text: var(--text-secondary, #999);
-  --win-caption-hover: rgba(255,255,255,0.08);
-  --win-titlebar-sep: var(--glass-border-color, var(--border, #2a2a2a));
+  --win-titlebar-bg: var(--glass-bg, var(--win-bg));
+  --win-titlebar-text: var(--text-secondary, var(--text, #999));
+  --win-caption-hover: var(--win-chrome-highlight, rgba(255,255,255,0.08));
+  --win-titlebar-sep: var(--glass-border-color, var(--border-color, var(--border, rgba(128,128,128,0.28))));
+  /* Neutral bevel colours: a fixed white inset looked like a light-theme line
+     painted over dark chrome, and vice versa (#1970). */
+  --win-chrome-highlight: rgba(255,255,255,0.10);
+  --win-chrome-shadow: rgba(0,0,0,0.28);
+  --win-scroll-thumb: rgba(128,128,128,0.45);
+  --win-scroll-thumb-hover: rgba(128,128,128,0.70);
 
   --win-open-timing: cubic-bezier(0.2,0,0,1);
   --win-open-dur: 220ms;

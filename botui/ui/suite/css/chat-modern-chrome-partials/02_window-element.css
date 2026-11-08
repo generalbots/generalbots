@@ -1,15 +1,18 @@
 
 .window-element .window-header,
 .window-element-glass .window-header-glass {
-    border-bottom: 1px solid var(--gb-border-soft, #ececef);
+    border-bottom: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, #ececef));
 }
 
+/* #1970 — this pin painted every app-window status bar #fafafa regardless of
+   theme. Derive it from the themed title-bar tokens so light and dark (or any
+   custom) themes keep one chrome colour. */
 .window-element .window-statusbar,
 .window-element-glass .window-statusbar {
-    border-top: 1px solid var(--gb-border-soft, #ececef);
+    border-top: 1px solid var(--win-titlebar-sep, var(--gb-border-soft, #ececef));
     box-shadow: none;
-    background: #fafafa;
-    color: #71717a;
+    background: var(--win-statusbar-bg, var(--win-titlebar-bg, #fafafa));
+    color: var(--win-titlebar-text, #71717a);
 }
 
 
