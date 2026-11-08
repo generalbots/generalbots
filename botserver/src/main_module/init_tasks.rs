@@ -36,3 +36,8 @@ pub fn init_task_scheduler(app_state: &Arc<botcore::shared::state::AppState>) {
         task_scheduler.start();
     }
 }
+
+/// #1955 — the Drive sync jobs tick with the server, not with the dialog.
+pub fn init_drive_sync_scheduler() {
+    crate::main_module::routes::drive_sync::start_scheduler();
+}

@@ -14,6 +14,7 @@ pub mod collab_routes;
 pub mod computer_use_routes;
 pub mod conversation_autotasks;
 pub mod desktop_status;
+pub mod drive_sync;
 pub mod feature_merge_office;
 pub mod feature_merge_platform;
 pub mod feature_routers;

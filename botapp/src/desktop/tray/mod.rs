@@ -121,6 +121,14 @@ impl TrayManager {
                     return;
                 }
             };
+            let drive_sync =
+                match MenuItem::with_id(app, menu::SYNC_ID, "Drive Sync…", true, None::<&str>) {
+                    Ok(item) => item,
+                    Err(e) => {
+                        log::error!("Failed to create tray Drive Sync item: {e}");
+                        return;
+                    }
+                };
             let settings =
                 match MenuItem::with_id(app, menu::SETTINGS_ID, "Settings", true, None::<&str>) {
                     Ok(item) => item,
@@ -163,6 +171,7 @@ impl TrayManager {
                 &[
                     &new_chat,
                     &files,
+                &drive_sync,
                     &first_separator,
                     &settings,
                     &about,

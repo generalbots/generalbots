@@ -75,7 +75,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     #[cfg(feature = "drive")]
     {
         use crate::security::rbac_middleware::require_admin_middleware;
-        use axum::routing::{get as axum_get, post as axum_post};
+        use axum::routing::{delete as axum_delete, get as axum_get, post as axum_post};
 
         // Admin-only drive routes (bot management)
         let admin_drive_routes = axum::Router::new()
@@ -135,6 +135,39 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route(
                 "/api/files/download",
                 axum_post(crate::drive::drive_handlers::download_file),
+            )
+            // #1955 — local sync manager: rsync jobs owned by the server.
+            .route(
+                "/api/drive/sync/jobs",
+                axum_get(crate::main_module::routes::drive_sync::list_jobs),
+            )
+            .route(
+                "/api/drive/sync/jobs",
+                axum_post(crate::main_module::routes::drive_sync::create_job),
+            )
+            .route(
+                "/api/drive/sync/jobs/:id",
+                axum_post(crate::main_module::routes::drive_sync::update_job),
+            )
+            .route(
+                "/api/drive/sync/jobs/:id",
+                axum_delete(crate::main_module::routes::drive_sync::delete_job),
+            )
+            .route(
+                "/api/drive/sync/jobs/:id/run",
+                axum_post(crate::main_module::routes::drive_sync::run_job),
+            )
+            .route(
+                "/api/drive/sync/jobs/:id/conflicts",
+                axum_get(crate::main_module::routes::drive_sync::list_conflicts),
+            )
+            .route(
+                "/api/drive/sync/jobs/:id/resolve",
+                axum_post(crate::main_module::routes::drive_sync::resolve_conflict),
+            )
+            .route(
+                "/api/drive/sync/status",
+                axum_get(crate::main_module::routes::drive_sync::status),
             )
             .route(
                 "/api/files/download-binary",

@@ -90,6 +90,9 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "tasklist",
         "tar.exe",
         "git",
+        // #1955 — the Drive sync manager runs rsync with an explicit argument
+        // list (never a shell) for local-folder mirrors.
+        "rsync",
         // First-party call sites: filesystem/disk readout (`df`), host
         // addressing (`ip`), Windows ACL/identity (`icacls`, `whoami`) and the
         // PostgreSQL dump client that ships with the allowlisted `psql`.

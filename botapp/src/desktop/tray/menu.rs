@@ -14,6 +14,8 @@ pub(super) const NEW_CHAT_ID: &str = "tray-new-chat";
 #[cfg(feature = "desktop-tray")]
 pub(super) const FILES_ID: &str = "tray-files";
 #[cfg(feature = "desktop-tray")]
+pub(super) const SYNC_ID: &str = "tray-drive-sync";
+#[cfg(feature = "desktop-tray")]
 pub(super) const SETTINGS_ID: &str = "tray-settings";
 #[cfg(feature = "desktop-tray")]
 pub(super) const ABOUT_ID: &str = "tray-about";
@@ -34,6 +36,7 @@ pub(super) fn handle_menu_event(app: &AppHandle, id: &str) -> bool {
     match id {
         NEW_CHAT_ID => new_chat(app),
         FILES_ID => open_app(app, "drive", false),
+        SYNC_ID => open_drive_sync(app),
         SETTINGS_ID => open_app(app, "settings", false),
         ABOUT_ID => open_app(app, "about", false),
         QUIT_ID => quit(app),
@@ -100,6 +103,25 @@ pub(super) fn focus_search(app: &AppHandle) {
         if (window.openDeepLink) window.openDeepLink("home", {}, {});
         var timer = setInterval(function(){
             if (focusBox() || ++attempts > 40) clearInterval(timer);
+        }, 250);
+    })();"#;
+    eval_on_main(app, script);
+}
+
+/// #1955 — opens Drive and raises its Local sync dialog (the shell builds the
+/// app on demand, so the call is retried until `GBDriveSync` exists).
+pub(super) fn open_drive_sync(app: &AppHandle) {
+    show_main_window(app);
+    let script = r#"(function(){
+        var attempts = 0;
+        function ready() {
+            return window.GBDriveSync && typeof window.GBDriveSync.open === "function";
+        }
+        if (window.openDeepLink) window.openDeepLink("drive", {}, {});
+        if (ready()) { window.GBDriveSync.open(); return; }
+        var timer = setInterval(function(){
+            if (ready()) { window.GBDriveSync.open(); clearInterval(timer); return; }
+            if (++attempts > 80) clearInterval(timer);
         }, 250);
     })();"#;
     eval_on_main(app, script);

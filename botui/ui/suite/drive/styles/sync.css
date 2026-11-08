@@ -1,0 +1,132 @@
+/* #1955 — Local sync dialog + status chip. */
+.drive-sync-chip {
+  align-self: center;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text, #e8e8e8);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.14);
+}
+.drive-sync-chip.is-syncing { color: #6cc4ff; border-color: rgb(108 196 255 / 0.5); }
+.drive-sync-chip.is-conflict { color: #ffc861; border-color: rgb(255 200 97 / 0.55); }
+.drive-sync-chip.is-error { color: #ff8e8e; border-color: rgb(255 142 142 / 0.55); }
+
+.drive-sync-modal.hidden { display: none; }
+.drive-sync-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drive-sync-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.55);
+}
+.drive-sync-dialog {
+  position: relative;
+  width: min(720px, 94vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #171b26);
+  color: var(--text, #e8e8e8);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.55);
+  overflow: hidden;
+}
+.drive-sync-dialog > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.drive-sync-dialog > header h2 { margin: 0; font-size: 15px; }
+.drive-sync-state {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgb(255 255 255 / 0.08);
+}
+.drive-sync-x {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+.drive-sync-body { padding: 14px 16px 18px; overflow-y: auto; }
+.drive-sync-hint { margin: 0 0 12px; font-size: 12px; opacity: 0.75; }
+.drive-sync-empty { font-size: 13px; opacity: 0.7; }
+
+.drive-sync-job {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.drive-sync-job-head { display: flex; align-items: center; gap: 8px; }
+.drive-sync-schedule { margin-left: auto; font-size: 11px; opacity: 0.7; }
+.drive-sync-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+.drive-sync-badge.is-error { background: rgb(255 142 142 / 0.18); color: #ff8e8e; }
+.drive-sync-badge.is-conflict { background: rgb(255 200 97 / 0.18); color: #ffc861; }
+.drive-sync-badge.is-ok { background: rgb(132 214 105 / 0.18); color: #84d669; }
+.drive-sync-badge.is-syncing { background: rgb(108 196 255 / 0.18); color: #6cc4ff; }
+.drive-sync-paths { font-size: 12px; margin: 6px 0 4px; word-break: break-all; }
+.drive-sync-meta { font-size: 11px; opacity: 0.7; }
+.drive-sync-error { margin-top: 6px; font-size: 12px; color: #ff8e8e; }
+.drive-sync-job-actions { display: flex; gap: 8px; margin-top: 8px; }
+.drive-sync-job-actions button,
+.drive-sync-primary,
+.drive-sync-conflict button {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.06);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.drive-sync-primary { background: #2f6fed; border-color: #2f6fed; }
+.drive-sync-conflicts { list-style: none; margin: 8px 0 0; padding: 0; }
+.drive-sync-conflict {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 0;
+}
+.drive-sync-conflict span { flex: 1; word-break: break-all; }
+
+.drive-sync-form { border-top: 1px solid rgb(255 255 255 / 0.08); padding-top: 12px; }
+.drive-sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.drive-sync-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.drive-sync-grid input,
+.drive-sync-grid select {
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.04);
+  color: inherit;
+  font-size: 12px;
+}
+.drive-sync-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.drive-sync-err { font-size: 12px; color: #ff8e8e; }
+@media (max-width: 640px) {
+  .drive-sync-grid { grid-template-columns: 1fr; }
+}
