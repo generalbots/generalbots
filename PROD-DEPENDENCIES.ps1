@@ -167,13 +167,28 @@ function Invoke-Native {
         [string]$FilePath,
         [string[]]$Arguments
     )
-    $lines = & $FilePath @Arguments 2>&1
-    $code = $LASTEXITCODE
-    if ($null -eq $code) { $code = 0 }
-    $text = (@($lines) | ForEach-Object { "$_" }) -join "`n"
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FilePath
+    $psi.Arguments = ($Arguments | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    try {
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $stderr = $proc.StandardError.ReadToEnd()
+        $proc.WaitForExit()
+        $code = $proc.ExitCode
+    } catch {
+        $stdout = ''
+        $stderr = $_.Exception.Message
+        $code = 1
+    }
+    $text = if ($stdout) { $stdout.Trim() } elseif ($stderr) { $stderr.Trim() } else { '' }
     return [pscustomobject]@{
         ExitCode = $code
-        Text     = $text.Trim()
+        Text     = $text
     }
 }
 
