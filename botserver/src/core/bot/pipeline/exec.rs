@@ -239,6 +239,23 @@ pub async fn process_message_internal(
         return Ok(());
     }
 
+    // #1946 — decide this request's execution mode and tell the model which one
+    // applies. The decision is per turn: a question inside a long agentic
+    // session must not inherit the previous turn's mode.
+    let route = crate::core::bot::ws::stream::routing::decide(
+        &user_text,
+        parsed
+            .get("files")
+            .and_then(serde_json::Value::as_array)
+            .map_or(0, Vec::len),
+        parsed.get("client_capabilities"),
+    );
+    log::info!(
+        "agentic routing: session={session_id} mode={} reason={}",
+        route.route.as_str(),
+        route.reason
+    );
+
     let channel = sink.channel_type();
     let system_prompt = super::system_prompt::with_structured_tools(
         super::system_prompt::build(
@@ -263,6 +280,21 @@ pub async fn process_message_internal(
 
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
+
+    // #1946 — the selected mode is an instruction for this turn, not a
+    // session-wide switch: it tells the model whether to plan execution or to
+    // answer/patch through the catalog, while the guards stay in place.
+    messages.push(serde_json::json!({
+        "role": "system",
+        "content": match route.route {
+            crate::core::bot::ws::stream::routing::Route::Agentic => {
+                "THIS TURN: agentic. Plan and execute the multi-step work the request needs, using tools/VM where they help, and deliver the requested artifact."
+            }
+            crate::core::bot::ws::stream::routing::Route::NonAgentic => {
+                "THIS TURN: non-agentic. Answer directly, or handle app-backed work through the app catalog / UI plan. Do not start a vm_exec or terminal_run loop unless the user explicitly asked to execute something or to produce a file."
+            }
+        }
+    }));
 
     // #1670 — structured answers travel with the user turn. Record them so a
     // field is never asked twice, and make the model treat them as the
