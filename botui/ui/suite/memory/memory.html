@@ -7,6 +7,9 @@
       <span class="mem-subtitle" id="mem-count" aria-live="polite"></span>
     </div>
     <div class="mem-header-actions">
+      <!-- #1886 — Settings → Memory is the single editor. The app keeps its
+           read/export value and hands every edit to Settings. -->
+      <button type="button" class="mem-btn ghost" id="mem-manage">Edit in Settings</button>
       <button type="button" class="mem-btn ghost" id="mem-export">Export</button>
       <button type="button" class="mem-btn ghost" id="mem-import">Import</button>
       <button type="button" class="mem-btn primary" id="mem-add">Add</button>
@@ -77,3 +80,30 @@
 
 <script src="/suite/memory/memory-state.js?v=1"></script>
 <script src="/suite/memory/memory-modals.js?v=1"></script>
+<script>
+  // #1886 — one editor: Settings → Memory. View/search/export stay local; the
+  // add and manage actions deep-link into Settings (window retarget when the
+  // settings window is already open).
+  (function () {
+    "use strict";
+    function openSettingsMemory() {
+      if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+        window.WindowManager.openDeepLink("settings", { section: "memory" });
+        return;
+      }
+      window.location.href = "/suite/settings/index.html#memory";
+    }
+    var manage = document.getElementById("mem-manage");
+    if (manage) {
+      manage.addEventListener("click", openSettingsMemory);
+    }
+    var add = document.getElementById("mem-add");
+    if (add) {
+      add.addEventListener("click", function (event) {
+        event.stopPropagation();
+        event.preventDefault();
+        openSettingsMemory();
+      }, true);
+    }
+  })();
+</script>

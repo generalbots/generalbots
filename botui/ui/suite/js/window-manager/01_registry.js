@@ -36,6 +36,10 @@ const APPS_REGISTRY = [
   { id: "preview", title: "Preview", category: "tools", color: "#0ea5e9", hxGet: "/suite/partials/preview.html",
     width: 780, height: 640,
     icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
+  // #1886 — the embedded registry must resolve the Memory app too; without
+  // this entry the offline/desktop fallback could not open it.
+  { id: "memory", title: "Memory", category: "ai", color: "#8b5cf6", hxGet: "/suite/memory/memory.html",
+    icon: '<path d="M12 2a7 7 0 0 0-7 7c0 2 1 3 2 4v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3c1-1 2-2 2-4a7 7 0 0 0-7-7z"/><line x1="9" y1="21" x2="15" y2="21"/>' },
   { id: "drive", title: "Explorer", category: "system", color: "#f59e0b", hxGet: "/suite/drive/drive.html",
     icon: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
   { id: "editor", title: "Editor", category: "dev", color: "#3b82f6", hxGet: "/suite/editor.html",
