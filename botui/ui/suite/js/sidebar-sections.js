@@ -200,18 +200,19 @@
             ? data.files
             : [];
         files.slice(0, 5).forEach(function (f) {
-          var fileName = String(f.name || f.path || "");
+          var filePath = String(f.path || f.name || "");
+          var fileName = filePath.split("/").pop() || filePath;
           var appId = appForFile(fileName);
           var item = document.createElement("div");
           item.className = "gb-file-item";
-          item.title = fileName;
+          item.title = filePath;
           item.innerHTML =
             '<span class="gb-file-icon">' + fileIcon(fileName) + "</span>" +
             '<span class="gb-file-name"></span>';
           item.querySelector(".gb-file-name").textContent = fileName;
           item.addEventListener("click", function () {
             if (window.openDeepLink) {
-              window.openDeepLink(appId, { path: fileName });
+              window.openDeepLink(appId, { path: filePath, file: filePath, bucket: f.bucket || undefined });
             }
           });
           host.appendChild(item);
@@ -383,6 +384,16 @@
         },
       },
     ];
+    // Billing opens its deep link only when the product actually ships the
+    // app — desktop products keep Billing out of the launcher (it is a
+    // preview app there), and the user menu must not offer a menu item that
+    // does nothing. Web products keep it: their registry contains billing.
+    items = items.filter(function (entry) {
+      if (entry.label !== tr("sidebar-billing", "Billing")) return true;
+      return (window.APPS_REGISTRY || []).some(function (a) {
+        return a && a.id === "billing";
+      });
+    });
     items.forEach(function (entry) {
       var item = document.createElement("div");
       item.className = "desktop-context-item";

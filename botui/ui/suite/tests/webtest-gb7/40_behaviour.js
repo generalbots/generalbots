@@ -1,6 +1,6 @@
 /**
- * webtest_gb6 — behavioural tests that execute the shipped functions
- * Split from webtest_gb6.js for #1731; keeps the original test order.
+ * webtest_gb7 — behavioural tests that execute the shipped functions
+ * Split from webtest_gb7.js for #1731; keeps the original test order.
  */
 "use strict";
 
@@ -16,7 +16,7 @@ const {
 // BEHAVIOURAL TESTS (execute the shipped functions, not just source text)
 // ═══════════════════════════════════════════════════════════════════
 
-test("BEHAVE GB6-09: artifact detector classifies prose, markdown, HTML and code", function () {
+test("BEHAVE GB7-09: artifact detector classifies prose, markdown, HTML and code", function () {
   var window = {};
   var context = loadScript("chat/chat-artifacts.js", {
     window: window,
@@ -36,7 +36,7 @@ test("BEHAVE GB6-09: artifact detector classifies prose, markdown, HTML and code
     "slug must transliterate the title");
 });
 
-test("BEHAVE GB6-09: artifact HTML sanitizer strips scripts and handlers", function () {
+test("BEHAVE GB7-09: artifact HTML sanitizer strips scripts and handlers", function () {
   function node() {
     return {
       attrs: [],
@@ -69,8 +69,9 @@ test("BEHAVE GB6-09: artifact HTML sanitizer strips scripts and handlers", funct
   assert(typeof cleaned === "string", "sanitizer must return markup");
 });
 
-test("BEHAVE GB6-25: usage tracking counts a message once and totals it", function () {
+test("BEHAVE GB7-25: usage tracking counts a message once and totals it", function () {
   var storage = memoryStorage();
+  storage.setItem("gb_usage_stats_enabled", "true");
   var window = {};
   window.addEventListener = function () {};
   var context = loadScript("js/usage-stats.js", {
@@ -91,7 +92,7 @@ test("BEHAVE GB6-25: usage tracking counts a message once and totals it", functi
   assert(summary.tokens_estimated === 90, "4 chars/token estimate: " + summary.tokens_estimated);
 });
 
-test("BEHAVE GB6-13: share expiry offers 7 days and refuses a past date", function () {
+test("BEHAVE GB7-13: share expiry offers 7 days and refuses a past date", function () {
   var selectValue = "7";
   var context = loadScript("drive/modules/08_modals.js", {
     window: { location: { origin: "http://localhost:8080" } },

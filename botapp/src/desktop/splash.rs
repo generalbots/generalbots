@@ -5,6 +5,7 @@
 //! wizard) is ready to take over.
 
 use log::{info, warn};
+use std::time::{Duration, Instant};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Shows the splash window, creating it on demand when the configured window is
@@ -45,4 +46,60 @@ pub fn hide(app: &tauri::AppHandle) {
             info!("splash: window closed");
         }
     }
+}
+
+/// Keeps the splash above the freshly revealed suite window.
+///
+/// #1830 — the main window opens while the suite is still booting, so a plain
+/// reveal would leave the main window covering (and hiding) the splash. This
+/// re-asserts the always-on-top flag and pulls focus; a splash that was closed
+/// earlier stays closed.
+pub fn raise(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("splash") {
+        let _ = window.show();
+        let _ = window.set_always_on_top(true);
+        let _ = window.set_focus();
+    }
+}
+
+/// Fragment the suite stamps into its URL when boot is complete.
+const BOOT_READY_FRAGMENT: &str = "gb-boot-ready";
+const BOOT_WATCH_POLL: Duration = Duration::from_millis(400);
+const BOOT_WATCH_DEADLINE: Duration = Duration::from_millis(45_000);
+
+/// Watches the suite window and closes the splash only when boot truly ends.
+///
+/// The suite page is served from its own origin and every Tauri IPC permission
+/// is denied to it (the product ships with an empty capability set), so it
+/// cannot invoke a command. Instead the suite marks the end of boot by
+/// stamping the `gb-boot-ready` fragment into its URL (via
+/// `history.replaceState`), which `url()` reports on every engine. The
+/// deadline is the safety net for a broken boot: the splash must never trap
+/// the user in front of a dead window.
+pub fn watch_boot_ready(app: &tauri::AppHandle) {
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let deadline = Instant::now() + BOOT_WATCH_DEADLINE;
+        loop {
+            if handle.get_webview_window("splash").is_none() {
+                // The splash was closed somewhere else (wizard, restart flow).
+                return;
+            }
+            if let Some(main) = handle.get_webview_window("main") {
+                if let Ok(url) = main.url() {
+                    if url.as_str().contains(BOOT_READY_FRAGMENT) {
+                        info!("splash: boot-ready fragment seen; closing");
+                        hide(&handle);
+                        return;
+                    }
+                }
+            }
+            if Instant::now() >= deadline {
+                warn!("splash: boot-ready fragment never arrived; hiding the splash");
+                hide(&handle);
+                return;
+            }
+            std::thread::sleep(BOOT_WATCH_POLL);
+        }
+    });
 }

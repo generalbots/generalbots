@@ -178,6 +178,11 @@ sampledata = ["dep:botsampledata"]
 # always/preview/hidden split.
 desktop-local = [
     "all-apps",
+    # #1811 — embed the suite so the sidecar answers /suite/desktop.html even
+    # when no ui/ folder ships beside it (raw binary artifact, deb/rpm/AppImage
+    # bundles, or a payload that lost its ui/ copy). A BOTUI_PATH folder on
+    # disk keeps precedence when present.
+    "embed-ui",
     # #1820 — the desktop edition ships the Mail app and the IMAP account
     # routes it owns. `all-apps` already pulls `mail` in, but keep it explicit
     # so a future slim profile cannot silently drop botemail and leave the

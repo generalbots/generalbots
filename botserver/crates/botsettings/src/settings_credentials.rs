@@ -88,7 +88,9 @@ pub async fn api_keys_list(
     if rows.is_empty() {
         return (
             StatusCode::OK,
-            Html(r#"<div class="empty-state"><p>No API keys created yet</p></div>"#.to_string()),
+            Html(
+                r#"<div class="empty-state"><p>No personal access tokens yet</p></div>"#.to_string(),
+            ),
         );
     }
 
@@ -167,11 +169,13 @@ pub async fn api_keys_create(
         Err(e) => return e,
     };
 
-    let name = form.name.unwrap_or_else(|| "API Key".to_string());
+    let name = form
+        .name
+        .unwrap_or_else(|| "Personal access token".to_string());
     if name.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Html("API key name is required".to_string()),
+            Html("Token name is required".to_string()),
         );
     }
 
@@ -195,7 +199,7 @@ pub async fn api_keys_create(
         log::error!("api_keys_create insert failed: {e}");
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Html("Failed to create API key".to_string()),
+            Html("Failed to create personal access token".to_string()),
         );
     }
 
@@ -214,7 +218,7 @@ pub async fn api_keys_create(
         StatusCode::OK,
         Html(format!(
             r#"<div class="api-key-created">
-                <p>API key created — copy it now, it will not be shown again:</p>
+                <p>Personal access token created — copy it now, it will not be shown again:</p>
                 <code class="api-key-secret">{secret}</code>
                 <p class="hint">Scopes: {scopes} · Expires: {expiry}</p>
                 <button class="btn-secondary btn-sm" onclick="navigator.clipboard.writeText('{secret}'); this.textContent='Copied';">Copy</button>
@@ -274,7 +278,7 @@ pub async fn api_keys_rotate(
                 StatusCode::OK,
                 Html(format!(
                     r#"<div class="api-key-created">
-                        <p>API key rotated — new secret shown once:</p>
+                        <p>Personal access token rotated — new secret shown once:</p>
                         <code class="api-key-secret">{secret}</code>
                         <button class="btn-secondary btn-sm" onclick="navigator.clipboard.writeText('{secret}'); this.textContent='Copied';">Copy</button>
                     </div>"#
@@ -283,13 +287,13 @@ pub async fn api_keys_rotate(
         }
         Ok(_) => (
             StatusCode::NOT_FOUND,
-            Html("API key not found or already revoked".to_string()),
+            Html("Token not found or already revoked".to_string()),
         ),
         Err(e) => {
             log::error!("api_keys_rotate failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Html("Failed to rotate API key".to_string()),
+                Html("Failed to rotate personal access token".to_string()),
             )
         }
     }
@@ -337,12 +341,12 @@ pub async fn api_keys_delete(
             });
             (StatusCode::OK, Html(String::new()))
         }
-        Ok(_) => (StatusCode::NOT_FOUND, Html("API key not found".to_string())),
+        Ok(_) => (StatusCode::NOT_FOUND, Html("Token not found".to_string())),
         Err(e) => {
             log::error!("api_keys_delete failed: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Html("Failed to revoke API key".to_string()),
+                Html("Failed to revoke personal access token".to_string()),
             )
         }
     }

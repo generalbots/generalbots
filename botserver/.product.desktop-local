@@ -49,3 +49,6 @@ shell_mode=true
 
 # Default theme
 theme=sentient
+
+# #1889 — explicit deployment edition (cloud | desktop | os).
+edition=os

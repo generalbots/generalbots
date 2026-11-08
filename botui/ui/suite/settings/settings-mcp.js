@@ -252,6 +252,19 @@
       return;
     }
     list.innerHTML = servers.map(serverRow).join("");
+    // #1884 — the Integrations app owns the MCP catalog. Where it can be
+    // opened (cloud, desktop) Settings renders read-only status; only the OS
+    // edition, which has no window manager to open the app, keeps the editor.
+    if (!embeddedEdition()) {
+      list.querySelectorAll(".settings-mcp-toggle, .settings-mcp-preview").forEach(function (node) {
+        node.remove();
+      });
+    }
+  }
+
+  function embeddedEdition() {
+    var edition = window.GBNavRegistry ? window.GBNavRegistry.edition() : "cloud";
+    return edition === "os";
   }
 
   function load() {

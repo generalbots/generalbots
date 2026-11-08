@@ -1,4 +1,4 @@
-/* Sandbox — unified approval queue for bot actions (GB6-21).
+/* Sandbox — unified approval queue for bot actions (GB7-21).
  * All sensitive bot actions (file writes, terminal commands, browser
  * navigation, external API calls) are routed through this sandbox.
  * The user sees a consolidated approval panel and can approve/deny

@@ -84,6 +84,11 @@ pub struct ProductConfig {
     /// requests when it is false.
     pub shell_mode: bool,
 
+    /// Explicit deployment edition (#1889): `cloud`, `desktop` or `os`.
+    /// Settings derives its navigation from this value instead of inferring
+    /// an edition from flags such as `no_security`.
+    pub edition: Option<String>,
+
     /// Public base URL used to compose share links (#1863).
     /// When set (or when `PUBLIC_BASE_URL` is present in the environment),
     /// `/api/files/share-link` returns an absolute URL instead of the

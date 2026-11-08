@@ -1,0 +1,37 @@
+<!-- #1882 — System group. One Preview control with honest copy, next to the
+     version information; Appearance keeps only visual preferences. -->
+<section id="system-section" class="settings-section">
+    <div class="section-header">
+        <h1>System</h1>
+        <p class="subtitle">Preview mode and version information for this deployment</p>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <div>
+                <h2>Preview mode</h2>
+                <p>Controls how much surface is revealed, not what is installed.</p>
+            </div>
+        </div>
+        <div class="setting-row">
+            <div class="setting-info">
+                <span class="setting-title">Preview</span>
+                <span class="setting-desc">Reveals apps in preview and the full settings tree. Off keeps only the essential settings for this edition.</span>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" id="settings-preview-toggle" onchange="togglePreviewMode(this)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="setting-row">
+            <div class="setting-info">
+                <span class="setting-title">Component versions</span>
+                <span class="setting-desc">BotServer, BotUI and service versions for this installation</span>
+            </div>
+            <button type="button" class="btn-secondary btn-sm"
+                onclick="showSection('versions', document.querySelector('.settings-nav a[href=\'#versions\']')); return false;">
+                Open Versions
+            </button>
+        </div>
+    </div>
+</section>

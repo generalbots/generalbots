@@ -72,10 +72,26 @@
     if (label) label.textContent = enabled ? tr("chat-web-on-short", "Web on") : tr("chat-web-off-short", "Web off");
   }
 
-  function setEnabled(next) {
+  // #1897 — a flip must be visible even when the module runs inside the
+  // desktop shell, where the composer has no room for a wide label. Confirm
+  // the new state through the shared toast stack as well.
+  function confirmState() {
+    if (window.GBToasts && typeof GBToasts.show === "function") {
+      GBToasts.show(
+        tr("chat-web-title", "Web search"),
+        enabled
+          ? tr("chat-web-on", "Web search: on — answers can use live sources.")
+          : tr("chat-web-off", "Web search: off — answers use no live sources."),
+        "info"
+      );
+    }
+  }
+
+  function setEnabled(next, quiet) {
     enabled = next === true;
     persist(enabled);
     paint();
+    if (quiet !== true) confirmState();
     window.dispatchEvent(new CustomEvent("gb-web-search-changed", {
       detail: { enabled: enabled },
     }));
@@ -85,22 +101,31 @@
     setEnabled(!enabled);
   }
 
+  // #1897 — the composer is injected by the chat partial and re-rendered on
+  // app switches, so element-level binding left later buttons dead (the same
+  // silent no-op as #1892). Delegate once at document level.
+  function onDocumentClick(event) {
+    var target = event.target;
+    if (!target || typeof target.closest !== "function") return;
+    if (!target.closest("#webSearchBtn")) return;
+    event.preventDefault();
+    toggle();
+  }
+
   function bind() {
-    var button = document.getElementById("webSearchBtn");
-    if (button && !button.dataset.bound) {
-      button.dataset.bound = "1";
-      button.addEventListener("click", function (event) {
-        event.preventDefault();
-        toggle();
-      });
+    if (!document.dataset.gbWebSearchBound) {
+      document.dataset.gbWebSearchBound = "1";
+      document.addEventListener("click", onDocumentClick, false);
     }
     paint();
   }
 
+  window.addEventListener("gb-chat-ready", bind);
+
   enabled = read();
   window.ChatWebSearch = {
     isEnabled: function () { return enabled; },
-    setEnabled: setEnabled,
+    setEnabled: function (next) { setEnabled(next, true); },
     toggle: toggle,
     storageKey: storageKey,
     refresh: function () { enabled = read(); paint(); },

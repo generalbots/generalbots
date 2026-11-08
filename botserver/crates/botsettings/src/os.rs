@@ -25,8 +25,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::os_data::{
-    log_file_for, read_disks, read_hostname, read_kernel, read_os, read_services, read_timezone,
-    read_uptime, tail, DiskInfo, ServiceInfo, SERVICES,
+    log_file_for, log_file_infos, read_disks, read_hostname, read_kernel, read_os, read_services,
+    read_timezone, read_uptime, tail, DiskInfo, LogFileInfo, ServiceInfo, SERVICES,
 };
 
 const DEFAULT_LOG_LINES: usize = 200;
@@ -37,6 +37,7 @@ pub fn configure_os_routes() -> Router<Arc<AppState>> {
         .route("/api/system/os", get(os_status))
         .route("/api/system/os/services/restart", post(restart_service))
         .route("/api/system/os/logs", get(os_logs))
+        .route("/api/system/os/logs/download", get(os_logs_download))
 }
 
 #[derive(Serialize)]
@@ -50,6 +51,7 @@ struct OsStatus {
     timezone: String,
     disks: Vec<DiskInfo>,
     services: Vec<ServiceInfo>,
+    log_files: Vec<LogFileInfo>,
 }
 
 #[derive(Deserialize)]
@@ -137,6 +139,7 @@ pub async fn os_status(
         timezone: read_timezone(),
         disks: read_disks(),
         services: read_services(),
+        log_files: log_file_infos(),
     })
     .into_response()
 }
@@ -175,6 +178,76 @@ pub async fn os_logs(
     (
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        body,
+    )
+        .into_response()
+}
+
+/// #1874 — downloads the whole log file (the tail endpoint stays for the
+/// viewer). Same allow-list and authorization as `/api/system/os/logs`.
+pub async fn os_logs_download(
+    Extension(user): Extension<AuthenticatedUser>,
+    headers: HeaderMap,
+    Query(query): Query<LogQuery>,
+) -> impl IntoResponse {
+    if let Err(response) = authorize(&user, &headers) {
+        return response.into_response();
+    }
+
+    let service = query.service.unwrap_or_else(|| "botserver".to_string());
+    let allowed = service == "botserver"
+        || SERVICES
+            .iter()
+            .any(|(name, _unit, _process)| *name == service.as_str());
+    if !allowed {
+        return (
+            StatusCode::BAD_REQUEST,
+            [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+            "Unknown service".to_string(),
+        )
+            .into_response();
+    }
+
+    let Some(path) = log_file_for(&service) else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "log_file_not_found" })),
+        )
+            .into_response();
+    };
+    let body = match std::fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            log::error!("os_logs_download could not read {service}: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "log_file_unreadable" })),
+            )
+                .into_response();
+        }
+    };
+
+    let filename = format!("attachment; filename=\"{service}.log\"");
+    let disposition = match axum::http::HeaderValue::from_str(&filename) {
+        Ok(value) => value,
+        Err(e) => {
+            log::error!("os_logs_download invalid filename for {service}: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "log_file_unreadable" })),
+            )
+                .into_response();
+        }
+    };
+    (
+        StatusCode::OK,
+        [
+            (
+                header::CONTENT_TYPE,
+                axum::http::HeaderValue::from_static("text/plain; charset=utf-8"),
+            ),
+            (header::CONTENT_DISPOSITION, disposition),
+        ],
         body,
     )
         .into_response()

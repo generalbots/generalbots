@@ -119,13 +119,53 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         return;
     };
 
-    let url = suite_url_with_token(url, token);
-    if let Err(e) = main.navigate(url) {
-        warn!("could not navigate the suite window: {e}");
-    }
+    // #1919 — WebKitGTK does not realise a hidden webview, so navigate() on
+    // a window created with visible:false never changes the URL. Reveal the
+    // window first (the always-on-top splash stays above it) before navigating.
     let _ = main.show();
-    let _ = main.set_focus();
-    crate::desktop::splash::hide(app);
+    let url = suite_url_with_token(url, token);
+    if let Err(e) = main.navigate(url.clone()) {
+        warn!("could not navigate the suite window: {e}");
+        let _ = main.show();
+        let _ = main.set_focus();
+        crate::desktop::splash::raise(app);
+        crate::desktop::splash::watch_boot_ready(&app.clone());
+        return;
+    }
+
+    // #1890 — on a cold boot the window still holds the bundled
+    // `tauri://localhost` document while the navigation is in flight, and that
+    // page fires relative `/api/*` requests that resolve against the asset
+    // protocol (`error manager:asset not found: api/...`). Showing the window
+    // right away put the user in front of that half-booted page. Reveal it only
+    // once the webview actually reports the sidecar/dev origin, with a deadline
+    // so a wedged navigation can never trap the user behind the splash.
+    let splash_app = app.clone();
+    let window = main.clone();
+    let expected = url.clone();
+    tauri::async_runtime::spawn(async move {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(8);
+        loop {
+            let landed = window
+                .url()
+                .map(|current| {
+                    current.host_str() == expected.host_str()
+                        && current.port_or_known_default() == expected.port_or_known_default()
+                })
+                .unwrap_or(false);
+            if landed || std::time::Instant::now() >= deadline {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+        }
+        let _ = window.show();
+        let _ = window.set_focus();
+        // #1830 — the suite is still booting (product config, catalog, default
+        // app). Keep the splash on top of it and let the `gb-boot-ready`
+        // fragment decide when the splash closes.
+        crate::desktop::splash::raise(&splash_app);
+        crate::desktop::splash::watch_boot_ready(&splash_app.clone());
+    });
 }
 
 /// Recreates the suite window after it has been destroyed (#1620).
@@ -173,7 +213,10 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         {
             Ok(_) => {
                 info!("suite window recreated after it was destroyed");
-                crate::desktop::splash::hide(&handle);
+                // #1830 — same handoff as reveal_suite: the recreated window
+                // has to boot before anything is on screen.
+                crate::desktop::splash::raise(&handle);
+                crate::desktop::splash::watch_boot_ready(&handle.clone());
             }
             Err(e) => warn!("could not recreate the suite window: {e}"),
         }

@@ -33,7 +33,8 @@ pub async fn mint_desktop_session() -> Option<String> {
     }
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
+        .connect_timeout(std::time::Duration::from_secs(2))
+        .timeout(std::time::Duration::from_secs(5))
         .build()
         .ok()?;
     let response = client

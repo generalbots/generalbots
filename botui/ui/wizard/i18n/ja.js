@@ -237,5 +237,13 @@ window.GBWizardLocales["ja"] = {
   "nav.ready": "準備完了",
   "nav.retry": "再試行",
   "common.yes": "はい",
-  "common.no": "いいえ"
+  "common.no": "いいえ",
+  "step.network": "ネットワークモード",
+  "heading.network": "ネットワークモードを選択",
+  "network.lead": "このインストールがピアネットワークに参加するか、完全にオフラインのままにするかを設定します。",
+  "network.p2p.title": "P2P — ピアネットワークに参加（推奨）",
+  "network.p2p.desc": "共有リンクの無料リレーやピア検出などの将来の機能を有効にします。明示的に共有するまで、このマシンからデータが出ることはありません。",
+  "network.offline.title": "オフライン — ネットワーク ID なし",
+  "network.offline.desc": "すべての接続を 127.0.0.1 に保ちます。ピア機能はなく、共有リンクはローカルネットワーク内でのみ機能します。",
+  "network.note": "これは後で「設定 — ネットワーク」で変更できます。",
 };

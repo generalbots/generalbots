@@ -64,35 +64,8 @@ pub struct Product {
     pub is_active: bool,
     pub images: serde_json::Value,
     pub attributes: serde_json::Value,
-    pub weight: Option<BigDecimal>,
-    pub dimensions: Option<serde_json::Value>,
-    pub barcode: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub tax_code: Option<String>,
-    pub tax_class: Option<String>,
-    pub global_trade_number: Option<String>,
-    pub net_weight: Option<BigDecimal>,
-    pub gross_weight: Option<BigDecimal>,
-    pub width: Option<BigDecimal>,
-    pub height: Option<BigDecimal>,
-    pub length: Option<BigDecimal>,
-    pub brand: Option<String>,
-    pub model: Option<String>,
-    pub color: Option<String>,
-    pub size: Option<String>,
-    pub material: Option<String>,
-    pub gender: Option<String>,
-    pub expiration_date: Option<chrono::NaiveDate>,
-    pub min_stock: Option<i32>,
-    pub max_stock: Option<i32>,
-    pub reorder_point: Option<i32>,
-    pub shipping_cost: Option<BigDecimal>,
-    pub external_id: Option<String>,
-    pub external_metadata: Option<serde_json::Value>,
-    pub slug: Option<String>,
-    pub meta_description: Option<String>,
-    pub tags: Option<Vec<Option<String>>>,
     pub branch_id: Uuid,
     pub category_id: Option<Uuid>,
     pub is_public: bool,
@@ -125,7 +98,7 @@ pub struct Service {
 }
 
 /// Field order matches the canonical `product_categories` declaration; the
-/// database makes `org_id`/`bot_id` nullable and `slug` optional, and adds
+/// database makes `org_id`/`bot_id` nullable, and adds
 /// `display_order`/`updated_at`.
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = product_categories)]
@@ -137,7 +110,6 @@ pub struct ProductCategory {
     pub name: String,
     pub description: Option<String>,
     pub parent_id: Option<Uuid>,
-    pub slug: Option<String>,
     pub image_url: Option<String>,
     pub sort_order: i32,
     pub is_active: bool,
@@ -234,8 +206,6 @@ pub struct CreateProductRequest {
     pub stock_quantity: Option<i32>,
     pub low_stock_threshold: Option<i32>,
     pub images: Option<Vec<String>>,
-    pub barcode: Option<String>,
-    pub weight: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -251,7 +221,6 @@ pub struct UpdateProductRequest {
     pub stock_quantity: Option<i32>,
     pub low_stock_threshold: Option<i32>,
     pub is_active: Option<bool>,
-    pub barcode: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -282,7 +251,6 @@ pub struct CreateCategoryRequest {
     pub name: String,
     pub description: Option<String>,
     pub parent_id: Option<Uuid>,
-    pub slug: Option<String>,
     pub image_url: Option<String>,
 }
 

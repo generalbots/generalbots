@@ -26,7 +26,7 @@ function gallery(results) {
       <div class="tm">${(r.dur/1000).toFixed(1)}s</div></div>`;
   }).join("");
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>GB6+BBSIA Video Evidence</title><style>
+<title>GB7+BBSIA Video Evidence</title><style>
 *{margin:0;padding:0;box-sizing:border-box}body{background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui;padding:24px}
 h1{text-align:center;font-size:28px;margin-bottom:8px;color:#f8fafc}.s{text-align:center;font-size:16px;margin-bottom:32px;color:#94a3b8}
 .s .p{color:#22c55e;font-weight:700}.s .f{color:#ef4444;font-weight:700}
@@ -38,7 +38,7 @@ h1{text-align:center;font-size:28px;margin-bottom:8px;color:#f8fafc}.s{text-alig
 .dt{font-size:11px;color:#64748b;font-family:monospace;word-break:break-all}.tm{font-size:10px;color:#475569;margin-top:4px}
 video{display:block}.ts{text-align:center;color:#475569;font-size:11px;margin-top:20px}
 </style></head><body>
-<h1>GB6 + BBSIA — Video Evidence Gallery</h1>
+<h1>GB7 + BBSIA — Video Evidence Gallery</h1>
 <div class="s"><span class="p">${passN} passed</span> &middot; <span class="f">${failN} failed</span> &middot; ${results.length} total &middot; ${new Date().toLocaleString()}</div>
 <div class="g">${cards}</div>
 <div class="ts">Generated ${new Date().toISOString()}</div></body></html>`;

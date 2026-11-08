@@ -245,11 +245,21 @@ function showContextMenu(x, y, path, type, bucket) {
     html += '<div class="context-menu-divider"></div>'
         + '<div class="context-menu-item danger" onclick="' + hideMenu + 'DriveModule.deleteItem(\'' + ep + '\', \'' + (eb || currentBucket) + '\')">' + icons.delete + '<span>Delete</span></div>';
     menu.innerHTML = html;
+    // The simple shell menu (Cut/Copy/Paste) may have registered after this
+    // module in some load orders; remove any of its leftover menus before
+    // showing ours.
+    document.querySelectorAll(".simple-context-menu").forEach(function (el) {
+      el.remove();
+    });
     menu.style.display = "block";
     menu.classList.remove("hidden");
     const rect = menu.getBoundingClientRect();
-    menu.style.left = (x + rect.width > window.innerWidth ? x - rect.width : x) + "px";
-    menu.style.top = (y + rect.height > window.innerHeight ? y - rect.height : y) + "px";
+    // Anchor the menu at the cursor and clamp it into the viewport. The old
+    // logic flipped a menu that did not fit below the cursor fully above it,
+    // which put long menus (14 items) far above the pointer.
+    const margin = 8;
+    menu.style.left = Math.max(margin, Math.min(x, window.innerWidth - rect.width - margin)) + "px";
+    menu.style.top = Math.max(margin, Math.min(y, window.innerHeight - rect.height - margin)) + "px";
 }
 
 function showContextMenuFor(event, path) {

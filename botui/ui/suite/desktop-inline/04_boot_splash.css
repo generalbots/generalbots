@@ -12,8 +12,6 @@
                 width: 34px; height: 34px; border-radius: 50%;
                 border: 3px solid rgba(132, 214, 105, 0.25);
                 border-top-color: var(--primary, #84d669);
-                animation: gbBootSpin 900ms linear infinite;
             }
-            @keyframes gbBootSpin { to { transform: rotate(360deg); } }
             .gb-boot-text { font-size: 13px; letter-spacing: 0.08em; opacity: 0.75; }
         

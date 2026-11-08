@@ -153,7 +153,7 @@
                         <span class="setting-title">Current version</span>
                         <span class="setting-desc">Last check: <span id="updates-last-check">Never</span></span>
                     </div>
-                    <span id="updates-current-version" class="version-number">v6.7.0</span>
+                    <span id="updates-current-version" class="version-number">v7.0.0</span>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-primary" id="updates-check-now"
@@ -201,14 +201,17 @@
                 <div id="ledger-list" class="ledger-list">Loading…</div>
             </div>
         </section>
+        <!-- #1889 — the declarative nav registry must load before the edition
+             and preview adapters that consume it. -->
+        <script src="/suite/settings/nav-registry.js?v=1"></script>
         <script src="/suite/settings/main/01_state.js?v=4"></script>
-        <script src="/suite/settings/main/02_edition.js?v=5"></script>
+        <script src="/suite/settings/main/02_edition.js?v=6"></script>
         <script src="/suite/settings/main/03_oauth.js?v=4"></script>
         <script src="/suite/settings/main/04_current_user.js?v=4"></script>
         <script src="/suite/settings/main/05_ui_bindings.js?v=4"></script>
         <script src="/suite/settings/main/06_users_groups.js?v=4"></script>
         <script src="/suite/settings/main/07_appearance.js?v=4"></script>
-        <script src="/suite/settings/main/08_preview.js?v=4"></script>
+        <script src="/suite/settings/main/08_preview.js?v=5"></script>
         <script src="/suite/settings/main/99_init.js?v=4"></script>
         <script src="/suite/settings/settings-ai-accounts.js?v=1"></script>
         <script src="/suite/settings/settings-ledger.js?v=3"></script>

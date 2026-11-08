@@ -309,7 +309,7 @@
   API.pickFolder = pickFolder;
   API.syncNow = syncNow;
   API.supportsFolderSync = supportsFolderSync;
-  // GB6-22 — exposed for its unit test.
+  // GB7-22 — exposed for its unit test.
   API.conflictName = conflictName;
 
   restoreFolderHandle();

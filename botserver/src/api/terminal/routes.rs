@@ -110,7 +110,7 @@ async fn create_terminal(
             };
             return (
                 axum::http::StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "no_workspace", "message": message })),
+                Json(serde_json::json!({ "error": error, "message": message })),
             );
         }
     };

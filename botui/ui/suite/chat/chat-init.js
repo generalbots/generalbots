@@ -277,7 +277,7 @@ sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
 
 var scrollBtn = document.getElementById("scrollToBottom");
 if (scrollBtn) {
-scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatState.isUserScrolling = false; });
+scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatState.isUserScrolling = false; ChatState.isUserAtBottom = true; });
 }
 
 var messagesEl = document.getElementById("messages");
@@ -289,7 +289,8 @@ if (window.ResizeObserver) {
   var liveEdgeObserver = new ResizeObserver(function () {
     var box = document.getElementById("messages");
     if (!box) return;
-    if (box.scrollHeight - box.scrollTop - box.clientHeight < 320) {
+    if (!ChatState.isUserAtBottom) return;
+    if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) {
       box.scrollTop = box.scrollHeight;
     }
   });
@@ -300,7 +301,8 @@ if (window.MutationObserver) {
     requestAnimationFrame(function () {
       var box = document.getElementById("messages");
       if (!box) return;
-      if (box.scrollHeight - box.scrollTop - box.clientHeight < 320) {
+      if (!ChatState.isUserAtBottom) return;
+      if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) {
         box.scrollTop = box.scrollHeight;
       }
     });
@@ -308,10 +310,13 @@ if (window.MutationObserver) {
   liveEdgeMutations.observe(messagesEl, { childList: true, subtree: true });
 }
 messagesEl.addEventListener("scroll", function () {
-ChatState.isUserScrolling = true;
-updateScrollButton();
-clearTimeout(messagesEl.scrollTimeout);
-messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
+  var box = document.getElementById("messages");
+  var dist = box ? (box.scrollHeight - box.scrollTop - box.clientHeight) : 0;
+  ChatState.isUserAtBottom = dist < 40;
+  ChatState.isUserScrolling = true;
+  updateScrollButton();
+  clearTimeout(messagesEl.scrollTimeout);
+  messagesEl.scrollTimeout = setTimeout(function () { ChatState.isUserScrolling = false; }, 1000);
 });
 }
 

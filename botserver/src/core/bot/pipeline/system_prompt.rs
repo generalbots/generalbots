@@ -44,7 +44,7 @@ pub(super) fn build(
     } else {
         base_system_prompt
     };
-    // GB6-16 — persisted user preferences are part of the system prompt, so a
+    // GB7-16 — persisted user preferences are part of the system prompt, so a
     // fresh conversation starts with what the user already taught the bot.
     let memory_block =
         crate::core::user_memory::render_for_prompt(&state.conn, user_id, Some(bot_uuid));

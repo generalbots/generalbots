@@ -1,5 +1,5 @@
 "use strict";
-/* GB6-24 (#1575) — backup import validation. Zero-dependency test
+/* GB7-24 (#1575) — backup import validation. Zero-dependency test
  * (run: node tests/data_export_import.test.js)
  *
  * Drives the real validator the importer uses and proves the properties the

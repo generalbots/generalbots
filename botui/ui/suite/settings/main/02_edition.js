@@ -3,7 +3,30 @@
   "use strict";
   var S = window.__GBSettingsMain;
 
+// #1889 — the product file declares the deployment edition. The explicit
+// value always wins over the flag soup below (no_security used to imply three
+// different editions at once).
+function declaredEdition(config) {
+  var value = config && typeof config.edition === "string"
+    ? config.edition.toLowerCase()
+    : "";
+  return value === "cloud" || value === "desktop" || value === "os" ? value : "";
+}
+
+function currentEdition(config) {
+  if (window.GBNavRegistry && typeof window.GBNavRegistry.edition === "function") {
+    return window.GBNavRegistry.edition();
+  }
+  var declared = declaredEdition(config);
+  if (declared) { return declared; }
+  if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return "desktop"; }
+  if (config && (config.shell_mode === true || config.no_security === true)) { return "os"; }
+  return "cloud";
+}
+
 function isDesktopEdition(config) {
+  var declared = declaredEdition(config);
+  if (declared) { return declared !== "cloud"; }
   if (window.__TAURI__ || window.__TAURI_INTERNALS__) { return true; }
   if (!config) { return false; }
   if (config.desktop === true || config.desktop_local === true || config.is_desktop === true) { return true; }
@@ -26,6 +49,8 @@ function isSlimEdition(config) {
 // General Bots OS kiosk image. Only there do host-level settings make sense;
 // a normal browser/cloud deployment must never show the Operating System panel.
 function isShellMode(config) {
+  var declared = declaredEdition(config);
+  if (declared) { return declared !== "cloud"; }
   if (window.__GB_SHELL_MODE__ === true || window.__GB_SHELL_MODE__ === "true") {
     return true;
   }
@@ -38,11 +63,40 @@ function isShellMode(config) {
     config.no_security === true;
 }
 
+// #1887 — one security story per deployment. A no-security / single-user OS
+// install has no directory: password, 2FA and session listings are absent and
+// a single "Local data" card takes their place. Directory-backed clouds keep
+// the session/device lists and let settings-actions.js hide the local password
+// card once an issuer is known.
+function applySecurityStory(config) {
+  var noSecurity = !!(config && config.no_security === true) || currentEdition(config) === "os";
+  var password = document.getElementById("security-password-card");
+  var twofa = document.getElementById("security-2fa-card");
+  var sessions = document.getElementById("security-sessions-card");
+  var devices = document.getElementById("security-devices-card");
+  var local = document.getElementById("security-local-card");
+  if (noSecurity) {
+    [password, twofa, sessions, devices].forEach(function (card) {
+      if (card) { card.style.display = "none"; }
+    });
+    if (local) {
+      local.hidden = false;
+      local.style.display = "";
+    }
+    return;
+  }
+  if (local) {
+    local.hidden = true;
+    local.style.display = "none";
+  }
+}
+
 function applyShellModeVisibility(config) {
   var shell = isShellMode(config);
   if (document.body) {
     document.body.classList.toggle("gb-shell-mode", shell);
   }
+  applySecurityStory(config);
   document.querySelectorAll('[data-shell-only="true"]').forEach(function (node) {
     if (shell) {
       node.removeAttribute("hidden");
@@ -50,6 +104,10 @@ function applyShellModeVisibility(config) {
       node.setAttribute("hidden", "");
     }
   });
+  // #1877 — panels that only make sense in shell mode (OS, Shared Links)
+  // lazy-load their data. They are revealed after productConfig arrives, so
+  // announce the transition and let each panel refresh itself.
+  window.dispatchEvent(new CustomEvent("gb-shell-mode-changed", { detail: { shell: shell } }));
   if (shell) { return; }
   var active = document.querySelector(".settings-section.active");
   if (active && active.id === "os-section") {
@@ -155,6 +213,7 @@ function initEditionVisibility() {
   }
   function reapply() {
     applyShellModeVisibility(window.productConfig);
+    if (window.GBNavRegistry) { window.GBNavRegistry.applyNavVisibility(); }
     if (resolvedDesktop || isDesktopEdition(window.productConfig)) {
       resolvedDesktop = true;
       applyDesktopEditionVisibility();
@@ -173,6 +232,8 @@ function initEditionVisibility() {
   document.body.addEventListener("htmx:load", reapply);
 }
 
+  S.currentEdition = currentEdition;
+  S.applySecurityStory = applySecurityStory;
   S.isDesktopEdition = isDesktopEdition;
   S.isSlimEdition = isSlimEdition;
   S.isShellMode = isShellMode;

@@ -5,12 +5,21 @@
  * attachments through BotModels (`/api/vision/describe`), so the assistant
  * analyzes the photo with the same open-source stack as uploaded images.
  * Browsers without getUserMedia fall back to the native capture input.
+ *
+ * #1898 — WebKitGTK can leave `getUserMedia()` pending forever when no
+ * permission handler answers (Tauri 2 desktop). A pending promise used to keep
+ * the modal preview on screen with a black video and no way back, which the
+ * user perceived as a frozen app. Every request now runs under a watchdog and
+ * degrades to the native capture input, and the dialog is always dismissable
+ * (buttons, overlay click, Escape).
  */
 "use strict";
 
 (function () {
   var stream = null;
   var overlay = null;
+  var requestSeq = 0;
+  var WATCHDOG_MS = 10000;
 
   function tr(key, fallback) {
     if (window.i18n && typeof window.i18n.t === "function") {
@@ -37,9 +46,34 @@
   }
 
   function close() {
+    // Invalidate any in-flight request so a late stream is released instead of
+    // leaking a camera that the user already dismissed.
+    requestSeq += 1;
     stopStream();
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     overlay = null;
+    document.removeEventListener("keydown", onKeydown);
+  }
+
+  function onKeydown(event) {
+    if (event.key === "Escape" && overlay) {
+      event.preventDefault();
+      close();
+    }
+  }
+
+  function fallbackInput() {
+    return document.getElementById("cameraFileInput");
+  }
+
+  function useFallbackInput(message) {
+    var fallback = fallbackInput();
+    if (fallback) {
+      notify(message, "error");
+      fallback.click();
+      return true;
+    }
+    return false;
   }
 
   function stageAndSend(file) {
@@ -61,6 +95,10 @@
   }
 
   function capture(video) {
+    if (!video || !video.videoWidth) {
+      notify(tr("chat-camera-waiting", "Waiting for the camera to start…"), "info");
+      return;
+    }
     var width = video.videoWidth || 1280;
     var height = video.videoHeight || 720;
     var canvas = document.createElement("canvas");
@@ -85,6 +123,12 @@
     }, "image/jpeg", 0.9);
   }
 
+  function setStatus(text) {
+    if (!overlay) return;
+    var status = overlay.querySelector(".gb-camera-status");
+    if (status) status.textContent = text;
+  }
+
   function buildPreview() {
     overlay = document.createElement("div");
     overlay.id = "gbCamera";
@@ -97,11 +141,15 @@
       '<button type="button" class="gb-camera-close" aria-label="' +
       tr("chat-camera-cancel", "Cancel") + '">✕</button></div>' +
       '<video autoplay playsinline muted></video>' +
+      '<div class="gb-camera-status">' +
+      tr("chat-camera-waiting", "Waiting for the camera to start…") + "</div>" +
       '<div class="gb-camera-actions">' +
       '<button type="button" class="gb-camera-cancel">' + tr("chat-camera-cancel", "Cancel") + "</button>" +
-      '<button type="button" class="gb-camera-shutter">' + tr("chat-camera-capture", "Take photo") + "</button>" +
+      '<button type="button" class="gb-camera-shutter" disabled>' +
+      tr("chat-camera-capture", "Take photo") + "</button>" +
       "</div></div>";
     document.body.appendChild(overlay);
+    document.addEventListener("keydown", onKeydown);
 
     var video = overlay.querySelector("video");
     overlay.querySelector(".gb-camera-close").addEventListener("click", close);
@@ -115,48 +163,113 @@
     return video;
   }
 
+  /// Asks for a video stream, but never waits forever: a watchdog rejects the
+  /// request when the backend (WebKitGTK permission handler) simply never
+  /// answers, and a stream that arrives after we gave up is stopped at once.
+  function requestCamera() {
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        var error = new Error("camera request timed out");
+        error.name = "TimeoutError";
+        reject(error);
+      }, WATCHDOG_MS);
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        })
+        .then(function (mediaStream) {
+          if (settled) {
+            mediaStream.getTracks().forEach(function (track) { track.stop(); });
+            return;
+          }
+          settled = true;
+          clearTimeout(timer);
+          resolve(mediaStream);
+        })
+        .catch(function (error) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
+  }
+
   function open() {
     if (overlay) return;
-    var fallback = document.getElementById("cameraFileInput");
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      if (fallback) fallback.click();
+      if (fallbackInput()) fallbackInput().click();
       else notify(tr("chat-camera-unsupported", "This desktop app does not provide camera access."), "error");
       return;
     }
+    var token = ++requestSeq;
     var video = buildPreview();
-    navigator.mediaDevices
-      .getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      })
+    requestCamera()
       .then(function (mediaStream) {
+        if (token !== requestSeq || !overlay) {
+          mediaStream.getTracks().forEach(function (track) { track.stop(); });
+          return;
+        }
         stream = mediaStream;
         video.srcObject = mediaStream;
-        return video.play();
+        var played = typeof video.play === "function" ? video.play() : Promise.resolve();
+        return Promise.resolve(played)
+          .catch(function () { /* autoplay policy: the frame is still capturable */ })
+          .then(function () {
+            if (token !== requestSeq || !overlay) return;
+            var shutter = overlay.querySelector(".gb-camera-shutter");
+            if (shutter) shutter.disabled = false;
+            setStatus(tr("chat-camera-ready", "Camera ready. Take the photo or cancel."));
+          });
       })
       .catch(function (error) {
+        if (token !== requestSeq) return;
         close();
-        var denied = error && (error.name === "NotAllowedError" || error.name === "SecurityError");
-        var missing = error && error.name === "NotFoundError";
-        notify(
-          denied
-            ? tr("chat-camera-denied", "Camera permission was denied. Allow camera access for the desktop app in your system settings to take photos.")
-            : missing
-              ? tr("chat-camera-missing", "No camera was found on this device.")
-              : tr("chat-camera-error", "Could not start the camera."),
-          "error",
-        );
-        if (missing && fallback) fallback.click();
+        var name = error && error.name;
+        var denied = name === "NotAllowedError" || name === "SecurityError";
+        var missing = name === "NotFoundError" || name === "DevicesNotFoundError";
+        var unsupported = name === "NotReadableError" || name === "OverconstrainedError";
+        if (denied) {
+          notify(
+            tr(
+              "chat-camera-denied",
+              "Camera permission was denied. Allow camera access for the desktop app in your system settings to take photos.",
+            ),
+            "error",
+          );
+          return;
+        }
+        if (missing) {
+          notify(tr("chat-camera-missing", "No camera was found on this device."), "error");
+          if (fallbackInput()) fallbackInput().click();
+          return;
+        }
+        // Timeout: the WebView never answered. The native capture input is the
+        // only path that still works, so hand the user over to it.
+        if (name === "TimeoutError") {
+          useFallbackInput(
+            tr(
+              "chat-camera-timeout",
+              "The camera did not answer. Choose a photo from the system picker instead.",
+            ),
+          );
+          return;
+        }
+        if (unsupported) {
+          notify(tr("chat-camera-error", "Could not start the camera."), "error");
+          if (fallbackInput()) fallbackInput().click();
+          return;
+        }
+        notify(tr("chat-camera-error", "Could not start the camera."), "error");
       });
   }
 
   function bind() {
-    var button = document.getElementById("cameraBtn");
-    if (button && !button.dataset.bound) {
-      button.dataset.bound = "1";
-      button.addEventListener("click", open);
-    }
-    var fallback = document.getElementById("cameraFileInput");
+    var fallback = fallbackInput();
     if (fallback && !fallback.dataset.bound) {
       fallback.dataset.bound = "1";
       fallback.addEventListener("change", function () {
@@ -167,11 +280,16 @@
     }
   }
 
-  window.GBWebcam = { open: open, close: close };
+  // #1898 — delegation keeps the button alive when the composer is re-rendered
+  // after module boot (same late-composer failure as the mic and web search).
+  document.addEventListener("click", function (event) {
+    var button = event.target && event.target.closest ? event.target.closest("#cameraBtn") : null;
+    if (!button) return;
+    event.preventDefault();
+    open();
+  });
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bind);
-  } else {
-    bind();
-  }
+  bind();
+  document.addEventListener("gb-chat-ready", bind);
+  window.GBWebcam = { open: open, close: close };
 })();

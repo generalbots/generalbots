@@ -65,8 +65,8 @@ pub(super) async fn handle_product_detail_view(
         stock = stock_str,
         unit = html_escape(&product.unit),
         status = status_badge,
-        barcode = product.barcode.as_deref().unwrap_or("-"),
-        weight = product.weight.as_ref().map(|w| format!("{} kg", bd_to_f64(w))).unwrap_or_else(|| "-".to_string()),
+        barcode = product.attributes.get("barcode").and_then(|v| v.as_str()).unwrap_or("-"),
+        weight = product.attributes.get("weight").map(|w| format!("{} kg", w)).unwrap_or_else(|| "-".to_string()),
         desc = html_escape(desc_str),
         created = created,
         updated = updated,
@@ -190,7 +190,7 @@ pub(super) async fn handle_product_edit_form(
         status_i = active_sel(product.is_active, false),
         tax_rate = tax_rate_str,
         stock = product.stock_quantity.to_string(),
-        barcode = html_escape(product.barcode.as_deref().unwrap_or("")),
+        barcode = html_escape(product.attributes.get("barcode").and_then(|v| v.as_str()).unwrap_or("")),
     ))
 }
 pub(super) async fn handle_products_debug() -> &'static str {

@@ -1,4 +1,4 @@
-// #1551/#1642/#1836 GB6-16 — memory across conversations. The server copy
+// #1551/#1642/#1836 GB7-16 — memory across conversations. The server copy
 // (chat_preferences via /api/user/memory) is the source of truth the prompt
 // reads; localStorage is only a cache for offline rendering.
 // Reformulated: search, edit, sync status, per-bot scope; no bare key/value inputs.

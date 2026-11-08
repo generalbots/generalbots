@@ -75,6 +75,18 @@ function vmToggleInlinePreview(card, url, path, convId) {
     img.loading = "lazy";
     img.alt = name;
     body.appendChild(img);
+  } else if (kind === "audio") {
+    // #1908 — inline speaker/play button for voice/audio attachments.
+    var audio = document.createElement("audio");
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = url;
+    audio.style.width = "100%";
+    body.appendChild(audio);
+    var hint = document.createElement("div");
+    hint.className = "gb-attachment-inline-note";
+    hint.textContent = "Click play to listen inline. Download if playback fails.";
+    body.appendChild(hint);
   } else if (kind === "pdf" || kind === "html") {
     var frame = document.createElement("iframe");
     // Interactive HTML artifacts (infographics, charts, dashboards) need
@@ -191,10 +203,14 @@ function vmShowPreviewUrl(url, path) {
   }
   var name = vmEscapeHtml(path.split("/").pop() || "file");
   var downloadUrl = url.indexOf("preview=1") !== -1 ? url.replace("preview=1", "raw=1") : url;
-  var body =
-    mime.indexOf("image/") === 0
-      ? '<img class="gb-vm-preview-body" src="' + url + '" alt="' + name + '">'
-      : '<iframe class="gb-vm-preview-body" src="' + url + '" title="' + name + '"></iframe>';
+  var body;
+  if (mime.indexOf("image/") === 0) {
+    body = '<img class="gb-vm-preview-body" src="' + url + '" alt="' + name + '">';
+  } else if (mime.indexOf("audio/") === 0) {
+    body = '<audio class="gb-vm-preview-body" controls src="' + url + '"></audio>';
+  } else {
+    body = '<iframe class="gb-vm-preview-body" src="' + url + '" title="' + name + '"></iframe>';
+  }
   overlay.innerHTML =
     '<div class="gb-vm-preview-head"><span>' + name + "</span>" +
     '<a class="gb-vm-preview-download" download="' + name + '" href="' + downloadUrl + '">Download</a>' +

@@ -1,5 +1,5 @@
 "use strict";
-/* GB6-25 (#1576) — usage counts. Zero-dependency test
+/* GB7-25 (#1576) — usage counts. Zero-dependency test
  * (run: node tests/usage_stats.test.js)
  *
  * Guards the two defects recorded in the issue: a streamed reply counted once
@@ -52,6 +52,9 @@ const sandbox = {
   console: console,
 };
 vm.runInNewContext(fs.readFileSync(MODULE, "utf8"), sandbox, { filename: MODULE });
+// #1576 — local tracking is OFF unless the user opts in; the privacy
+// contract is asserted below, so the test opts in before counting.
+store.gb_usage_stats_enabled = "true";
 const usage = window.GBUsageStats;
 
 // 1. A streamed reply is counted once per message id.

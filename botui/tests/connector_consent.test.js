@@ -1,5 +1,5 @@
 "use strict";
-/* GB6-18 (#1569) — the consent cell must show exactly what a connection shares
+/* GB7-18 (#1569) — the consent cell must show exactly what a connection shares
  * and who can use it. Zero-dependency test
  * (run: node tests/connector_consent.test.js)
  *

@@ -1,4 +1,4 @@
-//! User memory API (GB6-16).
+//! User memory API (GB7-16).
 //!
 //! Settings → Memory edits these rows; the chat pipeline reads them into the
 //! system prompt. Entries with no bot id apply to every bot.

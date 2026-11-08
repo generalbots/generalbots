@@ -6,6 +6,7 @@
 //! still comes from the opaque iframe sandbox on the client.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use axum::{
@@ -122,6 +123,18 @@ pub fn app_origin() -> String {
         .unwrap_or_else(|| "https: http://localhost:* http://127.0.0.1:*".to_string())
 }
 
+/// Whether a sandbox listener is actually bound (#1896).
+///
+/// `sandbox_origin()` only says where the listener *would* live. Publishing a
+/// resource URL before the bind succeeds hands the client a frame that can
+/// never load: the app window opens blank with no error and nothing to retry.
+static SANDBOX_LISTENER_READY: AtomicBool = AtomicBool::new(false);
+
+#[must_use]
+pub fn sandbox_listener_ready() -> bool {
+    SANDBOX_LISTENER_READY.load(Ordering::Relaxed)
+}
+
 /// Starts the dedicated sandbox listener when the deployment configures one.
 /// Desktop defaults to loopback port 8081; every other build stays quiet until
 /// `GB_SANDBOX_PORT` is set.
@@ -148,11 +161,13 @@ pub fn spawn_listener(state: Arc<AppState>) {
                 return;
             }
         };
+        SANDBOX_LISTENER_READY.store(true, Ordering::Relaxed);
         log::info!("sandbox listener on {bind}");
         let app = router().with_state(state);
         if let Err(error) = axum::serve(listener, app).await {
             log::warn!("sandbox listener stopped: {error}");
         }
+        SANDBOX_LISTENER_READY.store(false, Ordering::Relaxed);
     });
 }
 

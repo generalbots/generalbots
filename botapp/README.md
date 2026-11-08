@@ -2,12 +2,12 @@
 
 <p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
 
-**Version:** 6.7.0  
+**Version:** 7.0.0  
 **Purpose:** Desktop application wrapper (Tauri 2)
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-6.7.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
+[![Version](https://img.shields.io/badge/version-7.0.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
 [![Shell](https://img.shields.io/badge/shell-Tauri%202-24c8db.svg?logo=tauri&logoColor=white)](https://tauri.app/)
 [![Contributors](https://img.shields.io/github/contributors/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/graphs/contributors)
 [![Issues](https://img.shields.io/github/issues/generalbots/generalbots)](https://github.com/generalbots/generalbots/issues)
@@ -205,7 +205,7 @@ AppImage once the new version starts.
 
 ```bash
 curl -s http://127.0.0.1:8080/api/health
-# {"status":"healthy","service":"botserver","version":"6.7.0",...}
+# {"status":"healthy","service":"botserver","version":"7.0.0",...}
 ```
 
 ### Startup release check and opt-in updates
@@ -356,8 +356,8 @@ All icons use `stroke="currentColor"` for CSS theming.
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "General Bots",
-  "version": "6.7.0",
-  "identifier": "br.com.pragmatismo.botapp",
+  "version": "7.0.0",
+  "identifier": "org.generalbots.botapp",
   "build": {
     "devUrl": "http://localhost:3000",
     "frontendDist": "../botui/ui/suite"
@@ -551,7 +551,7 @@ For complete documentation, guides, and API references:
 - **Desktop-only features** - Shared logic in botserver
 - **Tauri APIs** - No direct fs access from JS
 - **Official icons** - Use icons from botui/ui/suite/assets/icons/
-- **Version 6.7.0** - Do not change without approval
+- **Version 7.0.0** - Do not change without approval
 
 ---
 

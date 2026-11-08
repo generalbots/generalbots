@@ -60,6 +60,8 @@ function loadModule(storage) {
       events.push(event);
     },
     document: {
+      addEventListener: function () {},
+      dispatchEvent: function () {},
       getElementById: function (id) {
         return id === "settings-index-all-drive" ? checkbox : null;
       },

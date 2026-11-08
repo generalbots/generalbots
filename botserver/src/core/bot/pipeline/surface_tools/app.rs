@@ -74,8 +74,15 @@ pub(super) async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
     } = *identity;
     let thread_id = session_id.to_string();
     let origin = crate::core::bot::sandbox::routes::sandbox_origin();
+    // #1896 — the desktop build always configures a sandbox origin, but the
+    // listener only exists once the port is bound. Emitting a URL for a
+    // listener that is not up opened a blank app window with no error. Fall
+    // back to the inline payload the client already renders in an opaque frame
+    // whenever nothing is actually serving that origin.
+    let sandbox_ready = !origin.is_empty()
+        && crate::core::bot::sandbox::routes::sandbox_listener_ready();
     let hash = crate::core::bot::sandbox::sign::hash_of(&html);
-    let (url, html_base64) = if origin.is_empty() {
+    let (url, html_base64) = if !sandbox_ready {
         use base64::Engine as _;
         (
             None,

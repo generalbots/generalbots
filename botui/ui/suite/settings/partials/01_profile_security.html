@@ -116,18 +116,16 @@
                             <label>Website</label>
                             <input type="url" name="website" placeholder="https://example.com">
                         </div>
+                        <!-- #1888 — the timezone has exactly one control:
+                             Language & region. The profile form still carries
+                             the value (hidden) so both stores converge. -->
                         <div class="form-group">
                             <label>Timezone</label>
-                            <select name="timezone">
-                                <option value="UTC">UTC</option>
-                                <option value="America/New_York">Eastern Time</option>
-                                <option value="America/Chicago">Central Time</option>
-                                <option value="America/Denver">Mountain Time</option>
-                                <option value="America/Los_Angeles">Pacific Time</option>
-                                <option value="Europe/London">London</option>
-                                <option value="Europe/Paris">Paris</option>
-                                <option value="Asia/Tokyo">Tokyo</option>
-                            </select>
+                            <p class="settings-hint profile-timezone-hint">
+                                Set in <a href="#language" class="info-link"
+                                    onclick="showSection('language', document.querySelector('.settings-nav a[href=\'#language\']')); return false;">Language &amp; region</a>.
+                            </p>
+                            <input type="hidden" name="timezone" id="profile-timezone">
                         </div>
                     </div>
                 </div>
@@ -146,8 +144,9 @@
                 <p class="subtitle">Protect your account with enhanced security</p>
             </div>
 
-            <!-- Password Change -->
-            <div class="setting-card">
+            <!-- Password Change — rendered only when this deployment keeps
+                 passwords in the platform database (#1887). -->
+            <div class="setting-card" id="security-password-card">
                 <div class="card-header">
                     <h2>Change Password</h2>
                     <p>Update your password regularly for better security</p>
@@ -176,7 +175,7 @@
             </div>
 
             <!-- Two-Factor Authentication -->
-            <div class="setting-card">
+            <div class="setting-card" id="security-2fa-card">
                 <div class="card-header">
                     <h2>Two-Factor Authentication</h2>
                     <p>Add an extra layer of security to your account</p>
@@ -194,7 +193,7 @@
             </div>
 
             <!-- Active Sessions -->
-            <div class="setting-card">
+            <div class="setting-card" id="security-sessions-card">
                 <div class="card-header">
                     <h2>Active Sessions</h2>
                     <p>Manage your active login sessions</p>
@@ -215,7 +214,7 @@
             </div>
 
             <!-- Connected Devices -->
-            <div class="setting-card">
+            <div class="setting-card" id="security-devices-card">
                 <div class="card-header">
                     <h2>Connected Devices</h2>
                     <p>Devices that have accessed your account</p>
@@ -225,6 +224,33 @@
                     <div class="loading-state">
                         <div class="spinner"></div>
                     </div>
+                </div>
+            </div>
+            <!-- #1887 — single-user / no-security build: one plain card,
+                 no directory, no password form, no session listings. -->
+            <div class="setting-card" id="security-local-card" hidden>
+                <div class="card-header">
+                    <h2>Local data</h2>
+                    <p>This installation keeps everything on this device.</p>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Export local data</span>
+                        <span class="setting-desc">Download the data stored on this device</span>
+                    </div>
+                    <button type="button" class="btn-secondary btn-sm"
+                        hx-post="/api/user/data/export" hx-swap="none"
+                        hx-on::after-request="showToast('Export started')">Export</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Clear local cache</span>
+                        <span class="setting-desc">Removes cached settings and drafts stored in this browser profile</span>
+                    </div>
+                    <button type="button" class="btn-danger-outline"
+                        onclick="window.clearLocalCache && window.clearLocalCache(); return false;">
+                        Clear cache
+                    </button>
                 </div>
             </div>
         </section>

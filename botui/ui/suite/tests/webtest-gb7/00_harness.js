@@ -1,9 +1,9 @@
 /**
- * GB6 Web Automation Test Suite
- * Tests all GB6 features and BBSIA review fixes.
- * Run with: node botui/ui/suite/tests/webtest_gb6.js
+ * GB7 Web Automation Test Suite
+ * Tests all GB7 features and BBSIA review fixes.
+ * Run with: node botui/ui/suite/tests/webtest_gb7.js
  *
- * Shared harness; the tests live in ordered modules under ./webtest-gb6/ (#1731).
+ * Shared harness; the tests live in ordered modules under ./webtest-gb7/ (#1731).
  */
 "use strict";
 
@@ -101,7 +101,7 @@ function memoryStorage() {
 
 function report() {
 console.log("\n" + "=".repeat(60));
-console.log("GB6 WEB AUTOMATION TEST RESULTS");
+console.log("GB7 WEB AUTOMATION TEST RESULTS");
 console.log("=".repeat(60));
 RESULTS.forEach(function (r) {
   var icon = r.status === "PASS" ? "PASS" : "FAIL";

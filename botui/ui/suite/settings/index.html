@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="/suite/settings/settings-panels.css?v=1" />
+<link rel="stylesheet" href="/suite/settings/settings-panels-themes.css?v=1" />
 <link rel="stylesheet" href="/suite/settings/settings-ledger.css?v=2" />
 <script src="/suite/js/auto-update.js?v=3"></script>
 <script src="/suite/js/auto-update-settings.js?v=1"></script>
@@ -252,6 +253,22 @@
                 </svg>
                 <span>Updates</span>
             </a>
+            <!-- #1882 — System group. Essential in every edition: it owns the
+                 Preview switch that shapes this tree. -->
+            <a href="#system" class="nav-item" onclick="showSection('system', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
+                <span>System</span>
+            </a>
             <a href="#about" class="nav-item" onclick="openAboutWindow()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -273,25 +290,47 @@
 
     <!-- Main Content Area -->
     <main class="settings-main">
+        <!-- #1881 — key information first: who am I, where am I, and what is
+             this deployment. Read-only status only; every chip deep-links into
+             the surface that owns the value. -->
+        <section id="workspace-card" class="workspace-card" aria-labelledby="workspace-card-title">
+            <div class="workspace-card-head">
+                <div>
+                    <h2 id="workspace-card-title">This workspace</h2>
+                    <p id="workspace-identity" class="workspace-line">Loading identity…</p>
+                </div>
+                <span id="workspace-edition" class="workspace-badge" title="Deployment edition">—</span>
+            </div>
+            <div class="workspace-chips">
+                <button type="button" class="workspace-chip" id="workspace-plan" title="Plan managed on the Cloud portal">Plan: —</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="storage">Storage</button>
+                <button type="button" class="workspace-chip" data-workspace-goto="versions">Versions</button>
+                <button type="button" class="workspace-chip" id="workspace-preview">Preview: —</button>
+            </div>
+        </section>
         <div hx-get="/suite/settings/partials/01_profile_security.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <!-- Operating System panel (#1852/#1873): loaded INSIDE the content
+             column. Loading it as a sibling of .settings-layout rendered the
+             section below the sidebar, outside the settings grid. -->
+        <div hx-get="/suite/settings/partials/07_os.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <!-- Shared Links (#1863/#1877): same rule as the OS panel — the
+             section belongs inside the content column, otherwise it is laid
+             out below the sidebar and overlaps the page. -->
+        <div hx-get="/suite/settings/partials/08_shared_links.html" hx-trigger="load" hx-swap="outerHTML"></div>
+        <!-- #1882 — System group: the single Preview control lives here, next
+             to the version information, not inside Appearance. -->
+        <div hx-get="/suite/settings/partials/10_system.html" hx-trigger="load" hx-swap="outerHTML"></div>
     </main>
 </div>
 
 <!-- Dialogs (loaded in parallel; opened on demand) -->
 <div hx-get="/suite/settings/partials/06_dialogs.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
-<!-- Operating System panel (#1852): shell-mode only. The partial stays inert
-     in browser/cloud deployments because the section is hidden and the panel
-     only fetches after a shell-mode session opens it. -->
-<div hx-get="/suite/settings/partials/07_os.html" hx-trigger="load" hx-swap="outerHTML"></div>
-
-<!-- Shared Links (#1863): shell-mode only. The partial stays inert in a normal
-     browser/cloud deployment because the section and nav item are hidden. -->
-<div hx-get="/suite/settings/partials/08_shared_links.html" hx-trigger="load" hx-swap="outerHTML"></div>
-
 <link rel="stylesheet" href="/suite/settings/settings-forms.css" />
 <link rel="stylesheet" href="/suite/settings/settings-controls.css" />
 <link rel="stylesheet" href="/suite/settings/settings-responsive.css" />
+<link rel="stylesheet" href="/suite/settings/settings-workspace-card.css" />
+<script src="/suite/settings/settings-workspace-card.js?v=1"></script>
 
 <!-- Sidebar overlay for mobile -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSettingsSidebar()"></div>

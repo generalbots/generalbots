@@ -141,7 +141,7 @@ pub async fn upload_file_to_drive(
     };
 
     let key = scoped_key(&prefix, &req.path);
-    // GB6-14 — the previous revision becomes restorable history before the
+    // GB7-14 — the previous revision becomes restorable history before the
     // overwrite. The snapshot never blocks the write.
     snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;
     // A personal bucket may not exist yet (the local/email user id produces
@@ -366,6 +366,12 @@ pub(super) fn guess_mime(file_name: &str) -> &'static str {
         "json" => "application/json",
         "xml" => "application/xml",
         "zip" => "application/zip",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "doc" => "application/msword",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xls" => "application/vnd.ms-excel",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "ppt" => "application/vnd.ms-powerpoint",
         _ => "application/octet-stream",
     }
 }

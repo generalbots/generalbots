@@ -232,6 +232,29 @@
         link.click();
     }
 
+    // #1879 — feedback is an in-app banner; a blocking flashStatus() froze the
+    // projector window until the user dismissed it.
+    function flashStatus(message) {
+        const host = document.querySelector('.projector-container') || document.body;
+        let node = document.getElementById('projector-status');
+        if (!node) {
+            node = document.createElement('div');
+            node.id = 'projector-status';
+            node.setAttribute('role', 'status');
+            node.setAttribute('aria-live', 'polite');
+            node.style.cssText =
+                'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+                'background:rgba(17,24,39,.92);color:#fff;padding:8px 14px;' +
+                'border-radius:999px;font:13px system-ui,sans-serif;z-index:2147483647;' +
+                'opacity:0;transition:opacity .18s;pointer-events:none;';
+            host.appendChild(node);
+        }
+        node.textContent = message;
+        node.style.opacity = '1';
+        clearTimeout(flashStatus.timer);
+        flashStatus.timer = setTimeout(() => { node.style.opacity = '0'; }, 2000);
+    }
+
     // Share
     function shareContent() {
         if (navigator.share) {
@@ -241,7 +264,9 @@
             }).catch(() => { });
         } else {
             navigator.clipboard.writeText(window.location.origin + projectorState.source).then(() => {
-                alert('Link copied to clipboard!');
+                flashStatus('Link copied to clipboard!');
+            }).catch(() => {
+                flashStatus('Could not copy the link. Copy it from the address bar instead.');
             });
         }
     }

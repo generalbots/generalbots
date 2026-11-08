@@ -387,6 +387,20 @@
     }
   });
 
+  // #1877 — the section stays hidden until the edition pass confirms shell
+  // mode. Refresh on that transition so the panel opens with real values
+  // instead of the static placeholder URLs.
+  window.addEventListener("gb-shell-mode-changed", function (e) {
+    if (e && e.detail && e.detail.shell) {
+      refresh(true);
+    }
+  });
+  document.addEventListener("gb-shell-mode-changed", function (e) {
+    if (e && e.detail && e.detail.shell) {
+      refresh(true);
+    }
+  });
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {

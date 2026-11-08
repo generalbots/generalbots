@@ -237,5 +237,13 @@ window.GBWizardLocales["es"] = {
   "nav.ready": "Listo",
   "nav.retry": "Reintentar",
   "common.yes": "Sí",
-  "common.no": "No"
+  "common.no": "No",
+  "step.network": "Modo de red",
+  "heading.network": "Elige tu modo de red",
+  "network.lead": "Controla si esta instalación se une a la red de pares o permanece totalmente sin conexión.",
+  "network.p2p.title": "P2P — Unirse a la red de pares (recomendado)",
+  "network.p2p.desc": "Habilita funciones futuras como enlaces compartidos gratuitos y descubrimiento de pares. Ningún dato sale de este equipo hasta que compartas algo explícitamente.",
+  "network.offline.title": "Sin conexión — Sin identidad de red",
+  "network.offline.desc": "Mantiene todas las conexiones en 127.0.0.1. Sin funciones de pares; los enlaces compartidos funcionan solo en tu red local.",
+  "network.note": "Puedes cambiar esto más tarde en Configuración — Red.",
 };

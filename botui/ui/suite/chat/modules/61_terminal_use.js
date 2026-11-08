@@ -1,4 +1,4 @@
-/* Computer Use — terminal actions (GB6-20).
+/* Computer Use — terminal actions (GB7-20).
  * Listens for bot messages with action_type:"terminal" and renders a
  * consent card before relaying the command to the backend. The backend
  * executes the command in a sandboxed shell and returns stdout/stderr. */
@@ -214,7 +214,7 @@
     if (typeof scrollToBottom === "function") scrollToBottom(true);
   });
 
-  // GB6-20 — the server no longer needs to push over the WebSocket: the action
+  // GB7-20 — the server no longer needs to push over the WebSocket: the action
   // queue is polled and replayed as the same frames the pipeline emits.
   function pollPendingTerminal() {
     var sid = window.ChatState && ChatState.currentSessionId;

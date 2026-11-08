@@ -1,4 +1,4 @@
-/* Accessibility and keyboard-first use (GB6-27).
+/* Accessibility and keyboard-first use (GB7-27).
  * Adds ARIA landmarks, skip-nav, keyboard shortcuts, focus trapping
  * in modals, high-contrast mode, and reduced-motion support. */
 "use strict";

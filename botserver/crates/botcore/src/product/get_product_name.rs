@@ -92,9 +92,26 @@ pub fn get_product_config_json() -> serde_json::Value {
         .into_iter()
         .collect();
 
+    // #1889 — the explicit `edition=` key wins; the flag-based fallback keeps
+    // older product files working until they declare it.
+    let edition = config
+        .as_ref()
+        .and_then(|c| c.edition.as_deref())
+        .map(|value| value.to_lowercase())
+        .filter(|value| value == "cloud" || value == "desktop" || value == "os")
+        .unwrap_or_else(|| {
+            let shell = config.as_ref().map(|c| c.shell_mode).unwrap_or(false);
+            if shell || cfg!(feature = "desktop-local") {
+                "os".to_string()
+            } else {
+                "cloud".to_string()
+            }
+        });
+
     match config {
         Some(c) => serde_json::json!({
             "name": c.name,
+            "edition": edition,
             "apps": effective_apps,
             "preview_apps": c.get_preview_apps(),
             "compiled_features": compiled,
@@ -125,6 +142,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "menu_launcher_enabled": false,
             "sidebar": null,
             "hidden_apps": Vec::<String>::new(),
+            "edition": "cloud",
             "no_security": false,
             "shell_mode": false,
             "public_base_url": get_public_base_url(),

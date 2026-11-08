@@ -1,10 +1,13 @@
     // #1304 — Integrations lives in its own app window; Settings just opens
     // it (window manager when available, desktop route otherwise).
     window.openIntegrationsWindow = function () {
+        // #1884 — the Integrations app owns the MCP catalog; ask it for the
+        // Sources tab directly so the deep link lands where the work happens.
+        var params = { tab: 'sources' };
         if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
-            window.WindowManager.openDeepLink('integrations', {});
+            window.WindowManager.openDeepLink('integrations', params);
         } else if (window.openDeepLink) {
-            window.openDeepLink('integrations', {});
+            window.openDeepLink('integrations', params);
         } else {
             window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener');
         }
@@ -34,7 +37,13 @@
         fetch('/api/auth/directory-config')
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (cfg) {
-                if (cfg && cfg.issuer_url) window.__gbDirectoryIssuer = String(cfg.issuer_url).replace(/\/$/, '');
+                if (cfg && cfg.issuer_url) {
+            window.__gbDirectoryIssuer = String(cfg.issuer_url).replace(/\/$/, '');
+            // #1887 — directory-backed deployments own password/2FA. The local
+            // password form would mutate a credential the directory never sees.
+            var passwordCard = document.getElementById('security-password-card');
+            if (passwordCard) passwordCard.style.display = 'none';
+        }
             })
             .catch(function () { /* link falls back below */ });
     })();
@@ -44,10 +53,14 @@
             : null;
         if (target) {
             window.open(target, '_blank', 'noopener');
-        } else if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
-            window.WindowManager.openDeepLink('admin', {});
         } else {
-            window.open('/suite/settings/index.html?view=admin', '_blank', 'noopener');
+            // #1887 — no issuer means the directory address is unavailable.
+            // Never deep-link personal security into Administration; say what
+            // happened and leave the button inert.
+            if (typeof showToast === 'function') {
+                showToast('Directory address unavailable', 'error');
+            }
+            console.warn('openZitadelConsole: no directory issuer configured');
         }
         return false;
     };
@@ -81,6 +94,30 @@
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
     }
+
+    // #1887 — clearing the local cache: shell confirmation when available,
+    // otherwise the action runs with a toast. No window.confirm.
+    window.clearLocalCache = function () {
+        function clear() {
+            try {
+                Object.keys(localStorage)
+                    .filter(function (k) { return k.indexOf('gb_') === 0 || k.indexOf('gb-') === 0; })
+                    .forEach(function (k) { localStorage.removeItem(k); });
+                showToast('Local cache cleared');
+            } catch (e) {
+                showToast('Could not clear the cache', 'error');
+            }
+        }
+        if (window.WindowManager && typeof window.WindowManager.confirmFloating === 'function') {
+            window.WindowManager.confirmFloating(
+                'Clear local cache',
+                'Remove cached settings and drafts from this browser profile?',
+                clear
+            );
+            return;
+        }
+        clear();
+    };
 
     function showToast(message, type = 'success') {
         if (window.showNotification) {
@@ -127,7 +164,48 @@
         document.body.classList.toggle('sidebar-hidden', localStorage.getItem('gb-show-sidebar') === 'false');
     }
 
+    // #1888 — Language & region owns the only timezone control. The select is
+    // populated from the runtime IANA list (with the shipped options as the
+    // fallback), and the profile form mirrors the same value in a hidden field.
+    var TIMEZONE_FALLBACKS = [
+        'America/Sao_Paulo', 'America/New_York', 'America/Chicago',
+        'America/Denver', 'America/Los_Angeles', 'Europe/London',
+        'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai',
+        'Australia/Sydney', 'UTC'
+    ];
+
+    function timezoneList() {
+        try {
+            if (typeof Intl.supportedValuesOf === 'function') {
+                var zones = Intl.supportedValuesOf('timeZone');
+                if (Array.isArray(zones) && zones.length) return zones;
+            }
+        } catch (e) { /* older runtimes keep the fallback list */ }
+        return TIMEZONE_FALLBACKS;
+    }
+
+    function fillTimezoneSelect() {
+        var select = document.getElementById('timezone-select');
+        if (!select || select.getAttribute('data-filled') === '1') return;
+        var saved = localStorage.getItem('gb-timezone') || 'UTC';
+        var zones = timezoneList();
+        if (zones.indexOf(saved) === -1) zones = zones.concat([saved]);
+        select.innerHTML = zones.map(function (zone) {
+            return '<option value="' + zone + '">' + zone + '</option>';
+        }).join('');
+        select.value = saved;
+        select.setAttribute('data-filled', '1');
+    }
+
+    function syncProfileTimezone() {
+        var hidden = document.getElementById('profile-timezone');
+        if (!hidden) return;
+        var saved = localStorage.getItem('gb-timezone');
+        if (saved) hidden.value = saved;
+    }
+
     function restoreLocaleSelects() {
+        fillTimezoneSelect();
         var selects = {
             'date-format-select': 'gb-date-format',
             'time-format-select': 'gb-time-format',
@@ -139,6 +217,7 @@
             var saved = localStorage.getItem(selects[id]);
             if (select && saved) select.value = saved;
         });
+        syncProfileTimezone();
     }
 
     window.toggleCompactMode = function (checkbox) {
@@ -192,6 +271,9 @@
     window.changeTimezone = function (tz) {
         if (!tz) return;
         persistPref('gb-timezone', tz);
+        // Keep the profile form's hidden field on the same value so the next
+        // profile save writes the regional choice to the server (#1888).
+        syncProfileTimezone();
         showToast('Timezone updated');
     };
 
@@ -324,3 +406,9 @@
     } else {
         initPreferences();
     }
+    // Settings sections arrive through HTMX; re-restore when the profile or
+    // regional partials are swapped in (#1888).
+    document.addEventListener('htmx:afterSwap', function () {
+        fillTimezoneSelect();
+        syncProfileTimezone();
+    });

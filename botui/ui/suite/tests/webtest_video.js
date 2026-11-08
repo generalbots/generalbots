@@ -1,5 +1,5 @@
 /**
- * GB6 + BBSIA Web Automation — Playwright Video Evidence Suite
+ * GB7 + BBSIA Web Automation — Playwright Video Evidence Suite
  *
  * Each test shows visual overlays: title → steps → result, with pauses
  * so the recorded video has meaningful content.

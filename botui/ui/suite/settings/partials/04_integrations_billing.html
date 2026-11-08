@@ -1,14 +1,22 @@
         <!-- Integrations Section -->
         <section id="integrations-section" class="settings-section">
-            <div class="section-header">
-                <h1 data-i18n="settings-integrations">Integrations</h1>
-                <p class="subtitle">Connect external services and manage API access</p>
+            <div class="section-header settings-section-head">
+                <div>
+                    <h1 data-i18n="settings-integrations">Integrations</h1>
+                    <p class="subtitle">Connect external services and manage API access</p>
+                </div>
+                <!-- #1878 — one explicit way into the Integrations app from the
+                     settings section that talks about it. -->
+                <button type="button" class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">
+                    Open Integrations
+                </button>
             </div>
 
-            <!-- API Keys -->
+            <!-- #1883 — personal access tokens (gb_…), distinct from the
+                 model-provider keys owned by the Integrations app. -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>API Keys</h2>
+                    <h2>Personal access tokens</h2>
                     <div class="card-actions" style="display:flex;gap:8px;align-items:center">
                         <a class="btn-secondary btn-sm"
                             href="https://docs.generalbots.org/08-rest-api-tools/user-security.html#api-keys"
@@ -21,10 +29,11 @@
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            Create Key
+                            Create token
                         </button>
                     </div>
                 </div>
+                <p class="setting-desc" style="padding:0 20px 12px;">Tokens you mint for calling the API as yourself (<code>gb_…</code>). Model-provider keys live in the Integrations app.</p>
                 <div class="api-keys-list" id="api-keys-list" hx-get="/api/user/api-keys" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="empty-state">
@@ -182,8 +191,7 @@
         <!-- Vibe Section -->
         <section id="vibe-section" class="settings-section">
             <div class="section-header">
-                <h1 data-i18n="settings-vibe">Vibe</h1>
-                <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → LLM Providers (BYOK) or the Cloud store.</p>
+                <h1 data-i18n="settings-vibe">Vibe</h1>                    <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → Model providers (BYOK) or the Cloud store.</p>
             </div>
 
             <div class="setting-card">
@@ -324,17 +332,12 @@
                 <div class="card-header">
                     <h2>Current Plan</h2>
                 </div>
+                <!-- #1885 — no hardcoded fallback plan: the fragment fills this
+                     with real data, otherwise the empty state below is shown. -->
                 <div class="plan-display" hx-get="/api/user/billing/plan" hx-trigger="load" hx-swap="innerHTML">
-                    <div class="plan-info">
-                        <div class="plan-badge">Pro</div>
-                        <div class="plan-details">
-                            <span class="plan-price">$19/month</span>
-                            <span class="plan-cycle">Billed monthly</span>
-                        </div>
-                    </div>
-                    <div class="plan-actions">
-                        <button class="btn-secondary" onclick="return openCloudBilling()">Change Plan</button>
-                        <button class="btn-text" onclick="return openCloudBilling()">Cancel Subscription</button>
+                    <div class="empty-state">
+                        <p>No plan information is managed by this deployment.</p>
+                        <button type="button" class="btn-secondary" onclick="return openCloudBilling()">Manage plan on Cloud</button>
                     </div>
                 </div>
             </div>
@@ -350,19 +353,9 @@
                 </div>
                 <div class="payment-methods" id="payment-methods" hx-get="/api/user/billing/payment-methods"
                     hx-trigger="load" hx-swap="innerHTML">
-                    <div class="payment-card">
-                        <div class="card-brand visa">
-                            <svg width="32" height="20" viewBox="0 0 32 20">
-                                <rect width="32" height="20" rx="2" fill="#1A1F71"></rect>
-                                <text x="16" y="13" text-anchor="middle" fill="white" font-size="8"
-                                    font-weight="bold">VISA</text>
-                            </svg>
-                        </div>
-                        <div class="card-details">
-                            <span class="card-number">•••• •••• •••• 4242</span>
-                            <span class="card-expiry">Expires 12/25</span>
-                        </div>
-                        <span class="default-badge">Default</span>
+                    <div class="empty-state">
+                        <p>No payment method on file.</p>
+                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()">Add Method on Cloud</button>
                     </div>
                 </div>
             </div>
@@ -374,33 +367,10 @@
                 </div>
                 <div class="invoices-list" id="invoices-list" hx-get="/api/user/billing/invoices" hx-trigger="load"
                     hx-swap="innerHTML">
-                    <table class="invoices-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Jan 1, 2025</td>
-                                <td>Pro Plan - Monthly</td>
-                                <td>$19.00</td>
-                                <td><span class="status-badge paid">Paid</span></td>
-                                <td><a href="#" class="invoice-link">Download</a></td>
-                            </tr>
-                            <tr>
-                                <td>Dec 1, 2024</td>
-                                <td>Pro Plan - Monthly</td>
-                                <td>$19.00</td>
-                                <td><span class="status-badge paid">Paid</span></td>
-                                <td><a href="#" class="invoice-link">Download</a></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="empty-state">
+                        <p>No invoices for this account.</p>
+                        <button type="button" class="btn-secondary btn-sm" onclick="return openCloudBilling()">View invoices on Cloud</button>
+                    </div>
                 </div>
             </div>
         </section>

@@ -12,3 +12,6 @@ pub mod tray;
 pub mod update;
 #[cfg(feature = "desktop-local")]
 pub mod wizard;
+
+/// Carries the WebKit profile over from the pre-rename identifier (#1870).
+pub mod legacy_data;

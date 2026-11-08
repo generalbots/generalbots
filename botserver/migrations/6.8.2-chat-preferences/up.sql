@@ -1,4 +1,4 @@
--- GB6-16 — user preferences persist on the server and are read back into the
+-- GB7-16 — user preferences persist on the server and are read back into the
 -- conversation prompt. Until now memory lived only in the browser's
 -- localStorage, so the assistant could not use it in a fresh session.
 --

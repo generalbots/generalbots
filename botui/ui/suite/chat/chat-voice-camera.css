@@ -88,6 +88,14 @@
     background: #0b0f17;
 }
 
+.gb-camera-status {
+    padding: 10px 4px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--gb-muted, #71717a);
+    text-align: center;
+}
+
 .gb-camera-actions {
     display: flex;
     align-items: center;
@@ -116,6 +124,12 @@
 
 .gb-camera-actions .gb-camera-shutter:hover {
     filter: brightness(1.05);
+}
+
+.gb-camera-actions .gb-camera-shutter:disabled {
+    opacity: 0.55;
+    cursor: progress;
+    filter: none;
 }
 
 /* ── Full-duplex voice mode ──────────────────────────────────────────── */

@@ -28,7 +28,13 @@ const product = read("botserver/.product.desktop-local");
 const defaultProduct = read("botserver/.product");
 const chatPartial = read("botui/ui/suite/partials/chat.html");
 const settingsHtml = read("botui/ui/suite/settings/index.html");
-const settingsJs = read("botui/ui/suite/settings/settings-main.js");
+const readAll = (rels) => rels.map(read).join("\n");
+const settingsJs = readAll(
+  ["main/01_state.js", "main/02_edition.js", "main/03_oauth.js",
+   "main/04_current_user.js", "main/05_ui_bindings.js", "main/06_users_groups.js",
+   "main/07_appearance.js", "main/08_preview.js", "main/99_init.js"]
+    .map((file) => "botui/ui/suite/settings/" + file),
+);
 const catalogTypes = read("botserver/src/apps/integration_catalog/types.rs");
 const llmProviders = read("botserver/src/apps/integration_catalog/providers/llm.rs");
 const cargoToml = read("botserver/Cargo.toml");
@@ -37,7 +43,11 @@ const desktop = read("botui/ui/suite/desktop.html");
 const taskbarCss = read("botui/ui/suite/css/desktop/taskbar.css");
 const baseJs = read("botui/ui/suite/js/base/01_product_config.js");
 const composerCss = read("botui/ui/suite/chat/chat-composer.css");
-const windowManager = read("botui/ui/suite/js/window-manager.js");
+const windowManager = readAll(
+  ["01_registry.js", "02_class_core.js", "03_window_chrome.js", "04_window_state.js",
+   "05_start_menu.js", "06_deeplinks.js", "07_status.js", "99_init.js"]
+    .map((file) => "botui/ui/suite/js/window-manager/" + file),
+);
 const sidebarSections = read("botui/ui/suite/js/sidebar-sections.js");
 
 // #1811 — the desktop build compiles every app; this profile only classifies
@@ -86,7 +96,7 @@ check(/label:\s*tr\("chat-new-conversation"/.test(sidebarSections),
 // #1619 — search placeholder and the disabled-search removal.
 check(/placeholder="Search\.\.\."/.test(desktop), "search placeholder reads 'Search...'");
 check(!/Search apps, people, products/.test(desktop), "old placeholder is gone");
-check(/search_enabled === false/.test(desktop) &&
+check(/search_enabled === false/.test(read("botui/ui/suite/desktop-inline/06_taskbar_search.js")) &&
   /taskbarSearchWrap/.test(desktop), "search field is removed when search is disabled");
 
 // #1617 — the three tray buttons are gone; notifications and lock remain.
@@ -141,7 +151,10 @@ check(/data-admin-only/.test(settingsJs), "administration entries are hidden in 
 
 // #1628 — navigation targets exist and the remaining switches are wired.
 const navIds = [...settingsHtml.matchAll(/<a href="#([a-z-]+)"[^>]*class="nav-item/g)].map((m) => m[1]);
-const missingSections = navIds.filter((id) => ["integrations", "about"].indexOf(id) === -1 && settingsHtml.indexOf('id="' + id + "-section\"") === -1);
+const settingsPartials = fs.readdirSync(path.join(ROOT, "botui/ui/suite/settings/partials"))
+  .map((file) => read("botui/ui/suite/settings/partials/" + file)).join("\n");
+const settingsAll = settingsHtml + "\n" + settingsPartials;
+const missingSections = navIds.filter((id) => ["integrations", "about"].indexOf(id) === -1 && settingsAll.indexOf('id="' + id + "-section\"") === -1);
 check(navIds.length > 5, "settings has a navigation rail");
 check(missingSections.length === 0, "every settings nav item targets a rendered section" + (missingSections.length ? ": " + missingSections.join(", ") : ""));
 check(/window\.selectLanguage = function/.test(settingsJs), "language switch is wired");
@@ -161,7 +174,8 @@ check(/any\(feature = "research", feature = "web-search"\)/.test(pipelineExec), 
 check(/pane\.setAttribute\("role", "region"\)/.test(read("botui/ui/suite/js/widget-registry.js")),
   "widget pane has a region role for its aria-label");
 const tabsJs = read("botui/ui/suite/chat/modules/20_tabs.js");
-const tabCss = read("botui/ui/suite/chat/chat-workspace-tabs.css");
+const tabCss = read("botui/ui/suite/chat/chat-workspace-tabs.css") +
+  read("botui/ui/suite/chat/chat-workspace-tabs-partials/01_gb-tab-strip.css");
 check(tabsJs.indexOf('role="tablist"') !== -1, "tabs render inside a tablist");
 check(!/strip\.setAttribute\("role", "tablist"\)/.test(tabsJs),
   "the strip itself is not the tablist (buttons would be illegal children)");

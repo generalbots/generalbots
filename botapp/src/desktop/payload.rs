@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, Context, Result};
 use sha2::{Digest, Sha256};
 
-const MAGIC: &[u8; 12] = b"GB6PAYLOAD!!";
+const MAGIC: &[u8; 12] = b"GB7PAYLOAD!!";
 const TRAILER_LEN: u64 = 60;
 const MARKER: &str = ".payload-sha256";
 
@@ -239,7 +239,7 @@ mod tests {
         let offset = bytes.len() as u64;
         bytes.extend_from_slice(body);
         let length = body.len() as u64;
-        bytes.extend_from_slice(b"GB6PAYLOAD!!");
+        bytes.extend_from_slice(b"GB7PAYLOAD!!");
         bytes.extend_from_slice(&offset.to_le_bytes());
         bytes.extend_from_slice(&length.to_le_bytes());
         let digest: [u8; 32] = Sha256::digest(body).into();
@@ -254,7 +254,7 @@ mod tests {
 
     #[test]
     fn reads_a_valid_trailer() {
-        let path = std::env::temp_dir().join(format!("gb6-{}", uuid_like()));
+        let path = std::env::temp_dir().join(format!("gb7-{}", uuid_like()));
         let expected = write_payload(&path, b"payload-bytes");
         let found = read_trailer(&path).expect("read").expect("trailer present");
         assert_eq!(found.offset, expected.offset);
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn plain_binaries_have_no_trailer() {
-        let path = std::env::temp_dir().join(format!("gb6-plain-{}", uuid_like()));
+        let path = std::env::temp_dir().join(format!("gb7-plain-{}", uuid_like()));
         std::fs::write(&path, b"not a payload").expect("write fixture");
         assert!(read_trailer(&path).expect("read").is_none());
         let _ = std::fs::remove_file(path);

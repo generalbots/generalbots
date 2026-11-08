@@ -94,6 +94,7 @@ impl Default for ProductConfig {
             hidden_apps: HashSet::new(),
             no_security: false,
             shell_mode: false,
+            edition: None,
             public_base_url: None,
         }
     }
@@ -251,6 +252,16 @@ impl ProductConfig {
                         config.shell_mode = value.eq_ignore_ascii_case("true")
                             || value == "1"
                             || value.eq_ignore_ascii_case("yes");
+                    }
+                    // #1889 — explicit deployment edition. Unknown values are
+                    // rejected instead of silently shaping the settings tree.
+                    "edition" => {
+                        let normalized = value.trim().to_lowercase();
+                        if normalized == "cloud" || normalized == "desktop" || normalized == "os" {
+                            config.edition = Some(normalized);
+                        } else {
+                            warn!("Unknown product edition: {}", value);
+                        }
                     }
                     "public_base_url" => {
                         if !value.is_empty() {

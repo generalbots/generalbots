@@ -150,7 +150,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       );
       messages.appendChild(div);
       stampMessage();
-      if (!ChatState.isUserScrolling) scrollToBottom(true);
+      if (ChatState.isUserAtBottom) scrollToBottom(true);
       stickToBottom(1400);
       return;
     }
@@ -160,7 +160,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       messages.appendChild(div);
       stampMessage();
       if (content && content.trim() !== "") div.appendChild(createCopyButton(content));
-      if (!ChatState.isUserScrolling) scrollToBottom(true);
+      if (ChatState.isUserAtBottom) scrollToBottom(true);
       return;
     }
     var parsed;
@@ -242,7 +242,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
     }
   }
 
-  if (sender === "user" || !ChatState.isUserScrolling || wasNearBottom) {
+  if (sender === "user" || ChatState.isUserAtBottom) {
     scrollToBottom(sender !== "user");
     stickToBottom(sender === "user" ? 300 : 1400);
   } else {

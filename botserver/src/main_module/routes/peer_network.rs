@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use crate::core::home_site::{HomeSite, HomeSiteGenerator};
 use crate::core::peer_network::{self, HeartbeatRequest, PeerError, PeerNetwork, RegisterRequest};
-use crate::core::peer_payloads::{self, PeerPayload, PeerPayloadKind};
+use crate::core::peer_payloads::{self, PeerPayload};
 
 /// Routes are merged into the main API router.
 pub fn configure_peer_routes() -> Router<Arc<AppState>> {

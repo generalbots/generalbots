@@ -103,6 +103,22 @@
         frame.setAttribute("referrerpolicy", "no-referrer");
         frame.dataset.origin = frameOrigin(source);
         frame.src = source;
+        // #1896 — an unbound or dead sandbox listener produces a frame that
+        // loads blank without firing an error event, which is exactly the
+        // silent empty window the issue reports. Probe the resource and turn a
+        // network failure into an explicit status and toast.
+        if (payload.url) {
+            fetch(source, { mode: "no-cors", credentials: "omit" }).catch(function () {
+                var text = "App could not be reached";
+                var current = host.status.textContent;
+                if (current === "Loading…" || current === "Starting…" || current === "Running") {
+                    host.status.textContent = text;
+                }
+                if (window.GBToasts && typeof GBToasts.show === "function") {
+                    GBToasts.show("Generated app", text + " (" + frameOrigin(source) + ").", "error");
+                }
+            });
+        }
         frame.addEventListener("load", function () {
             host.status.textContent = "Starting…";
             sendInitialize(host);

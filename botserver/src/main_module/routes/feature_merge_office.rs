@@ -295,6 +295,9 @@ pub(super) async fn merge_office_routers(
         .merge(crate::jukebox::configure_jukebox_routes());
     *sub_router = sub_router
         .clone()
+        .merge(crate::botmodels_gateway::configure_botmodels_gateway_routes());
+    *sub_router = sub_router
+        .clone()
         .merge(botcore::shared::admin::configure().with_state(app_state.clone()));
     *sub_router = sub_router
         .clone()

@@ -149,6 +149,15 @@
     margin-bottom: 48px;
 }
 
+/* A section header that also hosts an action (e.g. "Open Integrations"). */
+.settings-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
 .settings-section h2 {
     font-size: 24px;
     font-weight: 600;
@@ -332,118 +341,3 @@
     display: none;
 }
 
-.theme-preview {
-    width: 100%;
-    aspect-ratio: 16/10;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    display: flex;
-    transition: border-color 0.2s;
-}
-
-.theme-option.active .theme-preview,
-.theme-option input:checked + .theme-preview {
-    border-color: var(--primary);
-}
-
-/* Theme preview internal structure */
-.theme-preview .preview-sidebar {
-    width: 20%;
-    height: 100%;
-}
-
-.theme-preview .preview-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.theme-preview .preview-header {
-    height: 20%;
-}
-
-.theme-preview .preview-body {
-    flex: 1;
-}
-
-/* Theme-specific preview colors */
-.theme-preview.dark {
-    background: #0f172a;
-}
-.theme-preview.dark .preview-sidebar {
-    background: #1e293b;
-}
-.theme-preview.dark .preview-header {
-    background: #334155;
-}
-.theme-preview.dark .preview-body {
-    background: #1e293b;
-}
-
-.theme-preview.light {
-    background: #f8fafc;
-}
-.theme-preview.light .preview-sidebar {
-    background: #e2e8f0;
-}
-.theme-preview.light .preview-header {
-    background: #cbd5e1;
-}
-.theme-preview.light .preview-body {
-    background: #f1f5f9;
-}
-
-.theme-preview.blue {
-    background: #0c1929;
-}
-.theme-preview.blue .preview-sidebar {
-    background: #1a2f47;
-}
-.theme-preview.blue .preview-header {
-    background: #2d4a6f;
-}
-.theme-preview.blue .preview-body {
-    background: #1a2f47;
-}
-
-.theme-preview.purple {
-    background: #1a0a2e;
-}
-.theme-preview.purple .preview-sidebar {
-    background: #2d1b4e;
-}
-.theme-preview.purple .preview-header {
-    background: #4c2f7e;
-}
-.theme-preview.purple .preview-body {
-    background: #2d1b4e;
-}
-
-.theme-preview.green {
-    background: #0a1f15;
-}
-.theme-preview.green .preview-sidebar {
-    background: #14332a;
-}
-.theme-preview.green .preview-header {
-    background: #28604f;
-}
-.theme-preview.green .preview-body {
-    background: #14332a;
-}
-
-.theme-preview.orange {
-    background: #1a1008;
-}
-.theme-preview.orange .preview-sidebar {
-    background: #2d1c0f;
-}
-.theme-preview.orange .preview-header {
-    background: #5c3a1e;
-}
-.theme-preview.orange .preview-body {
-    background: #2d1c0f;
-}
-
-.theme-option span,

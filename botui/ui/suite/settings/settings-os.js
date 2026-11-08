@@ -171,6 +171,7 @@
         renderSystem(data);
         renderServices(data.services);
         renderDisks(data.disks);
+        renderLogFiles(data.log_files);
         loaded = true;
         return loadLogs("botserver");
       })
@@ -190,28 +191,138 @@
     window.loadOsPanel(true);
   };
 
-  window.restartOsService = function (service) {
-    var typed = window.prompt('Restart "' + service + '"? Type the service name to confirm.');
-    if (typed === null) { return; }
-    if (typed !== service) {
-      notify("Confirmation did not match", "error");
+  // #1874 — log files: location, size and a download of the whole file.
+  function renderLogFiles(files) {
+    var container = byId("os-log-files");
+    if (!container) { return; }
+    if (!Array.isArray(files) || files.length === 0) {
+      container.innerHTML = '<p class="os-empty">No log files reported.</p>';
       return;
     }
+    container.innerHTML = files.map(function (file) {
+      var service = escapeHtml(file.service);
+      var size = file.exists ? formatBytes(file.size_bytes) : "missing";
+      var actions = file.exists
+        ? '<button type="button" class="btn-secondary btn-sm" data-os-log-view="' + service + '">View</button>' +
+          '<button type="button" class="btn-secondary btn-sm" data-os-log-download="' + service + '">Download</button>'
+        : "";
+      return '<div class="os-log-file-row">' +
+        '<div class="os-log-file-main">' +
+        '<span class="os-log-file-service">' + service + '</span>' +
+        '<code class="os-log-file-path">' + escapeHtml(file.path || "not found") + '</code>' +
+        '</div>' +
+        '<span class="os-status-text">' + escapeHtml(size) + '</span>' +
+        '<div class="os-log-file-actions">' + actions + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  function downloadLog(service) {
+    fetch("/api/system/os/logs/download?service=" + encodeURIComponent(service),
+      { headers: headers(), cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) { throw new Error("HTTP " + response.status); }
+        return response.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = service + ".log";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        notify("Downloaded " + service + ".log");
+      })
+      .catch(function (error) {
+        notify("Download failed: " + error.message, "error");
+      });
+  }
+
+  function bindLogFileButtons() {
+    var container = byId("os-log-files");
+    if (!container || container.getAttribute("data-wired") === "1") { return; }
+    container.setAttribute("data-wired", "1");
+    container.addEventListener("click", function (event) {
+      var target = event.target && event.target.closest ? event.target : null;
+      if (!target) { return; }
+      var view = target.closest("[data-os-log-view]");
+      if (view) {
+        var service = view.getAttribute("data-os-log-view");
+        var select = byId("os-log-service");
+        if (select) { select.value = service; }
+        loadLogs(service);
+        return;
+      }
+      var download = target.closest("[data-os-log-download]");
+      if (download) {
+        downloadLog(download.getAttribute("data-os-log-download"));
+      }
+    });
+  }
+
+  // #1879 — restart confirmation uses the app dialog, never window.prompt/
+  // confirm/alert. The typed service name stays the server-side proof.
+  function performRestart(service, confirmation) {
     fetchJson("/api/system/os/services/restart", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ service: service, confirmation: typed })
+      body: JSON.stringify({ service: service, confirmation: confirmation })
     }).then(function () {
       notify("Restart requested for " + service);
       window.loadOsPanel(true);
     }).catch(function (error) {
       notify("Restart failed: " + error.message, "error");
     });
+  }
+
+  window.restartOsService = function (service) {
+    var dialog = byId("os-restart-modal");
+    var input = byId("os-restart-confirm");
+    var nameNode = byId("os-restart-service-name");
+    if (!dialog || typeof dialog.showModal !== "function") {
+      notify("Restart confirmation is unavailable in this environment", "error");
+      return;
+    }
+    if (nameNode) { nameNode.textContent = service; }
+    if (input) { input.value = ""; }
+    dialog.dataset.service = service;
+    dialog.showModal();
+    if (input) { input.focus(); }
   };
+
+  function bindRestartDialog() {
+    var dialog = byId("os-restart-modal");
+    if (!dialog || dialog.getAttribute("data-wired") === "1") { return; }
+    dialog.setAttribute("data-wired", "1");
+    var form = byId("os-restart-form");
+    var cancel = byId("os-restart-cancel");
+    var cancelButton = byId("os-restart-cancel-button");
+    function close() { dialog.close(); }
+    if (cancel) { cancel.addEventListener("click", close); }
+    if (cancelButton) { cancelButton.addEventListener("click", close); }
+    if (form) {
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var service = dialog.dataset.service || "";
+        var input = byId("os-restart-confirm");
+        var typed = input ? input.value.trim() : "";
+        dialog.close();
+        if (!service) { return; }
+        if (typed !== service) {
+          notify("Confirmation did not match", "error");
+          return;
+        }
+        performRestart(service, typed);
+      });
+    }
+  }
 
   function bindRestartButtons() {
     var container = byId("os-services");
-    if (!container) { return; }
+    if (!container || container.getAttribute("data-wired") === "1") { return; }
+    container.setAttribute("data-wired", "1");
     container.addEventListener("click", function (event) {
       var button = event.target && event.target.closest
         ? event.target.closest("[data-os-restart]")
@@ -221,18 +332,28 @@
     });
   }
 
+  function bindPanel() {
+    bindRestartButtons();
+    bindRestartDialog();
+    bindLogFileButtons();
+  }
+
   function maybeLoad() {
     if (window.location.hash === "#os") { window.loadOsPanel(); }
   }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
-      bindRestartButtons();
+      bindPanel();
       maybeLoad();
     });
   } else {
-    bindRestartButtons();
+    bindPanel();
     maybeLoad();
   }
+  // The partial arrives through HTMX after this module is evaluated; rebind
+  // whenever a swap brings the panel markup in.
+  document.addEventListener("htmx:load", bindPanel);
+  document.addEventListener("htmx:afterSwap", bindPanel);
   window.addEventListener("hashchange", maybeLoad);
 })(window);

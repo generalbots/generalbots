@@ -1,4 +1,4 @@
-/* Chat memory — persists user facts across conversations (GB6-16).
+/* Chat memory — persists user facts across conversations (GB7-16).
  * Stores key-value pairs in localStorage keyed by bot name.
  * The server can send a "memory_update" message to store facts, and
  * the client injects remembered facts into outgoing payloads. */
@@ -22,7 +22,7 @@
     try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
   }
 
-  // GB6-16 — the server is the durable copy: localStorage keeps the fast path,
+  // GB7-16 — the server is the durable copy: localStorage keeps the fast path,
   // but every write is also persisted so a new session (or another device)
   // starts with the same preferences.
   function authToken() {

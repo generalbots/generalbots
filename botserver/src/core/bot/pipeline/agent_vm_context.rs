@@ -105,6 +105,10 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      python-pptx, pillow, matplotlib, requests, python-docx, reportlab, \
                      beautifulsoup4, lxml and tabulate; the background bootstrap installs them too. If a run \
                      reports a missing module, add it to packages and run again. \
+                     BotModels gateway: host services (image generation, vision/BLIP, speech TTS/STT, \
+                     music, video, OCR, scoring, anomaly) are reachable at \
+                     http://host.docker.internal:8080/api/botmodels/<service>/<endpoint> with header \
+                     X-API-Key from BOTMODELS_API_KEY; prefer them over PIL/numpy for media tasks. \
                      Add \\\"background\\\": true for long jobs (renders, downloads, training): \
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \

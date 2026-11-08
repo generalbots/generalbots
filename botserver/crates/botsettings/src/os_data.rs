@@ -39,6 +39,17 @@ pub(crate) struct ServiceInfo {
     pub(crate) running: bool,
 }
 
+/// One log file the panel can surface (#1874). `path` is empty when the
+/// service has no log file on this host; the UI renders that as "missing"
+/// instead of pretending the file exists.
+#[derive(Serialize)]
+pub(crate) struct LogFileInfo {
+    pub(crate) service: String,
+    pub(crate) path: String,
+    pub(crate) exists: bool,
+    pub(crate) size_bytes: u64,
+}
+
 fn run(program: &str, args: &[&str]) -> Option<String> {
     let mut command = SafeCommand::new(program).ok()?;
     for arg in args {
@@ -181,6 +192,33 @@ pub(crate) fn log_file_for(service: &str) -> Option<PathBuf> {
         candidates.push(stack.join("logs").join(format!("{service}.log")));
     }
     candidates.into_iter().find(|path| path.is_file())
+}
+
+/// Every known service log with its on-disk path and size (#1874).
+pub(crate) fn log_file_infos() -> Vec<LogFileInfo> {
+    let mut services: Vec<&str> = vec!["botserver"];
+    for (name, _unit, _process) in SERVICES {
+        if !services.contains(name) {
+            services.push(name);
+        }
+    }
+    services
+        .into_iter()
+        .map(|service| match log_file_for(service) {
+            Some(path) => LogFileInfo {
+                service: service.to_string(),
+                path: path.to_string_lossy().to_string(),
+                exists: true,
+                size_bytes: std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
+            },
+            None => LogFileInfo {
+                service: service.to_string(),
+                path: String::new(),
+                exists: false,
+                size_bytes: 0,
+            },
+        })
+        .collect()
 }
 
 pub(crate) fn tail(path: &Path, lines: usize) -> String {

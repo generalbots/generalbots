@@ -91,6 +91,18 @@
         );
       })
       .join("");
+    // #1884 — same split as MCP: status + deep link where the app can open,
+    // embedded controls only in the OS edition.
+    if (!embeddedEdition()) {
+      list.querySelectorAll(".settings-skill-toggle, .settings-skill-remove").forEach(function (node) {
+        node.remove();
+      });
+    }
+  }
+
+  function embeddedEdition() {
+    var edition = window.GBNavRegistry ? window.GBNavRegistry.edition() : "cloud";
+    return edition === "os";
   }
 
   function load() {

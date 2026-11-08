@@ -179,7 +179,7 @@ fn start_sidecar_and_show(app: &tauri::App) {
         // A previous run may have left the sidecar alive (for example when the
         // window was closed without a graceful exit). Reuse it instead of
         // starting a second listener on the same port.
-        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 2).await;
+        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 5).await;
         if !already_running {
             let sidecar = handle.state::<Sidecar>().inner().clone();
             if let Err(e) = sidecar.start(resource_dir.clone()) {
@@ -247,6 +247,11 @@ fn main() {
     botlib::logging::init_compact_logger("info");
     let version = env!("CARGO_PKG_VERSION");
     info!("BotApp {version} starting...");
+
+    // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
+    // bundle identifier's data folder before any webview opens, so users keep
+    // their sessions and settings across the rename.
+    desktop::legacy_data::migrate_legacy_data_dir();
 
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());

@@ -26,11 +26,11 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-MAGIC = b"GB6PAYLOAD!!"
+MAGIC = b"GB7PAYLOAD!!"
 
 
 def build_archive(payload_dir: Path, archive: Path, level: int) -> None:
-    with tempfile.TemporaryDirectory(prefix="gb6-payload-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="gb7-payload-") as tmp:
         tar_path = Path(tmp) / "payload.tar"
         with tarfile.open(tar_path, "w") as tar:
             for entry in sorted(payload_dir.iterdir()):
@@ -59,7 +59,7 @@ def main() -> int:
     if not args.payload.is_dir():
         raise SystemExit(f"missing payload directory: {args.payload}")
 
-    with tempfile.TemporaryDirectory(prefix="gb6-build-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="gb7-build-") as tmp:
         archive = Path(tmp) / "payload.tar.zst"
         build_archive(args.payload, archive, args.level)
         offset = args.app.stat().st_size

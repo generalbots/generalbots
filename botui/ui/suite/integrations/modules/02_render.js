@@ -255,7 +255,7 @@
             '<span class="integrations-cell-subtext">' + namespace.escapeHtml(formatDate(row.last_tested_at)) + '</span>';
     }
 
-    // GB6-18 — the consent view: what the connection may read or do, and who
+    // GB7-18 — the consent view: what the connection may read or do, and who
     // else can use it. Empty scopes are shown honestly instead of hidden.
     function sharedCell(row) {
         var scopes = Array.isArray(row.granted_scopes) ? row.granted_scopes : [];

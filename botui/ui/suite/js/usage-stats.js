@@ -1,4 +1,4 @@
-/* Usage and cost transparency (GB6-25).
+/* Usage and cost transparency (GB7-25).
  * Tracks message counts, token estimates, and storage usage locally.
  * Shows a usage panel accessible from the sidebar.
  *
@@ -30,7 +30,7 @@
     var stats = loadStats();
     var today = getToday();
     if (!stats[today]) stats[today] = { messages_sent: 0, messages_received: 0, tokens_estimated: 0 };
-    // GB6-25 — a streamed reply arrives in several frames; counting each frame
+    // GB7-25 — a streamed reply arrives in several frames; counting each frame
     // doubled the numbers. A message id is counted once, and the caller only
     // reports complete frames.
     if (messageId) {
@@ -46,7 +46,7 @@
     }
     var tokens = Math.ceil((contentLength || 0) / 4);
     stats[today].tokens_estimated += tokens;
-    // GB6-25 — no cost is derived locally: a hardcoded price list produced
+    // GB7-25 — no cost is derived locally: a hardcoded price list produced
     // numbers that could not be reconciled with billing. The server reports
     // cost only when the deployment publishes real prices.
     saveStats(stats);
@@ -254,7 +254,7 @@
     var input = document.getElementById("messageInput");
     var picker = document.getElementById("modelPicker");
     var model = detail.model || (picker ? picker.value || "auto" : "auto");
-    // GB6-25 — the composer clears the input before dispatching, so prefer the
+    // GB7-25 — the composer clears the input before dispatching, so prefer the
     // length carried by the event and fall back to the field only when absent.
     var length = typeof detail.content_length === "number"
       ? detail.content_length

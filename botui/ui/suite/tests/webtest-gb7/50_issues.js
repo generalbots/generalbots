@@ -1,6 +1,6 @@
 /**
- * webtest_gb6 — issue coverage, drive checks and size guards
- * Split from webtest_gb6.js for #1731; keeps the original test order.
+ * webtest_gb7 — issue coverage, drive checks and size guards
+ * Split from webtest_gb7.js for #1731; keeps the original test order.
  */
 "use strict";
 
@@ -37,7 +37,7 @@ test("ISSUE #1632: stored Vibe pins are dropped by the launcher", function () {
 
 test("ISSUE #1633: payload trailer reader and sidecar stack fallback exist", function () {
   var payload = readFile("../../../botapp/src/desktop/payload.rs");
-  assert(payload.indexOf("GB6PAYLOAD!!") !== -1, "trailer magic missing");
+  assert(payload.indexOf("GB7PAYLOAD!!") !== -1, "trailer magic missing");
   assert(payload.indexOf("payload_digest") !== -1, "checksum verification missing");
   assert(payload.indexOf("--extract-only") !== -1, "offline extraction flag missing");
   var sidecar = readFile("../../../botapp/src/desktop/sidecar.rs");
@@ -96,7 +96,8 @@ test("ISSUE #1644: browser actions have a producer, consent and feedback", funct
 });
 
 test("ISSUE #1645: terminal consent is bound to an audit record", function () {
-  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs");
+  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs") +
+    readFile("../../../botserver/src/main_module/routes/computer_use_routes/terminal.rs");
   assert(routes.indexOf("body.action_id") !== -1, "execution not bound to an action id");
   assert(routes.indexOf("/api/terminal/audit") !== -1, "audit endpoint missing");
   var migration = readFile("../../../botserver/migrations/6.8.3-terminal-audit/up.sql");
@@ -107,10 +108,10 @@ test("ISSUE #1645: terminal consent is bound to an audit record", function () {
 });
 
 test("ISSUE #1649: the published page is generated from the record", function () {
-  var record = JSON.parse(readFile("../../../desktop/gb6/features.json"));
+  var record = JSON.parse(readFile("../../../desktop/gb7/features.json"));
   var ids = record.features.map(function (f) { return f.id; });
   assert(ids.length === 14, "expected 14 features, got " + ids.length);
-  assert(ids.indexOf("GB6-22") === -1 && ids.indexOf("GB6-24") === -1,
+  assert(ids.indexOf("GB7-22") === -1 && ids.indexOf("GB7-24") === -1,
     "removed features still listed");
   record.features.forEach(function (feature) {
     assert(feature.evidence && feature.evidence.issue, feature.id + " has no issue link");
@@ -123,11 +124,11 @@ test("ISSUE #1649: the published page is generated from the record", function ()
 });
 
 test("ISSUE #1650: the epic definition of done is recorded", function () {
-  var record = JSON.parse(readFile("../../../desktop/gb6/features.json"));
+  var record = JSON.parse(readFile("../../../desktop/gb7/features.json"));
   assert(record.epic && record.epic.issue === "#1650", "epic metadata missing");
   assert(Array.isArray(record.epic.definition_of_done) &&
     record.epic.definition_of_done.length >= 4, "definition of done missing");
-  assert(record.epic.removed_from_scope.indexOf("GB6-22") !== -1,
+  assert(record.epic.removed_from_scope.indexOf("GB7-22") !== -1,
     "removed scope not recorded");
 });
 
@@ -157,8 +158,10 @@ test("DRIVE: tabs are simplified to My Files, Shared, Connected and Public", fun
   var tabs = (html.match(/data-tab="([a-z]+)"/g) || []).map(function (entry) {
     return entry.split('"')[1];
   });
-  assert(tabs.join(",") === "myfiles,shared,external,public",
-    "unexpected tabs: " + tabs.join(","));
+  // `home` is legacy markup kept hidden; the shipped tabs are the visible set.
+  var visible = tabs.filter(function (tab) { return tab !== "home"; });
+  assert(visible.join(",") === "myfiles,branchdrive,shared,external,public",
+    "unexpected tabs: " + visible.join(","));
   assert(html.indexOf('data-tab="myfiles" id="tab-myfiles"') !== -1 &&
     html.indexOf("top-tab active") !== -1, "My Files must be the active tab");
   assert(html.indexOf("gbSyncStatusBtn") === -1, "offline sync button still present");

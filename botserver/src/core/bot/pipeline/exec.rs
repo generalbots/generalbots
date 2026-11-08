@@ -2,16 +2,7 @@ use uuid::Uuid;
 
 use super::types::{PipelineResult, SessionIdentity};
 use log::info;
-
-pub type PipelineFn = std::sync::Arc<
-    dyn Fn(
-            botlib::models::UserMessage,
-            tokio::sync::mpsc::Sender<botlib::models::BotResponse>,
-        )
-            -> std::pin::Pin<Box<dyn std::future::Future<Output = PipelineResult<()>> + Send>>
-        + Send
-        + Sync,
->;
+pub use super::types::PipelineFn;
 
 pub async fn process_message_internal(
     identity: &SessionIdentity<'_>,

@@ -22,6 +22,18 @@
                     window.history.replaceState({}, "", __u.pathname + __u.search + __u.hash);
                 }
             } catch (e) {}
+            // #1894 — the desktop hides the WebView default context menu so it
+            // feels native. Debugging keeps it behind an explicit flag, never
+            // always-on: ?gb_debug_context_menu=1 or the stored preference.
+            try {
+                var __cmParams = new URLSearchParams(window.location.search);
+                if (
+                    __cmParams.get("gb_debug_context_menu") === "1" ||
+                    localStorage.getItem("gb-debug-context-menu") === "1"
+                ) {
+                    window.gbDebugContextMenu = true;
+                }
+            } catch (e) {}
             window.__BOT_IS_PUBLIC__ = false;
             // Hide the shell from the very first paint: a private bot must
             // never flash an empty desktop before the auth gate resolves.

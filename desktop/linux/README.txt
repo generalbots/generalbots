@@ -133,7 +133,7 @@ On arm64 replace x86_64 with aarch64 in the file names above.
 The running version is reported by the local API:
 
   curl -s http://127.0.0.1:8080/api/health
-  {"status":"healthy","service":"botserver","version":"6.7.0",...}
+  {"status":"healthy","service":"botserver","version":"7.0.0",...}
 
 Data (stack, logs, workspace, cached installers) lives in
 ~/.local/share/generalbots (override with BOTSERVER_STACK_PATH). A
