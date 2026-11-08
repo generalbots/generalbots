@@ -24,6 +24,7 @@
 
 include!("peer_network_types.rs");
 
+/// Node identity plus the registration/heartbeat table.
 pub struct PeerNetwork {
     config: PeerConfig,
     identity: RwLock<Option<NodeIdentity>>,

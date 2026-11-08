@@ -161,5 +161,3 @@ impl std::fmt::Display for PeerError {
 }
 
 impl std::error::Error for PeerError {}
-
-/// Node identity plus the registration/heartbeat table.
