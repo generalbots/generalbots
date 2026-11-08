@@ -80,6 +80,10 @@ pub struct AgentRun {
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+    pub session_id: Option<Uuid>,
+    pub thread_id: Option<String>,
+    pub user_id: Option<Uuid>,
+    pub parent_run_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Insertable)]
