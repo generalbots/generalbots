@@ -5,8 +5,9 @@
 //! wizard) is ready to take over.
 
 use log::{info, warn};
+use serde_json::json;
 use std::time::{Duration, Instant};
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 /// Shows the splash window, creating it on demand when the configured window is
 /// not already present (for example in a development run).
@@ -67,6 +68,15 @@ const BOOT_READY_FRAGMENT: &str = "gb-boot-ready";
 const BOOT_WATCH_POLL: Duration = Duration::from_millis(400);
 const BOOT_WATCH_DEADLINE: Duration = Duration::from_millis(45_000);
 
+fn push_progress(splash: &WebviewWindow, value: u8, text: &str) {
+    let script = format!(
+        "if(typeof window.gbSplashProgress==='function')window.gbSplashProgress({},{});",
+        value,
+        json!(text)
+    );
+    let _ = splash.eval(&script);
+}
+
 /// Watches the suite window and closes the splash only when boot truly ends.
 ///
 /// The suite page is served from its own origin and every Tauri IPC permission
@@ -80,22 +90,33 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
         let deadline = Instant::now() + BOOT_WATCH_DEADLINE;
+        let mut saw_main = false;
         loop {
-            if handle.get_webview_window("splash").is_none() {
+            let Some(splash) = handle.get_webview_window("splash") else {
                 // The splash was closed somewhere else (wizard, restart flow).
                 return;
-            }
+            };
             if let Some(main) = handle.get_webview_window("main") {
+                if !saw_main {
+                    saw_main = true;
+                    push_progress(&splash, 70, "Loading interface…");
+                }
                 if let Ok(url) = main.url() {
                     if url.as_str().contains(BOOT_READY_FRAGMENT) {
                         info!("splash: boot-ready fragment seen; closing");
+                        push_progress(&splash, 100, "Ready");
+                        std::thread::sleep(Duration::from_millis(120));
                         hide(&handle);
                         return;
                     }
                 }
+            } else if !saw_main {
+                push_progress(&splash, 15, "Starting services…");
             }
             if Instant::now() >= deadline {
                 warn!("splash: boot-ready fragment never arrived; hiding the splash");
+                push_progress(&splash, 100, "Opening workspace…");
+                std::thread::sleep(Duration::from_millis(120));
                 hide(&handle);
                 return;
             }
