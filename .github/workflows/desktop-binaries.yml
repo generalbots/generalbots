@@ -115,9 +115,16 @@ jobs:
           # Replace with a maintained S3 server when the drive component moves.
           mkdir -p dist/installers
           BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v2"
-          curl -fsSL -o dist/installers/minio "$BASE/minio"
-          curl -fsSL -o dist/installers/mc "$BASE/mc"
-          curl -fsSL -o dist/installers/SHA256SUMS-drive-bin "$BASE/SHA256SUMS-drive-bin"
+          for f in minio mc SHA256SUMS-drive-bin; do
+            for attempt in 1 2 3 4 5; do
+              if curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o "dist/installers/$f" "$BASE/$f"; then
+                break
+              fi
+              echo "fetch $f attempt $attempt failed; sleeping $((attempt*5))s"
+              sleep $((attempt*5))
+            done
+            test -s "dist/installers/$f"
+          done
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
 
