@@ -1691,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "botchannelbindings"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botlib",
@@ -1759,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "botcloud"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "argon2",
  "axum",
@@ -1818,7 +1818,7 @@ dependencies = [
 
 [[package]]
 name = "botconnectors"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botcore",
@@ -1840,7 +1840,7 @@ dependencies = [
 
 [[package]]
 name = "botconsent"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botlib",
@@ -2157,7 +2157,7 @@ dependencies = [
 
 [[package]]
 name = "botdesktop"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botcoresecrets",
@@ -2691,7 +2691,7 @@ dependencies = [
 
 [[package]]
 name = "botmarketplace"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botlib",
@@ -2739,7 +2739,7 @@ dependencies = [
 
 [[package]]
 name = "botmemory"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "axum",
  "botlib",
@@ -2970,7 +2970,7 @@ dependencies = [
 
 [[package]]
 name = "botproviders"
-version = "0.1.0"
+version = "7.0.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
