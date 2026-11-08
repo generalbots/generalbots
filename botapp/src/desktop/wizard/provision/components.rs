@@ -83,6 +83,9 @@ pub(super) async fn run_components(
     std::fs::create_dir_all(log_path()).map_err(|e| format!("could not create logs: {e}"))?;
 
     let mut command = tokio::process::Command::new(&binary);
+    #[cfg(target_os = "windows")]
+    command.env("PATH", Sidecar::prepare_windows_runtime(&installers)
+        .map_err(|e| format!("could not prepare Windows runtime: {e}"))?);
     command
         .arg("--provision-stack")
         .current_dir(&stack)

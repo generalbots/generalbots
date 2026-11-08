@@ -28,6 +28,7 @@ impl PackageManager {
             .and_then(|c| {
                 c.args(&[
                     "-sfk",
+                    "--connect-timeout", "2", "--max-time", "5",
                     "--cert",
                     &client_cert.to_string_lossy(),
                     "--key",

@@ -144,6 +144,29 @@ impl PackageManager {
                 }
             }
 
+            #[cfg(target_os = "windows")]
+            if component.name == "directory" {
+                let log = std::fs::OpenOptions::new().create(true).append(true)
+                    .open(logs_path.join("zitadel.log"))?;
+                let initialized = std::fs::metadata(conf_path.join("directory/admin-pat.txt"))
+                    .map(|metadata| metadata.len() > 0).unwrap_or(false);
+                let mut command = SafeCommand::new(&bin_path.join("zitadel.exe").to_string_lossy())?
+                    .arg(if initialized { "start" } else { "start-from-init" })?
+                    .arg("--masterkey")?.arg("MasterkeyNeedsToHave32Characters")?
+                    .arg("--tlsMode")?.arg("disabled")?
+                    .working_dir(&bin_path)?;
+                if !initialized {
+                    command = command.arg("--steps")?
+                        .arg(&conf_path.join("directory/zitadel-init-steps.yaml").to_string_lossy())?;
+                }
+                for (key, value) in &evaluated_envs {
+                    command = command.env(key, value)?;
+                }
+                command = command.stdout(std::process::Stdio::from(log.try_clone()?))
+                    .stderr(std::process::Stdio::from(log));
+                return command.spawn().map_err(Into::into);
+            }
+
             trace!(
                 "About to spawn shell command for {}: {}",
                 component.name,
@@ -303,6 +326,11 @@ impl PackageManager {
             .unwrap_or(false);
         if check_ok {
             return true;
+        }
+        // A listening socket is not proof that a database or identity provider
+        // can serve requests (orphaned Windows children can retain sockets).
+        if matches!(component_name, "tables" | "directory") {
+            return false;
         }
         // A component bound to its declared port is running even when the
         // bundled check command assumes a different scheme (for example a

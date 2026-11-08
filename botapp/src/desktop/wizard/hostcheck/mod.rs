@@ -161,6 +161,8 @@ fn resolve_script(app: &tauri::AppHandle, platform: &str) -> Option<PathBuf> {
         }
     }
     let mut roots: Vec<PathBuf> = Vec::new();
+    // Portable builds extract the checker into their per-user payload stack.
+    roots.push(crate::desktop::sidecar::Sidecar::stack_path());
     if let Ok(dir) = app.path().resource_dir() {
         roots.push(dir);
     }

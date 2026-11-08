@@ -175,7 +175,12 @@ async fn provision_component(
         return Ok(());
     }
 
-    if !pm.is_installed(component.id) {
+    // A failed identity-provider setup can leave its downloaded executable in
+    // place while database initialization never completed. `is_installed`
+    // checks only the binary directory, so retry the idempotent install steps
+    // whenever the local provider is unhealthy.
+    let directory_needs_repair = component.id == "directory" && !pm.is_running("directory");
+    if !pm.is_installed(component.id) || directory_needs_repair {
         progress(
             component.id,
             "starting",
@@ -334,7 +339,11 @@ async fn apply_llm_choice() {
         .map(|v| v.trim().is_empty())
         .unwrap_or(true)
     {
-        std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
+        std::env::set_var("VAULT_ADDR", if cfg!(target_os = "windows") {
+            "http://127.0.0.1:8200"
+        } else {
+            "https://127.0.0.1:8200"
+        });
     }
     if std::env::var("VAULT_CACERT").is_err() {
         let ca = stack.join("conf/system/certificates/ca/ca.crt");

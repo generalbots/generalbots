@@ -109,7 +109,7 @@ pub fn register_tables(components: &mut HashMap<String, ComponentConfig>) {
             exec_cmd: "if [ $(id -u) -eq 0 ]; then id postgres 2>/dev/null || useradd -r -s /bin/false postgres; chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null; su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30\"; else cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30; fi > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
             check_cmd: "if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres\"; else {{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres; fi >/dev/null 2>&1".to_string(),
             exec_cmd_windows: Some("start /B {{BIN_PATH}}\\bin\\pg_ctl -D {{DATA_PATH}}\\pgdata -l {{LOGS_PATH}}\\postgresql.log start -w -t 30 > {{LOGS_PATH}}\\stdout.log 2>&1".to_string()),
-            check_cmd_windows: Some("\"{{BIN_PATH}}\\bin\\pg_isready.exe\" -h localhost -p 5432 -d postgres >NUL 2>&1".to_string()),
+            check_cmd_windows: Some("set \"PGCONNECT_TIMEOUT=5\" && \"{{BIN_PATH}}\\bin\\psql.exe\" -w -h localhost -p 5432 -U gbuser -d postgres -tAc \"SELECT 1\" >NUL 2>&1".to_string()),
             container: None,
         },
     );

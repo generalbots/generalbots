@@ -37,6 +37,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "tar",
         "unzip",
         "pg_dump",
+        "zitadel.exe",
         "pg_isready",
         "lxc",
         "lxc-execute",
@@ -389,6 +390,11 @@ impl SafeCommand {
 
         #[cfg(target_os = "windows")]
         {
+            use std::os::windows::process::CommandExt;
+            // Background services must not share the launching console's
+            // Ctrl-C lifetime. In particular a killed PostgreSQL backend can
+            // leave an unusable cluster with a listening socket.
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
             cmd.env(
                 "USERPROFILE",
                 dirs::home_dir()
