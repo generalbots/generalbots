@@ -19,6 +19,31 @@ const MAX_NAME_LEN: usize = 128;
 const MAX_ADDRESS_LEN: usize = 255;
 const MAX_CAPABILITIES: usize = 32;
 const MAX_CAPABILITY_LEN: usize = 64;
+/// Best-effort read of a key from `~/.prod` (home directory). Used only as a
+/// fallback so peer networking can auto-start from production credentials
+/// without programmer-facing env var configuration (#1928). Values are never
+/// logged.
+fn read_prod_value(key: &str) -> Option<String> {
+    let home = std::env::var("HOME").ok()?;
+    let path = Path::new(&home).join(".prod");
+    let raw = std::fs::read_to_string(path).ok()?;
+    for line in raw.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((k, v)) = line.split_once('=') {
+            if k.trim() == key {
+                let v = v.trim().trim_matches('"').trim_matches('\'');
+                if !v.is_empty() {
+                    return Some(v.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 
 /// Managed relay endpoint for the peer network (#1928). Auto-configured so
 /// end users never have to set it manually.
@@ -123,7 +148,7 @@ impl PeerConfig {
             advertise_address: env_non_empty(ENV_ADVERTISE_ADDR).or_else(|| Some(RELAY_ENDPOINT.to_string())),
             heartbeat_ttl_seconds,
             data_dir,
-            token: env_non_empty(ENV_TOKEN),
+            token: env_non_empty(ENV_TOKEN).or_else(|| read_prod_value(ENV_TOKEN)).or_else(|| read_prod_value("GB_PEER_TOKEN")),
         }
     }
 
