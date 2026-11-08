@@ -236,16 +236,16 @@
     border-top: 1px solid var(--gb-border-soft);
 }
 
-[data-theme="dark"] #chat-app .thinking-section {
+[data-color-scheme="dark"] #chat-app .thinking-section {
     background: #202025;
     border-color: #313138;
 }
 
-[data-theme="dark"] #chat-app .thinking-section summary {
+[data-color-scheme="dark"] #chat-app .thinking-section summary {
     color: #a1a1aa;
 }
 
-[data-theme="dark"] #chat-app .thinking-section .thinking-content {
+[data-color-scheme="dark"] #chat-app .thinking-section .thinking-content {
     color: #c4c4cc;
     border-top-color: #313138;
 }

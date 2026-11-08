@@ -3,8 +3,8 @@
 
 /* ── Dark theme: same calm surfaces, dark-gray borders ──────────────── */
 
-[data-theme="dark"] #chat-app,
-[data-theme="dark"] .chat-sidebar {
+[data-color-scheme="dark"] #chat-app,
+[data-color-scheme="dark"] .chat-sidebar {
     --gb-bg: #131316;
     --gb-surface: #1b1b1f;
     --gb-surface-muted: #26262b;
@@ -20,41 +20,41 @@
     --gb-focus-ring: 0 0 0 3px rgba(74, 222, 128, 0.18);
 }
 
-[data-theme="dark"] #chat-app .user-message {
+[data-color-scheme="dark"] #chat-app .user-message {
     background: var(--gb-surface-muted);
     color: var(--gb-text);
     border-color: var(--gb-border);
 }
 
-[data-theme="dark"] #chat-app .bot-message {
+[data-color-scheme="dark"] #chat-app .bot-message {
     background: var(--gb-surface);
     border-color: var(--gb-border-soft);
     color: var(--gb-text);
 }
 
-[data-theme="dark"] #chat-app .bot-message,
-[data-theme="dark"] #chat-app .bot-message p,
-[data-theme="dark"] #chat-app .bot-message span,
-[data-theme="dark"] #chat-app .bot-message li,
-[data-theme="dark"] #chat-app .bot-message strong,
-[data-theme="dark"] #chat-app .bot-message h1,
-[data-theme="dark"] #chat-app .bot-message h2,
-[data-theme="dark"] #chat-app .bot-message h3 {
+[data-color-scheme="dark"] #chat-app .bot-message,
+[data-color-scheme="dark"] #chat-app .bot-message p,
+[data-color-scheme="dark"] #chat-app .bot-message span,
+[data-color-scheme="dark"] #chat-app .bot-message li,
+[data-color-scheme="dark"] #chat-app .bot-message strong,
+[data-color-scheme="dark"] #chat-app .bot-message h1,
+[data-color-scheme="dark"] #chat-app .bot-message h2,
+[data-color-scheme="dark"] #chat-app .bot-message h3 {
     color: var(--gb-text) !important;
 }
 
-[data-theme="dark"] #chat-app .bot-message pre {
+[data-color-scheme="dark"] #chat-app .bot-message pre {
     background: #101013;
     color: #e4e4e7;
 }
 
-[data-theme="dark"] #chat-app .run-card {
+[data-color-scheme="dark"] #chat-app .run-card {
     background: #18181c;
     border-color: var(--gb-border-soft);
 }
-[data-theme="dark"] #chat-app .run-title { color: #c4c4cc; }
-[data-theme="dark"] .window-element,
-[data-theme="dark"] .window-element-glass {
+[data-color-scheme="dark"] #chat-app .run-title { color: #c4c4cc; }
+[data-color-scheme="dark"] .window-element,
+[data-color-scheme="dark"] .window-element-glass {
     border-color: var(--gb-border-strong, #3f3f46);
 }
 
@@ -75,14 +75,14 @@
     border-top-color: #16a34a;
 }
 
-[data-theme="dark"] .window-element-glass:has(#chat-app),
-[data-theme="dark"] .window-element:has(#chat-app),
-[data-theme="dark"] .window-element-glass:has(#chat-app).window-focused,
-[data-theme="dark"] .window-element:has(#chat-app).window-focused {
+[data-color-scheme="dark"] .window-element-glass:has(#chat-app),
+[data-color-scheme="dark"] .window-element:has(#chat-app),
+[data-color-scheme="dark"] .window-element-glass:has(#chat-app).window-focused,
+[data-color-scheme="dark"] .window-element:has(#chat-app).window-focused {
     border-color: #3f3f46;
 }
 
-[data-theme="dark"] .gb-window-loading-spinner {
+[data-color-scheme="dark"] .gb-window-loading-spinner {
     border-color: #3f3f46;
     border-top-color: #4ade80;
 }
@@ -101,45 +101,45 @@
 /* Dark chrome: the header/status bars are hardcoded white in the light
    shell. Leaving them white while the conversation is dark breaks the
    window into two products. */
-[data-theme="dark"] .window-element-glass:has(#chat-app) .window-header-glass,
-[data-theme="dark"] .window-element:has(#chat-app) .window-header,
-[data-theme="dark"] .window-element-glass .window-header-glass,
-[data-theme="dark"] .window-element .window-header {
+[data-color-scheme="dark"] .window-element-glass:has(#chat-app) .window-header-glass,
+[data-color-scheme="dark"] .window-element:has(#chat-app) .window-header,
+[data-color-scheme="dark"] .window-element-glass .window-header-glass,
+[data-color-scheme="dark"] .window-element .window-header {
     background: #1b1b1f;
     border-bottom-color: #313138;
 }
 
-[data-theme="dark"] .window-element-glass .window-title,
-[data-theme="dark"] .window-element .window-title {
+[data-color-scheme="dark"] .window-element-glass .window-title,
+[data-color-scheme="dark"] .window-element .window-title {
     color: #ededf0;
 }
 
-[data-theme="dark"] .window-element-glass:has(#chat-app) .window-body,
-[data-theme="dark"] .window-element:has(#chat-app) .window-body,
-[data-theme="dark"] .window-element-glass .window-body,
-[data-theme="dark"] .window-element .window-body {
+[data-color-scheme="dark"] .window-element-glass:has(#chat-app) .window-body,
+[data-color-scheme="dark"] .window-element:has(#chat-app) .window-body,
+[data-color-scheme="dark"] .window-element-glass .window-body,
+[data-color-scheme="dark"] .window-element .window-body {
     background: #131316;
 }
 
-[data-theme="dark"] .window-element-glass:has(#chat-app) .window-statusbar,
-[data-theme="dark"] .window-element:has(#chat-app) .window-statusbar,
-[data-theme="dark"] .window-element-glass .window-statusbar,
-[data-theme="dark"] .window-element .window-statusbar {
+[data-color-scheme="dark"] .window-element-glass:has(#chat-app) .window-statusbar,
+[data-color-scheme="dark"] .window-element:has(#chat-app) .window-statusbar,
+[data-color-scheme="dark"] .window-element-glass .window-statusbar,
+[data-color-scheme="dark"] .window-element .window-statusbar {
     background: #131316;
     border-top-color: #313138;
     color: #a1a1aa;
 }
 
-[data-theme="dark"] #chat-app footer {
+[data-color-scheme="dark"] #chat-app footer {
     background: #131316;
 }
 
-[data-theme="dark"] #chat-app .input-container {
+[data-color-scheme="dark"] #chat-app .input-container {
     background: #1b1b1f;
     border-color: #3f3f46;
 }
 
-[data-theme="dark"] #chat-app .input-container:focus-within {
+[data-color-scheme="dark"] #chat-app .input-container:focus-within {
     border-color: rgba(74, 222, 128, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
@@ -147,7 +147,7 @@
 
 /* Suggestion chips inherit the light-mode #52525b text, which is almost
    invisible on the dark canvas. */
-[data-theme="dark"] #chat-app .suggestion-chip,
-[data-theme="dark"] #chat-app .suggestion-button {
+[data-color-scheme="dark"] #chat-app .suggestion-chip,
+[data-color-scheme="dark"] #chat-app .suggestion-button {
     color: var(--gb-muted);
 }
