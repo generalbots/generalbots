@@ -35,6 +35,7 @@ jobs:
     name: Desktop full - Linux aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: not yet restored
     runs-on: ubuntu-22.04-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -55,6 +56,7 @@ jobs:
     name: Desktop full - Windows aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: not yet built
     runs-on: windows-11-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -62,6 +64,7 @@ jobs:
     name: Desktop full - macOS x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: not yet built
     runs-on: macos-15-intel
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -69,6 +72,7 @@ jobs:
     name: Desktop full - macOS arm64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: not yet restored
     runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -77,6 +81,7 @@ jobs:
     name: Desktop thin - Linux x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: requires thin-client feature
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -84,6 +89,7 @@ jobs:
     name: Desktop thin - Linux aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: ubuntu-22.04-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -91,6 +97,7 @@ jobs:
     name: Desktop thin - Windows x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -98,6 +105,7 @@ jobs:
     name: Desktop thin - Windows aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: windows-11-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -105,6 +113,7 @@ jobs:
     name: Desktop thin - macOS x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: macos-15-intel
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -112,6 +121,7 @@ jobs:
     name: Desktop thin - macOS arm64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -120,6 +130,7 @@ jobs:
     name: Mobile - Android
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: requires mobile/Tauri target
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -127,6 +138,7 @@ jobs:
     name: Mobile - iOS
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: requires mobile/Tauri target
     runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -135,6 +147,7 @@ jobs:
     name: Server - Linux x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: exists via alm-release; consolidate here
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -142,6 +155,7 @@ jobs:
     name: Server - Linux aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: ubuntu-22.04-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -149,6 +163,7 @@ jobs:
     name: Server - Windows x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -156,6 +171,7 @@ jobs:
     name: Server - Windows aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: windows-11-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -163,6 +179,7 @@ jobs:
     name: Server - macOS x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: macos-15-intel
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -170,6 +187,7 @@ jobs:
     name: Server - macOS arm64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -178,6 +196,7 @@ jobs:
     name: Kiosk ISO - x86_64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925: not yet restored
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - run: echo stub
 
@@ -185,5 +204,6 @@ jobs:
     name: Kiosk ISO - aarch64
     if: ${{ github.repository == 'disabled/generalbots' }} # #1925
     runs-on: ubuntu-22.04-arm
+    timeout-minutes: 30
     steps:
       - run: echo stub
