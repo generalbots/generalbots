@@ -164,7 +164,15 @@ function gbRefreshScrollbarMarkers() {
   var turns = messages.querySelectorAll(".message.user");
   for (var i = 0; i < turns.length; i++) {
     var message = turns[i];
-    var top = Math.max(0, Math.min(height - 4, (message.offsetTop / total) * height));
+    var top;
+    var storedRatio = message.getAttribute("data-gb-marker-ratio");
+    if (storedRatio !== null) {
+      top = Math.max(0, Math.min(height - 4, parseFloat(storedRatio) * height));
+    } else {
+      var ratio = message.offsetTop / total;
+      message.setAttribute("data-gb-marker-ratio", String(ratio));
+      top = Math.max(0, Math.min(height - 4, ratio * height));
+    }
     var marker = document.createElement("button");
     marker.type = "button";
     marker.className = "scrollbar-marker user-marker";

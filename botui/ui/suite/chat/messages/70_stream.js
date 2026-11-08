@@ -32,7 +32,7 @@ function updateStreaming(content) {
       if (tool.status) ChatCodeUX.appendCard(tool);
     });
   }
-  if (!ChatState.isUserScrolling || wasNearBottom) scrollToBottom(true);
+  if (ChatState.isUserAtBottom) scrollToBottom(true);
 }
 
 function finalizeStreaming() {

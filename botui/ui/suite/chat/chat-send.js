@@ -76,6 +76,7 @@ function sendMessage(messageContent, extra) {
   if (typeof showThinkingIndicator === "function") showThinkingIndicator();
   // Sending always returns the view to the live edge.
   ChatState.isUserScrolling = false;
+  ChatState.isUserAtBottom = true;
   scrollToBottom(false);
 
   var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];

@@ -15,6 +15,7 @@ var ChatState = {
   maxReconnectAttempts: 5,
   disconnectNotified: false,
   isUserScrolling: false,
+  isUserAtBottom: true,
   activeSwitchers: new Set(),
   switcherDefinitions: [],
   mentionState: {
