@@ -8,7 +8,13 @@
                         if (splash.parentNode) splash.parentNode.removeChild(splash);
                     }, 400);
                 }
+                // #1830 — the shell hides the splash through this hook when
+                // boot truly completes (default app opened), not on
+                // window.load, which fires while apps are still fetching.
+                window.gbHideBootSplash = hideBootSplash;
                 window.addEventListener("load", hideBootSplash);
-                setTimeout(hideBootSplash, 4000);
+                // Safety net: an authentication redirect or a dead API must
+                // never trap the user behind the in-page splash.
+                setTimeout(hideBootSplash, 30000);
             })();
         

@@ -251,6 +251,20 @@
                                 htmlContent,
                             );
                         }
+                        // #1830 — boot is complete: the shell is mounted and
+                        // the default app is open. Tell the native splash
+                        // (it polls the suite URL for this fragment — no Tauri
+                        // IPC exists for the suite origin) so it closes only
+                        // once nothing is left to load, then drop the in-page
+                        // boot splash too.
+                        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+                            try {
+                                window.history.replaceState(null, "", "#gb-boot-ready");
+                            } catch (hashError) { /* keep the current URL */ }
+                        }
+                        if (typeof window.gbHideBootSplash === "function") {
+                            window.gbHideBootSplash();
+                        }
                     } catch (err) {
                         console.error("Failed to auto-open suite app:", err);
                     }

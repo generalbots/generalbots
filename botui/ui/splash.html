@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>General Bots</title>
   <style>
+    /* #1830 — serious splash: static frames only. The boot indicator is the
+       page itself appearing, so the splash stays calm and does not animate. */
     html, body {
       margin: 0;
       padding: 0;
@@ -26,7 +28,6 @@
       width: 168px;
       height: 168px;
       image-rendering: pixelated;
-      animation: pulse 1.1s steps(2, end) infinite;
     }
     .title {
       margin-top: 18px;
@@ -40,25 +41,11 @@
       color: #00aa44;
       letter-spacing: 2px;
     }
-    .dots::after {
-      content: "";
-      animation: dots 1.2s steps(4, end) infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.06); opacity: 0.75; }
-    }
-    @keyframes dots {
-      0% { content: ""; }
-      25% { content: "."; }
-      50% { content: ".."; }
-      75%, 100% { content: "..."; }
-    }
   </style>
 </head>
 <body>
   <img class="logo" src="logo.svg" alt="General Bots" />
   <div class="title">General Bots</div>
-  <div class="status">Loading<span class="dots"></span></div>
+  <div class="status">Starting General Bots</div>
 </body>
 </html>
