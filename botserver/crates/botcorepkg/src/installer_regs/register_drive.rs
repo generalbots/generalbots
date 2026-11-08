@@ -22,7 +22,11 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             ],
             pre_install_cmds_macos: Vec::new(),
             post_install_cmds_macos: Vec::new(),
-            pre_install_cmds_windows: Vec::new(),
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
+                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
+                "if not exist {{CONF_PATH}}\\drive\\certs mkdir {{CONF_PATH}}\\drive\\certs".to_string(),
+            ],
             post_install_cmds_windows: vec![
                 "copy /Y {{DATA_PATH}}\\mc.exe {{BIN_PATH}}\\mc.exe".to_string(),
             ],
@@ -135,7 +139,10 @@ pub fn register_cache(components: &mut HashMap<String, ComponentConfig>) {
             ],
             pre_install_cmds_macos: Vec::new(),
             post_install_cmds_macos: Vec::new(),
-            pre_install_cmds_windows: Vec::new(),
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
+                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
+            ],
             post_install_cmds_windows: Vec::new(),
             env_vars: HashMap::new(),
             data_download_list: Vec::new(),
@@ -175,7 +182,10 @@ pub fn register_llm(components: &mut HashMap<String, ComponentConfig>) {
             post_install_cmds_linux: Vec::new(),
             pre_install_cmds_macos: Vec::new(),
             post_install_cmds_macos: Vec::new(),
-            pre_install_cmds_windows: Vec::new(),
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
+                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
+            ],
             post_install_cmds_windows: Vec::new(),
             env_vars: HashMap::new(),
             data_download_list: vec![

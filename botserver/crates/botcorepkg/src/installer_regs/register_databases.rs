@@ -16,7 +16,11 @@ pub fn register_vector_db(components: &mut HashMap<String, ComponentConfig>) {
             post_install_cmds_linux: vec![],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
+                "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
+                "if not exist {{CONF_PATH}}\\vector_db mkdir {{CONF_PATH}}\\vector_db".to_string(),
+            ],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
             data_download_list: Vec::new(),
