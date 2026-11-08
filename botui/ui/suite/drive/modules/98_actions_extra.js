@@ -142,6 +142,39 @@ function uploadClipboardFiles(fileList) {
     });
 }
 
+// #1866 — Shared folder / drop box foundation.
+// A drop box lets a user publish a folder so others can upload files into it
+// without a full account. The P2P relay (botpublic crate) that will mint the
+// URL and enforce the upload-only policy is tracked in #1866. This stub shows
+// the user where the feature will appear so the surface is not a surprise when
+// it ships.
+function shareFolder(path, bucket) {
+    var folderName = path.split("/").pop() || "folder";
+    var modal = document.getElementById("share-folder-modal");
+    if (modal) modal.remove();
+    modal = document.createElement("div");
+    modal.id = "share-folder-modal";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    var container = document.createElement("div");
+    container.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:480px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);";
+    container.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+        '<h3 style="margin:0;color:#f8fafc;font-size:1.25rem;">Share folder &ldquo;' + folderName.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") + '&rdquo;</h3>' +
+        '<button onclick="document.getElementById(\'share-folder-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>' +
+        '<div style="border:1px solid #334155;border-radius:8px;padding:16px;background:#0f172a;margin-bottom:16px;">' +
+        '<p style="margin:0 0 8px;color:#94a3b8;font-size:13px;line-height:1.5;">' +
+        '<strong style="color:#f8fafc;">Drop box link</strong> &mdash; a URL others can visit to upload files into this folder without signing in. ' +
+        'Your files stay private; they can only add, not read.</p>' +
+        '<p style="margin:0;color:#64748b;font-size:12px;">Sharing coming soon &mdash; link will appear here once the botpublic relay ships (#1866).</p>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:flex-end;">' +
+        '<button onclick="document.getElementById(\'share-folder-modal\').remove()" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:8px 16px;cursor:pointer;font-size:13px;">Close</button>' +
+        '</div>';
+    modal.appendChild(container);
+    modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
 var _cachedRecentFiles = [];
 function getRecentFileNames() { return _cachedRecentFiles; }
 function cacheRecentFiles(files) {
