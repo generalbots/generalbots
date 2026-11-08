@@ -1,4 +1,5 @@
 mod answer_mode;
+mod routing;
 mod caps;
 mod frames;
 mod tool_call;
@@ -70,6 +71,16 @@ pub async fn process_llm_response(
     if answer_mode::try_handle(ws_sender, turn).await {
         return;
     }
+
+    // #1946 — per-request routing. The decision is advisory and logged so a
+    // support session can see why a request was treated as agentic work or as
+    // a direct/app-backed answer; execution guards stay unchanged.
+    let route = routing::decide(user_text, 0, None);
+    info!(
+        "agentic routing: session={session_id} mode={} reason={}",
+        route.route.as_str(),
+        route.reason
+    );
 
     let env_key = std::env::var("LLM_KEY").unwrap_or_default();
     let env_model = std::env::var("LLM_MODEL").unwrap_or_default();
