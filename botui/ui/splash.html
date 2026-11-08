@@ -105,13 +105,21 @@
       var progressEl = document.getElementById("splashProgress");
       var progress = 0;
       var stages = { health: false, api: false };
+      var timer = null;
 
       function setProgress(value, text) {
         var next = Math.max(progress, Math.min(100, Math.round(value)));
         progress = next;
         if (barEl) barEl.style.width = next + "%";
-        if (progressEl) progressEl.setAttribute("aria-valuenow", String(next));
+        if (progressEl) {
+          progressEl.setAttribute("aria-valuenow", String(next));
+          progressEl.setAttribute("aria-valuetext", next + "%");
+        }
         if (text && statusEl) statusEl.textContent = text;
+        if (next >= 100 && timer) {
+          clearInterval(timer);
+          timer = null;
+        }
       }
 
       // Allow native/Tauri side to push real milestones: window.gbSplashProgress(75, "Loading bot…")
@@ -132,7 +140,9 @@
             .catch(function () {
               setProgress(Math.max(progress, 5), "Starting services…");
             });
-        } else if (!stages.api) {
+          return;
+        }
+        if (!stages.api) {
           fetch("http://127.0.0.1:8080/api/product", { cache: "no-store", credentials: "omit" })
             .then(function (r) {
               if (r.ok) {
@@ -145,15 +155,15 @@
             .catch(function () {
               setProgress(50, "Services are starting…");
             });
-        } else {
-          // API is up; UI readiness is confirmed when Tauri closes splash on gb-boot-ready.
-          setProgress(92, "Preparing workspace…");
+          return;
         }
+        // API is up; UI readiness is confirmed when Tauri closes splash on gb-boot-ready.
+        if (progress < 95) setProgress(92, "Preparing workspace…");
       }
 
       setProgress(2, "Starting General Bots…");
       poll();
-      setInterval(poll, 900);
+      timer = setInterval(poll, 900);
     })();
   </script>
 </body>
