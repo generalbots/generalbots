@@ -197,8 +197,8 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
                 .conn
                 .get()
                 .map_err(|error| format!("database pool unavailable: {error}"))?;
-            let previous_status = botsettings::read_pref(&mut conn, user.id, DIGEST_STATUS_KEY);
-            let timezone = botsettings::read_pref(&mut conn, user.id, "timezone")
+            let previous_status = botsettings::settings_api::read_pref(&mut conn, user.id, DIGEST_STATUS_KEY);
+            let timezone = botsettings::settings_api::read_pref(&mut conn, user.id, "timezone")
                 .as_str()
                 .unwrap_or("UTC")
                 .to_string();
@@ -234,11 +234,11 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
         let new_status = match delivery {
             Ok(()) => {
                 sent += 1;
-                botlog::safe_info!("Weekly digest sent to user {} ({})", user.id, recipient);
+                botlog::safe_info!("Weekly digest sent to user {} ({})", user.id, recipient.as_str());
                 updated_status(&previous_status, now, None)
             }
             Err(message) => {
-                log::warn!("Weekly digest delivery failed for {}: {message}", recipient);
+                log::warn!("Weekly digest delivery failed for {}: {message}", recipient.as_str());
                 updated_status(&previous_status, now, Some(&message))
             }
         };
@@ -246,7 +246,7 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
             .conn
             .get()
             .map_err(|error| format!("database pool unavailable: {error}"))?;
-        botsettings::write_pref(&mut conn, user.id, DIGEST_STATUS_KEY, &new_status);
+        botsettings::settings_api::write_pref(&mut conn, user.id, DIGEST_STATUS_KEY, &new_status);
     }
 
     Ok(sent)

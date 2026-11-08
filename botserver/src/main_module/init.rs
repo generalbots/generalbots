@@ -7,6 +7,7 @@ use crate::core::i18n;
 use crate::core::package_manager::InstallMode;
 use botcore::shared::utils::{create_conn, get_stack_path};
 use botlib::security::SafeCommand;
+use diesel::RunQueryDsl;
 use log::{error, info, trace, warn};
 use std::path::Path;
 
