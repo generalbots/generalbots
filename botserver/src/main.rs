@@ -39,6 +39,7 @@ pub mod billing;
 pub mod management;
 pub mod botmodels;
 pub mod jukebox;
+pub mod botmodels_gateway;
 #[cfg(feature = "canvas")]
 pub mod canvas;
 #[cfg(feature = "social")]
