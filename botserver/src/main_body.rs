@@ -320,6 +320,7 @@ if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
 
     crate::main_module::init_task_scheduler(&app_state);
     crate::main_module::init_tasks::init_drive_sync_scheduler();
+    crate::main_module::init_tasks::init_social_post_drainer(&app_state);
 
     #[cfg(any(feature = "research", feature = "llm"))]
     if let Err(e) = crate::core::kb::ensure_crawler_service_running(app_state.clone()).await {

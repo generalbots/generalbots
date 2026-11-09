@@ -3,6 +3,7 @@ pub mod get_metrics;
 pub mod get_posts;
 pub mod post_to;
 pub mod post_to_scheduled;
+pub mod publish;
 
 pub use delete_post::delete_post_keyword;
 pub use get_metrics::{

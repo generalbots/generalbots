@@ -41,3 +41,11 @@ pub fn init_task_scheduler(app_state: &Arc<botcore::shared::state::AppState>) {
 pub fn init_drive_sync_scheduler() {
     crate::main_module::routes::drive_sync::start_scheduler();
 }
+
+/// #2056 — `POST TO AT` stores a row; this worker publishes it when its time
+/// comes. Started once at boot, ticks every minute and only claims due rows.
+pub fn init_social_post_drainer(app_state: &Arc<botcore::shared::state::AppState>) {
+    let runtime: Arc<dyn botbasic_types::BasicRuntime> =
+        Arc::new(crate::basic::AppStateBasicRuntime(app_state.clone()));
+    botbasic_comms::keywords::social::publish::spawn_drainer(runtime);
+}

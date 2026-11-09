@@ -1,7 +1,5 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use chrono::Utc;
-use diesel::prelude::*;
 use log::trace;
 use rhai::{Dynamic, Engine};
 
@@ -38,14 +36,14 @@ pub fn post_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                         .enable_all()
                         .build();
 
-                    if let Ok(_rt) = rt {
-                        let result = execute_post_to(
+                    if let Ok(rt) = rt {
+                        let result = rt.block_on(execute_post_to(
                             &*state_for_task,
                             &user_for_task,
                             &platform_owned,
                             &media_owned,
                             &caption_owned,
-                        );
+                        ));
                         let _ = tx.send(result);
                     }
                 });
@@ -101,14 +99,14 @@ fn register_platform_shortcuts(state: Arc<dyn BasicRuntime>, user: UserSession, 
                             .enable_all()
                             .build();
 
-                        if let Ok(_rt) = rt {
-                            let result = execute_post_to(
+                        if let Ok(rt) = rt {
+                            let result = rt.block_on(execute_post_to(
                                 &*state_for_task,
                                 &user_for_task,
                                 &platform_owned,
                                 &media_owned,
                                 &caption_owned,
-                            );
+                            ));
                             let _ = tx.send(result);
                         }
                     });
@@ -132,7 +130,7 @@ fn register_platform_shortcuts(state: Arc<dyn BasicRuntime>, user: UserSession, 
     }
 }
 
-fn execute_post_to(
+async fn execute_post_to(
     state: &dyn BasicRuntime,
     user: &UserSession,
     platform_input: &str,
@@ -143,46 +141,17 @@ fn execute_post_to(
     let mut post_ids = Vec::new();
 
     for platform in platforms {
-        let post_id = save_social_post(state, user, platform, media, caption)?;
-        post_ids.push(post_id);
+        // #2056 — publish through the provider; the id is returned only after
+        // it answered with success, and a failed/unsupported platform is an
+        // error, never a silently queued row.
+        let post_id = crate::keywords::social::publish::publish_now(
+            state, user, platform, media, caption,
+        )
+        .await?;
+        post_ids.push(post_id.to_string());
     }
 
     Ok(post_ids.join(","))
-}
-
-fn save_social_post(
-    state: &dyn BasicRuntime,
-    user: &UserSession,
-    platform: &str,
-    media: &str,
-    caption: &str,
-) -> Result<String, String> {
-    let mut conn = state.db_pool().get().map_err(|e| format!("DB error: {}", e))?;
-
-    let post_id = Uuid::new_v4().to_string();
-    let now = Utc::now();
-    let user_uuid = Uuid::parse_str(&user.user_id)
-        .map_err(|e| format!("Invalid user id: {}", e))?;
-
-    let query = diesel::sql_query(
-        "INSERT INTO social_posts (id, bot_id, user_id, platform, content, media_url, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)",
-    )
-    .bind::<diesel::sql_types::Text, _>(&post_id)
-    .bind::<diesel::sql_types::Uuid, _>(user.bot_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_uuid)
-    .bind::<diesel::sql_types::Text, _>(platform)
-    .bind::<diesel::sql_types::Text, _>(caption)
-    .bind::<diesel::sql_types::Text, _>(media)
-    .bind::<diesel::sql_types::Timestamptz, _>(&now);
-
-    query.execute(&mut *conn).map_err(|e| {
-        log::error!("Failed to save social post: {}", e);
-        format!("Failed to save post: {}", e)
-    })?;
-
-    trace!("Social post saved: {} to {}", post_id, platform);
-    Ok(post_id)
 }
 
 use std::sync::Arc;

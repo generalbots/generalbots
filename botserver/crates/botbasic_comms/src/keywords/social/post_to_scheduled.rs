@@ -120,55 +120,21 @@ fn execute_scheduled_post(
     let mut post_ids = Vec::new();
 
     for p in platforms {
-        let post_id = save_scheduled_post(state, user, p, media, caption, scheduled_at)?;
-        post_ids.push(post_id);
+        // #2056 — schedule() validates the platform first, so an unsupported
+        // one is refused instead of sleeping in the queue forever.
+        let post_id = crate::keywords::social::publish::schedule(
+            state,
+            user,
+            p,
+            media,
+            caption,
+            scheduled_at,
+        )?;
+        post_ids.push(post_id.to_string());
     }
 
     Ok(post_ids.join(","))
 }
 
-fn save_scheduled_post(
-    state: &dyn BasicRuntime,
-    user: &UserSession,
-    platform: &str,
-    media: &str,
-    caption: &str,
-    scheduled_at: DateTime<Utc>,
-) -> Result<String, String> {
-    let mut conn = state.db_pool().get().map_err(|e| format!("DB error: {}", e))?;
-
-    let post_id = Uuid::new_v4().to_string();
-    let now = Utc::now();
-    let user_uuid = Uuid::parse_str(&user.user_id)
-        .map_err(|e| format!("Invalid user id: {}", e))?;
-
-    let query = diesel::sql_query(
-        "INSERT INTO social_posts (id, bot_id, user_id, platform, content, media_url, status, scheduled_at, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'scheduled', $7, $8)",
-    )
-    .bind::<diesel::sql_types::Text, _>(&post_id)
-    .bind::<diesel::sql_types::Uuid, _>(user.bot_id)
-    .bind::<diesel::sql_types::Uuid, _>(user_uuid)
-    .bind::<diesel::sql_types::Text, _>(platform)
-    .bind::<diesel::sql_types::Text, _>(caption)
-    .bind::<diesel::sql_types::Text, _>(media)
-    .bind::<diesel::sql_types::Timestamptz, _>(&scheduled_at)
-    .bind::<diesel::sql_types::Timestamptz, _>(&now);
-
-    query.execute(&mut *conn).map_err(|e| {
-        log::error!("Failed to save scheduled post: {}", e);
-        format!("Failed to save scheduled post: {}", e)
-    })?;
-
-    trace!(
-        "Scheduled post saved: {} to {} at {}",
-        post_id,
-        platform,
-        scheduled_at
-    );
-    Ok(post_id)
-}
-
-use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
