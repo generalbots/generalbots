@@ -705,6 +705,81 @@ sudo incus exec proxy -- systemctl restart proxy
 - Check Caddy logs for "challenge failed" errors - indicates DNS not ready
 - Certificate is automatically renewed by Caddy
 
+### Caddy TLS — Two Traps That Break Every Subdomain
+
+Symptom in both cases: `ERR_SSL_PROTOCOL_ERROR` in Chrome, and on the command
+line `SSL alert number 80` (`tlsv1 alert internal error`) with no certificate
+offered. The apex (`generalbots.org`) keeps working, which makes the failure
+look random.
+
+**1. A wildcard site block suppresses the exact-host certificates.** This
+block does not act as a fallback:
+
+```caddy
+*.generalbots.org {
+	tls {
+		on_demand
+	}
+	import gb_chat
+}
+```
+
+Caddy then treats every `*.generalbots.org` host as covered by the wildcard,
+stops presenting the certificates it already holds for the exact blocks
+(`docs`, `beiner`, `peer`, …) and every handshake under the wildcard fails —
+even hosts whose certificate is valid and present in storage. The fix is one
+site block per host; there is no per-host equivalent for the wildcard:
+
+```caddy
+peer.generalbots.org {
+	import tls_config
+	import gb_chat
+}
+```
+
+Active bots that need such a block (one per row):
+
+```sql
+-- tables container, database PROD-GENERALBOTS
+SELECT LOWER(name) || '.generalbots.org' FROM bots WHERE is_active = true;
+```
+
+`(gb_chat)` resolves the bot from the Host header, so the block address only
+selects the certificate — custom domains listed in `bot_domains` need a block
+as well. `GET /api/domains/tls-ask?domain=<host>` (answered by botserver) still
+reports which hosts the platform considers publishable.
+
+**2. Two caddy processes split every connection.** Both `caddy run` instances
+listen on `:443` with `SO_REUSEPORT`, so the kernel sends each new connection to
+either process. A stale process started by hand (outside systemd) keeps the old
+configuration and answers its share of the handshakes, which makes the same
+URL work and fail intermittently:
+
+```bash
+incus exec proxy -- ps -o pid,ppid,lstart,cmd -C caddy   # exactly one, PPID 1, systemd unit
+incus exec proxy -- ss -tlnp | grep :443                 # one listener per process
+```
+
+Kill any extra process (`incus exec proxy -- kill -TERM <pid>`); the
+`proxy.service` instance stays.
+
+**Diagnose a handshake without guessing** — raise the log level for the `tls`
+logger through the admin endpoint, retry the handshake, then reload the file to
+drop the override:
+
+```bash
+incus exec proxy -- curl -s -X POST http://<admin-addr>/config/logging \
+  -H 'Content-Type: application/json' \
+  -d '{"logs":{"default":{"level":"DEBUG","writer":{"output":"stderr"}}}}'
+openssl s_client -connect peer.generalbots.org:443 -servername peer.generalbots.org </dev/null 2>&1 | grep -E 'subject=|alert'
+incus exec proxy -- tail -40 /opt/gbo/logs/stderr.log   # tls.handshake lines name the reason
+incus exec proxy -- /opt/gbo/bin/caddy reload --adapter caddyfile --config /opt/gbo/config/Caddyfile
+```
+
+`no matching certificates` + `on_demand:false` means the certificate is not in
+the cache the policy uses (trap 1); `failed to get permission for on-demand
+certificate` means the `tls-ask` endpoint refused or was unreachable.
+
 ---
 
 ## Troubleshooting Quick Reference
