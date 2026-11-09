@@ -1384,19 +1384,23 @@ Debian 13/Ubuntu 24.04+, `libssl3` on older releases) on the host.
 **Prerequisites:** PostgreSQL `libpq.dll` must be in PATH (`C:\pgsql\pgsql\bin` on this machine).
 
 ```bash
-# Terminal 1: Start botserver
+# Terminal 1: Start botserver (the Tauri window waits for /api/product)
 export PATH="$PATH:/c/pgsql/pgsql/bin"
 cargo run -p botserver --no-default-features --features desktop-local
 
-# Terminal 2: Serve suite UI (needed in dev — Tauri devUrl points to :3000)
-cd botui/ui && python -m http.server 3000
-
-# Terminal 3: Start botapp
-cargo run -p botapp --features desktop-local
+# Terminal 2: Start botapp — `beforeDevCommand` serves ../botui/ui on :3000
+cargo tauri dev --features desktop-local
 
 # Or test without Tauri — open in browser:
 # http://localhost:3000/suite/desktop.html
 ```
+
+`cargo tauri dev` replaces the old manual `python -m http.server 3000` step:
+Tauri runs `npx serve ../botui/ui -l 3000 -L --no-port-switching`, so a busy
+port 3000 fails loudly instead of silently serving from 3001. The hand-written
+ACL files (`botapp/permissions/default.toml`, `botapp/capabilities/default.json`)
+stay the source of truth; `cargo tauri dev|build` regenerates `gen/schemas` and
+validates them.
 
 **Verify `/api/product`:**
 ```bash

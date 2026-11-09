@@ -126,17 +126,28 @@ git clone https://github.com/GeneralBots/botui.git
 git clone https://github.com/GeneralBots/botapp.git
 ```
 
-2. Start botui's web server (required for dev):
-```bash
-cd botui
-cargo run
-```
-
-3. Run botapp in development mode:
+2. Run botapp in development mode:
 ```bash
 cd botapp
-cargo tauri dev
+cargo tauri dev --features desktop-local
 ```
+
+`beforeDevCommand` serves `../botui/ui` on `:3000` (`npx serve`), so botui does
+not need a server of its own. The command passes `--no-port-switching`: if
+something already owns port 3000 the dev server fails loudly instead of
+quietly moving to 3001 while the window still loads `:3000`.
+
+The window stays hidden until `http://localhost:8080/api/product` answers, so
+start the sidecar first from the repository root:
+```bash
+cargo run -p botserver --no-default-features --features desktop-local
+```
+
+**ACL / capabilities:** `permissions/default.toml` and
+`capabilities/default.json` are the checked-in source of truth. `cargo tauri
+dev|build` regenerates the ACL schemas under `gen/schemas` and validates those
+files against them; do not delete the hand-written permissions, and commit the
+regenerated schemas only when a permission actually changed.
 
 ---
 
