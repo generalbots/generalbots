@@ -6,6 +6,7 @@ license = "MIT"
 
 [features]
 default = []
+desktop-local = []
 vectordb = []
 sheet = ["dep:calamine"]
 drive = ["dep:pdf-extract"]

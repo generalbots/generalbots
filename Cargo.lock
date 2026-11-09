@@ -1130,6 +1130,7 @@ dependencies = [
  "r2d2",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "thiserror 2.0.21",
  "tokio",
  "uuid",

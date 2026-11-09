@@ -251,7 +251,7 @@ pub async fn use_for_vibe(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
-    let (mut default_url, mut default_model) = if openai_compatible {
+    let (default_url, default_model) = if openai_compatible {
         (
             override_url.map(str::to_string),
             override_model.map(str::to_string),

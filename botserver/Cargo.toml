@@ -153,8 +153,8 @@ llm = ["automation", "cache", "dep:botllm"]
 vectordb = ["automation", "drive", "cache", "dep:botqdrant"]
 nvidia = ["automation", "drive", "cache", "dep:botnvidia"]
 compliance = ["automation", "drive", "cache", "legal", "dep:csv", "dep:botcompliance"]
-timeseries = ["automation", "drive", "cache", "dep:bottimeseries"]
-weba = ["automation", "drive", "cache", "dep:botweba"]
+timeseries = ["automation", "drive", "cache", "dep:bottimeseries", "botcore/timeseries"]
+weba = ["automation", "drive", "cache", "dep:botweba", "botcore/weba"]
 progress-bars = ["automation", "drive", "cache", "dep:indicatif"]
 grpc = ["automation", "drive", "cache", "botcore/grpc"]
 jemalloc = ["automation", "drive", "cache", "dep:mimalloc", "botcore/jemalloc"]
@@ -220,6 +220,7 @@ desktop-local = [
     "mail",
     "botcore/default",
     "botcore/desktop-local",
+    "botdrive/desktop-local",
 ]
 
 # #1925: thin client and mobile variant stubs (no sidecar/local services)
