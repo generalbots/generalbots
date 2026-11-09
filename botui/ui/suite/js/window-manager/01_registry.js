@@ -5,8 +5,6 @@
   var WM = (window.__GBWindowManager = {});
 
 const APPS_REGISTRY = [
-  { id: "admin", title: "Settings", category: "system", color: "#64748b", hxGet: "/suite/settings/index.html?view=admin",
-    icon: '<path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>' },
   { id: "settings", title: "Settings", category: "system", color: "#64748b", hxGet: "/suite/settings/index.html",
     icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
   { id: "about", title: "About", category: "system", color: "#64748b", hxGet: "/suite/about/about.html",
@@ -116,6 +114,8 @@ const APPS_REGISTRY = [
     icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 20l1-4h8l1 4"/>' },
   { id: "biometry", title: "Biometry", category: "system", color: "#22c55e", hxGet: "/suite/biometry/biometry.html",
     icon: '<path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5"/>' },
+  { id: "clock", title: "Clock", category: "office", color: "#06b6d4", hxGet: "/suite/clock/clock.html",
+    icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
   { id: "timeclock", title: "Time Clock", category: "office", color: "#f59e0b", hxGet: "/suite/timeclock/timeclock.html",
     icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
   { id: "o365", title: "o365", category: "office", color: "#3b82f6", hxGet: "/suite/o365/o365.html",
@@ -132,8 +132,6 @@ const APPS_REGISTRY = [
     icon: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' },
   { id: "snapshot", title: "Snapshot", category: "system", color: "#ec4899", hxGet: "/suite/snapshot/snapshot.html",
     icon: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>' },
-  { id: "clockapp", title: "Clock", category: "office", color: "#06b6d4", hxGet: "/suite/clock/clock.html",
-    icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
   { id: "store", title: "App Store", category: "system", color: "#3b82f6", hxGet: "/suite/store/store.html",
     icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>' },
   { id: "concierge", title: "Concierge", category: "ai", color: "#84d669", hxGet: "/suite/concierge/concierge.html",
@@ -193,7 +191,7 @@ var productAppIds = {};
 // #1811 — only core surfaces are hardcoded here. Everything else is classified
 // by `.product`'s `apps` / `preview_apps` / `hidden_apps` lists, which the
 // catalog endpoint mirrors. Mirrors `CORE_APPS` in botserver/src/apps/mod.rs.
-var CORE_APP_IDS = ["about", "admin", "auth", "settings"];
+var CORE_APP_IDS = ["about", "auth", "settings"];
 function isCoreAppId(id) {
   return CORE_APP_IDS.indexOf(id) !== -1;
 }

@@ -10,6 +10,18 @@
   WM.defineMethods(WindowManager.prototype, {
   openDeepLink(appId, params, opts) {
     opts = opts || {};
+    // #2013 — `admin` is a section of the unified Settings app, not a separate
+    // launcher tile. The historical deep link keeps working by routing to
+    // Settings with the admin view selected.
+    if (appId === "admin") {
+      params = Object.assign({ view: "admin" }, params || {});
+      appId = "settings";
+    }
+    // `clockapp` was a byte-for-byte duplicate of `clock` in the embedded
+    // registry; keep any historical link working.
+    if (appId === "clockapp") {
+      appId = "clock";
+    }
     if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) {
       // #1540: disabled deep links are not silent. Explain the state and
       // fall back to the always-available chat surface.

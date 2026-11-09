@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 /// `.product` files. Everything else is classified by the product profile as
 /// always (`apps`), preview (`preview_apps`) or hidden (`hidden_apps`); #1811
 /// removed the hardcoded always-visible list that used to override it.
-const CORE_APPS: &[&str] = &["about", "admin", "auth", "settings"];
+const CORE_APPS: &[&str] = &["about", "auth", "settings"];
 
 /// In-memory app-install counters for the App Store (#1156). The frontend
 /// overlays these with per-user localStorage state; this endpoint provides a

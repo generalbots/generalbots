@@ -204,16 +204,6 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             icon: "<path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"/>",
         }),
         app(AppSpec {
-            id: "admin",
-            title: "Settings",
-            category: "system",
-            color: "#64748b",
-            url: "/suite/settings/index.html?view=admin",
-            description: "Administration: users, groups, bots, DNS, audit and organizations.",
-            keywords: "admin users roles groups settings",
-            icon: "<path d=\"M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z\"/>",
-        }),
-        app(AppSpec {
             id: "about",
             title: "About",
             category: "system",
@@ -272,6 +262,16 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             description: "Browse, install and manage applications for the desktop.",
             keywords: "store install apps catalog marketplace",
             icon: "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"16\"/><line x1=\"8\" y1=\"12\" x2=\"16\" y2=\"12\"/>",
+        }),
+        app(AppSpec {
+            id: "clock",
+            title: "Clock",
+            category: "office",
+            color: "#06b6d4",
+            url: "/suite/clock/clock.html",
+            description: "Local time and date with timezone-aware display.",
+            keywords: "clock time date timezone",
+            icon: "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/>",
         }),
         app(AppSpec {
             id: "calculator",

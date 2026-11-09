@@ -36,7 +36,7 @@ CARGO = ROOT / "botserver" / "Cargo.toml"
 REGISTRY = ROOT / "botserver" / "src" / "apps" / "registry"
 PRODUCT_FILES = [ROOT / "botserver" / ".product", ROOT / "botserver" / ".product.desktop-local"]
 
-CORE_APPS = {"about", "admin", "settings"}
+CORE_APPS = {"about", "settings"}
 NON_APP_SURFACES = {"sources"}
 BUCKETS = ("apps", "preview_apps", "hidden_apps")
 
@@ -51,7 +51,6 @@ EXPECTED_ALWAYS = {
 # `is_app_compiled`; the guard below then verifies `all-apps` really turns it on.
 APP_FEATURES: dict[str, str | None] = {
     "about": None,
-    "admin": None,
     "settings": None,
     "analytics": "analytics",
     "attendant": "attendant",
@@ -65,6 +64,7 @@ APP_FEATURES: dict[str, str | None] = {
     "canvas": "canvas",
     "chat": "chat",
     "clock-widget": None,
+    "clock": None,
     "compliance": "compliance",
     "concierge": None,
     "crm": "people",
@@ -183,8 +183,13 @@ def main() -> int:
         errors.append("`desktop-local` does not compile `mail` (IMAP account routes)")
 
     apps = registry_ids()
-    if len(apps) != 68:
-        errors.append(f"expected 68 registry apps, found {len(apps)}")
+    # APP_FEATURES is the full registry inventory (core ids included), so the
+    # expected count is its length — no magic number to drift (#2013).
+    if len(apps) != len(APP_FEATURES):
+        errors.append(
+            f"expected {len(APP_FEATURES)} registry apps (APP_FEATURES), "
+            f"found {len(apps)}"
+        )
     missing_feature_map = sorted(apps - set(APP_FEATURES))
     extra_feature_map = sorted(set(APP_FEATURES) - apps - CORE_APPS)
     if missing_feature_map:
@@ -254,7 +259,10 @@ def main() -> int:
             print(f"  - {error}", file=sys.stderr)
         return 1
 
-    print("product profile: 68 apps fully classified; default and desktop compile all apps")
+    print(
+        f"product profile: {len(apps)} apps fully classified; "
+        "default and desktop compile all apps"
+    )
     return 0
 
 

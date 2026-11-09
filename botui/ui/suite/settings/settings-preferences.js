@@ -15,7 +15,11 @@
     // target at that point, not before.
     (function () {
         var params = new URLSearchParams(window.location.search);
-        if (params.get('view') === 'admin') {
+        // #2013 — the `admin` deep link resolves to Settings with
+        // `{ view: "admin" }` in `__gbAppParams__` (no query string on the
+        // shell URL), so accept both sources.
+        var appParams = window.__gbAppParams__ || {};
+        if (params.get('view') === 'admin' || appParams.view === 'admin') {
             var openAdminView = function () {
                 // Only land on an admin section that survived RBAC gating;
                 // hidden entries (non-admin) fall back to Profile.
