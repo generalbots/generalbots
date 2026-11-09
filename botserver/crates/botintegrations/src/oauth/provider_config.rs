@@ -284,6 +284,61 @@ pub(super) fn request_base(headers: &axum::http::HeaderMap) -> Option<String> {
     let scheme = headers
         .get("x-forwarded-proto")
         .and_then(|value| value.to_str().ok())
-        .unwrap_or("https");
+        // #1868 — a desktop install is served by the sidecar on plain http and
+        // has no proxy in front to set `x-forwarded-proto`. Providers only
+        // accept `http://127.0.0.1` / `http://localhost` as a loopback
+        // redirect, so defaulting to https produced a URI they reject before
+        // the consent screen. Public hosts keep the https default.
+        .unwrap_or_else(|| if is_loopback_host(&host) { "http" } else { "https" });
     Some(format!("{scheme}://{host}"))
+}
+
+fn is_loopback_host(host: &str) -> bool {
+    let hostname = match host.rsplit_once(':') {
+        Some((name, port)) if port.parse::<u16>().is_ok() => name,
+        _ => host,
+    };
+    matches!(hostname, "127.0.0.1" | "localhost" | "[::1]" | "::1")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::{header, HeaderMap, HeaderValue};
+
+    fn base(host: &str, forwarded: Option<&str>) -> String {
+        let mut map = HeaderMap::new();
+        map.insert(header::HOST, HeaderValue::from_str(host).expect("host header"));
+        if let Some(scheme) = forwarded {
+            map.insert(
+                "x-forwarded-proto",
+                HeaderValue::from_str(scheme).expect("proto header"),
+            );
+        }
+        request_base(&map).expect("request base")
+    }
+
+    #[test]
+    fn loopback_install_gets_an_http_base() {
+        assert_eq!(base("127.0.0.1:8080", None), "http://127.0.0.1:8080");
+        assert_eq!(base("localhost:3000", None), "http://localhost:3000");
+        assert_eq!(base("[::1]:8080", None), "http://[::1]:8080");
+    }
+
+    #[test]
+    fn public_host_stays_https() {
+        assert_eq!(base("bot.example.com", None), "https://bot.example.com");
+    }
+
+    #[test]
+    fn forwarded_proto_wins() {
+        assert_eq!(
+            base("bot.example.com", Some("http")),
+            "http://bot.example.com"
+        );
+        assert_eq!(
+            base("127.0.0.1:8080", Some("https")),
+            "https://127.0.0.1:8080"
+        );
+    }
 }

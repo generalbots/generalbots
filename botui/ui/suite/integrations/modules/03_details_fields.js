@@ -225,8 +225,8 @@
                 '<p class="integrations-connect-help">Authorization happens on the provider consent screen; the exchanged token is written to the server-side vault and never displayed again.</p>' +
                 '<a class="integrations-button" data-oauth-start href="' + namespace.escapeHtml(startUrl) + '">Authorize ' +
                 namespace.escapeHtml(provider.name || provider.id) + '</a>' +
-                '<details class="integrations-oauth-setup"><summary>App configuration (once per installation)</summary>' +
-                '<p class="integrations-connect-help">Register one app at the provider console with this redirect URI, then paste its client id here. Users only click Authorize afterwards; the secret is stored in the server vault.</p>' +
+                '<details class="integrations-oauth-setup"><summary>App configuration (only without a managed app)</summary>' +
+                '<p class="integrations-connect-help">A packaged desktop ships a managed public client, so Authorize works as-is. Self-hosted installations register one app at the provider console with this redirect URI and paste its client id here; no client secret is needed because the flow uses PKCE.</p>' +
                 '<p class="integrations-connect-help"><code data-oauth-redirect>' + namespace.escapeHtml(redirectUri) + '</code></p>' +
                 '<form class="integrations-connect-form" data-oauth-client-form novalidate>' +
                 '<label class="integrations-field"><span class="integrations-field-label"><span>Client ID</span></span>' +

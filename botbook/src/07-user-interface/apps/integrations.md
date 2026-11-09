@@ -44,6 +44,22 @@ button that opens the exact vendor screen where the token, key or OAuth app is
 created. The guide is read-only: secrets are submitted through the connect form
 and stored in the vault, never shown back in the detail panel.
 
+### Connect with OAuth
+
+A packaged desktop ships a **managed public client** for Google and Microsoft,
+so **Authorize Gmail/Drive/Outlook** works on a fresh install with no cloud
+project of your own. The client is a public identifier, not a secret; the flow
+uses PKCE and the exchanged token stays in the vault.
+
+- **Desktop / loopback.** The sidecar listens on `127.0.0.1`, so the redirect
+  URI is `http://127.0.0.1:<port>/api/integrations/oauth/<provider>/callback`
+  — the plain-http loopback form providers accept for installed apps.
+- **Self-hosted.** Register one app at the provider console, paste its client
+  id under *App configuration* (no client secret is required with PKCE), and
+  every user in that installation connects with their own account.
+- **Precedence.** A client stored in the vault always wins over the managed
+  one, so an operator can replace the shipped app without a rebuild.
+
 ### Connected Services
 
 Manage your active integrations:

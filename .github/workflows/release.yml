@@ -107,6 +107,15 @@ jobs:
           packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Build botserver (desktop-local)
+        # #1868 — a packaged desktop must connect Gmail/Drive/Outlook with no
+        # user registration. The ids are public identifiers (not secrets), so
+        # they travel as repository variables and land in the binary through
+        # `option_env!` in botlib/src/managed_oauth.rs. Empty variables are
+        # fine: the build then behaves exactly as before and the wizard still
+        # offers the per-installation app configuration.
+        env:
+          GB_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.GB_OAUTH_GOOGLE_CLIENT_ID }}
+          GB_OAUTH_MICROSOFT_CLIENT_ID: ${{ vars.GB_OAUTH_MICROSOFT_CLIENT_ID }}
         run: cargo build -p botserver --release --no-default-features --features desktop-local
 
       - name: Build botui
@@ -420,6 +429,15 @@ jobs:
           cache-scope: release-windows
 
       - name: Build botserver (desktop-local)
+        # #1868 — a packaged desktop must connect Gmail/Drive/Outlook with no
+        # user registration. The ids are public identifiers (not secrets), so
+        # they travel as repository variables and land in the binary through
+        # `option_env!` in botlib/src/managed_oauth.rs. Empty variables are
+        # fine: the build then behaves exactly as before and the wizard still
+        # offers the per-installation app configuration.
+        env:
+          GB_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.GB_OAUTH_GOOGLE_CLIENT_ID }}
+          GB_OAUTH_MICROSOFT_CLIENT_ID: ${{ vars.GB_OAUTH_MICROSOFT_CLIENT_ID }}
         run: cargo build -p botserver --release --no-default-features --features desktop-local
 
       - name: Build botui
