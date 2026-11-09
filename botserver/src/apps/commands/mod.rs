@@ -17,6 +17,7 @@
 pub(crate) use serde::Serialize;
 
 mod app_command;
+mod app_commands_extra;
 mod app_deep_links;
 mod app_deep_links_extra;
 mod deep_link_params_for_app;
