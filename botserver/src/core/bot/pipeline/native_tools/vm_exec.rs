@@ -7,21 +7,72 @@ use super::program_repair::repair_program;
 use super::render::render_result;
 use super::send;
 
-/// Time allowed beyond the requested program timeout to wake or provision the
-/// workspace and return its result.
-const WORKSPACE_OVERHEAD_SECS: u64 = 120;
+/// Default time allowed beyond the requested program timeout to wake or
+/// provision the workspace and return its result (#2045 — overridable).
+const DEFAULT_WORKSPACE_OVERHEAD_SECS: u64 = 120;
+
+/// Default cap for the caller's `timeout_ms`. A cold image pull plus a real
+/// build does not fit in two minutes, so the cap is ten; the environment can
+/// raise or lower it.
+const DEFAULT_TIMEOUT_CAP_MS: u64 = 600_000;
+
+/// Parses a positive integer out of an optional environment value. Blank,
+/// non-numeric and zero values mean "not set" so a misconfigured override
+/// falls back to the default instead of disabling the budget.
+fn parse_positive_u64(value: Option<&str>) -> Option<u64> {
+    value
+        .map(str::trim)
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+}
+
+fn env_u64(name: &str) -> Option<u64> {
+    parse_positive_u64(std::env::var(name).ok().as_deref())
+}
+
+/// Overhead added to a program timeout, in seconds. `GB_WORKSPACE_OVERHEAD_SECS`
+/// covers cold starts; the default stays 120 s.
+fn workspace_overhead_secs() -> u64 {
+    env_u64("GB_WORKSPACE_OVERHEAD_SECS").unwrap_or(DEFAULT_WORKSPACE_OVERHEAD_SECS)
+}
+
+/// Hard cap for the caller's `timeout_ms`; `GB_WORKSPACE_TIMEOUT_MAX_MS` can
+/// raise it for a machine that legitimately builds for longer.
+fn timeout_cap_ms() -> u64 {
+    env_u64("GB_WORKSPACE_TIMEOUT_MAX_MS").unwrap_or(DEFAULT_TIMEOUT_CAP_MS)
+}
 
 /// Overall budget for one `vm_exec` call, in milliseconds.
+///
+/// `GB_WORKSPACE_BUDGET_MS` sets an absolute floor (useful for an
+/// always-on node with slow storage); otherwise the program timeout plus the
+/// configurable overhead.
 fn workspace_budget_ms(timeout_ms: u64) -> u64 {
-    timeout_ms.saturating_add(WORKSPACE_OVERHEAD_SECS * 1_000)
+    budget_from(
+        timeout_ms,
+        workspace_overhead_secs(),
+        env_u64("GB_WORKSPACE_BUDGET_MS"),
+    )
+}
+
+/// Pure budget arithmetic, so the floors and caps are testable without touching
+/// process-wide environment variables.
+fn budget_from(timeout_ms: u64, overhead_secs: u64, absolute: Option<u64>) -> u64 {
+    let computed = timeout_ms.saturating_add(overhead_secs.saturating_mul(1_000));
+    match absolute {
+        Some(absolute) => computed.max(absolute),
+        None => computed,
+    }
 }
 
 /// A run timeout means the program took too long; it says nothing about the
 /// sandbox host being down, so it must not advise a restart or a wait.
-fn budget_exhausted_message(timeout_ms: u64) -> String {
+fn budget_exhausted_message(timeout_ms: u64, last_step: &str) -> String {
     let budget_secs = workspace_budget_ms(timeout_ms) / 1_000;
+    let overhead = workspace_overhead_secs();
     format!(
-        "The workspace run exceeded its {budget_secs}-second budget ({timeout_ms} ms program timeout plus {WORKSPACE_OVERHEAD_SECS} s of workspace overhead). This is a run timeout, not a host outage. Retry, reduce the task scope or split it into smaller steps, and check the budget: raise `timeout_ms` (max 120000 ms) if the work legitimately needs longer."
+        "The workspace run exceeded its {budget_secs}-second budget while in '{last_step}' ({timeout_ms} ms program timeout plus {overhead} s of workspace overhead). This is a run timeout, not a host outage. Retry, reduce the task scope or split it into smaller steps, and check the budget: raise `timeout_ms` (max {} ms, GB_WORKSPACE_TIMEOUT_MAX_MS), raise the overhead with GB_WORKSPACE_OVERHEAD_SECS, or pin a floor with GB_WORKSPACE_BUDGET_MS. Files the program already wrote are kept in the workspace.",
+        timeout_cap_ms()
     )
 }
 
@@ -35,7 +86,14 @@ fn is_budget_exhausted(reason: &str) -> bool {
 /// timeout is a distinct failure and gets its own guidance.
 fn workspace_failure_message(reason: &str, timeout_ms: u64) -> String {
     if is_budget_exhausted(reason) {
-        return budget_exhausted_message(timeout_ms);
+        // #2045 — the reason carries the stage that was running, so the user
+        // learns where the time went instead of only the total.
+        let last_step = reason
+            .split("during '")
+            .nth(1)
+            .and_then(|rest| rest.split('\'').next())
+            .unwrap_or("execute");
+        return budget_exhausted_message(timeout_ms, last_step);
     }
     let trimmed = reason.trim();
     if trimmed.is_empty() {
@@ -100,11 +158,13 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         return;
     }
 
+    // #2045 — a cold workspace plus a real build needs more than two minutes;
+    // the cap is configurable (GB_WORKSPACE_TIMEOUT_MAX_MS, default 600 s).
     let timeout_ms = parsed
         .get("timeout_ms")
         .and_then(|v| v.as_u64())
         .unwrap_or(60_000)
-        .clamp(1_000, 120_000);
+        .clamp(1_000, timeout_cap_ms());
     // Declared third-party packages: installed before the program runs, so the
     // model never shells out to pip/npm inside generated code.
     let packages: Vec<String> = parsed
@@ -186,9 +246,16 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     // #1807 — split the long workspace call into visible stages. The pure
     // program execution is one step; declared dependency installation is its
     // own step so a slow pip/apt run is distinguishable from slow code.
+    // #2045 — the budget is shown in the run card and the chat note, so the
+    // user can tell how much time this run has before it is cut off.
+    let budget_ms = workspace_budget_ms(timeout_ms);
+    let budget_secs = budget_ms / 1_000;
     let progress = WorkspaceProgress::new(identity);
+    // #2045 — remember which stage was running when the budget expires.
+    let mut last_step = "workspace";
     if let Some(progress) = progress.as_ref() {
         if !packages.is_empty() {
+            last_step = "install packages";
             progress
                 .start(
                     PHASE_TOOL,
@@ -198,8 +265,10 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 )
                 .await;
         }
+        last_step = "execute";
+        let detail = format!("{language} · budget {budget_secs}s");
         progress
-            .start(PHASE_TOOL, "execute", "Running the program", language)
+            .start(PHASE_TOOL, "execute", "Running the program", &detail)
             .await;
     }
 
@@ -208,10 +277,10 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     // is working or stuck.
     {
         let note = if packages.is_empty() {
-            format!("⏳ Executando no workspace ({language})…")
+            format!("⏳ Executando no workspace ({language}, orçamento {budget_secs}s)…")
         } else {
             format!(
-                "⏳ Executando no workspace ({language})… instalando {}",
+                "⏳ Executando no workspace ({language}, orçamento {budget_secs}s)… instalando {}",
                 packages.join(", ")
             )
         };
@@ -223,7 +292,6 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         code.len(),
         packages
     );
-    let budget_ms = workspace_budget_ms(timeout_ms);
     let budget = std::time::Duration::from_millis(budget_ms);
     let result = match tokio::time::timeout(
         budget,
@@ -240,7 +308,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             );
             Err((
                 504,
-                "the run budget elapsed before the workspace answered".to_string(),
+                format!(
+                    "the run budget elapsed during '{last_step}' before the workspace answered"
+                ),
             ))
         }
     };
@@ -371,64 +441,4 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
 }
 
 #[cfg(test)]
-mod workspace_failure_message_tests {
-    use super::workspace_failure_message;
-
-    #[test]
-    fn empty_reason_keeps_a_short_call_to_action() {
-        let message = workspace_failure_message("   ", 60_000);
-        assert_eq!(
-            message,
-            "The workspace could not run this program. Start a new message and try again."
-        );
-    }
-
-    #[test]
-    fn the_reason_is_shown_so_the_cause_stays_actionable() {
-        let message = workspace_failure_message(
-            "container ag-uf4b70eb7-7e97 did not reach RUNNING within 60s; instance log: bpf_program_load_kernel: Operation not permitted",
-            60_000,
-        );
-        assert!(message.contains("container ag-uf4b70eb7-7e97"));
-        assert!(message.contains("Operation not permitted"));
-        assert!(message.starts_with("The workspace could not run this program: "));
-    }
-
-    #[test]
-    fn a_cold_start_reason_is_not_framed_as_a_dead_host() {
-        let message = workspace_failure_message(
-            "the workspace container ag-u58d054e0-619e is still starting after 900s; the first run downloads and unpacks the Incus image. Retry in a moment",
-            60_000,
-        );
-        assert!(message.contains("still starting"));
-        assert!(!message.contains("restarting the app"));
-        assert!(message.ends_with("Start a new message to retry."));
-    }
-
-    #[test]
-    fn a_budget_timeout_gets_timeout_guidance_not_host_guidance() {
-        let message = workspace_failure_message(
-            "the run budget elapsed before the workspace answered",
-            60_000,
-        );
-        assert!(message.contains("180-second budget"));
-        assert!(message.contains("60000 ms program timeout"));
-        assert!(message.contains("120 s of workspace overhead"));
-        assert!(message.contains("Retry"));
-        assert!(message.contains("split it into smaller steps"));
-        assert!(message.contains("check the budget"));
-        assert!(message.contains("`timeout_ms`"));
-        assert!(!message.contains("restart"));
-        assert!(!message.contains("Start a new message once"));
-        assert!(!message.contains("wait for"));
-    }
-
-    #[test]
-    fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
-        let long = "x".repeat(600);
-        let message = workspace_failure_message(&long, 60_000);
-        assert!(message.contains('…'), "clip marker present");
-        assert!(message.chars().count() < 500, "message stays readable");
-        assert!(message.ends_with("Start a new message to retry."));
-    }
-}
+mod workspace_failure_message_tests;
