@@ -4,6 +4,26 @@
      first. Do not edit by hand: `generate --version` replaces that section.
      Sections start at v6.7.7; earlier releases predate this file. -->
 
+## v7.0.31 — 2026-11-09
+
+### Security
+- sec(sca): pin digests for the remaining CI artifact fetches (pythonbox, Redis, Qdrant) (#2002)
+- deps: upgrade rusqlite to 0.41 for the libsqlite3-sys 0.39 fix (RUSTSEC-2026-0459) (#2003)
+
+### Features
+- suite(chat): stream model SVG onto a persistent animating surface — element-by-element reveal, not a static iframe snapshot (#2005)
+- suite(canvas): hand a live chat drawing to the Canvas app (Open in Canvas + background handoff) (#2006)
+
+### Fixes
+- ui(chat): "Folder (optional)" artifact field renders black in the light theme (#2004)
+- chat: workspace run card renders twice and leaves empty bullets above the output folder (#2008)
+
+### Other
+- suppress agent-mode UI entirely in desktop-local builds (#1961)
+- cargo tauri dev as standard local development workflow (#1965)
+- suite(launcher): beautiful transparent themeable scrollbar in app launcher (#1999)
+- new CodeQL run must cancel the old one (two analyses running in parallel) (#2000)
+
 ## v6.7.10 — 2026-11-07
 
 Packaging-only release: no user-facing changes.
