@@ -19,6 +19,9 @@ Rules enforced
    none, so the safe policy is "do not use it".
 5. Checking out the pull-request head inside a privileged workflow
    (`github.event.pull_request.head.sha` / `head_ref`) is rejected.
+6. A checked-in CodeQL workflow (`github/codeql-action/init`) MUST declare
+   `concurrency` with `cancel-in-progress: true` (#2000): without it, two
+   analyses run in parallel for back-to-back pushes.
 
 Allowlist
 ---------
@@ -110,6 +113,27 @@ def check_privileged_triggers(path: Path, lines: list[str], errors: list[str]) -
             )
 
 
+def check_codeql_concurrency(path: Path, lines: list[str], errors: list[str]) -> None:
+    """A checked-in CodeQL workflow must cancel superseded runs (#2000).
+
+    The security scan is currently the platform-managed (dynamic) workflow,
+    which GitHub already cancels on a new push. If it is ever moved to advanced
+    setup with a checked-in file, this guard keeps that behaviour: two analyses
+    of the same ref must never overlap.
+    """
+    text = "\n".join(lines)
+    if "github/codeql-action/init" not in text and "github/codeql-action/analyze" not in text:
+        return
+    has_block = any(line.startswith("concurrency:") for line in lines)
+    has_cancel = re.search(r"^\s+cancel-in-progress:\s*true\s*(#.*)?$", text, re.MULTILINE)
+    if not (has_block and has_cancel):
+        errors.append(
+            f"{path}: CodeQL workflow without `concurrency` + "
+            "`cancel-in-progress: true`; back-to-back pushes would run two "
+            "analyses in parallel (#2000)"
+        )
+
+
 def main() -> int:
     if not WORKFLOWS_DIR.is_dir():
         print(f"no {WORKFLOWS_DIR} directory; nothing to check")
@@ -134,6 +158,7 @@ def main() -> int:
         lines = path.read_text(encoding="utf-8").splitlines()
         if is_workflow:
             check_privileged_triggers(path, lines, errors)
+            check_codeql_concurrency(path, lines, errors)
         for lineno, raw in enumerate(lines, start=1):
             match = USES_RE.match(raw)
             if not match:
@@ -151,7 +176,7 @@ def main() -> int:
         print(f"error: {error}")
 
     if errors:
-        print(f"\n{len(errors)} mutable reference(s) found in {len(targets)} workflow/action file(s)")
+        print(f"\n{len(errors)} workflow policy violation(s) in {len(targets)} file(s)")
         return 1
 
     print(f"ok: {pinned} action reference(s) across {len(targets)} workflow/action file(s) are pinned")

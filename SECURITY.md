@@ -95,6 +95,25 @@ gitleaks git --config .gitleaks.toml --redact --log-opts="--all"
 python3 scripts/check_workflow_pinning.py
 ```
 
+### CodeQL (security scanning)
+
+The security CodeQL scan is **platform-managed** (GitHub's dynamic
+`CodeQL` workflow, path `dynamic/github-code-scanning/codeql`); it is not a
+file in this repository, so it has no editable `concurrency` block. GitHub
+cancels a superseded analysis when a newer push arrives — a run list showing
+`completed / cancelled` for every push is the expected state, and two
+`in_progress` runs for the same ref are the regression (#2000).
+
+Do **not** add a checked-in `codeql.yml` next to it: that produces two scans of
+every push. If the scan is ever moved to advanced setup, either delete the
+dynamic workflow first or add `concurrency: {group: codeql-${{ github.ref }},
+cancel-in-progress: true}` to the checked-in file — `scripts/check_workflow_pinning.py`
+fails any workflow that runs `github/codeql-action/init|analyze` without it.
+
+`CodeQL - Code Quality` (path `dynamic/github-code-quality/codeql`) is a
+separate product and runs independently; do not disable it while working on the
+security scan.
+
 ---
 
 ## Security Maintenance Cadence
