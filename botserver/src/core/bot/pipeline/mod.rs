@@ -14,6 +14,7 @@ pub mod llm;
 pub mod mentions;
 pub mod native_args;
 #[cfg(all(feature = "agent-vm", feature = "drive"))]
+pub mod connector_hints;
 pub mod native_drive;
 pub mod native_external_save;
 pub mod native_tools;

@@ -89,6 +89,11 @@ pub(super) async fn build_and_stream(
         .await;
     }
 
+    // #2059 — name the connected connectors and the ones that match this
+    // request, so "post this on Instagram" does not need an @-mention.
+    #[cfg(feature = "integrations")]
+    super::connector_hints::inject(state, bot_uuid, &user_query, &mut messages_val);
+
     if !is_switcher_replay {
         let display_text = display_user_text(user_text);
         let mut sm = state.session_manager.lock().await;
