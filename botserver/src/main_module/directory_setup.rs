@@ -243,6 +243,30 @@ pub(crate) fn ensure_bootstrap_admin_user(pool: &botcore::shared::utils::DbPool)
 }
 
 #[cfg(feature = "directory")]
+/// `DirectoryConfig` serializes both the canonical and legacy keys for some
+/// fields (`service_account_key` + `service_token`). `ZitadelConfig` maps the
+/// legacy key onto the canonical one with `#[serde(alias)]`, and serde rejects a
+/// document that carries a field *and* its alias as a duplicate. Drop the
+/// redundant key, preferring the non-empty value, so a well-formed on-disk
+/// config is never discarded in favour of a possibly-stale Vault entry.
+fn normalize_directory_config(value: &mut serde_json::Value) {
+    let Some(obj) = value.as_object_mut() else {
+        return;
+    };
+    if obj.contains_key("service_account_key") && obj.contains_key("service_token") {
+        let canonical_empty = obj
+            .get("service_account_key")
+            .map(|v| v.is_null() || v.as_str().map(|s| s.trim().is_empty()).unwrap_or(false))
+            .unwrap_or(true);
+        if canonical_empty {
+            obj.remove("service_account_key");
+        } else {
+            obj.remove("service_token");
+        }
+    }
+}
+
+#[cfg(feature = "directory")]
 /// Resolve the Zitadel config for the directory service.
 /// Priority: `directory_config.json` → Vault `secret/gbo/directory` → defaults.
 /// The Vault fallback lets a fresh stack pick up the OAuth client even when the
@@ -254,17 +278,20 @@ async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
     let config_path = format!("{}/conf/system/directory_config.json", stack_path);
 
     if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(mut config) = serde_json::from_str::<crate::directory::ZitadelConfig>(&content) {
-            // Older configs stored the endpoint only as `base_url`.
-            if config.api_url.trim().is_empty() && !config.base_url.trim().is_empty() {
-                config.api_url = config.base_url.clone();
-            }
-            if !config.api_url.is_empty() {
-                info!(
-                    "Loaded Zitadel config from {}: url={}",
-                    config_path, config.api_url
-                );
-                return config;
+        if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&content) {
+            normalize_directory_config(&mut value);
+            if let Ok(mut config) = serde_json::from_value::<crate::directory::ZitadelConfig>(value) {
+                // Older configs stored the endpoint only as `base_url`.
+                if config.api_url.trim().is_empty() && !config.base_url.trim().is_empty() {
+                    config.api_url = config.base_url.clone();
+                }
+                if !config.api_url.is_empty() {
+                    info!(
+                        "Loaded Zitadel config from {}: url={}",
+                        config_path, config.api_url
+                    );
+                    return config;
+                }
             }
         }
         info!("directory_config.json missing or invalid, trying Vault");
