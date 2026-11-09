@@ -5,6 +5,7 @@ description: |
 allowed-tools:
   - Bash(firecrawl *)
   - Bash(npx firecrawl *)
+version: 1.0.0
 ---
 
 # Firecrawl CLI

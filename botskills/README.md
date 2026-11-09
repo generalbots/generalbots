@@ -20,7 +20,15 @@ botskills/
 ├── integration/     MCP servers and skill authoring
 ├── operations/      Monitoring and incident tooling
 ├── research/        Web search, scraping, docs lookup
-└── testing/         Unit and web application testing
+├── testing/         Unit and web application testing
+│   # content-generation pack (#2063)
+├── office/          Word, Excel, PowerPoint, PDF, conversion
+├── design/          Brand, layout, diagrams, icons, colour, type
+├── data/            Schema, queries, pipelines, analysis
+├── content/         Copy, SEO, social, scripts, localisation
+├── quality/         Testing, review, profiling, security, release
+├── business/        Finance, tax, contracts, HR, compliance, support
+└── media/           Image, audio, video, captions, thumbnails
 ```
 
 ## Catalog — classified, source identified
@@ -44,6 +52,64 @@ botskills/
 | research | last30days | Recency research: what was said about a topic in the last 30 days across Reddit, X, YouTube, Hacker News, Polymarket, GitHub and the web | mvanhorn/last30days-skill |
 | testing | vitest | Fast unit testing with Jest-compatible API, mocking, and coverage | pedronauck/skills (curated) |
 | testing | webapp-testing | Playwright toolkit for local web app testing, screenshots, and console logs | Prat011/awesome-llm-skills |
+
+## Content-generation pack (#2063)
+
+100 content-generation skills grouped in seven categories, plus the five
+original skills that already covered a listed concern (so 101 packages in
+total; the issue's own tables sum 96 unique names). All are authored in this
+repository (`source: in-repo`) with the same `SKILL.md` contract:
+
+```
+---
+name: docx
+description: |
+  Create and edit Word documents: styles, TOC, page setup, headers...
+version: 1.0.0
+source: in-repo
+---
+
+# docx
+## Workflow
+## Quality checks
+## Output
+```
+
+Install them all at once (the endpoint stores `enabled = TRUE`):
+
+```bash
+scripts/install-skills.sh --token "$TOKEN"          # --dry-run to preview
+```
+
+The prompt advertises every enabled skill as one `name: description` line and
+the model pulls the method with `skills.find {query}` — bodies never enter the
+system prompt. See "Runtime contract" below.
+
+| Category | Skills |
+|----------|--------|
+| office | docx, xlsx, pptx, pdf, html-to-pdf, docx-track-changes, spreadsheet-modeling, mail-merge, document-a11y, office-convert |
+| design | canvas-design, brand-guidelines, figma-workflow, diagrams, svg-icons, color-systems, typography, presentation-design, image-editing, logo-identity |
+| frontend | react-best-practices, next-best-practices, tailwind, shadcn, zod, web-accessibility, web-performance, state-management, forms-validation |
+| data | postgres, sqlalchemy, prisma, api-design, auth-sessions, queues-jobs, caching, migrations, etl-pipelines, pandas-analysis |
+| content | copywriting, seo-on-page, blog-outline, newsletter, social-posts, ad-copy, video-script, podcast-script, translation, brand-tone |
+| research | exa-web-search-free, firecrawl, context7, last30days, research-synthesis, fact-checking, citations, competitive-analysis, pricing-research, news-briefing |
+| integration | mcp-builder, skill-creator, webhooks, slack-workflows, gmail-workflows, calendar-scheduling, crm-actions, web-scraping |
+| quality | systematic-debugging, verification-before-completion, tdd, code-review, refactoring, performance-profiling, security-review, logging-observability, release-management |
+| business | finance-reporting, invoicing-brazil, contracts-review, hr-onboarding, kyc-verification, compliance-iso27001, tax-brazil, procurement, customer-support, analytics-kpis |
+| media | image-generation, audio-generation, video-generation, voice-tts, subtitles-captions, thumbnails, memes, gif-creator, music-generation, upscaling-restoration |
+
+Media and ML execution stays in BotModels (see #2062); the media skills
+describe the request shape and the verification, not a local model stack.
+
+### Runtime contract
+
+- `POST /api/sources/skills` parses the front-matter (including `description: |`
+  block scalars), hashes the document and stores it with `enabled = TRUE`.
+- The prompt lists every enabled skill as `name: description` — no `LIMIT`, no
+  body excerpt — so the block grows by one short line per skill.
+- `skills.list` returns names, descriptions and the enabled flag.
+- `skills.find {query}` returns the matching package bodies (bounded), which is
+  how the model gets the method without a giant system prompt.
 
 ## Why these sixteen
 

@@ -2,6 +2,7 @@
 name: shadcn
 description: Best practices for building UI components with shadcn/ui. Use when creating, customizing, or styling components with shadcn, working with Radix UI primitives, implementing design tokens, or following compound component patterns.
 allowed-tools: Read, Grep, Glob
+version: 1.0.0
 ---
 
 # Shadcn UI Developer Guide

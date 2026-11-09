@@ -111,6 +111,8 @@ mod execute_command;
 mod find_api_entries;
 mod is_api_call_trigger;
 mod list_people;
+#[cfg(feature = "sources")]
+mod skills;
 
 use archive_drive_files::*;
 pub(crate) use branch_scope::*;

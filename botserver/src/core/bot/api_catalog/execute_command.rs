@@ -93,6 +93,16 @@ pub async fn execute_command(
         "apps.find" => {
             Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) }))
         }
+        // #2063 — the prompt advertises `name: description`; the package body
+        // is pulled on demand, exactly like apps.find / api.find.
+        #[cfg(feature = "sources")]
+        "skills.list" => super::skills::list_skills(state, bot_uuid),
+        #[cfg(feature = "sources")]
+        "skills.find" => super::skills::find_skills(
+            state,
+            bot_uuid,
+            str_of("query").unwrap_or_default().as_str(),
+        ),
         "api.find" => Ok(
             json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) }),
         ),

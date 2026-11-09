@@ -43,26 +43,49 @@ pub fn parse_skill_package(markdown: &str, fallback_name: Option<&str>) -> Resul
     let mut version = String::new();
     let mut body_started = false;
     let mut body = String::new();
+    // #2063 — YAML block scalars (`description: |` following indented lines)
+    // are what the shipped skills use, including the pre-existing ones. The
+    // first parser read `|` as the description, so every packaged skill
+    // advertised a pipe character instead of its summary.
+    let mut block_key: Option<String> = None;
+    let mut block_lines: Vec<String> = Vec::new();
     for line in lines {
         if !body_started {
             if line.trim() == "---" {
+                flush_block(&mut block_key, &mut block_lines, &mut name, &mut description, &mut version);
                 body_started = true;
                 continue;
             }
-            if let Some((key, value)) = line.split_once(':') {
-                let value = value.trim().trim_matches('"').trim_matches('\'').to_string();
-                match key.trim() {
-                    "name" => name = value,
-                    "description" => description = value,
-                    "version" => version = value,
-                    _ => {}
+            if block_key.is_some() {
+                let indented = line.starts_with(' ') || line.starts_with('\t');
+                if indented || line.trim().is_empty() {
+                    block_lines.push(line.trim().to_string());
+                    continue;
                 }
+                flush_block(
+                    &mut block_key,
+                    &mut block_lines,
+                    &mut name,
+                    &mut description,
+                    &mut version,
+                );
+            }
+            if let Some((key, value)) = line.split_once(':') {
+                let key = key.trim().to_string();
+                let value = value.trim().trim_matches('"').trim_matches('\'').to_string();
+                if value == "|" || value == ">" || value == "|-" || value == ">-" {
+                    block_key = Some(key);
+                    block_lines.clear();
+                    continue;
+                }
+                assign_field(&key, value, &mut name, &mut description, &mut version);
             }
         } else {
             body.push_str(line);
             body.push('\n');
         }
     }
+    flush_block(&mut block_key, &mut block_lines, &mut name, &mut description, &mut version);
     if !body_started {
         return Err("SKILL.md front-matter is not closed with ---".to_string());
     }
@@ -104,6 +127,46 @@ pub fn parse_skill_package(markdown: &str, fallback_name: Option<&str>) -> Resul
     })
 }
 
+/// Writes a parsed front-matter field into its slot. Unknown keys are ignored
+/// so a package may carry author/licence metadata without failing the import.
+fn assign_field(
+    key: &str,
+    value: String,
+    name: &mut String,
+    description: &mut String,
+    version: &mut String,
+) {
+    match key {
+        "name" => *name = value,
+        "description" => *description = value,
+        "version" => *version = value,
+        _ => {}
+    }
+}
+
+/// Resolves a pending `key: |` block scalar into its field (or drops it when
+/// the key is unknown), then clears the buffer.
+fn flush_block(
+    block_key: &mut Option<String>,
+    block_lines: &mut Vec<String>,
+    name: &mut String,
+    description: &mut String,
+    version: &mut String,
+) {
+    if let Some(key) = block_key.take() {
+        let value = block_lines
+            .drain(..)
+            .collect::<Vec<_>>()
+            .join(" ")
+            .trim()
+            .to_string();
+        if !value.is_empty() {
+            assign_field(&key, value, name, description, version);
+        }
+    }
+    block_lines.clear();
+}
+
 #[cfg(test)]
 mod tests {
     use super::parse_skill_package;
@@ -130,5 +193,23 @@ mod tests {
         assert_eq!(normalized.id, "bad-name");
         assert!(parse_skill_package("---\nname: \"!!!\"\n---\nx", None).is_err());
         assert!(parse_skill_package("---\nname: ok\n---\n", None).is_err());
+    }
+
+    #[test]
+    fn a_block_scalar_description_is_read_as_one_line() {
+        let package = "---\nname: docx\ndescription: |\n  Create and edit Word documents: styles, TOC.\n  Use for reports and letters.\nversion: 1.0.0\n---\n\nBody.\n";
+        let parsed = parse_skill_package(package, None).expect("parses");
+        assert_eq!(
+            parsed.description,
+            "Create and edit Word documents: styles, TOC. Use for reports and letters."
+        );
+        assert_eq!(parsed.version, "1.0.0");
+    }
+
+    #[test]
+    fn a_folded_block_scalar_and_trailing_keys_still_parse() {
+        let package = "---\nname: pdf\ndescription: >-\n  Read and split PDFs.\nsource: in-repo\n---\n\nBody.\n";
+        let parsed = parse_skill_package(package, None).expect("parses");
+        assert_eq!(parsed.description, "Read and split PDFs.");
     }
 }

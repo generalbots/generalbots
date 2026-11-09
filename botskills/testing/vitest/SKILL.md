@@ -5,6 +5,7 @@ metadata:
   author: Anthony Fu
   version: "2026.1.28"
   source: Generated from https://github.com/vitest-dev/vitest, scripts located at https://github.com/antfu/skills
+version: 1.0.0
 ---
 
 Vitest is a next-generation testing framework powered by Vite. It provides a Jest-compatible API with native ESM, TypeScript, and JSX support out of the box. Vitest shares the same config, transformers, resolvers, and plugins with your Vite app.

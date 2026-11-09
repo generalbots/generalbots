@@ -20,6 +20,7 @@ description: >-
 
   Prefer this skill whenever documentation accuracy matters or when model
   knowledge may be outdated.
+version: 1.0.0
 ---
 
 # Documentation Lookup
