@@ -678,7 +678,13 @@ jobs:
             --app target/release/botapp.exe `
             --payload dist/payload `
             --out dist/generalbots.exe
-          .\dist\generalbots.exe --verify
+          # The Tauri binary is a Windows GUI-subsystem app: PowerShell's `&`
+          # does not wait for it, so the inspection flags were racing the
+          # process (the payload check ran before extraction finished and the
+          # Windows assets never reached the release). Start-Process -Wait
+          # blocks until the child really exits.
+          $verify = Start-Process -FilePath .\dist\generalbots.exe -ArgumentList '--verify' -Wait -PassThru -NoNewWindow
+          if ($verify.ExitCode -ne 0) { throw 'the self-extracting binary failed --verify' }
 
           # #1793 — prove the payload carries the offline services instead of
           # only the executables. Unpack into a scratch stack and assert every
@@ -688,8 +694,14 @@ jobs:
           $previousStack = $env:BOTSERVER_STACK_PATH
           $env:BOTSERVER_STACK_PATH = $check
           try {
-            .\dist\generalbots.exe --extract-only
-            if ($LASTEXITCODE -ne 0) { throw 'the payload could not be extracted' }
+            $extract = Start-Process -FilePath .\dist\generalbots.exe -ArgumentList '--extract-only' -Wait -PassThru -NoNewWindow
+            if ($extract.ExitCode -ne 0) { throw 'the payload could not be extracted' }
+            # Belt and braces: even after a waited exit, give the filesystem a
+            # moment to surface the extracted tree.
+            $deadline = (Get-Date).AddSeconds(60)
+            while (-not (Test-Path (Join-Path $check 'botserver.exe')) -and (Get-Date) -lt $deadline) {
+              Start-Sleep -Milliseconds 500
+            }
             # The runner has PostgreSQL on PATH; a release must also load on
             # a machine without that developer installation.
             $serverExe = Join-Path $check 'botserver.exe'
