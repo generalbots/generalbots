@@ -286,48 +286,6 @@ pub async fn ensure_agent_vm_result(
 /// A stopped/idle workspace is normal; failing with "not available" after the
 /// model already produced a program loses the whole turn.
 #[cfg(feature = "agent-vm")]
-pub async fn exec_with_wake_result(
-    user_id: uuid::Uuid,
-    session_id: uuid::Uuid,
-    bot_uuid: uuid::Uuid,
-    language: &str,
-    code: &str,
-    timeout_ms: u64,
-    packages: &[String],
-) -> Result<Option<(bool, String, String)>, WorkspaceError> {
-    match exec_in_user_vm_result(user_id, session_id, language, code, timeout_ms, packages).await {
-        Ok(Some(outcome)) => return Ok(Some(outcome)),
-        Ok(None) => {}
-        Err((status, error)) => {
-            // The wake below still retries the run; keep the first failure
-            // visible for diagnosis instead of discarding it.
-            botlog::safe_warn!("workspace rapid try failed ({status}): {error}");
-        }
-    }
-    let row = ensure_agent_vm_result(session_id, user_id, bot_uuid).await?;
-    let Some(service) = SERVICE.get() else {
-        return Err((
-            503,
-            "the agent workspace subsystem is unavailable".to_string(),
-        ));
-    };
-    let conversation_id = session_id.to_string();
-    match botagent::vm::exec_in_conversation(
-        service,
-        &row.vm_name,
-        &conversation_id,
-        language,
-        code,
-        timeout_ms,
-        packages,
-    )
-    .await
-    {
-        Ok(outcome) => Ok(Some(outcome)),
-        Err((status, error)) => Err((status.as_u16(), error)),
-    }
-}
-
 /// Container name of the caller's running agent VM, if any. Used by the
 /// terminal app to open a shell inside the user's own workspace.
 #[cfg(feature = "agent-vm")]
@@ -420,3 +378,5 @@ pub async fn list_session_folder(
         .ok()
         .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
 }
+mod wake;
+pub use wake::{exec_with_wake_events, exec_with_wake_result};

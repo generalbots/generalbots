@@ -19,7 +19,11 @@ mod render;
 #[cfg(feature = "agent-vm")]
 mod terminal;
 #[cfg(feature = "agent-vm")]
+mod vm_budget;
+#[cfg(feature = "agent-vm")]
 mod vm_exec;
+#[cfg(feature = "agent-vm")]
+mod vm_trace;
 
 /// The last message(s) a native tool sent to chat, keyed by session. The LLM
 /// pipeline uses it to feed the tool result back for a follow-up answer;

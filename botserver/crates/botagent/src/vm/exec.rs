@@ -1,14 +1,19 @@
 //! Program execution inside a conversation folder: dependency installs,
 //! source upload, interpreter selection and self-healing retries.
 
+mod run;
+
 use axum::http::StatusCode;
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use crate::stream::ExecEvent;
 use crate::AgentService;
 
 use super::identity::sanitize_id;
-use super::incus::exec_in_vm;
 use super::{bad_request, CONVERSATIONS_ROOT};
+
+use run::{run_or_stream, run_with_timeout};
 
 /// Shell command that runs a generated program as the unprivileged `runner`
 /// user (#1658). Paths are already sanitized by the caller.
@@ -27,6 +32,56 @@ pub async fn exec_in_conversation(
     code: &str,
     timeout_ms: u64,
     packages: &[String],
+) -> Result<(bool, String, String), (StatusCode, String)> {
+    exec_in_conversation_inner(
+        state,
+        vm_name,
+        conversation_id,
+        language,
+        code,
+        timeout_ms,
+        packages,
+        None,
+    )
+    .await
+}
+
+/// #2046 — same as [`exec_in_conversation`], but the program's output lines are
+/// published as they arrive. The chat pipeline uses this to turn `@@GB_TRACE@@`
+/// markers into live run-card rows; a program without markers behaves exactly
+/// like the buffered call.
+pub async fn exec_in_conversation_streamed(
+    state: &AgentService,
+    vm_name: &str,
+    conversation_id: &str,
+    language: &str,
+    code: &str,
+    timeout_ms: u64,
+    packages: &[String],
+    events: mpsc::UnboundedSender<ExecEvent>,
+) -> Result<(bool, String, String), (StatusCode, String)> {
+    exec_in_conversation_inner(
+        state,
+        vm_name,
+        conversation_id,
+        language,
+        code,
+        timeout_ms,
+        packages,
+        Some(events),
+    )
+    .await
+}
+
+async fn exec_in_conversation_inner(
+    state: &AgentService,
+    vm_name: &str,
+    conversation_id: &str,
+    language: &str,
+    code: &str,
+    timeout_ms: u64,
+    packages: &[String],
+    events: Option<mpsc::UnboundedSender<ExecEvent>>,
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     let clean_cid = sanitize_id(conversation_id)?;
     let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
@@ -90,7 +145,7 @@ pub async fn exec_in_conversation(
     .await;
     let run_cmd = runner_command(&folder, interpreter, &script_path);
     let (mut first_ok, mut stdout, mut stderr) =
-        run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
+        run_or_stream(state, vm_name, run_cmd.clone(), timeout_ms, events.clone()).await?;
 
     // A freshly provisioned workspace installs its toolkit in the background.
     // Running a program before that finishes fails with "python3: not found",
@@ -108,7 +163,9 @@ pub async fn exec_in_conversation(
                 run_with_timeout(state, vm_name, format!("command -v {interpreter}"), 15_000)
                     .await?;
             if probe.0 {
-                let retried = run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
+                let retried =
+                    run_or_stream(state, vm_name, run_cmd.clone(), timeout_ms, events.clone())
+                        .await?;
                 first_ok = retried.0;
                 stdout = format!("workspace prepared, retried the program\n{}", retried.1);
                 stderr = retried.2;
@@ -127,7 +184,7 @@ pub async fn exec_in_conversation(
         let retry_pkgs = vec![missing.clone()];
         let installed = install_packages(state, vm_name, &folder, language, &retry_pkgs).await?;
         if installed.0 {
-            let retried = run_with_timeout(state, vm_name, run_cmd, timeout_ms).await?;
+            let retried = run_or_stream(state, vm_name, run_cmd, timeout_ms, events).await?;
             let note = format!("auto-installed missing package: {missing}\n");
             return Ok((
                 retried.0,
@@ -209,55 +266,6 @@ pub async fn run_root_shell(
 /// not ready yet. A cold-started container can already be RUNNING in the
 /// daemon's view for a moment before it accepts commands; the command never
 /// ran, so retrying is safe (issue #1798).
-fn exec_channel_not_ready(stderr: &str) -> bool {
-    let text = stderr.to_ascii_lowercase();
-    (text.contains("vm agent")
-        && (text.contains("not connected")
-            || text.contains("not running")
-            || text.contains("starting")))
-        || text.contains("instance is not running")
-        || text.contains("instance is starting")
-        || (text.contains("incus") && text.contains("not ready"))
-}
-
-const EXEC_RETRY_ATTEMPTS: u32 = 3;
-
-async fn run_with_timeout(
-    state: &AgentService,
-    vm_name: &str,
-    command: String,
-    timeout_ms: u64,
-) -> Result<(bool, String, String), (StatusCode, String)> {
-    for attempt in 0..EXEC_RETRY_ATTEMPTS {
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(timeout_ms),
-            exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), command.clone()]),
-        )
-        .await;
-        match result {
-            Err(_) => return Ok((false, String::new(), "Execution timed out".to_string())),
-            Ok(Err(exec_error)) => return Err(exec_error),
-            Ok(Ok((true, stdout, stderr))) => return Ok((true, stdout, stderr)),
-            Ok(Ok((false, stdout, stderr))) => {
-                if !exec_channel_not_ready(&stderr) || attempt + 1 >= EXEC_RETRY_ATTEMPTS {
-                    return Ok((false, stdout, stderr));
-                }
-                tracing::warn!(
-                    "vm exec channel for {vm_name} not ready (attempt {}/{EXEC_RETRY_ATTEMPTS}): {stderr}",
-                    attempt + 1
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(2 * u64::from(attempt + 1)))
-                    .await;
-            }
-        }
-    }
-    Ok((
-        false,
-        String::new(),
-        "the workspace exec channel did not become ready".to_string(),
-    ))
-}
-
 /// Installs packages for `language`. Names are validated by `sanitize_package`.
 async fn install_packages(
     state: &AgentService,
@@ -365,7 +373,8 @@ fn python_package_alias(name: &str) -> &str {
 
 #[cfg(test)]
 mod isolation_tests {
-    use super::{exec_channel_not_ready, runner_command};
+    use super::run::exec_channel_not_ready;
+    use super::runner_command;
 
     #[test]
     fn a_container_that_does_not_accept_exec_is_retried() {

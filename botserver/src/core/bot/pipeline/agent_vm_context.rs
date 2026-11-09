@@ -113,6 +113,18 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \
                      Save generated artifacts into output/ so the user can preview them. \
+                     WORKSPACE TRACE (mandatory for programs with more than one step): \
+                     print one line to stdout when each meaningful block starts and when \
+                     it ends, so the chat run card shows a live task table with timing. A \
+                     marker is the literal prefix @@GB_TRACE@@ followed by one JSON object: \
+                     print('@@GB_TRACE@@ {{\"task\": \"install deps\", \"detail\": \"pip install pandas\", \"status\": \"started\"}}') \
+                     ...work... \
+                     print('@@GB_TRACE@@ {{\"task\": \"install deps\", \"status\": \"ok\"}}') \
+                     Use status \"started\" at the beginning and \"ok\" (or \"error\") at the \
+                     end; keep the task text identical in both lines; detail is optional \
+                     and says what the block is doing. Emit 3 to 8 tasks per program \
+                     (install, generate, build, test, write). The markers are stripped from \
+                     the visible output: they only feed the table. \
                      Files the user names may already be in data/ (fetched from their Drive); \
                      read them from there. Use `drive_fetch` to pull a Drive file into data/ \
                      and `drive_save` to publish output/ files to the user's Drive under the \

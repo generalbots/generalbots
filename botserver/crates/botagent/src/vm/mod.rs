@@ -19,7 +19,7 @@ mod workspace;
 
 use axum::http::StatusCode;
 
-pub use exec::{exec_in_conversation, run_root_shell};
+pub use exec::{exec_in_conversation, exec_in_conversation_streamed, run_root_shell};
 pub(crate) use identity::allow_unregistered_identities;
 pub use identity::sanitize_id;
 pub use incus::{exec_in_vm, exec_in_vm_streaming, ExecOutcome};

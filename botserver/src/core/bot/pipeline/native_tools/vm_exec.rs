@@ -6,112 +6,10 @@ use super::super::workspace_progress::{WorkspaceProgress, PHASE_TOOL};
 use super::program_repair::repair_program;
 use super::render::render_result;
 use super::send;
-
-/// Default time allowed beyond the requested program timeout to wake or
-/// provision the workspace and return its result (#2045 — overridable).
-const DEFAULT_WORKSPACE_OVERHEAD_SECS: u64 = 120;
-
-/// Default cap for the caller's `timeout_ms`. A cold image pull plus a real
-/// build does not fit in two minutes, so the cap is ten; the environment can
-/// raise or lower it.
-const DEFAULT_TIMEOUT_CAP_MS: u64 = 600_000;
-
-/// Parses a positive integer out of an optional environment value. Blank,
-/// non-numeric and zero values mean "not set" so a misconfigured override
-/// falls back to the default instead of disabling the budget.
-fn parse_positive_u64(value: Option<&str>) -> Option<u64> {
-    value
-        .map(str::trim)
-        .and_then(|value| value.parse::<u64>().ok())
-        .filter(|value| *value > 0)
-}
-
-fn env_u64(name: &str) -> Option<u64> {
-    parse_positive_u64(std::env::var(name).ok().as_deref())
-}
-
-/// Overhead added to a program timeout, in seconds. `GB_WORKSPACE_OVERHEAD_SECS`
-/// covers cold starts; the default stays 120 s.
-fn workspace_overhead_secs() -> u64 {
-    env_u64("GB_WORKSPACE_OVERHEAD_SECS").unwrap_or(DEFAULT_WORKSPACE_OVERHEAD_SECS)
-}
-
-/// Hard cap for the caller's `timeout_ms`; `GB_WORKSPACE_TIMEOUT_MAX_MS` can
-/// raise it for a machine that legitimately builds for longer.
-fn timeout_cap_ms() -> u64 {
-    env_u64("GB_WORKSPACE_TIMEOUT_MAX_MS").unwrap_or(DEFAULT_TIMEOUT_CAP_MS)
-}
-
-/// Overall budget for one `vm_exec` call, in milliseconds.
-///
-/// `GB_WORKSPACE_BUDGET_MS` sets an absolute floor (useful for an
-/// always-on node with slow storage); otherwise the program timeout plus the
-/// configurable overhead.
-fn workspace_budget_ms(timeout_ms: u64) -> u64 {
-    budget_from(
-        timeout_ms,
-        workspace_overhead_secs(),
-        env_u64("GB_WORKSPACE_BUDGET_MS"),
-    )
-}
-
-/// Pure budget arithmetic, so the floors and caps are testable without touching
-/// process-wide environment variables.
-fn budget_from(timeout_ms: u64, overhead_secs: u64, absolute: Option<u64>) -> u64 {
-    let computed = timeout_ms.saturating_add(overhead_secs.saturating_mul(1_000));
-    match absolute {
-        Some(absolute) => computed.max(absolute),
-        None => computed,
-    }
-}
-
-/// A run timeout means the program took too long; it says nothing about the
-/// sandbox host being down, so it must not advise a restart or a wait.
-fn budget_exhausted_message(timeout_ms: u64, last_step: &str) -> String {
-    let budget_secs = workspace_budget_ms(timeout_ms) / 1_000;
-    let overhead = workspace_overhead_secs();
-    format!(
-        "The workspace run exceeded its {budget_secs}-second budget while in '{last_step}' ({timeout_ms} ms program timeout plus {overhead} s of workspace overhead). This is a run timeout, not a host outage. Retry, reduce the task scope or split it into smaller steps, and check the budget: raise `timeout_ms` (max {} ms, GB_WORKSPACE_TIMEOUT_MAX_MS), raise the overhead with GB_WORKSPACE_OVERHEAD_SECS, or pin a floor with GB_WORKSPACE_BUDGET_MS. Files the program already wrote are kept in the workspace.",
-        timeout_cap_ms()
-    )
-}
-
-fn is_budget_exhausted(reason: &str) -> bool {
-    reason.to_ascii_lowercase().contains("run budget elapsed")
-}
-
-/// The truthful replacement for the dead-end "workspace is not available"
-/// phrase: show the concrete reason the VM subsystem reports (status is
-/// logged only, never shown), then one short pointer forward. A run-budget
-/// timeout is a distinct failure and gets its own guidance.
-fn workspace_failure_message(reason: &str, timeout_ms: u64) -> String {
-    if is_budget_exhausted(reason) {
-        // #2045 — the reason carries the stage that was running, so the user
-        // learns where the time went instead of only the total.
-        let last_step = reason
-            .split("during '")
-            .nth(1)
-            .and_then(|rest| rest.split('\'').next())
-            .unwrap_or("execute");
-        return budget_exhausted_message(timeout_ms, last_step);
-    }
-    let trimmed = reason.trim();
-    if trimmed.is_empty() {
-        return "The workspace could not run this program. Start a new message and try again."
-            .to_string();
-    }
-    let clipped: String = trimmed.chars().take(320).collect();
-    let clipped = if trimmed.chars().count() > 320 {
-        format!("{clipped}…")
-    } else {
-        clipped
-    };
-    // The reason is already actionable (a cold start says it is still pulling
-    // the image; a host problem names the missing Incus setup). Do not append
-    // the old "restart the app" advice: it made a transient first-run race look
-    // like a permanently dead sandbox host (issue #1798).
-    format!("The workspace could not run this program: {clipped}. Start a new message to retry.")
-}
+use super::vm_budget::{
+    timeout_cap_ms, workspace_budget_ms, workspace_failure_message,
+};
+use super::vm_trace::trace_event;
 
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let parsed: serde_json::Value = match super::super::native_args::parse_args(args) {
@@ -211,6 +109,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                         .to_string()
                 }
                 Ok(Some((ok, stdout, stderr))) => {
+                    let stdout = super::vm_trace::strip_trace_lines(&stdout);
                     render_result(user_id, session_id, ok, &stdout, &stderr).await
                 }
             };
@@ -293,14 +192,38 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         packages
     );
     let budget = std::time::Duration::from_millis(budget_ms);
-    let result = match tokio::time::timeout(
-        budget,
-        crate::core::bot::agent_vm_hook::exec_with_wake_result(
-            user_id, session_id, bot_uuid, language, code, timeout_ms, &packages,
-        ),
-    )
-    .await
-    {
+    // #2046 — the program's stdout is streamed so trace markers become table
+    // rows while it runs. A run without markers behaves like before.
+    let (trace_tx, mut trace_rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut trace_rows: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let streamed = async {
+        let exec = crate::core::bot::agent_vm_hook::exec_with_wake_events(
+            user_id, session_id, bot_uuid, language, code, timeout_ms, &packages, trace_tx,
+        );
+        tokio::pin!(exec);
+        let mut channel_open = true;
+        loop {
+            if channel_open {
+                tokio::select! {
+                    event = trace_rx.recv() => match event {
+                        Some(event) => {
+                            trace_event(progress.as_ref(), &mut trace_rows, event).await;
+                        }
+                        None => channel_open = false,
+                    },
+                    outcome = &mut exec => return outcome,
+                }
+            } else {
+                return exec.await;
+            }
+        }
+    };
+    let outcome = tokio::time::timeout(budget, streamed).await;
+    // Frames that arrived just before the timeout must still reach the card.
+    while let Ok(event) = trace_rx.try_recv() {
+        trace_event(progress.as_ref(), &mut trace_rows, event).await;
+    }
+    let result = match outcome {
         Ok(result) => result,
         Err(_) => {
             botlog::safe_warn!(
@@ -314,7 +237,26 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             ))
         }
     };
+    // #2046 — a trace that started but never finished is the in-flight step.
+    // Close its row explicitly so a timeout shows the last completed row plus
+    // this one, instead of leaving a spinner that never resolves.
     let succeeded = matches!(&result, Ok(Some((true, _, _))));
+    if let Some(progress) = progress.as_ref() {
+        let mut open: Vec<(String, String)> = trace_rows.drain().collect();
+        open.sort_by(|a, b| a.1.cmp(&b.1));
+        for (step_name, task) in open {
+            // A program that exits cleanly may simply omit the final marker;
+            // only a failed or timed-out run means the step was interrupted.
+            let (status, detail) = if succeeded {
+                ("ok", format!("{task} — finished"))
+            } else {
+                ("error", format!("{task} — interrupted before it finished"))
+            };
+            progress
+                .finish(PHASE_TOOL, &format!("trace:{step_name}"), status, &detail)
+                .await;
+        }
+    }
     if let Some(progress) = progress.as_ref() {
         let status = if succeeded { "ok" } else { "error" };
         if !packages.is_empty() {
@@ -429,6 +371,8 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                     )
                     .await;
             }
+            // #2046 — the trace table replaces the raw markers.
+            let stdout = super::vm_trace::strip_trace_lines(&stdout);
             let message = render_result(user_id, session_id, ok, &stdout, &stderr).await;
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
@@ -440,5 +384,3 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     }
 }
 
-#[cfg(test)]
-mod workspace_failure_message_tests;
