@@ -25,7 +25,8 @@ pub fn register_drive(components: &mut HashMap<String, ComponentConfig>) {
             pre_install_cmds_windows: vec![
                 "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
                 "if not exist {{LOGS_PATH}} mkdir {{LOGS_PATH}}".to_string(),
-                "if not exist {{CONF_PATH}}\\drive\\certs mkdir {{CONF_PATH}}\\drive\\certs".to_string(),
+                // #1964 — Windows runs MinIO in plain HTTP: no `--certs-dir`
+                // and no CA is provisioned, so there is no certs directory.
             ],
             post_install_cmds_windows: vec![
                 "copy /Y {{DATA_PATH}}\\mc.exe {{BIN_PATH}}\\mc.exe".to_string(),

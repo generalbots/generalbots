@@ -87,13 +87,9 @@ sha256 = "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
 sha256_arm64 = "33e0ac674548424746528b947ef65538d624ef69478445158d690d02ce6c8e36"
 sha256_win = "5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e"
 
-
-[components.cache_win]
-name = "Valkey Cache (Windows - via Memurai)"
-url = "https://github.com/nicktajzsg/memurai/releases/latest/download/memurai-msi-latest.exe"
-filename = "memurai-installer.exe"
-note = "Windows compatible Redis alternative. Also works with: docker run -p 6379:6379 redis"
-sha256 = ""
+# #1966 — the `cache_win` entry (Memurai MSI from a personal fork) was never
+# referenced by the installer and its URL answers 404. Windows uses the
+# `cache` component's `url_win` (the Microsoft Redis port) above.
 
 [components.caddy]
 name = "Caddy Web Server"
@@ -139,19 +135,18 @@ sha256_win = "dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405"
 name = "Forgejo Git Server"
 url = "https://codeberg.org/forgejo/forgejo/releases/download/v17.0.1/forgejo-17.0.1-linux-amd64"
 filename = "forgejo-17.0.1-linux-amd64"
-# Forgejo 17.0.1 publishes no Windows binary; this is the last published
-# Windows asset. Windows installs should build from the source tag or use the
-# official container image until upstream ships a Windows build.
-url_win = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-windows-amd64.exe"
-filename_win = "forgejo-10.0.1-windows-amd64.exe"
+# #1966 — Forgejo publishes no Windows asset (v17.0.1 ships linux-amd64/arm64/
+# arm-6 and source only; the old v10.0.1 `windows-amd64.exe` link is a 404).
+# The installer refuses this component on Windows instead of downloading the
+# Linux binary; use the official container image or build from source there.
 sha256 = "51a8cdf4a1252e79f4b3855d7a7891af6c6635105420768c460e2f0690385d6f"
 
 [components.alm_ci]
 name = "Forgejo Actions Runner"
 url = "https://code.forgejo.org/forgejo/runner/releases/download/v13.2.1/forgejo-runner-13.2.1-linux-amd64"
 filename = "forgejo-runner-13.2.1-linux-amd64"
-url_win = "https://code.forgejo.org/forgejo/runner/releases/download/v6.0.0/forgejo-runner-6.0.0-windows-amd64.exe"
-filename_win = "forgejo-runner-6.0.0-windows-amd64.exe"
+# #1966 — the runner has no Windows assets either (v13.2.1 ships linux-amd64
+# and linux-arm64 only); the v6.0.0 Windows link 404s.
 sha256 = "bb369fe1ecb50fdc983c0b1d993f19b0920df6e5864511892b3cdbf16d858b34"
 
 [components.dns]
@@ -189,8 +184,9 @@ sha256 = ""
 name = "NocoDB"
 url = "http://get.nocodb.com/linux-x64"
 filename = "nocodb-linux-x64"
-url_win = "https://github.com/nocodb/nocodb/releases/latest/download/nocodb-win-x64.exe"
-filename_win = "nocodb-win-x64.exe"
+# #1966 — NocoDB publishes no standalone Windows executable (its GitHub
+# releases carry no assets at all); `nocodb-win-x64.exe` was a 404. Windows
+# installs are refused by get_component_url instead of downloading nothing.
 sha256 = ""
 
 [components.vector_db]
@@ -216,8 +212,8 @@ sha256_win = "6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be"
 name = "InfluxDB Time Series Database"
 url = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-linux-amd64.tar.gz"
 filename = "influxdb2-2.7.10-linux-amd64.tar.gz"
-url_win = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-windows-amd64.zip"
-filename_win = "influxdb2-2.7.10-windows-amd64.zip"
+url_win = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-windows.zip"
+filename_win = "influxdb2-2.7.10-windows.zip"
 sha256 = ""
 
 [components.vault]

@@ -100,13 +100,12 @@ EOF"#.to_string(),
             post_install_cmds_windows: vec![],
             env_vars: {
                 let mut env = HashMap::new();
+                // #1960 — one source of truth for the local scheme: Windows
+                // runs Vault with `tls_disable = true`, so HTTPS there probes a
+                // listener that does not exist.
                 env.insert(
                     "VAULT_ADDR".to_string(),
-                    if cfg!(target_os = "windows") {
-                        "http://127.0.0.1:8200".to_string()
-                    } else {
-                        "https://127.0.0.1:8200".to_string()
-                    },
+                    botcoresecrets::local_vault_addr().to_string(),
                 );
                 env.insert(
                     "VAULT_CACERT".to_string(),
@@ -120,7 +119,11 @@ EOF"#.to_string(),
             check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; fi"
                 .to_string(),
             exec_cmd_windows: Some("start /B {{BIN_PATH}}\\vault.exe server -config={{CONF_PATH}}\\vault\\config.hcl > {{LOGS_PATH}}\\vault.log 2>&1".to_string()),
-            check_cmd_windows: Some("curl -f -sk --connect-timeout 2 -m 5 %VAULT_ADDR%/v1/sys/health?standbyok=true >NUL 2>&1".to_string()),
+            // #1960 — the Windows listener is plain HTTP (tls_disable = true).
+            // Probe the literal address instead of `%VAULT_ADDR%`: the check can
+            // run before the component's env block is applied, and a stale or
+            // external VAULT_ADDR (HTTPS) made a healthy vault look dead.
+            check_cmd_windows: Some("curl -f -sk --connect-timeout 2 -m 5 http://127.0.0.1:8200/v1/sys/health?standbyok=true >NUL 2>&1".to_string()),
             container: None,
         },
     );

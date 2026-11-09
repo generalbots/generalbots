@@ -266,11 +266,8 @@ async fn apply_llm_choice() {
         .map(|v| v.trim().is_empty())
         .unwrap_or(true)
     {
-        std::env::set_var("VAULT_ADDR", if cfg!(target_os = "windows") {
-            "http://127.0.0.1:8200"
-        } else {
-            "https://127.0.0.1:8200"
-        });
+        // #1960 — scheme comes from the shared helper so Windows keeps HTTP.
+        std::env::set_var("VAULT_ADDR", botcoresecrets::local_vault_addr());
     }
     if std::env::var("VAULT_CACERT").is_err() {
         let ca = stack.join("conf/system/certificates/ca/ca.crt");
@@ -337,14 +334,8 @@ pub async fn run() -> std::io::Result<()> {
         .map(|value| value.trim().is_empty())
         .unwrap_or(true)
     {
-        std::env::set_var(
-            "VAULT_ADDR",
-            if cfg!(target_os = "windows") {
-                "http://127.0.0.1:8200"
-            } else {
-                "https://127.0.0.1:8200"
-            },
-        );
+        // #1960 — scheme comes from the shared helper so Windows keeps HTTP.
+        std::env::set_var("VAULT_ADDR", botcoresecrets::local_vault_addr());
     }
     let tenant = std::env::var("GB_TENANT")
         .ok()
