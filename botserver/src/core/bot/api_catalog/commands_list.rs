@@ -323,3 +323,26 @@ pub(super) fn find_apps(query: &str) -> Vec<Value> {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod prompt_surface_tests {
+    use super::api_command_instructions;
+
+    /// #2035 — the injected surface is the discovery contract plus ten named
+    /// commands. Adding verbs to the catalogue must not grow the prompt.
+    #[test]
+    fn prompt_stays_small_regardless_of_command_count() {
+        let prompt = api_command_instructions("user");
+        assert!(
+            prompt.len() < 6000,
+            "prompt grew to {} bytes",
+            prompt.len()
+        );
+        assert!(prompt.contains("api.find"));
+        assert!(prompt.contains("api.exec"));
+        // Verbs that exist only in the catalogue must not be listed by name.
+        assert!(!prompt.contains("notes.create"));
+        assert!(!prompt.contains("database.rows.insert"));
+        assert!(!prompt.contains("sheet.cells.set"));
+    }
+}

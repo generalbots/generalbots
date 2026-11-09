@@ -134,6 +134,62 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("player", "player.playlists.create", "Create playlist", "Create a media playlist.", &[("name", "playlist name")], Some("app://player"), false),
     cmd("player", "player.playlists.add", "Add to playlist", "Add a media stream to a playlist.", &[("playlist_id", "playlist uuid"), ("media_id", "stream id")], Some("app://player"), false),
     cmd("player", "player.playlists.play", "Play playlist", "Start playback of a playlist.", &[("playlist_id", "playlist uuid")], Some("app://player"), false),
+    // ——— #2035 — office verbs: create/edit/export, not just open. Execution
+    // still goes through api.exec (api.find returns the matching endpoint); the
+    // deep link keeps the app reachable when the model only has the command.
+    cmd("docs", "docs.create", "Create document", "Create a document (title, content as markdown) and open it in Docs.", &[("title", "document title"), ("content", "markdown body")], Some("app://docs"), false),
+    cmd("docs", "docs.update", "Edit document", "Append or replace a document's content in Docs.", &[("file_id", "document id"), ("content", "markdown body"), ("mode", "append or replace")], Some("app://docs?file={file_id}"), false),
+    cmd("docs", "docs.export", "Export document", "Export a document to PDF or DOCX.", &[("file_id", "document id"), ("format", "pdf or docx")], None, false),
+    cmd("sheet", "sheet.create", "Create spreadsheet", "Create a spreadsheet from rows (JSON array of arrays) and open it.", &[("title", "file name"), ("rows", "JSON array of rows")], Some("app://sheet"), false),
+    cmd("sheet", "sheet.cells.set", "Fill cells", "Write values or formulas into a range of a spreadsheet.", &[("file_id", "spreadsheet id"), ("range", "A1 range, e.g. A1:C10"), ("values", "JSON array of rows or one value")], Some("app://sheet?file_id={file_id}"), false),
+    cmd("sheet", "sheet.chart.create", "Create chart", "Add a chart (bar, line or pie) from a cell range.", &[("file_id", "spreadsheet id"), ("range", "A1 range with labels and values"), ("type", "bar, line or pie")], Some("app://sheet?file_id={file_id}"), false),
+    cmd("sheet", "sheet.export", "Export spreadsheet", "Export a spreadsheet to XLSX, CSV or PDF.", &[("file_id", "spreadsheet id"), ("format", "xlsx, csv or pdf")], None, false),
+    cmd("slides", "slides.create", "Create presentation", "Create a presentation with a title and optional slides.", &[("title", "deck title"), ("slides", "JSON array of {title, body}")], Some("app://slides"), false),
+    cmd("slides", "slides.add", "Add slide", "Insert a slide at a given position in a presentation.", &[("file_id", "presentation id"), ("after", "slide number to insert after"), ("layout", "title, title-body or blank")], Some("app://slides?file={file_id}"), false),
+    cmd("slides", "slides.present", "Present", "Start presenting a deck full screen.", &[("file_id", "presentation id")], Some("app://slides?file={file_id}"), false),
+    cmd("canvas", "canvas.create", "Create drawing", "Create a drawing from SVG and open it in Canvas.", &[("title", "drawing name"), ("svg", "SVG markup")], Some("app://canvas"), false),
+    cmd("canvas", "canvas.export", "Export drawing", "Export a drawing to SVG, PNG or a .fig file.", &[("file_id", "drawing id"), ("format", "svg, png or fig")], None, false),
+    cmd("goals", "goals.objective.create", "Create objective", "Create an OKR objective with period and optional key results.", &[("title", "objective title"), ("period", "q1-2026 ... annual-2026"), ("key_results", "JSON array of key result titles")], Some("app://goals"), false),
+    cmd("goals", "goals.key_result.add", "Add key result", "Add a measurable key result to an objective.", &[("objective_id", "objective uuid"), ("title", "key result title"), ("target_value", "target number")], Some("app://goals"), false),
+
+    // ——— #2035 — the 18 apps that had no verb at all.
+    cmd("about", "about.read", "About this build", "Report the product name, version and edition of this installation.", &[], None, false),
+    cmd("automations", "automations.list", "List automations", "List scheduled automations with their state and last run.", &[], Some("app://automations"), false),
+    cmd("automations", "automations.create", "Create automation", "Create an automation from a plain-language request and a schedule.", &[("intent", "what should happen"), ("schedule", "cron or natural schedule")], Some("app://automations"), false),
+    cmd("automations", "automations.run", "Run automation", "Run an automation now.", &[("automation_id", "automation id")], Some("app://automations"), false),
+    cmd("calculator", "calculator.evaluate", "Calculate", "Evaluate a mathematical expression, including unit conversions.", &[("expression", "the expression to evaluate")], Some("app://calculator"), false),
+    cmd("clock", "clock.time", "Current time", "Report the current time and date for a timezone.", &[("timezone", "optional IANA timezone")], Some("app://clock"), false),
+    cmd("clock-widget", "clock.widget.configure", "Configure clock widget", "Set the clock widget's timezone and 12/24-hour format.", &[("timezone", "optional IANA timezone"), ("format", "12 or 24")], Some("app://clock-widget"), false),
+    cmd("concierge", "concierge.ask", "Ask the concierge", "Hand a goal to the concierge, which chooses the apps and actions to accomplish it.", &[("goal", "what the user wants")], Some("app://concierge"), false),
+    cmd("designer", "designer.flow.create", "Create flow", "Create an automation flow from a description.", &[("name", "flow name"), ("description", "what the flow does")], Some("app://designer"), false),
+    cmd("designer", "designer.flow.deploy", "Deploy flow", "Deploy a saved flow to a bot bucket.", &[("flow_id", "flow id"), ("bucket", "target bot bucket")], Some("app://designer"), false),
+    cmd("desktop", "desktop.app.open", "Open app", "Open an app window on the desktop.", &[("app", "app id, e.g. drive or chat")], Some("app://desktop"), false),
+    cmd("desktop", "desktop.windows.list", "List windows", "List the open windows on the desktop.", &[], Some("app://desktop"), false),
+    cmd("memory", "memory.search", "Search memory", "Search the assistant's long-term memory for a topic.", &[("query", "what to look for")], Some("app://memory"), false),
+    cmd("memory", "memory.add", "Remember", "Store a fact in long-term memory.", &[("text", "the fact to remember")], Some("app://memory"), false),
+    cmd("notes", "notes.create", "Create note", "Create a note with a title and body.", &[("title", "note title"), ("body", "note body")], Some("app://notes"), false),
+    cmd("notes", "notes.list", "List notes", "List notes, newest first.", &[], Some("app://notes"), false),
+    cmd("notes", "notes.update", "Edit note", "Update a note's title or body.", &[("note_id", "note id"), ("title", "optional new title"), ("body", "optional new body")], Some("app://notes?note_id={note_id}"), false),
+    cmd("o365", "o365.files.list", "List Microsoft 365 files", "List files in OneDrive/SharePoint.", &[("folder", "optional folder")], Some("app://o365"), false),
+    cmd("o365", "o365.mail.send", "Send Microsoft 365 mail", "Send mail through the connected Microsoft 365 account.", &[("to", "recipient"), ("subject", "subject"), ("body", "body")], None, true),
+    cmd("photos", "photos.list", "List photos", "List photos in the workspace library.", &[], Some("app://photos"), false),
+    cmd("photos", "photos.analyze", "Analyze photo", "Describe and tag a photo.", &[("photo_id", "photo id")], Some("app://photos"), false),
+    cmd("plugins", "plugins.list", "List plugins", "List installed plugins, their sources and state.", &[], Some("app://plugins"), false),
+    cmd("plugins", "plugins.enable", "Enable plugin", "Enable or disable an installed plugin.", &[("plugin_id", "plugin id"), ("enabled", "true or false")], Some("app://plugins"), false),
+    cmd("recycle", "recycle.list", "List deleted items", "List items in the recycle bin with their deletion date.", &[], Some("app://recycle"), false),
+    cmd("recycle", "recycle.restore", "Restore item", "Restore a deleted item from the recycle bin.", &[("item_id", "recycle item id")], Some("app://recycle"), false),
+    cmd("recycle", "recycle.empty", "Empty recycle bin", "Permanently delete everything in the recycle bin. Confirm first.", &[], Some("app://recycle"), true),
+    cmd("store", "store.products.list", "List store products", "List products on sale in the public store.", &[], Some("app://store"), false),
+    cmd("store", "store.product.publish", "Publish product", "Put a product or plan on sale in the store, with price and description.", &[("product_id", "product id"), ("price", "price"), ("description", "public description")], Some("app://store"), true),
+    cmd("store", "store.product.unpublish", "Unpublish product", "Remove a product from sale.", &[("product_id", "product id")], Some("app://store"), true),
+    cmd("terminal", "terminal.run", "Run command", "Run a shell command in the user's workspace VM and return its output.", &[("command", "the command line"), ("cwd", "optional working directory")], Some("app://terminal"), false),
+    cmd("terminal", "terminal.session.open", "Open terminal", "Open a terminal session in the workspace VM.", &[], Some("app://terminal"), false),
+    cmd("timer", "timer.start", "Start timer", "Start a countdown timer.", &[("duration", "seconds or 25m"), ("label", "optional label")], Some("app://timer"), false),
+    cmd("timer", "timer.stop", "Stop timer", "Stop the running timer.", &[], Some("app://timer"), false),
+    cmd("timer", "timer.status", "Timer status", "Report the remaining time of the running timer.", &[], Some("app://timer"), false),
+    cmd("weather", "weather.current", "Current weather", "Report current weather for a city.", &[("city", "city name")], Some("app://weather?city={city}"), false),
+    cmd("weather", "weather.forecast", "Weather forecast", "Multi-day forecast for a city.", &[("city", "city name"), ("days", "optional 1-7")], Some("app://weather?city={city}"), false),
+
     // ——— Legacy core commands (kept for backward compatibility: the chat
     // prompt and executors reference these exact names) ———
     cmd("tax", "service.tax", "Calculate service taxes", "Compute Brazilian service taxes for a service value or registered service (IRPJ, CSLL, PIS/COFINS, ISS).", &[("service", "optional service name or id"), ("value", "the service amount; required when no service is given")], None, false),
@@ -246,6 +302,64 @@ mod database_verb_tests {
                 .find(|command| command.name == name)
                 .expect("command is declared");
             assert!(command.admin_only, "{name} must be admin-only");
+        }
+    }
+}
+
+#[cfg(test)]
+mod verb_coverage_tests {
+    use super::*;
+
+    /// #2035 — these apps had no curated verb at all, so a request to open or
+    /// operate them could not be routed.
+    #[test]
+    fn every_app_has_at_least_one_verb() {
+        for app in [
+            "about",
+            "automations",
+            "calculator",
+            "clock",
+            "clock-widget",
+            "concierge",
+            "designer",
+            "desktop",
+            "memory",
+            "notes",
+            "o365",
+            "photos",
+            "plugins",
+            "recycle",
+            "store",
+            "terminal",
+            "timer",
+            "weather",
+        ] {
+            assert!(
+                !commands_for_app(app).is_empty(),
+                "app {app} still has no verb"
+            );
+        }
+    }
+
+    #[test]
+    fn office_apps_expose_create_and_export() {
+        for name in [
+            "docs.create",
+            "docs.update",
+            "docs.export",
+            "sheet.create",
+            "sheet.cells.set",
+            "sheet.chart.create",
+            "sheet.export",
+            "slides.create",
+            "slides.add",
+            "canvas.create",
+            "canvas.export",
+        ] {
+            assert!(
+                ALL_COMMANDS.iter().any(|command| command.name == name),
+                "missing office verb {name}"
+            );
         }
     }
 }
