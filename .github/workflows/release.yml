@@ -1518,7 +1518,11 @@ jobs:
           set -euo pipefail
           VERSION="${RELEASE_TAG#v}"
           cd dist
-          for ext in tar.gz deb rpm AppImage; do
+          # Only the tarball needs a version-less alias: it is the documented
+          # stable link (/releases/latest/download/generalbots-linux-x86_64.tar.gz).
+          # Aliasing deb/rpm/AppImage too doubled ~2.5 GB of every release with
+          # byte-identical copies nobody links to.
+          for ext in tar.gz; do
             src="generalbots-${VERSION}-linux-x86_64.${ext}"
             [ -f "$src" ] || continue
             cp "$src" "generalbots-linux-x86_64.${ext}"
