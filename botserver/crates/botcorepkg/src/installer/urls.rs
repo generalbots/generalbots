@@ -61,6 +61,26 @@ pub fn get_model_url(name: &str) -> Option<String> {
         .map(|c| c.effective_url().to_string())
 }
 
+/// Checksum pinned for an asset URL (#2001).
+///
+/// The container installer fetches the file *inside* the container and cannot
+/// hash it on the host, so it needs the pinned digest without a
+/// `DownloadCache` instance.
+#[must_use]
+pub fn checksum_for_url(url: &str) -> Option<String> {
+    let config = get_thirdparty_config();
+    config
+        .components
+        .values()
+        .chain(config.models.values())
+        .find_map(|component| {
+            component
+                .sha256_for_url(url)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

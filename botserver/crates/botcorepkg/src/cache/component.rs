@@ -74,7 +74,7 @@ impl ComponentDownload {
     /// The `llm` component downloads a different archive on a Vulkan host than
     /// on a plain CPU host, so the hash must be resolved from the URL in use,
     /// never from the component id alone.
-    pub(super) fn sha256_for_url(&self, url: &str) -> Option<&str> {
+    pub(crate) fn sha256_for_url(&self, url: &str) -> Option<&str> {
         if self.url == url {
             Some(&self.sha256)
         } else if self.url_win.as_deref() == Some(url) {

@@ -19,6 +19,14 @@ struct ComponentEntry {
     url_win: Option<String>,
     #[serde(default)]
     url_arm64: Option<String>,
+    // #2001 — the pinned digests travel in the same table; the container
+    // installer needs them where there is no DownloadCache instance.
+    #[serde(default)]
+    sha256: String,
+    #[serde(default)]
+    sha256_win: String,
+    #[serde(default)]
+    sha256_arm64: String,
 }
 
 #[derive(Deserialize, Debug)]

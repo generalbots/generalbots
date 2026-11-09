@@ -87,8 +87,15 @@ pub fn install_container(
             &format!("DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {}", pkg_list))?;
     }
     if let Some(url) = &component.download_url {
+        // #2001 — the pinned digest travels with the URL, so the container
+        // installer can verify the asset it just fetched.
+        let expected = crate::installer::checksum_for_url(url).unwrap_or_default();
         crate::facade_download::download_in_container(
-            &container_name, url, &component.name, component.binary_name.as_deref(),
+            &container_name,
+            url,
+            &component.name,
+            component.binary_name.as_deref(),
+            &expected,
         )?;
     }
     crate::facade_download::run_commands(

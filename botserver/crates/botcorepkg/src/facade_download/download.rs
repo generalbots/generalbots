@@ -47,9 +47,35 @@ pub fn exec_in_container(container: &str, command: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn download_in_container(container: &str, url: &str, _component: &str, binary_name: Option<&str>) -> Result<()> {
+pub fn download_in_container(
+    container: &str,
+    url: &str,
+    component: &str,
+    binary_name: Option<&str>,
+    expected_sha256: &str,
+) -> Result<()> {
     let download_cmd = format!("wget -O /tmp/download.tmp {}", url);
     exec_in_container(container, &download_cmd)?;
+    // #2001 — hash the file inside the container before it is unpacked. The
+    // container path used to install whatever wget returned; a compromised or
+    // corrupted release asset was unpacked straight into /opt/gbo/bin.
+    let expected = expected_sha256.trim();
+    if expected.is_empty() {
+        if crate::checksum::require_checksums() {
+            return Err(anyhow::anyhow!(
+                "no SHA-256 configured for '{component}' and GB_REQUIRE_CHECKSUMS is on; \
+                 refusing to install an unverified download"
+            ));
+        }
+        log::warn!(
+            "No SHA-256 checksum configured for '{component}'; the container download is NOT verified"
+        );
+    } else {
+        let verify_cmd = format!("echo '{expected}  /tmp/download.tmp' | sha256sum -c -");
+        exec_in_container(container, &verify_cmd)
+            .map_err(|error| anyhow::anyhow!("checksum verification failed for '{component}': {error}"))?;
+        info!("Checksum verified for '{}' in {}", component, container);
+    }
     let path = std::path::Path::new(url);
     let is_tar_gz = path
         .extension()

@@ -193,11 +193,32 @@ impl PackageManager {
         &self,
         container: &str,
         url: &str,
-        _component: &str,
+        component: &str,
         binary_name: Option<&str>,
     ) -> Result<()> {
         let download_cmd = format!("wget -O /tmp/download.tmp {}", url);
         self.exec_in_container(container, &download_cmd)?;
+        // #2001 — verify the fetched asset before unpacking it into
+        // /opt/gbo/bin (the container path had no checksum at all).
+        let expected = botcorepkg::installer::checksum_for_url(url).unwrap_or_default();
+        if expected.is_empty() {
+            if botcorepkg::checksum::require_checksums() {
+                return Err(anyhow::anyhow!(
+                    "no SHA-256 configured for '{component}' and GB_REQUIRE_CHECKSUMS is on; \
+                     refusing to install an unverified download"
+                ));
+            }
+            warn!(
+                "No SHA-256 checksum configured for '{}'; the container download is NOT verified",
+                component
+            );
+        } else {
+            let verify_cmd = format!("echo '{expected}  /tmp/download.tmp' | sha256sum -c -");
+            self.exec_in_container(container, &verify_cmd).map_err(|error| {
+                anyhow::anyhow!("checksum verification failed for '{component}': {error}")
+            })?;
+            info!("Checksum verified for '{}' in {}", component, container);
+        }
         let path = std::path::Path::new(url);
         let is_tar_gz = path
             .extension()
