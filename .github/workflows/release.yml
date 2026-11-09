@@ -419,8 +419,9 @@ jobs:
       # MinIO/mc releases listed in botserver/3rdparty.toml (url_win) and is
       # verified against their published .sha256sum files. Zitadel publishes
       # checksums.txt and Caddy's checksums.txt is SHA-512. Redis and Qdrant
-      # publish no checksum asset; their digest is recorded from the pinned
-      # release download instead of inventing a hash.
+      # publish no checksum asset; their digests were recorded from the pinned
+      # release downloads (size-verified against the GitHub asset metadata)
+      # and are enforced below like any other pin.
       - name: Stage Windows offline components
         shell: pwsh
         run: |
@@ -432,8 +433,8 @@ jobs:
           $downloads = @(
             @{ Name = 'minio.exe'; Url = 'https://github.com/minio/minio/releases/download/RELEASE.2025-09-07T16-13-09Z/minio.windows-amd64.RELEASE.2025-09-07T16-13-09Z.exe'; Algo = 'SHA256'; Hash = 'af709e6ba68488404e85acdd22a3030d0f5e56a108d4b27d744f18ceb50861b4' },
             @{ Name = 'mc.exe'; Url = 'https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.windows-amd64.RELEASE.2025-08-13T08-35-41Z.exe'; Algo = 'SHA256'; Hash = 'c8db13ebeda31497f354c0e950809db0ae9b2a2a69b8afee68c128c37300c157' },
-            @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = ''; Hash = '' },
-            @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = ''; Hash = '' },
+            @{ Name = 'Redis-x64-3.0.504.zip'; Url = 'https://github.com/microsoftarchive/redis/releases/download/win-3.0.504/Redis-x64-3.0.504.zip'; Algo = 'SHA256'; Hash = '5f761367601ca31f6c8969e427cacc0da4f428712954a66aab303f83e390566e' },
+            @{ Name = 'qdrant-x86_64-pc-windows-msvc.zip'; Url = 'https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip'; Algo = 'SHA256'; Hash = '6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be' },
             @{ Name = 'zitadel-windows-amd64.tar.gz'; Url = 'https://github.com/zitadel/zitadel/releases/download/v4.20.1/zitadel-windows-amd64.tar.gz'; Algo = 'SHA256'; Hash = 'dd38db24626a3f24f9e22244163f4ba50527378a4237cd19f0f6578b61c39405' },
             @{ Name = 'caddy_2.11.9_windows_amd64.zip'; Url = 'https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_windows_amd64.zip'; Algo = 'SHA512'; Hash = '98753d5d42650383d00619ac70917a217141f9e92314185bf6c1b8b439cfcfdf8393da0ebb4675c8cb3b23d29a19aabe99dc5aca64fa1bfc3a1ba22509b06871' }
           )
