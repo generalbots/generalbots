@@ -161,7 +161,10 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
       stickToBottom(1400);
       return;
     }
-    if (looksLikeHtmlDocument(content)) {
+    // #1693 — a fenced/complex drawing must not take the document path: it
+    // would dump the fence itself into the artifact iframe ("```svg" printed
+    // above the picture) and skip the live preview. The preview owns it.
+    if (!livePreview && looksLikeHtmlDocument(content)) {
       div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + "</div>";
       div.querySelector(".message-content").appendChild(renderInlineArtifact(content));
       messages.appendChild(div);
