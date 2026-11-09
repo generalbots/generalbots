@@ -74,12 +74,32 @@
         return { card: card, body: body, status: status, poster: poster, payload: payload };
     }
 
+    // #2028 — a sandbox URL built from the server's own loopback
+    // (`http://127.0.0.1:8081`) is unreachable from a browser that is not on
+    // that host: the frame stayed blank and the probe showed "App could not be
+    // reached". Treat that combination as "no URL" and use the inline document
+    // the server now always ships.
+    function loopbackHost(value) {
+        try {
+            var host = new URL(value, window.location.href).hostname;
+            return host === "127.0.0.1" || host === "localhost" || host === "::1" || host === "0.0.0.0";
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function preferInline(payload, pageHref) {
+        if (!payload || !payload.url) return false;
+        if (!loopbackHost(payload.url)) return false;
+        return !loopbackHost(pageHref || window.location.href);
+    }
+
     function mountFrame(host) {
         if (host.frame) return;
         host.poster.hidden = true;
         host.mountedAt = Date.now();
         var payload = host.payload;
-        var source = payload.url;
+        var source = preferInline(payload) ? null : payload.url;
         if (!source && payload.html_base64) {
             try {
                 var binary = window.atob(payload.html_base64);
@@ -107,7 +127,7 @@
         // loads blank without firing an error event, which is exactly the
         // silent empty window the issue reports. Probe the resource and turn a
         // network failure into an explicit status and toast.
-        if (payload.url) {
+        if (payload.url && source === payload.url) {
             fetch(source, { mode: "no-cors", credentials: "omit" }).catch(function () {
                 var text = "App could not be reached";
                 var current = host.status.textContent;
@@ -330,7 +350,11 @@
 
     window.AppFrame = {
         render: render,
-        renderFromFrame: function (frame, rootEl) {
+        // Exposed for the #2028 regression test: given a frame payload and the
+      // page URL, say whether the inline document must be used instead of the
+      // server's loopback sandbox URL.
+      prefersInline: preferInline,
+      renderFromFrame: function (frame, rootEl) {
             var payload = frame && frame.data ? frame.data.payload || {} : {};
             return render(payload, rootEl);
         },

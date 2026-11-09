@@ -127,16 +127,33 @@
     container.dataset.userCount = String(users.length);
   }
 
+  // Minimal i18n bridge: the suite loads `window.i18n` with `t(key)`, and a
+  // missing key falls back to the English default supplied here.
+  function tr(key, fallback, vars) {
+    var text = fallback;
+    if (window.i18n && typeof window.i18n.t === "function") {
+      var value = window.i18n.t(key);
+      if (value && value !== key) text = value;
+    }
+    if (vars) {
+      Object.keys(vars).forEach(function (name) {
+        text = text.split("{" + name + "}").join(vars[name]);
+      });
+    }
+    return text;
+  }
+
   function renderTypingIndicator(container, users) {
     if (!container) return;
     container.innerHTML = "";
     if (!users || !users.length) return;
     const names = users.slice(0, 3).map(function (u) { return escapeHtml(u.user_name || u.name); });
+    // #2029 — the indicator was hardcoded Portuguese next to English chrome.
     const text = names.length === 1
-      ? names[0] + " está digitando…"
+      ? tr("collab-typing-one", "{name} is typing…", { name: names[0] })
       : names.length === 2
-        ? names[0] + " e " + names[1] + " estão digitando…"
-        : names[0] + " e " + (users.length - 1) + " outros estão digitando…";
+        ? tr("collab-typing-two", "{first} and {second} are typing…", { first: names[0], second: names[1] })
+        : tr("collab-typing-many", "{name} and {count} others are typing…", { name: names[0], count: users.length - 1 });
     container.appendChild(el("div", { class: "gb-typing-text", style: { color: "#94a3b8", fontSize: "12px", padding: "4px 8px", fontStyle: "italic" }, html: text }));
   }
 
@@ -187,15 +204,15 @@
       console.warn("[GBCollab] app and docId required");
       return null;
     }
-    // botserver has no /ws/{app}/{doc} collaboration endpoint: the socket
-    // handler treats the first segment as a bot name, closes the connection
-    // and logs "no bot named 'docs'", and this client then reconnected every
-    // two seconds forever (one warning per attempt in the server log).
-    // Realtime collaboration stays opt-in: only connect when a caller passes
-    // an explicit url for a route that exists. Presence and comments use the
-    // REST endpoints already provided by collab_routes/collab_ops.
-    if (!this.opts.url) {
-      console.info("[GBCollab] realtime socket not configured; using REST presence");
+    // #2029 — the guard used to refuse every connection unless the caller
+    // passed an explicit url, on the (stale) grounds that botserver has no
+    // /ws/{app}/{doc} route. It does: /ws/docs/{id} (botdocs), /ws/sheet/{id}
+    // (botsheet) and /ws/slides/{id} (botslides), which is exactly what
+    // `defaultUrl()` builds. Apps without a realtime route keep the REST
+    // presence path, so no reconnect loop is started for them.
+    var HAS_REALTIME = { docs: true, sheet: true, slides: true };
+    if (!this.opts.url && HAS_REALTIME[this.app] !== true) {
+      console.info("[GBCollab] no realtime route for '" + this.app + "'; using REST presence");
       this.callbacks.onDisconnect();
       return null;
     }

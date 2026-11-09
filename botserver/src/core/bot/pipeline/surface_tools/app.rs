@@ -82,13 +82,15 @@ pub(super) async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
     let sandbox_ready = !origin.is_empty()
         && crate::core::bot::sandbox::routes::sandbox_listener_ready();
     let hash = crate::core::bot::sandbox::sign::hash_of(&html);
-    let (url, html_base64) = if !sandbox_ready {
-        use base64::Engine as _;
-        (
-            None,
-            Some(base64::engine::general_purpose::STANDARD.encode(html.as_bytes())),
-        )
-    } else {
+    // #2028 — the sandbox origin is the *bot container's* loopback
+    // (`http://127.0.0.1:8081`), which a browser elsewhere (prod,
+    // `peer.generalbots.org`) can never reach: the card rendered a dead frame
+    // and the toast said "App could not be reached". The inline document is
+    // always shipped alongside the URL so the client can fall back to an opaque
+    // frame when the origin is not reachable from the page.
+    use base64::Engine as _;
+    let inline = base64::engine::general_purpose::STANDARD.encode(html.as_bytes());
+    let url = if sandbox_ready {
         let path = crate::core::bot::sandbox::publish_resource(
             state,
             &state.bucket_name,
@@ -99,8 +101,11 @@ pub(super) async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
             Some(title),
         )
         .await;
-        (Some(format!("{origin}{path}")), None)
+        Some(format!("{origin}{path}"))
+    } else {
+        None
     };
+    let html_base64 = Some(inline);
     let fallback = format!("{title}: an interactive app is ready in the conversation.");
     persist(state, session_id, user_id, &fallback).await;
     emit_custom(

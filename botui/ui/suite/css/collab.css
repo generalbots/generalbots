@@ -20,13 +20,9 @@
   min-height: 32px;
   min-width: 32px;
 }
-.collaborators:empty::before {
-  content: "Conecte-se para colaborar";
-  color: #475569;
-  font-size: 12px;
-  font-style: italic;
-  white-space: nowrap;
-}
+/* #2029 — the empty-state banner was a hardcoded Portuguese `content:`
+   string, untranslatable and not clickable. Presence renders avatars instead;
+   an empty list is simply empty. */
 .gb-remote-cursor {
   position: absolute;
   width: 2px;
