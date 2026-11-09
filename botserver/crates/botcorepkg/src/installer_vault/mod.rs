@@ -6,6 +6,7 @@
 //! (`credentials`, `initialize_local`, `seed_defaults`, `seeds_exist`,
 //! `unseal`), so both trees name the same Vault step the same way.
 
+pub mod container_env;
 mod credentials;
 mod initialize_local;
 mod seed_defaults;
@@ -14,6 +15,7 @@ mod unseal;
 
 #[cfg(unix)]
 pub use credentials::fetch_vault_credentials_impl;
+pub use container_env::{generate_env_from_vault, initialize_vault};
 pub use credentials::fetch_vault_credentials;
 pub use initialize_local::initialize_vault_local;
 pub use seed_defaults::seed_vault_defaults;
