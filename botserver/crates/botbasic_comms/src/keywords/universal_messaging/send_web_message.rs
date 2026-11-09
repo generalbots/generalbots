@@ -38,6 +38,7 @@ pub(super) async fn send_web_file(
     let file_id = uuid::Uuid::new_v4().to_string();
     let file_url = format!("/api/files/{}", file_id);
 
+    #[cfg(feature = "cache")]
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
         let file_key = format!("file:{}", file_id);
@@ -115,6 +116,9 @@ pub(super) async fn get_teams_conversation_id(
     state: &Arc<AppState>,
     user_id: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    #[cfg(not(feature = "cache"))]
+    let _ = state;
+    #[cfg(feature = "cache")]
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
         let key = format!("teams_conversation:{}", user_id);

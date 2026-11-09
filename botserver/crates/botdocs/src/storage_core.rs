@@ -257,7 +257,7 @@ pub async fn load_docx_from_drive(
     // #2042 — a Drive-opened DOCX is persisted under the deck id so the first
     // save (and every save after a restart) patches the real package.
     if let Err(error) =
-        crate::storage_drive::persist_original_docx(state, user_identifier, &doc.id, &bytes, &doc.content).await
+        crate::storage_docx_source::persist_original_docx(state, user_identifier, &doc.id, &bytes, &doc.content).await
     {
         log::warn!("docs: could not persist the opened DOCX: {error}");
     }

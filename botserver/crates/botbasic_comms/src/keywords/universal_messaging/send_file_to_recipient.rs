@@ -72,6 +72,7 @@ pub(super) async fn parse_recipient(
         return Ok(("email".to_string(), recipient.to_string()));
     }
 
+    #[cfg(feature = "cache")]
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
         let web_session_key = format!("web_session:{}", recipient);

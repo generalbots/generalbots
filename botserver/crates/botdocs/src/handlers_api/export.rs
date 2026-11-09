@@ -38,7 +38,13 @@ pub async fn handle_export_docx(
             Ok(result) => result,
             Err(error) => {
                 log::warn!("docs export: preserving path failed: {error}");
-                (html_to_docx_full(&doc.title, &doc.content)?, "regenerated")
+                let rebuilt = html_to_docx_full(&doc.title, &doc.content).map_err(|e| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
+                    )
+                })?;
+                (rebuilt, "regenerated")
             }
         };
 
