@@ -1,0 +1,46 @@
+name: CodeQL
+
+# Code scanning runs once per product tag (and on demand), never per push.
+#
+# GitHub's CodeQL default setup had been running a duplicate analysis on every
+# push to main (see #2000): the pushes stack up faster than the analyses finish,
+# leaving several "Push on main" runs in_progress at the same time. The default
+# setup is disabled at the repository level; this workflow is the only CodeQL
+# producer and it fires on version tags / manual dispatch.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both languages are analyzed without a build: this is the same mode
+          # the default setup used for rust and actions (build-mode: none), so
+          # the results keep the same /language:<lang> category and alert
+          # history stays continuous.
+          - language: rust
+          - language: actions
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: github/codeql-action/init@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
