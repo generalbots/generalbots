@@ -132,7 +132,7 @@ jobs:
           # release and pinned by checksum, so a first run always has a drive.
           # Replace with a maintained S3 server when the drive component moves.
           mkdir -p dist/installers
-          BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v2"
+          BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v3"
           for f in minio mc SHA256SUMS-drive-bin; do
             for attempt in 1 2 3 4 5; do
               if curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o "dist/installers/$f" "$BASE/$f"; then
@@ -447,7 +447,7 @@ jobs:
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
       # #1793 — the payload must carry the services that have a Windows build,
-      # not just the executables. `drive-bin-v2` only publishes the Linux MinIO
+      # not just the executables. `drive-bin-v3` only publishes the Linux MinIO
       # binaries, so the Windows pair comes from the same pinned upstream
       # MinIO/mc releases listed in botserver/3rdparty.toml (url_win) and is
       # verified against their published .sha256sum files. Zitadel publishes
@@ -783,67 +783,6 @@ jobs:
           name: windows-binaries
           path: dist/*
           if-no-files-found: error
-
-  attach-windows:
-    name: Attach the Windows binaries to a pre-release
-    needs: [release, windows]
-    runs-on: ubuntu-latest
-    # Best effort: only runs when the Windows build itself went green, and never
-    # fails the workflow. Releases are immutable, so assets cannot be appended
-    # to the Linux tag after publication — the Windows build gets its own
-    # `-windows` pre-release tag (#1804), which never takes "latest".
-    continue-on-error: true
-    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' }}
-    steps:
-      - name: Download Windows binaries
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: windows-binaries
-          path: dist
-          merge-multiple: true
-
-      - name: Publish Windows assets
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        with:
-          # Never let the Windows release take "latest": the stable Linux link
-          # /releases/latest/download/generalbots-linux-x86_64.tar.gz must keep
-          # resolving to the release that actually carries that asset.
-          make_latest: false
-          prerelease: true
-          tag_name: ${{ needs.release.outputs.version }}-windows
-          name: ${{ needs.release.outputs.version }} (Windows)
-          body: |
-            Pre-release: Windows binaries for ${{ needs.release.outputs.version }}.
-            It is not the product release and never takes `latest`; the Linux
-            installer is the supported artifact and lives on the
-            `${{ needs.release.outputs.version }}` tag.
-
-            Bundled offline in `generalbots.exe` (payload `installers/` and the
-            MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel,
-            Caddy and the Windows BotModels pythonbox
-            (`botmodels-pythonbox-windows-x86_64.zip`, relocatable CPython plus
-            the CPU-tier wheelhouse). First run downloads the remaining stack
-            once (PostgreSQL, Vault and, when the local model is selected,
-            llama.cpp + models) unless `GB_DESKTOP_OFFLINE=1` refuses downloads;
-            `GB_DESKTOP_OFFLINE` also makes a missing component fail with the
-            exact file name.
-
-            Media (vision/STT/TTS) uses the bundled Windows pythonbox: the
-            first use builds its virtual environment from the offline wheelhouse
-            in `installers/`, so no PyPI round-trip is required. If a release is
-            built before the Windows pythonbox exists, `/api/product` reports
-            `media_capabilities.botmodels.available=false` with the reason and
-            the wizard marks the AI media service unavailable instead of trying
-            to install it.
-          files: |
-            dist/generalbots.exe
-            dist/generalbots-x64.exe
-            dist/botserver-x64.exe
-            dist/botui-x64.exe
-            dist/SHA256SUMS-windows.txt
-            dist/*.msi
-            dist/*-setup.exe
-          fail_on_unmatched_files: false
 
   bundle:
     name: Bundle pythonbox (linux x86_64)
@@ -1485,9 +1424,32 @@ jobs:
           retention-days: 14
 
 
+  macos:
+    name: macOS dmg
+    needs: [release]
+    # macOS is a native-runner extra, not a gate: a red macOS job must not cost
+    # the Linux/Windows assets. It contributes `macos-installer` to `dist`, and
+    # `publish` downloads it with continue-on-error.
+    if: ${{ github.server_url == 'https://github.com' }}
+    uses: ./.github/workflows/desktop-macos.yml
+    with:
+      tag: ${{ needs.release.outputs.version }}
+      # false = do not open a separate `-macos` pre-release; the .dmg belongs to
+      # this release, next to the Linux and Windows assets.
+      publish: false
+
+  iso:
+    name: Bootable ISO image
+    needs: [release, linux]
+    # Built from the same tarball that ships in this release.
+    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' }}
+    uses: ./.github/workflows/desktop-os-iso.yml
+    with:
+      artifact: linux-installer
+
   publish:
     name: Publish the all-inclusive release
-    needs: [release, linux, windows, attach-windows, bundle, bundle-windows]
+    needs: [release, linux, windows, bundle, bundle-windows, macos, iso]
     if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' && needs.linux.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1526,6 +1488,22 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: botmodels-pythonbox-windows
+          path: dist
+          merge-multiple: true
+
+      - name: Download macOS dmg
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: macos-installer
+          path: dist
+          merge-multiple: true
+
+      - name: Download the bootable ISO
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: generalbots-os-image
           path: dist
           merge-multiple: true
 
@@ -1644,6 +1622,9 @@ jobs:
               standalone binary for frontend/server use.
             - Windows x86_64: `generalbots.exe` (self-extracting), MSI, NSIS
               setup, and the raw `generalbots`/`botserver`/`botui` exes.
+            - macOS arm64: `*.dmg` and `*.app` (unsigned).
+            - Bootable ISO: `generalbots-*.iso` (x86_64 live image built from the
+              same tarball).
             - BotModels: Linux and Windows pythonbox bundles.
 
             `MANIFEST.json` lists every asset with its SHA-256 and size;
