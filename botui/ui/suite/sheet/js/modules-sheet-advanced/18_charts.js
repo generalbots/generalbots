@@ -173,6 +173,51 @@
     return Math.max(0, cols - 1);
   }
 
+  // SHEET-01 step 4 — double-click opens an in-place editor. A native
+  // prompt() would be the obvious shortcut, but #2032 already established that
+  // native dialogs are not acceptable in the suite; this is a small themed
+  // panel anchored to the chart.
+  function chartSheetId() {
+    if (window.__LOADED_SHEET && window.__LOADED_SHEET.id) return window.__LOADED_SHEET.id;
+    return sheetId();
+  }
+
+  function reloadWorkbook() {
+    return fetch("/api/sheet/load?id=" + encodeURIComponent(chartSheetId()))
+      .then(function (r) { return r.json(); })
+      .then(function (sheet) {
+        if (sheet && !sheet.error) window.__LOADED_SHEET = sheet;
+        renderAll();
+        return sheet;
+      })
+      .catch(function () { return null; });
+  }
+
+  function updateChart(chart, changes) {
+    const payload = {
+      sheet_id: chartSheetId(),
+      worksheet_index: wsIndex(),
+      chart_id: chart.id,
+    };
+    if (changes.chart_type) payload.chart_type = changes.chart_type;
+    if (changes.title != null) payload.title = changes.title;
+    if (changes.data_range) payload.data_range = changes.data_range;
+    return fetch("/api/sheet/chart/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.success) throw new Error((res && res.error) || "update rejected");
+        return reloadWorkbook();
+      })
+      .catch(function (e) {
+        if (window.sheetNotify) window.sheetNotify("Chart not updated: " + e.message, true);
+        return null;
+      });
+  }
+
   // #2026 — a chart is an object on the grid, not a picture: drag the body to
   // move it, drag the bottom-right handle to resize. The position is written
   // back so the next render/reload (and every other client) sees it.
@@ -229,6 +274,15 @@
     });
     handle.addEventListener("pointerdown", function (event) {
       beginDrag(event, "resize");
+    });
+    layer.title = "Double-click to edit";
+    layer.addEventListener("dblclick", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!window.SheetChartEditor) return;
+      window.SheetChartEditor.open(chart, layer, function (changes) {
+        updateChart(chart, changes);
+      });
     });
   }
 

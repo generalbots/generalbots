@@ -12,16 +12,29 @@ use crate::types::{ExportRequest, Spreadsheet};
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::Html,
     Json,
 };
 use std::sync::Arc;
+
+/// One content-type header for the download arms; the xlsx arm adds its
+/// fidelity marker on top. Returning a uniform `HeaderMap` keeps every arm of
+/// the match on the same type (an array literal and a `HeaderMap` cannot be
+/// unified by inference).
+fn content_headers(content_type: &'static str) -> axum::http::HeaderMap {
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static(content_type),
+    );
+    headers
+}
 
 pub async fn handle_export_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ExportRequest>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<(axum::http::HeaderMap, Vec<u8>), (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref());
 
     let session = state
@@ -39,7 +52,7 @@ pub async fn handle_export_sheet(
     match req.format.as_str() {
         "csv" => {
             let csv = export_to_csv(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv.into_bytes()))
+            Ok((content_headers("text/csv"), csv.into_bytes()))
         }
         "xlsx" => {
             // #2043 — export prefers the preserved package, like save-back
@@ -71,12 +84,8 @@ pub async fn handle_export_sheet(
                     (bytes, "regenerated")
                 }
             };
-            let mut headers = axum::http::HeaderMap::new();
-            headers.insert(
-                axum::http::header::CONTENT_TYPE,
-                axum::http::HeaderValue::from_static(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ),
+            let mut headers = content_headers(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             );
             headers.insert(
                 "x-gb-xlsx-fidelity",
@@ -86,11 +95,11 @@ pub async fn handle_export_sheet(
         }
         "json" => {
             let json = export_to_json(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], json.into_bytes()))
+            Ok((content_headers("application/json"), json.into_bytes()))
         }
         "html" => {
             let html = export_to_html(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html.into_bytes()))
+            Ok((content_headers("text/html"), html.into_bytes()))
         }
         "ods" => {
             let ods = export_to_ods(&sheet).map_err(|e| {
@@ -100,16 +109,13 @@ pub async fn handle_export_sheet(
                 )
             })?;
             Ok((
-                [(
-                    axum::http::header::CONTENT_TYPE,
-                    "application/vnd.oasis.opendocument.spreadsheet",
-                )],
+                content_headers("application/vnd.oasis.opendocument.spreadsheet"),
                 ods,
             ))
         }
         "md" | "markdown" => {
             let md = export_to_markdown(&sheet);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], md.into_bytes()))
+            Ok((content_headers("text/markdown"), md.into_bytes()))
         }
         "pdf" => {
             let pdf = export_to_pdf_data(&sheet).map_err(|e| {
@@ -121,7 +127,7 @@ pub async fn handle_export_sheet(
             // Stream the bytes: the download UI saves the response body as a
             // file, so returning base64 here produced a corrupt PDF. The print
             // preview builds its own data URL from `export_to_pdf_data_with`.
-            Ok(([(axum::http::header::CONTENT_TYPE, "application/pdf")], pdf))
+            Ok((content_headers("application/pdf"), pdf))
         }
         _ => Err((
             StatusCode::BAD_REQUEST,

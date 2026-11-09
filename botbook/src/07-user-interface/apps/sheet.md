@@ -41,6 +41,8 @@ The work to close the gap is tracked in [Sheet Parity Plan](./sheet-parity-plan.
 | Pivot table | Available | Toolbar Pivot modal: source range, rows/cols, value field and aggregation; result is read-only |
 | Import workbook | Available | Toolbar Import accepts `.xlsx`, `.xls` and `.ods` and opens the imported workbook |
 | Delete a chart | Available | Charts panel shows a delete button per chart, addressed by worksheet and chart id |
+| Edit a chart | Available | Double-click a chart to change its type (bar/line/pie), title or source range in place; the edit rewrites the stored chart, re-resolves the range and keeps its position |
+| Move / resize a chart | Available | Drag the chart body to move it or the bottom-right handle to resize; the position is persisted per chart |
 
 ### Formulas
 
@@ -234,6 +236,8 @@ The examples below show the intended conversational flow. Chat-driven sheet crea
 | `/api/sheet/sort` | POST | Sort range |
 | `/api/sheet/filter` | POST | Filter data |
 | `/api/sheet/chart` | POST | Create chart |
+| `/api/sheet/chart/update` | POST | Edit a chart in place (type, title, source range) |
+| `/api/sheet/chart/position` | POST | Persist a chart move/resize |
 | `/api/sheet/conditional-format` | POST | Apply conditional formatting |
 | `/api/sheet/data-validation` | POST | Apply data validation rules |
 | `/api/sheet/ai` | POST | Query spreadsheet AI assistant |

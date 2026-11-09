@@ -120,6 +120,10 @@ function loadSheet(id) {
                 VG.totalRows = Math.max(VG.totalRows, 50);
                 VG.render();
                 if (window.SheetAdvanced && window.SheetAdvanced.sync) window.SheetAdvanced.sync();
+                // Charts render off `gb-sheet-tab`, but the event above fires
+                // before the workbook arrives; without this second dispatch an
+                // opened sheet shows its cells and silently loses its charts.
+                document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
             }
         }
     }).catch(function(){

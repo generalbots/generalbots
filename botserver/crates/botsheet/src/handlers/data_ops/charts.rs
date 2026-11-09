@@ -4,7 +4,7 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
     ChartConfig, ChartDataset, ChartOptions, ChartPosition, ChartRequest, DeleteChartRequest,
-    MoveChartRequest, SaveResponse,
+    MoveChartRequest, SaveResponse, UpdateChartRequest,
 };
 use axum::{
     extract::{Extension, State},
@@ -175,6 +175,118 @@ pub async fn handle_move_chart(
         id: req.sheet_id,
         success: true,
         message: Some("Chart moved".to_string()),
+    }))
+}
+
+/// SHEET-01 step 4 — edit a chart in place: type, title and source range.
+/// Re-resolves the datasets when the range changes so the redraw matches the
+/// sheet instead of keeping stale values.
+pub async fn handle_update_chart(
+    State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
+    Json(req): Json<UpdateChartRequest>,
+) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            )
+        })?;
+
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
+    if req.worksheet_index >= sheet.worksheets.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid worksheet index" })),
+        ));
+    }
+
+    // Resolve any new series before taking the mutable worksheet borrow.
+    let resolved = req.data_range.as_deref().map(|range| {
+        let values = crate::storage::chart_read::resolve_chart_values(
+            range,
+            req.worksheet_index,
+            &sheet.worksheets,
+        );
+        let labels = req
+            .label_range
+            .as_deref()
+            .map(|labels| {
+                crate::storage::chart_read::resolve_chart_labels(
+                    labels,
+                    req.worksheet_index,
+                    &sheet.worksheets,
+                )
+            })
+            .unwrap_or_default();
+        (values, labels)
+    });
+
+    let worksheet = &mut sheet.worksheets[req.worksheet_index];
+    let chart = worksheet
+        .charts
+        .as_mut()
+        .and_then(|charts| charts.iter_mut().find(|chart| chart.id == req.chart_id));
+    let Some(chart) = chart else {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Chart not found" })),
+        ));
+    };
+
+    if let Some(chart_type) = req.chart_type {
+        chart.chart_type = chart_type;
+    }
+    if let Some(title) = req.title {
+        chart.title = title;
+    }
+    if let Some(data_range) = req.data_range {
+        chart.data_range = data_range;
+    }
+    if let Some(label_range) = req.label_range {
+        chart.label_range = label_range;
+    }
+    if let Some((values, labels)) = resolved {
+        if !values.is_empty() {
+            chart.datasets = vec![ChartDataset {
+                label: chart
+                    .datasets
+                    .first()
+                    .map(|dataset| dataset.label.clone())
+                    .unwrap_or_else(|| "Series 1".to_string()),
+                data: values,
+                color: chart
+                    .datasets
+                    .first()
+                    .map(|dataset| dataset.color.clone())
+                    .unwrap_or_else(|| "#3b82f6".to_string()),
+                background_color: None,
+            }];
+        }
+        chart.labels = labels;
+    }
+
+    sheet.updated_at = Utc::now();
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
+
+    Ok(Json(SaveResponse {
+        id: req.sheet_id,
+        success: true,
+        message: Some("Chart updated".to_string()),
     }))
 }
 

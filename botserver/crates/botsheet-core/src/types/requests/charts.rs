@@ -44,3 +44,24 @@ pub struct DeleteChartRequest {
     pub worksheet_index: usize,
     pub chart_id: String,
 }
+
+/// SHEET-01 step 4 — edit an existing chart in place. Double-clicking a chart
+/// opens the editor; changing the type or the source range must redraw it
+/// without deleting and re-adding the object (which would lose its position).
+/// Every field is optional so the client can send only what changed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateChartRequest {
+    #[serde(alias = "id")]
+    pub sheet_id: String,
+    #[serde(default)]
+    pub worksheet_index: usize,
+    pub chart_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chart_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_range: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_range: Option<String>,
+}
