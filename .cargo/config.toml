@@ -7,5 +7,11 @@ linker = "gcc"
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "link-arg=/LIBPATH:C:\\pgsql\\pgsql\\lib"]
 
-[env]
-PQ_LIB_DIR = { value = "C:\\pgsql\\pgsql\\lib", force = false }
+# PQ_LIB_DIR is deliberately NOT set here. Cargo's `[env]` table is global — it
+# also applied on Linux (and macOS), so `pq-sys` aborted every non-Windows build
+# with `Folder "PQ_LIB_DIR" doesn't exist ... C:\pgsql\pgsql\lib` (#1985).
+#
+# Only Windows needs it: both the Windows CI job and release.yml export the
+# real path via GITHUB_ENV after installing libpq, and a Windows developer sets
+# it to their own PostgreSQL lib directory (e.g.
+# `$env:PQ_LIB_DIR = "C:\Program Files\PostgreSQL\16\lib"`) before building.

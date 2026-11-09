@@ -75,68 +75,11 @@ const ThemeManager = (() => {
   // theme id. It used to require `[data-theme="dark"]`, which only ever matched
   // a theme literally named "dark" (there is none), so Carbon, Nord, Dark+Glass
   // and every other dark theme kept the light chat canvas.
-  function backgroundLuminanceIsDark() {
-    const rootStyle = getComputedStyle(document.documentElement);
-    const background = rootStyle.getPropertyValue("--background").trim();
-    const hsl = background.match(/^(-?[\d.]+)(?:deg)?\s+([\d.]+)%\s+([\d.]+)%/);
-    if (hsl) {
-      return parseFloat(hsl[3]) < 50;
-    }
-    // Themes without an HSL triplet still set a solid `--bg`.
-    const solid =
-      rootStyle.getPropertyValue("--bg").trim() ||
-      rootStyle.getPropertyValue("--bg-primary").trim();
-    const hex = solid.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if (!hex) {
-      return false;
-    }
-    const value =
-      hex[1].length === 3
-        ? hex[1]
-            .split("")
-            .map((c) => c + c)
-            .join("")
-        : hex[1];
-    const r = parseInt(value.slice(0, 2), 16);
-    const g = parseInt(value.slice(2, 4), 16);
-    const b = parseInt(value.slice(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
-  }
-
-  function syncColorScheme() {
-    document.documentElement.setAttribute(
-      "data-color-scheme",
-      backgroundLuminanceIsDark() ? "dark" : "light",
-    );
-  }
-
-  // Any theme switcher (this manager, Settings, the legacy body attribute)
-  // must update the scheme, so watch both elements instead of chasing callers.
-  function watchColorScheme() {
-    const observe = () => {
-      if (typeof MutationObserver !== "function") {
-        return;
-      }
-      const observer = new MutationObserver(syncColorScheme);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-theme"],
-      });
-      if (document.body) {
-        observer.observe(document.body, {
-          attributes: true,
-          attributeFilter: ["data-theme"],
-        });
-      }
-    };
-    if (document.body) {
-      observe();
-    } else {
-      document.addEventListener("DOMContentLoaded", observe, { once: true });
-    }
-    window.addEventListener("load", syncColorScheme);
-    syncColorScheme();
-  }
+  // Colour-scheme helpers live in theme-scheme.js (450-line rule); they only
+  // read computed styles and set data-color-scheme, so they carry no state.
+  const scheme = window.GBThemeScheme || { sync: () => {}, watch: () => {} };
+  const syncColorScheme = scheme.sync;
+  const watchColorScheme = scheme.watch;
 
   function loadTheme(id) {
     const theme = themes.find((t) => t.id === id);

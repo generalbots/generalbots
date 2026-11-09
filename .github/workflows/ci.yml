@@ -91,13 +91,17 @@ jobs:
         shell: pwsh
         run: |
           choco install postgresql16 --no-progress -y
-          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
-            Sort-Object Name | Select-Object -Last 1
-          if (-not $pg) { throw "PostgreSQL install directory not found" }
-          $lib = Join-Path $pg.FullName "lib"
-          if (-not (Test-Path (Join-Path $lib "libpq.dll"))) {
-            throw "libpq.dll not found in $lib"
+          # The image may already carry another major version whose `lib` does
+          # not ship libpq.dll, so pick a directory that really has it instead
+          # of the highest-looking folder name.
+          $candidates = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "lib\libpq.dll") } |
+            Sort-Object Name
+          if (-not $candidates) {
+            throw "No PostgreSQL installation provides lib\libpq.dll"
           }
+          $pg = $candidates[-1]
+          $lib = Join-Path $pg.FullName "lib"
           "PQ_LIB_DIR=$lib" >> $env:GITHUB_ENV
           "$($pg.FullName)\bin" >> $env:GITHUB_PATH
 
