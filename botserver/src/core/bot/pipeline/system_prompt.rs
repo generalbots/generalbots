@@ -68,11 +68,15 @@ pub(super) fn build(
     let skills_block = String::new();
     let system_prompt = format!("{system_prompt}{skills_block}");
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
-    // The desktop product's action surface is the agent VM (`vm_exec`), not the
-    // SaaS REST catalogue. Teaching `api.find` there made the free model look
-    // for a PDF endpoint instead of writing the program, and the call then
-    // leaked into the chat as raw text.
-    let include_api_catalog = !cfg!(feature = "desktop-local");
+    // #2033 — the REST catalogue is a capability of the deployment, not of the
+    // build flavour. A `desktop-local` binary served over the network (the
+    // production bot) still answers REST requests, so suppressing the catalogue
+    // there left the model unable to detect any app-data request. The default
+    // is on; a single-user install that deliberately drives only the agent VM
+    // can opt out with GB_PROMPT_API_CATALOG=0.
+    let include_api_catalog = api_catalog_enabled(
+        std::env::var("GB_PROMPT_API_CATALOG").ok().as_deref(),
+    );
     let channel_prompt = if channel == "web" {
         if include_api_catalog {
             format!(
@@ -207,4 +211,35 @@ pub(crate) fn with_structured_tools(prompt: String, channel: &str) -> String {
         return prompt;
     }
     format!("{prompt}\n\n{}", super::surface_tools::instructions())
+}
+
+/// #2033 — whether the web prompt carries the two-step API contract.
+///
+/// Default on. Only an explicit opt-out disables it, because a deployment can
+/// be a `desktop-local` binary that still serves REST to remote users.
+fn api_catalog_enabled(value: Option<&str>) -> bool {
+    match value.map(str::trim).map(str::to_ascii_lowercase).as_deref() {
+        Some("0") | Some("false") | Some("off") | Some("no") => false,
+        _ => true,
+    }
+}
+
+#[cfg(test)]
+mod api_catalog_gate_tests {
+    use super::api_catalog_enabled;
+
+    #[test]
+    fn catalogue_is_on_by_default_and_for_unset_values() {
+        assert!(api_catalog_enabled(None));
+        assert!(api_catalog_enabled(Some("")));
+        assert!(api_catalog_enabled(Some("1")));
+        assert!(api_catalog_enabled(Some("true")));
+    }
+
+    #[test]
+    fn only_an_explicit_opt_out_hides_the_catalogue() {
+        for value in ["0", "false", "off", "no", " FALSE "] {
+            assert!(!api_catalog_enabled(Some(value)), "value {value}");
+        }
+    }
 }
