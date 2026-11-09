@@ -171,7 +171,10 @@ pub async fn data_export(
         .map(|d| d.available_space())
         .unwrap_or(u64::MAX);
     if free < min_free {
-        log::warn!("data export refused for {user_id}: insufficient disk space ({free} bytes free)");
+        // #3007 — CodeQL rust/cleartext-logging: identifier redacted by botlog.
+        botlog::safe_warn!(
+            "data export refused for {user_id}: insufficient disk space ({free} bytes free)"
+        );
         return (
             StatusCode::INSUFFICIENT_STORAGE,
             [(header::CONTENT_TYPE, "application/json")],
@@ -281,7 +284,8 @@ pub async fn data_export(
     let bytes = match build {
         Ok(b) => b,
         Err(e) => {
-            log::error!("data export zip build failed for {user_id}: {e}");
+            // #3008 — CodeQL rust/cleartext-logging: identifier redacted by botlog.
+            botlog::safe_error!("data export zip build failed for {user_id}: {e}");
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 [(header::CONTENT_TYPE, "application/json")],

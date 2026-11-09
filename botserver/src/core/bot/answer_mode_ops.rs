@@ -18,7 +18,7 @@ pub async fn get_answer_mode(state: &Arc<AppState>, session_id: &Uuid) -> Answer
         let mut conn = match cache.get_multiplexed_async_connection().await {
             Ok(c) => c,
             Err(e) => {
-                log::debug!("answer_mode: cache conn failed for {session_id}: {e}");
+                botlog::safe_debug!("answer_mode: cache conn failed for {session_id}: {e}");
                 return AnswerMode::Default;
             }
         };
@@ -28,20 +28,20 @@ pub async fn get_answer_mode(state: &Arc<AppState>, session_id: &Uuid) -> Answer
                 let parsed = mode_str
                     .parse::<AnswerMode>()
                     .unwrap_or(AnswerMode::Default);
-                log::debug!(
+                botlog::safe_debug!(
                     "answer_mode: session {session_id} -> mode '{mode_str}' parsed={:?}",
                     parsed
                 );
                 parsed
             }
             Err(e) => {
-                log::debug!("answer_mode: cache GET failed for {session_id}: {e}");
+                botlog::safe_debug!("answer_mode: cache GET failed for {session_id}: {e}");
                 AnswerMode::Default
             }
         };
     }
     #[cfg(not(feature = "cache"))]
-    log::debug!("answer_mode: cache feature disabled, returning Default for {session_id}");
+    botlog::safe_debug!("answer_mode: cache feature disabled, returning Default for {session_id}");
     AnswerMode::Default
 }
 

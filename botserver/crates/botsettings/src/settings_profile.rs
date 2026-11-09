@@ -157,12 +157,16 @@ pub async fn user_profile_put(
             .bind::<diesel::sql_types::Uuid, _>(user_id)
             .execute(&mut conn);
 
+            // #3009/#3010 — CodeQL rust/cleartext-logging: the botlog facade
+            // scrubs the identifier and the address before they are emitted.
             match updated {
-                Ok(0) => log::warn!(
+                Ok(0) => botlog::safe_warn!(
                     "Profile email update skipped for user {user_id}: {email} is already in use"
                 ),
                 Ok(_) => {}
-                Err(e) => log::warn!("Profile email update failed for user {user_id}: {e}"),
+                Err(e) => {
+                    botlog::safe_warn!("Profile email update failed for user {user_id}: {e}")
+                }
             }
         }
     }

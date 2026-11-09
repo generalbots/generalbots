@@ -42,7 +42,7 @@ pub fn register_set_answer_mode_keyword(
             match rx.recv() {
                 Ok(Ok(())) => {
                     let msg = format!("Answer mode set to '{}'", mode.as_str());
-                    log::info!("SET ANSWER MODE: {} (session={})", msg, session_id);
+                    botlog::safe_info!("SET ANSWER MODE: {} (session={})", msg, session_id);
                     Ok(rhai::Dynamic::from(msg))
                 }
                 Ok(Err(e)) => Err(format!("SET ANSWER MODE failed: {}", e).into()),

@@ -40,7 +40,9 @@ pub async fn handle_chat_history_messages(
     // (e.g. guest-repaired rows). Log the mismatch and allow the
     // authenticated user to read their own session instead of returning 403.
     if sess.user_id.to_string() != user_uuid.to_string() {
-        log::warn!(
+        // #3006 — CodeQL rust/cleartext-logging: botlog scrubs the identifiers
+        // while the message keeps the mismatch traceable.
+        botlog::safe_warn!(
             "chat history: session {} owned by {} but bearer is {} — allowing",
             session_id,
             sess.user_id,

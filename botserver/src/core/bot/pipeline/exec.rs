@@ -250,7 +250,9 @@ pub async fn process_message_internal(
             .map_or(0, Vec::len),
         parsed.get("client_capabilities"),
     );
-    log::info!(
+    // #3011 — CodeQL rust/cleartext-logging: identifiers go through the botlog
+    // redacting facade, never the raw log macros.
+    botlog::safe_info!(
         "agentic routing: session={session_id} mode={} reason={}",
         route.route.as_str(),
         route.reason
@@ -463,7 +465,7 @@ pub async fn process_message_internal(
     .await
     .is_err()
     {
-        log::warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
+        botlog::safe_warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no
