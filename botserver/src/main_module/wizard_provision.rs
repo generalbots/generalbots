@@ -52,6 +52,8 @@ fn progress(id: &str, state: &str, message: &str, started: Instant) {
 mod component_plan;
 use component_plan::component_plan;
 
+/// Returns the first failure reason without including credentials or paths that
+/// the wizard cannot display.
 async fn provision_component(
     pm: &PackageManager,
     component: &Component,

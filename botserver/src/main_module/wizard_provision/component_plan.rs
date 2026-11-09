@@ -109,6 +109,3 @@ pub(super) fn component_plan() -> Vec<Component> {
     }
     plan
 }
-
-/// Returns the first failure reason without including credentials or paths that
-/// the wizard cannot display.
