@@ -164,8 +164,18 @@ mod tests {
         let model = vec![vec!["Beans and rice".to_string()]];
         match preserve_pptx_text(&original, &source, &model).expect("preserve") {
             PreservedPptx::Patched(bytes) => {
-                let text = String::from_utf8_lossy(&bytes);
-                assert!(text.contains("Beans and rice"));
+                // The package is re-zipped (deflated), so the text lives in the
+                // slide part, not in the raw archive bytes.
+                let mut archive =
+                    zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
+                let mut slide = String::new();
+                use std::io::Read as _;
+                archive
+                    .by_name("ppt/slides/slide1.xml")
+                    .expect("slide part")
+                    .read_to_string(&mut slide)
+                    .expect("read slide");
+                assert!(slide.contains("Beans and rice"), "{slide}");
             }
             other => panic!("expected patched, got {other:?}"),
         }
@@ -195,7 +205,7 @@ mod fixture_round_trip {
         let mut out = Vec::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).expect("entry");
-            let name = file.name().map(str::to_string).unwrap_or_default();
+            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
             let mut content = Vec::new();
             file.read_to_end(&mut content).expect("read");
             out.push((name, content));
