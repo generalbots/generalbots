@@ -73,18 +73,26 @@ pub fn register_directory(components: &mut HashMap<String, ComponentConfig>) {
                 "if not exist {{DATA_PATH}} mkdir {{DATA_PATH}}".to_string(),
                 "if not exist {{CONF_PATH}}\\directory mkdir {{CONF_PATH}}\\directory".to_string(),
                 "if not exist {{LOGS_PATH}}\\directory mkdir {{LOGS_PATH}}\\directory".to_string(),
+                // Mirror the Linux steps file exactly: Zitadel v4 requires
+                // `Org.Name`, and `MachineKey`/`Pat` are siblings of the inner
+                // `Machine` under `Org.Machine`. The previous Windows file
+                // omitted the org name and nested the key/PAT one level too
+                // deep, so setup "completed" without creating the machine key
+                // or the admin PAT, and the assistant could never build its
+                // OAuth client.
                 "echo FirstInstance: > {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo   MachineKeyPath: {{CONF_PATH}}\\directory\\machine-key.json >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo   PatPath: {{CONF_PATH}}\\directory\\admin-pat.txt >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo   Org: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
+                "echo     Name: General Bots >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo     Machine: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo       Machine: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo         Username: gb-service-account >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
                 "echo         Name: General Bots Service Account >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
-                "echo         MachineKey: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
-                "echo           Type: 1 >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
-                "echo           Pat: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
-                "echo             ExpirationDate: '2099-01-01T00:00:00Z' >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
+                "echo       MachineKey: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
+                "echo         Type: 1 >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
+                "echo       Pat: >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
+                "echo         ExpirationDate: '2099-01-01T00:00:00Z' >> {{CONF_PATH}}\\directory\\zitadel-init-steps.yaml".to_string(),
             ],
             post_install_cmds_windows: vec![
                 "if exist {{BIN_PATH}}\\zitadel (ren {{BIN_PATH}}\\zitadel zitadel.exe)".to_string(),

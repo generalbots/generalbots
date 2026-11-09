@@ -248,7 +248,12 @@ impl Sidecar {
         let mut command = Command::new(&path);
         #[cfg(target_os = "windows")]
         command.env("PATH", Self::prepare_windows_runtime(&installers)?);
+        // The default build carries the `console` feature, so without this flag
+        // the sidecar starts the ratatui TUI: its logs go to the (invisible)
+        // TUI instead of the sidecar log, and a hidden/redirected process can
+        // wedge on terminal setup. The desktop sidecar must run headless.
         command
+            .arg("--noconsole")
             .current_dir(&stack)
             .env_remove("DATABASE_URL")
             .env_remove("PG_URL")
