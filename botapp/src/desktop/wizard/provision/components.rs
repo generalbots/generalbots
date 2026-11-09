@@ -192,14 +192,32 @@ pub(super) async fn run_components(
             if event.state == "failed" {
                 failure = Some(event.message.clone());
             }
+            // `components` ready is the provisioner's terminal event and a
+            // `failed` event ends the run. On Windows the services it starts
+            // with `start /B` (vault, postgres, minio, qdrant, zitadel) inherit
+            // this stdout pipe and keep it open after the provisioner exits, so
+            // waiting for EOF blocks forever and the wizard stays at
+            // "Assistant service pending" (7 of 8, 88%).
+            let terminal =
+                event.state == "failed" || (event.id == "components" && event.state == "ready");
             emit(app, state, event);
+            if terminal {
+                break;
+            }
         }
     }
 
-    let status = child
-        .wait()
-        .await
-        .map_err(|e| format!("could not wait for the setup process: {e}"))?;
+    // The direct child exits right after its terminal event, but the inherited
+    // pipes of the detached services may keep `wait` from resolving promptly.
+    // Bound it: the components already reported their final state.
+    let status = match tokio::time::timeout(std::time::Duration::from_secs(30), child.wait()).await {
+        Ok(Ok(status)) => Some(status),
+        Ok(Err(e)) => return Err(format!("could not wait for the setup process: {e}")),
+        Err(_) => {
+            warn!("wizard: provisioning child did not exit within 30s; continuing");
+            None
+        }
+    };
     if let Ok(mut guard) = state.pid.lock() {
         *guard = None;
     }
@@ -207,23 +225,25 @@ pub(super) async fn run_components(
     if state.cancelled.load(Ordering::SeqCst) {
         return Err("Setup was cancelled. Partial data will be reused next time.".to_string());
     }
-    if !status.success() {
-        let details = stderr_buffer
-            .lock()
-            .map(|buffer| buffer.trim().to_string())
-            .unwrap_or_default();
-        let reason = failure.unwrap_or_else(|| {
-            if details.is_empty() {
-                "A setup component failed. Open the log folder for details.".to_string()
-            } else {
-                details
-                    .lines()
-                    .last()
-                    .unwrap_or("A setup component failed.")
-                    .to_string()
-            }
-        });
-        return Err(reason);
+    if let Some(status) = status {
+        if !status.success() {
+            let details = stderr_buffer
+                .lock()
+                .map(|buffer| buffer.trim().to_string())
+                .unwrap_or_default();
+            let reason = failure.unwrap_or_else(|| {
+                if details.is_empty() {
+                    "A setup component failed. Open the log folder for details.".to_string()
+                } else {
+                    details
+                        .lines()
+                        .last()
+                        .unwrap_or("A setup component failed.")
+                        .to_string()
+                }
+            });
+            return Err(reason);
+        }
     }
     if let Some(reason) = failure {
         return Err(reason);
