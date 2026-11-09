@@ -250,6 +250,12 @@ jobs:
         # scripts/component_checksums_allowlist.txt. The installer verifies the
         # hash and refuses unhashed assets under GB_REQUIRE_CHECKSUMS=1.
         run: python3 scripts/check_component_checksums.py
+      - name: Every workflow download is verified
+        # #2001 self-review — the two downloads this job's sibling steps rely
+        # on used to be unverified (mdBook, relocatable CPython). Fail a step
+        # that writes a downloaded file without a `sha256sum -c` against a
+        # literal digest or the release's SHA256SUMS asset.
+        run: python3 scripts/check_workflow_downloads.py
 
   headers:
     name: Public origin headers (advisory)

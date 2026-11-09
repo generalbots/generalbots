@@ -846,6 +846,20 @@ jobs:
           fi
           echo "bundling $url"
           curl -fsSL --retry 3 --retry-delay 5 -o /tmp/python.tar.gz "$url"
+          # #2001 self-review — fail closed on the interpreter too. The
+          # "latest release" is resolved by design (a patch bump is not a
+          # supply-chain event), but the bytes must match the release's own
+          # SHA256SUMS: an unverified interpreter would end up inside every
+          # desktop bundle. Asset URLs encode '+' as %2B, the sums file does
+          # not, so decode the name before the lookup.
+          curl -fsSL --retry 3 --retry-delay 5 -o /tmp/python.SHA256SUMS "${url%/*}/SHA256SUMS"
+          asset=$(basename "$url" | sed 's/%2B/+/g')
+          want=$(awk -v n="$asset" '$2 == n { print $1 }' /tmp/python.SHA256SUMS)
+          if [ -z "$want" ]; then
+            echo "::error::SHA256SUMS has no entry for $asset; refusing to bundle an unverified interpreter"
+            exit 1
+          fi
+          echo "$want  /tmp/python.tar.gz" | sha256sum -c -
 
       - name: Build the offline wheelhouse (CPU tier)
         run: |

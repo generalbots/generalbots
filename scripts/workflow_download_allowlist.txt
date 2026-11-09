@@ -1,0 +1,9 @@
+# Workflow downloads that do not need a `sha256sum -c` (#2001).
+#
+# `scripts/check_workflow_downloads.py` fails a `run:` step that writes a
+# downloaded file without verifying a SHA-256 in the same step. Every current
+# step verifies (literal digest, or the release's SHA256SUMS asset), so this
+# list is empty: add a line only with a reason that explains why the download
+# cannot be verified at all.
+#
+# Format: `<workflow-file>:<target-basename>  <reason>`

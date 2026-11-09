@@ -190,6 +190,23 @@ Current credential classes and their rotation action:
   `scripts/component_checksums_allowlist.txt`; `GB_REQUIRE_CHECKSUMS=1` makes a
   missing hash fatal, and CI fails on any unacknowledged gap
   (`scripts/check_component_checksums.py`).
+- **Build-input provenance.** Every binary CI fetches is verified before it is
+  executed or bundled: the six security tools (cargo-deny, osv-scanner,
+  gitleaks, syft, actionlint, pip-audit) have literal SHA-256 pins, the vendored
+  drive binaries and the BotModels pythonbox are checked against the checksum
+  asset published in the same release, and — since the #2001 self-review — so
+  are mdBook (literal digest in `ci.yml`) and the relocatable CPython
+  interpreter (`SHA256SUMS` from the same python-build-standalone release; a
+  missing entry aborts the build). Those two were the last unverified downloads
+  in the pipeline.
+- **What is *not* signed.** Release assets ship with `SHA256SUMS-linux` /
+  `SHA256SUMS-windows` and the self-extracting `generalbots` binary carries its
+  own payload digest (`--verify` re-checks it), but nothing is cryptographically
+  signed: a compromise of the release upload path could replace an asset and its
+  sums together. Candidate remediation is `cosign sign-blob` over the published
+  assets plus SLSA provenance on the release workflow; tracked as residual risk
+  below rather than claimed as covered.
+
 
 ### Accepted residual risk
 
@@ -203,7 +220,8 @@ advisory still fails the gate.
 | Unmaintained build-time crates | proc-macro-error, ttf-parser, smartstring, zvariant | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
 | Unmaintained Windows cache port | Redis-x64-3.0.504 (microsoftarchive) | Desktop-edition Windows payload only; unmaintained upstream, digest now pinned fail-closed in the release build. Replace with a maintained cache strategy or drop before shipping Windows broadly. | 2027-05-09 |
-| Ecosystem single-owner crates | syn, quote, proc-macro2, serde (one owner); ring; jsonwebtoken; reqwest | crates.io-level concentration, not fixable per consumer: the crates are single-owner upstream (verified via the owners API, 2026-11-09, self-review in #2001). Mitigation is lockfile pinning, the cargo-deny/OSV gate on every push and dependency-bump PR review; monitor ownership changes at review. A `cargo vet` attestation pass is the candidate future gate. | 2027-05-09 |
+| Unsigned release artifacts | `SHA256SUMS-*`, `generalbots` self-extractor | Checksums are published next to the assets and the self-extractor re-verifies its own payload digest, but neither is signed: an attacker who can write to the release page can replace asset + sums together. Compensating control is the review gate on every release and the pinned CI inputs above. Candidate fix: `cosign sign-blob` + SLSA provenance. | 2027-05-09 |
+| Ecosystem single-owner crates | syn, quote, proc-macro2, serde (one human owner); ring; jsonwebtoken; reqwest; qdrant-client; zbus; smartstring; tauri (`tauri-bot` account) | crates.io-level concentration, not fixable per consumer: verified via the owners API on 2026-11-09 as part of the #2001 self-review. Mitigation is lockfile pinning, the cargo-deny/OSV gate on every push and dependency-bump PR review; monitor ownership changes at review. A `cargo vet` attestation pass is the candidate future gate. | 2027-05-09 |
 
 Open upgrade clusters (each changes a public API and needs its own regression
 pass):
