@@ -7,7 +7,7 @@ pydantic-settings==2.5.2
 email-validator>=2.2.0
 
 # Hardware detection for min/max tier resolution (has /proc + sysctl fallbacks)
-psutil>=6.0.0
+psutil>=7.2.2
 
 # Logging
 structlog==25.5.0
