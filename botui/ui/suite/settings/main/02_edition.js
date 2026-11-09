@@ -123,6 +123,30 @@ function hideSettingsSection(id) {
   if (nav) { nav.style.display = "none"; }
 }
 
+// #1865 — Offline is a hard gate: with no listener and no identity there is
+// nothing to share, so the Shared Links panel does not exist. The nav registry
+// hides the entry; this also hides the panel itself in case a deep link or a
+// restored hash opened it.
+function applyNetworkModeVisibility() {
+  var offline = true;
+  try {
+    offline = ((window.localStorage && window.localStorage.getItem("gb_peer_network_mode")) || "offline") !== "p2p";
+  } catch (e) { /* storage unavailable: stay offline */ }
+  var section = document.getElementById("shared-links-section");
+  if (section) { section.style.display = offline ? "none" : ""; }
+  var nav = document.querySelector('.settings-nav a[href="#shared-links"]');
+  if (nav) { nav.style.display = offline ? "none" : ""; }
+  if (offline) {
+    var open = document.querySelector(".settings-section.active");
+    if (open && open.id === "shared-links-section") {
+      var profile = document.querySelector('.settings-nav a[href="#profile"]');
+      if (profile) { profile.click(); }
+    }
+    return;
+  }
+  if (window.GBNavRegistry) { window.GBNavRegistry.applyNavVisibility(); }
+}
+
 function hideSettingControl(control) {
   if (!control) { return; }
   var row = control.closest ? control.closest(".setting-row, .form-group") : null;
@@ -179,6 +203,7 @@ function applyDesktopEditionVisibility() {
 
 function applyEditionVisibility(config) {
   if (isDesktopEdition(config)) { applyDesktopEditionVisibility(config); }
+  applyNetworkModeVisibility();
   if (!isSlimEdition(config)) { return; }
   ["billing", "vibe"].forEach(hideSettingsSection);
   document.querySelectorAll('[data-admin-only="true"]').forEach(function (node) {
@@ -230,6 +255,11 @@ function initEditionVisibility() {
   // Settings sections load via HTMX partials; reapply when content arrives.
   document.body.addEventListener("htmx:afterSwap", reapply);
   document.body.addEventListener("htmx:load", reapply);
+  // #1865 — flipping the master switch immediately adds or removes the panel.
+  window.addEventListener("gb-network-mode-changed", function () {
+    applyNetworkModeVisibility();
+    if (window.GBNavRegistry) { window.GBNavRegistry.applyNavVisibility(); }
+  });
 }
 
   S.currentEdition = currentEdition;
@@ -241,5 +271,6 @@ function initEditionVisibility() {
   S.applyDesktopEditionVisibility = applyDesktopEditionVisibility;
   S.applyShellModeVisibility = applyShellModeVisibility;
   S.applyEditionVisibility = applyEditionVisibility;
+  S.applyNetworkModeVisibility = applyNetworkModeVisibility;
   S.initEditionVisibility = initEditionVisibility;
 })(window);

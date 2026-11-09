@@ -75,7 +75,16 @@ pub async fn enable(headers: HeaderMap) -> Response {
         return error_response(error);
     }
     network.enable();
+    persist_mode("p2p");
     (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
+}
+
+/// #1865 — the toggle is a hard gate, so it must outlive the process. The
+/// wizard writes the same key at first run; Settings → Network writes it here.
+fn persist_mode(mode: &str) {
+    if let Err(error) = peer_network::persist_network_mode(mode) {
+        log::warn!("could not persist network mode {mode}: {error}");
+    }
 }
 
 /// `POST /api/peer/disable` — stop all P2P traffic at runtime.
@@ -85,6 +94,7 @@ pub async fn disable(headers: HeaderMap) -> Response {
         return error_response(error);
     }
     network.disable();
+    persist_mode("offline");
     (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
 }
 

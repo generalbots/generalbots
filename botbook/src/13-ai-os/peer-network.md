@@ -54,9 +54,14 @@ node's signing key.
 
 ## Privacy model
 
-- **Opt-in only.** The first-run wizard asks for a network mode
-  (`Offline` or `P2P`). The default is `Offline`. A master peer switch in
-  Settings → Shared Links can stop all P2P traffic.
+- **Opt-in only.** The first-run wizard asks once for a network mode
+  (`Offline` or `P2P`); the default is `Offline`. The answer is a hard gate,
+  not a preference: it is written to the stack `.env` as `GB_NETWORK_MODE`
+  and the node honours it at boot. Settings → Network can flip it at any
+  time — `POST /api/peer/disable` stops every peer surface immediately and
+  rewrites the same key, so the choice survives a restart. Offline also
+  removes Settings → Shared Links, because there is no reachable address to
+  share.
 - **No retention.** Peer nodes do not retain user content. Payloads are
   end-to-end encrypted and only the recipient can decrypt them.
 - **No telemetry.** The mesh carries no analytics, usage reports, or

@@ -10,6 +10,7 @@
 //! | Variable | Meaning |
 //! |---|---|
 //! | `GB_PEER_NETWORK` | `1`/`true`/`yes`/`on` enables the node endpoints |
+//! | `GB_NETWORK_MODE` | desktop first-run answer: `offline` disables every peer surface, `p2p` starts the node on boot (#1865) |
 //! | `GB_PEER_NODE_ID` | Stable UUID; otherwise generated and persisted |
 //! | `GB_PEER_NODE_NAME` | Display name; otherwise `general-bots-<id8>` |
 //! | `GB_PEER_ADVERTISE_ADDR` | Optional address relayed to other peers |
@@ -31,6 +32,61 @@
 //! directory so the same install keeps the same id across restarts.
 
 include!("peer_network_types.rs");
+
+/// #1865 — persists the master switch into the stack `.env` that botserver
+/// loads on boot, so a choice made in Settings survives a restart. The write is
+/// line-based: an existing `GB_NETWORK_MODE=` is replaced, otherwise one line
+/// is appended. Callers log the error; a failed write must never break the
+/// runtime toggle.
+pub fn persist_network_mode(mode: &str) -> Result<(), String> {
+    let stack = botcore::shared::utils::get_stack_path();
+    let dir = PathBuf::from(&stack);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("create {stack}: {e}"))?;
+    let env_path = dir.join(".env");
+    let new_line = format!("{ENV_NETWORK_MODE}={mode}");
+    let existing = std::fs::read_to_string(&env_path).unwrap_or_default();
+    let updated = if existing
+        .lines()
+        .any(|line| line.starts_with(&format!("{ENV_NETWORK_MODE}=")))
+    {
+        let lines: Vec<&str> = existing
+            .lines()
+            .map(|line| {
+                if line.starts_with(&format!("{ENV_NETWORK_MODE}=")) {
+                    new_line.as_str()
+                } else {
+                    line
+                }
+            })
+            .collect();
+        lines.join("\n") + "\n"
+    } else if existing.is_empty() {
+        format!("{new_line}\n")
+    } else if existing.ends_with('\n') {
+        format!("{existing}{new_line}\n")
+    } else {
+        format!("{existing}\n{new_line}\n")
+    };
+    let fresh = !env_path.exists();
+    std::fs::write(&env_path, updated)
+        .map_err(|e| format!("write {}: {e}", env_path.display()))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if fresh {
+            if let Ok(metadata) = std::fs::metadata(&env_path) {
+                let mut permissions = metadata.permissions();
+                permissions.set_mode(0o600);
+                let _ = std::fs::set_permissions(&env_path, permissions);
+            }
+        }
+    }
+    log::info!(
+        "peer network mode persisted as {mode} in {}",
+        env_path.display()
+    );
+    Ok(())
+}
 
 /// Node identity plus the registration/heartbeat table.
 pub struct PeerNetwork {

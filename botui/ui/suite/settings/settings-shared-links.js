@@ -358,16 +358,27 @@
     } catch (e) {}
     button.addEventListener("click", function () {
       var chosen = select.value === "p2p" ? "p2p" : "offline";
-      try {
-        if (window.localStorage) {
-          window.localStorage.setItem("gb_peer_network_mode", chosen);
+      // #1865 — one implementation for both switches: Settings → Network owns
+      // the API call that stops or starts the peer surfaces and persists the
+      // choice. Offline also removes this panel (no address to share), so the
+      // user is sent back to Profile after the gate flips.
+      var applied = (window.GBNetworkMode && typeof window.GBNetworkMode.apply === "function")
+        ? window.GBNetworkMode.apply(chosen)
+        : Promise.resolve(null);
+      applied.then(function (enabled) {
+        var node = byId("shared-links-checked");
+        if (node) {
+          node.textContent = enabled === null
+            ? "Network mode set to " + chosen + " and remembered for the next start."
+            : (chosen === "p2p"
+              ? "P2P is on: this desktop is reachable and can share links."
+              : "Offline: no listeners, no identity, no links.");
         }
-      } catch (e) {}
-      var node = byId("shared-links-checked");
-      if (node) {
-        node.textContent = "Network mode set to " + chosen +
-          ". Restart the app for the change to take effect.";
-      }
+        if (chosen === "offline") {
+          var profile = document.querySelector('.settings-nav a[href="#profile"]');
+          if (profile) { profile.click(); }
+        }
+      });
     });
   }
 

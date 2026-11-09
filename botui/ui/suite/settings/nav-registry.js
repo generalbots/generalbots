@@ -28,7 +28,7 @@
 
     { id: "storage", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
     { id: "network", group: "workspace", depth: "advanced", editions: ["os"], scope: "personal", control: "shell" },
-    { id: "shared-links", group: "workspace", depth: "essential", editions: ["os"], scope: "personal", control: "shell" },
+    { id: "shared-links", group: "workspace", depth: "essential", editions: ["os"], scope: "personal", control: "shell", requires: "p2p" },
     { id: "integrations", group: "workspace", depth: "essential", editions: ALL, scope: "personal" },
     { id: "ai-accounts", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
     { id: "vibe", group: "workspace", depth: "advanced", editions: ["cloud", "desktop", "os"], scope: "personal" },
@@ -74,6 +74,17 @@
     return "cloud";
   }
 
+  /** #1865 — Offline is a hard gate, so settings that only exist when the
+   *  desktop can be reached must disappear with it. The master switch writes
+   *  the same key from Settings → Network. */
+  function peerMode() {
+    try {
+      return (window.localStorage && window.localStorage.getItem("gb_peer_network_mode")) || "offline";
+    } catch (e) {
+      return "offline";
+    }
+  }
+
   function previewOn() {
     return !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
   }
@@ -102,6 +113,7 @@
     if (node.control === "shell" && current !== "os" && current !== "desktop") {
       return false;
     }
+    if (node.requires === "p2p" && peerMode() !== "p2p") { return false; }
     if (node.scope === "admin" && !(opts.isAdmin === undefined ? isAdmin() : opts.isAdmin)) {
       return false;
     }
@@ -148,6 +160,7 @@
     edition: edition,
     isAdmin: isAdmin,
     isVisible: isVisible,
+    peerMode: peerMode,
     applyNavVisibility: applyNavVisibility
   };
 })(window);

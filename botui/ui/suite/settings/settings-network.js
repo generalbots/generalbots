@@ -1,8 +1,10 @@
 /* #1865 — Settings → Network.
  *
- * Reads/writes the runtime network mode preference (Offline or P2P) via
- * localStorage key "gb_peer_network_mode". The relay is managed automatically;
- * restart the app to apply a permanent change.
+ * Reads/writes the network mode (Offline or P2P) and mirrors it into
+ * localStorage key "gb_peer_network_mode". The switch is a hard gate: it calls
+ * POST /api/peer/{enable,disable}, which stops or starts every peer surface and
+ * persists GB_NETWORK_MODE in the stack .env so the choice survives a restart.
+ * The relay is managed automatically.
  */
 (function (window) {
   "use strict";
@@ -55,6 +57,48 @@
     } catch (e) {}
   }
 
+  function token() {
+    try {
+      return (window.getGBAccessToken && window.getGBAccessToken()) ||
+        window.localStorage.getItem("gb-access-token") ||
+        window.sessionStorage.getItem("gb-access-token") ||
+        "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /* #1865 — flip the backend gate, not just a browser preference. Resolves
+   * with the server's `enabled` value, or null when the call failed so the
+   * caller can say the switch did not apply. */
+  function postMode(mode) {
+    var headers = { "Content-Type": "application/json" };
+    var value = token();
+    if (value) { headers.Authorization = "Bearer " + value; }
+    return fetch("/api/peer/" + (mode === "p2p" ? "enable" : "disable"), {
+      method: "POST",
+      headers: headers,
+      cache: "no-store"
+    }).then(function (response) {
+      return response.ok ? response.json() : null;
+    }).then(function (data) {
+      return data && typeof data.enabled === "boolean" ? data.enabled : null;
+    }).catch(function () {
+      return null;
+    });
+  }
+
+  /* One entry point for both switches (Settings → Network and Settings →
+   * Shared Links), so the UI state, the runtime gate and the nav visibility
+   * never disagree. */
+  function applyMode(chosen) {
+    var mode = chosen === "p2p" ? "p2p" : "offline";
+    saveMode(mode);
+    updateBadge(mode);
+    document.dispatchEvent(new CustomEvent("gb-network-mode-changed", { detail: { mode: mode } }));
+    return postMode(mode);
+  }
+
   function updateBadge(mode) {
     var badge = byId("network-mode-badge");
     if (!badge) { return; }
@@ -90,20 +134,32 @@
 
     applyBtn.addEventListener("click", function () {
       var chosen = select.value === "p2p" ? "p2p" : "offline";
-      saveMode(chosen);
-      updateBadge(chosen);
       if (statusEl) {
-        statusEl.textContent = "Network mode set to " + chosen +
-          ". Restart the app for the change to take effect.";
-        statusEl.className = "note ok";
+        statusEl.textContent = "Applying " + chosen + "…";
+        statusEl.className = "note";
       }
-      if (checkedEl) {
-        checkedEl.textContent = "Updated at " + new Date().toLocaleTimeString();
-      }
+      applyMode(chosen).then(function (enabled) {
+        if (statusEl) {
+          if (enabled === null) {
+            statusEl.textContent = "Could not reach the server: the mode is " +
+              "remembered and applies on the next start.";
+            statusEl.className = "note warn";
+          } else {
+            statusEl.textContent = enabled
+              ? "P2P is on: this desktop is reachable and can share links."
+              : "Offline: no listeners, no identity, no links — stopped now.";
+            statusEl.className = "note ok";
+          }
+        }
+        if (checkedEl) {
+          checkedEl.textContent = "Updated at " + new Date().toLocaleTimeString();
+        }
+      });
     });
   }
 
   window.loadNetworkSettings = init;
+  window.GBNetworkMode = { read: readMode, apply: applyMode };
   loadRelay();
 
   document.addEventListener("htmx:load", function () {

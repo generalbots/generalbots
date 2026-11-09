@@ -6,6 +6,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 pub const ENV_ENABLED: &str = "GB_PEER_NETWORK";
+/// #1865 — the desktop first-run answer (`offline` | `p2p`), written by the
+/// wizard and by Settings → Network. It is a hard gate: `offline` disables
+/// the peer network even when Vault or `GB_PEER_NETWORK` would enable it.
+pub const ENV_NETWORK_MODE: &str = "GB_NETWORK_MODE";
 pub const ENV_NODE_ID: &str = "GB_PEER_NODE_ID";
 pub const ENV_NODE_NAME: &str = "GB_PEER_NODE_NAME";
 pub const ENV_ADVERTISE_ADDR: &str = "GB_PEER_ADVERTISE_ADDR";
@@ -219,17 +223,25 @@ impl PeerConfig {
         sources.insert("signing-key".to_string(), signing_key_source.as_str());
 
         let (enabled_raw, enabled_source) = resolve(ENV_ENABLED, "enabled", &vault);
-        let enabled = match enabled_raw.as_deref() {
+        let mut enabled = match enabled_raw.as_deref() {
             Some(raw) => parse_flag(raw),
             None => persisted_enabled(data_dir.as_deref()),
         };
-        let enabled_origin = if enabled_raw.is_some() {
+        let mut enabled_origin = if enabled_raw.is_some() {
             enabled_source.as_str()
         } else if data_dir.is_some() {
             "mode-file"
         } else {
             "default"
         };
+        // #1865 — the first-run answer is a hard gate, not a preference:
+        // `offline` means no identity, no listeners and no home site even if
+        // Vault or GB_PEER_NETWORK would otherwise opt in. `p2p` starts the
+        // node on boot; Settings → Network can still stop it at runtime.
+        if let Some(gate) = network_mode_gate(std::env::var(ENV_NETWORK_MODE).ok().as_deref()) {
+            enabled = gate;
+            enabled_origin = "network-mode";
+        }
         sources.insert("enabled".to_string(), enabled_origin);
 
         Self {
@@ -275,6 +287,19 @@ fn vault_settings() -> BTreeMap<String, String> {
 }
 
 /// Env → Vault → `~/.prod` for one setting.
+/// #1865 — interprets the persisted network mode. Anything unrecognised is
+/// ignored so a typo never silently changes the gate.
+fn network_mode_gate(mode: Option<&str>) -> Option<bool> {
+    let mode = mode?.trim();
+    if mode.eq_ignore_ascii_case("offline") {
+        Some(false)
+    } else if mode.eq_ignore_ascii_case("p2p") {
+        Some(true)
+    } else {
+        None
+    }
+}
+
 fn resolve(
     key_env: &str,
     vault_key: &str,
@@ -344,3 +369,21 @@ impl std::fmt::Display for PeerError {
 }
 
 impl std::error::Error for PeerError {}
+
+#[cfg(test)]
+mod network_mode_tests {
+    use super::*;
+
+    #[test]
+    fn offline_disables_and_p2p_enables() {
+        assert_eq!(network_mode_gate(Some("offline")), Some(false));
+        assert_eq!(network_mode_gate(Some("  P2P ")), Some(true));
+    }
+
+    #[test]
+    fn unknown_or_absent_mode_does_not_gate() {
+        assert_eq!(network_mode_gate(None), None);
+        assert_eq!(network_mode_gate(Some("")), None);
+        assert_eq!(network_mode_gate(Some("cloud")), None);
+    }
+}

@@ -52,11 +52,13 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     Ok(())
 }
 
-/// Writes `GB_NETWORK_MODE=<mode>` to `stack/conf/.env`, creating or updating
-/// the existing file. The botserver reads this on startup to gate peer features.
+/// Writes `GB_NETWORK_MODE=<mode>` to the stack `.env`, creating or updating
+/// the existing file. #1865 — this is the file botserver loads at boot
+/// (`{BOTSERVER_STACK_PATH}/.env`); the previous `conf/.env` path was never
+/// read, so the first-run answer had no effect.
 fn write_network_mode(mode: &str) -> Result<(), String> {
-    let dir = stack_path().join("conf");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create conf dir for .env: {e}"))?;
+    let dir = stack_path();
+    std::fs::create_dir_all(&dir).map_err(|e| format!("create stack dir for .env: {e}"))?;
     let env_path = dir.join(".env");
     let key = "GB_NETWORK_MODE";
     let new_line = format!("{key}={mode}");
