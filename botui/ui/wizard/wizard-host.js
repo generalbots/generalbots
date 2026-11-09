@@ -26,6 +26,12 @@
     return !!(result && result.platform === "windows" && !result.agent_ready && result.desktop_ready && !skipAgentic());
   }
 
+  // A Windows host whose only gap is the skipped agent (Chat/Drive-only mode)
+  // is good enough: it must not ask for "Continue anyway" (#1961).
+  function skippedAgentOnlyGap(result) {
+    return !!(result && skipAgentic() && result.desktop_ready && result.media_ready);
+  }
+
   function badgeState(result) {
     if (!result) { return { text: t("host.unknown"), kind: "" }; }
     if (windowsAgentBlocked(result)) { return { text: t("host.status-agent-blocked"), kind: "err" }; }
@@ -54,7 +60,9 @@
     // Media-only / other optional gaps: allow explicit continue.
     if (result.status === "limited" && !state.host.acknowledged) {
       // When agent is the only Windows blocker it is handled above; any
-      // remaining limited state (e.g. media) still needs acknowledgement.
+      // remaining limited state (e.g. media) still needs acknowledgement —
+      // unless the only gap left is the agent the user chose to skip.
+      if (skippedAgentOnlyGap(result)) { return false; }
       return true;
     }
     return false;
@@ -66,6 +74,18 @@
     start.disabled = state.provisioning.running || state.provisioning.ready || locked(state);
   }
 
+  function isWindowsHost(state) {
+    var platform = String((state.context && state.context.platform) || "").toLowerCase();
+    return platform.indexOf("win") === 0;
+  }
+
+  // #1961 — a desktop-local install is a Chat/Drive product; agent mode is an
+  // explicit opt-in there, so the toggle (not a blocking WSL2 error) is the
+  // control the user sees first.
+  function showAgentToggle(state) {
+    return !!(state.context && state.context.desktop_local) && isWindowsHost(state);
+  }
+
   function render(state) {
     var badge = document.getElementById("hostBadge");
     var rows = document.getElementById("hostRows");
@@ -73,10 +93,13 @@
     var recheck = document.getElementById("hostRecheckBtn");
     var proceed = document.getElementById("hostContinueBtn");
     var skipAgent = document.getElementById("hostSkipAgentBtn");
+    var agentToggleRow = document.getElementById("hostAgentToggleRow");
+    var agentToggle = document.getElementById("hostAgentToggle");
     var host = state.host;
     var result = host.result;
     var badgeInfo = badgeState(result);
     var agentBlocked = windowsAgentBlocked(result);
+    var withToggle = showAgentToggle(state);
     if (badge) {
       badge.textContent = host.checking ? t("host.checking") : badgeInfo.text;
       badge.className = "badge " + badgeInfo.kind;
@@ -128,15 +151,25 @@
       note.className = "note " + kind;
     }
     if (recheck) { recheck.disabled = host.checking || state.provisioning.running; }
+    if (agentToggleRow) { agentToggleRow.hidden = !withToggle; }
+    if (agentToggle) {
+      agentToggle.checked = !skipAgentic();
+      agentToggle.disabled = host.checking || state.provisioning.running || state.provisioning.ready;
+    }
     if (skipAgent) {
-      skipAgent.hidden = !(agentBlocked && !state.provisioning.running && !state.provisioning.ready);
+      // With the opt-in toggle present, the standalone skip button would be a
+      // second, contradictory control for the same draft flag.
+      skipAgent.hidden = withToggle ||
+        !(agentBlocked && !state.provisioning.running && !state.provisioning.ready);
     }
     if (proceed) {
       // Continue anyway remains for non-agent optional gaps (e.g. media). It
-      // must not bypass Windows WSL2 agent requirements (#1937).
+      // must not bypass Windows WSL2 agent requirements (#1937), and a
+      // Chat/Drive-only install whose only gap is the skipped agent is already
+      // startable (#1961).
       var showContinue = result && result.status === "limited" && result.desktop_ready &&
         !state.host.acknowledged && !state.provisioning.running && !state.provisioning.ready &&
-        !agentBlocked;
+        !agentBlocked && !skippedAgentOnlyGap(result);
       proceed.hidden = !showContinue;
     }
     syncStartButton(state);
@@ -155,7 +188,8 @@
       state.host.checked = true;
       state.host.result = result || null;
       render(state);
-      if (autoStart && result && result.status !== "desktop-blocked" && !windowsAgentBlocked(result) && result.status !== "limited") {
+      if (autoStart && result && result.status !== "desktop-blocked" && !windowsAgentBlocked(result) &&
+          (result.status !== "limited" || skippedAgentOnlyGap(result))) {
         onStart();
       }
       if (result && result.status === "desktop-blocked") { onSay(t("host.blocked-say")); }

@@ -49,6 +49,16 @@
         }
       });
     }
+    // #1961 — desktop-local opt-in. Checked = agent mode requested (WSL2 must
+    // be ready); unchecked = Chat/Drive only. Persisted like the skip button.
+    var agentToggle = document.getElementById("hostAgentToggle");
+    if (agentToggle) {
+      agentToggle.addEventListener("change", function () {
+        draft.skip_all_agentic_work = !agentToggle.checked;
+        persistDraft();
+        renderHostCheck();
+      });
+    }
     if (state.provisioning.running) {
       setProvisionUi(true);
       renderComponents();

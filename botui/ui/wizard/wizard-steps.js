@@ -267,6 +267,12 @@
           '<span class="badge" id="hostBadge">' + esc(t("host.checking")) + "</span></div>" +
         '<div id="hostRows" style="margin-top:8px"></div>' +
         '<p class="note" id="hostNote" role="status" style="margin:8px 0 0"></p>' +
+        // #1961 — desktop-local installs start in Chat/Drive mode; the checkbox
+        // is the opt-in that reveals the WSL2/agent requirements.
+        '<label class="inline-row" id="hostAgentToggleRow" hidden style="margin-top:10px;gap:8px;cursor:pointer">' +
+          '<input type="checkbox" id="hostAgentToggle">' +
+          '<span>' + esc(t("host.enable-agent")) + "</span>" +
+        "</label>" +
         '<div class="inline-row" style="margin-top:10px">' +
           '<button type="button" class="btn btn-secondary btn-sm" id="hostRecheckBtn">' + esc(t("host.recheck")) + "</button>" +
           '<button type="button" class="btn btn-primary btn-sm" id="hostContinueBtn" hidden>' + esc(t("host.continue")) + "</button>" +

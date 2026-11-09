@@ -15,6 +15,15 @@
     el.body.insertBefore(banner, el.body.firstChild);
   }
 
+  // #1961 — the desktop-local product is Chat + Drive. On Windows that means
+  // agent mode (WSL2) is off unless the user opts in with the host toggle, so
+  // a fresh install never greets a Chat/Drive user with "Missing: systemd".
+  function desktopLocalWindows() {
+    var context = state.context || {};
+    var platform = String(context.platform || "").toLowerCase();
+    return !!context.desktop_local && platform.indexOf("win") === 0;
+  }
+
   el.modalCancel.addEventListener("click", App.closeModal);
   el.modalConfirm.addEventListener("click", function () {
     var action = App.modalAction;
@@ -78,7 +87,14 @@
         draft.workspace = Object.assign(draft.workspace, saved.workspace || {});
         draft.services = (saved.services && !Array.isArray(saved.services)) ? saved.services : {};
         Object.keys(draft.services).forEach(function (id) { draft.services[id].client_secret = ""; });
-        if (saved.skip_all_agentic_work === true) { draft.skip_all_agentic_work = true; }
+        if (typeof saved.skip_all_agentic_work === "boolean") {
+          draft.skip_all_agentic_work = saved.skip_all_agentic_work;
+        } else if (desktopLocalWindows()) {
+          draft.skip_all_agentic_work = true;
+        }
+      } else if (desktopLocalWindows()) {
+        // First run: Chat/Drive is the default mode, not an error to dismiss.
+        draft.skip_all_agentic_work = true;
       }
       state.resumed = !!state.context.resume_step;
       state.provisioning.components = (state.context.completed_components || []).map(function (id) {

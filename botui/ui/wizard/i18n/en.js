@@ -179,6 +179,7 @@ window.GBWizardLocales["en"] = {
   "host.agent-skip-note": "Agentic work is skipped for this installation. You can use Chat and Drive without WSL2.",
   "host.agent-skipped": "Skipped",
   "host.skip-agentic": "Skip ALL Agentic Work",
+  "host.enable-agent": "Enable agent mode (requires WSL2)",
   "host.check-failed": "The host check could not run: {reason}. Setup continues without it.",
 
   "accounts.unlinked": "Not connected",

@@ -170,6 +170,7 @@ window.GBWizardLocales["pt-BR"] = {
   "host.agent-skip-note": "O trabalho agêntico foi ignorado nesta instalação. Você pode usar Chat e Drive sem WSL2.",
   "host.agent-skipped": "Ignorado",
   "host.skip-agentic": "Ignorar TODO o Trabalho Agêntico",
+  "host.enable-agent": "Ativar modo agente (requer WSL2)",
   "host.check-failed": "Não foi possível executar a verificação do host: {reason}. A configuração continua sem ela.",
 
   "finish.lead": "Revise o que esta máquina fará. Salve a conta de administrador e abra o assistente.",
