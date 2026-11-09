@@ -206,7 +206,7 @@ pub(super) fn is_app_compiled(id: &str) -> bool {
         // Apps with no dedicated botserver feature. They have UI and routes in
         // every build and were previously hidden because the map answered
         // `false` for anything it did not recognise (#1381).
-        "calculator" | "clock-widget" | "concierge" | "jukebox" | "notes" | "photos"
+        "calculator" | "clock" | "clock-widget" | "concierge" | "jukebox" | "notes" | "photos"
         | "plugins" | "recycle" | "store" | "timer" | "weather" => true,
         _ => false,
     }

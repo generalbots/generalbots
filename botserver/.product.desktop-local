@@ -13,7 +13,7 @@ apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,
 
 # Preview applications: revealed only while Preview mode is on. Every registry
 # app is classified exactly once across apps/preview_apps/hidden_apps.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace,clock
 
 # Hidden: compiled and routed, but never advertised and refused by the suite
 # shell. Research stays out of the desktop product (#1626); `sources` is the
