@@ -159,6 +159,11 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::social_platforms::NEWSCATCHER_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::social_platforms::BLOGGER_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::social_platforms::FACEBOOK_PAGES_SPEC)),
+        // #2049/#2050 — specs that existed on disk but were never registered,
+        // so the catalog advertised them as built while every call returned
+        // action_not_available.
+        Arc::new(generic::GenericAdapter::new(&generic::social_platforms::BASECAMP_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::social_platforms::TWITCH_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::startups::APOLLO_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::startups::CANNY_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::startups::STREAK_SPEC)),

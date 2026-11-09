@@ -165,6 +165,32 @@ mod tests {
         assert!(implemented_action_names("nonexistent").is_empty());
     }
 
+    /// #2049 — the Basecamp spec was written but never registered, so the
+    /// catalog advertised it as built while every call failed.
+    #[test]
+    fn registry_exposes_basecamp_actions() {
+        let names = implemented_action_names("basecamp");
+        assert_eq!(
+            names,
+            crate::providers::generic::social_platforms::BASECAMP_SPEC.action_keys
+        );
+        assert!(!names.is_empty());
+        assert!(names.iter().all(|key| key.starts_with("basecamp.")));
+    }
+
+    /// #2050 — same for Twitch: the Helix spec must be reachable from the
+    /// registry, not just present in the source tree.
+    #[test]
+    fn registry_exposes_twitch_actions() {
+        let names = implemented_action_names("twitch");
+        assert_eq!(
+            names,
+            crate::providers::generic::social_platforms::TWITCH_SPEC.action_keys
+        );
+        assert!(!names.is_empty());
+        assert!(names.iter().all(|key| key.starts_with("twitch.")));
+    }
+
     #[test]
     fn registry_exposes_github_and_stripe_action_sets() {
         let github_names = implemented_action_names("github");
