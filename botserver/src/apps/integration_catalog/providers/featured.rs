@@ -1,5 +1,6 @@
 use super::super::actions::{
-    CALENDAR_ACTIONS, FILE_ACTIONS, KNOWLEDGE_ACTIONS, MAIL_ACTIONS, MEDIA_ACTIONS,
+    CALENDAR_ACTIONS, FILE_ACTIONS, FILE_ACTIONS_NO_UPLOAD, KNOWLEDGE_ACTIONS, MAIL_ACTIONS,
+    MEDIA_ACTIONS,
     PROJECT_ACTIONS, SOCIAL_ACTIONS, SPREADSHEET_ACTIONS, TASK_ACTIONS,
 };
 use super::super::auth::{GOOGLE_OAUTH2, MICROSOFT_OAUTH2, OAUTH2};
@@ -116,11 +117,14 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             status: Status::Built,
             priority: Priority::Nice,
             module: None,
+            // #2057 — metadata operations only: Dropbox is an integration
+            // provider, not an external drive (no Provider::Dropbox, so it
+            // never appears in the Drive app as a save target).
             official_docs: Some(
                 "https://www.dropbox.com/developers/documentation/http/documentation",
             ),
             auth: &OAUTH2,
-            actions: FILE_ACTIONS,
+            actions: FILE_ACTIONS_NO_UPLOAD,
         },
     ),
     provider(

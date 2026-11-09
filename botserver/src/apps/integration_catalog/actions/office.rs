@@ -150,6 +150,41 @@ pub(crate) const FILE_ACTIONS: &[ActionTemplate] = &[
     ),
 ];
 
+/// #2057 — Dropbox exposes metadata operations in its adapter but no upload:
+/// its upload endpoint needs a per-request `Dropbox-API-Arg` header the generic
+/// engine cannot set yet, so advertising `files.upload` would only produce
+/// `action_not_available`. The catalog lists exactly what the adapter answers.
+pub(crate) const FILE_ACTIONS_NO_UPLOAD: &[ActionTemplate] = &[
+    read(
+        "files.list",
+        "list",
+        "List files",
+        "List files in a folder.",
+        FILE_LIST,
+    ),
+    read(
+        "files.search",
+        "search",
+        "Search files",
+        "Search files and folders.",
+        SEARCH_PARAMS,
+    ),
+    read(
+        "files.get",
+        "get",
+        "Get file",
+        "Read file metadata or content.",
+        FILE_GET,
+    ),
+    destructive(
+        "files.delete",
+        "delete",
+        "Delete file",
+        "Delete a file or folder.",
+        FILE_GET,
+    ),
+];
+
 pub(crate) const SPREADSHEET_ACTIONS: &[ActionTemplate] = &[
     read(
         "spreadsheets.list",

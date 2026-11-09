@@ -169,3 +169,37 @@ fn partial_coverage_never_renders_built() {
     );
 }
 
+/// #2057 — Dropbox advertises exactly what its adapter answers. The catalog
+/// used to list `files.upload` (which returns action_not_available) and there
+/// is no Dropbox external-drive backend, so the copy must not imply one.
+#[cfg(feature = "integrations")]
+#[test]
+fn dropbox_advertises_only_the_actions_it_implements() {
+    let Some(provider) = provider_by_id("dropbox") else {
+        return;
+    };
+    assert!(
+        !provider
+            .actions
+            .iter()
+            .any(|action| action.name.ends_with("files.upload")),
+        "Dropbox has no upload transport; the catalog must not list it"
+    );
+    let registered: Vec<&str> = botintegrations::providers::implemented_action_names("dropbox")
+        .iter()
+        .map(|key| key.trim_start_matches("dropbox."))
+        .collect();
+    assert_eq!(
+        registered,
+        vec!["files.list", "files.search", "files.get", "files.delete"]
+    );
+    for action in &provider.actions {
+        let short = action.name.trim_start_matches("dropbox.");
+        assert!(
+            registered.contains(&short),
+            "{} is advertised without an adapter action",
+            action.name
+        );
+    }
+}
+

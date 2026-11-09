@@ -27,8 +27,8 @@ fn provider_ids_and_names_are_unique() {
     // adds its three implementable Graph API actions on top of that.
     #[cfg(feature = "integrations")]
     // #2049/#2050 — Basecamp (2 advertised actions) and Twitch (3) were
-    // registered, raising the reachable count from 320.
-    assert_eq!(catalog.totals.implemented_actions, 325);
+    // registered (+5), and #2057 removed Dropbox's unimplemented upload (-1).
+    assert_eq!(catalog.totals.implemented_actions, 324);
     #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();
