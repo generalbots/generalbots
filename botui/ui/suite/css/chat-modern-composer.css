@@ -298,10 +298,11 @@
     text-overflow: ellipsis;
 }
 
-/* Give the conversation the vertical space: the decorative window status bar
-   (Ready / app name / keyboard hint) is not needed by the chat surface. */
+/* #1849 — the chat footer is a live status bar now (GBStatus: Thinking…,
+   Generating…, Ready) instead of the decorative "Ready / app name" writing.
+   It keeps its normal place below the composer. */
 #window-chat .window-statusbar {
-    display: none !important;
+    display: flex !important;
 }
 
 #window-body-chat {

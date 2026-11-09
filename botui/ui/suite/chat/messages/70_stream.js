@@ -1,4 +1,19 @@
 /* Chat messages module: Streaming render/finalize and the websocket message dispatcher. */
+
+/* #1849 — chat is the most-used window, so it publishes its turn state to the
+ * shared status bar contract instead of leaving the generic "Ready". The bar
+ * is optional (standalone chat page, older shells): failures are ignored. */
+function gbChatStatus(payload) {
+  try {
+    if (window.GBStatus && typeof window.GBStatus.set === "function") {
+      window.GBStatus.set("chat", payload);
+    }
+  } catch (e) { /* status bar unavailable */ }
+}
+
+function gbChatStatusText(key, fallback) {
+  return window.gbT ? window.gbT(key, fallback) : fallback;
+}
 function updateStreaming(content) {
   var el = document.getElementById(ChatState.streamingMessageId);
   if (!el) return;
@@ -57,6 +72,7 @@ function processMessage(data) {
     if (!ChatState.isStreaming) {
       showThinkingIndicator();
     }
+    gbChatStatus({ state: "running", text: gbChatStatusText("status-thinking", "Thinking…") });
     return;
   }
 
@@ -113,6 +129,7 @@ function processMessage(data) {
     } catch (e) { /* hydration is best-effort */ }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
+    gbChatStatus({ state: "ready" });
     // Consumers that react to a finished turn (voice/full-duplex, proactivity)
     // must fire once, on completion — not on the first streaming chunk.
     try {
@@ -136,6 +153,7 @@ function processMessage(data) {
       ChatState.currentReasoning = data.reasoning || "";
       addMessage("bot", ChatState.currentStreamingContent, ChatState.streamingMessageId, ChatState.currentReasoning);
       ChatState.lastRenderTime = Date.now();
+      gbChatStatus({ state: "running", text: gbChatStatusText("status-generating", "Generating…") });
     } else {
       if (data.reasoning) {
         ChatState.currentReasoning = (ChatState.currentReasoning || "") + data.reasoning;
