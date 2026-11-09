@@ -340,11 +340,12 @@ function bindSearchInput() {
             loadFiles(currentPath, currentBucket);
         }
     });
-    // #1973 — Ctrl/Cmd+K opens the recent-files quick list (14_quick_open.js)
-    // instead of merely focusing the box the user could just click. The box
-    // still handles full-content search.
+    // #1973 — Ctrl/Cmd+Shift+K opens the recent-files quick list
+    // (14_quick_open.js). Plain Ctrl/Cmd+K belongs to the global command
+    // palette (command-palette.js), which stops immediate propagation; the
+    // Shift modifier keeps the Drive recents reachable inside the app.
     document.addEventListener("keydown", function(e) {
-        if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "k" || e.key === "K")) {
             e.preventDefault();
             if (window.DriveQuickOpen) window.DriveQuickOpen.toggle();
         }

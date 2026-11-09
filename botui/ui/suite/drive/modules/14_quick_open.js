@@ -1,6 +1,6 @@
 /* Drive quick open (#1973).
  *
- * Ctrl/Cmd+K used to focus the toolbar search box, which is one keystroke away
+ * Ctrl/Cmd+Shift+K used to focus the toolbar search box, which is one keystroke away
  * from just clicking it. It now opens a searchable list of recent files across
  * every Drive location (the same union the Recent tab shows), quick-open style:
  * type to filter, arrows to move, Enter to open, Esc to dismiss.

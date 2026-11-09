@@ -278,7 +278,7 @@
   // Guard: reuse the active palette state from the shell (window-manager) if present.
 
   document.addEventListener("keydown", function (e) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "k") {
       e.preventDefault();
       e.stopImmediatePropagation();
       toggle();

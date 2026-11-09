@@ -74,7 +74,7 @@
         }
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "k") {
         e.preventDefault();
         if (window.CommandPalette && typeof CommandPalette.toggle === "function") {
           CommandPalette.toggle();
