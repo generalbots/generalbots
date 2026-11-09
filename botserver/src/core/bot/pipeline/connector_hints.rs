@@ -10,7 +10,8 @@
 //! `integrations.catalog.search`, and a single provider's action list through
 //! `integrations.actions.list`.
 
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use botcore::shared::state::AppState;
 use uuid::Uuid;
@@ -58,14 +59,41 @@ fn connected_providers(state: &Arc<AppState>, bot_uuid: Uuid) -> Vec<(String, us
     }
 }
 
-/// At most three providers that can be connected and match this message.
+/// #2061 — providers this user already declined. A decline is remembered for
+/// the process so the assistant proposes a setup once instead of nagging on
+/// every turn; it never hides a provider the user connects explicitly.
+fn declines() -> &'static Mutex<HashSet<(Uuid, String)>> {
+    static DECLINES: OnceLock<Mutex<HashSet<(Uuid, String)>>> = OnceLock::new();
+    DECLINES.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Records that the user declined a provider's setup offer.
+pub(crate) fn remember_decline(user_id: Uuid, provider: &str) {
+    if let Ok(mut declined) = declines().lock() {
+        declined.insert((user_id, provider.trim().to_ascii_lowercase()));
+    }
+}
+
+/// Whether the user already declined this provider.
+pub(super) fn declined(user_id: Uuid, provider: &str) -> bool {
+    declines()
+        .lock()
+        .map(|declined| {
+            declined.contains(&(user_id, provider.trim().to_ascii_lowercase()))
+        })
+        .unwrap_or(false)
+}
+
+/// At most three providers that can be connected and match this message,
+/// minus the ones this user already declined.
 fn available_providers(
+    user_id: Uuid,
     query: &str,
     connected: &[(String, usize)],
 ) -> Vec<LlmProviderSummary> {
     #[cfg(not(feature = "integrations"))]
     {
-        let _ = (query, connected);
+        let _ = (user_id, query, connected);
         return Vec::new();
     }
     #[cfg(feature = "integrations")]
@@ -81,6 +109,7 @@ fn available_providers(
                     .iter()
                     .any(|(slug, _)| slug.eq_ignore_ascii_case(&provider.id))
             })
+            .filter(|provider| !declined(user_id, provider.id))
             .take(3)
             .collect()
     }
@@ -125,6 +154,8 @@ pub(super) fn render_block(
         "To act: integrations.actions.list {provider} then \
          integrations.invoke {provider, action, params}.\n\
          To connect: integrations.connect.start {provider}.\n\
+         Offer a setup at most once per provider. If the user declines, call \
+         integrations.decline {provider} and do not offer it again.\n\
          The full catalogue is fetched only on demand with \
          integrations.catalog.search. Never invent an action: list them first. \
          Never ask for or repeat a credential, token or scope value in the reply.",
@@ -136,11 +167,12 @@ pub(super) fn render_block(
 pub(super) fn inject(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
+    user_id: Uuid,
     query: &str,
     messages: &mut serde_json::Value,
 ) {
     let connected = connected_providers(state, bot_uuid);
-    let available = available_providers(query, &connected);
+    let available = available_providers(user_id, query, &connected);
     let Some(block) = render_block(&connected, &available) else {
         return;
     };
@@ -175,5 +207,32 @@ mod tests {
     #[test]
     fn an_empty_catalogue_injects_nothing() {
         assert!(render_block(&[], &[]).is_none());
+    }
+
+    #[test]
+    fn a_decline_is_remembered_per_user_and_provider() {
+        let user = Uuid::new_v4();
+        assert!(!declined(user, "instagram"));
+        remember_decline(user, "Instagram");
+        assert!(declined(user, "instagram"));
+        // Another user still gets the offer.
+        assert!(!declined(Uuid::new_v4(), "instagram"));
+    }
+
+    #[test]
+    fn the_block_asks_for_a_single_offer_and_records_a_decline() {
+        let block = render_block(&[], &[]).unwrap_or_default();
+        assert!(block.is_empty());
+        #[cfg(feature = "integrations")]
+        {
+            let available = crate::apps::integration_catalog::llm_search(
+                Some("instagram"),
+                None,
+                None,
+            );
+            let rendered = render_block(&[], &available).expect("block");
+            assert!(rendered.contains("at most once"));
+            assert!(rendered.contains("integrations.decline"));
+        }
     }
 }

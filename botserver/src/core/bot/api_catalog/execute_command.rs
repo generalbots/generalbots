@@ -104,6 +104,14 @@ pub async fn execute_command(
             );
             Ok(json!({ "provider_count": providers.len(), "providers": providers }))
         }
+        "integrations.decline" => {
+            // #2061 — the user declined a setup offer; remember it so the
+            // assistant does not repeat the offer on every turn.
+            let provider =
+                str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
+            crate::core::bot::pipeline::connector_hints::remember_decline(user_id, &provider);
+            Ok(json!({ "provider": provider, "declined": true }))
+        }
         "integrations.catalog.provider" => {
             // #2060 — everything needed to act or start the setup, on demand:
             // auth method, field labels (never values), numbered setup guide.

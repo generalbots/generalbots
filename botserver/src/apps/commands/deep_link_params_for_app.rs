@@ -107,6 +107,8 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("integrations", "integrations.catalog.search", "Search integration catalog", "Search integration providers by text, category, or implementation status.", &[("q", "optional provider or capability query"), ("category", "optional category"), ("status", "optional built/partial/planned/unsupported status")], None, false),
     // #2060 — connect any connector from chat, driven by the provider's own
     // auth profile (field labels and setup steps, never values).
+    // #2061 — remember a declined setup offer so it is not repeated.
+    cmd("integrations", "integrations.decline", "Decline connector offer", "Record that the user declined connecting this provider, so the assistant does not offer it again.", &[("provider", "provider slug")], None, false),
     cmd("integrations", "integrations.catalog.provider", "Read connector profile", "Read one integration provider: auth method, credential field labels, numbered setup steps and its actions.", &[("provider", "provider slug")], None, false),
     cmd("integrations", "integrations.connect.start", "Start connector setup", "Start connecting a provider from chat: returns the credential fields to ask for, the setup guide and the connect endpoint.", &[("provider", "provider slug")], Some("app://settings?section=integrations"), false),
     cmd("integrations", "integrations.actions.list", "List provider actions", "List safe action metadata for an integration provider without exposing authentication metadata.", &[("provider", "provider id, e.g. aws or zendesk")], None, false),
