@@ -26,7 +26,6 @@ RUSTSEC-2026-0249  # smartstring - unmaintained, office write path
 RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0371  # zbus_names - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0372  # zvariant_derive - unmaintained D-Bus, Tauri Linux only
-RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
 
 # --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
 GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429

@@ -200,7 +200,7 @@ advisory still fails the gate.
 | Advisory family | Component | Why accepted | Review |
 |-----------------|-----------|--------------|--------|
 | glib iterator unsoundness | glib on the Tauri Linux desktop stack | Desktop-only; no server runtime exposure. Removed by the GTK4 desktop upgrade. | 2027-11-06 |
-| Unmaintained build-time crates | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, pin-utils | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
+| Unmaintained build-time crates | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
 | Unmaintained Windows cache port | Redis-x64-3.0.504 (microsoftarchive) | Desktop-edition Windows payload only; unmaintained upstream, digest now pinned fail-closed in the release build. Replace with a maintained cache strategy or drop before shipping Windows broadly. | 2027-05-09 |
 | Ecosystem single-owner crates | syn, quote, proc-macro2, serde (one owner); ring; jsonwebtoken; reqwest | crates.io-level concentration, not fixable per consumer: the crates are single-owner upstream (verified via the owners API, 2026-11-09, self-review in #2001). Mitigation is lockfile pinning, the cargo-deny/OSV gate on every push and dependency-bump PR review; monitor ownership changes at review. A `cargo vet` attestation pass is the candidate future gate. | 2027-05-09 |

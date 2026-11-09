@@ -60,8 +60,6 @@ ignore = [
       reason = "zbus_names is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0372",
       reason = "zvariant_derive is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0441",
-      reason = "pin-utils is unmaintained (no advisory, no runtime sink we rely on). Accepted 2026-11-06, tracked in #1723." },
 ]
 
 [licenses]
