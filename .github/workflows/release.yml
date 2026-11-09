@@ -1596,7 +1596,8 @@ jobs:
               standalone binary for frontend/server use.
             - Windows x86_64: `generalbots.exe` (self-extracting), MSI, NSIS
               setup, and the raw `generalbots`/`botserver`/`botui` exes.
-            - macOS arm64: `*.dmg` and `*.app` (unsigned).
+            - macOS: `generalbots-*.dmg` and `*.app.zip` (unsigned; arm64 or
+              x86_64 depending on the runner GitHub assigns).
             - Bootable ISO: `generalbots-*.iso` (x86_64 live image built from the
               same tarball).
 
