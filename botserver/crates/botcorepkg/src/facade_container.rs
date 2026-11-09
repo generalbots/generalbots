@@ -5,6 +5,11 @@ use anyhow::Result;
 use botlib::security::SafeCommand;
 use log::{info, trace, warn};
 use std::collections::HashMap;
+// #2030 — `create_container_service` builds the systemd unit with
+// `writeln!(env_section, …)`, which needs the `fmt::Write` trait in scope. The
+// Vault split (#1933) moved the other `writeln!` user out of this file and took
+// the import with it; `as _` imports the trait for method resolution only.
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 pub(crate) fn safe_lxc(args: &[&str]) -> Option<std::process::Output> {
