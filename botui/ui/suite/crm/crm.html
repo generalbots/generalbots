@@ -28,6 +28,10 @@
                 <button class="crm-tab" data-view="accounts" data-i18n="crm-accounts">Accounts</button>
                 <button class="crm-tab" data-view="contacts" data-i18n="crm-contacts">Contacts</button>
                 <button class="crm-tab" data-view="campaigns" data-i18n="crm-campaigns">Campaigns</button>
+                <!-- #2015 — quotes and orders used to live in a second launcher
+                     app ("Sales") that duplicated this one. They are part of the
+                     sales pipeline, so they are a CRM tab now. -->
+                <button class="crm-tab" data-view="quotes" data-i18n="crm-quotes">Quotes &amp; Orders</button>
             </nav>
         </div>
         <div class="crm-header-right">
@@ -305,6 +309,52 @@
         </div>
         <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML"></div>
     </div>
+
+    <!-- #2015 — Quotes & Orders. The former standalone "Sales" app only
+         wrapped these two read-only lists; they are fetched through the same
+         /api/sales/* endpoints and rendered inside CRM now. -->
+    <div id="crm-quotes-view" class="crm-view">
+        <div class="crm-list-header">
+            <div class="list-filters">
+                <strong data-i18n="crm-quotes">Quotes</strong>
+            </div>
+        </div>
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th data-i18n="crm-col-number">Number</th>
+                    <th data-i18n="crm-col-title">Title</th>
+                    <th data-i18n="crm-col-customer">Customer</th>
+                    <th data-i18n="crm-col-value">Value</th>
+                    <th data-i18n="crm-col-valid-until">Valid until</th>
+                    <th data-i18n="crm-col-stage">Status</th>
+                </tr>
+            </thead>
+            <tbody id="crm-quotes-body">
+                <tr><td colspan="6" data-i18n="crm-loading">Loading…</td></tr>
+            </tbody>
+        </table>
+        <div class="crm-list-header">
+            <div class="list-filters">
+                <strong data-i18n="crm-orders">Orders</strong>
+            </div>
+        </div>
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th data-i18n="crm-col-number">Number</th>
+                    <th data-i18n="crm-col-customer">Customer</th>
+                    <th data-i18n="crm-col-items">Items</th>
+                    <th data-i18n="crm-col-total">Total</th>
+                    <th data-i18n="crm-col-stage">Status</th>
+                    <th data-i18n="crm-col-delivery">Delivery</th>
+                </tr>
+            </thead>
+            <tbody id="crm-orders-body">
+                <tr><td colspan="6" data-i18n="crm-loading">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Modal for forms -->
@@ -358,3 +408,4 @@
 <script src="/suite/crm/crm-bulk.js?v=3"></script>
 <script src="/suite/crm/crm-records.js?v=2"></script>
 <script src="/suite/crm/crm-stages.js?v=2"></script>
+<script src="/suite/crm/crm-quotes.js?v=1"></script>

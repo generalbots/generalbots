@@ -235,12 +235,24 @@
   getRecentApps() {
     try {
       const recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
-      return recent
+      const registry = window.APPS_REGISTRY || APPS_REGISTRY;
+      // #2015 — an app that left the registry (e.g. the duplicate "Sales"
+      // surface folded into CRM) must not linger as a Recent tile with an
+      // empty hxGet: it looks like a launcher entry but opens nothing. Keep
+      // only entries the registry still resolves and drop the rest from
+      // storage so the stale ids do not accumulate.
+      const resolved = recent
         .filter((r) => r && r.id !== "vibe" && String(r.id).indexOf("vibe-") !== 0)
-        .map((r) => {
-          const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === r.id);
-          return app || { id: r.id, title: r.title, category: "recent", color: "#666", icon: "", hxGet: "" };
-        });
+        .map((r) => registry.find((a) => a.id === r.id))
+        .filter(Boolean);
+      if (resolved.length !== recent.length) {
+        try {
+          localStorage.setItem("gb-recent-apps", JSON.stringify(
+            recent.filter((r) => resolved.some((a) => a.id === (r && r.id)))
+          ));
+        } catch (e) {}
+      }
+      return resolved;
     } catch (e) {
       return [];
     }

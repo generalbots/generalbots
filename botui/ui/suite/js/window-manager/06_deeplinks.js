@@ -22,6 +22,13 @@
     if (appId === "clockapp") {
       appId = "clock";
     }
+    // #2015 — `sales` was a second launcher app for the CRM surface (its page
+    // titled itself "Sales CRM"). Its only unique content, the quotes and
+    // orders lists, is now the CRM "Quotes & Orders" tab.
+    if (appId === "sales") {
+      params = Object.assign({ view: "quotes" }, params || {});
+      appId = "crm";
+    }
     if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) {
       // #1540: disabled deep links are not silent. Explain the state and
       // fall back to the always-available chat surface.

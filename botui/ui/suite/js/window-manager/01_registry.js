@@ -102,8 +102,6 @@ const APPS_REGISTRY = [
     icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
   { id: "banking", title: "Banking", category: "business", color: "#22c55e", hxGet: "/suite/banking/banking.html",
     icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-  { id: "sales", title: "Sales", category: "business", color: "#84d669", hxGet: "/suite/sales/sales.html",
-    icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
   { id: "pos", title: "POS", category: "business", color: "#f59e0b", hxGet: "/suite/pos/pos.html",
     icon: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>' },
   { id: "retail", title: "Retail", category: "business", color: "#ec4899", hxGet: "/suite/retail/retail.html",
