@@ -111,6 +111,7 @@ mod execute_command;
 mod find_api_entries;
 mod is_api_call_trigger;
 mod list_people;
+mod skills_list;
 
 use archive_drive_files::*;
 pub(crate) use branch_scope::*;
@@ -119,3 +120,4 @@ pub use execute_command::*;
 use find_api_entries::*;
 pub use is_api_call_trigger::*;
 use list_people::*;
+use skills_list::*;

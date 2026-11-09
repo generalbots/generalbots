@@ -136,6 +136,8 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("", "apps.find", "Find an app", "Find a suite application by a description of what the user wants to do.", &[("query", "what the user wants to accomplish")], None, false),
     cmd("", "api.find", "Find an API command", "Discover which backend command or endpoint matches a described need.", &[("query", "the described need")], None, false),
     cmd("", "api.exec", "Run any API endpoint", "Execute any registered backend endpoint on demand (create, update, search or delete data in any app).", &[("method", "HTTP method: GET, POST, PUT, PATCH or DELETE"), ("path", "registered endpoint path, e.g. /api/crm/contacts"), ("params", "JSON object of path params and body/query fields")], None, false),
+    cmd("settings", "skills.list", "List installed skills", "List every skill installed for this bot: name and one-line description (all of them, enabled by default).", &[], None, false),
+    cmd("settings", "skills.find", "Load a skill package", "Load the full SKILL.md of the installed skills that match a task description, so the agent follows that skill.", &[("query", "what the task is about, e.g. 'branded slide deck'")], None, false),
 ];
 /// Commands declared for an app id (ordered by declaration).
 pub fn commands_for_app(app_id: &str) -> Vec<&'static AppCommand> {
