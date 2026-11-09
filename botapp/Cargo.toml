@@ -15,13 +15,15 @@ botlib = { workspace = true, features = ["http-client"] }
 botvideo = { workspace = true }
 
 
-# ─── TAURI 2.11 (Desktop/Mobile) ───
-tauri = { version = "2.11", features = ["tray-icon", "image-ico", "image-png", "unstable"] }
+# ─── TAURI 2.12 (Desktop/Mobile) ───
+# #2009 — 2.12 + tauri-plugin-http 2.8 move tauri-utils to urlpattern 0.6,
+# which drops the whole unimplemented unic-* family (5 advisories).
+tauri = { version = "2.12", features = ["tray-icon", "image-ico", "image-png", "unstable"] }
 tauri-build = "2.6"
 tauri-plugin-dialog = "2.7"
 tauri-plugin-opener = "2.5"
 tauri-plugin-notification = "2.3"
-tauri-plugin-http = "2.5"
+tauri-plugin-http = "2.8"
 tauri-plugin-geolocation = "2.3"
 
 # Common
