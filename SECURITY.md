@@ -98,18 +98,28 @@ python3 scripts/check_component_checksums.py
 
 ### CodeQL (security scanning)
 
-The security CodeQL scan is **platform-managed** (GitHub's dynamic
-`CodeQL` workflow, path `dynamic/github-code-scanning/codeql`); it is not a
-file in this repository, so it has no editable `concurrency` block. GitHub
-cancels a superseded analysis when a newer push arrives — a run list showing
-`completed / cancelled` for every push is the expected state, and two
-`in_progress` runs for the same ref are the regression (#2000).
+Code scanning is produced by the checked-in workflow `.github/workflows/codeql.yml`
+(`workflow_dispatch` and version tags only, never per push). GitHub's default
+setup is disabled at the repository level (#2000); that file is the only
+producer, so two things must stay in it:
 
-Do **not** add a checked-in `codeql.yml` next to it: that produces two scans of
-every push. If the scan is ever moved to advanced setup, either delete the
-dynamic workflow first or add `concurrency: {group: codeql-${{ github.ref }},
-cancel-in-progress: true}` to the checked-in file — `scripts/check_workflow_pinning.py`
-fails any workflow that runs `github/codeql-action/init|analyze` without it.
+- `concurrency: {group: codeql-${{ github.ref }}, cancel-in-progress: true}`
+  — `scripts/check_workflow_pinning.py` fails any workflow that runs
+  `github/codeql-action/init|analyze` without it.
+- `config-file: ./.github/codeql/codeql-config.yml`, which excludes
+  `3rdparty/**`. Rust extraction of the whole tree measured 74 minutes
+  (4,890 files) and pushed the job past its ceiling before a single query ran
+  (run 42628140996); the vendored crates are triaged upstream and cannot be
+  patched here.
+
+**Alert streams are not continuous across #2000.** The new workflow reports
+under `.github/workflows/codeql.yml:analyze/language:<lang>`, while alerts
+raised by the retired default setup live in `/language:<lang>`. GitHub never
+re-evaluates the old stream, so those alerts stay `open` even after the code is
+fixed. Remedy: fix the source, re-scan with
+`gh workflow run codeql.yml --ref main`, then dismiss the orphaned alert as
+`mitigated` with the fix commit and the scan id in the comment (worked example:
+3006-3011, fixed in `042801e8e`, re-scanned by run `42669575221`).
 
 `CodeQL - Code Quality` (path `dynamic/github-code-quality/codeql`) is a
 separate product and runs independently; do not disable it while working on the
