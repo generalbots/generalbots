@@ -236,36 +236,52 @@ VAULT_CACERT={}
         info!("✓ Created .env with VAULT_ADDR, VAULT_TOKEN");
         info!("✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)");
 
-        // Enable KV2 secrets engine at 'secret/' path
-        info!("Enabling KV2 secrets engine at 'secret/'...");
+        // Enable the KV2 secrets engine at 'secret/' (idempotent).
+        self.ensure_kv_mount(&vault_addr, &root_token, &ca_cert, &vault_bin);
+
+        // Write default credentials to Vault for all components
+        self.seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
+
+        Ok(())
+    }
+
+    /// Idempotently ensure the KV v2 engine is mounted at `secret/`.
+    ///
+    /// Both the fresh-init and the recovery path must call this. A stack whose
+    /// Vault data survived (reset that kept `data/vault`, an enable step that
+    /// failed once) would otherwise never mount `secret/`, so every
+    /// `secret/gbo/*` put/get fails and the assistant silently falls back to
+    /// defaults on every boot.
+    pub(super) fn ensure_kv_mount(
+        &self,
+        vault_addr: &str,
+        root_token: &str,
+        ca_cert: &std::path::Path,
+        vault_bin: &std::path::Path,
+    ) {
+        info!("Ensuring KV2 secrets engine at 'secret/'...");
         let enable_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
-            .and_then(|c| c.env("VAULT_ADDR", vault_addr.as_str()))
-            .and_then(|c| c.env("VAULT_TOKEN", root_token.as_str()))
+            .and_then(|c| c.env("VAULT_ADDR", vault_addr))
+            .and_then(|c| c.env("VAULT_TOKEN", root_token))
             .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
             .and_then(|c| c.args(&["secrets", "enable", "-path=secret", "kv-v2"]))
             .and_then(|c| c.execute());
         match enable_result {
+            Ok(output) if output.status.success() => {
+                info!("KV2 secrets engine enabled at 'secret/'");
+            }
             Ok(output) => {
-                if output.status.success() {
-                    info!("KV2 secrets engine enabled at 'secret/'");
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                if stderr.contains("path is already in use") {
+                    info!("KV2 secrets engine already enabled at 'secret/'");
                 } else {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    if stderr.contains("path is already in use") {
-                        info!("KV2 secrets engine already enabled");
-                    } else {
-                        warn!("Failed to enable KV2 secrets engine: {}", stderr);
-                    }
+                    warn!("Failed to enable KV2 secrets engine: {}", stderr);
                 }
             }
             Err(e) => {
                 warn!("Failed to execute KV2 enable command: {e}");
             }
         }
-
-        // Write default credentials to Vault for all components
-        self.seed_vault_defaults(&vault_addr, &root_token, &ca_cert, &vault_bin)?;
-
-        Ok(())
     }
 
     /// Check if Vault already has seeded credentials (to avoid overwriting on recovery)

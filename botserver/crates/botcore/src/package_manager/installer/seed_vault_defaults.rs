@@ -301,6 +301,9 @@ VAULT_CACERT={}
 
         // Seed defaults ONLY if not already present (skip during recovery to preserve credentials)
         if let Some(ref token) = root_token {
+            // A surviving Vault whose `secret/` mount is missing would make
+            // every put below fail; ensure the mount before probing/seeding.
+            self.ensure_kv_mount(&vault_addr, token, &ca_cert, &vault_bin);
             if self.vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
                 info!("Vault credentials already exist, skipping seed on recovery");
             } else {
