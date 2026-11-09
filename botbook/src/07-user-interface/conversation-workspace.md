@@ -74,6 +74,12 @@ final answer (bounded to two follow-ups and 12k characters). The raw log is
 kept in the collapsed “workspace run” card, and the visible reply is the
 synthesized answer. Verified with `vm_exec` listings and a generated PDF.
 
+A turn renders exactly one such card. The raw-result bubble is merged into the
+preceding card before output polish runs, and the `**Files**` bullets it used
+to leave behind are removed once `vmGroupAttachments` moves the attachment
+cards into the `output` folder, so an older turn cannot keep a column of empty
+bullets outside the collapse control (#2008).
+
 ### Live terminal runs
 
 `terminal_run` opens a real PTY inside the user's agent VM and streams each
