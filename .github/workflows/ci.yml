@@ -22,11 +22,14 @@ name: CI
 # The per-workflow triggers are intentionally kept: the repository is mirrored
 # to Forgejo and maintainers still dispatch individual gates directly.
 #
-# NOTE: pushes to `main` no longer start CI. A normal commit therefore never
-# queues a build; the gates run on pull requests and when dispatched on purpose
-# (`workflow_dispatch`, or `run-release.yml`/the Forgejo runner).
+# NOTE: the gates run on every push to `main` (#1726's exit criterion), on
+# pull requests, and when dispatched on purpose (`workflow_dispatch`, or
+# `run-release.yml`/the Forgejo runner). The concurrency group cancels a
+# superseded run, so a push landing through a merged PR does not double-run.
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
