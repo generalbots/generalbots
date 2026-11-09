@@ -211,7 +211,10 @@
         // A fresh page has no cards: replay from the beginning so the run
         // summaries are restored together with the conversation. A reconnect
         // with cards already mounted resumes from the last seen frame.
-        var hasCards = document.querySelectorAll(".run-card").length > 0;
+        // #2027 — surface cards are conversation content too: a turn that only
+        // showed a question card has no `.run-card`, and counting runs alone
+        // made every resume replay the whole stored surface history.
+        var hasCards = document.querySelectorAll(".run-card, .surface-card").length > 0;
         var last = hasCards ? readLastSeq() : 0;
         var ws = window.ChatState && window.ChatState.ws;
         if (!ws || ws.readyState !== WebSocket.OPEN) return;

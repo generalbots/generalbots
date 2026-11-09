@@ -115,6 +115,16 @@
             };
             window.dispatchEvent(new CustomEvent("gb-surface-submit", { detail: detail }));
             if (typeof onSubmit === "function") onSubmit(detail);
+            // #2027 — a card left on "Sending…" forever reads as a failure and
+            // invites a second submit of the same answer. Mark it answered.
+            window.setTimeout(function () {
+                if (!form.isConnected) return;
+                submit.textContent = "Sent";
+                submit.classList.add("surface-submit-sent");
+                form.querySelectorAll("input, textarea, select").forEach(function (field) {
+                    field.disabled = true;
+                });
+            }, 400);
         });
         return form;
     }

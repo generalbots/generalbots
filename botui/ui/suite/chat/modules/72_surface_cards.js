@@ -146,6 +146,32 @@
         }
     }
 
+    // #2027 — a surface is a single card per `surface_id`. Live re-delivery and
+    // replayed frames (`gb_event: true` from `run_resume`) used to append a
+    // second, identical form next to the first, inviting a duplicate answer.
+    function mountSurface(root, card, surfaceId) {
+        if (!surfaceId) {
+            root.appendChild(card);
+            return card;
+        }
+        // Look the card up by attribute, not by `mounted[]`: `render()` records
+        // the new wrapper in `mounted` before this runs, so the registry entry
+        // is already the detached card we are about to insert.
+        card.setAttribute("data-surface-id", surfaceId);
+        var scopes = [root, document];
+        for (var s = 0; s < scopes.length; s++) {
+            var nodes = scopes[s].querySelectorAll("[data-surface-id]");
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i] === card) continue;
+                if (nodes[i].getAttribute("data-surface-id") !== surfaceId) continue;
+                if (nodes[i].parentNode) nodes[i].parentNode.replaceChild(card, nodes[i]);
+                return card;
+            }
+        }
+        root.appendChild(card);
+        return card;
+    }
+
     function renderFromFrame(frame, rootEl) {
         var payload = frame && frame.data ? frame.data.payload || {} : {};
         var surface = payload.surface;
@@ -169,7 +195,7 @@
         var root = rootEl || document.getElementById("messages");
         if (!root) return null;
         var card = render(surface, fallback, defaultSubmit);
-        root.appendChild(card);
+        mountSurface(root, card, surface.surface_id);
         return card;
     }
 
@@ -196,7 +222,7 @@
             detail.action = "answer_question";
             defaultSubmit(detail);
         });
-        root.appendChild(card);
+        mountSurface(root, card, surface.surface_id);
         return card;
     }
 
