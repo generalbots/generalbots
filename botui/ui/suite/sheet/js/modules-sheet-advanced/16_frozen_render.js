@@ -66,13 +66,13 @@
     if (!topLayer || !topLayer.isConnected) {
       topLayer = document.createElement("div");
       topLayer.className = "vg-frozen-top";
-      topLayer.style.cssText = "position:absolute;left:0;right:0;top:0;height:0;overflow:hidden;background:#0f172a;z-index:9;pointer-events:none;";
+      topLayer.style.cssText = "position:absolute;left:0;right:0;top:0;height:0;overflow:hidden;background:var(--sheet-bg, #0f172a);z-index:9;pointer-events:none;";
       g.midRow.appendChild(topLayer);
     }
     if (!leftLayer || !leftLayer.isConnected) {
       leftLayer = document.createElement("div");
       leftLayer.className = "vg-frozen-left";
-      leftLayer.style.cssText = "position:absolute;left:0;top:0;width:0;overflow:hidden;background:#0f172a;z-index:9;pointer-events:none;";
+      leftLayer.style.cssText = "position:absolute;left:0;top:0;width:0;overflow:hidden;background:var(--sheet-bg, #0f172a);z-index:9;pointer-events:none;";
       g.midRow.appendChild(leftLayer);
     }
   }
@@ -97,7 +97,7 @@
         const data = g.cells.get(r + "," + c);
         cell.style.cssText =
           "position:absolute;left:" + cx(c) + "px;top:" + rowTopAt(g, r) + "px;width:" + cw(c) + "px;height:" + rh(r) + "px;" +
-          "background:#0f172a;color:#f8fafc;border-right:1px solid #334155;border-bottom:1px solid #334155;" +
+          "background:var(--sheet-bg, #0f172a);color:var(--sheet-fg, #f8fafc);border-right:1px solid var(--sheet-border, #334155);border-bottom:1px solid var(--sheet-border, #334155);" +
           "padding:2px 4px;font-size:12px;overflow:hidden;box-sizing:border-box;";
         cell.textContent = data ? (data.value != null ? data.value : data.formula || "") : "";
         if (data && data.style) {
@@ -143,7 +143,7 @@
         for (let cc = 0; cc < c; cc++) colX += cw(cc);
         cell.style.cssText =
           "position:absolute;left:" + colX + "px;top:" + (r * rh(r)) + "px;width:" + cw(c) + "px;height:" + rh(r) + "px;" +
-          "background:#0f172a;color:#f8fafc;border-right:1px solid #334155;border-bottom:1px solid #334155;" +
+          "background:var(--sheet-bg, #0f172a);color:var(--sheet-fg, #f8fafc);border-right:1px solid var(--sheet-border, #334155);border-bottom:1px solid var(--sheet-border, #334155);" +
           "padding:2px 4px;font-size:12px;overflow:hidden;box-sizing:border-box;";
         cell.textContent = data ? (data.value != null ? data.value : data.formula || "") : "";
         if (data && data.style) {

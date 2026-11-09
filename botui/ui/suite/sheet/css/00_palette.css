@@ -1,0 +1,42 @@
+/* =============================================================================
+ * 00 PALETTE — the sheet's colour contract (#2025)
+ *
+ * The grid, the chrome and the Rust-rendered fragments used to hard-code
+ * `#0f172a` / `#f8fafc` / `#334155` inline, so a bot-filled sheet was painted
+ * dark (light text) no matter which theme the user had chosen — content simply
+ * disappeared on light themes.
+ *
+ * Every sheet surface now reads these variables. Dark values are the palette
+ * the app shipped with, so the dark look is unchanged; the light values follow
+ * the suite's neutral set. `data-color-scheme` is published on <html> by
+ * `js/theme-scheme.js` for every theme, so this works for third-party themes
+ * (Carbon, Nord, XTree, …) without naming any of them.
+ * ============================================================================= */
+
+:root,
+:root[data-color-scheme="dark"] {
+    --sheet-bg: #0f172a;
+    --sheet-bg-elevated: #1e293b;
+    --sheet-fg: #f8fafc;
+    --sheet-muted: #94a3b8;
+    --sheet-border: #334155;
+    --sheet-selection: #3b82f6;
+    --sheet-selection-wash: rgba(59, 130, 246, 0.08);
+}
+
+:root[data-color-scheme="light"] {
+    --sheet-bg: #ffffff;
+    --sheet-bg-elevated: #f6f8fa;
+    --sheet-fg: #1f2328;
+    --sheet-muted: #59636e;
+    --sheet-border: #d0d7de;
+    --sheet-selection: #0969da;
+    --sheet-selection-wash: rgba(9, 105, 218, 0.1);
+}
+
+/* The status bar and formula bar sit on the elevated surface, and the active
+   cell/selection keeps a visible outline in both schemes. */
+:root[data-color-scheme="light"] .formula-bar,
+:root[data-color-scheme="light"] .sheet-status-bar {
+    color: var(--sheet-fg);
+}

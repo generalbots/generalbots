@@ -330,7 +330,7 @@
       if (!tabBar || !tabBar.isConnected) {
         tabBar = document.createElement("div");
         tabBar.className = "ss-tab-bar";
-        tabBar.style.cssText = "display:flex;gap:4px;align-items:center;padding:6px 12px;background:#0f172a;border-top:1px solid #334155;flex-shrink:0;overflow-x:auto;";
+        tabBar.style.cssText = "display:flex;gap:4px;align-items:center;padding:6px 12px;background:var(--sheet-bg, #0f172a);border-top:1px solid var(--sheet-border, #334155);flex-shrink:0;overflow-x:auto;";
         hostEl.appendChild(tabBar);
       }
     }

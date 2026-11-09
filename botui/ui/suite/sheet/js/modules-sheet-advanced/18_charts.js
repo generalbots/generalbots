@@ -57,7 +57,7 @@
     const plotW = w - pad.l - pad.r;
     const plotH = h - pad.t - pad.b;
     let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="#0f172a" rx="5"/>';
+    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
     svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">' + escapeXml(c.title) + '</text>';
     const series = c.datasets.length || 1;
     const barW = (plotW / labels.length) * 0.7 / series;
@@ -70,7 +70,7 @@
         const y = pad.t + plotH - bh;
         svg += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + bh + '" fill="' + escapeXml(d.color || "#3b82f6") + '"/>';
       }
-      svg += '<text x="' + (pad.l + i * (plotW / labels.length) + plotW / labels.length / 2) + '" y="' + (h - 6) + '" fill="#94a3b8" font-size="9" text-anchor="middle">' + escapeXml(String(labels[i])) + '</text>';
+      svg += '<text x="' + (pad.l + i * (plotW / labels.length) + plotW / labels.length / 2) + '" y="' + (h - 6) + '" fill="var(--sheet-muted, #94a3b8)" font-size="9" text-anchor="middle">' + escapeXml(String(labels[i])) + '</text>';
     }
     svg += '</svg>';
     return svg;
@@ -82,7 +82,7 @@
     const plotW = w - pad.l - pad.r;
     const plotH = h - pad.t - pad.b;
     let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="#0f172a" rx="5"/>';
+    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
     svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title) + '</text>';
     for (let s = 0; s < c.datasets.length; s++) {
       const d = c.datasets[s];
@@ -104,7 +104,7 @@
     const cy2 = h / 2 + 6;
     const r = Math.min(w, h) / 2 - 24;
     let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">';
-    svg += '<rect width="100%" height="100%" fill="#0f172a" rx="5"/>';
+    svg += '<rect width="100%" height="100%" fill="var(--sheet-bg, #0f172a)" rx="5"/>';
     svg += '<text x="' + (w / 2) + '" y="16" fill="#e2e8f0" font-size="11" text-anchor="middle">' + escapeXml(c.title) + '</text>';
     const colors = ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#06b6d4", "#f97316", "#ec4899"];
     let a0 = -Math.PI / 2;
@@ -125,6 +125,113 @@
     return svg;
   }
 
+  function sheetId() {
+    if (window.__SHEET_INITIAL_ID) return window.__SHEET_INITIAL_ID;
+    try {
+      return sessionStorage.getItem("sheet_active_id") || "current";
+    } catch (_) {
+      return "current";
+    }
+  }
+
+  function persistPosition(chart) {
+    try {
+      return fetch("/api/sheet/chart/position", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheet_id: sheetId(),
+          worksheet_index: wsIndex(),
+          chart_id: chart.id,
+          position: chart.position,
+        }),
+      }).catch(function () { return null; });
+    } catch (_) {
+      return Promise.resolve(null);
+    }
+  }
+
+  function rowAtY(y) {
+    let acc = 0;
+    const rows = (grid() && grid().totalRows) || 1000;
+    for (let i = 0; i < rows; i++) {
+      const h = rh(i);
+      if (y < acc + h) return i;
+      acc += h;
+    }
+    return Math.max(0, rows - 1);
+  }
+
+  function colAtX(x) {
+    let acc = HEADER_W;
+    const cols = (grid() && grid().totalCols) || 64;
+    for (let i = 0; i < cols; i++) {
+      const w = cw(i);
+      if (x < acc + w) return i;
+      acc += w;
+    }
+    return Math.max(0, cols - 1);
+  }
+
+  // #2026 — a chart is an object on the grid, not a picture: drag the body to
+  // move it, drag the bottom-right handle to resize. The position is written
+  // back so the next render/reload (and every other client) sees it.
+  function makeInteractable(layer, chart) {
+    layer.style.pointerEvents = "auto";
+    layer.style.cursor = "move";
+
+    const handle = document.createElement("div");
+    handle.className = "ss-chart-resize";
+    handle.style.cssText =
+      "position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;" +
+      "background:linear-gradient(135deg,transparent 50%,var(--sheet-muted, #94a3b8) 50%);" +
+      "border-bottom-right-radius:6px;";
+    layer.appendChild(handle);
+
+    function beginDrag(event, mode) {
+      event.preventDefault();
+      event.stopPropagation();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startLeft = layer.offsetLeft;
+      const startTop = layer.offsetTop;
+      const startW = layer.offsetWidth;
+      const startH = layer.offsetHeight;
+      const move = function (ev) {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (mode === "resize") {
+          layer.style.width = Math.max(160, startW + dx) + "px";
+          layer.style.height = Math.max(120, startH + dy) + "px";
+        } else {
+          layer.style.left = Math.max(0, startLeft + dx) + "px";
+          layer.style.top = Math.max(0, startTop + dy) + "px";
+        }
+      };
+      const end = function () {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", end);
+        chart.position = {
+          row: rowAtY(layer.offsetTop),
+          col: colAtX(layer.offsetLeft),
+          width: layer.offsetWidth,
+          height: layer.offsetHeight,
+        };
+        persistPosition(chart);
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", end, { once: true });
+    }
+
+    layer.addEventListener("pointerdown", function (event) {
+      if (event.target === handle) return;
+      beginDrag(event, "move");
+    });
+    handle.addEventListener("pointerdown", function (event) {
+      beginDrag(event, "resize");
+    });
+  }
+
   function renderChart(c) {
     const g = grid();
     if (!g || !g.bodyInner) return;
@@ -135,9 +242,10 @@
     layer.className = "ss-chart-float";
     layer.style.cssText =
       "position:absolute;left:" + cx(pos.col) + "px;top:" + chartRowTop(pos.row) + "px;width:" + w + "px;height:" + h + "px;" +
-      "z-index:12;overflow:hidden;border:1px solid #334155;border-radius:6px;background:#0f172a;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;";
+      "z-index:12;overflow:hidden;border:1px solid var(--sheet-border, #334155);border-radius:6px;background:var(--sheet-bg, #0f172a);box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;";
     layer.innerHTML = c.chart_type === "pie" ? pieChart(c, w, h) : c.chart_type === "line" ? lineChart(c, w, h) : barChart(c, w, h);
     g.bodyInner.appendChild(layer);
+    makeInteractable(layer, c);
   }
 
   function renderAll() {
@@ -164,6 +272,22 @@
 
   document.addEventListener("gb-sheet-tab", function () { setTimeout(renderAll, 60); });
   document.addEventListener("gb-sheet-selection", function () { setTimeout(renderAll, 60); });
+
+  // #2026 — the toolbar chart dialog is a server-rendered fragment with an
+  // empty `data_range` input; fill it from the current selection so the user
+  // does not have to type the range by hand.
+  document.body.addEventListener("htmx:afterSwap", function (event) {
+    const target = event.detail && event.detail.target;
+    if (!target || !target.querySelectorAll) return;
+    const inputs = target.querySelectorAll('input[name="data_range"]');
+    for (let i = 0; i < inputs.length; i++) {
+      if (inputs[i].value) continue;
+      const range = window.SheetCharts && window.SheetCharts.currentRange
+        ? window.SheetCharts.currentRange()
+        : null;
+      if (range) inputs[i].value = range;
+    }
+  });
 
   setTimeout(wire, 0);
 })();

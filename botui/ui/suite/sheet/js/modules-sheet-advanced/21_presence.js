@@ -109,7 +109,7 @@
     pill.textContent = name + " is typing…";
     pill.style.cssText =
       "position:absolute;padding:2px 8px;font-size:11px;line-height:16px;font-style:italic;" +
-      "color:#f8fafc;background:" + color + ";border-radius:999px;white-space:nowrap;" +
+      "color:var(--sheet-fg, #f8fafc);background:" + color + ";border-radius:999px;white-space:nowrap;" +
       "pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.45);";
     pill.style.left = colXOf(col) + "px";
     pill.style.top = (row * rowHeight() + rowHeight() + 2) + "px";

@@ -72,21 +72,21 @@
     menu = document.createElement("div");
     menu.className = "ss-freeze-menu";
     menu.style.cssText =
-      "position:absolute;z-index:60;background:#1e293b;border:1px solid #334155;border-radius:6px;" +
+      "position:absolute;z-index:60;background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:6px;" +
       "box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:200px;overflow:hidden;";
     const title = document.createElement("div");
     title.textContent = "Freeze";
-    title.style.cssText = "padding:8px 14px;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #334155;";
+    title.style.cssText = "padding:8px 14px;color:var(--sheet-muted, #94a3b8);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--sheet-border, #334155);";
     menu.appendChild(title);
     const item = function (label, fn, active) {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = label;
       b.style.cssText =
-        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:#f8fafc;" +
+        "display:block;width:100%;padding:8px 14px;background:none;border:none;color:var(--sheet-fg, #f8fafc);" +
         "text-align:left;font-size:13px;cursor:pointer;";
       if (active) b.textContent = "✓ " + label;
-      b.addEventListener("mouseover", function () { b.style.background = "#334155"; });
+      b.addEventListener("mouseover", function () { b.style.background = "var(--sheet-border, #334155)"; });
       b.addEventListener("mouseout", function () { b.style.background = "none"; });
       b.addEventListener("click", function () { closeMenu(); fn(); });
       return b;

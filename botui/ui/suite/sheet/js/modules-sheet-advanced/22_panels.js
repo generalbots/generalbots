@@ -208,7 +208,7 @@
 
   function fieldRow(key, fallback, name, placeholder, required) {
     return (
-      '<label style="color:#f8fafc;font-size:13px;display:flex;flex-direction:column;gap:4px;">' +
+      '<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;display:flex;flex-direction:column;gap:4px;">' +
       escapeHtml(label(key, fallback)) +
       '<input type="text" name="' +
       name +
@@ -216,7 +216,7 @@
       escapeHtml(placeholder) +
       '"' +
       (required ? " required" : "") +
-      ' style="padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;" />' +
+      ' style="padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);" />' +
       "</label>"
     );
   }
@@ -235,21 +235,21 @@
     modal.style.cssText =
       "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;";
     modal.innerHTML =
-      '<div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:640px;width:92%;max-height:86vh;overflow:auto;">' +
-      '<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;">' +
-      '<h3 style="margin:0;color:#f8fafc;font-size:16px;">' +
+      '<div class="ss-modal-content" style="background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:8px;max-width:640px;width:92%;max-height:86vh;overflow:auto;">' +
+      '<div class="ss-modal-header" style="padding:16px;border-bottom:1px solid var(--sheet-border, #334155);display:flex;justify-content:space-between;align-items:center;">' +
+      '<h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:16px;">' +
       escapeHtml(label("pivot.title", "Pivot Table")) +
       "</h3>" +
-      '<button type="button" data-pivot-close="1" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>' +
+      '<button type="button" data-pivot-close="1" style="background:none;border:none;color:var(--sheet-muted, #94a3b8);cursor:pointer;font-size:20px;">×</button>' +
       "</div>" +
       '<form id="pivot-form" style="padding:16px;display:flex;flex-direction:column;gap:10px;">' +
       fieldRow("pivot.source_range", "Source range", "source_range", "A1:C10", true) +
       fieldRow("pivot.rows", "Rows (comma-separated headers)", "rows", "Category", false) +
       fieldRow("pivot.cols", "Columns (optional)", "cols", "Region", false) +
       fieldRow("pivot.values", "Values (header)", "value_field", "Amount", true) +
-      '<label style="color:#f8fafc;font-size:13px;display:flex;flex-direction:column;gap:4px;">' +
+      '<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;display:flex;flex-direction:column;gap:4px;">' +
       escapeHtml(label("pivot.agg", "Aggregation")) +
-      '<select name="agg" style="padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;">' +
+      '<select name="agg" style="padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);">' +
       '<option value="SUM">SUM</option><option value="COUNT">COUNT</option>' +
       '<option value="AVG">AVG</option><option value="MIN">MIN</option><option value="MAX">MAX</option>' +
       "</select></label>" +
@@ -309,8 +309,8 @@
     var cellValue = function (rowKey, colKey) {
       return formatValue(cells[rowKey + "\u0000" + colKey + "\u0000" + 0]);
     };
-    var th = 'padding:6px 8px;border-bottom:1px solid #334155;text-align:left;color:#f8fafc;';
-    var td = "padding:6px 8px;border-bottom:1px solid #334155;color:#cbd5e1;";
+    var th = 'padding:6px 8px;border-bottom:1px solid var(--sheet-border, #334155);text-align:left;color:var(--sheet-fg, #f8fafc);';
+    var td = "padding:6px 8px;border-bottom:1px solid var(--sheet-border, #334155);color:#cbd5e1;";
     var html = '<div style="overflow:auto;max-height:50vh;"><table style="border-collapse:collapse;width:100%;font-size:12px;">';
     html += "<tr><th style=\"" + th + "\">" + escapeHtml(valueLabel) + "</th>";
     if (shownCols.length === 0) {

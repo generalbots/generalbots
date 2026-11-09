@@ -55,7 +55,7 @@
     } else {
       node = document.createElement("div");
       node.className = "ss-row-header";
-      node.style.cssText = "position:absolute;width:" + HEADER_WIDTH + "px;height:" + ROW_HEIGHT + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:" + ROW_HEIGHT + "px;font-size:11px;border-bottom:1px solid #334155;border-right:1px solid #334155;box-sizing:border-box;z-index:5;";
+      node.style.cssText = "position:absolute;width:" + HEADER_WIDTH + "px;height:" + ROW_HEIGHT + "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-muted, #94a3b8);text-align:center;line-height:" + ROW_HEIGHT + "px;font-size:11px;border-bottom:1px solid var(--sheet-border, #334155);border-right:1px solid var(--sheet-border, #334155);box-sizing:border-box;z-index:5;";
       this.bodyInner.appendChild(node);
       this.headerColPool.push(node);
     }

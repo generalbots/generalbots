@@ -76,6 +76,9 @@
   }
 
   window.SheetCharts = {
+    // #2026 — the toolbar chart dialog is server-rendered; this is what it
+    // tells the empty "Data range" box.
+    currentRange: function () { return rangeRef(currentSelection()); },
     insertChart: insertChart,
     insertBar: insertBar,
     insertLine: insertLine,

@@ -45,11 +45,11 @@ pub async fn handle_share_form(
     }
     Html(format!(
         r##"<form class="ss-form" id="share-form" hx-post="/api/sheet/share" hx-vals='{{"id":"{id}","emails":""}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{}
-<input type="email" name="email" placeholder="usuario@empresa.com" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{}
+<input type="email" name="email" placeholder="usuario@empresa.com" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{}
-<select name="permission" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{}
+<select name="permission" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;">
 <option value="view">{view}</option>
 <option value="comment">{comment}</option>
 <option value="edit" selected>{edit}</option>
@@ -78,11 +78,11 @@ pub async fn handle_find_replace_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="find-replace-form" hx-post="/api/sheet/find-replace" hx-vals='{{"id":"{id}","action":"find_replace"}}' hx-target="#find-replace-results" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{find}
-<input type="text" name="find" placeholder="{find_ph}" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{find}
+<input type="text" name="find" placeholder="{find_ph}" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{replace}
-<input type="text" name="replace" placeholder="{replace_ph}" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{replace}
+<input type="text" name="replace" placeholder="{replace_ph}" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 <div id="find-replace-results"></div>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{apply}</button>
@@ -107,11 +107,11 @@ pub async fn handle_conditional_format_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="cf-form" hx-post="/api/sheet/conditional-format" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{range_label}
-<input type="text" name="range" placeholder="A1:D10" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{range_label}
+<input type="text" name="range" placeholder="A1:D10" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{rule}
-<select name="rule_type" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{rule}
+<select name="rule_type" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;">
 <option value="greater_than">{gt}</option>
 <option value="less_than">{lt}</option>
 <option value="equal_to">{eq}</option>
@@ -120,11 +120,11 @@ pub async fn handle_conditional_format_form(
 <option value="duplicate">{duplicates}</option>
 </select>
 </label>
-<label style="color:#f8fafc;font-size:13px;">{value}
-<input type="text" name="value" placeholder="100" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{value}
+<input type="text" name="value" placeholder="100" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{bg}
-<input type="color" name="bg_color" value="#3b82f6" style="width:100%;height:36px;background:#0f172a;border:1px solid #334155;border-radius:4px;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{bg}
+<input type="color" name="bg_color" value="#3b82f6" style="width:100%;height:36px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>"##,
@@ -154,11 +154,11 @@ pub async fn handle_data_validation_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="dv-form" hx-post="/api/sheet/data-validation" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{cell}
-<input type="text" name="range" placeholder="A1" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{cell}
+<input type="text" name="range" placeholder="A1" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{kind}
-<select name="kind" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{kind}
+<select name="kind" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;">
 <option value="list">{list}</option>
 <option value="number">{number}</option>
 <option value="date">{date}</option>
@@ -166,19 +166,19 @@ pub async fn handle_data_validation_form(
 <option value="custom">{custom}</option>
 </select>
 </label>
-<label style="color:#f8fafc;font-size:13px;">{values}
-<input type="text" name="values" placeholder="Sim,Não,Talvez" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{values}
+<input type="text" name="values" placeholder="Sim,Não,Talvez" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<label style="color:#f8fafc;font-size:13px;">Min
-<input type="text" name="value1" placeholder="0" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">Min
+<input type="text" name="value1" placeholder="0" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">Max
-<input type="text" name="value2" placeholder="10" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">Max
+<input type="text" name="value2" placeholder="10" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 </div>
-<label style="color:#f8fafc;font-size:13px;">{error_msg}
-<input type="text" name="error_message" value="{invalid}" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{error_msg}
+<input type="text" name="error_message" value="{invalid}" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>"##,
@@ -208,13 +208,13 @@ pub async fn handle_custom_format_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="cf-custom-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"custom"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{range}
-<input type="text" name="range" placeholder="A1:A100" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{range}
+<input type="text" name="range" placeholder="A1:A100" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{code}
-<input type="text" name="format" placeholder="#,##0.00_);[Red](#,##0.00)" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;font-family:monospace;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{code}
+<input type="text" name="format" placeholder="#,##0.00_);[Red](#,##0.00)" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;font-family:monospace;" />
 </label>
-<div style="color:#94a3b8;font-size:11px;background:#0f172a;padding:8px;border-radius:4px;">
+<div style="color:var(--sheet-muted, #94a3b8);font-size:11px;background:var(--sheet-bg, #0f172a);padding:8px;border-radius:4px;">
 <strong>{examples}</strong><br/>
 <code>0.00</code> — 1234.56 → 1,234.56<br/>
 <code>0.00%</code> — 0.123 → 12.30%<br/>
@@ -242,11 +242,11 @@ pub async fn handle_insert_image_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     let file = form_field(
         &t(lang, "form.img.file"),
-        r#"<input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
+        r#"<input type="file" name="image" accept="image/*" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />"#,
     );
     let anchor = form_field(
         &t(lang, "form.img.anchor"),
-        r#"<input type="text" name="anchor" placeholder="B5" value="B5" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />"#,
+        r#"<input type="text" name="anchor" placeholder="B5" value="B5" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />"#,
     );
     Html(format!(
         r##"<form class="ss-form" id="img-form" hx-post="/api/sheet/format" hx-vals='{{"id":"{id}","format_type":"image"}}' hx-target="#insert-image-modal" hx-swap="outerHTML" enctype="multipart/form-data" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
@@ -270,18 +270,18 @@ pub async fn handle_print_preview_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="print-form" hx-post="/api/sheet/print-preview" hx-vals='{{"id":"{id}","format":"pdf"}}' hx-target="#print-preview-modal" hx-swap="outerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<div class="print-preview-frame" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:24px;min-height:300px;">
-<h3 style="color:#f8fafc;margin-top:0;">{title}</h3>
-<p style="color:#94a3b8;">{description}</p>
+<div class="print-preview-frame" style="background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;padding:24px;min-height:300px;">
+<h3 style="color:var(--sheet-fg, #f8fafc);margin-top:0;">{title}</h3>
+<p style="color:var(--sheet-muted, #94a3b8);">{description}</p>
 </div>
-<label style="color:#f8fafc;font-size:13px;">{orientation}
-<select name="orientation" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{orientation}
+<select name="orientation" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;">
 <option value="portrait">{portrait}</option>
 <option value="landscape" selected>{landscape}</option>
 </select>
 </label>
-<label style="color:#f8fafc;font-size:13px;">{scale}
-<input type="number" name="scale" value="100" min="10" max="200" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{scale}
+<input type="number" name="scale" value="100" min="10" max="200" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>"##,
@@ -307,8 +307,8 @@ pub async fn handle_chart_form(
     let sheet_id = params.get("id").cloned().unwrap_or_default();
     Html(format!(
         r##"<form class="ss-form" id="chart-form" hx-post="/api/sheet/chart" hx-vals='{{"id":"{id}"}}' hx-swap="none" hx-on::after-request="if(event.detail.successful) this.closest('.ss-modal').remove()" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-<label style="color:#f8fafc;font-size:13px;">{chart_type}
-<select name="chart_type" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{chart_type}
+<select name="chart_type" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;">
 <option value="bar">{bar}</option>
 <option value="line">{line}</option>
 <option value="pie">{pie}</option>
@@ -317,14 +317,14 @@ pub async fn handle_chart_form(
 <option value="column">{column}</option>
 </select>
 </label>
-<label style="color:#f8fafc;font-size:13px;">{data_range}
-<input type="text" name="data_range" placeholder="A1:D10" required style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{data_range}
+<input type="text" name="data_range" placeholder="A1:D10" required style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{title}
-<input type="text" name="title" placeholder="Vendas por Trimestre" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{title}
+<input type="text" name="title" placeholder="Vendas por Trimestre" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
-<label style="color:#f8fafc;font-size:13px;">{anchor}
-<input type="text" name="anchor" value="F2" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;" />
+<label style="color:var(--sheet-fg, #f8fafc);font-size:13px;">{anchor}
+<input type="text" name="anchor" value="F2" style="width:100%;padding:8px;background:var(--sheet-bg, #0f172a);border:1px solid var(--sheet-border, #334155);border-radius:4px;color:var(--sheet-fg, #f8fafc);margin-top:4px;" />
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">{submit}</button>
 </form>"##,

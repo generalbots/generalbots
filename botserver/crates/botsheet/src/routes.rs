@@ -30,6 +30,7 @@ use crate::handlers::crud::{
 };
 use crate::handlers::data_ops::{
     handle_clear_filter, handle_conditional_format, handle_create_chart, handle_delete_chart,
+    handle_move_chart,
     handle_filter_data, handle_sort_range,
 };
 use crate::handlers::export_import::{handle_export_sheet, handle_import_sheet, handle_print_preview};
@@ -84,6 +85,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/filter/clear", post(handle_clear_filter))
         .route("/api/sheet/chart", post(handle_create_chart))
         .route("/api/sheet/chart/delete", post(handle_delete_chart))
+        .route("/api/sheet/chart/position", post(handle_move_chart))
         .route("/api/sheet/conditional-format", post(handle_conditional_format))
         .route("/api/sheet/data-validation", post(handle_data_validation))
         .route("/api/sheet/validate-cell", post(handle_validate_cell))

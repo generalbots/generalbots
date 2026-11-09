@@ -4,7 +4,7 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::SheetState;
 use crate::types::{
     ChartConfig, ChartDataset, ChartOptions, ChartPosition, ChartRequest, DeleteChartRequest,
-    SaveResponse,
+    MoveChartRequest, SaveResponse,
 };
 use axum::{
     extract::{Extension, State},
@@ -111,6 +111,70 @@ pub async fn handle_create_chart(
         id: req.sheet_id,
         success: true,
         message: Some("Chart created".to_string()),
+    }))
+}
+
+/// #2026 — persist a chart's position after a drag or resize.
+pub async fn handle_move_chart(
+    State(state): State<Arc<SheetState>>,
+    user: Option<Extension<SheetUser>>,
+    Json(req): Json<MoveChartRequest>,
+) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = resolve_user_id(user.as_deref());
+    let session = state
+        .sessions
+        .get_or_load(&state, &user_id, &req.sheet_id)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": e })),
+            )
+        })?;
+
+    let mut sheet = session.sheet.write().await;
+    if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
+        return Err((StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": e }))));
+    }
+    if req.worksheet_index >= sheet.worksheets.len() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Invalid worksheet index" })),
+        ));
+    }
+
+    let position = req.position.clone();
+    let worksheet = &mut sheet.worksheets[req.worksheet_index];
+    let mut found = false;
+    if let Some(ref mut charts) = worksheet.charts {
+        for chart in charts.iter_mut() {
+            if chart.id == req.chart_id {
+                chart.position = position.clone();
+                found = true;
+                break;
+            }
+        }
+    }
+    if !found {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Chart not found" })),
+        ));
+    }
+
+    sheet.updated_at = Utc::now();
+    state.sessions.record(
+        &session,
+        &state,
+        &user_id,
+        "sheet_mutation",
+        serde_json::json!({ "sheet_id": req.sheet_id }),
+    );
+
+    Ok(Json(SaveResponse {
+        id: req.sheet_id,
+        success: true,
+        message: Some("Chart moved".to_string()),
     }))
 }
 

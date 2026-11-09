@@ -62,8 +62,8 @@
       const which = tab.dataset.sidebarTab;
       $$(".sidebar-tab").forEach(function (b) {
         b.classList.toggle("active", b === tab);
-        b.style.background = b === tab ? "#1e293b" : "#0f172a";
-        b.style.color = b === tab ? "#f8fafc" : "#94a3b8";
+        b.style.background = b === tab ? "var(--sheet-bg-elevated, #1e293b)" : "var(--sheet-bg, #0f172a)";
+        b.style.color = b === tab ? "var(--sheet-fg, #f8fafc)" : "var(--sheet-muted, #94a3b8)";
       });
       $$(".sidebar-content").forEach(function (c) {
         c.style.display = c.dataset.sidebarContent === which ? "flex" : "none";

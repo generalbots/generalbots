@@ -145,8 +145,8 @@
         hd.dataset.col = c;
         hd.textContent = g.colName ? g.colName(c) : String.fromCharCode(65 + c);
         hd.style.cssText =
-          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;" +
-          "border-right:1px solid #334155;flex-shrink:0;box-sizing:border-box;";
+          "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-muted, #94a3b8);text-align:center;line-height:24px;font-size:11px;" +
+          "border-right:1px solid var(--sheet-border, #334155);flex-shrink:0;box-sizing:border-box;";
         h.appendChild(hd);
       }
       g.headerColPool = [];
@@ -177,8 +177,8 @@
         node.style.textDecoration = "";
         node.style.fontFamily = "";
         node.style.fontSize = "12px";
-        node.style.color = "#f8fafc";
-        node.style.backgroundColor = "#0f172a";
+        node.style.color = "var(--sheet-fg, #f8fafc)";
+        node.style.backgroundColor = "var(--sheet-bg, #0f172a)";
         if (g.applyCellStyle) g.applyCellStyle(node, cellData);
         if (g.editingCell !== node) {
           node.contentEditable = "false";

@@ -13,18 +13,18 @@
   VirtualGrid.init = function (host) {
     this.root = document.createElement("div");
     this.root.className = "virtual-grid";
-    this.root.style.cssText = "position:relative;display:flex;flex-direction:column;flex:1;background:#0f172a;overflow:hidden;";
+    this.root.style.cssText = "position:relative;display:flex;flex-direction:column;flex:1;background:var(--sheet-bg, var(--sheet-bg, #0f172a));overflow:hidden;";
 
     this.headerRow = document.createElement("div");
     this.headerRow.className = "vg-header-row";
-    this.headerRow.style.cssText = "display:flex;height:24px;background:#0f172a;border-bottom:1px solid #334155;overflow:hidden;flex-shrink:0;";
+    this.headerRow.style.cssText = "display:flex;height:24px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));overflow:hidden;flex-shrink:0;";
 
     this.midRow = document.createElement("div");
     this.midRow.style.cssText = "display:flex;flex:1;overflow:hidden;";
 
     this.scrollArea = document.createElement("div");
     this.scrollArea.className = "vg-scroll";
-    this.scrollArea.style.cssText = "flex:1;overflow:auto;background:#0f172a;position:relative;";
+    this.scrollArea.style.cssText = "flex:1;overflow:auto;background:var(--sheet-bg, var(--sheet-bg, #0f172a));position:relative;";
 
     this.body = document.createElement("div");
     this.body.className = "vg-body";
@@ -65,7 +65,7 @@
     const cols = this.visibleColRange();
     this.headerRow.innerHTML = "";
     const corner = document.createElement("div");
-    corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:#0f172a;border-right:1px solid #334155;flex-shrink:0;";
+    corner.style.cssText = "width:" + HEADER_WIDTH + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;";
     this.headerRow.appendChild(corner);
     // Virtualized headers: absolute-positioned inside the translated header
     // row, so only the visible columns exist in the DOM (#786).
@@ -74,7 +74,7 @@
       h.className = "ss-col-head";
       h.dataset.col = c;
       h.textContent = colName(c);
-      h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;border-right:1px solid #334155;flex-shrink:0;box-sizing:border-box;";
+      h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-muted, var(--sheet-muted, #94a3b8));text-align:center;line-height:24px;font-size:11px;border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));flex-shrink:0;box-sizing:border-box;";
       this.headerRow.appendChild(h);
     }
     this.headerColPool = [];
@@ -89,7 +89,7 @@
       node.className = "vg-cell";
       node.contentEditable = "false";
       node.tabIndex = -1;
-      node.style.cssText = "position:absolute;background:#0f172a;color:#f8fafc;border-right:1px solid #334155;border-bottom:1px solid #334155;padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
+      node.style.cssText = "position:absolute;background:var(--sheet-bg, var(--sheet-bg, #0f172a));color:var(--sheet-fg, var(--sheet-fg, #f8fafc));border-right:1px solid var(--sheet-border, var(--sheet-border, #334155));border-bottom:1px solid var(--sheet-border, var(--sheet-border, #334155));padding:2px 4px;font-size:12px;overflow:hidden;outline:none;box-sizing:border-box;cursor:pointer;";
       node.addEventListener("mousedown", this.onCellMouseDown.bind(this));
       node.addEventListener("dblclick", this.onCellDblClick.bind(this));
       node.addEventListener("blur", this.onCellBlur.bind(this));
@@ -116,6 +116,32 @@
     }
   };
 
+  // #2025 — a cell with an explicit fill (a value the bot wrote with a
+  // background, or conditional formatting) must stay readable in either theme.
+  // Parse the fill and pick near-black/near-white text from its luminance,
+  // unless the cell states its own colour.
+  function parseColor(value) {
+    var text = String(value == null ? "" : value).trim();
+    var m = /^#([0-9a-f]{3})$/i.exec(text);
+    if (m) {
+      return m[1].split("").map(function (c) { return parseInt(c + c, 16); });
+    }
+    m = /^#([0-9a-f]{6})$/i.exec(text);
+    if (m) {
+      return [0, 2, 4].map(function (i) { return parseInt(m[1].substr(i, 2), 16); });
+    }
+    m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(text);
+    if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
+    return null;
+  }
+
+  function readableTextOn(background) {
+    var rgb = parseColor(background);
+    if (!rgb) return null;
+    var luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    return luminance > 0.6 ? "#1f2328" : "var(--sheet-fg, #f8fafc)";
+  }
+
   VirtualGrid.applyCellStyle = function (node, cellData) {
     if (!cellData || !cellData.style) return;
     var s = cellData.style;
@@ -125,7 +151,13 @@
     if (s.font_family) node.style.fontFamily = s.font_family;
     if (s.font_size) node.style.fontSize = s.font_size + 'px';
     if (s.color) node.style.color = s.color;
-    if (s.background) node.style.backgroundColor = s.background;
+    if (s.background) {
+      node.style.backgroundColor = s.background;
+      if (!s.color) {
+        var contrast = readableTextOn(s.background);
+        if (contrast) node.style.color = contrast;
+      }
+    }
     if (s.text_align) node.style.textAlign = s.text_align;
     if (s.vertical_align) node.style.verticalAlign = s.vertical_align;
     if (s.border) node.style.border = s.border;
@@ -157,8 +189,8 @@
       node.style.textDecoration = "";
       node.style.fontFamily = "";
       node.style.fontSize = "12px";
-      node.style.color = "#f8fafc";
-      node.style.backgroundColor = "#0f172a";
+      node.style.color = "var(--sheet-fg, var(--sheet-fg, #f8fafc))";
+      node.style.backgroundColor = "var(--sheet-bg, var(--sheet-bg, #0f172a))";
       this.applyCellStyle(node, cellData);
       if (this.editingCell !== node) {
         node.contentEditable = "false";

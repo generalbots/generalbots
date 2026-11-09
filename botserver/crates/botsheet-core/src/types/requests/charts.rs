@@ -25,6 +25,19 @@ pub struct ChartRequest {
     pub anchor: Option<String>,
 }
 
+/// #2026 — persist a chart's move/resize. The chart is an object on the grid:
+/// dragging or resizing it must survive the next render/reload, so the position
+/// is written back to the stored `ChartConfig`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MoveChartRequest {
+    #[serde(alias = "id")]
+    pub sheet_id: String,
+    #[serde(default)]
+    pub worksheet_index: usize,
+    pub chart_id: String,
+    pub position: ChartPosition,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteChartRequest {
     pub sheet_id: String,

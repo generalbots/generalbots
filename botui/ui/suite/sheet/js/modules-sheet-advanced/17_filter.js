@@ -198,11 +198,11 @@
     menu = document.createElement("div");
     menu.className = "ss-filter-menu";
     menu.style.cssText =
-      "position:absolute;z-index:60;background:#1e293b;border:1px solid #334155;border-radius:6px;" +
+      "position:absolute;z-index:60;background:var(--sheet-bg-elevated, #1e293b);border:1px solid var(--sheet-border, #334155);border-radius:6px;" +
       "box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:230px;max-height:320px;overflow-y:auto;padding:8px;";
     const title = document.createElement("div");
     title.textContent = "Filter column " + (g && g.colName ? g.colName(col) : "");
-    title.style.cssText = "color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;";
+    title.style.cssText = "color:var(--sheet-muted, #94a3b8);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;";
     menu.appendChild(title);
 
     const btnRow = document.createElement("div");
@@ -214,7 +214,7 @@
     const clearBtn = document.createElement("button");
     clearBtn.textContent = "Clear";
     clearBtn.type = "button";
-    clearBtn.style.cssText = "flex:1;background:#334155;color:#f8fafc;border:none;border-radius:4px;padding:6px;font-size:12px;cursor:pointer;";
+    clearBtn.style.cssText = "flex:1;background:var(--sheet-border, #334155);color:var(--sheet-fg, #f8fafc);border:none;border-radius:4px;padding:6px;font-size:12px;cursor:pointer;";
     btnRow.appendChild(applyBtn);
     btnRow.appendChild(clearBtn);
     menu.appendChild(btnRow);
@@ -231,7 +231,7 @@
     }
     vals.slice(0, 200).forEach(function (v) {
       const row = document.createElement("label");
-      row.style.cssText = "display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;color:#f8fafc;cursor:pointer;";
+      row.style.cssText = "display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;color:var(--sheet-fg, #f8fafc);cursor:pointer;";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = checks[v] !== false;
@@ -244,7 +244,7 @@
       body.appendChild(row);
     });
     if (!vals.length) {
-      body.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:8px;">No values in this column.</div>';
+      body.innerHTML = '<div style="color:var(--sheet-muted, #94a3b8);font-size:12px;padding:8px;">No values in this column.</div>';
     }
     menu.appendChild(body);
 

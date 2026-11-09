@@ -47,7 +47,7 @@
     sel.style.cssText =
       "position:absolute;z-index:50;left:" + node.style.left + ";top:" + node.style.top + ";width:" +
       (parseInt(node.style.width, 10) || 96) + "px;height:" + (parseInt(node.style.height, 10) || 24) +
-      "px;background:#0f172a;color:#f8fafc;border:2px solid #3b82f6;font-size:12px;outline:none;";
+      "px;background:var(--sheet-bg, #0f172a);color:var(--sheet-fg, #f8fafc);border:2px solid #3b82f6;font-size:12px;outline:none;";
     allowed.forEach(function (v) {
       const opt = document.createElement("option");
       opt.value = v;

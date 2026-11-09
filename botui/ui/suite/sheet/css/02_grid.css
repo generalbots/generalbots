@@ -169,8 +169,8 @@
     gap: 4px;
     align-items: center;
     padding: 6px 12px;
-    background: var(--sheet-tabbar-bg, #0f172a);
-    border-top: 1px solid var(--sheet-tabbar-border, #334155);
+    background: var(--sheet-tabbar-bg, var(--sheet-bg, #0f172a));
+    border-top: 1px solid var(--sheet-tabbar-border, var(--sheet-border, #334155));
     flex-shrink: 0;
     overflow-x: auto;
     min-height: 36px;
@@ -203,9 +203,9 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    background: var(--sheet-tab-bg, #0f172a);
-    color: var(--sheet-tab-fg, #94a3b8);
-    border: 1px solid var(--sheet-tab-border, #334155);
+    background: var(--sheet-tab-bg, var(--sheet-bg, #0f172a));
+    color: var(--sheet-tab-fg, var(--sheet-muted, #94a3b8));
+    border: 1px solid var(--sheet-tab-border, var(--sheet-border, #334155));
     border-radius: 4px 4px 0 0;
     cursor: pointer;
     font-size: 12px;
@@ -216,13 +216,13 @@
 }
 
 .ss-tab:hover {
-    background: var(--sheet-tab-hover, #1e293b);
-    color: #f8fafc;
+    background: var(--sheet-tab-hover, var(--sheet-bg-elevated, #1e293b));
+    color: var(--sheet-fg, #f8fafc);
 }
 
 .ss-tab.ss-tab-active {
-    background: var(--sheet-tab-active-bg, #1e293b);
-    color: #f8fafc;
+    background: var(--sheet-tab-active-bg, var(--sheet-bg-elevated, #1e293b));
+    color: var(--sheet-fg, #f8fafc);
     border-color: #3b82f6;
     font-weight: 600;
 }
