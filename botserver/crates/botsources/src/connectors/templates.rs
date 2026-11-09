@@ -8,8 +8,6 @@ pub fn get_all_templates() -> Vec<ConnectorTemplate> {
         bling_template(),
         shopify_template(),
         woo_commerce_template(),
-        mysql_template(),
-        postgres_template(),
         rest_api_template(),
         google_sheets_template(),
         sharepoint_template(),
@@ -139,36 +137,6 @@ fn woo_commerce_template() -> ConnectorTemplate {
     }
 }
 
-fn mysql_template() -> ConnectorTemplate {
-    ConnectorTemplate {
-        id: "mysql".into(),
-        name: "MySQL Database".into(),
-        description: "Relational database by Oracle".into(),
-        connector_type: ConnectorType::MySql,
-        icon: "database".into(),
-        auth_type: AuthType::Basic,
-        auth_help: "Connection string: mysql://user:pass@host:3306/dbname".into(),
-        default_endpoints: Vec::new(),
-        default_schedule: Some("0 */12 * * *".into()),
-        color: "#00758F".into(),
-    }
-}
-
-fn postgres_template() -> ConnectorTemplate {
-    ConnectorTemplate {
-        id: "postgres".into(),
-        name: "PostgreSQL Database".into(),
-        description: "Advanced open-source relational database".into(),
-        connector_type: ConnectorType::Postgres,
-        icon: "database".into(),
-        auth_type: AuthType::Basic,
-        auth_help: "Connection string: postgresql://user:pass@host:5432/dbname".into(),
-        default_endpoints: Vec::new(),
-        default_schedule: Some("0 */12 * * *".into()),
-        color: "#336791".into(),
-    }
-}
-
 fn rest_api_template() -> ConnectorTemplate {
     ConnectorTemplate {
         id: "rest_api".into(),
@@ -262,5 +230,60 @@ fn endpoint(name: &str, method: &str, url: &str) -> EndpointConfig {
         field_mapping: Vec::new(),
         schedule: None,
         pagination: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// #2053 — the engine is HTTP-only. A template that cannot be honored by
+    /// `build_blocking_client` must not be offered: MySQL and PostgreSQL both
+    /// shipped with zero endpoints and a connection-string help text, which
+    /// produced a connector that could never read a row.
+    #[test]
+    fn every_template_can_be_honored_by_the_http_engine() {
+        let templates = get_all_templates();
+        assert!(!templates.is_empty());
+        for template in &templates {
+            assert!(
+                !matches!(
+                    template.connector_type,
+                    ConnectorType::MySql | ConnectorType::Postgres
+                ),
+                "{} is a database connector and the engine is HTTP-only",
+                template.id
+            );
+            assert!(
+                !template.default_endpoints.is_empty(),
+                "{} has no endpoints, so a sync could never fetch anything",
+                template.id
+            );
+            for endpoint in &template.default_endpoints {
+                assert!(
+                    endpoint.url.starts_with('/'),
+                    "{} endpoint {} must be a path under the base URL",
+                    template.id,
+                    endpoint.name
+                );
+                assert!(
+                    matches!(endpoint.method.as_str(), "GET" | "POST" | "PUT" | "PATCH" | "DELETE"),
+                    "{} endpoint {} has an unsupported method {}",
+                    template.id,
+                    endpoint.name,
+                    endpoint.method
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn database_templates_are_gone() {
+        for id in ["mysql", "postgres"] {
+            assert!(
+                get_template(id).is_none(),
+                "{id} must not be offered while the engine cannot execute SQL"
+            );
+        }
     }
 }
