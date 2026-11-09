@@ -82,7 +82,7 @@ jobs:
   macos:
     name: macOS app and dmg (arm64)
     if: ${{ github.server_url == 'https://github.com' }}
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 120
     # Best effort on purpose: macOS is an additive artifact and must not hide
     # the Linux installer from a release.
