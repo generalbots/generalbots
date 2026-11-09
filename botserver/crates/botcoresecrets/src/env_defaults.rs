@@ -26,7 +26,11 @@ pub fn get_from_env(path: &str) -> Result<HashMap<String, String>> {
         "directory" | "gbo/directory" | "system/directory" => {
             secrets.insert("url".into(), String::new());
             secrets.insert("host".into(), "localhost".into());
-            secrets.insert("port".into(), "9000".into());
+            // Zitadel runs on 8300 in the local/desktop stack (see
+            // register_directory); keep the Vault-absent fallback in sync so a
+            // fresh boot does not probe localhost:9000 and fail the admin
+            // bootstrap before the OAuth client exists.
+            secrets.insert("port".into(), "8300".into());
             secrets.insert("project_id".into(), String::new());
             secrets.insert("client_id".into(), String::new());
             secrets.insert("client_secret".into(), String::new());

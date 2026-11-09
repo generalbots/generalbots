@@ -40,7 +40,7 @@ impl VaultConfigProvider for SecretsManagerVaultProvider {
     fn get_directory_config(&self) -> Result<(String, String, String, String), String> {
         let url = self.0.get_value_blocking("gbo/directory", "url", "");
         let host = self.0.get_value_blocking("gbo/directory", "host", "localhost");
-        let port = self.0.get_value_blocking("gbo/directory", "port", "9000");
+        let port = self.0.get_value_blocking("gbo/directory", "port", "8300");
         let project_id = self.0.get_value_blocking("gbo/directory", "project_id", "");
         Ok((url, host, port, project_id))
     }

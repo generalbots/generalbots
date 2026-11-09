@@ -110,7 +110,7 @@ impl TlsIntegration {
             .split(':')
             .next_back()
             .and_then(|p| p.parse().ok())
-            .unwrap_or(9000);
+            .unwrap_or(8300);
         let directory_tls_port: u16 = directory_secure
             .split(':')
             .next_back()
