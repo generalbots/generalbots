@@ -68,7 +68,7 @@ requests>=2.33.0
 prometheus-client==0.21.0
 
 # Utils
-python-dotenv>=1.2.2
+python-dotenv>=1.2.4
 # torch 2.15+cpu requires >=4.13.0; the old 4.12.2 pin made the CPU
 # wheelhouse resolution fail before pip could download anything.
 typing-extensions>=4.13.0
