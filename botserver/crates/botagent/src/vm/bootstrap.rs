@@ -257,9 +257,17 @@ mod profile_tests {
         assert!(block.contains("chromium"));
         assert!(block.contains("fonts-noto-core"));
         // #2062 — media/ML and LibreOffice stay out of the default image.
+        // Comments are allowed to name what is deliberately absent; only the
+        // executable lines decide what gets installed.
+        let commands = block
+            .lines()
+            .filter(|line| !line.trim_start().starts_with('#'))
+            .collect::<Vec<_>>()
+            .join("\n")
+            .to_ascii_lowercase();
         for forbidden in ["ffmpeg", "libreoffice", "torch", "tensorflow", "cuda"] {
             assert!(
-                !block.to_ascii_lowercase().contains(forbidden),
+                !commands.contains(forbidden),
                 "office profile must not install {forbidden}"
             );
         }

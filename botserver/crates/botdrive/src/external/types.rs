@@ -114,7 +114,7 @@ impl Provider {
         }
         self.write_scopes()
             .iter()
-            .any(|scope| granted.iter().any(|value| value == scope))
+            .any(|scope| granted.iter().any(|value| value.eq_ignore_ascii_case(scope)))
     }
 }
 
