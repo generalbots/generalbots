@@ -72,12 +72,88 @@ EOS
 
 /// Bumped whenever the base toolkit changes; existing VMs run the prepare
 /// step once when their marker does not match.
-const WORKSPACE_PREPARE_VERSION: &str = "v5";
+/// #2062 — image profile. `office` is the default: document libraries plus a
+/// headless Chromium used only for HTML->PDF and screenshots. Media/ML stacks
+/// stay in BotModels; the bottle profile never bakes torch/ffmpeg/libreoffice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum VmProfile {
+    Base,
+    Office,
+    Media,
+    Data,
+}
+
+impl VmProfile {
+    pub(super) fn from_env() -> Self {
+        match std::env::var("GB_VM_PROFILE")
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "base" => Self::Base,
+            "media" => Self::Media,
+            "data" => Self::Data,
+            _ => Self::Office,
+        }
+    }
+
+    pub(super) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Base => "base",
+            Self::Office => "office",
+            Self::Media => "media",
+            Self::Data => "data",
+        }
+    }
+
+    /// Extra shell install steps. Every command is best-effort (`|| true`): a
+    /// profile that cannot install yet must not fail provisioning.
+    pub(super) fn install_block(self) -> &'static str {
+        match self {
+            Self::Base => "",
+            Self::Office => r#"
+# #2062 office profile: headless Chromium (print-to-pdf/screenshots) and
+# fonts, with the document libraries already installed above. No LibreOffice
+# cold start, no ffmpeg, no torch.
+apt-get -o DPkg::Lock::Timeout=300 install -y -q chromium fonts-noto-core fonts-dejavu-core || true
+python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
+  pikepdf pypdf markdown jinja2 tabulate || true
+"#,
+            Self::Media => r#"
+# #2062 media profile (opt-in): local transcode only. Generation, music,
+# video and AI stay in BotModels; no CUDA/torch stack is installed.
+apt-get -o DPkg::Lock::Timeout=300 install -y -q ffmpeg || true
+"#,
+            Self::Data => r#"
+# #2062 data profile (opt-in): scientific python for notebooks and joins.
+python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
+  scipy statsmodels || true
+"#,
+        }
+    }
+
+    /// Marker written to `/opt/vibe/.provisioned`. A profile change re-runs the
+    /// preparation exactly once.
+    pub(super) fn prepare_version(self) -> String {
+        format!("v6-{}", self.as_str())
+    }
+}
+
+/// The bootstrap script for the active profile, including the version marker.
+pub(super) fn bootstrap_script() -> String {
+    let profile = VmProfile::from_env();
+    format!(
+        "{BOOTSTRAP_SCRIPT}\n{}\necho {} > /opt/vibe/.provisioned\n",
+        profile.install_block(),
+        profile.prepare_version()
+    )
+}
 
 /// Idempotent preparation of an existing workspace VM: package index, base
 /// Python toolkit and the conversations root. Runs in the background so the
 /// first chat message is never blocked by apt/pip.
-const WORKSPACE_PREPARE_SCRIPT: &str = r#"
+const WORKSPACE_PREPARE_SCRIPT_BASE: &str = r#"
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 # Debian containers can boot without /etc/resolv.conf; apt then fails to
@@ -112,9 +188,19 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v5 > /opt/vibe/.provisioned
 } >/tmp/agent-prepare.log 2>&1 || true
 "#;
+
+/// Preparation script for the active profile (base toolkit + profile packages
+/// + the version marker that makes the run idempotent).
+pub(super) fn workspace_prepare_script() -> String {
+    let profile = VmProfile::from_env();
+    format!(
+        "{WORKSPACE_PREPARE_SCRIPT_BASE}\n{}\necho {} > /opt/vibe/.provisioned\n",
+        profile.install_block(),
+        profile.prepare_version()
+    )
+}
 
 /// Schedules workspace preparation once per VM per process. Never blocks the
 /// caller: the on-demand installer covers a request that races the setup.
@@ -140,7 +226,8 @@ pub(super) fn schedule_workspace_preparation(state: Arc<AgentService>, vm_name: 
                 "sh".into(),
                 "-c".into(),
                 format!(
-                    "test -f /opt/vibe/.provisioned && grep -q '^{WORKSPACE_PREPARE_VERSION}$' /opt/vibe/.provisioned"
+                    "test -f /opt/vibe/.provisioned && grep -q '^{version}$' /opt/vibe/.provisioned",
+                    version = VmProfile::from_env().prepare_version()
                 ),
             ],
         )
@@ -150,7 +237,7 @@ pub(super) fn schedule_workspace_preparation(state: Arc<AgentService>, vm_name: 
             let _ = exec_in_vm(
                 &state,
                 &vm_name,
-                &["sh".into(), "-c".into(), WORKSPACE_PREPARE_SCRIPT.into()],
+                &["sh".into(), "-c".into(), workspace_prepare_script()],
             )
             .await;
         }
@@ -158,4 +245,47 @@ pub(super) fn schedule_workspace_preparation(state: Arc<AgentService>, vm_name: 
             guard.remove(&vm_name);
         }
     });
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn the_office_profile_keeps_the_image_small() {
+        let block = VmProfile::Office.install_block();
+        assert!(block.contains("chromium"));
+        assert!(block.contains("fonts-noto-core"));
+        // #2062 — media/ML and LibreOffice stay out of the default image.
+        for forbidden in ["ffmpeg", "libreoffice", "torch", "tensorflow", "cuda"] {
+            assert!(
+                !block.to_ascii_lowercase().contains(forbidden),
+                "office profile must not install {forbidden}"
+            );
+        }
+    }
+
+    #[test]
+    fn media_and_data_are_opt_in_profiles() {
+        assert!(VmProfile::Media.install_block().contains("ffmpeg"));
+        assert!(VmProfile::Data.install_block().contains("scipy"));
+        assert!(VmProfile::Base.install_block().is_empty());
+    }
+
+    #[test]
+    fn the_prepare_version_names_the_profile_so_a_change_reprovisions() {
+        assert_ne!(
+            VmProfile::Office.prepare_version(),
+            VmProfile::Base.prepare_version()
+        );
+        assert!(VmProfile::Office.prepare_version().contains("office"));
+        assert!(VmProfile::Base.prepare_version().contains("base"));
+    }
+
+    #[test]
+    fn an_unknown_profile_falls_back_to_office() {
+        // The parser is pure on the value it receives from the environment; a
+        // typo must not leave a VM without document support.
+        assert_eq!(VmProfile::from_env(), VmProfile::Office);
+    }
 }

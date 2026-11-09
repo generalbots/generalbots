@@ -11,7 +11,7 @@ use crate::models::AgentSessionRow;
 use crate::schema::agent_sessions;
 use crate::AgentService;
 
-use super::bootstrap::{schedule_workspace_preparation, BOOTSTRAP_SCRIPT};
+use super::bootstrap::{bootstrap_script, schedule_workspace_preparation};
 use super::db::{load_session, load_session_by_user, set_status, touch_last_active};
 use super::identity::{generate_vm_name, require_authenticated_identity, sanitize_id};
 use super::incus::{
@@ -357,7 +357,7 @@ async fn launch_and_wait(
             exec_in_vm(
                 &state_for_bootstrap,
                 &name_for_bootstrap,
-                &["sh".into(), "-c".into(), BOOTSTRAP_SCRIPT.into()],
+                &["sh".into(), "-c".into(), bootstrap_script()],
             ),
         )
         .await;
