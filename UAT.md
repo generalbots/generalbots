@@ -508,6 +508,8 @@ Same as SHEET-01 in English; **OK** the column headers are English and the chart
 1. Send the phrase. — **OK** the goal exists with target 30 and current 0.
 2. Register 5 km: the progress bar shows 5/30 (16%). — **OK**
 
+**Reported 2026-11-09:** creating an objective opens the browser `prompt()` and pressing OK does nothing — the HTMX form posts form-encoded to a JSON-only endpoint (415) and never refreshes the list (issue #2032). The period is also frozen at 2025 while the current date is 2026.
+
 ### GOALS-02 · "Create a goal to read 12 books this year" · en
 **App:** Goals
 
