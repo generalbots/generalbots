@@ -187,7 +187,6 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
     parsed = renderDeepLinks(parsed);
     if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
-    polishOutputBlocks(div);
     if (content && content.trim() !== "") {
       div.appendChild(createCopyButton(content));
       div.appendChild(createSpeakButton(content));
@@ -198,7 +197,12 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   if (sender === "bot" && window.GBLiveArtifact) {
     window.GBLiveArtifact.render(div, content);
   }
-  if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
+  // Merge before polish (#2008): polishOutputBlocks moves the tool output into
+  // a details card, which made mergeWorkspaceOutput fail to find the `<pre>`
+  // and left a second "workspace run" card behind.
+  var mergedOutput = typeof mergeWorkspaceOutput === "function" &&
+    mergeWorkspaceOutput(div);
+  if (!mergedOutput && sender !== "user") polishOutputBlocks(div);
 
   reexecuteScripts(div);
   // BBSIA-CHAT-02 (#1582): VM-generated files become attachment cards.

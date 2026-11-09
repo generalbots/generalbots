@@ -170,6 +170,32 @@ function vmOrderFolder(grid) {
     .catch(function () { /* keep the reply order */ });
 }
 
+// The `**Files**` heading and its bullets only existed to carry the attachment
+// cards (render_result in botserver). Once vmGroupAttachments has moved those
+// cards into the folder grid the items are empty and the heading is noise
+// (#2008). This must run AFTER the move: before it every `li` still holds a
+// card whose name/badge/description/button text makes textContent non-empty,
+// so a pre-move cleanup never matches.
+function vmDropOrphanFileList(content) {
+  if (!content || !content.querySelectorAll) return;
+  var lists = content.querySelectorAll("ul, ol");
+  for (var i = 0; i < lists.length; i++) {
+    var list = lists[i];
+    var items = list.querySelectorAll("li");
+    for (var j = 0; j < items.length; j++) {
+      var item = items[j];
+      if (item.querySelector(".gb-attachment")) continue;
+      if (item.textContent.trim() === "") item.remove();
+    }
+    if (list.querySelector("li")) continue;
+    var heading = list.previousElementSibling;
+    list.remove();
+    if (heading && /^(files|arquivos)\s*:?$/i.test((heading.textContent || "").trim())) {
+      heading.remove();
+    }
+  }
+}
+
 // One folder card for every attachment of the reply (#1584): the user sees
 // "output" as a folder with all generated files, not a flat list of links.
 function vmGroupAttachments(anchor) {
@@ -179,6 +205,7 @@ function vmGroupAttachments(anchor) {
   for (var i = 0; i < all.length; i++) {
     if (!all[i].closest(".gb-attachment-folder")) cards.push(all[i]);
   }
+  var target = anchor.querySelector(".message-content") || anchor;
   var folder = anchor.querySelector(".gb-attachment-folder");
   if (!folder) {
     if (!cards.length) return;
@@ -195,7 +222,6 @@ function vmGroupAttachments(anchor) {
         : "") +
       "</div>" +
       '<div class="gb-folder-grid"></div>';
-    var target = anchor.querySelector(".message-content") || anchor;
     target.appendChild(folder);
   }
   var grid = folder.querySelector(".gb-folder-grid");
@@ -252,4 +278,7 @@ function vmGroupAttachments(anchor) {
       toggle.textContent = collapsed ? "Hide output" : "Show older output";
     });
   }
+  // The cards no longer live in the `**Files**` list, so drop the emptied
+  // bullets and their heading after the move (#2008).
+  vmDropOrphanFileList(target);
 }

@@ -74,6 +74,35 @@ function polishOutputBlocks(el) {
   });
 }
 
+// Run-timeline cards are appended to #messages between bubbles, so the raw
+// output bubble's previousElementSibling is often a `.run-card` section, not
+// the bot bubble that owns the console card. Walk back over anything that is
+// not a turn bubble: a user message ends the search (never merge across turns).
+function previousBotMessage(message) {
+  var prev = message.previousElementSibling;
+  while (prev) {
+    if (prev.classList && prev.classList.contains("message")) {
+      return prev.classList.contains("bot") ? prev : null;
+    }
+    prev = prev.previousElementSibling;
+  }
+  return null;
+}
+
+// The log a bubble contributes to a run card: an unfiltered tool result is a
+// direct `<pre>`, but polishOutputBlocks may already have moved it inside a
+// `details.gb-console`. Handle both so render order cannot create a second
+// "workspace run" card (#2008).
+function messageLogPre(message) {
+  var content = message.querySelector(".message-content");
+  if (!content) return null;
+  var children = content.children || [];
+  for (var i = 0; i < children.length; i++) {
+    if (String(children[i].tagName || "").toUpperCase() === "PRE") return children[i];
+  }
+  return content.querySelector("details.gb-console > pre");
+}
+
 /* A tool run sends a status bubble ("workspace run") and then the raw output
  * as its own code block. Keep the answer readable: move the output into the
  * collapsed run card instead of leaving an `ls -la` listing as a chat bubble. */
@@ -82,11 +111,11 @@ function mergeWorkspaceOutput(el) {
     ? el
     : (el && el.closest ? el.closest(".message") : null);
   if (!message) return false;
-  var prev = message.previousElementSibling;
-  if (!prev || !prev.classList || !prev.classList.contains("bot")) return false;
+  var prev = previousBotMessage(message);
+  if (!prev) return false;
   var card = prev.querySelector(".gb-console");
   if (!card) return false;
-  var pre = message.querySelector(".message-content > pre");
+  var pre = messageLogPre(message);
   if (!pre) return false;
   var text = (pre.textContent || "").trim();
   if (!text) return false;
@@ -96,12 +125,28 @@ function mergeWorkspaceOutput(el) {
   }
   var log = card.querySelector("pre");
   if (!log) return false;
-  log.textContent = (log.textContent ? log.textContent + "\n" : "") + text;
+  // The status bubble and the result bubble can carry the same log; appending
+  // it twice would just duplicate lines inside the collapsed card.
+  if (log.textContent.indexOf(text) === -1) {
+    log.textContent = (log.textContent ? log.textContent + "\n" : "") + text;
+  }
+  // The result bubble also carries the generated-file cards. Keep them: move
+  // them under the bubble that survives before dropping the raw bubble.
+  var attachments = message.querySelectorAll(".gb-attachment");
+  if (attachments.length) {
+    var host = prev.querySelector(".message-content") || prev;
+    for (var i = 0; i < attachments.length; i++) {
+      host.appendChild(attachments[i]);
+    }
+  }
   var summary = card.querySelector("summary");
   if (summary) {
     summary.textContent = "workspace run · " + log.textContent.split("\n").length + " lines";
   }
   message.remove();
+  if (attachments.length && typeof hydrateVmAttachments === "function" && prev.isConnected) {
+    hydrateVmAttachments(prev);
+  }
   return true;
 }
 window.mergeWorkspaceOutput = mergeWorkspaceOutput;

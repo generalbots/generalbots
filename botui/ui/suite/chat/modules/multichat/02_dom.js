@@ -65,9 +65,6 @@
         if (typeof renderVmFileLinks === "function") {
           inner.innerHTML = renderVmFileLinks(inner.innerHTML);
         }
-        if (typeof polishOutputBlocks === "function") {
-          polishOutputBlocks(inner);
-        }
       } catch (e) {
         inner.textContent = content;
       }
@@ -91,6 +88,12 @@
     }
     msgs.appendChild(div);
     if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
+    // Merge runs first (#2008): polish moves the raw output into a details
+    // card, after which mergeWorkspaceOutput can no longer find the `<pre>`
+    // and a duplicate "workspace run" card survives.
+    if (sender !== "user" && typeof polishOutputBlocks === "function") {
+      polishOutputBlocks(inner);
+    }
     msgs.scrollTop = msgs.scrollHeight;
     if (sender !== "user") {
       if (typeof hydrateVmAttachments === "function") {

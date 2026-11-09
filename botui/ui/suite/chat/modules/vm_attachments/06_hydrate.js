@@ -80,7 +80,13 @@ function vmDropEmptyListItems(root) {
       list.parentElement.insertBefore(li.firstChild, list);
     }
     li.remove();
-    if (!list.querySelector("li")) list.remove();
+    if (!list.querySelector("li")) {
+      var heading = list.previousElementSibling;
+      list.remove();
+      if (heading && /^(files|arquivos)\s*:?$/i.test((heading.textContent || "").trim())) {
+        heading.remove();
+      }
+    }
   }
 }
 
