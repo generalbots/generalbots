@@ -406,8 +406,8 @@
   }
 
   function bind() {
-    if (!document.dataset.gbVoiceBound) {
-      document.dataset.gbVoiceBound = "1";
+    if (!document.documentElement.dataset.gbVoiceBound) {
+      document.documentElement.dataset.gbVoiceBound = "1";
       document.addEventListener("click", onVoiceClick, false);
     }
     paint();

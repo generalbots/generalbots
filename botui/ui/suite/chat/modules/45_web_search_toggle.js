@@ -113,8 +113,8 @@
   }
 
   function bind() {
-    if (!document.dataset.gbWebSearchBound) {
-      document.dataset.gbWebSearchBound = "1";
+    if (!document.documentElement.dataset.gbWebSearchBound) {
+      document.documentElement.dataset.gbWebSearchBound = "1";
       document.addEventListener("click", onDocumentClick, false);
     }
     paint();
