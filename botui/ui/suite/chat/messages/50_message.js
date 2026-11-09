@@ -142,7 +142,14 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
     // tool-call JSON that carries the infographic HTML on history replay.
     var embeddedApp = extractEmbeddedApp(content);
     content = stripToolCallJson(stripClientPlan(content));
-    var cleanContent = stripMarkdownBlocks(content);
+    // #1693 — when a fenced drawing is present, the live preview owns it: the
+    // body text is rendered without the fence so the SVG is not shown twice.
+    var livePreview = (sender === "bot" && window.GBLiveArtifact)
+      ? window.GBLiveArtifact.lastBlock(content)
+      : null;
+    var cleanContent = stripMarkdownBlocks(
+      livePreview ? stripLiveArtifactBlock(content) : content
+    );
     if (embeddedApp) {
       div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + "</div>";
       div.querySelector(".message-content").appendChild(

@@ -82,6 +82,22 @@ function stripMarkdownBlocks(content) {
   return cleanContent;
 }
 
+// #1693 — a ```svg/```html block that the live preview renders into its
+// sandboxed iframe must not also be painted inline: a 512px drawing inside the
+// bubble dwarfs the answer and shows the same content twice. Strip the fenced
+// block from the text handed to the markdown renderer; the iframe is the
+// single render. An unterminated fence is stripped too, so a drawing that is
+// still streaming does not flash its raw source before the frame catches up.
+function stripLiveArtifactBlock(content) {
+  var text = String(content || "");
+  // A message that is only a bare <svg> is owned by the preview too.
+  if (/^\s*<svg[\s>][\s\S]*<\/svg>\s*$/i.test(text)) return "";
+  return text
+    .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*?```\s*/gi, "")
+    .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*$/i, "")
+    .trim();
+}
+
 function reexecuteScripts(container) {
   var scripts = container.querySelectorAll('script');
   for (var i = 0; i < scripts.length; i++) {

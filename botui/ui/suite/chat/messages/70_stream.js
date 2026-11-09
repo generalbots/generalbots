@@ -7,7 +7,13 @@ function updateStreaming(content) {
     (streamBox.scrollHeight - streamBox.scrollTop - streamBox.clientHeight) < 240;
 
   var msgContent = el.querySelector(".message-content");
-  var cleanContent = stripMarkdownBlocks(content);
+  // #1693 — the open fence belongs to the live preview; keep its raw source
+  // out of the bubble while it streams.
+  var previewContent = (window.GBLiveArtifact &&
+    window.GBLiveArtifact.lastBlock(content))
+    ? stripLiveArtifactBlock(content)
+    : content;
+  var cleanContent = stripMarkdownBlocks(previewContent);
   var parsed;
   if (typeof marked !== "undefined" && marked.parse) {
     parsed = marked.parse(cleanContent);

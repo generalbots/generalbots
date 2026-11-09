@@ -10,9 +10,17 @@
 
 window.GBLiveArtifact = window.GBLiveArtifact || (function () {
   var OPEN_FENCE = /```(svg|html|htm|xml)\s*\n([\s\S]*)$/i;
+  // Models often answer a drawing request with the bare element instead of a
+  // fenced block. A message that is *only* an <svg> is treated the same way;
+  // an svg embedded in prose stays inline.
+  var BARE_SVG = /^\s*(<svg[\s>][\s\S]*<\/svg>)\s*$/i;
 
   function lastBlock(content) {
     var text = String(content || "");
+    var bare = BARE_SVG.exec(text);
+    if (bare && bare[1].trim().length >= 12) {
+      return { lang: "svg", body: bare[1].trim() };
+    }
     var match = OPEN_FENCE.exec(text);
     if (!match) return null;
     var body = match[2].replace(/```[\s\S]*$/, "").trim();
@@ -20,14 +28,39 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     return { lang: match[1].toLowerCase(), body: body };
   }
 
+  // An <svg> without a viewBox cannot be scaled: shrinking the element clips
+  // the drawing instead of resizing it (a 512px circle previewed as its top
+  // left quarter). Numeric width/height give the same box, so derive the
+  // missing viewBox from them.
+  function withViewBox(svg) {
+    var open = /^<svg\b[^>]*>/i.exec(svg);
+    if (!open) return svg;
+    var tag = open[0];
+    if (/\bviewbox\s*=/i.test(tag)) return svg;
+    var w = /\bwidth\s*=\s*["']?([\d.]+)(?:px)?["']?/i.exec(tag);
+    var h = /\bheight\s*=\s*["']?([\d.]+)(?:px)?["']?/i.exec(tag);
+    if (!w || !h) return svg;
+    var patched = tag.replace(
+      /^<svg\b/i,
+      '<svg viewBox="0 0 ' + w[1] + " " + h[1] + '"'
+    );
+    return patched + svg.slice(tag.length);
+  }
+
   function documentFor(block) {
     var isSvg = block.lang === "svg" || /^\s*<svg[\s>]/i.test(block.body);
     if (!isSvg) return block.body;
+    // The frame is a fixed 280px tall window; the drawing is scaled to fit it
+    // instead of overflowing into a scrollbar (a 512px circle used to show
+    // only its top edge). "Expand" gives the full-height view.
     return (
       "<!doctype html><html><head><meta charset=\"utf-8\">" +
-      "<style>html,body{margin:0;padding:8px;background:#fff}" +
-      "svg{max-width:100%;height:auto;display:block}</style></head>" +
-      "<body>" + block.body + "</body></html>"
+      "<style>html,body{margin:0;height:100%;background:#fff}" +
+      "body{display:flex;align-items:center;justify-content:center;" +
+      "padding:8px;box-sizing:border-box}" +
+      "svg{max-width:100%;max-height:100%;width:auto;height:auto;" +
+      "display:block}</style></head>" +
+      "<body>" + withViewBox(block.body) + "</body></html>"
     );
   }
 

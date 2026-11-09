@@ -131,8 +131,18 @@
    pill below every answer. */
 #chat-app .message.bot {
     flex-direction: row;
+    /* #1693 — the live preview is its own row; without wrapping it competes
+       with the bubble for horizontal space and collapses to a sliver. */
+    flex-wrap: wrap;
     align-items: flex-end;
     gap: 6px;
+}
+
+/* #1693 — a generated drawing previews under the bubble, never beside it. */
+#chat-app .gb-live-artifact {
+    order: 4;
+    flex: 1 0 100%;
+    min-width: 0;
 }
 #chat-app .tts-speak-btn,
 #chat-app .copy-msg-btn {
@@ -213,6 +223,17 @@
 }
 
 #chat-app .bot-message code { font-size: 12.5px; }
+
+/* #1693 — a bare <svg> answer (no fence, so no live preview) must fit the
+   bubble instead of forcing a 512px drawing. Markdown wraps it in a <p>.
+   Icons live inside buttons/cards, not in these positions. */
+#chat-app .bot-message > svg,
+#chat-app .bot-message > p > svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 6px 0;
+}
 
 
 /* ── Thinking block: part of the bubble, not a white card inside it ─── */

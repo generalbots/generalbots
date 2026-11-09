@@ -104,7 +104,13 @@ the staged Drive inbox copy through the sanitized preview endpoint.
 
 A fenced ```svg or ```html block the model writes is previewed while it is
 still streaming: the iframe is refreshed as chunks arrive, in an opaque sandbox
-(scripts allowed for HTML charts, never same-origin access).
+(scripts allowed for HTML charts, never same-origin access). A message that is
+only a bare `<svg>` element is treated the same way, since models often skip
+the fence. The preview is a separate row under the bubble, the drawing is
+scaled to fit the frame (a missing `viewBox` is derived from the numeric
+width/height), and the fence or element is not repeated inline — one drawing,
+rendered once. **Expand** pins the preview to the top of the transcript at
+70% viewport height.
 
 The output folder lists the newest generation first, badges it **Latest**, and
 keeps older files below as history. While `vm_exec` runs, the run card says
