@@ -23,8 +23,28 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
 
   /* ---------------------------------------------------------------- blocks */
 
+  // #2019 — models often answer a drawing request with the markup
+  // HTML-escaped (`&lt;svg …&gt;…&lt;/svg&gt;`), because they "write code".
+  // Detection has to see real tags or the reply stays plain text in the bubble.
+  // Only unescape when the text really carries escaped markup, so ordinary
+  // prose containing a literal `&lt;` is left alone.
+  function unescapeMarkup(text) {
+    return text
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#0*39;/g, "'")
+      .replace(/&amp;/gi, "&");
+  }
+
+  function detectionText(text) {
+    return /&lt;\s*\/?\s*(svg|html|htm|xml|!doctype)/i.test(text)
+      ? unescapeMarkup(text)
+      : text;
+  }
+
   function lastBlock(content) {
-    var text = String(content || "");
+    var text = detectionText(String(content || ""));
     var bare = BARE_SVG.exec(text);
     if (bare && bare[1].trim().length >= 12) {
       return { lang: "svg", body: bare[1].trim(), closed: true };

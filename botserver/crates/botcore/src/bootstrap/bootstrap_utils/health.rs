@@ -34,6 +34,10 @@ pub fn vault_health_check() -> bool {
     }
 }
 
+/// Port the cache component listens on (the installer always starts it with
+/// `--port 6379`, Linux and Windows alike).
+const CACHE_PORT: u16 = 6379;
+
 /// Check if Valkey/Redis cache is healthy
 pub fn cache_health_check() -> bool {
     if let Ok(output) = SafeCommand::new("valkey-cli")
@@ -48,43 +52,48 @@ pub fn cache_health_check() -> bool {
         }
     }
 
+    // #2022 — Windows ships `redis-server.exe` and no valkey-cli, so the CLI
+    // probe above can never answer there. Look for the stack binary with the
+    // platform suffix instead of a hardcoded Unix path.
     let stack_path = get_stack_path();
-    if let Ok(output) = SafeCommand::new(&format!("{}/bin/cache/bin/valkey-cli", stack_path))
-        .and_then(|c| c.args(&["ping"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains("PONG") {
-                return true;
-            }
-        }
-    }
-
-    if let Ok(output) = SafeCommand::new("ss")
-        .and_then(|c| c.args(&["-tln"]))
-        .and_then(|c| c.execute())
-    {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains(":6379") {
-                return true;
-            }
-        }
-    }
-
-    if cfg!(target_os = "windows") {
-        if let Ok(output) = SafeCommand::new("netstat")
-            .and_then(|c| c.args(&["-ano"]))
+    let cli_name = if cfg!(target_os = "windows") {
+        "valkey-cli.exe"
+    } else {
+        "valkey-cli"
+    };
+    let stack_cli = format!("{}/bin/cache/bin/{}", stack_path, cli_name);
+    let cli_candidates: [&str; 2] = if cfg!(target_os = "windows") {
+        [stack_cli.as_str(), "redis-cli.exe"]
+    } else {
+        [stack_cli.as_str(), "redis-cli"]
+    };
+    for cli in cli_candidates {
+        if let Ok(output) = SafeCommand::new(cli)
+            .and_then(|c| c.args(&["-h", "127.0.0.1", "-p", "6379", "ping"]))
             .and_then(|c| c.execute())
         {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                if stdout.contains(":6379") {
+                if stdout.contains("PONG") {
                     return true;
                 }
             }
         }
+    }
+
+    // Last resort: is anything accepting connections on the cache port? This
+    // is platform-neutral (no `ss`, no `netstat`, no output-encoding or
+    // localization concerns) and a listening socket is exactly the readiness
+    // signal the lifecycle needs — auth and data-path correctness are covered
+    // by the pool that connects later.
+    if std::net::TcpStream::connect_timeout(
+        &std::net::SocketAddr::from(([127, 0, 0, 1], CACHE_PORT)),
+        std::time::Duration::from_millis(500),
+    )
+    .is_ok()
+    {
+        debug!("cache port {} accepts connections", CACHE_PORT);
+        return true;
     }
 
     false

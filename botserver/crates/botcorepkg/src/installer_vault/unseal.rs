@@ -4,6 +4,7 @@ use crate::installer::safe_sh_command;
 use anyhow::{Context, Result};
 use log::{info, warn};
 
+use super::kv_mount::ensure_kv_mount;
 use super::seed_defaults::seed_vault_defaults;
 use super::seeds_exist::vault_seeds_exist;
 
@@ -97,7 +98,12 @@ VAULT_CACERT={}
     }
 
     if let Some(ref token) = root_token {
-            if vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
+        // #2021 — the recovery path must converge to a mounted KV engine too:
+        // without this, a Vault whose `secret/` mount is missing (fresh-install
+        // ordering, a reset that kept the data, or an enable that failed once)
+        // silently served no secrets and re-seeded on every boot.
+        ensure_kv_mount(&vault_addr, token, &ca_cert, &vault_bin)?;
+        if vault_seeds_exist(&vault_addr, token, &ca_cert, &vault_bin)? {
             info!("Vault credentials already exist, skipping seed on recovery");
         } else {
             let _ = seed_vault_defaults(&vault_addr, token, &ca_cert, &vault_bin);

@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use botlib::security::SafeCommand;
 use log::{info, warn};
 
+use super::kv_mount::ensure_kv_mount;
 use super::seed_defaults::seed_vault_defaults;
 use super::unseal::{recover_existing_vault, unseal_vault};
 
@@ -175,33 +176,8 @@ VAULT_CACERT={}
     info!("Created .env with VAULT_ADDR, VAULT_TOKEN");
     info!("Created vault-unseal-keys (chmod 600)");
 
-    info!("Enabling KV2 secrets engine at 'secret/'...");
-    let vault_bin_str = vault_bin.to_string_lossy().to_string();
-    match SafeCommand::new(&vault_bin_str)
-        .and_then(|c| {
-            c.env("VAULT_ADDR", &vault_addr)
-                .and_then(|c| c.env("VAULT_TOKEN", root_token))
-                .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
-        })
-        .and_then(|c| c.args(&["secrets", "enable", "-path=secret", "kv-v2"]))
-        .and_then(|c| c.execute())
-    {
-        Ok(output) => {
-            if output.status.success() {
-                info!("KV2 secrets engine enabled at 'secret/'");
-            } else {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                if stderr.contains("path is already in use") {
-                    info!("KV2 secrets engine already enabled");
-                } else {
-                    warn!("Failed to enable KV2 secrets engine: {}", stderr);
-                }
-            }
-        }
-        Err(e) => {
-            warn!("Failed to execute KV2 enable command: {}", e);
-        }
-    }
+    // #2021 — one idempotent mount helper shared with the recovery path.
+    ensure_kv_mount(&vault_addr, root_token, &ca_cert, &vault_bin)?;
 
     seed_vault_defaults(&vault_addr, root_token, &ca_cert, &vault_bin)?;
 

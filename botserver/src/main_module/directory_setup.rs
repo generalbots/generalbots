@@ -352,6 +352,7 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
         api_url: url,
         base_url: String::new(),
         service_account_key: secrets.get("service_account_key").cloned(),
+        service_token: secrets.get("service_token").cloned(),
         allow_insecure_http: false,
     })
 }
@@ -386,6 +387,7 @@ pub(crate) fn default_zitadel_config() -> crate::directory::ZitadelConfig {
         api_url: "".to_string(),
         base_url: String::new(),
         service_account_key: None,
+        service_token: None,
         allow_insecure_http: false,
     }
 }

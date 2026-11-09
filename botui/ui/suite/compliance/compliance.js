@@ -391,6 +391,23 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         if (el) el.classList.remove('visible');
     }
 
+    // #2017 — "Run Compliance Scan" used to call a route that the current
+    // server does register (`POST /api/compliance/scan`) but the current app
+    // never called: the header button only re-fetched the lists, so the scan
+    // could not be triggered from the live UI (the legacy `/suite/tools/*`
+    // pages that did post it were deleted in 48b4797be). Run the scan, then
+    // refresh every list it changes.
+    async function runScan() {
+        var data = await apiCall('/api/compliance/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (data && data.ok) {
+            showFeedback(data.message || 'Compliance scan completed', 'success');
+        }
+        loadAll();
+    }
+
     function loadAll() {
         loadChecks();
         loadIssues();
@@ -413,6 +430,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         showModal: showModal,
         hideModal: hideModal,
         loadAll: loadAll,
+        runScan: runScan,
         createFramework: createFramework,
         openFramework: openFramework,
         closeFrameworkDetail: closeFrameworkDetail,

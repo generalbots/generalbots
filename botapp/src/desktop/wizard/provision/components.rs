@@ -270,6 +270,14 @@ pub(super) async fn start_assistant(
         0,
     );
     let resource_dir = app.path().resource_dir().ok();
+    // #2023 — `Sidecar::start` already runs at app startup, and the wizard used
+    // to stop + start it again on every run (an ~80 s duplicate boot whose only
+    // purpose is the first-boot auth re-init below). Capture whether the
+    // identity-provider config predates this start: if it does, the assistant
+    // booted with it and the wizard must attach, not respawn.
+    let directory_config = stack_path().join("conf/system/directory_config.json");
+    let config_before_start = directory_config.exists();
+
     if !sidecar.is_running() {
         sidecar
             .start(resource_dir.clone())
@@ -281,10 +289,9 @@ pub(super) async fn start_assistant(
     if Sidecar::wait_for_api(API_PRODUCT, 300).await {
         // The identity provider's OAuth client is created by the assistant
         // during its first boot. Until that file exists the auth service cannot
-        // initialise and the suite's sign-in answers 500. Wait for it, then
-        // restart the sidecar once so the auth service starts with it.
-        let directory_config = stack_path().join("conf/system/directory_config.json");
-        let mut appeared = directory_config.exists();
+        // initialise and the suite's sign-in answers 500. Only that case needs
+        // the one restart: a boot that already had the file must be reused.
+        let mut appeared = config_before_start;
         for _ in 0..150 {
             if appeared {
                 break;
@@ -292,7 +299,7 @@ pub(super) async fn start_assistant(
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             appeared = directory_config.exists();
         }
-        if appeared {
+        if appeared && !config_before_start {
             log::info!("directory config is ready; restarting the assistant once");
             sidecar.stop();
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;

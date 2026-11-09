@@ -9,6 +9,7 @@
 pub mod container_env;
 mod credentials;
 mod initialize_local;
+mod kv_mount;
 mod seed_defaults;
 mod seeds_exist;
 mod unseal;
@@ -18,6 +19,7 @@ pub use credentials::fetch_vault_credentials_impl;
 pub use container_env::{generate_env_from_vault, initialize_vault};
 pub use credentials::fetch_vault_credentials;
 pub use initialize_local::initialize_vault_local;
+pub use kv_mount::ensure_kv_mount;
 pub use seed_defaults::seed_vault_defaults;
 pub use seeds_exist::vault_seeds_exist;
 pub use unseal::{ensure_env_file_exists, recover_existing_vault, unseal_vault};

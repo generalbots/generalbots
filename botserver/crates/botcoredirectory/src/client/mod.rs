@@ -36,13 +36,31 @@ pub struct ZitadelConfig {
     /// perfectly valid `directory_config.json` and fall back to Vault.
     #[serde(default)]
     pub base_url: String,
-    #[serde(default, alias = "service_token")]
+    /// Service credential. `service_account_key` is the canonical key;
+    /// `service_token` is the legacy name older stacks wrote for the same
+    /// value. They are two fields, **not** an alias: serde rejects a document
+    /// that carries both a field and its alias as a duplicate field, which made
+    /// the resolver discard a valid `directory_config.json` and fall back to
+    /// Vault (#2020). Read the effective value through
+    /// [`ZitadelConfig::service_credential`].
+    #[serde(default)]
     pub service_account_key: Option<String>,
+    #[serde(default)]
+    pub service_token: Option<String>,
     /// Operator opt-in: allow plain http for the configured api_url even when
     /// the host is a public DNS name (e.g. an internal reverse proxy fronting
     /// Zitadel on a trusted network). Never enable on public internet deployments.
     #[serde(default)]
     pub allow_insecure_http: bool,
+}
+
+impl ZitadelConfig {
+    /// The service credential, whichever of the two keys the file carried.
+    pub fn service_credential(&self) -> Option<&str> {
+        self.service_account_key
+            .as_deref()
+            .or(self.service_token.as_deref())
+    }
 }
 
 #[derive(Debug, Clone)]

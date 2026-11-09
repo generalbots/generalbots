@@ -95,6 +95,9 @@ function stripLiveArtifactBlock(content) {
   // #2005 — a bare <svg> is previewed while it streams (before </svg>), so its
   // source must stay out of the bubble for that whole window as well.
   if (/^\s*<svg[\s>]/i.test(text) && text.indexOf("```") < 0) return "";
+  // #2019 — the same reply may arrive HTML-escaped (`&lt;svg …&gt;`); the live
+  // preview unescapes it, so the escaped source is the preview's too.
+  if (/^\s*&lt;\s*svg[\s>]/i.test(text) && text.indexOf("```") < 0) return "";
   return text
     .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*?```\s*/gi, "")
     .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*$/i, "")
