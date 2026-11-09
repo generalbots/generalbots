@@ -426,7 +426,9 @@ rust-s3 = "0.38"
 rhai = { version = "1.23", features = ["sync"] }
 
 # ─── VECTOR DB ───
-qdrant-client = "1.17"
+# #2011 — 1.20 moves to tonic 0.14, which drops the unmaintained
+# rustls-pemfile (RUSTSEC-2025-0134). Only botemail declares it today.
+qdrant-client = "1.20"
 
 # ─── VIDEO / MEETINGS ───
 livekit = "0.7"
