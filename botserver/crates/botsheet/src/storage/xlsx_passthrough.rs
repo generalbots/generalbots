@@ -396,7 +396,7 @@ mod real_workbook_round_trip {
         let mut out = Vec::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).expect("entry");
-            let name = file.name().map(str::to_string).unwrap_or_default();
+            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
             let mut content = Vec::new();
             file.read_to_end(&mut content).expect("read");
             out.push((name, content));

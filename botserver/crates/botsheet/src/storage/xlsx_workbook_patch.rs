@@ -200,32 +200,46 @@ fn patch_content_types(
     let part_re =
         crate::re_cache::cached_re!(r#"PartName="([^"]*)""#).ok_or_else(|| "partname regex".to_string())?;
 
-    let mut inner = String::new();
-    for tag in ov_re.find_iter(&xml) {
-        let raw = tag.as_str();
-        let part = first_capture(part_re, raw).unwrap_or_default();
-        if part.contains("/worksheets/sheet") && deleted.contains(&part) && !kept.contains(&part) {
-            continue;
-        }
-        inner.push_str(raw);
-    }
-    for b in bindings.iter().filter(|b| b.is_new) {
-        inner.push_str(&format!(
-            r#"<Override PartName="/{}" ContentType="{}"/>"#,
-            b.target, WORKSHEET_CONTENT_TYPE
-        ));
-    }
-
     let block_re = crate::re_cache::cached_re!(r"(?s)<Types\b[^>]*>.*?</Types>")
         .ok_or_else(|| "types block regex".to_string())?;
     let Some(m) = block_re.find(&xml) else {
         return Ok(());
     };
-    let mut out = String::with_capacity(xml.len() + inner.len());
+
+    // #2044 — keep the block verbatim and only drop the worksheet overrides
+    // that point at deleted parts. Rebuilding the block from `<Override>`
+    // tags alone silently removed every `<Default Extension=…>` entry, which
+    // is what tells a consumer how to read `rels`/`xml` parts.
+    let block = &xml[m.start()..m.end()];
+    let mut out_block = String::with_capacity(block.len() + 128);
+    let mut cursor = 0;
+    for tag in ov_re.find_iter(block) {
+        let raw = tag.as_str();
+        let part = first_capture(part_re, raw).unwrap_or_default();
+        if part.contains("/worksheets/sheet") && deleted.contains(&part) && !kept.contains(&part) {
+            out_block.push_str(&block[cursor..tag.start()]);
+            cursor = tag.end();
+        }
+    }
+    out_block.push_str(&block[cursor..]);
+
+    let mut additions = String::new();
+    for b in bindings.iter().filter(|b| b.is_new) {
+        additions.push_str(&format!(
+            r#"<Override PartName="/{}" ContentType="{}"/>"#,
+            b.target, WORKSHEET_CONTENT_TYPE
+        ));
+    }
+    if !additions.is_empty() {
+        match out_block.rfind("</Types>") {
+            Some(close) => out_block.insert_str(close, &additions),
+            None => out_block.push_str(&additions),
+        }
+    }
+
+    let mut out = String::with_capacity(xml.len() + additions.len());
     out.push_str(&xml[..m.start()]);
-    out.push_str("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
-    out.push_str(&inner);
-    out.push_str("</Types>");
+    out.push_str(&out_block);
     out.push_str(&xml[m.end()..]);
     entries[index].1 = out.into_bytes();
     Ok(())
