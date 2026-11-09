@@ -22,7 +22,7 @@ const APPS_REGISTRY = [
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
   { id: "lists", title: "Lists", category: "business", color: "#8b5cf6", hxGet: "/suite/lists/lists.html",
     icon: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>' },
-  { id: "templates", title: "Templates", category: "office", color: "#ec4899", hxGet: "/suite/templates/templates.html",
+  { id: "templates", title: "Message Templates", category: "office", color: "#ec4899", hxGet: "/suite/templates/templates.html",
     icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
   { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/tasks.html",
     launcher_default: true,

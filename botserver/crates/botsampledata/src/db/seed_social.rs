@@ -79,6 +79,80 @@ pub(super) fn seed_marketing(conn: &mut diesel::PgConnection, scopes: &Scopes) -
                 .map_err(|e| e.to_string())?;
         }
     }
+
+    // #2016 — channel message templates. `marketing_templates` had read/write
+    // code but no seeding, so the Templates app opened empty on a fresh
+    // install. One row per channel the UI filters by (email, WhatsApp, social,
+    // bot, notification); guarded on (branch_id, name) so re-running is safe.
+    let templates: &[(&str, &str, Option<&str>, &str)] = &[
+        (
+            "Welcome email",
+            "email",
+            Some("Welcome, {{first_name}}"),
+            "Hi {{first_name}},\n\nThanks for signing up to {{company}}. Your account is ready — reply to this message if you need anything.\n\nThe {{company}} team",
+        ),
+        (
+            "Follow-up (no reply)",
+            "email",
+            Some("Still interested, {{first_name}}?"),
+            "Hi {{first_name}},\n\nI wanted to follow up on my previous message. Would a 15-minute call this week work for you?\n\nBest,\n{{sender_name}}",
+        ),
+        (
+            "WhatsApp greeting",
+            "whatsapp",
+            None,
+            "Hello {{first_name}}! Here at {{company}} — how can we help you today?",
+        ),
+        (
+            "Order confirmation",
+            "email",
+            Some("Your order {{order_id}} is confirmed"),
+            "Hi {{first_name}},\n\nOrder {{order_id}} is confirmed. Total: {{order_total}}. We will let you know as soon as it ships.\n\nThanks,\n{{company}}",
+        ),
+        (
+            "Launch announcement",
+            "social",
+            None,
+            "We just shipped {{product}} — here is what changed and how to try it. #{{hashtag}}",
+        ),
+        (
+            "Bot handoff notice",
+            "bot",
+            None,
+            "I'm handing this conversation to a human teammate, {{first_name}}. They will pick it up shortly.",
+        ),
+        (
+            "Appointment reminder",
+            "notification",
+            None,
+            "Reminder: your appointment with {{company}} is on {{appointment_date}} at {{appointment_time}}.",
+        ),
+    ];
+
+    for (name, channel, subject, body) in templates {
+        let n = count(
+            conn,
+            "SELECT count(*) AS n FROM marketing_templates WHERE branch_id::text = $1 AND name = $2",
+            &[branch_str, name],
+        )?;
+        if n == 0 {
+            sql_query(
+                "INSERT INTO marketing_templates (id, org_id, bot_id, branch_id, name, channel, subject, body, approved, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW(), NOW())",
+            )
+                .bind::<SqlUuid, _>(Uuid::new_v4())
+                .bind::<SqlUuid, _>(scopes.org_id)
+                .bind::<SqlUuid, _>(scopes.bot_id)
+                .bind::<SqlUuid, _>(branch)
+                .bind::<Text, _>(*name)
+                .bind::<Text, _>(*channel)
+                .bind::<Nullable<Text>, _>(*subject)
+                .bind::<Text, _>(*body)
+                .execute(conn)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
     Ok(())
 }
 

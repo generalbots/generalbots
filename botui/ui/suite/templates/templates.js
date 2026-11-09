@@ -13,6 +13,14 @@ function filterTemplates(view, btn) {
 
 function searchTemplates(q) { renderTemplates(q.toLowerCase()); }
 
+// #2016 — single place for the grid's non-card states (empty catalog, failed
+// load, no match) so the app never sits on "Loading templates...".
+function renderTemplateNotice(html) {
+    var grid = document.getElementById('templatesList');
+    if (!grid) return;
+    grid.innerHTML = '<div class="templates-notice">' + html + '</div>';
+}
+
 function renderTemplates(searchQuery) {
     var grid = document.getElementById('templatesList');
     var filtered = allTemplates;
@@ -23,7 +31,15 @@ function renderTemplates(searchQuery) {
         filtered = filtered.filter(function(t) { return (t.name || '').toLowerCase().includes(searchQuery) || (t.body || '').toLowerCase().includes(searchQuery); });
     }
     if (filtered.length === 0) {
-        grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-secondary)">No templates found.</div>';
+        // #2016 — name the catalog. "Templates" also means the shipped app/bot
+        // starter templates (`bottemplates/` → `app_templates`, a different
+        // table and API), so an empty grid must say which one is empty.
+        renderTemplateNotice(
+            allTemplates.length === 0
+                ? 'No channel message templates yet. This app lists the message templates used by email, WhatsApp, social and bot channels. '
+                  + 'Click <strong>New Template</strong> to add one — the app/bot starter templates under <code>bottemplates/</code> are a separate catalog.'
+                : 'No templates match this filter or search.'
+        );
         return;
     }
     grid.innerHTML = filtered.map(function(tpl) {
@@ -208,8 +224,15 @@ async function loadTemplates() {
             allTemplates = await resp.json();
             if (!Array.isArray(allTemplates)) allTemplates = [];
             renderTemplates();
+            return;
         }
-    } catch (e) { console.error('loadTemplates:', e); }
+        // #2016 — never leave the app on "Loading templates...": an auth or
+        // server failure is a different state from "the catalog is empty".
+        renderTemplateNotice('Could not load message templates (HTTP ' + resp.status + ').');
+    } catch (e) {
+        console.error('loadTemplates:', e);
+        renderTemplateNotice('Could not load message templates. Check your connection and try again.');
+    }
 }
 
 document.getElementById('tpl-form-channel').addEventListener('change', function() {

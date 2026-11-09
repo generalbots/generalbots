@@ -252,13 +252,17 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             icon: "<rect x=\"2\" y=\"2\" width=\"9\" height=\"9\"/><rect x=\"13\" y=\"2\" width=\"9\" height=\"9\"/><rect x=\"2\" y=\"13\" width=\"9\" height=\"9\"/><rect x=\"13\" y=\"13\" width=\"9\" height=\"9\"/>",
         }),
         app(AppSpec {
+            // #2016 — this is the *channel message* template catalog
+            // (`marketing_templates`). The shipped app/bot starter templates
+            // under `bottemplates/` are a different catalog (`app_templates`),
+            // so the title has to say which one this is.
             id: "templates",
-            title: "Templates",
+            title: "Message Templates",
             category: "office",
             color: "#ec4899",
             url: "/suite/templates/templates.html",
-            description: "Reusable document and app templates.",
-            keywords: "templates starter",
+            description: "Channel message templates for email, WhatsApp, social, bot and notifications.",
+            keywords: "templates message email whatsapp sms social channel",
             icon: "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"/><line x1=\"3\" y1=\"9\" x2=\"21\" y2=\"9\"/><line x1=\"9\" y1=\"21\" x2=\"9\" y2=\"9\"/>",
         }),
         app(AppSpec {
