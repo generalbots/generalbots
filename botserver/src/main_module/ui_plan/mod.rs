@@ -27,6 +27,10 @@ pub enum UiOp {
     Submit,
     Wait,
     Cell,
+    /// #2037 — walk a toolbar menu path (e.g. Download → PDF).
+    Menu,
+    /// #2037 — press an export control and prove an artefact appeared.
+    Download,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +42,9 @@ pub struct UiStep {
     pub value: Option<String>,
     pub ms: Option<u64>,
     pub cell: Option<String>,
+    /// Menu labels in order for a `menu` step (`["Download", "PDF"]`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,6 +169,47 @@ Compose a message to Rodrigo."#;
     fn test_strip_plan_json_keeps_normal_content() {
         let raw = "Just a plain greeting.";
         assert_eq!(strip_plan_json(raw), raw);
+    }
+
+    #[test]
+    fn test_menu_and_download_steps_are_accepted() {
+        let raw = r#"{"__ui_plan__": {"app": "docs", "steps": [
+  {"op": "open", "app": "docs"},
+  {"op": "menu", "path": ["Page", "Background", "Yellow"]},
+  {"op": "download", "label": "Download"},
+  {"op": "click", "label": "PDF"}
+]}}"#;
+        let plan = extract_and_validate_plan(raw)
+            .expect("plan present")
+            .expect("plan valid");
+        assert_eq!(plan.steps[1].op, UiOp::Menu);
+        assert_eq!(
+            plan.steps[1].path.as_deref(),
+            Some(["Page", "Background", "Yellow"].as_slice())
+        );
+        assert_eq!(plan.steps[2].op, UiOp::Download);
+    }
+
+    #[test]
+    fn test_menu_without_a_path_is_rejected() {
+        let raw = r#"{"__ui_plan__": {"app": "docs", "steps": [
+  {"op": "open", "app": "docs"},
+  {"op": "menu"}
+]}}"#;
+        assert!(extract_and_validate_plan(raw)
+            .expect("plan present")
+            .is_err());
+    }
+
+    #[test]
+    fn test_download_without_a_label_is_rejected() {
+        let raw = r#"{"__ui_plan__": {"app": "docs", "steps": [
+  {"op": "open", "app": "docs"},
+  {"op": "download"}
+]}}"#;
+        assert!(extract_and_validate_plan(raw)
+            .expect("plan present")
+            .is_err());
     }
 }
 

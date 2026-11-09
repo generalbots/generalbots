@@ -337,7 +337,7 @@ mod verb_coverage_tests {
             "sheet.chart.create",
             "sheet.export",
             "slides.create",
-            "slides.add",
+            "slides.slide.add",
             "canvas.create",
             "canvas.export",
         ] {

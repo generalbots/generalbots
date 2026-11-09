@@ -10,6 +10,8 @@ impl UiOp {
             "submit" => Some(Self::Submit),
             "wait" => Some(Self::Wait),
             "cell" => Some(Self::Cell),
+            "menu" => Some(Self::Menu),
+            "download" => Some(Self::Download),
             _ => None,
         }
     }

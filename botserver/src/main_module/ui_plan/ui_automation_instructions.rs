@@ -70,6 +70,8 @@ Contract — emit exactly:
   {{"op": "fill", "field": "<field label or name>", "value": "<value>"}},
   {{"op": "select", "field": "<field label>", "value": "<option>"}},
   {{"op": "cell", "cell": "<A1-style reference>", "value": "<value>"}},
+  {{"op": "menu", "path": ["<top-level menu>", "<submenu>"]}},
+  {{"op": "download", "label": "<export/download button text>"}},
   {{"op": "submit"}},
   {{"op": "wait", "ms": 500}}
 ]}}}}
@@ -82,6 +84,10 @@ Rules:
   VM, terminal, container or other agent execution path — those are for work the
   suite has no application for.
 - `fill` values must be plain text without HTML.
+- Use `menu` with the exact visible labels for toolbar menus (e.g.
+  ["Page", "Background", "Yellow"]) — one click cannot open a submenu.
+- Use `download` (not `click`) when the step must produce a file, so the plan
+  verifies an artefact appeared.
 - When unsure of a field name, use the label text shown in the form.
 - Keep plans minimal: open, fill the requested fields, submit.
 - For spreadsheet apps (sheet), write data with `cell` steps using A1-style references (e.g. "A1", "B2"). One `cell` step per cell.

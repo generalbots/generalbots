@@ -65,6 +65,7 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
         value: None,
         ms: None,
         cell: None,
+        path: None,
     };
     if let Some(app) = &step.app {
         out.app = Some(sanitize_value(app));
@@ -93,6 +94,27 @@ pub(super) fn sanitize_step(step: &UiStep) -> Result<UiStep, String> {
     }
     if step.op == UiOp::Cell && out.value.is_none() {
         return Err("cell step requires a value".to_string());
+    }
+    // #2037 — a menu click chain: sanitize every label and bound the depth.
+    if let Some(path) = &step.path {
+        let labels: Vec<String> = path
+            .iter()
+            .filter(|label| !label.trim().is_empty())
+            .map(|label| sanitize_value(label))
+            .collect();
+        if labels.len() > 8 {
+            return Err("menu path has too many levels".to_string());
+        }
+        out.path = Some(labels);
+    }
+    if step.op == UiOp::Menu {
+        let has_path = out.path.as_ref().is_some_and(|path| !path.is_empty());
+        if !has_path && out.label.is_none() {
+            return Err("menu step requires a path".to_string());
+        }
+    }
+    if step.op == UiOp::Download && out.label.is_none() {
+        return Err("download step requires a label".to_string());
     }
     Ok(out)
 }
