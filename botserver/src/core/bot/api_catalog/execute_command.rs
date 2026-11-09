@@ -104,6 +104,47 @@ pub async fn execute_command(
             );
             Ok(json!({ "provider_count": providers.len(), "providers": providers }))
         }
+        "integrations.catalog.provider" => {
+            // #2060 — everything needed to act or start the setup, on demand:
+            // auth method, field labels (never values), numbered setup guide.
+            let provider =
+                str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
+            let item = crate::apps::integration_catalog::provider_by_id(&provider)
+                .ok_or_else(|| "integration provider not found".to_string())?;
+            Ok(serde_json::to_value(&item).unwrap_or_else(|_| json!({})))
+        }
+        "integrations.connect.start" => {
+            let provider =
+                str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
+            let item = crate::apps::integration_catalog::provider_by_id(&provider)
+                .ok_or_else(|| "integration provider not found".to_string())?;
+            let fields: Vec<serde_json::Value> = item
+                .auth
+                .fields
+                .iter()
+                .map(|field| {
+                    json!({
+                        "key": field.key,
+                        "label": field.label,
+                        "secret": field.secret,
+                        "required": field.required,
+                    })
+                })
+                .collect();
+            Ok(json!({
+                "provider": item.id,
+                "name": item.name,
+                "status": item.status,
+                "auth_method": item.auth.method,
+                "fields": fields,
+                "setup_steps": item.auth.setup_steps,
+                "least_privilege": item.auth.least_privilege,
+                "action_count": item.action_count,
+                "connect_path": "/api/bots/{bot_id}/integration-connections",
+                "ui_hint": format!("Settings -> Integrations -> {}", item.name),
+                "note": "Ask the user for each credential, then submit it through the connect form. Never echo a secret back.",
+            }))
+        }
         "integrations.actions.list" => {
             let provider =
                 str_of("provider").ok_or_else(|| "params.provider is required".to_string())?;
