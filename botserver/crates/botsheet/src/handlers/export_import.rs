@@ -42,19 +42,47 @@ pub async fn handle_export_sheet(
             Ok(([(axum::http::header::CONTENT_TYPE, "text/csv")], csv.into_bytes()))
         }
         "xlsx" => {
-            let xlsx = export_to_xlsx(&sheet).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
-                )
-            })?;
-            Ok((
-                [(
-                    axum::http::header::CONTENT_TYPE,
+            // #2043 — export prefers the preserved package, like save-back
+            // does: patching the source keeps charts, comments, conditional
+            // formats and images that the model cannot re-emit.
+            let (xlsx, fidelity) = match sheet.source_bytes.as_deref() {
+                Some(original) => match crate::storage::merge_into_original(original, &sheet) {
+                    Ok(bytes) => (bytes, "preserved"),
+                    Err(error) => {
+                        log::warn!(
+                            "sheet export: cannot patch the source package, regenerating: {error}"
+                        );
+                        let bytes = export_to_xlsx(&sheet).map_err(|e| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
+                            )
+                        })?;
+                        (bytes, "regenerated")
+                    }
+                },
+                None => {
+                    let bytes = export_to_xlsx(&sheet).map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
+                        )
+                    })?;
+                    (bytes, "regenerated")
+                }
+            };
+            let mut headers = axum::http::HeaderMap::new();
+            headers.insert(
+                axum::http::header::CONTENT_TYPE,
+                axum::http::HeaderValue::from_static(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )],
-                xlsx,
-            ))
+                ),
+            );
+            headers.insert(
+                "x-gb-xlsx-fidelity",
+                axum::http::HeaderValue::from_static(fidelity),
+            );
+            return Ok((headers, xlsx));
         }
         "json" => {
             let json = export_to_json(&sheet);

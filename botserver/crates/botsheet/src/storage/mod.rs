@@ -154,6 +154,18 @@ pub async fn save_workbook_to_drive(
 /// until a true zip-level preserve-and-passthrough lands (#788).
 /// Runs asynchronously via tokio::spawn (fire-and-forget) to avoid
 /// blocking the tokio runtime from within a sync closure.
+/// #2043 — the sibling the save-back writes, also reported in the save
+/// response so the user knows the opened file itself was not overwritten.
+pub fn sibling_xlsx_path(source_path: &str) -> String {
+    let base = source_path
+        .strip_suffix(".xlsx")
+        .or_else(|| source_path.strip_suffix(".xlsm"))
+        .or_else(|| source_path.strip_suffix(".xls"))
+        .or_else(|| source_path.strip_suffix(".ods"))
+        .unwrap_or(source_path);
+    format!("{base}.gbsheet.xlsx")
+}
+
 pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
     Arc::new(move |sheet: &Spreadsheet| {
         let src_bucket = match sheet.source_bucket {
@@ -166,11 +178,7 @@ pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
         };
 
         // Non-destructive destination: a sibling file, never the source.
-        let base = src_path
-            .strip_suffix(".xlsx")
-            .or_else(|| src_path.strip_suffix(".xlsm"))
-            .unwrap_or(&src_path);
-        let dest_path = format!("{base}.gbsheet.xlsx");
+        let dest_path = sibling_xlsx_path(&src_path);
 
         let xlsx_bytes = match sheet.source_bytes {
             Some(ref original) => match merge_into_original(original, sheet) {

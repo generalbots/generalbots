@@ -24,8 +24,17 @@ pub fn merge_into_original(
     original_bytes: &[u8],
     sheet: &Spreadsheet,
 ) -> Result<Vec<u8>, String> {
-    // 1. Read every part of the original package, preserving order.
+    // #2043 — only an OOXML workbook can be patched here. `.ods` and legacy
+    // `.xls` are kept as a source snapshot but are not this format: patching
+    // them would write xlsx parts into a different package, so the caller must
+    // regenerate instead.
     let mut entries = read_zip_entries(original_bytes)?;
+    if entries
+        .iter()
+        .all(|(name, _)| name != "xl/workbook.xml")
+    {
+        return Err("source package is not an xlsx workbook".to_string());
+    }
 
     // 2. Resolve which original worksheet part each model sheet binds to
     //    (name-first, positional fallback for renames; new sheets get a fresh
@@ -344,3 +353,35 @@ fn replace_or_insert_cell(
 
     Err("worksheet XML has no sheetData".to_string())
 }
+
+#[cfg(test)]
+mod package_guard_tests {
+    use super::*;
+    use std::io::Write;
+
+    fn zip_with(names: &[&str]) -> Vec<u8> {
+        let mut buf = std::io::Cursor::new(Vec::new());
+        {
+            let mut zip = zip::ZipWriter::new(&mut buf);
+            let options = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored);
+            for name in names {
+                zip.start_file(*name, options).expect("entry");
+                zip.write_all(b"<x/>").expect("write");
+            }
+            zip.finish().expect("finish");
+        }
+        buf.into_inner()
+    }
+
+    /// #2043 — an ODS/legacy package is kept as a snapshot but must never be
+    /// patched with xlsx parts; the caller regenerates instead.
+    #[test]
+    fn non_xlsx_packages_are_refused() {
+        let ods = zip_with(&["content.xml", "META-INF/manifest.xml"]);
+        let sheet = crate::storage::create_new_spreadsheet("test");
+        let result = merge_into_original(&ods, &sheet);
+        assert!(result.is_err(), "an .ods package must not be patched");
+    }
+}
+

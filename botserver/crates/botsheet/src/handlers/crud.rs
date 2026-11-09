@@ -184,11 +184,10 @@ pub async fn handle_load_from_drive(
         source_bucket: Some(req.bucket.clone()),
         source_path: Some(req.path.clone()),
         // Retain the original package for the save-back merge (#788).
-        source_bytes: if ext == "xlsx" || ext == "xlsm" {
-            Some(bytes.clone())
-        } else {
-            None
-        },
+        // #2043 — keep it for .ods/.xls too: merge_into_original refuses a
+        // non-xlsx package, so the snapshot is safe to hold and available to a
+        // future format-aware patcher.
+        source_bytes: Some(bytes.clone()),
         acl: HashMap::new(),
     };
 

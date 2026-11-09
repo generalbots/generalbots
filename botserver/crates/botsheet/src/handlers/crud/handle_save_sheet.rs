@@ -111,22 +111,21 @@ pub async fn handle_save_sheet(
 
     let sheet_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    let sheet = Spreadsheet {
-        id: sheet_id.clone(),
-        name: req
-            .name
-            .unwrap_or_else(|| "Untitled Spreadsheet".to_string()),
-        owner_id: user_id.clone(),
-        worksheets: req.worksheets,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        named_ranges: None,
-        external_links: None,
-        source_bucket: None,
-        source_path: None,
-        source_bytes: None,
-        acl: HashMap::new(),
+    // #2043 — a full-snapshot save must not erase the import identity: the
+    // source bucket/path/bytes are what lets the save-back patch the opened
+    // workbook instead of regenerating one.
+    let mut sheet = match load_sheet_from_drive(&state, &user_id, &Some(sheet_id.clone())).await {
+        Ok(existing) => existing,
+        Err(_) => crate::storage::create_new_spreadsheet(&user_id),
     };
+    sheet.id = sheet_id.clone();
+    if let Some(name) = req.name {
+        sheet.name = name;
+    } else if sheet.name.trim().is_empty() {
+        sheet.name = "Untitled Spreadsheet".to_string();
+    }
+    sheet.worksheets = req.worksheets;
+    sheet.updated_at = Utc::now();
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {
         return Err((
@@ -137,10 +136,16 @@ pub async fn handle_save_sheet(
         ));
     }
 
+    // #2043 — the save-back writes a sibling; name it so the outcome is not a
+    // surprise.
+    let message = match sheet.source_path.as_deref() {
+        Some(path) => format!("Saved as {}", crate::storage::sibling_xlsx_path(path)),
+        None => "Sheet saved successfully".to_string(),
+    };
     Ok(Json(SaveResponse {
-        id: sheet_id,
+        id: sheet.id.clone(),
         success: true,
-        message: Some("Sheet saved successfully".to_string()),
+        message: Some(message),
     }))
 }
 
