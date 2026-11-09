@@ -334,17 +334,22 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "DELETE", path: "/api/dashboards/sources/:id", summary: "registered in crates/botdashboards/src/lib.rs" },
     ApiEndpoint { method: "POST", path: "/api/dashboards/sources/:id/test", summary: "registered in crates/botdashboards/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/dashboards/templates", summary: "registered in crates/botdashboards/src/lib.rs" },
-    ApiEndpoint { method: "POST", path: "/api/database/query", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "GET", path: "/api/database/schema", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "POST", path: "/api/database/table", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "PUT", path: "/api/database/table/:name", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "POST", path: "/api/database/table/:name/column", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "GET", path: "/api/database/table/:name/data", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "GET", path: "/api/database/table/:name/export", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "GET", path: "/api/database/table/:name/foreign-keys", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "POST", path: "/api/database/table/:name/row", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "DELETE", path: "/api/database/table/:name/row/:id", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "POST", path: "/api/database/table/:name/rows/batch-delete", summary: "registered in crates/botdatabase/src/routes.rs" },
+    // #2034 — real summaries instead of the module placeholder, so api.find can
+    // match intent words (insert, add, update, delete, import, column).
+    ApiEndpoint { method: "POST", path: "/api/database/query", summary: "Run a read-only SQL query (SELECT) against the workspace database" },
+    ApiEndpoint { method: "GET", path: "/api/database/schema", summary: "Read the database schema: tables, columns and types" },
+    ApiEndpoint { method: "POST", path: "/api/database/table", summary: "Create a table from a column list" },
+    ApiEndpoint { method: "PUT", path: "/api/database/table/:name", summary: "Alter a table (add, rename or change columns)" },
+    ApiEndpoint { method: "DELETE", path: "/api/database/table/:name", summary: "Drop a table and its data (destructive; confirm first)" },
+    ApiEndpoint { method: "POST", path: "/api/database/table/:name/column", summary: "Add a column to an existing table" },
+    ApiEndpoint { method: "GET", path: "/api/database/table/:name/data", summary: "List rows of a table with optional filter, order and paging" },
+    ApiEndpoint { method: "GET", path: "/api/database/table/:name/export", summary: "Export every row of a table as CSV" },
+    ApiEndpoint { method: "GET", path: "/api/database/table/:name/foreign-keys", summary: "List the foreign keys of a table and the tables they reference" },
+    ApiEndpoint { method: "POST", path: "/api/database/table/:name/row", summary: "Insert a row into a table; body is a JSON object of column values" },
+    ApiEndpoint { method: "PUT", path: "/api/database/table/:name/row", summary: "Update a row identified in the body; values change only the given columns" },
+    ApiEndpoint { method: "PUT", path: "/api/database/table/:name/row/:id", summary: "Update one row by primary key; body is a JSON object of columns to change" },
+    ApiEndpoint { method: "DELETE", path: "/api/database/table/:name/row/:id", summary: "Delete one row by primary key (destructive; confirm first)" },
+    ApiEndpoint { method: "POST", path: "/api/database/table/:name/rows/batch-delete", summary: "Delete several rows by id in one call (destructive; confirm first)" },
     ApiEndpoint { method: "POST", path: "/api/deployment/deploy", summary: "App deploy via ALM/gateway; body carries optional database_url (#1386) injected into the app's systemd unit as DATABASE_URL" },
     ApiEndpoint { method: "GET", path: "/api/deployment/projects", summary: "registered in crates/botdeployment/src/handlers.rs" },
     ApiEndpoint { method: "POST", path: "/api/deployment/start", summary: "registered in crates/botdeployment/src/handlers.rs" },
@@ -363,4 +368,24 @@ pub fn all_routes() -> impl Iterator<Item = &'static ApiEndpoint> {
         .chain(super::endpoint_inventory_editor_email::ALL_ROUTES)
         .chain(super::endpoint_inventory_minutes::ALL_ROUTES)
         .chain(super::endpoint_inventory_ui_billing::ALL_ROUTES)
+}
+
+#[cfg(test)]
+mod inventory_summary_tests {
+    use super::*;
+
+    /// #2034 — a placeholder summary gives api.find nothing to match, so the
+    /// database write endpoints were undiscoverable. Every database route must
+    /// describe what it does.
+    #[test]
+    fn database_endpoints_have_real_summaries() {
+        for endpoint in all_routes().filter(|e| e.path.starts_with("/api/database/")) {
+            assert!(
+                !endpoint.summary.contains("registered in"),
+                "{} {} still has a placeholder summary",
+                endpoint.method,
+                endpoint.path
+            );
+        }
+    }
 }

@@ -91,6 +91,17 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("database", "database.tables.list", "List tables", "List database tables.", &[], Some("app://database?table={table}"), false),
     cmd("database", "database.query", "Run read-only query", "Run a read-only SQL query against a table.", &[("table", "table name"), ("limit", "optional")], None, true),
     cmd("database", "database.connections.create", "Create database connection", "Create or update an external database connection (conn-*) used by the TABLE keyword; the password is a sensitive key and is vaulted, never written to config.csv.", &[("name", "connection name"), ("server", "database host"), ("database", "database name"), ("username", "optional user"), ("password", "optional password (vaulted)"), ("port", "optional port"), ("driver", "optional postgres/mysql/mariadb/mssql")], None, false),
+    // #2034 — the REST surface has always supported writes; the catalogue was
+    // read-only, so a model following it could list and query but never add or
+    // delete a row. These verbs describe the existing endpoints; api.exec is
+    // what runs them. Destructive verbs are admin-only at the catalogue level.
+    cmd("database", "database.rows.insert", "Add row", "Insert a row into a table; values is a JSON object of column names to values. Returns the created row with its id.", &[("table", "table name"), ("values", "JSON object of column values")], None, false),
+    cmd("database", "database.rows.update", "Update row", "Update one row by primary key; values is a JSON object of the columns to change.", &[("table", "table name"), ("id", "row id"), ("values", "JSON object of columns to change")], None, false),
+    cmd("database", "database.rows.delete", "Delete row", "Delete one row by primary key. List the row and ask the user to confirm before calling this.", &[("table", "table name"), ("id", "row id")], None, true),
+    cmd("database", "database.rows.batch_delete", "Delete rows", "Delete several rows by id in one call. List them and ask the user to confirm first.", &[("table", "table name"), ("ids", "JSON array of row ids")], None, true),
+    cmd("database", "database.rows.import", "Import rows", "Import rows into a table from CSV text (header row required) or a JSON array of objects; creates the table when asked.", &[("table", "table name"), ("csv", "CSV text, header row required"), ("json", "JSON array of objects"), ("create", "optional true to create the table first")], None, false),
+    cmd("database", "database.table.create", "Create table", "Create a table from a column list; columns is a JSON array of {name, type} definitions.", &[("name", "table name"), ("columns", "JSON array of column definitions")], None, true),
+    cmd("database", "database.column.add", "Add column", "Add a column to an existing table.", &[("table", "table name"), ("name", "column name"), ("type", "column type")], None, true),
     cmd("browser", "browser.session.open", "Open browser", "Open an embedded browser session to a URL.", &[("url", "the url")], Some("app://browser?url={url}"), false),
     cmd("integrations", "integrations.connectors.list", "List connectors", "List external system connectors and webhooks.", &[], Some("app://integrations?connector_id={connector_id}"), false),
     cmd("integrations", "integrations.catalog.search", "Search integration catalog", "Search integration providers by text, category, or implementation status.", &[("q", "optional provider or capability query"), ("category", "optional category"), ("status", "optional built/partial/planned/unsupported status")], None, false),
@@ -200,4 +211,41 @@ pub fn ui_sequence_hint_for(app_id: &str) -> &'static str {
         .find(|(id, _)| *id == app_id)
         .map(|(_, hint)| *hint)
         .unwrap_or("")
+}
+
+#[cfg(test)]
+mod database_verb_tests {
+    use super::*;
+
+    #[test]
+    fn database_exposes_write_verbs() {
+        let names: Vec<&str> = ALL_COMMANDS.iter().map(|command| command.name).collect();
+        for name in [
+            "database.rows.insert",
+            "database.rows.update",
+            "database.rows.delete",
+            "database.rows.batch_delete",
+            "database.rows.import",
+            "database.table.create",
+            "database.column.add",
+        ] {
+            assert!(names.contains(&name), "missing command {name}");
+        }
+    }
+
+    #[test]
+    fn destructive_database_verbs_are_admin_only() {
+        for name in [
+            "database.rows.delete",
+            "database.rows.batch_delete",
+            "database.table.create",
+            "database.column.add",
+        ] {
+            let command = ALL_COMMANDS
+                .iter()
+                .find(|command| command.name == name)
+                .expect("command is declared");
+            assert!(command.admin_only, "{name} must be admin-only");
+        }
+    }
 }
