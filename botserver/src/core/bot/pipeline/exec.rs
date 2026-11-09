@@ -270,6 +270,13 @@ pub async fn process_message_internal(
         ),
         channel,
     );
+    // #1975 — selective Canvas/SVG subsystem prompt for drawing turns.
+    let canvas_block = super::system_prompt::canvas_drawing_block(&user_text);
+    let system_prompt = if canvas_block.is_empty() {
+        system_prompt
+    } else {
+        format!("{system_prompt}\n\n{canvas_block}")
+    };
 
     let session_context = {
         let sm = state.session_manager.lock().await;

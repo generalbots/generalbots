@@ -92,6 +92,9 @@ function stripLiveArtifactBlock(content) {
   var text = String(content || "");
   // A message that is only a bare <svg> is owned by the preview too.
   if (/^\s*<svg[\s>][\s\S]*<\/svg>\s*$/i.test(text)) return "";
+  // #2005 — a bare <svg> is previewed while it streams (before </svg>), so its
+  // source must stay out of the bubble for that whole window as well.
+  if (/^\s*<svg[\s>]/i.test(text) && text.indexOf("```") < 0) return "";
   return text
     .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*?```\s*/gi, "")
     .replace(/```(?:svg|html|htm|xml)\s*\n[\s\S]*$/i, "")

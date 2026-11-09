@@ -125,6 +125,36 @@ pub fn delivery_policy_block() -> String {
     .join("\n")
 }
 
+/// #1975 — canvas drawing is a *selective* subsystem prompt: it is appended
+/// only on turns that ask for a drawing, so ordinary turns keep the base
+/// prompt short. The generated `<svg>` becomes a chat artifact whose
+/// "Open in Canvas" action imports it as editable shapes (#1708).
+#[must_use]
+pub fn canvas_drawing_block(user_text: &str) -> &'static str {
+    if wants_drawing(user_text) {
+        CANVAS_DRAWING_PROMPT
+    } else {
+        ""
+    }
+}
+
+fn wants_drawing(text: &str) -> bool {
+    let lowered = text.to_lowercase();
+    const NEEDLES: &[&str] = &[
+        "svg", "draw", "drawing", "illustration", "illustrate", "logo", "diagram",
+        "flowchart", "desenhe", "desenho", "desenhar", "ilustração", "ilustracao",
+        "ícone", "icone", "vetor", "vector art", "paint", "sketch",
+        // Scene requests ("a building with a glass sky, a whole city") are
+        // drawing turns even without the word "draw" (#2007).
+        "skyline", "cityscape", "city", "building", "landscape", "cartoon",
+        "scene", "picture", "cidade", "prédio", "predio", "paisagem", "cenário",
+        "cenario",
+    ];
+    NEEDLES.iter().any(|needle| lowered.contains(needle))
+}
+
+const CANVAS_DRAWING_PROMPT: &str = "CANVAS DRAWING SUBSYSTEM (selective)\n- When the user asks to draw, sketch, illustrate, design a logo/icon, or diagram something, deliver an SVG instead of prose.\n- Reply with exactly one fenced ```svg block containing a complete, standalone `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">…</svg>`. No text before or after the block.\n- The client draws every element the moment it arrives, so emission order is the animation order: build the scene back to front and finish one top-level element per concept (sky, ground, building body, windows, …) before starting the next.\n- Never wrap the drawing in a single top-level `<g>` and never emit one giant path: a wrapper that only closes at the end hides the whole scene until the answer finishes. Use `<g>` only for a small, self-contained label on a few finished shapes.\n- Leave `<defs>`, gradients, filters, clip paths and masks until the shapes they affect exist, and put text labels last.\n- Use only inline attributes and self-contained shapes/paths/text; never reference external files, fonts, scripts or images.\n- Keep it readable at small sizes: clean geometry, meaningful groups, and a title element.\n- The chat renders the block as an artifact with an \"Open in Canvas\" button; Canvas imports the SVG as editable shapes, so the user can tweak it and save it to Drive as a .draw file.\n- If the user asks for a different file format, honor that format; this block only applies to drawing requests.";
+
 /// Per-session capability block (#1678). The model must not offer a surface
 /// this client did not announce.
 #[must_use]

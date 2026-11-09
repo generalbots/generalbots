@@ -187,6 +187,31 @@
     background: #fff;
 }
 .gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
+/* #2005 — the SVG surface grows in place; it is not an iframe, so it needs its
+   own box. Shapes animate in as the model emits them. */
+.gb-live-artifact-badge {
+    font-size: 11px;
+    color: #71717a;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.gb-live-artifact-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 280px;
+    padding: 8px;
+    box-sizing: border-box;
+    background: #fff;
+    overflow: hidden;
+}
+.gb-live-artifact-svg svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.gb-live-artifact.expanded .gb-live-artifact-svg { height: 70vh; }
+.gb-live-artifact-send[hidden] { display: none; }
 .gb-live-artifact.expanded {
     position: sticky;
     top: 0;
