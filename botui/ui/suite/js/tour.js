@@ -215,6 +215,11 @@
   T.attemptWaiter = attemptWaiter;
   T.autoStart = autoStart;
   T.drainWaiters = drainWaiters;
+  // #1861 — apps that actually ship a tour, for the replay surface (command
+  // palette "Show tour: <App>").
+  T.definitionIds = function () {
+    return Object.keys(T.definitions);
+  };
 
   function overlayReady() {
     return typeof T.start === "function" && typeof T.showPrompt === "function";
@@ -235,6 +240,9 @@
       if (ready || overlayReady()) return autoStart(appId, options);
       queue.push(["autoStart", [appId, options]]);
       return undefined;
+    },
+    definitionIds: function () {
+      return Object.keys(T.definitions);
     },
     start: defer("start"),
     next: defer("next"),

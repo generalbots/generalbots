@@ -20,7 +20,16 @@
   };
 
   function tr(key, fallback, params) {
-    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+    var text = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    // A key missing from the catalogue makes gbT return the authored fallback
+    // verbatim, without substituting its {placeholders}. Do it here so a new
+    // command never renders a brace in the list.
+    if (params && typeof params === "object") {
+      Object.keys(params).forEach(function (name) {
+        text = String(text).split("{" + name + "}").join(params[name]);
+      });
+    }
+    return text;
   }
 
   function escapeHtml(s) {
@@ -101,6 +110,26 @@
       });
     });
 
+    // #1861 — replay surface: "Show tour: <App>" for every app that ships a
+    // guided tour. Tours are local only (no network, no telemetry).
+    var tourIds = (window.GBTour && typeof window.GBTour.definitionIds === "function")
+      ? window.GBTour.definitionIds()
+      : [];
+    tourIds.forEach(function (id) {
+      var app = (window.APPS_REGISTRY || []).filter(function (a) { return a.id === id; })[0] ||
+        { id: id, title: id };
+      var title = tr("palette-show-tour", "Show tour: {app}", { app: app.title || id });
+      var haystack = (title + " " + id).toLowerCase();
+      if (needle && haystack.indexOf(needle) === -1) return;
+      results.push({
+        type: "tour",
+        appId: id,
+        appTitle: app.title || id,
+        title: title,
+        summary: tr("palette-show-tour-hint", "Replay the guided tour"),
+      });
+    });
+
     // Sort: apps first (by title), then commands (by title).
     results.sort(function (a, b) {
       if (a.type !== b.type) return a.type === "app" ? -1 : 1;
@@ -130,6 +159,10 @@
           html += '<span class="gb-palette-icon" style="color:' + escapeHtml(r.color) + '">' + (r.icon ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + r.icon + '</svg>' : "") + '</span>';
           html += '<span class="gb-palette-label">' + escapeHtml(r.title) + '</span>';
           html += '<span class="gb-palette-kind">' + tr("palette-kind-app", "App") + "</span>";
+        } else if (r.type === "tour") {
+          // The title already names the app ("Show tour: Drive").
+          html += '<span class="gb-palette-label"><b>' + escapeHtml(r.title) + '</b></span>';
+          html += '<span class="gb-palette-kind">' + tr("palette-kind-tour", "Tour") + '</span>';
         } else {
           html += '<span class="gb-palette-icon" style="color:' + escapeHtml(r.color) + '">' + (r.icon ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + r.icon + '</svg>' : "") + '</span>';
           html += '<span class="gb-palette-label"><b>' + escapeHtml(r.title) + '</b> <span class="gb-palette-app">' + escapeHtml(r.appTitle) + '</span></span>';
@@ -174,6 +207,14 @@
       var app = appsForQuery().find(function (a) { return a.id === r.appId; });
       if (app && window.WindowManager) {
         window.WindowManager.launchFromMenu(app.id, app.title || app.id, app.hxGet || "/(suite/" + app.id + ".html)");
+      }
+      return;
+    }
+    if (r.type === "tour") {
+      // #1861 — replay. The engine honours `force`, so a completed tour runs
+      // again instead of being skipped by the persistence guard.
+      if (window.GBTour && typeof window.GBTour.start === "function") {
+        window.GBTour.start(r.appId, { force: true });
       }
       return;
     }

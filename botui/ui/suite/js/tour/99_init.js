@@ -17,6 +17,7 @@
     isComplete: T.isComplete,
     reset: T.reset,
     current: T.current,
+    definitionIds: T.definitionIds,
   };
 
   if (typeof window.__GBTourBoot === "function") window.__GBTourBoot(api);
