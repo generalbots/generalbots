@@ -92,7 +92,7 @@ jobs:
 
   linux:
     name: Linux binaries
-    needs: [release]
+    needs: [release, bundle]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 120
@@ -146,29 +146,28 @@ jobs:
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
 
-      - name: Fetch the BotModels pythonbox
+      # The pythonbox is an INTERNAL component: never a published asset. The
+      # `bundle` job built it in this run, so the installer carries the
+      # artifact instead of a downloaded release file.
+      - name: Download the BotModels pythonbox (internal artifact)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: botmodels-pythonbox
+          path: dist/pythonbox-linux
+          merge-multiple: true
+
+      - name: Bundle the BotModels pythonbox into the installer
         run: |
           set -euo pipefail
-          # BotModels ships as a self-contained pythonbox (relocatable CPython +
-          # service sources). Carrying it in installers/ means the desktop
-          # edition provisions the AI media service without a network round
-          # trip; its virtual environment still resolves on first use.
-          TAG=$(git ls-remote --tags --refs https://github.com/generalbots/generalbots.git 'pythonbox-*' \
-            | awk '{print $2}' | sed 's#refs/tags/##' | sort | tail -n 1)
-          if [ -z "$TAG" ]; then
-            echo "::warning::no pythonbox release found; the installer ships without BotModels"
-            exit 0
-          fi
+          SRC="dist/pythonbox-linux/botmodels-pythonbox-linux-x86_64.tar.gz"
+          SUMS="dist/pythonbox-linux/SHA256SUMS-pythonbox"
+          test -s "$SRC" || { echo "pythonbox artifact carries no tarball" >&2; exit 1; }
+          test -s "$SUMS" || { echo "pythonbox artifact carries no checksums" >&2; exit 1; }
           mkdir -p dist/installers
-          curl -fsSL -o dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz \
-            "https://github.com/generalbots/generalbots/releases/download/${TAG}/botmodels-pythonbox-linux-x86_64.tar.gz"
-          # Fail-closed: every pythonbox-* release must ship SHA256SUMS-pythonbox
-          # next to the tarball (#2002). A missing sums asset aborts the build
-          # rather than bundling an unverified binary.
-          curl -fsSL -o dist/installers/SHA256SUMS-pythonbox \
-            "https://github.com/generalbots/generalbots/releases/download/${TAG}/SHA256SUMS-pythonbox"
+          cp "$SRC" dist/installers/
+          cp "$SUMS" dist/installers/
           (cd dist/installers && grep 'botmodels-pythonbox-linux-x86_64.tar.gz' SHA256SUMS-pythonbox | sha256sum -c -)
-          echo "bundled ${TAG} ($(du -h dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz | cut -f1))"
+          echo "bundled internal pythonbox ($(du -h dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz | cut -f1))"
 
       - name: Assemble Linux installer
         run: |
@@ -387,7 +386,7 @@ jobs:
 
   windows:
     name: Windows binaries
-    needs: [release, linux]
+    needs: [release, linux, bundle-windows]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     timeout-minutes: 150
@@ -502,57 +501,42 @@ jobs:
       # newest published release that actually carries the asset (older
       # pythonbox releases predate the Windows build) instead of assuming the
       # newest tag has it.
-      - name: Fetch the BotModels pythonbox (Windows)
+      # The pythonbox is an INTERNAL component: it is never published as a
+      # release asset. `bundle-windows` builds it in this same run, so the
+      # payload takes the artifact and verifies it against its own checksums.
+      - name: Download the BotModels pythonbox (internal artifact)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: botmodels-pythonbox-windows
+          path: dist/pythonbox-windows
+          merge-multiple: true
+
+      - name: Use the BotModels pythonbox built by this run
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $assetName = 'botmodels-pythonbox-windows-x86_64.zip'
-          $headers = @{
-            Authorization = "Bearer $env:GH_TOKEN"
-            'User-Agent'  = 'general-bots-desktop'
+          $srcDir = 'dist\pythonbox-windows'
+          $src = Join-Path $srcDir $assetName
+          if (-not (Test-Path $src)) {
+            throw "$assetName is missing from the botmodels-pythonbox-windows artifact"
           }
-          $releases = Invoke-RestMethod `
-            -Uri 'https://api.github.com/repos/generalbots/generalbots/releases?per_page=50' `
-            -Headers $headers
-          $release = $releases |
-            Where-Object {
-              # Component releases are published as pre-releases (#1804), so
-              # only drafts are excluded here.
-              -not $_.draft -and
-              ($_.assets.name -contains $assetName)
-            } |
-            Select-Object -First 1
-          if (-not $release) {
-            Write-Warning "no published release carries $assetName; the Windows payload ships without BotModels"
-            exit 0
+          $sumsIn = Join-Path $srcDir 'SHA256SUMS-pythonbox-windows'
+          if (-not (Test-Path $sumsIn)) {
+            throw "SHA256SUMS-pythonbox-windows is missing from the bundle artifact"
           }
-          $out = Join-Path 'dist\installers' $assetName
-          $url = "https://github.com/generalbots/generalbots/releases/download/$($release.tag_name)/$assetName"
-          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
-          if ((Get-Item $out).Length -eq 0) {
-            throw "$assetName downloaded empty from $($release.tag_name)"
-          }
-          # Fail-closed: every pythonbox-* release must ship SHA256SUMS-pythonbox-windows
-          # next to the zip (#2002). A missing or mismatching sums aborts the build
-          # rather than bundling an unverified binary.
-          $sumsOut = Join-Path 'dist\installers' 'SHA256SUMS-pythonbox-windows'
-          Invoke-WebRequest -Uri "https://github.com/generalbots/generalbots/releases/download/$($release.tag_name)/SHA256SUMS-pythonbox-windows" -OutFile $sumsOut -UseBasicParsing
-          $expected = ((Get-Content $sumsOut | Where-Object { $_ -like "*$assetName*" }) -split '\s+') | Select-Object -First 1
+          $expected = ((Get-Content $sumsIn | Where-Object { $_ -like "*$assetName*" }) -split '\s+') | Select-Object -First 1
           if (-not $expected) {
-            throw "SHA256SUMS-pythonbox-windows on $($release.tag_name) has no entry for $assetName"
+            throw "no checksum recorded for $assetName"
           }
-          $actual = (Get-FileHash $out -Algorithm SHA256).Hash.ToLowerInvariant()
+          $actual = (Get-FileHash $src -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actual -ne $expected.ToLowerInvariant()) {
-            throw "checksum mismatch for $assetName from $($release.tag_name): expected $expected, got $actual"
+            throw "checksum mismatch for $assetName: expected $expected, got $actual"
           }
-          Write-Host "verified $assetName against SHA256SUMS-pythonbox-windows ($($release.tag_name))"
-          Copy-Item $out 'botserver\botserver-installers' -Force
-          # Keep the component checksum list truthful: the staging step wrote it
-          # before BotModels was fetched.
+          New-Item -ItemType Directory -Force -Path 'dist\installers' | Out-Null
+          Copy-Item $src 'dist\installers' -Force
           $sums = 'dist\installers\SHA256SUMS-windows-installers'
-          $line = "$((Get-FileHash $out -Algorithm SHA256).Hash.ToLowerInvariant())  $assetName"
+          $line = "$actual  $assetName"
           if (Test-Path $sums) {
             if (-not (Select-String -Path $sums -SimpleMatch $assetName -Quiet)) {
               Add-Content -Path $sums -Value $line -Encoding ascii
@@ -561,7 +545,7 @@ jobs:
             Set-Content -Path $sums -Value $line -Encoding ascii
           }
           Copy-Item $sums 'botserver\botserver-installers' -Force
-          Write-Host "bundled BotModels $($release.tag_name) ($('{0:N1}' -f ((Get-Item $out).Length / 1MB)) MB)"
+          Write-Host "bundled internal BotModels pythonbox ($('{0:N1}' -f ((Get-Item $src).Length / 1MB)) MB)"
 
       - name: Report bundled vs downloadable components
         shell: pwsh
@@ -1475,21 +1459,7 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Download BotModels pythonbox
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: botmodels-pythonbox
-          path: dist
-          merge-multiple: true
 
-      - name: Download BotModels pythonbox (Windows)
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: botmodels-pythonbox-windows
-          path: dist
-          merge-multiple: true
 
       - name: Download macOS dmg
         continue-on-error: true
@@ -1629,7 +1599,6 @@ jobs:
             - macOS arm64: `*.dmg` and `*.app` (unsigned).
             - Bootable ISO: `generalbots-*.iso` (x86_64 live image built from the
               same tarball).
-            - BotModels: Linux and Windows pythonbox bundles.
 
             `MANIFEST.json` lists every asset with its SHA-256 and size;
             `SHA256SUMS` verifies the whole release in one command. The
