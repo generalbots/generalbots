@@ -55,6 +55,33 @@ fn registry_action_names(provider_id: &str) -> Vec<&'static str> {
     Vec::new()
 }
 
+/// #2048 — the provider badge is derived, never stored.
+///
+/// The catalog used to carry a hardcoded `status` per seed, which drifted in
+/// both directions: providers with a live adapter rendered "unsupported" and
+/// providers with no adapter rendered "built". The registry is the source of
+/// truth, so:
+///
+/// * `planned` is an explicit product decision and is kept as declared;
+/// * `built` means the registry has the provider **and** every advertised
+///   action is implemented;
+/// * `partial` means an adapter exists but fewer actions are implemented, or
+///   the surface is a module / LLM-only integration;
+/// * `unsupported` means none of the above.
+fn derived_status(seed: &ProviderSeed, implemented: usize, adapter_present: bool) -> Status {
+    if seed.status == Status::Planned {
+        return Status::Planned;
+    }
+    let adapted = adapter_present || seed.llm_available || seed.module.is_some();
+    if adapter_present && !seed.actions.is_empty() && implemented == seed.actions.len() {
+        Status::Built
+    } else if adapted {
+        Status::Partial
+    } else {
+        Status::Unsupported
+    }
+}
+
 fn expand(seed: &ProviderSeed) -> ProviderItem {
     let actions: Vec<ProviderAction> = seed
         .actions
@@ -71,12 +98,15 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
             implemented: action_is_implemented(seed, action),
         })
         .collect();
+    let adapter_actions = registry_action_names(seed.id);
+    let adapter_present = !adapter_actions.is_empty();
+    let implemented = actions.iter().filter(|action| action.implemented).count();
     ProviderItem {
         id: seed.id,
         name: seed.name,
         category: seed.category,
         strategy: seed.strategy,
-        status: seed.status,
+        status: derived_status(seed, implemented, adapter_present),
         priority: seed.priority,
         module: seed.module,
         official_docs: seed.official_docs,
@@ -84,7 +114,9 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
         auth: *seed.auth,
         action_count: actions.len(),
         actions,
-        llm_available: seed.llm_available || !registry_action_names(seed.id).is_empty(),
+        llm_available: seed.llm_available || adapter_present,
+        adapter_present,
+        adapter_action_count: adapter_actions.len(),
     }
 }
 

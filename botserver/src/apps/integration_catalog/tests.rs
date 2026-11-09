@@ -353,3 +353,91 @@ async fn serve_catalog_for_browser() {
     let result = axum::serve(listener, router).await;
     assert!(result.is_ok(), "browser contract server failed: {result:?}");
 }
+
+/// #2048 — the provider badge is derived from the adapter registry, so a seed
+/// literal can never contradict what the registry actually executes.
+#[test]
+fn provider_status_is_derived_and_never_contradicts_the_registry() {
+    for seed in super::providers::all() {
+        let item = super::expand(seed);
+        let implemented = item.actions.iter().filter(|action| action.implemented).count();
+        assert_eq!(
+            item.status,
+            super::derived_status(seed, implemented, item.adapter_present),
+            "{} status drifted from the derived value",
+            seed.id
+        );
+        if item.status == Status::Built {
+            assert!(
+                item.adapter_present && item.adapter_action_count > 0,
+                "{} renders built without an adapter",
+                seed.id
+            );
+            assert!(
+                item.actions.iter().all(|action| action.implemented),
+                "{} renders built with unimplemented actions",
+                seed.id
+            );
+        }
+        if item.status == Status::Unsupported {
+            assert!(
+                !item.adapter_present && !item.llm_available && seed.module.is_none(),
+                "{} renders unsupported although a surface exists",
+                seed.id
+            );
+        }
+        if item.adapter_present {
+            assert_ne!(
+                item.status,
+                Status::Unsupported,
+                "{} has an adapter but renders unsupported",
+                seed.id
+            );
+        }
+        assert_eq!(
+            item.adapter_action_count > 0,
+            item.adapter_present,
+            "{} adapter flags disagree",
+            seed.id
+        );
+    }
+}
+
+/// #2048 — the four seeds that were stale: their adapters are registered, so
+/// none of them may render as unsupported.
+#[cfg(feature = "integrations")]
+#[test]
+fn providers_with_a_live_adapter_are_not_unsupported() {
+    for (id, _) in [
+        ("eight_sleep", "community"),
+        ("linkedin_ads", "finplatform"),
+        ("robinhood", "finplatform"),
+        ("youtube_analytics", "observability"),
+    ] {
+        let Some(provider) = provider_by_id(id) else {
+            panic!("{id} provider is missing");
+        };
+        assert!(provider.adapter_present, "{id} adapter must be registered");
+        assert_ne!(
+            provider.status,
+            Status::Unsupported,
+            "{id} has an adapter and must not render unsupported"
+        );
+    }
+}
+
+/// #2048 — the two seeds that claimed built with nothing behind them. Until
+/// their own issues wire the specs (#2049, #2050) they must not render built.
+#[cfg(feature = "integrations")]
+#[test]
+fn providers_without_a_registered_adapter_are_never_built() {
+    for id in ["basecamp", "twitch"] {
+        let Some(provider) = provider_by_id(id) else {
+            panic!("{id} provider is missing");
+        };
+        assert!(!provider.adapter_present, "{id} has no adapter yet");
+        assert_ne!(provider.status, Status::Built, "{id} cannot render built");
+        assert_eq!(provider.status, Status::Unsupported);
+    }
+}
+

@@ -230,6 +230,11 @@ pub struct ProviderItem {
     pub actions: Vec<ProviderAction>,
     pub action_count: usize,
     pub llm_available: bool,
+    /// #2048 — whether the adapter registry has this provider at all. The UI
+    /// uses it to explain the badge instead of trusting a stored literal.
+    pub adapter_present: bool,
+    /// #2048 — how many actions the adapter advertises (0 when absent).
+    pub adapter_action_count: usize,
 }
 
 #[derive(Debug, Serialize)]
