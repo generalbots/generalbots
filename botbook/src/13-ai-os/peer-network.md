@@ -4,6 +4,54 @@ General Bots can run as a peer in an opt-in, privacy-preserving mesh. Every
 desktop install is a potential node; joining is always explicit and can be
 stopped at any time.
 
+## What the network is — and is not
+
+One binary plays every role; the role is what an operator configures, not a
+different build.
+
+| Role | Ships today | What it is |
+|---|---|---|
+| **Peer (desktop)** | ✅ `core/peer_network.rs` | A desktop install that optionally joins the mesh. Off by default; a Settings switch stops all traffic. |
+| **Always-on node (VPS)** | ✅ same binary, configured from Vault | A node that never sleeps, so other peers can reach it without the desktop being online. The public `peer.generalbots.org` node is deployed this way (see *Enabling the public node* below). |
+| **Volunteer node / relay** | 🟡 planned | A peer that forwards ciphertext for others. The payload data layer exists (`core/peer_payloads.rs`); there is no volunteer mode in `peer_network.rs` yet, so no reader should assume one can help route traffic today. |
+
+What the network is **not**:
+
+- **No central store of files, messages or contacts.** Payloads are
+  end-to-end encrypted; a relay holds only an encrypted copy that expires
+  (`core/peer_payloads.rs:5-8`). Registrations live in an in-memory table,
+  keyed by node id, that expires after `heartbeat-ttl-secs` (default 90 s).
+- **No telemetry.** No analytics, usage reports or crash beacons travel
+  through the mesh (see `PRIVACY.md`).
+- **Not required.** With the mesh off, every request stays on `127.0.0.1`.
+
+## What actually travels
+
+Registration and heartbeat are the only plaintext messages, and they carry
+exactly the four fields of `RegisterRequest` / `HeartbeatRequest`
+(`core/peer_network_types.rs:100-119`):
+
+| Message | Fields | Retained by a helper |
+|---|---|---|
+| register | `node_id`, `name`, optional `address`, `capabilities` | until the TTL expires, in memory |
+| heartbeat | `node_id`, optional `address`, optional `capabilities` | refreshes `last_heartbeat` |
+
+Every other operation is a `PeerPayload` envelope
+(`core/peer_payloads.rs:20-31`): `personal-mesh`, `shared-folder`, `drop-box`,
+`ask-my-bot`, `peer-backup`, `calls`, `peer-cache`. The body is opaque to the
+relay and only the recipient can decrypt it. What a helper can observe per
+operation:
+
+| Operation | What a relay sees | What it can retain |
+|---|---|---|
+| Chat between two directly reachable peers | nothing — no relay hop | nothing |
+| Any relayed payload (the seven kinds above) | recipient id, ciphertext, timing and size | the encrypted envelope until `expires_at` |
+| Home-site signature check | the signed site and its key id | the site, as any web server would |
+| Registration / heartbeat | node id, name, address, capabilities | the row, until the TTL expires |
+
+The relay never receives message text, file contents, contact lists or the
+node's signing key.
+
 ## Privacy model
 
 - **Opt-in only.** The first-run wizard asks for a network mode
@@ -28,9 +76,11 @@ Shared Links (Settings → Shared Links) expose three tiers:
 
 ## Node identity
 
-Each desktop generates a local peer identity on first run. The identity is
-stored in the local Vault and never transmitted in plaintext. Heartbeats are
-sent only while P2P is enabled and only to the configured relay.
+Each desktop generates a local peer identity on first run: a stable node id
+persisted in `node.json` under `data-dir`, plus a signing key kept in the local
+Vault (`secret/gbo/peer`, `signing-key`). The node id and the display name are
+what registration and heartbeat announce — the signing key is never transmitted.
+Heartbeats are sent only while P2P is enabled and only to the configured relay.
 
 ## Configuration (Vault)
 

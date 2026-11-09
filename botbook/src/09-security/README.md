@@ -77,6 +77,7 @@ These permissions are enforced during vector search, ensuring users only see con
 - [Multi-Tenant Data Isolation](./multi-tenant-isolation.md) - branch_id scoping rules for all data apps
 - [SOC 2 Compliance](./soc2-compliance.md) - Enterprise compliance controls
 - [Security Matrix Reference](./security-matrix.md) - Complete permission reference tables
+- [Peer Network Privacy Model](../13-ai-os/peer-network.md) - What the opt-in P2P mesh carries, what helpers can observe, and the no-retention guarantees
 
 ## Quick Links
 

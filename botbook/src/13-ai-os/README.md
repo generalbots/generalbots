@@ -20,6 +20,7 @@ when disabled. Backend entry points are additive namespaces (`/api/agent/*`,
 - [Memory OS](./memory-os.md)
 - [Consent System](./consent.md)
 - [Unified Settings](./unified-settings.md)
+- [Peer Network (P2P), Privacy and Data Retention](./peer-network.md)
 
 ## Feature flags (botserver Cargo features)
 
