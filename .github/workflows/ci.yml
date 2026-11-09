@@ -107,6 +107,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1 (stable channel; last SHA-pinned ref — the upstream "stable" tag does not exist, so @stable was unresolvable-by-luck)
+        with:
+          # The action made `toolchain` a required input (#2001 self-review):
+          # without it the step fails with "'toolchain' is a required input".
+          toolchain: stable
       # #1954 — this job compiled the whole dependency graph on every run.
       # The key is check-specific so it never collides with the release build's
       # `cargo-desktop-` cache (different profile, different target contents).
