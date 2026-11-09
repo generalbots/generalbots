@@ -5,10 +5,10 @@
 # here, so the list can only shrink. The installer warns for every component in
 # this state and refuses it outright when GB_REQUIRE_CHECKSUMS=1.
 botmodels     bundled by the release job, which verifies SHA256SUMS-pythonbox before packaging; the runtime {tag} URL carries no per-release hash in this file
-email         Stalwart ships sigstore bundles (.sigstore.json), not a .sha256; verify the bundle with cosign
-libpq_win     EDB's build service publishes no checksum file for the Windows client archive
+email         Stalwart publishes a sigstore bundle (.sigstore.json) instead of a SHA-256; verify with cosign
+libpq_win     EDB's build service serves no checksum file (the .sha256 path answers 403)
 llm           the llama.cpp arm64 archive has no per-asset checksum upstream
-table_editor  NocoDB publishes no standalone binary checksums (and no Windows build)
-timeseries_db InfluxDB publishes no per-asset checksum on dl.influxdata.com
-vector_db     the Qdrant arm64 asset has no checksum entry upstream
-webmail       Roundcube publishes no checksum file for the complete archive
+table_editor  NocoDB publishes no release assets at all, so there is no checksum and no Windows build
+timeseries_db InfluxDB's download host publishes no checksum file for the 2.7.10 assets (.sha256, .sha256sum and SHA256SUMS all 404)
+vector_db     Qdrant publishes no checksum asset for v1.20.0
+webmail       Roundcube publishes a GPG .asc signature instead of a SHA-256; verify with gpg --verify
