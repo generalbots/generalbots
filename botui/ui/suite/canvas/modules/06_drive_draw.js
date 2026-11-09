@@ -419,7 +419,26 @@
     // Boot once the canvas is mounted.
     (function waitBoot() {
         if (document.getElementById("main-canvas")) {
-            loadDriveDraw();
+            // #1975 — a drawing handed off from chat renders immediately,
+            // without a Drive round-trip (the Drive write may be unavailable
+            // on builds whose suite session token is not a JWT).
+            var pending = null;
+            var pendingName = "";
+            try {
+                pending = localStorage.getItem("gb-canvas-pending-svg");
+                pendingName = localStorage.getItem("gb-canvas-pending-name") || "";
+            } catch (e) { /* storage unavailable */ }
+            if (pending) {
+                try {
+                    localStorage.removeItem("gb-canvas-pending-svg");
+                    localStorage.removeItem("gb-canvas-pending-name");
+                } catch (e) { /* ignore */ }
+                var nameEl = document.getElementById("canvas-name");
+                if (nameEl && pendingName) nameEl.value = pendingName;
+                importSvgAsElements(pending);
+            } else {
+                loadDriveDraw();
+            }
         } else {
             setTimeout(waitBoot, 150);
         }

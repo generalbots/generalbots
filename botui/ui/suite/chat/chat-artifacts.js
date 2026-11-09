@@ -18,6 +18,12 @@ window.GBArtifacts = window.GBArtifacts || (function () {
 
   function detect(content) {
     if (!content) return null;
+    // #1975 — a drawing is an artifact even when it is short. The model may
+    // answer with a bare <svg> (the canvas subsystem prompt asks for a fenced
+    // block, but models often emit the element directly); either form must
+    // offer the document panel so "Open in Canvas" can import it.
+    var trimmed = String(content).trim();
+    if (/^<svg[\s>]/i.test(trimmed) || /```svg/i.test(trimmed)) return { kind: "svg" };
     var codeBlocks = content.match(/```[\s\S]{300,}?```/g);
     if (codeBlocks && codeBlocks.length > 0) return { kind: "code" };
     if (/<html[\s>]|<body[\s>]|<article[\s>]/i.test(content)) return { kind: "html" };
@@ -208,46 +214,23 @@ function openArtifactPanel(content, sourceEl) {
   var openCanvasBtn = panel.querySelector(".gb-artifact-open-canvas");
   if (openCanvasBtn) {
     openCanvasBtn.addEventListener("click", function () {
-      var folderInput = panel.querySelector(".gb-artifact-folder");
-      var folder = folderInput ? folderInput.value.trim().replace(/^\/+|\/+$/g, "") : "";
       var fileName = window.GBArtifacts.slug(title) + ".svg";
-      var path = folder ? folder + "/" + fileName : fileName;
-      var token = "";
+      // #1975 — hand the drawing to Canvas through localStorage so it renders
+      // immediately, even when the Drive write is unavailable. The artifact's
+      // own Save button still writes the .svg to Drive when the user wants it.
       try {
-        token =
-          (window.getGBAccessToken && window.getGBAccessToken()) ||
-          localStorage.getItem("gb-access-token") ||
-          sessionStorage.getItem("gb-access-token") ||
-          "";
-      } catch (e) {}
-      fetch("/api/files/write", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: "Bearer " + token } : {}),
-        },
-        body: JSON.stringify({
-          path: path,
-          content: btoa(unescape(encodeURIComponent(body))),
-          scope: "user",
-        }),
-      })
-        .then(function (res) {
-          if (!res.ok) return driveWriteFailure(res);
-          if (window.GBToasts) {
-            GBToasts.show("Canvas", "Opening " + fileName + " in Canvas", "success");
-          }
-          if (typeof window.openDeepLink === "function") {
-            window.openDeepLink("canvas", { file: path, scope: "user" });
-          } else if (window.WindowManager && window.WindowManager.openDeepLink) {
-            window.WindowManager.openDeepLink("canvas", { file: path, scope: "user" });
-          }
-        })
-        .catch(function (err) {
-          if (window.GBToasts) {
-            GBToasts.show("Canvas", "Could not open in Canvas: " + err.message, "error");
-          }
-        });
+        localStorage.setItem("gb-canvas-pending-svg", body);
+        localStorage.setItem("gb-canvas-pending-name", fileName.replace(/\.svg$/i, ""));
+      } catch (e) { /* storage unavailable — Canvas opens blank */ }
+      if (window.GBToasts) {
+        GBToasts.show("Canvas", "Opening " + fileName + " in Canvas", "success");
+      }
+      if (typeof window.openDeepLink === "function") {
+        window.openDeepLink("canvas", { name: fileName });
+      } else if (window.WindowManager && window.WindowManager.openDeepLink) {
+        window.WindowManager.openDeepLink("canvas", { name: fileName });
+      }
+
     });
   }
   panel.querySelector(".gb-artifact-save").addEventListener("click", function () {
