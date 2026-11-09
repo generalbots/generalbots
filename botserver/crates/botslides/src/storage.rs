@@ -93,6 +93,52 @@ pub async fn save_presentation_to_drive<D: DriveOps>(
     Ok(())
 }
 
+/// #2041 — the uploaded PPTX is kept next to the deck JSON so a save can patch
+/// the original package instead of regenerating it.
+pub fn get_presentation_pptx_path(user_id: &str, presentation_id: &str) -> String {
+    format!(
+        "{}/{}.pptx",
+        get_user_presentations_path(user_id),
+        presentation_id
+    )
+}
+
+pub async fn save_presentation_pptx<D: DriveOps>(
+    drive: &D,
+    user_id: &str,
+    presentation_id: &str,
+    bytes: &[u8],
+) -> Result<(), String> {
+    let path = get_presentation_pptx_path(user_id, presentation_id);
+    drive
+        .put_object(
+            "gbo",
+            &path,
+            bytes.to_vec(),
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+        .await
+}
+
+/// Returns the preserved original package, or `None` for decks imported before
+/// #2041 (JSON only). A read error is treated as "not preserved" and logged at
+/// debug level: the export falls back to regeneration, which is the old
+/// behaviour.
+pub async fn load_presentation_pptx<D: DriveOps>(
+    drive: &D,
+    user_id: &str,
+    presentation_id: &str,
+) -> Option<Vec<u8>> {
+    let path = get_presentation_pptx_path(user_id, presentation_id);
+    match drive.get_object("gbo", &path).await {
+        Ok(bytes) => Some(bytes),
+        Err(error) => {
+            log::debug!("slides: no preserved PPTX at {path}: {error}");
+            None
+        }
+    }
+}
+
 pub async fn load_presentation_from_drive<D: DriveOps>(
     drive: &D,
     user_id: &str,

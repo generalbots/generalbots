@@ -173,14 +173,24 @@ pub async fn handle_save_presentation<D: DriveOps>(
                     "slides save-back skipped: source bucket '{bucket}' is not the bot drive bucket"
                 );
             } else {
-                match crate::pptx::export_to_pptx(&presentation) {
-                    Ok(bytes) => {
+                // #2041 — save-back keeps the original package when only text
+                // changed; a structural edit regenerates and says so.
+                match crate::pptx::export_presentation_pptx(drive, &user_id, &presentation).await {
+                    Ok(exported) => {
+                        // #2041 — the save response stays unchanged; the server
+                        // log records whether the package was preserved or
+                        // regenerated, and the export endpoint exposes the same
+                        // value in a header.
+                        log::info!(
+                            "slides save-back {bucket}/{path}: {} package",
+                            exported.fidelity
+                        );
                         let sibling = sibling_pptx_path(path);
                         if let Err(e) = drive
                             .put_object(
                                 bucket,
                                 &sibling,
-                                bytes,
+                                exported.bytes,
                                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                             )
                             .await

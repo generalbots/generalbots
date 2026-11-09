@@ -1,4 +1,7 @@
-use crate::storage::{get_current_user_id, save_presentation_to_drive, DriveOps};
+use crate::storage::{
+    get_current_user_id, load_presentation_pptx, save_presentation_pptx,
+    save_presentation_to_drive, DriveOps,
+};
 use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
@@ -132,6 +135,17 @@ pub async fn handle_import_presentation<D: DriveOps>(
                     log::warn!("slides import: source backfill save failed: {e}");
                 }
             }
+            // #2041 — a deck imported before the original package was kept
+            // (JSON only) gets it on the next open, so its first save already
+            // preserves theme, notes and media.
+            if ext == "pptx" && load_presentation_pptx(drive, &user_id, &existing.id).await.is_none()
+            {
+                if let Err(e) =
+                    save_presentation_pptx(drive, &user_id, &existing.id, &bytes).await
+                {
+                    log::warn!("slides import: could not store the original PPTX: {e}");
+                }
+            }
             return Ok(Json(existing));
         }
     }
@@ -153,6 +167,19 @@ pub async fn handle_import_presentation<D: DriveOps>(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::import", None)})),
             ));
+        }
+        // #2041 — keep the uploaded package. The JSON model is what the canvas
+        // edits; the original bytes are what a save writes back (patched for
+        // text edits, untouched when nothing changed).
+        if ext == "pptx" {
+            if let Err(e) =
+                save_presentation_pptx(drive, &user_id, &presentation.id, &bytes).await
+            {
+                log::warn!(
+                    "slides import: could not store the original PPTX for {}: {e}",
+                    presentation.id
+                );
+            }
         }
     }
 

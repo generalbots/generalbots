@@ -39,6 +39,9 @@ pub async fn handle_export_presentation<D: DriveOps>(
         ));
     }
 
+    // #2041 — tells the client whether the PPTX was written back into the
+    // preserved original package or regenerated for a structural edit.
+    let mut fidelity: Option<&'static str> = None;
     let (content_type, body): (&'static str, axum::body::Body) = match req.format.as_str() {
         "html" => ("text/html", axum::body::Body::from(export_to_html(&presentation))),
         "json" => ("application/json", axum::body::Body::from(export_to_json(&presentation))),
@@ -60,15 +63,21 @@ pub async fn handle_export_presentation<D: DriveOps>(
             )
         }
         "pptx" => {
-            let bytes = crate::pptx::export_to_pptx(&presentation).map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::export", None)})),
-                )
-            })?;
+            // #2041 — write back into the preserved original package when only
+            // text changed; regenerate only for structural edits.
+            let exported =
+                crate::pptx::export_presentation_pptx(drive, &user_id, &presentation)
+                    .await
+                    .map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::export", None)})),
+                        )
+                    })?;
+            fidelity = Some(exported.fidelity);
             (
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                axum::body::Body::from(bytes),
+                axum::body::Body::from(exported.bytes),
             )
         }
         _ => {
@@ -79,5 +88,16 @@ pub async fn handle_export_presentation<D: DriveOps>(
         }
     };
 
-    Ok(([(axum::http::header::CONTENT_TYPE, content_type)], body))
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static(content_type),
+    );
+    if let Some(fidelity) = fidelity {
+        headers.insert(
+            "x-gb-pptx-fidelity",
+            axum::http::HeaderValue::from_static(fidelity),
+        );
+    }
+    Ok((headers, body))
 }
