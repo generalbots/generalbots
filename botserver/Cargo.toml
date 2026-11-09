@@ -16,10 +16,40 @@ features = ["database", "i18n", "http-client"]
 # Cargo no longer doubles as a second visibility map.
 default = ["all-apps", "botcore/default"]
 
-# Lean product profile: chat + drive only (no integrations app, no editor,
-# no Zitadel directory). Use with:
+# Lean product profile: chat + drive core, plus the office workbench.
+# Covers sheets, the editor, the database tool and the player. `notes`
+# (Sticky Notes), `photos`, `timer` and `weather` ship with every build — they
+# have no Cargo feature gate (see APP_FEATURES in
+# scripts/product_profile_check.py), so the `.product` file decides whether
+# they are visible. Use with:
 #   cargo build -p botserver --no-default-features --features chat-drive
-chat-drive = ["chat", "drive", "agent-vm", "llm", "vectordb", "database", "security", "terminal", "research", "consent"]
+chat-drive = [
+    "chat",
+    "drive",
+    "agent-vm",
+    "llm",
+    "vectordb",
+    "database",
+    "security",
+    "terminal",
+    "research",
+    "consent",
+    # Workbench / office apps
+    "sheet",
+    "editor",
+    "player",
+    "calendar",
+    "goals",
+    "canvas",
+    "plan",
+    "timeclock",
+    # The chat-drive edition ships the Integrations app: provider catalog,
+    # connections and the OAuth/credential surfaces the chat actions use.
+    "integrations",
+    # Core infrastructure the apps above rely on
+    "automation",
+    "cache",
+]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -57,11 +87,11 @@ social = ["automation", "drive", "cache", "dep:botsocial", "dep:botchannels"]
 marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
 
 # Productivity
-calendar = ["automation", "drive", "cache", "dep:botcalendar"]
+calendar = ["automation", "drive", "cache", "dep:botcalendar", "botcore/calendar"]
 tasks = ["automation", "drive", "cache", "dep:cron", "dep:bottasks"]
 project = ["automation", "drive", "cache", "dep:botproject"]
-plan = ["automation", "drive", "cache", "dep:botplan"]
-goals = ["automation", "drive", "cache", "analytics", "botanalytics/goals"]
+plan = ["automation", "drive", "cache", "dep:botplan", "botcore/plan"]
+goals = ["automation", "drive", "cache", "analytics", "botanalytics/goals", "botcore/goals"]
 workspaces = ["automation", "drive", "cache", "dep:botworkspaces"]
 tickets = ["automation", "drive", "cache", "dep:bottickets"]
 billing = ["automation", "drive", "cache", "dep:botbilling"]
@@ -71,14 +101,14 @@ kb-extraction = ["drive", "dep:calamine", "dep:ole", "botcore/kb-extraction"]
 
 # Documents (full editing UI - opt-in, adds ~4min compile time from ooxmlsdk)
 docs = ["automation", "drive", "cache", "dep:docx-rs", "dep:ooxmlsdk", "kb-extraction", "dep:botdocs"]
-sheet = ["automation", "drive", "cache", "dep:calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet", "kb-extraction", "dep:botsheet"]
+sheet = ["automation", "drive", "cache", "dep:calamine", "dep:rust_xlsxwriter", "dep:umya-spreadsheet", "kb-extraction", "dep:botsheet", "botcore/sheet"]
 slides = ["automation", "drive", "cache", "dep:ooxmlsdk", "kb-extraction", "dep:botslides"]
 paper = ["automation", "drive", "cache", "dep:botpaper"]
 
 # Media
 video = ["automation", "drive", "cache", "dep:botvideo"]
-player = ["automation", "drive", "cache", "dep:botplayer"]
-canvas = ["automation", "drive", "cache", "dep:botcanvas"]
+player = ["automation", "drive", "cache", "dep:botplayer", "botcore/player"]
+canvas = ["automation", "drive", "cache", "dep:botcanvas", "botcore/canvas"]
 
 # Learning
 learn = ["automation", "drive", "cache", "crawler", "dep:botlearn"]
@@ -105,7 +135,7 @@ monitoring = ["automation", "drive", "cache", "dep:sysinfo", "dep:botmonitoring"
 # Development
 designer = ["automation", "drive", "cache", "dep:botdesigner"]
 editor = ["automation", "drive", "cache", "dep:boteditor", "botcore/editor"]
-database = ["automation", "drive", "cache", "dep:botdatabase"]
+database = ["automation", "drive", "cache", "dep:botdatabase", "botcore/database"]
 git = ["automation", "drive", "cache", "dep:botgit"]
 
 # Admin
@@ -147,7 +177,7 @@ itsm = ["automation", "drive", "cache", "dep:botitsm"]
 pos = ["automation", "drive", "cache", "dep:botpos"]
 handoff = ["automation", "drive", "cache", "dep:bothandoff"]
 kyc = ["automation", "drive", "cache", "dep:botkyc"]
-timeclock = ["automation", "drive", "cache", "dep:bottimeclock"]
+timeclock = ["automation", "drive", "cache", "dep:bottimeclock", "botcore/timeclock"]
 fraud = ["automation", "drive", "cache", "dep:botfraud"]
 inventory = ["automation", "drive", "cache", "dep:botinventory"]
 gl = ["automation", "drive", "cache", "dep:botgl"]
