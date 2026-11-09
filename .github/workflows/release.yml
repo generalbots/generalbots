@@ -153,6 +153,12 @@ jobs:
           mkdir -p dist/installers
           curl -fsSL -o dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz \
             "https://github.com/generalbots/generalbots/releases/download/${TAG}/botmodels-pythonbox-linux-x86_64.tar.gz"
+          # Fail-closed: every pythonbox-* release must ship SHA256SUMS-pythonbox
+          # next to the tarball (#2002). A missing sums asset aborts the build
+          # rather than bundling an unverified binary.
+          curl -fsSL -o dist/installers/SHA256SUMS-pythonbox \
+            "https://github.com/generalbots/generalbots/releases/download/${TAG}/SHA256SUMS-pythonbox"
+          (cd dist/installers && grep 'botmodels-pythonbox-linux-x86_64.tar.gz' SHA256SUMS-pythonbox | sha256sum -c -)
           echo "bundled ${TAG} ($(du -h dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz | cut -f1))"
 
       - name: Assemble Linux installer
@@ -501,6 +507,20 @@ jobs:
           if ((Get-Item $out).Length -eq 0) {
             throw "$assetName downloaded empty from $($release.tag_name)"
           }
+          # Fail-closed: every pythonbox-* release must ship SHA256SUMS-pythonbox-windows
+          # next to the zip (#2002). A missing or mismatching sums aborts the build
+          # rather than bundling an unverified binary.
+          $sumsOut = Join-Path 'dist\installers' 'SHA256SUMS-pythonbox-windows'
+          Invoke-WebRequest -Uri "https://github.com/generalbots/generalbots/releases/download/$($release.tag_name)/SHA256SUMS-pythonbox-windows" -OutFile $sumsOut -UseBasicParsing
+          $expected = ((Get-Content $sumsOut | Where-Object { $_ -like "*$assetName*" }) -split '\s+') | Select-Object -First 1
+          if (-not $expected) {
+            throw "SHA256SUMS-pythonbox-windows on $($release.tag_name) has no entry for $assetName"
+          }
+          $actual = (Get-FileHash $out -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected.ToLowerInvariant()) {
+            throw "checksum mismatch for $assetName from $($release.tag_name): expected $expected, got $actual"
+          }
+          Write-Host "verified $assetName against SHA256SUMS-pythonbox-windows ($($release.tag_name))"
           Copy-Item $out 'botserver\botserver-installers' -Force
           # Keep the component checksum list truthful: the staging step wrote it
           # before BotModels was fetched.
