@@ -44,12 +44,14 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"], optional = true
 # Optional: i18n
 rust-embed = { workspace = true, optional = true, features = ["debug-embed"] }
 
-# Optional: SQLite driver for non-Linux platforms
-rusqlite = { version = "0.32", optional = true }
+# Optional: SQLite driver for non-Linux platforms.
+# 0.41 pins libsqlite3-sys 0.39 (SQLite 3.54.1), which clears
+# RUSTSEC-2026-0459 (GHSA-72w2-rjgg-q729).
+rusqlite = { version = "0.41", optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
-rusqlite = { version = "0.32" }
+rusqlite = { version = "0.41" }
 
 [lints]
 workspace = true

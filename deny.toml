@@ -64,8 +64,6 @@ ignore = [
       reason = "zvariant_derive is unmaintained; D-Bus stack pulled only by the Tauri Linux desktop build. Accepted 2026-11-06, tracked in #1723." },
     { id = "RUSTSEC-2026-0441",
       reason = "pin-utils is unmaintained (no advisory, no runtime sink we rely on). Accepted 2026-11-06, tracked in #1723." },
-    { id = "RUSTSEC-2026-0459",
-      reason = "libsqlite3-sys bundles SQLite affected by CVE-2026-119375 (uninitialized page-cache memory via a sibling -wal file); only the `bundled` feature is affected. We link the system SQLite (pkg-config/vcpkg in the lock, no member enables rusqlite/bundled), so the bundled copy is never compiled. The fix ships with rusqlite 0.41 (libsqlite3-sys 0.39, Rust 1.89) — tracked as a parent upgrade. Accepted 2026-11-09." },
 ]
 
 [licenses]
