@@ -26,6 +26,7 @@ log = { workspace = true }
 r2d2 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
 uuid = { workspace = true, features = ["serde", "v4"] }

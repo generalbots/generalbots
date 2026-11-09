@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 use bigdecimal::ToPrimitive;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -306,11 +306,17 @@ pub async fn new_objective_form(
         .map(|(id, name)| format!(r#"<option value="{id}">{name}</option>"#))
         .collect();
 
+    // #2032 — the period carries its year, so the form speaks the same
+    // canonical `q2-2026` the sidebar selector sends (the two used to be
+    // `Q2` vs `q2-2025` and could never match).
+    let year = Utc::now().year();
+
     Html(format!(r##"<div class="modal-header">
 <h3>New Objective</h3>
-<button class="btn-close" onclick="closeModal()">&times;</button>
+<button class="btn-close" type="button" onclick="window.closeModal && window.closeModal()">&times;</button>
 </div>
-<form class="objective-form" hx-post="/api/goals/objectives" hx-swap="none">
+<form class="objective-form" hx-post="/api/goals/objectives" hx-swap="none"
+      hx-on::after-request="if(event.detail.successful){window.closeModal&&window.closeModal();document.body.dispatchEvent(new Event('objectiveCreated'));}">
 <div class="form-group">
 <label>Title</label>
 <input type="text" name="title" placeholder="What do you want to achieve?" required />
@@ -329,13 +335,13 @@ pub async fn new_objective_form(
 <div class="form-group">
 <label>Period</label>
 <select name="period" required>
-<option value="Q1">Q1</option>
-<option value="Q2">Q2</option>
-<option value="Q3">Q3</option>
-<option value="Q4">Q4</option>
-<option value="H1">H1 (Half Year)</option>
-<option value="H2">H2 (Half Year)</option>
-<option value="annual">Annual</option>
+<option value="q1-{year}">Q1 {year}</option>
+<option value="q2-{year}">Q2 {year}</option>
+<option value="q3-{year}">Q3 {year}</option>
+<option value="q4-{year}">Q4 {year}</option>
+<option value="h1-{year}">H1 {year} (Half Year)</option>
+<option value="h2-{year}">H2 {year} (Half Year)</option>
+<option value="annual-{year}">Annual {year}</option>
 </select>
 </div>
 <div class="form-row">
@@ -357,7 +363,7 @@ pub async fn new_objective_form(
 </select>
 </div>
 <div class="form-actions">
-<button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+<button type="button" class="btn btn-secondary" onclick="window.closeModal && window.closeModal()">Cancel</button>
 <button type="submit" class="btn btn-primary">Create Objective</button>
 </div>
 </form>"##))

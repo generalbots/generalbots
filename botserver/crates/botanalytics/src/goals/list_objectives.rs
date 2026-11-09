@@ -1,4 +1,6 @@
 use super::*;
+use axum::body::Bytes;
+use axum::http::{header, HeaderMap};
 
 pub async fn list_objectives(
     State(state): State<(Arc<DbPool>, GetBotContextFn)>,
@@ -22,7 +24,18 @@ pub async fn list_objectives(
             db_query = db_query.filter(okr_objectives::status.eq(status));
         }
         if let Some(period) = query.period {
-            db_query = db_query.filter(okr_objectives::period.eq(period));
+            // #2032 — the sidebar speaks `q2-2026` while older rows stored a
+            // bare `Q2`. Match the canonical form first and fall back to the
+            // legacy spelling so neither a new row nor an old one disappears
+            // from the list.
+            db_query = match legacy_period_alias(&period) {
+                Some(legacy) => db_query.filter(
+                    okr_objectives::period
+                        .eq(period.clone())
+                        .or(okr_objectives::period.eq(legacy)),
+                ),
+                None => db_query.filter(okr_objectives::period.eq(period)),
+            };
         }
         if let Some(parent_id) = query.parent_id {
             db_query = db_query.filter(okr_objectives::parent_id.eq(parent_id));
@@ -47,11 +60,63 @@ pub async fn list_objectives(
     let objectives: Vec<Objective> = result.into_iter().map(record_to_objective).collect();
     Ok(Json(objectives))
 }
+/// #2032 — `q2-2026` has a legacy twin (`Q2`) written before the year became
+/// part of the period. Returns the legacy spelling so the list can match
+/// either.
+fn legacy_period_alias(period: &str) -> Option<String> {
+    let (head, _year) = period.split_once('-')?;
+    let alias = match head.to_ascii_lowercase().as_str() {
+        "q1" => "Q1",
+        "q2" => "Q2",
+        "q3" => "Q3",
+        "q4" => "Q4",
+        "h1" => "H1",
+        "h2" => "H2",
+        "annual" => "annual",
+        _ => return None,
+    };
+    Some(alias.to_string())
+}
+
+/// #2032 — the New Objective fragment is a plain HTMX form, so the browser
+/// sends `application/x-www-form-urlencoded` while the JS path sends JSON.
+/// Accept both instead of rejecting one with 415. Blank form fields are dropped
+/// so an empty `<input type="date">` does not fail `NaiveDate`.
+fn decode_create_request(
+    headers: &HeaderMap,
+    body: &Bytes,
+) -> Result<CreateObjectiveRequest, GoalsError> {
+    let is_json = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_ascii_lowercase().contains("json"))
+        .unwrap_or(false);
+
+    if is_json {
+        return serde_json::from_slice(body)
+            .map_err(|error| GoalsError::Validation(format!("invalid JSON body: {error}")));
+    }
+
+    let pairs: Vec<(String, String)> = serde_urlencoded::from_bytes(body)
+        .map_err(|error| GoalsError::Validation(format!("invalid form body: {error}")))?;
+    let mut map = serde_json::Map::new();
+    for (key, value) in pairs {
+        if value.trim().is_empty() {
+            continue;
+        }
+        map.insert(key, serde_json::Value::String(value));
+    }
+    serde_json::from_value(serde_json::Value::Object(map))
+        .map_err(|error| GoalsError::Validation(format!("invalid objective: {error}")))
+}
+
 pub async fn create_objective(
     State(state): State<(Arc<DbPool>, GetBotContextFn)>,
     user: AuthenticatedUser,
-    Json(req): Json<CreateObjectiveRequest>,
+    headers: HeaderMap,
+    body: Bytes,
 ) -> Result<Json<Objective>, GoalsError> {
+    let req = decode_create_request(&headers, &body)?;
     let (pool, get_bot_context) = state;
     let (org_id, branch_id) = get_bot_context();
     let owner_id = req.owner_id.unwrap_or(user.user_id);

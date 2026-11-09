@@ -306,6 +306,7 @@ scopeguard = "1.2.0"
 # ─── SERIALIZATION ───
 serde = { version = "1.0", default-features = false }
 serde_json = "1.0"
+serde_urlencoded = "0.7"
 toml = "0.8"
 ciborium = "0.2"
 

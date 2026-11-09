@@ -34,6 +34,10 @@
   window.selectObjective = selectObjective;
   window.showCreateObjectiveModal = showCreateObjectiveModal;
   window.closeCreateObjectiveModal = closeCreateObjectiveModal;
+  // #2032 — the New Objective fragment calls closeModal() after a
+  // successful create and from its Cancel/× buttons; the global was
+  // never defined, so those buttons did nothing.
+  window.closeModal = closeCreateObjectiveModal;
   window.createObjective = createObjective;
   window.editObjective = editObjective;
   window.updateObjective = updateObjective;
@@ -66,6 +70,31 @@
         console.error("goals stats load failed", err);
       });
   }
+
+  // #2032 — the sidebar selector and the header badge used to be frozen at
+  // 2025 in the markup, and the create form sent a bare `Q2`, so the two could
+  // never match. Both now derive the year from the clock and speak the same
+  // `q2-2026` form the API stores.
+  function initPeriodSelector() {
+    var select = document.getElementById("period-select");
+    var now = new Date();
+    var year = now.getFullYear();
+    var quarter = Math.floor(now.getMonth() / 3) + 1;
+    var badge = document.getElementById("current-period");
+    if (badge) { badge.textContent = "Q" + quarter + " " + year; }
+    if (!select) { return; }
+    var periods = [
+      ["q1", "Q1"], ["q2", "Q2"], ["q3", "Q3"], ["q4", "Q4"],
+      ["h1", "H1 (Half Year)"], ["h2", "H2 (Half Year)"], ["annual", "Annual"],
+    ];
+    select.innerHTML = periods.map(function (period) {
+      var selected = period[0] === "q" + quarter ? " selected" : "";
+      return '<option value="' + period[0] + "-" + year + '"' + selected + ">" +
+        period[1] + " " + year + "</option>";
+    }).join("");
+  }
+  window.initGoalsPeriod = initPeriodSelector;
+  initPeriodSelector();
 
   document.body.addEventListener("objectiveCreated", function () { loadGoalsStats(); });
   document.body.addEventListener("objectiveUpdated", function () { loadGoalsStats(); });

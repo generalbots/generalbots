@@ -9,6 +9,46 @@
   // CRUD OPERATIONS
   // =============================================================================
 
+  // #2032 — dialogs go through the suite modal when it is present; the native
+  // prompt/confirm looked broken inside the shell and cannot be themed.
+  // GBModal.* answers through callbacks in the shell and returns the value in
+  // the native fallback, so both shapes are bridged into one promise.
+  function gbConfirm(message) {
+    return new Promise(function (resolve) {
+      if (window.GBModal && typeof window.GBModal.confirm === "function") {
+        var settled = false;
+        var result = window.GBModal.confirm(
+          message,
+          "Confirm",
+          function () { settled = true; resolve(true); },
+          function () { settled = true; resolve(false); },
+        );
+        if (!settled && typeof result === "boolean") { resolve(result); }
+        return;
+      }
+      resolve(window.confirm(message));
+    });
+  }
+
+  function gbAsk(message, fallback) {
+    return new Promise(function (resolve) {
+      if (window.GBModal && typeof window.GBModal.prompt === "function") {
+        var settled = false;
+        var result = window.GBModal.prompt(
+          message,
+          fallback,
+          "Input",
+          function (value) { settled = true; resolve(value == null ? null : String(value)); },
+        );
+        if (!settled && result !== undefined) {
+          resolve(result == null ? null : String(result));
+        }
+        return;
+      }
+      resolve(window.prompt(message, fallback));
+    });
+  }
+
   function showCreateObjectiveModal() {
     const modal = document.getElementById("create-objective-modal");
     if (modal) {
@@ -17,13 +57,26 @@
       } else {
         modal.classList.add("open");
       }
-    } else {
-      // Fallback: create a simple prompt-based flow
-      const title = prompt("Enter objective title:");
-      if (title) {
-        createObjective({ title });
-      }
+      return;
     }
+    // The app ships the HTMX fragment, not a <dialog>: load it into the modal
+    // container so the create flow always has a real form (#2032).
+    const host = document.getElementById("goals-modal");
+    if (host && window.htmx && typeof window.htmx.ajax === "function") {
+      window.htmx.ajax("GET", "/api/ui/goals/new-objective", {
+        target: "#goals-modal",
+        swap: "innerHTML",
+      });
+      return;
+    }
+    gbAsk("Enter objective title:").then(function (title) {
+      if (title) { createObjective({ title, period: currentPeriodValue() }); }
+    });
+  }
+
+  function currentPeriodValue() {
+    const select = document.getElementById("period-select");
+    return (select && select.value) || "annual-" + new Date().getFullYear();
   }
 
   function closeCreateObjectiveModal() {
@@ -34,6 +87,12 @@
       } else {
         modal.classList.remove("open");
       }
+    }
+    // The HTMX fragment is swapped into #goals-modal, not into the dialog.
+    const host = document.getElementById("goals-modal");
+    if (host) {
+      host.innerHTML = "";
+      host.classList.remove("open");
     }
   }
 
@@ -57,11 +116,11 @@
     }
   }
 
-  function editObjective(objectiveId) {
+  async function editObjective(objectiveId) {
     const objective = state.objectives.find((o) => o.id === objectiveId);
     if (!objective) return;
 
-    const newTitle = prompt("Edit objective title:", objective.title);
+    const newTitle = await gbAsk("Edit objective title:", objective.title);
     if (newTitle && newTitle !== objective.title) {
       updateObjective(objectiveId, { title: newTitle });
     }
@@ -87,7 +146,7 @@
   }
 
   async function deleteObjective(objectiveId) {
-    if (!confirm("Delete this objective? This cannot be undone.")) return;
+    if (!(await gbConfirm("Delete this objective? This cannot be undone."))) return;
 
     try {
       const response = await fetch(`/api/goals/objectives/${objectiveId}`, {
@@ -107,11 +166,11 @@
     }
   }
 
-  function addKeyResult(objectiveId) {
-    const title = prompt("Enter key result title:");
+  async function addKeyResult(objectiveId) {
+    const title = await gbAsk("Enter key result title:");
     if (!title) return;
 
-    const targetValue = prompt("Enter target value:", "100");
+    const targetValue = await gbAsk("Enter target value:", "100");
     if (!targetValue) return;
 
     createKeyResult(objectiveId, {

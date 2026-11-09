@@ -31,11 +31,8 @@
                 hx-swap="innerHTML"
                 hx-include="this"
             >
-                <option value="q1-2025">Q1 2025</option>
-                <option value="q2-2025" selected>Q2 2025</option>
-                <option value="q3-2025">Q3 2025</option>
-                <option value="q4-2025">Q4 2025</option>
-                <option value="annual-2025">Annual 2025</option>
+                <!-- #2032 — the options carry the current year and are built in
+                     goals/modules/06_boot.js; the markup used to freeze 2025. -->
             </select>
         </div>
 
@@ -81,7 +78,7 @@
         <header class="goals-header">
             <div class="header-left">
                 <h1 data-i18n="goals-dashboard">OKR Dashboard</h1>
-                <span class="period-badge" id="current-period">Q2 2025</span>
+                <span class="period-badge" id="current-period">—</span>
             </div>
             <div class="header-actions">
                 <div class="view-toggle">
@@ -256,5 +253,5 @@
 <script src="/suite/goals/modules/02_shell.js?v=1"></script>
 <script src="/suite/goals/modules/03_objectives.js?v=1"></script>
 <script src="/suite/goals/modules/04_runs.js?v=1"></script>
-<script src="/suite/goals/modules/05_crud.js?v=1"></script>
-<script src="/suite/goals/modules/06_boot.js?v=1"></script>
+<script src="/suite/goals/modules/05_crud.js?v=2"></script>
+<script src="/suite/goals/modules/06_boot.js?v=2"></script>
