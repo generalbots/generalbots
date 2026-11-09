@@ -5,6 +5,17 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 use super::session::{suite_url_with_token, wait_for_desktop_session};
 
+/// Whether the Tauri `devUrl` (the dev server, usually port 3000) should be
+/// used instead of the embedded frontend.
+///
+/// Only a debug build that does **not** embed the frontend may follow `devUrl`.
+/// A `custom-protocol` build carries the bundled assets, so even a debug binary
+/// built with it must serve them directly — otherwise it opens whatever
+/// unrelated server happens to hold port 3000 on the developer's machine.
+fn use_dev_server() -> bool {
+    cfg!(debug_assertions) && !cfg!(feature = "custom-protocol")
+}
+
 /// Creates the wizard window and keeps the main window hidden.
 pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("wizard") {
@@ -29,7 +40,8 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     // In development the wizard is served by botui (devUrl). WebKit may cache
     // the previous page between runs, so force a fresh document each start.
-    let wizard_url = if cfg!(debug_assertions) {
+    // Embedded (`custom-protocol`) builds always use the bundled asset.
+    let wizard_url = if use_dev_server() {
         match &app.config().build.dev_url {
             Some(dev) => {
                 let mut url = dev.clone();
@@ -99,9 +111,9 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         .or_else(|| {
             // Development runs are served by botui (devUrl); packaged builds
             // are served by the sidecar itself. Never follow devUrl in a
-            // release binary — that would open localhost:3000, which does not
-            // exist next to a release install.
-            if !cfg!(debug_assertions) {
+            // release or embedded build — that would open localhost:3000,
+            // which does not belong to this install.
+            if !use_dev_server() {
                 return None;
             }
             app.config().build.dev_url.clone().map(|mut url| {
@@ -186,7 +198,7 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             .ok()
             .and_then(|value| tauri::Url::parse(value.trim()).ok())
             .or_else(|| {
-                if !cfg!(debug_assertions) {
+                if !use_dev_server() {
                     return None;
                 }
                 handle.config().build.dev_url.clone().map(|mut url| {
