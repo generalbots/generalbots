@@ -51,6 +51,12 @@ then executes. It applies to the server and to the desktop edition alike.
 Desktop components resolved from a cache directory follow the same rule: an
 archive is accepted only when its `sha256` matches the manifest.
 
+Advisory review 2026-11-09: Vault 2.2.1 (pinned) postdates and covers
+HCSEC-2026-43 / CVE-2026-89322 (ACL deny bypass, fixed in 2.1.2) and
+HCSEC-2026-41; Caddy 2.11.9 covers CVE-2026-27590 (RCE, fixed in 2.11.1).
+No action required for either; re-verify at the next cadence review or on any
+new bulletin naming a pinned component.
+
 ---
 
 ## Supported Versions
@@ -171,6 +177,8 @@ advisory still fails the gate.
 | glib iterator unsoundness | glib on the Tauri Linux desktop stack | Desktop-only; no server runtime exposure. Removed by the GTK4 desktop upgrade. | 2027-11-06 |
 | Unmaintained build-time crates | proc-macro-error, paste, unic-*, ttf-parser, smartstring, zvariant, pin-utils | Build-time macros, Unicode tables, font metrics or the desktop D-Bus stack; no attacker-reachable runtime sink identified. | 2027-11-06 |
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
+| Unmaintained Windows cache port | Redis-x64-3.0.504 (microsoftarchive) | Desktop-edition Windows payload only; unmaintained upstream, digest now pinned fail-closed in the release build. Replace with a maintained cache strategy or drop before shipping Windows broadly. | 2027-05-09 |
+| Ecosystem single-owner crates | syn, quote, proc-macro2, serde (one owner); ring; jsonwebtoken; reqwest | crates.io-level concentration, not fixable per consumer: the crates are single-owner upstream (verified via the owners API, 2026-11-09, self-review in #2001). Mitigation is lockfile pinning, the cargo-deny/OSV gate on every push and dependency-bump PR review; monitor ownership changes at review. A `cargo vet` attestation pass is the candidate future gate. | 2027-05-09 |
 
 Open upgrade clusters (each changes a public API and needs its own regression
 pass):
