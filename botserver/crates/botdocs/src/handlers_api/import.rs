@@ -79,6 +79,17 @@ pub async fn handle_import_document(
         ));
     }
 
+    // #2042 — keep the uploaded package. The HTML model is what the editor
+    // edits; the original bytes are what a save patches, so theme, styles,
+    // headers/footers, tables and images survive.
+    if format == "docx" {
+        if let Err(e) =
+            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes).await
+        {
+            log::warn!("docs import: could not store the original DOCX: {e}");
+        }
+    }
+
     Ok(Json(doc))
 }
 

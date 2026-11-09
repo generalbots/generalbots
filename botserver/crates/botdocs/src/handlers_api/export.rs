@@ -28,16 +28,32 @@ pub async fn handle_export_docx(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let doc = load_export_document(&state, &query).await?;
-    let docx_bytes = html_to_docx_full(&doc.title, &doc.content)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}))))?;
+    // #2042 — export honours the preserved package, like save does. Rebuilding
+    // from HTML drops styles, headers/footers, tables and images.
+    let user_id = get_current_user_id();
+    // The richer builder below stays as the last-resort rebuild; the preserving
+    // path is preferred because it keeps the original package.
+    let (docx_bytes, fidelity) =
+        match crate::storage::docx_bytes_with_fidelity(&state, &user_id, &doc.id, &doc.title, &doc.content).await {
+            Ok(result) => result,
+            Err(error) => {
+                log::warn!("docs export: preserving path failed: {error}");
+                (html_to_docx_full(&doc.title, &doc.content)?, "regenerated")
+            }
+        };
 
-    Ok((
-        [(
-            axum::http::header::CONTENT_TYPE,
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static(
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )],
-        docx_bytes,
-    ))
+        ),
+    );
+    headers.insert(
+        "x-gb-docx-fidelity",
+        axum::http::HeaderValue::from_static(fidelity),
+    );
+    Ok((headers, docx_bytes))
 }
 
 pub async fn handle_export_odt(

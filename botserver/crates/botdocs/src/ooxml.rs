@@ -238,3 +238,74 @@ fn replace_first_text_run(para_xml: &str, new_text: &str) -> String {
 
     result
 }
+
+#[cfg(test)]
+mod update_docx_tests {
+    use super::*;
+
+    /// #2042 — the patch path must keep every package part except the edited
+    /// slide/document XML. A docx built by docx-rs is a valid OPC package, so
+    /// it exercises the same zip walk a real Word file does.
+    fn sample_docx(text: &str) -> Vec<u8> {
+        use docx_rs::{Docx, Paragraph, Run};
+        let docx = Docx::new().add_paragraph(
+            Paragraph::new().add_run(Run::new().add_text(text)),
+        );
+        docx.build().expect("build docx")
+    }
+
+    fn part_hashes(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+        use std::io::Read;
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
+        let mut parts = Vec::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().map(str::to_string).unwrap_or_default();
+            let mut content = Vec::new();
+            file.read_to_end(&mut content).expect("read");
+            parts.push((name, content));
+        }
+        parts.sort_by(|a, b| a.0.cmp(&b.0));
+        parts
+    }
+
+    #[test]
+    fn text_edit_changes_only_the_document_part() {
+        let original = sample_docx("Old paragraph");
+        let patched = update_docx_text(&original, &["New paragraph".to_string()]).expect("patch");
+
+        let original_parts = part_hashes(&original);
+        let patched_parts = part_hashes(&patched);
+        assert_eq!(
+            original_parts.len(),
+            patched_parts.len(),
+            "the package part list must not change"
+        );
+
+        for ((name, before), (patched_name, after)) in
+            original_parts.iter().zip(patched_parts.iter())
+        {
+            assert_eq!(name, patched_name, "part order must be stable");
+            if name == "word/document.xml" {
+                assert_ne!(before, after, "the edited part must change");
+                let xml = String::from_utf8_lossy(after);
+                assert!(xml.contains("New paragraph"));
+            } else {
+                assert_eq!(
+                    before, after,
+                    "part {name} must be byte-identical after a text edit"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn unmatched_paragraph_count_still_returns_a_package() {
+        let original = sample_docx("Only paragraph");
+        // Fewer replacement paragraphs than source ones: the patcher keeps the
+        // remaining source text instead of dropping content.
+        let patched = update_docx_text(&original, &[]).expect("patch");
+        assert!(!patched.is_empty());
+    }
+}
+

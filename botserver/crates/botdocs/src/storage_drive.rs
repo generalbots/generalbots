@@ -8,6 +8,81 @@ use crate::storage_core::{
 use crate::storage_docx::convert_html_to_docx;
 use crate::types::{Document, DocumentMetadata};
 
+/// #2042 — the original package for a document, from the process cache or the
+/// Drive copy written beside the HTML. The Drive copy is what makes fidelity
+/// survive a restart: the cache dies with the process.
+async fn original_docx(
+    state: &DocState,
+    user_identifier: &str,
+    doc_id: &str,
+) -> Option<Vec<u8>> {
+    if let Some(bytes) = get_cached_document_bytes(doc_id).await {
+        return Some(bytes);
+    }
+    let docx_path = format!("{}/{}.docx", get_user_docs_path(user_identifier), doc_id);
+    match state
+        .drive
+        .get_object(&state.bucket_name, &docx_path)
+        .await
+    {
+        Ok(bytes) => {
+            cache_document_bytes(doc_id, bytes.clone()).await;
+            Some(bytes)
+        }
+        Err(error) => {
+            log::debug!("docs: no stored DOCX for {doc_id}: {error}");
+            None
+        }
+    }
+}
+
+/// #2042 — patch the edited text into the original package when it exists,
+/// otherwise rebuild. The caller decides whether to persist the result; the
+/// second value is the fidelity it achieved so callers can report it.
+pub async fn docx_bytes_with_fidelity(
+    state: &DocState,
+    user_identifier: &str,
+    doc_id: &str,
+    title: &str,
+    content: &str,
+) -> Result<(Vec<u8>, &'static str), String> {
+    if let Some(original_bytes) = original_docx(state, user_identifier, doc_id).await {
+        let paragraphs = html_to_paragraphs(content);
+        match crate::ooxml::update_docx_text(&original_bytes, &paragraphs) {
+            Ok(patched) => return Ok((patched, "preserved")),
+            Err(error) => {
+                log::warn!(
+                    "docs: could not patch text into the original package for {doc_id}: {error}"
+                );
+            }
+        }
+    }
+    Ok((convert_html_to_docx(title, content)?, "regenerated"))
+}
+
+/// #2042 — persist the uploaded/original package so the first save (and every
+/// save after a restart) can patch it instead of rebuilding.
+pub async fn persist_original_docx(
+    state: &DocState,
+    user_identifier: &str,
+    doc_id: &str,
+    bytes: &[u8],
+) -> Result<(), String> {
+    let docx_path = format!("{}/{}.docx", get_user_docs_path(user_identifier), doc_id);
+    state
+        .drive
+        .put_object(
+            &state.bucket_name,
+            &docx_path,
+            bytes.to_vec(),
+            Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        )
+        .await
+        .map_err(|e| format!("Failed to store the original DOCX: {e}"))?;
+    cache_document_bytes(doc_id, bytes.to_vec()).await;
+    Ok(())
+}
+
 pub async fn save_document_as_docx(
     state: &DocState,
     user_identifier: &str,
@@ -15,14 +90,8 @@ pub async fn save_document_as_docx(
     title: &str,
     content: &str,
 ) -> Result<Vec<u8>, String> {
-    let docx_bytes = if let Some(original_bytes) = get_cached_document_bytes(doc_id).await {
-        let paragraphs = html_to_paragraphs(content);
-        crate::ooxml::update_docx_text(&original_bytes, &paragraphs)
-            .unwrap_or_else(|_| convert_html_to_docx(title, content).unwrap_or_default())
-    } else {
-        convert_html_to_docx(title, content)?
-    };
-
+    let (docx_bytes, fidelity) =
+        docx_bytes_with_fidelity(state, user_identifier, doc_id, title, content).await?;
     let base_path = get_user_docs_path(user_identifier);
     let docx_path = format!("{base_path}/{doc_id}.docx");
 
@@ -38,6 +107,7 @@ pub async fn save_document_as_docx(
         .map_err(|e| format!("Failed to save DOCX: {e}"))?;
 
     cache_document_bytes(doc_id, docx_bytes.clone()).await;
+    log::info!("docs: saved {doc_id} with the {fidelity} package");
 
     Ok(docx_bytes)
 }
@@ -156,6 +226,17 @@ async fn save_document_with_extras(
         )
         .await
         .map_err(|e| format!("Failed to save metadata: {e}"))?;
+
+    // #2042 — keep the .docx sibling in step with the HTML for documents that
+    // came from a DOCX. Without this a plain editor save never refreshed the
+    // package, so the next export rebuilt from HTML.
+    if get_cached_document_bytes(doc_id).await.is_some() {
+        if let Err(error) =
+            save_document_as_docx(state, user_identifier, doc_id, title, content).await
+        {
+            log::warn!("docs: could not refresh the DOCX for {doc_id}: {error}");
+        }
+    }
 
     Ok(doc_path)
 }

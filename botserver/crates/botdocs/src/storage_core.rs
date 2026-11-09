@@ -253,7 +253,15 @@ pub async fn load_docx_from_drive(
         .await
         .map_err(|e| format!("Failed to load DOCX: {e}"))?;
 
-    load_docx_from_bytes(&bytes, user_identifier, file_path).await
+    let doc = load_docx_from_bytes(&bytes, user_identifier, file_path).await?;
+    // #2042 — a Drive-opened DOCX is persisted under the deck id so the first
+    // save (and every save after a restart) patches the real package.
+    if let Err(error) =
+        crate::storage_drive::persist_original_docx(state, user_identifier, &doc.id, &bytes).await
+    {
+        log::warn!("docs: could not persist the opened DOCX: {error}");
+    }
+    Ok(doc)
 }
 
 pub async fn load_docx_from_bytes(
