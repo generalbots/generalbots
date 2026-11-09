@@ -5,6 +5,9 @@ pub mod commands_derived;
 pub mod crm_commands;
 pub mod endpoint_inventory;
 mod endpoint_inventory_directory;
+// #2036 — test-only guard: the prefix map has no runtime consumer.
+#[cfg(test)]
+mod endpoint_prefix_map;
 mod endpoint_inventory_editor_email;
 mod endpoint_inventory_minutes;
 mod endpoint_inventory_ui_billing;
