@@ -254,7 +254,11 @@ async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
     let config_path = format!("{}/conf/system/directory_config.json", stack_path);
 
     if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(config) = serde_json::from_str::<crate::directory::ZitadelConfig>(&content) {
+        if let Ok(mut config) = serde_json::from_str::<crate::directory::ZitadelConfig>(&content) {
+            // Older configs stored the endpoint only as `base_url`.
+            if config.api_url.trim().is_empty() && !config.base_url.trim().is_empty() {
+                config.api_url = config.base_url.clone();
+            }
             if !config.api_url.is_empty() {
                 info!(
                     "Loaded Zitadel config from {}: url={}",
@@ -346,6 +350,7 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
             .filter(|u| !u.is_empty())
             .unwrap_or_else(|| "default".to_string()),
         api_url: url,
+        base_url: String::new(),
         service_account_key: secrets.get("service_account_key").cloned(),
         allow_insecure_http: false,
     })
@@ -379,6 +384,7 @@ pub(crate) fn default_zitadel_config() -> crate::directory::ZitadelConfig {
         redirect_uri: "/callback".to_string(),
         project_id: "default".to_string(),
         api_url: "".to_string(),
+        base_url: String::new(),
         service_account_key: None,
         allow_insecure_http: false,
     }

@@ -27,8 +27,15 @@ pub struct ZitadelConfig {
     pub redirect_uri: String,
     #[serde(default = "default_project_id")]
     pub project_id: String,
-    #[serde(default, alias = "base_url")]
+    #[serde(default)]
     pub api_url: String,
+    /// Legacy key still written by `DirectoryConfig` (it serializes both
+    /// `base_url` and `api_url`). It must be its own field, not an alias of
+    /// `api_url`: serde rejects a document that carries both an aliased field
+    /// and its alias as a duplicate field, which made the resolver discard a
+    /// perfectly valid `directory_config.json` and fall back to Vault.
+    #[serde(default)]
+    pub base_url: String,
     #[serde(default, alias = "service_token")]
     pub service_account_key: Option<String>,
     /// Operator opt-in: allow plain http for the configured api_url even when
