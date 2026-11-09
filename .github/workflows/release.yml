@@ -464,7 +464,7 @@ jobs:
           Get-ChildItem $stage -File | Sort-Object Name |
             ForEach-Object { Write-Host ("bundled {0} ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
 
-      # #1793 — the Windows box is built by botmodels-pythonbox.yml. Resolve the
+      # #1793 — the Windows box is built by the `bundle-windows` job. Resolve the
       # newest published release that actually carries the asset (older
       # pythonbox releases predate the Windows build) instead of assuming the
       # newest tag has it.
