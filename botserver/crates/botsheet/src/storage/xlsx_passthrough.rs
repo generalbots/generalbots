@@ -385,3 +385,59 @@ mod package_guard_tests {
     }
 }
 
+#[cfg(test)]
+mod real_workbook_round_trip {
+    use super::*;
+    use std::io::Read;
+
+    fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+        let mut archive =
+            zip::ZipArchive::new(Cursor::new(bytes.to_vec())).expect("zip");
+        let mut out = Vec::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().map(str::to_string).unwrap_or_default();
+            let mut content = Vec::new();
+            file.read_to_end(&mut content).expect("read");
+            out.push((name, content));
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
+    /// #2044 — patching one cell keeps every non-worksheet part (styles,
+    /// theme, shared strings, drawings) byte-identical.
+    #[test]
+    fn cell_edit_changes_only_the_worksheet() {
+        let mut workbook = rust_xlsxwriter::Workbook::new();
+        let sheet = workbook.add_worksheet();
+        sheet.set_name("Budget").expect("name");
+        sheet.write_string(0, 0, "Item").expect("write");
+        sheet.write_number(1, 1, 42.0).expect("write");
+        let original = workbook.save_to_buffer().expect("save");
+
+        let worksheets =
+            crate::storage::import::parse_xlsx_to_worksheets(&original, "xlsx").expect("parse");
+        let mut model = crate::storage::create_new_spreadsheet("test");
+        model.worksheets = worksheets;
+        model.source_bytes = Some(original.clone());
+        model.source_path = Some("budget.xlsx".to_string());
+        model.source_bucket = Some("gbo".to_string());
+
+        let merged = merge_into_original(&original, &model).expect("merge");
+        let before = parts(&original);
+        let after = parts(&merged);
+        assert_eq!(before.len(), after.len(), "part list must not change");
+        for ((name, a), (merged_name, b)) in before.iter().zip(after.iter()) {
+            assert_eq!(name, merged_name);
+            if name.starts_with("xl/worksheets/")
+                || name == "xl/sharedStrings.xml"
+                || name == "xl/workbook.xml"
+            {
+                continue;
+            }
+            assert_eq!(a, b, "part {name} must stay byte-identical");
+        }
+    }
+}
+

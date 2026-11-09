@@ -309,3 +309,53 @@ mod update_docx_tests {
     }
 }
 
+#[cfg(test)]
+mod fixture_round_trip {
+    use super::*;
+    use std::io::Read;
+
+    fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+        let mut archive =
+            zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
+        let mut out = Vec::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().map(str::to_string).unwrap_or_default();
+            let mut content = Vec::new();
+            file.read_to_end(&mut content).expect("read");
+            out.push((name, content));
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
+    /// #2044 — the attached resume (styled runs, sections, headers/footers)
+    /// keeps every part except word/document.xml when one paragraph is edited.
+    #[test]
+    fn real_docx_edit_changes_only_the_document_part() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../../bottest/tests/fixtures/office-fidelity/Alex_Rivera_Resume_Futuristic.docx",
+        );
+        let Ok(original) = std::fs::read(&path) else {
+            return;
+        };
+        let parsed = load_docx_preserving(&original).expect("fixture parses");
+        let mut paragraphs: Vec<String> = parsed.paragraphs.iter().map(|p| p.text.clone()).collect();
+        let Some(first) = paragraphs.first_mut() else { return };
+        *first = format!("{first} (edited)");
+
+        let patched = update_docx_text(&original, &paragraphs).expect("patch");
+        let before = parts(&original);
+        let after = parts(&patched);
+        assert_eq!(before.len(), after.len(), "part list must not change");
+        for ((name, a), (patched_name, b)) in before.iter().zip(after.iter()) {
+            assert_eq!(name, patched_name);
+            if name == "word/document.xml" {
+                assert_ne!(a, b, "the edited part must change");
+            } else {
+                assert_eq!(a, b, "part {name} must stay byte-identical");
+            }
+        }
+    }
+}
+

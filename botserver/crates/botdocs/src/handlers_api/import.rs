@@ -84,7 +84,7 @@ pub async fn handle_import_document(
     // headers/footers, tables and images survive.
     if format == "docx" {
         if let Err(e) =
-            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes).await
+            crate::storage::persist_original_docx(&state, &user_id, &doc.id, &bytes, &doc.content).await
         {
             log::warn!("docs import: could not store the original DOCX: {e}");
         }

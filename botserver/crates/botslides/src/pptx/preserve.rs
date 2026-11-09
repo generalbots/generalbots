@@ -183,3 +183,67 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod fixture_round_trip {
+    use super::*;
+    use std::io::Read;
+
+    fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+        let mut archive =
+            zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
+        let mut out = Vec::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).expect("entry");
+            let name = file.name().map(str::to_string).unwrap_or_default();
+            let mut content = Vec::new();
+            file.read_to_end(&mut content).expect("read");
+            out.push((name, content));
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
+    /// #2044 — the attached real deck (3.1 MB, charts, media, notes) must
+    /// round-trip untouched and change only the edited slide when text moves.
+    #[test]
+    fn real_deck_round_trips() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../../bottest/tests/fixtures/office-fidelity/Rice_and_Beans_Nutrition.pptx",
+        );
+        let Ok(original) = std::fs::read(&path) else {
+            return; // fixture is optional in a trimmed checkout
+        };
+        let parsed = match crate::ooxml::load_pptx_preserving(&original) {
+            Ok(parsed) => parsed,
+            Err(error) => panic!("fixture must parse: {error}"),
+        };
+        let source: Vec<Vec<String>> = parsed.slides.iter().map(|s| s.texts.clone()).collect();
+
+        match preserve_pptx_text(&original, &source, &source).expect("untouched") {
+            PreservedPptx::Unchanged(bytes) => assert_eq!(bytes, original),
+            other => panic!("untouched save must return the source, got {other:?}"),
+        }
+
+        let mut model = source.clone();
+        let Some(first) = model.first_mut().and_then(|slide| slide.first_mut()) else {
+            return; // a deck without text cannot exercise the text patch
+        };
+        *first = format!("{first} (edited)");
+        let patched = match preserve_pptx_text(&original, &source, &model).expect("patched") {
+            PreservedPptx::Patched(bytes) => bytes,
+            other => panic!("a text edit must patch, got {other:?}"),
+        };
+        let before = parts(&original);
+        let after = parts(&patched);
+        assert_eq!(before.len(), after.len(), "part list must not change");
+        for ((name, a), (patched_name, b)) in before.iter().zip(after.iter()) {
+            assert_eq!(name, patched_name);
+            if name.starts_with("ppt/slides/slide") {
+                continue;
+            }
+            assert_eq!(a, b, "part {name} must stay byte-identical");
+        }
+    }
+}
+

@@ -7,6 +7,7 @@ pub mod state;
 pub mod storage;
 pub mod storage_core;
 pub mod storage_docx;
+pub mod storage_docx_source;
 pub mod storage_drive;
 pub mod types;
 pub mod types_core;
