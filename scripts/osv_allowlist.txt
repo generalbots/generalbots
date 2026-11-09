@@ -15,7 +15,6 @@
 # --- RustSec IDs mirrored from deny.toml -----------------------------------
 RUSTSEC-2024-0370  # proc-macro-error - unmaintained, build time only
 RUSTSEC-2024-0429  # glib 0.18.5 - iterator unsoundness, Tauri Linux only
-RUSTSEC-2024-0436  # paste - unmaintained proc-macro, build time only
 RUSTSEC-2026-0192  # ttf-parser - unmaintained font metrics
 RUSTSEC-2026-0249  # smartstring - unmaintained, office write path
 RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
