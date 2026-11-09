@@ -50,6 +50,10 @@
 .run-elapsed {
     color: var(--gb-text-muted, #57606a);
     font-variant-numeric: tabular-nums;
+    /* #2014 — stable slot: "9s" and "1m 03s" must occupy the same width so the
+       header cannot resize the card mid-run. */
+    min-width: 52px;
+    text-align: right;
 }
 
 .run-toggle,
@@ -126,7 +130,13 @@
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    /* #2014 — the 250 ms heartbeat rewrites this label ("9s" → "still working
+       · 1m 03s"). A reserved right-aligned slot keeps the row (and therefore
+       the transcript height) identical while a VM cold-starts. */
+    flex: 0 0 auto;
+    text-align: right;
 }
+.run-row[data-status="running"] .run-row-meta { min-width: 132px; }
 .run-row[data-phase="infra"] .run-row-name::before { content: "⚙ "; }
 .run-row[data-phase="agent"] .run-row-name::before { content: "✦ "; }
 .run-row[data-phase="tool"] .run-row-name::before { content: "▸ "; }

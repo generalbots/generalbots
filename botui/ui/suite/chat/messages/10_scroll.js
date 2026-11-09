@@ -20,14 +20,47 @@ function snapToBottom() {
 // Keep the live edge pinned for a short window while async layout (inline
 // iframes, images, markdown) grows the last message. Without this the scroll
 // landed before the artifact finished and the reply stayed below the fold.
+//
+// #2014 — the pin must never fight the reader: it only runs while they are at
+// the bottom edge, and any deliberate scroll (wheel, keys, scrollbar drag) ends
+// it for good. The 250 ms run-timeline heartbeat would otherwise re-arm this on
+// every tick during a VM cold start and drag the viewport down each second.
 function stickToBottom(duration) {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  if (ChatState.isUserAtBottom === false) return;
+  var intentAt = gbPinCancelAt;
   var end = Date.now() + (duration || 1200);
   var timer = setInterval(function () {
-    var messages = document.getElementById("messages");
-    if (!messages) { clearInterval(timer); return; }
+    if (!messages.isConnected) { clearInterval(timer); return; }
+    if (gbPinCancelAt > intentAt || ChatState.isUserAtBottom === false) {
+      clearInterval(timer);
+      return;
+    }
     messages.scrollTop = messages.scrollHeight;
     if (Date.now() > end) clearInterval(timer);
   }, 120);
+}
+
+/* #2014 — reader intent. Any of these means "the viewport is mine": a wheel,
+ * a keyboard page, or a scrollbar drag (pointerdown/mousedown on the track or
+ * thumb). The transcript's own pins land at the bottom, so a scroll event that
+ * leaves the reader far from the bottom can only be theirs. */
+var gbPinCancelAt = 0;
+
+function gbMarkReaderIntent() {
+  gbPinCancelAt = Date.now();
+}
+
+function gbAttachReaderIntent(messages) {
+  if (!messages || messages.dataset.gbReaderIntent === "1") return;
+  messages.dataset.gbReaderIntent = "1";
+  ["wheel", "touchstart", "pointerdown", "mousedown", "keydown"].forEach(function (name) {
+    messages.addEventListener(name, gbMarkReaderIntent, { passive: true });
+  });
+  messages.addEventListener("scroll", function () {
+    if (ChatState.isUserAtBottom === false) gbMarkReaderIntent();
+  }, { passive: true });
 }
 
 // History replay appends messages whose inline artifacts and images load
@@ -37,19 +70,30 @@ function stickToBottom(duration) {
 function followLiveEdge(maxMs) {
   var messages = document.getElementById("messages");
   if (!messages) return;
+  gbAttachReaderIntent(messages);
+  var intentAt = gbPinCancelAt;
   var end = Date.now() + (maxMs || 12000);
   var cancelled = false;
   function cancel() { cancelled = true; cleanup(); }
   function cleanup() {
     messages.removeEventListener("wheel", cancel);
     messages.removeEventListener("touchstart", cancel);
+    messages.removeEventListener("pointerdown", cancel);
+    messages.removeEventListener("mousedown", cancel);
     messages.removeEventListener("keydown", cancel);
   }
   messages.addEventListener("wheel", cancel, { passive: true });
   messages.addEventListener("touchstart", cancel, { passive: true });
+  messages.addEventListener("pointerdown", cancel, { passive: true });
+  messages.addEventListener("mousedown", cancel, { passive: true });
   messages.addEventListener("keydown", cancel);
   function step() {
     if (cancelled) return;
+    if (gbPinCancelAt > intentAt || ChatState.isUserAtBottom === false) {
+      cancelled = true;
+      cleanup();
+      return;
+    }
     messages.scrollTop = messages.scrollHeight;
     if (Date.now() < end) requestAnimationFrame(step);
     else cleanup();
