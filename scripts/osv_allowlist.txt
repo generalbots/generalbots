@@ -28,6 +28,7 @@ RUSTSEC-2026-0370  # zvariant - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0371  # zbus_names - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0372  # zvariant_derive - unmaintained D-Bus, Tauri Linux only
 RUSTSEC-2026-0441  # pin-utils - unmaintained, no runtime sink
+RUSTSEC-2026-0459  # libsqlite3-sys bundled-SQLite CVE-2026-119375 - we link system sqlite (no bundled feature); fix = rusqlite 0.41 parent upgrade
 
 # --- OSV-only IDs (no 1:1 RustSec entry or lockfile-only package) ----------
 GHSA-wrw7-89jp-8q8g  # glib 0.18.5 - alias of RUSTSEC-2024-0429

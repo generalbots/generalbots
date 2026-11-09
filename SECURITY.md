@@ -179,6 +179,7 @@ advisory still fails the gate.
 | accelerate | Python model tooling | No patched release for the sharded-checkpoint path traversal; only operator-run local tooling, not exposed to end users. | 2027-11-06 |
 | Unmaintained Windows cache port | Redis-x64-3.0.504 (microsoftarchive) | Desktop-edition Windows payload only; unmaintained upstream, digest now pinned fail-closed in the release build. Replace with a maintained cache strategy or drop before shipping Windows broadly. | 2027-05-09 |
 | Ecosystem single-owner crates | syn, quote, proc-macro2, serde (one owner); ring; jsonwebtoken; reqwest | crates.io-level concentration, not fixable per consumer: the crates are single-owner upstream (verified via the owners API, 2026-11-09, self-review in #2001). Mitigation is lockfile pinning, the cargo-deny/OSV gate on every push and dependency-bump PR review; monitor ownership changes at review. A `cargo vet` attestation pass is the candidate future gate. | 2027-05-09 |
+| libsqlite3-sys bundled-SQLite (CVE-2026-119375) | libsqlite3-sys 0.30.1 via rusqlite 0.32 | Only the `bundled` build is affected (SQLite < 3.54 uninitialized page-cache memory via a crafted `-wal` sibling). We link the system SQLite — no member enables `rusqlite/bundled` (lock shows pkg-config/vcpkg, no cc). Fix ships with rusqlite 0.41 (needs Rust 1.89); parent upgrade tracked. | 2027-05-09 |
 
 Open upgrade clusters (each changes a public API and needs its own regression
 pass):
