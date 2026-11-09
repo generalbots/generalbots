@@ -18,8 +18,10 @@ pub(crate) use serde::Serialize;
 
 mod app_command;
 mod app_deep_links;
+mod app_deep_links_extra;
 mod deep_link_params_for_app;
 
 pub use app_command::*;
 pub use app_deep_links::*;
+pub use app_deep_links_extra::*;
 pub use deep_link_params_for_app::*;

@@ -9,7 +9,7 @@ where
         .filter(|a| available(&a.id))
         .map(|a| format!("- {} (id: {}) — {}", a.title, a.id, a.description))
         .collect();
-    let deep_links: Vec<String> = crate::apps::commands::APP_DEEP_LINKS
+    let deep_links: Vec<String> = crate::apps::commands::all_deep_links()
         .iter()
         .filter(|(app_id, _)| available(app_id))
         .map(|(app_id, params)| {

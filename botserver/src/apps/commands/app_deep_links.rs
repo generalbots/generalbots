@@ -1,7 +1,7 @@
 use super::*;
 
 /// Deep-link params declared per app id.
-pub static APP_DEEP_LINKS: &[(&str, &[DeepLinkParam])] = &[
+pub static APP_DEEP_LINKS_CORE: &[(&str, &[DeepLinkParam])] = &[
     (
         "chat",
         &[DeepLinkParam {

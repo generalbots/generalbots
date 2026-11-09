@@ -2,8 +2,7 @@ use super::*;
 
 /// Deep-link params for an app id (empty when none are declared).
 pub fn deep_link_params_for_app(app_id: &str) -> &'static [DeepLinkParam] {
-    APP_DEEP_LINKS
-        .iter()
+    all_deep_links()
         .find(|(id, _)| *id == app_id)
         .map(|(_, params)| *params)
         .unwrap_or(&[])
@@ -259,6 +258,38 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("learn", "open → courses load → open a course"),
     ("admin", "open → dashboard loads → manage users/roles/groups/billing"),
     ("settings", "open → settings panel loads → pick a section"),
+    ("about", "open → read the build card (version, edition, licenses)"),
+    ("automations", "open → automation list loads → New automation → describe it → pick a schedule → Save"),
+    ("browser", "open → type a URL in the address bar → Enter; Switch tabs with the tab strip"),
+    ("calculator", "open → type the expression in the display → results update as you type"),
+    ("canvas", "open → draw or paste an SVG → select elements → Export from the toolbar"),
+    ("chat", "open → type in the composer → Enter; attach files with the paperclip"),
+    ("clock", "open → pick a timezone → the time updates live"),
+    ("clock-widget", "open → the widget shows time; Settings → timezone and 12/24-hour format"),
+    ("concierge", "open → describe the goal → the plan lists the apps and steps it will use"),
+    ("designer", "open → flow canvas loads → drag nodes or describe the flow → Save → Deploy"),
+    ("desktop", "open → launcher shows apps → click a tile to open its window"),
+    ("fraud", "open → cases list loads → select a case → review the assessment"),
+    ("goals", "open → pick a period → New Objective → fill title/period → OK; the list refreshes"),
+    ("handoff", "open → queue loads → take a conversation or assign it"),
+    ("jukebox", "open → describe the song → Generate → the track appears in the list"),
+    ("lists", "open → lists load → open one → add or edit items"),
+    ("memory", "open → search the memory list → edit an entry inline → sync state shows"),
+    ("notes", "open → New note → type title and body → it saves as you type"),
+    ("o365", "open → connect the account → browse OneDrive or the unified mail view"),
+    ("paper", "open → choose a template or start blank → edit → export"),
+    ("photos", "open → the library loads → select a photo → details and AI tags"),
+    ("plan", "open → OKRs load → select a period → edit a key result"),
+    ("player", "open → choose a stream or playlist → Play"),
+    ("plugins", "open → plugin list loads → enable/disable an entry"),
+    ("recycle", "open → deleted items list → Restore or Empty bin"),
+    ("slides", "open → deck loads → + adds a slide → Present starts full screen"),
+    ("store", "open → product grid loads → filter by category → a product opens its plan/details"),
+    ("templates", "open → template gallery loads → pick a template → create from it"),
+    ("terminal", "open → a PTY opens in the workspace VM → type the command → Enter"),
+    ("timeclock", "open → clock in/out → the timesheet lists the entries"),
+    ("timer", "open → set the duration → Start; Stop and the status chip control it"),
+    ("vision", "open → choose an image → Analyze → labels and description render"),
 ];
 /// UI automation hint for an app id (empty string when not declared).
 pub fn ui_sequence_hint_for(app_id: &str) -> &'static str {
@@ -359,6 +390,35 @@ mod verb_coverage_tests {
             assert!(
                 ALL_COMMANDS.iter().any(|command| command.name == name),
                 "missing office verb {name}"
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod surface_coverage_tests {
+    use super::*;
+
+    /// #2036 — every registered app must be reachable in both modes: a verb for
+    /// api.find/api.exec, a deep link to point at a record, and a UI hint so a
+    /// plan follows the app's real flow.
+    #[test]
+    fn every_registry_app_has_a_verb_a_deep_link_and_a_ui_hint() {
+        for app in crate::apps::registry::all_apps() {
+            assert!(
+                !commands_for_app(&app.id).is_empty(),
+                "{} has no curated verb",
+                app.id
+            );
+            assert!(
+                crate::apps::commands::all_deep_links().any(|(id, _)| *id == app.id),
+                "{} has no deep link",
+                app.id
+            );
+            assert!(
+                !ui_sequence_hint_for(&app.id).is_empty(),
+                "{} has no UI sequence hint",
+                app.id
             );
         }
     }
