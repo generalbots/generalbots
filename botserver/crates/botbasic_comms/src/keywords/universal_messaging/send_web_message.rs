@@ -37,6 +37,8 @@ pub(super) async fn send_web_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let file_id = uuid::Uuid::new_v4().to_string();
     let file_url = format!("/api/files/{}", file_id);
+    #[cfg(not(feature = "cache"))]
+    let _ = &file_data;
 
     #[cfg(feature = "cache")]
     if let Some(redis_client) = &state.cache {

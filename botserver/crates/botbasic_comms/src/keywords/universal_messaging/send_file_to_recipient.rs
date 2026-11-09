@@ -54,6 +54,8 @@ pub(super) async fn parse_recipient(
     state: Arc<AppState>,
     recipient: &str,
 ) -> Result<(String, String), Box<dyn std::error::Error + Send + Sync>> {
+    #[cfg(not(feature = "cache"))]
+    let _ = state;
     if recipient.contains(':') {
         let parts: Vec<&str> = recipient.splitn(2, ':').collect();
         if parts.len() == 2 {
