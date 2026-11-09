@@ -157,14 +157,15 @@ function vmBindAttachment(card) {
   var preview = card.querySelector(".gb-attachment-preview");
   var saveBtn = card.querySelector(".gb-attachment-save");
   if (saveBtn) {
+    // #2047 — "Save" is a target menu (internal Drive + external drives).
+    saveBtn.title = "Save to General Bots Drive or a connected external drive";
     saveBtn.addEventListener("click", function (e) {
       e.preventDefault();
       resolve()
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, ["output/" + fileName]);
+          return vmSaveWithMenu(saveBtn, convId, ["output/" + fileName]);
         })
-        .then(vmReportSaved)
         .catch(vmNotifyError);
     });
   }

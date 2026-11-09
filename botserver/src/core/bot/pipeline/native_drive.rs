@@ -34,6 +34,11 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
             run_drive_save(identity, args).await;
             true
         }
+        // #2047 — same capability the UI button uses, reachable from chat.
+        "save_to_external_drive" => {
+            super::native_external_save::run(identity, args).await;
+            true
+        }
         _ => false,
     }
 }

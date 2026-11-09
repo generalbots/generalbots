@@ -48,8 +48,14 @@ function renderExternalConnections() {
     }
     var cards = externalConnections.map(function (p) {
         var actions;
+        // #2047 — a connected account that never consented to a write scope can
+        // still be browsed, but saving needs the consent flow again.
+        var needsWriteGrant = p.connected && !p.can_write && p.configured;
         if (p.connected) {
             actions =
+                (needsWriteGrant
+                    ? '<button class="btn-primary-full" data-ext-action="connect" data-provider="' + extEscape(p.provider) + '">Grant write access</button>'
+                    : '') +
                 '<button class="btn-secondary-full" data-ext-action="browse" data-provider="' + extEscape(p.provider) + '">Browse files</button>' +
                 '<button class="btn-secondary-full" data-ext-action="sync" data-provider="' + extEscape(p.provider) + '">Sync now</button>' +
                 '<button class="btn-secondary-full" data-ext-action="disconnect" data-provider="' + extEscape(p.provider) + '">Disconnect</button>';
@@ -80,6 +86,13 @@ function renderExternalConnections() {
             '<h3>' + extEscape(p.display_name) + "</h3>" +
             '<div class="storage-detail">' + p.file_count + " file(s) mirrored &middot; last sync " + extEscape(lastSync) + "</div>" +
             '<div class="storage-detail">status: ' + extEscape(p.status) + "</div>" +
+            (p.connected
+                ? '<div class="storage-detail">' +
+                  (p.can_write
+                      ? "Write access: enabled — the chat can save artifacts here."
+                      : "Write access: not granted — the chat can only read this account.") +
+                  "</div>"
+                : "") +
             scopeBlock +
             error +
             '<div class="drive-card-actions">' + actions + "</div>" +

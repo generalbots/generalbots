@@ -30,10 +30,14 @@ pub mod db;
 pub mod engine;
 pub mod files;
 pub mod gdrive;
+pub mod gdrive_upload;
 pub mod onedrive;
+pub mod onedrive_upload;
 pub mod routes;
 pub mod routes_files;
+pub mod routes_upload;
 pub mod types;
+pub mod upload;
 
 pub use types::{Connection, DeltaPage, ExternalFile, Provider, SyncError, SyncReport};
 

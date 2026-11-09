@@ -239,6 +239,50 @@ function openArtifactPanel(content, sourceEl) {
     var folderInput = panel.querySelector(".gb-artifact-folder");
     var folder = folderInput ? folderInput.value.trim().replace(/^\/+|\/+$/g, "") : "";
     var path = folder ? folder + "/" + fileName : fileName;
+    var saveButton = panel.querySelector(".gb-artifact-save");
+    // #2047 — the Save control is a target menu: internal Drive (default) or a
+    // connected Google Drive/OneDrive whose grant allows writing.
+    var target =
+      window.GBExternalSave && GBExternalSave.choose
+        ? GBExternalSave.choose(saveButton)
+        : Promise.resolve("internal");
+    target.then(function (picked) {
+      if (!picked) return;
+      if (picked !== "internal" && window.GBExternalSave) {
+        var bytes = new TextEncoder().encode(body);
+        return GBExternalSave.upload(picked, {
+          name: fileName,
+          mimeType: GBExternalSave.mimeFor(fileName),
+          base64: GBExternalSave.base64(bytes),
+          folder: folder,
+        }).then(function (saved) {
+          GBExternalSave.report(picked, [saved]);
+          if (sourceEl) {
+            var externalNote = document.createElement("a");
+            externalNote.className = "gb-artifact-saved";
+            externalNote.href = saved.web_view_link || "#";
+            externalNote.target = "_blank";
+            externalNote.rel = "noopener";
+            externalNote.textContent =
+              "Saved to " +
+              (picked === "gdrive" ? "Google Drive" : "OneDrive") +
+              ": " +
+              saved.name +
+              " · " +
+              new Date().toLocaleTimeString();
+            sourceEl.appendChild(externalNote);
+          }
+        });
+      }
+      return saveInternalArtifact(path);
+    }).catch(function (err) {
+      if (window.GBToasts) {
+        GBToasts.show("Save failed", err.message || "Could not save the artifact", "error");
+      }
+    });
+  });
+
+  function saveInternalArtifact(path) {
     var token = "";
     try {
       token =
@@ -249,7 +293,7 @@ function openArtifactPanel(content, sourceEl) {
     } catch (e) {}
     // #1548: save directly, without depending on the Drive app having been
     // opened first (DriveModule/apiRequest were only defined after that).
-    fetch("/api/files/write", {
+    return fetch("/api/files/write", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -280,11 +324,6 @@ function openArtifactPanel(content, sourceEl) {
           });
           sourceEl.appendChild(note);
         }
-      })
-      .catch(function (err) {
-        if (window.GBToasts) {
-          GBToasts.show("Save failed", err.message || "Could not save to Drive", "error");
-        }
       });
-  });
+  }
 }

@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 /// Drive API root.
-const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
+pub(super) const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
 /// OAuth endpoints.
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
@@ -88,12 +88,17 @@ pub fn authorize_url_with_pkce(
     state: &str,
     code_challenge: Option<&str>,
 ) -> String {
+    // #2047 — one consent asks for read + write, so a save target exists from
+    // the first connection; existing read-only grants are not rewritten.
+    let scope = crate::external::types::Provider::GoogleDrive
+        .scopes()
+        .join(" ");
     let mut url = format!(
         "{AUTH_URL}?client_id={client}&redirect_uri={redirect}&response_type=code\
 &scope={scope}&access_type=offline&prompt=consent&include_granted_scopes=true&state={state}",
         client = percent_encode(client_id),
         redirect = percent_encode(redirect_uri),
-        scope = percent_encode("https://www.googleapis.com/auth/drive.readonly"),
+        scope = percent_encode(&scope),
         state = percent_encode(state),
     );
     if let Some(challenge) = code_challenge.filter(|value| !value.is_empty()) {
@@ -436,7 +441,7 @@ fn truncate(body: &str) -> String {
     botlib::text::truncate_with_suffix(body.trim(), 300, "…")
 }
 
-fn percent_encode(value: &str) -> String {
+pub(super) fn percent_encode(value: &str) -> String {
     value
         .bytes()
         .map(|b| match b {

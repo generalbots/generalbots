@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 /// Graph endpoint used for the change feed.
-const GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
+pub(super) const GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
 /// First call of a delta run (no cursor yet).
 const DELTA_ROOT: &str = "https://graph.microsoft.com/v1.0/me/drive/root/delta";
 /// Token endpoint (tenant is part of the path).
@@ -74,7 +74,10 @@ pub fn authorize_url_with_pkce(
     state: &str,
     code_challenge: Option<&str>,
 ) -> String {
-    let scopes = "offline_access Files.Read.All User.Read";
+    // #2047 — read + app-folder write in one consent (see Provider::scopes).
+    let scopes = crate::external::types::Provider::OneDrive
+        .scopes()
+        .join(" ");
     let mut url = format!(
         "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize\
 ?client_id={client}&response_type=code&redirect_uri={redirect}&response_mode=query\
@@ -82,7 +85,7 @@ pub fn authorize_url_with_pkce(
         tenant = tenant_id,
         client = percent_encode(client_id),
         redirect = percent_encode(redirect_uri),
-        scopes = percent_encode(scopes),
+        scopes = percent_encode(&scopes),
         state = percent_encode(state),
     );
     if let Some(challenge) = code_challenge.filter(|value| !value.is_empty()) {
@@ -343,7 +346,7 @@ fn truncate(body: &str) -> String {
     botlib::text::truncate_with_suffix(body.trim(), 300, "…")
 }
 
-fn percent_encode(value: &str) -> String {
+pub(super) fn percent_encode(value: &str) -> String {
     value
         .bytes()
         .map(|b| match b {
@@ -453,7 +456,7 @@ mod tests {
         let url = authorize_url("tid", "cid", "https://host/cb", "st 1/2");
         assert!(url.starts_with("https://login.microsoftonline.com/tid/oauth2/v2.0/authorize"));
         assert!(url.contains("state=st%201%2F2"));
-        assert!(url.contains("scope=offline_access%20Files.Read.All%20User.Read"));
+        assert!(url.contains("scope=offline_access%20Files.Read.All%20Files.ReadWrite.AppFolder%20User.Read"));
         assert!(url.contains("response_type=code"));
     }
 

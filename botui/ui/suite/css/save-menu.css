@@ -1,0 +1,45 @@
+/* #2047 — save-target menu (General Bots Drive + connected external drives).
+ * Rendered by botui/ui/suite/js/external-save.js next to the control that was
+ * clicked; themed with the inherited surface tokens so it follows the app. */
+
+.gb-save-menu {
+  min-width: 220px;
+  max-width: 280px;
+  padding: 4px;
+  border: 1px solid var(--gb-border, rgba(0, 0, 0, 0.14));
+  border-radius: 8px;
+  background: var(--gb-surface, #ffffff);
+  color: var(--gb-text, inherit);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.gb-save-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gb-save-menu-item:hover,
+.gb-save-menu-item:focus-visible {
+  background: var(--gb-hover, rgba(0, 0, 0, 0.07));
+  outline: none;
+}
+
+.gb-save-menu-item svg {
+  flex: 0 0 auto;
+}
+
+.gb-save-menu-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

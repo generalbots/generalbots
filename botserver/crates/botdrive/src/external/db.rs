@@ -187,11 +187,14 @@ pub fn get_connection(
         last_error: Option<String>,
         #[diesel(sql_type = Nullable<Text>)]
         account: Option<String>,
+        #[diesel(sql_type = Nullable<Text>)]
+        scopes: Option<String>,
     }
 
     let row: Option<Row> = diesel::sql_query(
         "SELECT id, provider, access_token_enc, refresh_token_enc, expires_at, cursor,
-                status, sync_minutes, attempt_count, last_sync, next_retry_at, last_error, account
+                status, sync_minutes, attempt_count, last_sync, next_retry_at, last_error,
+                account, scopes
          FROM external_drive_connections
          WHERE branch_id = $1 AND provider = $2",
     )
@@ -220,7 +223,33 @@ pub fn get_connection(
         next_retry_at: row.next_retry_at,
         last_error: row.last_error,
         account: row.account,
+        scopes: row.scopes,
     }))
+}
+
+/// #2047 — the tenant branch a chat user belongs to, for tool-initiated
+/// uploads (the tool path has no `AuthenticatedUser`). Same rule as
+/// [`crate::external::routes::caller_branch`]: the signup-derived contact
+/// binding, falling back to the global (nil) branch when the account has none.
+pub fn branch_for_user(
+    conn: &mut diesel::PgConnection,
+    user_id: Uuid,
+) -> Result<Uuid, String> {
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = DieselUuid)]
+        branch_id: Uuid,
+    }
+    let row = diesel::sql_query(
+        "SELECT c.branch_id FROM crm_contacts c
+         JOIN users u ON lower(u.email) = lower(c.email)
+         WHERE u.id = $1 LIMIT 1",
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .get_result::<Row>(conn)
+    .optional()
+    .map_err(|e| format!("tenant lookup failed: {e}"))?;
+    Ok(row.map(|r| r.branch_id).unwrap_or_else(Uuid::nil))
 }
 
 /// Connections that are due for a pass: their cadence elapsed and their

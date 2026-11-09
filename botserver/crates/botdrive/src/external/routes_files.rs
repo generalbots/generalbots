@@ -57,6 +57,14 @@ pub async fn list_connections(
         } else {
             0
         };
+        // #2047 — capability flags, derived from the consent the provider
+        // reported. Old read-only connections answer can_write:false so the UI
+        // offers "grant write access" instead of a button that would fail.
+        let recorded_scopes = status
+            .and_then(|s| s.scopes.clone())
+            .unwrap_or_default();
+        let can_read = connected;
+        let can_write = connected && provider.granted_scopes_allow_write(&recorded_scopes);
         providers.push(serde_json::json!({
             "provider": provider.as_str(),
             "display_name": provider.display_name(),
@@ -86,6 +94,9 @@ pub async fn list_connections(
                 .unwrap_or_else(|| "private".to_string()),
             "consented_at": status.and_then(|s| s.consented_at),
             "configured_scopes": provider.scopes(),
+            "can_read": can_read,
+            "can_write": can_write,
+            "write_scopes": provider.write_scopes(),
         }));
     }
     Ok(Json(serde_json::json!({ "providers": providers })))

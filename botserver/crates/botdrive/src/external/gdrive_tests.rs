@@ -88,6 +88,8 @@ fn authorize_url_requests_offline_access_and_readonly_scope() {
     assert!(url.contains("access_type=offline"));
     assert!(url.contains("prompt=consent"));
     assert!(url.contains("drive.readonly"));
+    // #2047 — write is part of the same consent.
+    assert!(url.contains("drive.file"));
     assert!(url.contains("state=st%2F1"));
 }
 

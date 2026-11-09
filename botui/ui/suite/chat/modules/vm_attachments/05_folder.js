@@ -239,14 +239,16 @@ function vmGroupAttachments(anchor) {
   var saveAll = folder.querySelector(".gb-folder-save");
   if (saveAll && !saveAll.dataset.bound) {
     saveAll.dataset.bound = "1";
+    saveAll.title = "Save the folder to General Bots Drive or an external drive";
     saveAll.addEventListener("click", function () {
       var cardConversation = vmConversationIdFromCards(folder);
       (cardConversation ? Promise.resolve(cardConversation) : vmCurrentConversationId())
         .then(function (convId) {
           if (!convId) throw new Error("No active VM");
-          return vmSaveToDrive(convId, []);
+          // #2047 — the menu needs the explicit list (the internal path still
+          // treats an empty list as "everything in output/").
+          return vmSaveWithMenu(saveAll, convId, vmFolderFileNames(folder));
         })
-        .then(vmReportSaved)
         .catch(vmNotifyError);
     });
   }

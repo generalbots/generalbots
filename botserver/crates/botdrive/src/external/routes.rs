@@ -8,7 +8,7 @@
 //! that carries no API token. Its authenticity comes from the HMAC-signed
 //! `state`, verified inside the handler.
 
-use crate::external::{config, crypto, db, engine, routes_files, types::Provider};
+use crate::external::{config, crypto, db, engine, routes_files, routes_upload, types::Provider};
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
@@ -36,6 +36,11 @@ pub fn configure() -> axum::Router<Arc<AppState>> {
         .route(
             "/api/external-drives/download/:provider/:remote_id",
             get(routes_files::download_file),
+        )
+        // #2047 — write half: one upload entry point for both providers.
+        .route(
+            "/api/external-drives/upload",
+            post(routes_upload::upload_file),
         )
         .route("/api/external-drives/connect", post(connect))
         .route("/api/external-drives/callback", get(oauth_callback))

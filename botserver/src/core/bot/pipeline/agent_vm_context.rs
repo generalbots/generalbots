@@ -128,7 +128,13 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      Files the user names may already be in data/ (fetched from their Drive); \
                      read them from there. Use `drive_fetch` to pull a Drive file into data/ \
                      and `drive_save` to publish output/ files to the user's Drive under the \
-                     conversation folder. \
+                     conversation folder. When the user asks to save to Google Drive or \
+                     OneDrive, call `save_to_external_drive` with \"provider\": \"gdrive\" \
+                     or \"onedrive\" (plus optional \"files\" and \"folder\"); it writes \
+                     straight to the account the user connected and returns a share link. If \
+                     the account is not connected or only allows reading, report that and tell \
+                     the user to grant write access in Drive -> External; never claim a file \
+                     was saved when it was not. \
                      After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
                      PROGRESS ETIQUETTE (mandatory): the user stares at a spinner while \

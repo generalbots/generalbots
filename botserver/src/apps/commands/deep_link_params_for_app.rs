@@ -140,6 +140,10 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("banking", "banking.import", "Import cash-flow", "Import a month's cash-flow sheet (CSV stored in the bot drive) into the financial model.", &[("file_key", "drive path of the CSV"), ("period", "optional YYYY-MM")], None, false),
     cmd("drive", "drive.write", "Store a file", "Store a file (e.g. an invoice) in the bot drive under a folder path.", &[("path", "folder/file name"), ("content_base64", "the file bytes in base64")], None, false),
     cmd("drive", "drive.file", "Organize a file", "Organize a stored drive file (e.g. an attached invoice) into its folder.", &[("from", "current drive path"), ("to", "destination folder path")], None, false),
+    // #2047 — write straight to a connected external drive (Google Drive or
+    // OneDrive), the same capability the save button and the
+    // `save_to_external_drive` tool use.
+    cmd("drive", "drive.save_to_external", "Save to external drive", "Save generated workspace files to a connected Google Drive or OneDrive account.", &[("provider", "gdrive or onedrive"), ("files", "optional JSON array of output/ file names"), ("folder", "optional destination folder")], Some("app://drive"), false),
     cmd("drive", "drive.archive", "Archive invoices", "Move invoice-like files from the drive inbox into an archive folder to keep it clean.", &[("source", "optional source folder (empty = whole drive)"), ("destination", "archive folder path")], None, false),
     cmd("billing", "payroll.diagnosis", "Payroll diagnosis", "Aggregate a branch's monthly invoice totals as a payroll financial basis.", &[("period", "optional YYYY-MM month filter")], None, false),
     cmd("research", "web.search", "Search the web", "Search the web (DuckDuckGo) for current facts, news or prices.", &[("query", "the search terms"), ("max_results", "optional 1-25")], None, false),
