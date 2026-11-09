@@ -54,13 +54,13 @@ fi
 
 tar -czf "$OUT/${PKG}.tar.gz" -C "$OUT" "$PKG"
 rm -rf "$DEST"
-# Stable name so /releases/latest/download/generalbots-linux-<arch>.tar.gz
-# keeps working across tags (GitHub has no folders and no version-less names).
-STABLE="generalbots-linux-${ARCH}.tar.gz"
+# Only the versioned name is produced here. The stable
+# /releases/latest/download/generalbots-linux-<arch>.tar.gz alias is created by
+# the publish job, so the CI artifact does not carry a second ~800 MB copy of
+# every format (it was ~4.9 GB of pure duplication per release).
 SUMS="SHA256SUMS-linux"
 [ "$ARCH" = "x86_64" ] || SUMS="SHA256SUMS-linux-${ARCH}"
-cp "$OUT/${PKG}.tar.gz" "$OUT/${STABLE}"
-( cd "$OUT" && sha256sum "${PKG}.tar.gz" "${STABLE}" > "$SUMS" )
+( cd "$OUT" && sha256sum "${PKG}.tar.gz" > "$SUMS" )
 
 echo "built $OUT/${PKG}.tar.gz"
-ls -lh "$OUT/${PKG}.tar.gz" "$OUT/${STABLE}"
+ls -lh "$OUT/${PKG}.tar.gz"

@@ -254,21 +254,20 @@ jobs:
           VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
-            local glob="$1" stable="$2" versioned="$3"
+            local glob="$1" versioned="$2"
             for f in $glob; do
-              cp "$f" "dist/$stable"
               cp "$f" "dist/$versioned"
               return 0
             done
-            echo "::warning::no package matched $glob — $stable will not be published"
+            echo "::warning::no package matched $glob — $versioned will not be published"
             return 0
           }
           collect "target/release/bundle/deb/*.deb botapp/target/release/bundle/deb/*.deb" \
-            generalbots-linux-x86_64.deb "generalbots-${VERSION}-linux-x86_64.deb"
+            "generalbots-${VERSION}-linux-x86_64.deb"
           collect "target/release/bundle/rpm/*.rpm botapp/target/release/bundle/rpm/*.rpm" \
-            generalbots-linux-x86_64.rpm "generalbots-${VERSION}-linux-x86_64.rpm"
+            "generalbots-${VERSION}-linux-x86_64.rpm"
           collect "target/release/bundle/appimage/*.AppImage botapp/target/release/bundle/appimage/*.AppImage" \
-            generalbots-linux-x86_64.AppImage "generalbots-${VERSION}-linux-x86_64.AppImage"
+            "generalbots-${VERSION}-linux-x86_64.AppImage"
           cd dist
           for f in generalbots-linux-x86_64.deb "generalbots-${VERSION}-linux-x86_64.deb" \
                    generalbots-linux-x86_64.rpm "generalbots-${VERSION}-linux-x86_64.rpm" \
@@ -359,6 +358,16 @@ jobs:
             ${{ runner.temp }}/first-run/home/.local/share/generalbots/stack/logs/
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Drop build-only payloads before upload
+        # The self-extractor payload and the pythonbox staging directory are
+        # build intermediates (~1.5 GB). The publish job fetches the pythonbox
+        # from its own artifact, so shipping them inside linux-installer only
+        # bloated the artifact (it reached ~9.2 GB).
+        run: |
+          set -euo pipefail
+          rm -rf dist/payload dist/installers
+          du -sh dist
 
       - name: Upload Linux installer
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -727,6 +736,16 @@ jobs:
           Get-FileHash dist/generalbots.exe -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash)  generalbots.exe" } |
             Out-File dist/SHA256SUMS-windows.txt -Encoding ascii -Append
+
+      - name: Drop build-only payloads before upload
+        # Same trim as the Linux job: the self-extractor payload and the
+        # staging installers directory are not release assets and do not need
+        # to travel through windows-binaries.
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force dist/payload, dist/installers -ErrorAction SilentlyContinue
+          $mb = (Get-ChildItem dist -Recurse -File | Measure-Object Length -Sum).Sum / 1MB
+          Write-Host ("windows-binaries payload: {0:N0} MB" -f $mb)
 
       - name: Upload Windows binaries
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -1465,6 +1484,24 @@ jobs:
           name: botmodels-pythonbox-windows
           path: dist
           merge-multiple: true
+
+      - name: Create the stable download aliases
+        # The Linux job now ships only versioned package names so the CI
+        # artifact does not carry a duplicate ~800 MB copy of every format.
+        # /releases/latest/download/<stable> still needs the version-less names,
+        # so they are copied here, next to the published checksums.
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          cd dist
+          for ext in tar.gz deb rpm AppImage; do
+            src="generalbots-${VERSION}-linux-x86_64.${ext}"
+            [ -f "$src" ] || continue
+            cp "$src" "generalbots-linux-x86_64.${ext}"
+            sha256sum "generalbots-linux-x86_64.${ext}" >> SHA256SUMS-linux
+          done
 
       - name: Assemble assets, manifest and checksums
         env:
