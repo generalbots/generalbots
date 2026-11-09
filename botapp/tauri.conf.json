@@ -4,7 +4,7 @@
   "version": "6.7.0",
   "identifier": "org.generalbots.botapp",
   "build": {
-    "beforeDevCommand": "npx serve ../botui/ui -l 3000 -L --no-port-switching",
+    "beforeDevCommand": "npx serve@14.2.7 ../botui/ui -l 3000 -L --no-port-switching",
     "beforeBuildCommand": "",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../botui/ui"

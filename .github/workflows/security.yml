@@ -244,6 +244,12 @@ jobs:
         run: actionlint
       - name: Every `uses:` must be a commit SHA
         run: python3 scripts/check_workflow_pinning.py
+      - name: Component checksums are pinned
+        # #2001 — every downloadable runtime binary must carry a SHA-256 in
+        # 3rdparty.toml, or be acknowledged with a reason in
+        # scripts/component_checksums_allowlist.txt. The installer verifies the
+        # hash and refuses unhashed assets under GB_REQUIRE_CHECKSUMS=1.
+        run: python3 scripts/check_component_checksums.py
 
   headers:
     name: Public origin headers (advisory)

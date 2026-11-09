@@ -82,7 +82,7 @@ compromised release asset cannot silently become code we run.
 | `secrets` | gitleaks | any credential hit in the full history |
 | `python` | pip-audit | vulnerability in an exact `botmodels` pin |
 | `sbom` | syft | — (SPDX inventory artifact, 90 days) |
-| `workflow-lint` | actionlint + pinning script | unpinned `uses:`, `pull_request_target`, syntax |
+| `workflow-lint` | actionlint + pinning/checksum scripts | unpinned `uses:`, `pull_request_target`, syntax, an unhashed runtime component |
 | `headers` | curl | the six IMP-09 headers on the public origin (advisory) |
 
 Run the same checks locally:
@@ -93,6 +93,7 @@ osv-scanner scan source --lockfile Cargo.lock --format json --output-file /tmp/o
 python3 scripts/check_osv_allowlist.py --report /tmp/osv.json
 gitleaks git --config .gitleaks.toml --redact --log-opts="--all"
 python3 scripts/check_workflow_pinning.py
+python3 scripts/check_component_checksums.py
 ```
 
 ### CodeQL (security scanning)
@@ -182,8 +183,13 @@ Current credential classes and their rotation action:
   removal condition is recorded in each vendored `Cargo.toml`.
 - Vendored frontend assets are local (no CDN) and inventoried in the security
   review. An unreferenced library is removed, not kept "just in case".
-- Desktop installer payloads are verified against the checksums in
-  `botserver/3rdparty.toml`; a mismatch aborts the install (fail-closed).
+- Desktop installer payloads are hashed against `botserver/3rdparty.toml`
+  before unpacking, on both download paths (local install and the wizard/
+  container provisioning). A mismatch aborts the install. A component without a
+  pinned hash logs a warning and must be listed in
+  `scripts/component_checksums_allowlist.txt`; `GB_REQUIRE_CHECKSUMS=1` makes a
+  missing hash fatal, and CI fails on any unacknowledged gap
+  (`scripts/check_component_checksums.py`).
 
 ### Accepted residual risk
 

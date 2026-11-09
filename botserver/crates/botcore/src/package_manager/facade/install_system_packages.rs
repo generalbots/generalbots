@@ -116,28 +116,11 @@ impl PackageManager {
         let expected = cache.checksum_for_url(url)
             .or_else(|| cache.get_component(component).map(|info| info.effective_sha256().to_string()))
             .unwrap_or_default();
-        if !expected.is_empty() {
-            // Verify the file the resolver actually selected: bundled
-            // installers use stable names (minio/minio.exe), not the upstream
-            // release basename.
-            let filename = source_file
-                .file_name()
-                .map(|name| name.to_string_lossy().to_string())
-                .unwrap_or_else(|| DownloadCache::extract_filename(url));
-            if !cache.verify_checksum(&filename, &expected)? {
-                return Err(anyhow::anyhow!(
-                    "Checksum verification failed for '{}' ({}). The bundled file may be corrupt.",
-                    component,
-                    filename
-                ));
-            }
-            info!("Checksum verified for {}", component);
-        } else if cfg!(feature = "desktop-local") {
-            warn!(
-                "No SHA256 checksum configured for '{}'; skipping verification",
-                component
-            );
-        }
+        // #2001 — hash the file that is actually unpacked (bundled installers
+        // use stable names such as `minio`, not the upstream release basename),
+        // and apply the shared policy: mismatch is fatal, a missing checksum
+        // warns or aborts under GB_REQUIRE_CHECKSUMS.
+        botcorepkg::checksum::verify_download(&source_file, &expected, component)?;
 
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
         Ok(())

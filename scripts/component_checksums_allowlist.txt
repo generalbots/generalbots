@@ -1,0 +1,14 @@
+# Checksum gaps acknowledged in #2001 (supply-chain review of the release
+# pipeline). Format: <component> <reason>. Delete a line when the hash lands.
+#
+# `scripts/check_component_checksums.py` fails on any gap that is not listed
+# here, so the list can only shrink. The installer warns for every component in
+# this state and refuses it outright when GB_REQUIRE_CHECKSUMS=1.
+botmodels     bundled by the release job, which verifies SHA256SUMS-pythonbox before packaging; the runtime {tag} URL carries no per-release hash in this file
+email         Stalwart ships sigstore bundles (.sigstore.json), not a .sha256; verify the bundle with cosign
+libpq_win     EDB's build service publishes no checksum file for the Windows client archive
+llm           the llama.cpp arm64 archive has no per-asset checksum upstream
+table_editor  NocoDB publishes no standalone binary checksums (and no Windows build)
+timeseries_db InfluxDB publishes no per-asset checksum on dl.influxdata.com
+vector_db     the Qdrant arm64 asset has no checksum entry upstream
+webmail       Roundcube publishes no checksum file for the complete archive

@@ -165,6 +165,24 @@ impl DownloadCache {
         &self.config.models
     }
 
+    /// Checksum pinned for a specific asset URL (#2001).
+    ///
+    /// A component can download different archives on different hosts (the
+    /// `llm` component picks a Vulkan build where available), so the hash has
+    /// to come from the URL that is actually fetched.
+    pub fn checksum_for_url(&self, url: &str) -> Option<String> {
+        self.config
+            .components
+            .values()
+            .chain(self.config.models.values())
+            .find_map(|component| {
+                component
+                    .sha256_for_url(url)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string)
+            })
+    }
+
     /// Configured cache filename for a URL, including the arm64/Windows
     /// variants. Bundled installers use these stable names rather than the
     /// upstream asset basename.

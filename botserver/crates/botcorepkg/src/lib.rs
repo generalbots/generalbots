@@ -2,6 +2,7 @@ pub mod plugin;
 pub mod db_utils;
 pub mod alm_setup;
 pub mod cache;
+pub mod checksum;
 pub mod cli;
 pub mod cli_display;
 pub mod cli_ops;

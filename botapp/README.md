@@ -132,7 +132,9 @@ cd botapp
 cargo tauri dev --features desktop-local
 ```
 
-`beforeDevCommand` serves `../botui/ui` on `:3000` (`npx serve`), so botui does
+`beforeDevCommand` serves `../botui/ui` on `:3000`
+(`npx serve@14.2.7`, pinned so a dev run never executes an unreviewed npm
+release), so botui does
 not need a server of its own. The command passes `--no-port-switching`: if
 something already owns port 3000 the dev server fails loudly instead of
 quietly moving to 3001 while the window still loads `:3000`.

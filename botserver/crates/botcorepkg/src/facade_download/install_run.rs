@@ -107,6 +107,19 @@ pub async fn download_and_install(base_path: &std::path::Path, url: &str, compon
             cache_path
         }
     };
+    // #2001 — this path (the first-run wizard and container provisioning) used
+    // to install whatever it downloaded without any verification, even when
+    // `3rdparty.toml` pinned a checksum. Verify the file that will actually be
+    // unpacked, applying GB_REQUIRE_CHECKSUMS.
+    let expected = cache
+        .checksum_for_url(url)
+        .or_else(|| {
+            cache
+                .get_component(component)
+                .map(|info| info.effective_sha256().to_string())
+        })
+        .unwrap_or_default();
+    crate::checksum::verify_download(&source_file, &expected, component)?;
     handle_downloaded_file(&source_file, &bin_path, binary_name)?;
     Ok(())
 }

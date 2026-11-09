@@ -68,6 +68,23 @@ impl ComponentDownload {
             None
         }
     }
+
+    /// Checksum pinned for a specific asset URL (#2001).
+    ///
+    /// The `llm` component downloads a different archive on a Vulkan host than
+    /// on a plain CPU host, so the hash must be resolved from the URL in use,
+    /// never from the component id alone.
+    pub(super) fn sha256_for_url(&self, url: &str) -> Option<&str> {
+        if self.url == url {
+            Some(&self.sha256)
+        } else if self.url_win.as_deref() == Some(url) {
+            Some(&self.sha256_win)
+        } else if self.url_arm64.as_deref() == Some(url) {
+            Some(&self.sha256_arm64)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -126,5 +143,17 @@ mod tests {
         let mut c = component();
         c.sha256_win.clear();
         assert_eq!(c.variant(true, false).2, "");
+    }
+
+    #[test]
+    fn sha256_for_url_resolves_each_variant() {
+        let c = component();
+        assert_eq!(c.sha256_for_url("https://example.com/llama-x86.zip"), Some("x86"));
+        assert_eq!(c.sha256_for_url("https://example.com/llama-win.zip"), Some("win"));
+        assert_eq!(
+            c.sha256_for_url("https://example.com/llama-arm64.tar.gz"),
+            Some("arm")
+        );
+        assert_eq!(c.sha256_for_url("https://example.com/unknown.zip"), None);
     }
 }

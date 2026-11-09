@@ -1396,7 +1396,7 @@ cargo tauri dev --features desktop-local
 ```
 
 `cargo tauri dev` replaces the old manual `python -m http.server 3000` step:
-Tauri runs `npx serve ../botui/ui -l 3000 -L --no-port-switching`, so a busy
+Tauri runs `npx serve@14.2.7 ../botui/ui -l 3000 -L --no-port-switching`, so a busy
 port 3000 fails loudly instead of silently serving from 3001. The hand-written
 ACL files (`botapp/permissions/default.toml`, `botapp/capabilities/default.json`)
 stay the source of truth; `cargo tauri dev|build` regenerates `gen/schemas` and

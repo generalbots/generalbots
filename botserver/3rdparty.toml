@@ -115,7 +115,10 @@ url = "https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11
 url_win = "https://github.com/caddyserver/caddy/releases/download/v2.11.9/caddy_2.11.9_windows_amd64.zip"
 filename = "caddy_2.11.9_linux_amd64.tar.gz"
 filename_win = "caddy_2.11.9_windows_amd64.zip"
-sha256 = ""
+# Caddy publishes SHA-512 in caddy_2.11.9_checksums.txt; the SHA-256 below was
+# computed from the downloads whose SHA-512 matched that file (2026-11-09).
+sha256 = "5b8cb7faf8726a2028ad96a66e54e6e81e8f361bc6175e5d22bbd997cc5177fb"
+sha256_win = "ad93112d335ee687100c4c9f11bced16ca590377976b7fe7883882b9e797e472"
 
 [components.directory]
 name = "Zitadel Identity Provider"
@@ -155,7 +158,9 @@ url = "https://github.com/coredns/coredns/releases/download/v1.15.0/coredns_1.15
 filename = "coredns_1.15.0_linux_amd64.tgz"
 url_win = "https://github.com/coredns/coredns/releases/download/v1.15.0/coredns_1.15.0_windows_amd64.tgz"
 filename_win = "coredns_1.15.0_windows_amd64.tgz"
-sha256 = ""
+# From the per-asset .sha256 files published with v1.15.0.
+sha256 = "2495c5b8f3fab6d0a336c397f1227b75406d86e6ec7125744a29df9e936ab8cd"
+sha256_win = "94d21843a17d13d32e8eb122b4410ef5c68c549a623cf9340896759252f940bd"
 
 [components.webmail]
 name = "Roundcube Webmail"
@@ -170,7 +175,9 @@ url = "https://github.com/livekit/livekit/releases/download/v1.13.11/livekit_1.1
 filename = "livekit_1.13.11_linux_amd64.tar.gz"
 url_win = "https://github.com/livekit/livekit/releases/download/v1.13.11/livekit_1.13.11_windows_amd64.zip"
 filename_win = "livekit_1.13.11_windows_amd64.zip"
-sha256 = ""
+# From livekit_1.13.11 checksums.txt (SHA-256).
+sha256 = "1e9ee90ca301e1842b2887fc77cb122759756a9c8aeb4334ee91de3325ec43fb"
+sha256_win = "5d071ea43339f0140d24a66f0b2ff8a7bf6c4d0dceb19b30abca835670213667"
 
 [components.libpq_win]
 name = "PostgreSQL Client Libraries (libpq for Diesel)"
@@ -235,7 +242,9 @@ url = "https://github.com/vectordotdev/vector/releases/download/v0.61.0/vector-0
 filename = "vector-0.61.0-x86_64-unknown-linux-gnu.tar.gz"
 url_win = "https://github.com/vectordotdev/vector/releases/download/v0.61.0/vector-0.61.0-x86_64-pc-windows-msvc.zip"
 filename_win = "vector-0.61.0-x86_64-pc-windows-msvc.zip"
-sha256 = ""
+# From vector-0.61.0-SHA256SUMS.
+sha256 = "84a27c3ad6b772fdb05bb76ea01a31498bfc8f5e71f32cc78a0d96841f1aa827"
+sha256_win = "6a04e833f9a91f874688e8087d768f5cb35d40e3271c87df6258e271915d0f49"
 
 # BotModels: Python inference service shipped as a self-contained pythonbox
 # (relocatable CPython + service sources). The archive unpacks into
