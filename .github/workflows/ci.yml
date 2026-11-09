@@ -15,10 +15,9 @@ name: CI
 #   product       always/preview/hidden classification and feature coverage
 #   windows       Windows agent/VM adapter compile check
 #
-# `workflow_dispatch` adds the heavy gates on request: `full` runs the
-# accessibility/performance audit, and `release_tag` additionally builds the
-# desktop binaries for that tag (without publishing — publishing belongs to
-# `.github/workflows/release.yml`).
+# Desktop binaries are built by `.github/workflows/release.yml` on version
+# tags; this workflow runs the quality gates, including the Windows adapter
+# compile check, on pushes to main and pull requests.
 #
 # The per-workflow triggers are intentionally kept: the repository is mirrored
 # to Forgejo and maintainers still dispatch individual gates directly.
@@ -31,16 +30,6 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
-    inputs:
-      full:
-        description: "Run the heavy gates (accessibility/performance audit)"
-        required: false
-        default: false
-        type: boolean
-      release_tag:
-        description: "Build desktop binaries for this tag (implies full)"
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -64,8 +53,53 @@ jobs:
 
 
 
+  changes:
+    name: Detect changed paths
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      migrations: ${{ steps.filter.outputs.migrations }}
+      botbook: ${{ steps.filter.outputs.botbook }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: Detect migrations and BotBook changes
+        id: filter
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            BASE="${{ github.event.before }}"
+          else
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+            echo "botbook=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+            echo "botbook=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "$BASE" "${{ github.sha }}")"
+          if printf '%s\n' "$CHANGED" | grep -qE '^botserver/migrations/'; then
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+          fi
+          if printf '%s\n' "$CHANGED" | grep -qE '^(botbook/|.*\.md$)'; then
+            echo "botbook=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "botbook=false" >> "$GITHUB_OUTPUT"
+          fi
+
   windows:
     name: Windows agent adapters
+    # Release builds run on version tags, so this adapter check is the Windows
+    # compile gate for pull requests and pushes to main.
+    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -152,7 +186,8 @@ jobs:
 
   reindex:
     name: Verify the committed BotBook
-    if: ${{ github.server_url == 'https://github.com' }}
+    needs: [changes]
+    if: ${{ github.server_url == 'https://github.com' && needs.changes.outputs.botbook == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -173,7 +208,8 @@ jobs:
 
   migrate:
     name: Fresh-database migration run
-    if: ${{ github.server_url == 'https://github.com' }}
+    needs: [changes]
+    if: ${{ github.server_url == 'https://github.com' && needs.changes.outputs.migrations == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -299,7 +335,6 @@ jobs:
   served-desktop:
     name: Lighthouse served desktop (botserver desktop-local)
     if: ${{ github.server_url == 'https://github.com' }}
-    needs: static-precheck
     runs-on: ubuntu-latest
     timeout-minutes: 120
     services:
@@ -342,28 +377,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential clang mold pkg-config zstd \
-            libpq-dev libssl-dev liblzma-dev zlib1g-dev
-      - name: Install Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-      - name: Cache Cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-a11y-desktop-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-a11y-desktop-
-            ${{ runner.os }}-cargo-desktop-
+          cache-scope: served-desktop
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev
       - name: Build botserver (desktop-local)
         run: cargo build -p botserver --no-default-features --features desktop-local
       - name: Start botserver with the desktop-local audit profile
@@ -429,7 +446,9 @@ jobs:
           fi
 
   evaluate:
-    if: ${{ github.server_url == 'https://github.com' }}
+    # Boteval makes paid model calls; run it on pull requests (the merge gate)
+    # and on manual dispatches, not again on every push to main.
+    if: ${{ github.server_url == 'https://github.com' && github.event_name != 'push' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -485,25 +504,9 @@ jobs:
       # link dies with "clang: error: invalid linker name". libpq/libssl/liblzma
       # are what the workspace's native dependencies (diesel/pq-sys,
       # openssl-sys) compile against.
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang mold libpq-dev libssl-dev liblzma-dev pkg-config
-
-      - name: Install Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-
-      - name: Cache Cargo registry
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-boteval-${{ hashFiles('**/Cargo.lock') }}
+          cache-scope: evaluate
 
       - name: Build boteval-run
         run: cargo build -p boteval --features http,vibe
@@ -576,27 +579,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang mold libpq-dev libssl-dev liblzma-dev pkg-config
-
-      - name: Install Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-
-      - name: Cache Cargo registry
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-unit-tests-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-unit-tests-
+          cache-scope: unit-tests
 
       - name: Run botserver unit tests
         run: cargo test -p botserver --bin botserver
@@ -612,27 +597,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang mold libpq-dev libssl-dev liblzma-dev pkg-config
-
-      - name: Install Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-
-      - name: Cache Cargo registry
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-desktop-manifest-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-desktop-manifest-
+          cache-scope: feature-manifest
 
       - name: Manifest reports only requested features
         run: cargo test -p botcore --no-default-features --features desktop-local,chat,drive manifest_reports_only_requested_features

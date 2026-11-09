@@ -38,6 +38,7 @@ import sys
 from pathlib import Path
 
 WORKFLOWS_DIR = Path(".github/workflows")
+ACTIONS_DIR = Path(".github/actions")
 
 # owner/repo -> reason. Keep this list as short as possible.
 REF_ALLOWLIST = {
@@ -115,17 +116,24 @@ def main() -> int:
         return 0
 
     files = sorted(p for p in WORKFLOWS_DIR.iterdir() if p.suffix in {".yml", ".yaml"})
-    if not files:
-        print(f"no workflow files under {WORKFLOWS_DIR}")
+    action_files = (
+        sorted([*ACTIONS_DIR.rglob("action.yml"), *ACTIONS_DIR.rglob("action.yaml")])
+        if ACTIONS_DIR.is_dir()
+        else []
+    )
+    targets = [(path, True) for path in files] + [(path, False) for path in action_files]
+    if not targets:
+        print(f"no workflow or composite-action files under {WORKFLOWS_DIR} / {ACTIONS_DIR}")
         return 0
 
     errors: list[str] = []
     warnings: list[str] = []
     pinned = 0
 
-    for path in files:
+    for path, is_workflow in targets:
         lines = path.read_text(encoding="utf-8").splitlines()
-        check_privileged_triggers(path, lines, errors)
+        if is_workflow:
+            check_privileged_triggers(path, lines, errors)
         for lineno, raw in enumerate(lines, start=1):
             match = USES_RE.match(raw)
             if not match:
@@ -143,10 +151,10 @@ def main() -> int:
         print(f"error: {error}")
 
     if errors:
-        print(f"\n{len(errors)} mutable reference(s) found in {len(files)} workflow file(s)")
+        print(f"\n{len(errors)} mutable reference(s) found in {len(targets)} workflow/action file(s)")
         return 1
 
-    print(f"ok: {pinned} action reference(s) across {len(files)} workflow file(s) are pinned")
+    print(f"ok: {pinned} action reference(s) across {len(targets)} workflow/action file(s) are pinned")
     return 0
 
 

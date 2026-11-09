@@ -8,7 +8,7 @@ GOAL: Process all github issues off-line first codeing, let github ci do the wor
 | **Language** | 🌐 ALWAYS respond in English regardless of the user's language — answer directly and concisely |
 | **Temp files** | Stop saving `.png`/files on repo root — use `/tmp/`. NEVER create new files on root |
 | **Backups** | NEVER create `.bak`/`.old`/backup dirs in the repo — use `/tmp/` only; never commit them |
-| **Boteval cost** | ✅ Boteval runs on **CI only** (`boteval.yml` / `boteval-run`). ❌ NEVER run `boteval` / `boteval-run` locally or in dev — every task spends paid model calls. Results live in the CI run report only — do not re-run locally for verification, and do not store e2e run history in the repo. |
+| **Boteval cost** | ✅ Boteval runs on **CI only** (`ci.yml` → `evaluate` / `boteval-run`). ❌ NEVER run `boteval` / `boteval-run` locally or in dev — every task spends paid model calls. Results live in the CI run report only — do not re-run locally for verification, and do not store e2e run history in the repo. |
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
@@ -526,7 +526,7 @@ caught in review; if you find one, move it and re-export.
 ## Absolute Prohibitions
 
 - NEVER search the `/target` folder — it is binary compiled
-- ❌ NEVER build in release mode for local development / server work — use debug builds. The **only** exception is the desktop packaging pipeline (`.github/workflows/desktop-binaries.yml`), which builds `--release` for the installers.
+- ❌ NEVER build in release mode for local development / server work — use debug builds. The **only** exception is the desktop packaging pipeline (`.github/workflows/release.yml`, version tags), which builds `--release` for the installers.
 - ❌ NEVER run `cargo build` — use `cargo check` for syntax verification
 - ❌ NEVER run `cargo check` synchronously — always `nohup cargo check > /tmp/<crate>_check.log 2>&1 &`
 - ❌ NEVER compile directly for production / copy binaries manually — ALWAYS push + CI/CD
@@ -635,7 +635,7 @@ time retrying it.
   every changed `.rs` with `rustfmt --emit stdout` and reports failures.
   It catches syntax errors, not missing imports or type mismatches.
 - **Type/compile gate (authoritative):** push to `main`, or dispatch
-  `alm-release.yml` on a temporary tag. The release build is the only supported
+  `release.yml` on a version tag. The release build is the only supported
   compile check under the current memory cap.
 - **If the cap is ever raised to ≥8–12 GiB**, verify
   `cargo check -p botserver` once and update this section; until then, do not
@@ -1335,7 +1335,7 @@ executable; deb/rpm: package manager; tarball: re-run `install.sh`); user data
 stays in `~/.local/share/generalbots`. The rationale and the steps to wire the
 updater later are in `botapp/README.md#installing-and-upgrading`.
 
-### Build Pipeline (CI — `.github/workflows/desktop-binaries.yml`)
+### Build Pipeline (CI — `.github/workflows/release.yml`, version tags)
 
 The workflow is the build; the Linux job runs on `ubuntu-22.04` and does:
 

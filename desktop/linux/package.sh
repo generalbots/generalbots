@@ -3,9 +3,10 @@
 #
 #   ./package.sh <version> <target-dir> <output-dir> [installers-dir] [arch]
 #
-# <target-dir> holds the built `botapp` and `botserver` binaries (target/debug
-# for a local run, target/release on CI). <arch> is `x86_64` (default) or
-# `aarch64` and selects the package/stable asset/checksum names. <installers-dir>
+# <target-dir> holds the built `botapp`, `botserver` and (when available)
+# `botui` binaries (target/debug for a local run, target/release on CI).
+# <arch> is `x86_64` (default) or `aarch64` and selects the package/stable
+# asset/checksum names. <installers-dir>
 # is optional: when it contains archives, they are bundled as `installers/` next
 # to start.sh (used for the vendors whose upstream binaries disappeared, e.g.
 # MinIO). The same script produces the artifact that CI publishes, so a local
@@ -33,6 +34,9 @@ mkdir -p "$DEST/ui" "$OUT"
 
 install -m 0755 "$TARGET/botapp"    "$DEST/generalbots"
 install -m 0755 "$TARGET/botserver" "$DEST/botserver"
+if [ -x "$TARGET/botui" ]; then
+  install -m 0755 "$TARGET/botui" "$DEST/botui"
+fi
 cp -a "$ROOT/botui/ui/suite"  "$DEST/ui/suite"
 cp -a "$ROOT/botui/ui/themes" "$DEST/ui/themes"
 cp "$ROOT/botserver/.product.desktop-local" "$DEST/.product.desktop-local"

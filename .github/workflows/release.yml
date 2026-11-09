@@ -2,49 +2,32 @@ name: Release
 
 # #1851 — one all-inclusive binary release.
 #
-# Triggered only by manual dispatch — with an existing tag, a version bump or
-# an explicit version — and never by a push. It calls the existing platform builders as reusable workflows
-# (they keep their own triggers for standalone runs), then publishes exactly
-# one normal release at the product tag:
+# Triggered by a version tag (`vMAJOR.MINOR.PATCH`) or a manual dispatch that
+# names an existing tag. It builds and publishes exactly one normal release at
+# that tag:
 #
-#   server      botserver + botui (ALM deployable binaries)
-#   linux       tarball, self-extracting `generalbots`, deb/rpm/AppImage, raw bins
-#   windows     generalbots.exe, MSI, NSIS setup, raw exes
-#   macos       .dmg + zipped .app (arm64)
-#   arm64       Linux aarch64 tarball + packages
+#   linux       tarball, self-extracting `generalbots`, deb/rpm/AppImage, raw
+#               `generalbots`/`botserver`/`botui` binaries
+#   windows     generalbots.exe, MSI, NSIS setup, raw exes (including botui)
 #   pythonbox   BotModels Linux/Windows self-contained bundles
-#   iso         General Bots OS appliance image
 #
 # Everything lands on one release with one `MANIFEST.json` and one combined
 # `SHA256SUMS`. The Linux tarball keeps its tag-free alias, so
 # /releases/latest/download/generalbots-linux-x86_64.tar.gz resolves to this
-# release. Every builder is called with `publish: false` so nothing races the
-# single publish job here. The ALM manifest is kept as `alm-MANIFEST.json`,
-# and `alm-release.yml` still publishes its own component pre-release on the
-# normal main-branch trigger, so the Forgejo runner keeps working unchanged.
+# release.
 #
-# NOTE: a push to `main` no longer publishes a release — releases are only cut
-# on purpose, by dispatching this workflow (with a tag, a bump or a version).
+# NOTE: a push to `main` does not publish a release — releases are cut on
+# purpose by pushing a `v*.*.*` tag or dispatching this workflow with an
+# existing tag.
 #
 on:
+  push:
+    tags: ["v*.*.*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing product tag (for example v6.7.2)"
-        required: false
-        type: string
-      bump:
-        description: "Version bump"
-        required: false
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-      version:
-        description: "Explicit version (e.g. 6.7.2); overrides bump"
-        required: false
+        description: "Existing product tag (for example v7.0.0)"
+        required: true
         type: string
 
 permissions:
@@ -55,90 +38,56 @@ env:
   PYTHON_VERSION: "3.12"
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Bump, tag and dispatch the product build
-    if: ${{ github.server_url == 'https://github.com' && !(github.event_name == 'push' && startsWith(github.event.head_commit.message || '', 'chore(release):')) }}
+    name: Resolve the product tag
+    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
       version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
-          token: ${{ github.token }}
 
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump the patch, commit and tag
+      - name: Resolve and verify the release tag
         id: version
         env:
-          REQUESTED_VERSION: ${{ github.event.inputs.version }}
-          BUMP: ${{ github.event.inputs.bump || 'patch' }}
-          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-
-          # Always release the newest main, not a snapshot that a queued run
-          # picked up earlier.
-          git fetch --force --tags origin main
-          git reset --hard FETCH_HEAD
-
-          if [ -n "${REQUESTED_VERSION:-}" ]; then
-            VERSION="v${REQUESTED_VERSION#v}"
-            if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
-              echo "::error::tag ${VERSION} already exists"
-              exit 1
-            fi
-            python3 scripts/release_version.py sync "$VERSION"
-          else
-            VERSION="$(python3 scripts/release_version.py next --bump "$BUMP")"
-            if git show-ref --tags --verify --quiet "refs/tags/${VERSION}"; then
-              echo "::error::tag ${VERSION} already exists"
-              exit 1
-            fi
-            python3 scripts/release_version.py sync "$VERSION"
+          VERSION="${INPUT_TAG:-$REF_NAME}"
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release tag must look like vMAJOR.MINOR.PATCH (got '$VERSION')"
+            exit 1
           fi
-
-          # What's New: the sections accumulate on tags, because main is
-          # protected and cannot receive the bump commit. Start from the newest
-          # tagged copy, then add or replace the section for this version.
-          PREV_TAG="$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
-          if [ -n "$PREV_TAG" ] && git cat-file -e "${PREV_TAG}:whatsnew.md" 2>/dev/null; then
-            git show "${PREV_TAG}:whatsnew.md" > whatsnew.md
+          if ! git rev-parse --verify --quiet "refs/tags/${VERSION}^{commit}" >/dev/null; then
+            echo "::error::tag ${VERSION} does not exist"
+            exit 1
           fi
-          python3 scripts/whats_new.py --file whatsnew.md generate --version "$VERSION" --write
-          python3 scripts/whats_new.py --file whatsnew.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"
-
-          git add Cargo.toml Cargo.lock botapp/tauri.conf.json README.md whatsnew.md
-
-          if git diff --cached --quiet; then
-            echo "version files already at ${VERSION}; tagging current main"
-          else
-            git commit -m "chore(release): ${VERSION} [skip ci]"
+          TAG_SHA="$(git rev-parse "refs/tags/${VERSION}^{commit}")"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+            echo "::error::checked-out commit does not match tag ${VERSION}"
+            exit 1
           fi
-
-          # #1804: main is a protected branch, so the bot cannot push the
-          # version-bump commit. The bump lives on the signed tag instead; the
-          # next run derives the following version from the latest tag.
-          git tag -a "$VERSION" -m "General Bots ${VERSION}"
-          git push origin "$VERSION"
-
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if ! python3 scripts/whats_new.py --file whatsnew.md render --version "$VERSION" >> "$GITHUB_STEP_SUMMARY"; then
+            echo "::warning::whatsnew.md has no section for ${VERSION}; continuing without release notes"
+          fi
           {
             echo "### Product release ${VERSION}"
             echo
-            echo "- version files: \`Cargo.toml\`, \`Cargo.lock\`, \`botapp/tauri.conf.json\`, README badge"
-            echo "- tag: \`${VERSION}\` at \`$(git rev-parse --short HEAD)\`"
-            echo "- the all-inclusive release is dispatched from this tag"
+            echo "- tag: ${VERSION} at $(git rev-parse --short HEAD)"
+            echo "- build ref: the tag commit"
           } >> "$GITHUB_STEP_SUMMARY"
 
   linux:
@@ -149,36 +98,13 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        # Build the source ref (branch/tag that triggered the run). `inputs.tag`
-        # is the *release* tag name to publish — it may not exist yet on
-        # workflow_dispatch, so checking it out breaks the run.
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.release.outputs.sha }}
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential clang mold pkg-config zstd \
-            libpq-dev libssl-dev liblzma-dev \
-            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-
-      - name: Install Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-
-      - name: Cache Cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-desktop-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-desktop-
+          cache-scope: release-linux
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Build botserver (desktop-local)
         run: cargo build -p botserver --release --no-default-features --features desktop-local
@@ -233,7 +159,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x desktop/linux/package.sh
-          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ needs.release.outputs.version }}"
           ./desktop/linux/package.sh "$TAG" target/release dist dist/installers
           # package.sh writes both the versioned tarball and the tag-free copy
           # used by .../releases/latest/download/generalbots-linux-x86_64.tar.gz.
@@ -241,8 +167,9 @@ jobs:
           # without unpacking the suite.
           cp target/release/botapp    dist/generalbots-linux-x86_64
           cp target/release/botserver dist/botserver-linux-x86_64
-          chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64
-          (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 >> SHA256SUMS-linux)
+          cp target/release/botui     dist/botui-linux-x86_64
+          chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64 dist/botui-linux-x86_64
+          (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 botui-linux-x86_64 >> SHA256SUMS-linux)
           ls -lh dist
 
       # #1633 — one self-extracting executable: the app with the stack
@@ -253,6 +180,8 @@ jobs:
           rm -rf dist/payload
           mkdir -p dist/payload/bin dist/payload/ui
           cp target/release/botserver dist/payload/botserver
+          cp target/release/botui    dist/payload/botui
+          test -x dist/payload/botui
           cp -a botui/ui/suite  dist/payload/ui/suite
           cp -a botui/ui/themes dist/payload/ui/themes
           cp botserver/.product.desktop-local dist/payload/
@@ -315,7 +244,7 @@ jobs:
           set -euo pipefail
           cd "${GITHUB_WORKSPACE:-$PWD}"
           mkdir -p dist
-          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ needs.release.outputs.version }}"
           VERSION="${TAG#v}"
           shopt -s nullglob
           collect() {
@@ -355,7 +284,7 @@ jobs:
         timeout-minutes: 30
         run: |
           set -euo pipefail
-          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ needs.release.outputs.version }}"
           VERSION="${TAG#v}"
           PKG="generalbots-${VERSION}-linux-x86_64"
           WORK="$RUNNER_TEMP/first-run"
@@ -443,9 +372,9 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        # Build the source ref, not the release tag name (which may not exist yet).
+        # Build the exact tag commit resolved above.
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.release.outputs.sha }}
 
       - name: Install PostgreSQL client libraries (libpq)
         shell: pwsh
@@ -471,23 +400,9 @@ jobs:
             Copy-Item $dll $resources -Force
           }
 
-      - name: Install Rust
-        shell: pwsh
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup default stable
-
-      - name: Cache Cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: ./.github/actions/rust-setup
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-desktop-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-desktop-
+          cache-scope: release-windows
 
       - name: Build botserver (desktop-local)
         run: cargo build -p botserver --release --no-default-features --features desktop-local
@@ -647,7 +562,7 @@ jobs:
       - name: Collect Windows installers
         shell: pwsh
         run: |
-          $tag = "${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
+          $tag = "${{ needs.release.outputs.version }}"
           $version = $tag -replace '^v', ''
           $msi = Get-ChildItem -Path "target\release\bundle\msi\*.msi","botapp\target\release\bundle\msi\*.msi" -ErrorAction SilentlyContinue |
             Select-Object -First 1
@@ -718,6 +633,7 @@ jobs:
           New-Item -ItemType Directory -Force dist/payload/bin | Out-Null
           New-Item -ItemType Directory -Force dist/payload/ui | Out-Null
           Copy-Item target/release/botserver.exe dist/payload/botserver.exe
+          Copy-Item target/release/botui.exe dist/payload/botui.exe
           Copy-Item dist/installers/*.dll dist/payload/ -Force
           Copy-Item -Recurse botui/ui/suite  dist/payload/ui/suite
           Copy-Item -Recurse botui/ui/themes dist/payload/ui/themes
@@ -764,6 +680,7 @@ jobs:
           }
           $payloadFiles = @(
             'botserver.exe',
+            'botui.exe',
             'ui\suite\desktop.html',
             '.product.desktop-local',
             'installers\minio.exe',
@@ -797,128 +714,16 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  attach-linux:
-    name: Attach the Linux installer to the product release
-    needs: [linux]
-    runs-on: ubuntu-latest
-    # Linux is the supported first-run artifact; it must not wait for the
-    # best-effort Windows job. Windows assets are attached by `release-windows`
-    # when (and only when) that job is green.
-    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' && true && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
-    steps:
-      - name: Download Linux installer
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: linux-installer
-          path: dist
-          merge-multiple: true
-
-      # #1634 — /releases/latest/download/<name> only resolves an asset whose
-      # name matches exactly, so a missing tag-free copy silently turns every
-      # stable link into a 404. Fail before publishing rather than after.
-      - name: Verify the stable download aliases
-        run: |
-          set -euo pipefail
-          TAG="${{ inputs.tag || github.event.inputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
-          test -f "dist/generalbots-linux-x86_64.tar.gz"
-          test -f "dist/generalbots-${VERSION}-linux-x86_64.tar.gz"
-          grep -qE "  generalbots-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
-          grep -qE "  generalbots-${VERSION}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
-          (cd dist && sha256sum -c SHA256SUMS-linux --ignore-missing)
-          # Distro packages are best effort: report them instead of failing the
-          # release, because the tarball and the single file must keep shipping.
-          for f in generalbots-linux-x86_64.deb generalbots-linux-x86_64.rpm \
-                   generalbots-linux-x86_64.AppImage; do
-            if [ -f "dist/$f" ]; then
-              echo "package present: $f"
-            else
-              echo "::warning::$f was not produced by the bundler"
-            fi
-          done
-          echo "stable alias and both checksums are present"
-
-      - name: Publish release assets
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        with:
-          tag_name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
-          name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
-          # #1634 — the Linux artifact must be the newest *normal* release;
-          # drafts and pre-releases never back /releases/latest.
-          draft: false
-          prerelease: false
-          make_latest: true
-          body: |
-            Desktop edition for ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}.
-
-            This is the product release: the `vMAJOR.MINOR.PATCH` tag owns
-            `/releases/latest`. Platform builds (`-windows`, `-macos`) and
-            component builds (`alm-*`, `pythonbox-*`, `drive-bin-*`) are
-            pre-releases and never take `latest`.
-
-            Stable link (always the newest release):
-
-                https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
-
-            Linux (x86_64) — download, verify, unpack, run:
-
-                curl -fL -o generalbots-linux-x86_64.tar.gz \
-                  https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
-                curl -fL -o SHA256SUMS-linux \
-                  https://github.com/generalbots/generalbots/releases/latest/download/SHA256SUMS-linux
-                sha256sum -c <(grep ' generalbots-linux-x86_64.tar.gz' SHA256SUMS-linux)
-                tar -xzf generalbots-linux-x86_64.tar.gz
-                cd generalbots-*-linux-x86_64
-                ./install.sh        # per-user install, no root required
-                general-bots        # first run opens the setup wizard
-
-            Do not interrupt the download: a truncated archive extracts a partial
-            tree. start.sh and install.sh detect that and print the recovery
-            command instead of failing with "No such file or directory".
-
-            The wizard provisions the service stack (PostgreSQL, Valkey, Qdrant,
-            Vault, Zitadel, llama.cpp) into ~/.local/share/generalbots and then
-            opens the suite with Chat and Drive. `start.sh` runs the same thing
-            straight from the unpacked directory; `./start.sh --provision` does
-            it headless. Components still missing after the first run are
-            fetched once and cached under ~/.local/share/generalbots/installers.
-
-            The tarball bundles MinIO (object store) because upstream archived
-            it and removed the binaries from dl.min.io. MinIO is AGPL-3.0:
-            https://github.com/minio/minio and https://github.com/minio/mc.
-
-            Also attached: the self-extracting `generalbots` executable
-            (the app with the stack appended: verify with `--verify`, unpack
-            with `--extract-only`), `SHA256SUMS-linux`, and the raw
-            `generalbots`/`botserver` binaries for debugging.
-
-            Distro packages (best effort): the Tauri bundler step is
-            `continue-on-error` and has never produced a `.deb`/`.rpm`/
-            `.AppImage` in a release. If any of `generalbots-linux-x86_64.deb`,
-            `generalbots-linux-x86_64.rpm` or `generalbots-linux-x86_64.AppImage`
-            are attached, they carry the same binaries; otherwise use the tarball
-            or the self-extracting `generalbots` executable above.
-          files: |
-            dist/*.tar.gz
-            dist/SHA256SUMS-linux
-            dist/generalbots
-            dist/generalbots-linux-x86_64
-            dist/botserver-linux-x86_64
-            dist/*.deb
-            dist/*.rpm
-            dist/*.AppImage
-          fail_on_unmatched_files: false
-
   attach-windows:
     name: Attach the Windows binaries to a pre-release
-    needs: [windows]
+    needs: [release, windows]
     runs-on: ubuntu-latest
     # Best effort: only runs when the Windows build itself went green, and never
     # fails the workflow. Releases are immutable, so assets cannot be appended
     # to the Linux tag after publication — the Windows build gets its own
     # `-windows` pre-release tag (#1804), which never takes "latest".
     continue-on-error: true
-    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' && true && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
+    if: ${{ github.server_url == 'https://github.com' && needs.windows.result == 'success' }}
     steps:
       - name: Download Windows binaries
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -935,13 +740,13 @@ jobs:
           # resolving to the release that actually carries that asset.
           make_latest: false
           prerelease: true
-          tag_name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}-windows
-          name: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }} (Windows)
+          tag_name: ${{ needs.release.outputs.version }}-windows
+          name: ${{ needs.release.outputs.version }} (Windows)
           body: |
-            Pre-release: Windows binaries for ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}.
+            Pre-release: Windows binaries for ${{ needs.release.outputs.version }}.
             It is not the product release and never takes `latest`; the Linux
             installer is the supported artifact and lives on the
-            `${{ inputs.tag || github.event.inputs.tag || github.ref_name }}` tag.
+            `${{ needs.release.outputs.version }}` tag.
 
             Bundled offline in `generalbots.exe` (payload `installers/` and the
             MSI/NSIS resources): MinIO + mc, Redis (cache), Qdrant, Zitadel,
@@ -973,11 +778,14 @@ jobs:
   bundle:
     name: Bundle pythonbox (linux x86_64)
     # GitHub-only: ALM has no ubuntu-* runner and must not build on the host.
+    needs: [release]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release.outputs.sha }}
 
       - name: Fetch relocatable CPython
         env:
@@ -1380,11 +1188,14 @@ jobs:
   bundle-windows:
     name: Bundle pythonbox (windows x86_64)
     # GitHub-only, same reasoning as the Linux job.
+    needs: [release]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release.outputs.sha }}
 
       - name: Set up Python for the wheelhouse planner
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -1592,7 +1403,7 @@ jobs:
 
   publish:
     name: Publish the all-inclusive release
-    needs: [release, linux, windows, attach-linux, attach-windows]
+    needs: [release, linux, windows, attach-windows, bundle, bundle-windows]
     if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' && needs.linux.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1600,8 +1411,15 @@ jobs:
       - name: Check out the release tag
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ needs.release.outputs.version }}
           fetch-depth: 1
+
+      - name: Download Linux installer
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: linux-installer
+          path: dist
+          merge-multiple: true
 
       - name: Download Windows binaries
         continue-on-error: true
@@ -1627,40 +1445,13 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Download appliance image
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: generalbots-os-image
-          path: dist
-          merge-multiple: true
-
       - name: Assemble assets, manifest and checksums
         env:
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           COMMIT="$(git rev-parse HEAD)"
-          VERSION="${RELEASE_TAG#v}"
-          export COMMIT VERSION
-          # ALM publishes the server binaries next to its own MANIFEST.json.
-          # Keep that manifest under a distinct name and prefix the binaries so
-          # they cannot overwrite the desktop-local `botserver-linux-x86_64`
-          # that the linux job already put in dist/.
-          if [ -d dist/alm ]; then
-            if [ -f dist/alm/botserver-linux-x86_64 ]; then
-              mv dist/alm/botserver-linux-x86_64 "dist/generalbots-${VERSION}-server-linux-x86_64"
-              cp "dist/generalbots-${VERSION}-server-linux-x86_64" dist/generalbots-server-linux-x86_64
-            fi
-            if [ -f dist/alm/botui-linux-x86_64 ]; then
-              mv dist/alm/botui-linux-x86_64 "dist/generalbots-${VERSION}-server-botui-linux-x86_64"
-              cp "dist/generalbots-${VERSION}-server-botui-linux-x86_64" dist/generalbots-server-botui-linux-x86_64
-            fi
-            if [ -f dist/alm/MANIFEST.json ]; then
-              mv dist/alm/MANIFEST.json dist/alm-MANIFEST.json
-            fi
-            rm -rf dist/alm
-          fi
+          export COMMIT
 
           python3 - <<'PY'
           import hashlib
@@ -1669,28 +1460,6 @@ jobs:
           import platform
 
           dist = "dist"
-          version = os.environ["VERSION"]
-
-          # Keep the ALM manifest fields at the top level too: the Forgejo
-          # runner can consume this single MANIFEST without a separate family.
-          # Rewrite its asset keys to the names actually attached here.
-          alm = {}
-          alm_path = os.path.join(dist, "alm-MANIFEST.json")
-          if os.path.isfile(alm_path):
-              with open(alm_path, encoding="utf-8") as handle:
-                  alm = json.load(handle)
-              renames = {
-                  "botserver-linux-x86_64": f"generalbots-{version}-server-linux-x86_64",
-                  "botui-linux-x86_64": f"generalbots-{version}-server-botui-linux-x86_64",
-              }
-              if alm.get("assets"):
-                  alm["assets"] = {
-                      renames.get(name, name): meta
-                      for name, meta in alm["assets"].items()
-                  }
-                  with open(alm_path, "w", encoding="utf-8") as handle:
-                      json.dump(alm, handle, indent=2, sort_keys=True)
-                      handle.write("\n")
 
           assets = {}
           for name in sorted(os.listdir(dist)):
@@ -1708,17 +1477,15 @@ jobs:
           manifest = {
               "schema": 1,
               "release": os.environ["RELEASE_TAG"],
-              "commit": alm.get("commit", os.environ["COMMIT"]),
+              "commit": os.environ["COMMIT"],
               "ref": os.environ["GITHUB_REF"],
               "run_id": os.environ["GITHUB_RUN_ID"],
               "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "repository": os.environ["GITHUB_REPOSITORY"],
-              "target": alm.get("target", "x86_64-unknown-linux-gnu"),
-              "profile": alm.get("profile", "release"),
-              "features": alm.get("features", ""),
-              "build_arch": alm.get("build_arch", platform.machine()),
+              "target": "x86_64-unknown-linux-gnu",
+              "profile": "release",
+              "build_arch": platform.machine(),
               "assets": assets,
-              "alm": alm,
           }
           with open(os.path.join(dist, "MANIFEST.json"), "w", encoding="utf-8") as handle:
               json.dump(manifest, handle, indent=2, sort_keys=True)
@@ -1742,7 +1509,7 @@ jobs:
       # name matches exactly. Fail before publishing rather than after.
       - name: Verify the stable download aliases
         env:
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           VERSION="${RELEASE_TAG#v}"
@@ -1755,31 +1522,27 @@ jobs:
       - name: Publish the product release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
-          name: ${{ inputs.tag || github.ref_name }}
+          tag_name: ${{ needs.release.outputs.version }}
+          name: ${{ needs.release.outputs.version }}
           # The product release owns /releases/latest; every component and
           # platform-only release stays a pre-release.
           draft: false
           prerelease: false
           make_latest: true
           body: |
-            All-inclusive desktop release for ${{ inputs.tag || github.ref_name }}.
+            All-inclusive desktop release for ${{ needs.release.outputs.version }}.
 
             One download holds the whole product line:
 
             - Linux x86_64 desktop: `generalbots-linux-x86_64.tar.gz` (stable
               alias), the versioned tarball, the self-extracting `generalbots`
               executable, deb/rpm/AppImage when the bundler produced them,
-              and the raw `generalbots`/`botserver` binaries.
+              and the raw `generalbots`/`botserver`/`botui` binaries.
+              `botui` is embedded in the desktop payload and also shipped as a
+              standalone binary for frontend/server use.
             - Windows x86_64: `generalbots.exe` (self-extracting), MSI, NSIS
-              setup, and the raw exes.
-            - macOS arm64: `.dmg` and zipped `.app`.
-            - Linux arm64: tarball and packages.
+              setup, and the raw `generalbots`/`botserver`/`botui` exes.
             - BotModels: Linux and Windows pythonbox bundles.
-            - General Bots OS: appliance ISO.
-            - Server (ALM deployable): `generalbots-<version>-server-linux-x86_64`
-              plus the `generalbots-server-linux-x86_64` stable alias, and
-              `generalbots-<version>-server-botui-linux-x86_64`.
 
             `MANIFEST.json` lists every asset with its SHA-256 and size;
             `SHA256SUMS` verifies the whole release in one command. The

@@ -2,12 +2,11 @@ name: Release links
 
 # #1804 — the documented /releases/latest/download/... links must resolve to a
 # product release that carries the desktop tarball and checksums. Run after the
-# desktop build publishes, nightly to catch later regressions, and on demand.
+# release publishes, nightly to catch later regressions, and on demand.
 on:
   workflow_run:
-    # #1851: the all-inclusive release publishes after the desktop build, so
-    # verify links when either workflow completes.
-    workflows: ["Desktop binaries", "Release all"]
+    # #1851: the all-inclusive release is the single publish channel.
+    workflows: ["Release"]
     types: [completed]
   schedule:
     - cron: "23 5 * * *"
