@@ -214,6 +214,12 @@ const ThemeManager = (() => {
         const secondaryTextColor = toCssColor(mutedForeground, textColor);
         const mutedTextColor = rootStyle.getPropertyValue("--gb-text-muted")?.trim()
           || secondaryTextColor;
+        // #2004 — components appended to document.body (chat artifact panel)
+        // sit outside the #chat-app scope that defines the --gb-* tokens, so
+        // they consume these root tokens. Without --surface-2 the artifact
+        // folder input fell back to a near-black background in the light theme.
+        const surface2Color = rootStyle.getPropertyValue("--gb-surface-2")?.trim()
+          || `color-mix(in srgb, ${surfaceColor} 92%, ${textColor})`;
 
         document.documentElement.style.setProperty("--bg", bgColor);
         document.documentElement.style.setProperty("--bg-primary", bgColor);
@@ -228,6 +234,8 @@ const ThemeManager = (() => {
         document.documentElement.style.setProperty("--surface", surfaceColor);
         document.documentElement.style.setProperty("--surface-hover", hoverColor);
         document.documentElement.style.setProperty("--surface-active", activeColor);
+        document.documentElement.style.setProperty("--surface-2", surface2Color);
+        document.documentElement.style.setProperty("--border", borderColor);
         document.documentElement.style.setProperty("--card-bg", cardColor);
         document.documentElement.style.setProperty("--border-color", borderColor);
         document.documentElement.style.setProperty("--border-light", borderLightColor);
