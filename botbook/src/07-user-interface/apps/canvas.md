@@ -111,6 +111,13 @@ fill/stroke model and are kept as the canvas background instead.
 
 ## Canvas via Chat
 
+A drawing produced in chat is previewed element by element while the model is
+still writing it, and **Open in Canvas** hands the current SVG to this app: the
+drawing lands in the background layer, the canvas name becomes *Chat drawing*,
+and the interactive layer on top stays editable. If the Canvas window is closed,
+the action opens it first and then delivers the drawing, so a chart or scene
+never has to be regenerated to be edited.
+
 ### Creating a Flowchart
 
 <div class="wa-chat">

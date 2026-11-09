@@ -109,14 +109,27 @@ same multi-file payload. Uploaded attachments get a Preview chip that streams
 the staged Drive inbox copy through the sanitized preview endpoint.
 
 A fenced ```svg or ```html block the model writes is previewed while it is
-still streaming: the iframe is refreshed as chunks arrive, in an opaque sandbox
-(scripts allowed for HTML charts, never same-origin access). A message that is
-only a bare `<svg>` element is treated the same way, since models often skip
-the fence. The preview is a separate row under the bubble, the drawing is
-scaled to fit the frame (a missing `viewBox` is derived from the numeric
-width/height), and the fence or element is not repeated inline — one drawing,
-rendered once. **Expand** pins the preview to the top of the transcript at
-70% viewport height.
+still streaming. SVG grows on a persistent surface instead of reloading: every
+completed element is appended once and animates in (a stroked path draws itself
+with a dash offset, shapes and text fade and scale from their own centre), and
+an open `<g>` receives its children as they complete, so a scene builds up part
+by part while the answer is still arriving. Nothing already drawn is
+re-rendered, and a tag that is still receiving attributes is held back until it
+completes. Model output never reaches the suite DOM unsanitized: script, `on*`
+handlers, `foreignObject` and external hrefs are stripped first. **Open in
+Canvas** hands the current drawing to the Canvas app as its background layer
+(opening the window when it is closed), where it can be refined and saved as a
+`.draw` file.
+
+Fenced ```html/JS artifacts keep the older path: the opaque sandboxed iframe is
+refreshed as chunks arrive (scripts allowed for HTML charts, never same-origin
+access), because a generated app is only meaningful once its document is
+complete. A message that is only a bare `<svg>` element is treated like a
+drawing fence, since models often skip the fence. The preview is a separate row
+under the bubble, the drawing is scaled to fit the frame (a missing `viewBox` is
+derived from the numeric width/height), and the fence or element is not repeated
+inline — one drawing, rendered once. **Expand** pins the preview to the top of
+the transcript at 70% viewport height.
 
 The output folder lists the newest generation first, badges it **Latest**, and
 keeps older files below as history. While `vm_exec` runs, the run card says
