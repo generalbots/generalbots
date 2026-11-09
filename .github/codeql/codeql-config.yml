@@ -1,0 +1,14 @@
+name: "General Bots CodeQL config"
+
+# `3rdparty/` vendors upstream crates verbatim (umya-spreadsheet, docx-rs).
+#
+# They carried 931 of the 4,890 Rust files and no code we can patch: their
+# findings are triaged upstream and, where a test vector is unavoidable, are
+# dismissed on the alert rather than fixed in a vendored copy. Extracting them
+# made the rust analysis alone take 74 minutes and pushed the job past its
+# 90-minute cap before the 37 queries finished (#2000, run 42628140996).
+#
+# Keep them out of the database: less extraction time, and the stream-triage
+# noise they produce stops competing with findings in our own sources.
+paths-ignore:
+  - "3rdparty/**"

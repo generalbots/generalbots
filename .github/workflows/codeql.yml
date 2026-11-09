@@ -26,7 +26,12 @@ jobs:
     name: Analyze (${{ matrix.language }})
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Rust extraction alone measured 74 minutes on this workspace (4,890 .rs
+    # files) and the 37 queries still had not finished at the old 90-minute cap
+    # (run 42628140996). Vendored code is excluded through the config below, and
+    # the ceiling is raised so a slow but healthy analysis can complete instead
+    # of being cancelled with no results uploaded.
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -43,4 +48,5 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
+          config-file: ./.github/codeql/codeql-config.yml
       - uses: github/codeql-action/analyze@9418214df1f2c4b8128c770156c409013b07d6b9 # v3.39.3
