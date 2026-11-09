@@ -1,6 +1,20 @@
 use super::*;
 
 pub(super) fn build_blocking_client(auth: &AuthConfig) -> Result<reqwest::blocking::Client, String> {
+    let headers = auth_headers(auth)?;
+
+    reqwest::blocking::Client::builder()
+        .default_headers(headers)
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {e}"))
+}
+
+/// Builds the auth header map that every request made by this client carries.
+/// Split from `build_blocking_client` so tests can assert the header contract
+/// directly: `RequestBuilder::build()` does not merge client default headers
+/// (reqwest applies them at execution time), so a test that inspects a built
+/// request would always see an empty map.
+pub(super) fn auth_headers(auth: &AuthConfig) -> Result<reqwest::header::HeaderMap, String> {
     let mut headers = reqwest::header::HeaderMap::new();
 
     match &auth.auth_type {
@@ -58,10 +72,7 @@ pub(super) fn build_blocking_client(auth: &AuthConfig) -> Result<reqwest::blocki
         }
     }
 
-    reqwest::blocking::Client::builder()
-        .default_headers(headers)
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {e}"))
+    Ok(headers)
 }
 
 /// #2052 — the Authorization header for an OAuth2 connector. A missing token is
@@ -107,13 +118,7 @@ mod tests {
     fn oauth2_sends_the_bearer_token() {
         let mut config = auth(AuthType::OAuth2);
         config.access_token = Some("ya29.token".to_string());
-        let client = build_blocking_client(&config).expect("client");
-        let headers = client
-            .get("https://example.invalid/")
-            .build()
-            .expect("request")
-            .headers()
-            .clone();
+        let headers = auth_headers(&config).expect("headers");
         assert_eq!(
             headers.get(reqwest::header::AUTHORIZATION).map(|v| v.to_str().ok()),
             Some(Some("Bearer ya29.token"))
@@ -122,7 +127,7 @@ mod tests {
 
     #[test]
     fn oauth2_without_a_token_fails_instead_of_calling_anonymously() {
-        let error = build_blocking_client(&auth(AuthType::OAuth2)).expect_err("must fail");
+        let error = auth_headers(&auth(AuthType::OAuth2)).expect_err("must fail");
         assert!(error.contains("access token missing"), "{error}");
     }
 
@@ -130,20 +135,17 @@ mod tests {
     fn api_key_and_basic_headers_still_work() {
         let mut api = auth(AuthType::ApiKey);
         api.api_key = Some("k".to_string());
-        let client = build_blocking_client(&api).expect("api key client");
-        let request = client.get("https://example.invalid/").build().expect("req");
+        let headers = auth_headers(&api).expect("api key headers");
         assert_eq!(
-            request.headers().get("X-API-Key").map(|v| v.to_str().ok()),
+            headers.get("X-API-Key").map(|v| v.to_str().ok()),
             Some(Some("k"))
         );
 
         let mut basic = auth(AuthType::Basic);
         basic.username = Some("u".to_string());
         basic.password = Some("p".to_string());
-        let client = build_blocking_client(&basic).expect("basic client");
-        let request = client.get("https://example.invalid/").build().expect("req");
-        let header = request
-            .headers()
+        let headers = auth_headers(&basic).expect("basic headers");
+        let header = headers
             .get(reqwest::header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok())
             .unwrap_or_default()

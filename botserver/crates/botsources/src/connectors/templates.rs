@@ -286,4 +286,38 @@ mod tests {
             );
         }
     }
+
+    /// #2058 — the HTTP engine authenticates `None`, `ApiKey`, `Bearer`, `Basic`
+    /// and `OAuth2`; `Custom` is a no-op in `build_blocking_client`, so a
+    /// template that declared it would sync anonymously and quietly. Every
+    /// template and endpoint must stay inside the executable set.
+    #[test]
+    fn every_template_auth_type_is_executable_by_the_engine() {
+        fn executable(auth: &AuthType) -> bool {
+            matches!(
+                auth,
+                AuthType::None
+                    | AuthType::ApiKey
+                    | AuthType::Bearer
+                    | AuthType::Basic
+                    | AuthType::OAuth2
+            )
+        }
+
+        for template in get_all_templates() {
+            assert!(
+                executable(&template.auth_type),
+                "{} declares an auth type the engine cannot execute",
+                template.id
+            );
+            for endpoint in &template.default_endpoints {
+                assert!(
+                    executable(&endpoint.auth_type),
+                    "{} endpoint {} declares an auth type the engine cannot execute",
+                    template.id,
+                    endpoint.name
+                );
+            }
+        }
+    }
 }

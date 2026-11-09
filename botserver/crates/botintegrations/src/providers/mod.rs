@@ -325,6 +325,73 @@ mod tests {
             );
         }
     }
+
+    /// #2058 — a declarative spec that is written but never registered cannot
+    /// execute anything, and a copy-pasted duplicate silently shadows the real
+    /// one. Scan the source tree so both defects fail here instead of surfacing
+    /// as `action_not_available` at runtime (Basecamp before #2049).
+    #[test]
+    fn every_declared_spec_is_unique_and_reachable_from_the_registry() {
+        use std::collections::BTreeMap;
+        use std::path::{Path, PathBuf};
+
+        fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(dir) else {
+                return;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    rust_files(&path, out);
+                } else if path.extension().and_then(|ext| ext.to_str()) == Some("rs") {
+                    out.push(path);
+                }
+            }
+        }
+
+        let providers = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/providers");
+        let mut files = Vec::new();
+        rust_files(&providers.join("generic"), &mut files);
+        assert!(!files.is_empty(), "no generic provider sources found");
+
+        let registry_source = std::fs::read_to_string(providers.join("scrub_embedded_tokens.rs"))
+            .expect("registry source must be readable");
+
+        let mut declared: BTreeMap<String, PathBuf> = BTreeMap::new();
+        for file in &files {
+            let source = std::fs::read_to_string(file).expect("provider source must be readable");
+            for line in source.lines() {
+                let Some(rest) = line.trim().strip_prefix("pub const ") else {
+                    continue;
+                };
+                let Some((name, kind)) = rest.split_once(':') else {
+                    continue;
+                };
+                if !kind.trim().starts_with("ProviderSpec") {
+                    continue;
+                }
+                let name = name.trim().to_string();
+                if let Some(previous) = declared.insert(name.clone(), file.clone()) {
+                    panic!(
+                        "spec {name} is declared twice: {} and {}",
+                        previous.display(),
+                        file.display()
+                    );
+                }
+            }
+        }
+        assert!(
+            !declared.is_empty(),
+            "the spec scan found no ProviderSpec declarations"
+        );
+        for (name, file) in declared {
+            assert!(
+                registry_source.contains(&name),
+                "spec {name} in {} is never registered, so its actions can never run",
+                file.display()
+            );
+        }
+    }
 }
 
 mod outcome_key_is_sensitive;

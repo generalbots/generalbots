@@ -32,4 +32,3 @@ mod sync_connector;
 mod build_blocking_client;
 
 use build_blocking_client::*;
-use oauth2::*;
