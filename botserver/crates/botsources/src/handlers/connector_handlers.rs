@@ -210,6 +210,7 @@ pub async fn handle_install_connector_template(
         username: None, password: None, oauth2_client_id: None,
         oauth2_client_secret: None, oauth2_token_url: None,
         oauth2_scopes: None, base_url: None, extra_headers: None,
+        access_token: None, refresh_token: None, token_type: None, expires_at: None,
     });
 
     let create_req = CreateConnectorRequest {

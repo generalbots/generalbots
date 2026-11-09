@@ -22,10 +22,14 @@ struct ConnectorRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)] error_log: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)] updated_at: chrono::DateTime<Utc>,
+    // #2054 — pointer to the Vault entry holding the credential envelope.
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)] secrets_vault_path: Option<String>,
 }
 
 mod create_connector;
+mod oauth2;
 mod sync_connector;
 mod build_blocking_client;
 
 use build_blocking_client::*;
+use oauth2::*;

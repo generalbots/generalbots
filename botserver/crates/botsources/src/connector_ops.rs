@@ -18,6 +18,10 @@ const SENSITIVE_KEYS: &[&str] = &[
     "oauth2_client_secret",
     "client_secret",
     "token",
+    // #2052/#2054 — OAuth2 access and refresh tokens are bearer material and
+    // must never land in the connectors row.
+    "access_token",
+    "refresh_token",
 ];
 
 /// Strips sensitive fields out of an auth config JSON object, returning the
@@ -242,6 +246,30 @@ mod tests {
         assert!(sanitized.get("api_key").is_none());
         assert_eq!(sanitized["username"], "bob");
         assert_eq!(sanitized["base_url"], "https://api.example.com");
+    }
+
+    #[test]
+    fn oauth2_tokens_are_vaulted_not_persisted() {
+        let config = serde_json::json!({
+            "auth_type": "oauth2",
+            "base_url": "https://api.example.com",
+            "oauth2_client_id": "client-1",
+            "oauth2_client_secret": "shh",
+            "oauth2_token_url": "https://login.example/token",
+            "access_token": "ya29.live",
+            "refresh_token": "refresh-live",
+            "expires_at": "2026-11-10T00:00:00Z"
+        });
+        let (sanitized, secrets) = split_sensitive_auth(&config);
+        for key in ["access_token", "refresh_token", "oauth2_client_secret"] {
+            assert!(
+                sanitized.get(key).is_none(),
+                "{key} must not stay in the row config"
+            );
+            assert!(secrets.contains_key(key), "{key} must be vaulted");
+        }
+        assert_eq!(sanitized["base_url"], "https://api.example.com");
+        assert_eq!(sanitized["oauth2_client_id"], "client-1");
     }
 
     #[test]

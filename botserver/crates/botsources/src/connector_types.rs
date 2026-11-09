@@ -95,6 +95,17 @@ pub struct AuthConfig {
     pub oauth2_scopes: Option<Vec<String>>,
     pub base_url: Option<String>,
     pub extra_headers: Option<Vec<(String, String)>>,
+    // #2052 — the OAuth2 grant. Tokens are never persisted in the row: they
+    // live in Vault with the rest of the credential envelope (#2054) and are
+    // merged back here only for the authenticated request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub access_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

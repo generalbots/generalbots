@@ -5,7 +5,9 @@ impl ConnectorEngine {
         conn: &mut PgConnection,
         id: Uuid,
     ) -> Result<SyncResult, String> {
-        let config = Self::get_connector(conn, id)?;
+        // #2052/#2054 — authenticate with the Vaulted grant (refreshed when
+        // expired), not the sanitized row config.
+        let config = Self::request_config(conn, id)?;
         let client = build_blocking_client(&config.auth_config)
             .map_err(|e| format!("Failed to build client: {e}"))?;
         let started_at = Utc::now();
@@ -231,6 +233,7 @@ impl ConnectorEngine {
             username: None, password: None, oauth2_client_id: None,
             oauth2_client_secret: None, oauth2_token_url: None,
             oauth2_scopes: None, base_url: None, extra_headers: None,
+            access_token: None, refresh_token: None, token_type: None, expires_at: None,
         });
 
         Ok(ConnectorConfig {
