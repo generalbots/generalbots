@@ -323,10 +323,14 @@ fn post_to_advanced_impl(
 }
 
 fn get_channel_manager(_state: &Arc<AppState>) -> Result<Arc<ChannelManager>, Box<EvalAltResult>> {
-    Err(Box::new(EvalAltResult::ErrorRuntime(
-        "Channel manager not configured (not yet wired to AppState)".into(),
-        rhai::Position::NONE,
-    )))
+    // #2055 — the manager used to be a hard error. It is now a process-wide
+    // instance with the implemented providers registered, so POST_TO reaches a
+    // provider; an unknown account still reports AccountNotFound, never a
+    // pretend success.
+    static MANAGER: std::sync::OnceLock<Arc<ChannelManager>> = std::sync::OnceLock::new();
+    Ok(MANAGER
+        .get_or_init(|| Arc::new(ChannelManager::with_defaults()))
+        .clone())
 }
 
 pub fn get_channel_limits(channel_name: &str) -> Result<Dynamic, Box<EvalAltResult>> {

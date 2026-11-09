@@ -11,17 +11,12 @@ pub mod handoff;
 pub mod survey;
 pub mod bluesky;
 pub mod discord;
-pub mod facebook;
-pub mod instagram_channel;
-pub mod linkedin;
 pub mod pinterest;
 pub mod reddit;
 pub mod snapchat;
-pub mod telegram_channel;
 pub mod threads;
 pub mod tiktok;
 pub mod twilio_sms;
-pub mod twitter;
 pub mod wechat;
 pub mod youtube;
 
