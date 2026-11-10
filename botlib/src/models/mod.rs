@@ -11,6 +11,19 @@ pub use session::{Session, UserSession};
 pub use workflow::{TriggerKind, WorkflowExecution};
 
 #[cfg(test)]
+#[path = "api_tests.rs"]
+mod api_tests;
+#[cfg(test)]
+#[path = "attachment_tests.rs"]
+mod attachment_tests;
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;
+#[cfg(test)]
+#[path = "workflow_tests.rs"]
+mod workflow_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::message_types::MessageType;

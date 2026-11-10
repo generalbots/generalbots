@@ -209,3 +209,7 @@ impl RateLimiter {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "rate_limiter_tests.rs"]
+mod rate_limiter_tests;

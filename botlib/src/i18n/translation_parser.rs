@@ -185,3 +185,7 @@ impl LocaleBundle {
         self.translations.keys()
     }
 }
+
+#[cfg(test)]
+#[path = "translation_parser_tests.rs"]
+mod translation_parser_tests;
