@@ -192,6 +192,8 @@
   };
 
   // #1874 — log files: location, size and a download of the whole file.
+  // #2102 — a missing file still shows its expected path ("not created yet")
+  // instead of an empty row, and journald-backed services say so.
   function renderLogFiles(files) {
     var container = byId("os-log-files");
     if (!container) { return; }
@@ -201,17 +203,23 @@
     }
     container.innerHTML = files.map(function (file) {
       var service = escapeHtml(file.service);
-      var size = file.exists ? formatBytes(file.size_bytes) : "missing";
-      var actions = file.exists
+      var source = String(file.source || (file.exists ? "file" : "missing"));
+      var status = "not created yet";
+      if (file.exists) {
+        status = formatBytes(file.size_bytes);
+      } else if (source === "journal") {
+        status = "journald";
+      }
+      var actions = (file.exists || source === "journal")
         ? '<button type="button" class="btn-secondary btn-sm" data-os-log-view="' + service + '">View</button>' +
           '<button type="button" class="btn-secondary btn-sm" data-os-log-download="' + service + '">Download</button>'
-        : "";
+        : '<button type="button" class="btn-secondary btn-sm" data-os-log-view="' + service + '">View</button>';
       return '<div class="os-log-file-row">' +
         '<div class="os-log-file-main">' +
         '<span class="os-log-file-service">' + service + '</span>' +
         '<code class="os-log-file-path">' + escapeHtml(file.path || "not found") + '</code>' +
         '</div>' +
-        '<span class="os-status-text">' + escapeHtml(size) + '</span>' +
+        '<span class="os-status-text">' + escapeHtml(status) + '</span>' +
         '<div class="os-log-file-actions">' + actions + '</div>' +
         '</div>';
     }).join("");

@@ -25,12 +25,24 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::os_data::{
-    log_file_for, log_file_infos, read_disks, read_hostname, read_kernel, read_os, read_services,
-    read_timezone, read_uptime, tail, DiskInfo, LogFileInfo, ServiceInfo, SERVICES,
+    expected_log_path, journal_tail, log_file_for, log_file_infos, read_disks, read_hostname,
+    read_kernel, read_os, read_services, read_timezone, read_uptime, tail, DiskInfo, LogFileInfo,
+    ServiceInfo, SERVICES,
 };
 
 const DEFAULT_LOG_LINES: usize = 200;
 const MAX_LOG_LINES: usize = 1000;
+
+/// #2102 — shown instead of an empty pane when neither a file nor the journal
+/// has anything for the service. Only the log location is exposed, never the
+/// rest of the host layout.
+fn missing_log_message(service: &str) -> String {
+    let path = expected_log_path(service);
+    format!(
+        "No log content for {service} yet.\n\nExpected file: {}\n\nA desktop install creates it when the sidecar starts; a systemd install writes to the journal instead (journalctl -u {service}).",
+        path.display()
+    )
+}
 
 pub fn configure_os_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -173,7 +185,8 @@ pub async fn os_logs(
         .clamp(1, MAX_LOG_LINES);
     let body = match log_file_for(&service) {
         Some(path) => tail(&path, lines),
-        None => format!("No log file found for {service}"),
+        // #2102 — production logs to journald only.
+        None => journal_tail(&service, lines).unwrap_or_else(|| missing_log_message(&service)),
     };
     (
         StatusCode::OK,
@@ -208,23 +221,34 @@ pub async fn os_logs_download(
             .into_response();
     }
 
-    let Some(path) = log_file_for(&service) else {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "log_file_not_found" })),
-        )
-            .into_response();
-    };
-    let body = match std::fs::read(&path) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            log::error!("os_logs_download could not read {service}: {e}");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": "log_file_unreadable" })),
-            )
-                .into_response();
-        }
+    // #2102 — file first, then the journal (production), then a documented
+    // 404 that still tells the panel where the file would be.
+    let body = match log_file_for(&service) {
+        Some(path) => match std::fs::read(&path) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                log::error!("os_logs_download could not read {service}: {e}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": "log_file_unreadable" })),
+                )
+                    .into_response();
+            }
+        },
+        None => match journal_tail(&service, MAX_LOG_LINES) {
+            Some(text) => text.into_bytes(),
+            None => {
+                let expected = expected_log_path(&service).to_string_lossy().to_string();
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({
+                        "error": "log_file_not_found",
+                        "expected_path": expected,
+                    })),
+                )
+                    .into_response();
+            }
+        },
     };
 
     let filename = format!("attachment; filename=\"{service}.log\"");

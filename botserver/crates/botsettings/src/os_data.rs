@@ -39,16 +39,25 @@ pub(crate) struct ServiceInfo {
     pub(crate) running: bool,
 }
 
-/// One log file the panel can surface (#1874). `path` is empty when the
-/// service has no log file on this host; the UI renders that as "missing"
-/// instead of pretending the file exists.
+/// One log file the panel can surface (#1874, #2102). `path` is always the
+/// resolved-or-expected location so the panel can show where the file will
+/// appear; `exists=false` means it has not been created yet (or the host logs
+/// to journald instead of a file).
 #[derive(Serialize)]
 pub(crate) struct LogFileInfo {
     pub(crate) service: String,
     pub(crate) path: String,
     pub(crate) exists: bool,
     pub(crate) size_bytes: u64,
+    /// `file` when the path exists, `journal` when the service logs to the
+    /// systemd journal only, `missing` when nothing can be read yet.
+    pub(crate) source: &'static str,
 }
+
+/// #2102 — the desktop sidecar redirects both streams here
+/// (`botapp/src/desktop/sidecar.rs`), so on a packaged install this is the
+/// only log file that ever exists for `botserver`.
+const SIDECAR_LOG: &str = "logs/botserver-sidecar.log";
 
 fn run(program: &str, args: &[&str]) -> Option<String> {
     let mut command = SafeCommand::new(program).ok()?;
@@ -176,25 +185,71 @@ pub(crate) fn read_services() -> Vec<ServiceInfo> {
         .collect()
 }
 
-pub(crate) fn log_file_for(service: &str) -> Option<PathBuf> {
-    let stack = PathBuf::from(botcore::shared::utils::get_stack_path());
-    let mut candidates = Vec::new();
-    if service == "botserver" {
-        candidates.push(stack.join("logs/stdout.log"));
-        candidates.push(stack.join("logs/botserver.log"));
-        candidates.push(stack.join("logs/botserver/stdout.log"));
-        candidates.push(stack.join("botserver.log"));
-        if let Ok(cwd) = std::env::current_dir() {
-            candidates.push(cwd.join("botserver.log"));
-        }
-    } else {
-        candidates.push(stack.join("logs").join(service).join("stdout.log"));
-        candidates.push(stack.join("logs").join(format!("{service}.log")));
+/// Candidate log files for a service, in priority order. Pure so it can be
+/// unit-tested against a temporary stack directory (#2102).
+pub(crate) fn log_file_candidates_in(stack: &Path, service: &str) -> Vec<PathBuf> {
+    if service != "botserver" {
+        return vec![
+            stack.join("logs").join(service).join("stdout.log"),
+            stack.join("logs").join(format!("{service}.log")),
+        ];
     }
-    candidates.into_iter().find(|path| path.is_file())
+    vec![
+        // #2102 — desktop sidecar output first: it is the only file a
+        // packaged install writes.
+        stack.join(SIDECAR_LOG),
+        stack.join("logs/stdout.log"),
+        stack.join("logs/botserver.log"),
+        stack.join("logs/botserver/stdout.log"),
+        // Future rotation target, if the sidecar ever starts rotating.
+        stack.join("logs/botserver/current.log"),
+        stack.join("botserver.log"),
+    ]
 }
 
-/// Every known service log with its on-disk path and size (#1874).
+/// Where `botserver` is expected to write on this deployment: the sidecar file
+/// in shell mode (desktop), the redirected stdout file otherwise.
+pub(crate) fn expected_log_path(service: &str) -> PathBuf {
+    let stack = PathBuf::from(botcore::shared::utils::get_stack_path());
+    if service != "botserver" {
+        return log_file_candidates_in(&stack, service)
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| stack.join("logs").join(format!("{service}.log")));
+    }
+    if botcore::product::is_shell_mode() {
+        return stack.join(SIDECAR_LOG);
+    }
+    stack.join("logs/stdout.log")
+}
+
+pub(crate) fn log_file_in(stack: &Path, service: &str) -> Option<PathBuf> {
+    log_file_candidates_in(stack, service)
+        .into_iter()
+        .find(|path| path.is_file())
+}
+
+pub(crate) fn log_file_for(service: &str) -> Option<PathBuf> {
+    let stack = PathBuf::from(botcore::shared::utils::get_stack_path());
+    if let Some(path) = log_file_in(&stack, service) {
+        return Some(path);
+    }
+    // Development fallback: `cargo run` from the repo root leaves the log next
+    // to the working directory.
+    if service == "botserver" {
+        if let Ok(cwd) = std::env::current_dir() {
+            let fallback = cwd.join("botserver.log");
+            if fallback.is_file() {
+                return Some(fallback);
+            }
+        }
+    }
+    None
+}
+
+/// Every known service log with its on-disk path and size (#1874, #2102).
+/// Missing files still report the expected path so the panel can say where the
+/// log will appear instead of showing an empty row.
 pub(crate) fn log_file_infos() -> Vec<LogFileInfo> {
     let mut services: Vec<&str> = vec!["botserver"];
     for (name, _unit, _process) in SERVICES {
@@ -202,6 +257,7 @@ pub(crate) fn log_file_infos() -> Vec<LogFileInfo> {
             services.push(name);
         }
     }
+    let journal_ready = journal_available();
     services
         .into_iter()
         .map(|service| match log_file_for(service) {
@@ -210,15 +266,63 @@ pub(crate) fn log_file_infos() -> Vec<LogFileInfo> {
                 path: path.to_string_lossy().to_string(),
                 exists: true,
                 size_bytes: std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
+                source: "file",
             },
-            None => LogFileInfo {
-                service: service.to_string(),
-                path: String::new(),
-                exists: false,
-                size_bytes: 0,
-            },
+            None => {
+                let expected = expected_log_path(service);
+                let journal = journal_ready && journal_unit(service).is_some();
+                LogFileInfo {
+                    service: service.to_string(),
+                    path: expected.to_string_lossy().to_string(),
+                    exists: false,
+                    size_bytes: 0,
+                    source: if journal { "journal" } else { "missing" },
+                }
+            }
         })
         .collect()
+}
+
+/// systemd unit name for an allow-listed service (`botserver` is always
+/// allowed even though it also appears in [`SERVICES`]).
+pub(crate) fn journal_unit(service: &str) -> Option<&'static str> {
+    SERVICES
+        .iter()
+        .find(|(name, _unit, _process)| *name == service)
+        .map(|(_name, unit, _process)| *unit)
+}
+
+/// Whether `journalctl` can be executed on this host at all.
+pub(crate) fn journal_available() -> bool {
+    cfg!(target_os = "linux") && run("which", &["journalctl"]).is_some()
+}
+
+/// #2102 — production runs botserver under systemd and never writes a file, so
+/// the panel falls back to the journal. The script is built only from the
+/// allow-listed unit name (validated charset) and a clamped line count; the
+/// caller's input never reaches the shell.
+pub(crate) fn journal_tail(service: &str, lines: usize) -> Option<String> {
+    let unit = journal_unit(service)?;
+    if !unit
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '@'))
+    {
+        return None;
+    }
+    let script = format!("journalctl -u {unit} -n {lines} --no-pager");
+    let output = SafeCommand::new("sh")
+        .and_then(|command| command.arg("-c"))
+        .and_then(|command| command.trusted_shell_script_arg(&script))
+        .and_then(|command| command.execute())
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if text.is_empty() {
+        return None;
+    }
+    Some(text)
 }
 
 pub(crate) fn tail(path: &Path, lines: usize) -> String {
@@ -229,4 +333,60 @@ pub(crate) fn tail(path: &Path, lines: usize) -> String {
     let all: Vec<&str> = text.lines().collect();
     let start = all.len().saturating_sub(lines);
     all[start..].join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// #2102 — a temporary stack root that is removed again by the caller.
+    fn temp_stack(label: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("gb-os-data-{label}-{}", std::process::id()));
+        assert!(std::fs::remove_dir_all(&dir).is_ok() || !dir.exists());
+        assert!(std::fs::create_dir_all(dir.join("logs")).is_ok());
+        dir
+    }
+
+    #[test]
+    fn sidecar_log_is_the_first_candidate() {
+        let stack = temp_stack("candidates");
+        let candidates = log_file_candidates_in(&stack, "botserver");
+        assert_eq!(candidates.first(), Some(&stack.join(SIDECAR_LOG)));
+        assert!(candidates.contains(&stack.join("logs/stdout.log")));
+        assert!(std::fs::remove_dir_all(&stack).is_ok());
+    }
+
+    /// The desktop sidecar file must be found even when no other log exists.
+    #[test]
+    fn resolves_the_desktop_sidecar_log() {
+        let stack = temp_stack("sidecar");
+        let path = stack.join(SIDECAR_LOG);
+        assert!(std::fs::write(&path, "hello\n").is_ok());
+        assert_eq!(log_file_in(&stack, "botserver"), Some(path.clone()));
+        assert_eq!(tail(&path, 10), "hello");
+        assert!(std::fs::remove_dir_all(&stack).is_ok());
+    }
+
+    /// A stack with no log at all resolves to nothing, and the expected path
+    /// still points at a concrete location the panel can display.
+    #[test]
+    fn missing_log_reports_the_expected_path() {
+        let stack = temp_stack("missing");
+        assert_eq!(log_file_in(&stack, "botserver"), None);
+        let expected = log_file_candidates_in(&stack, "botserver")
+            .into_iter()
+            .next()
+            .unwrap_or_default();
+        assert!(expected.ends_with("botserver-sidecar.log"));
+        assert!(!expected.is_file());
+        assert!(std::fs::remove_dir_all(&stack).is_ok());
+    }
+
+    /// The journal script only ever carries an allow-listed unit name.
+    #[test]
+    fn journal_unit_is_allow_listed() {
+        assert_eq!(journal_unit("botserver"), Some("botserver"));
+        assert_eq!(journal_unit("postgresql"), Some("postgresql"));
+        assert_eq!(journal_unit("../../etc/passwd"), None);
+    }
 }
