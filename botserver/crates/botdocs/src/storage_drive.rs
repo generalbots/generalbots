@@ -2,8 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::state::DocState;
 use crate::storage_core::{
-    cache_document_bytes, count_words, get_cached_document_bytes, get_user_docs_path,
-    remove_from_cache,
+    count_words, get_cached_document_bytes, get_user_docs_path, remove_from_cache,
 };
 use crate::types::{Document, DocumentMetadata};
 
@@ -17,27 +16,29 @@ pub async fn save_document_as_docx(
     title: &str,
     content: &str,
 ) -> Result<Vec<u8>, String> {
-    let (docx_bytes, fidelity) =
-        crate::storage_docx_source::docx_bytes_with_fidelity(
-            state, user_identifier, doc_id, title, content,
-        )
-        .await?;
-    let base_path = get_user_docs_path(user_identifier);
-    let docx_path = format!("{base_path}/{doc_id}.docx");
-
-    state
-        .drive
-        .put_object(
-            &state.bucket_name,
-            &docx_path,
-            docx_bytes.clone(),
-            Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-        )
-        .await
-        .map_err(|e| format!("Failed to save DOCX: {e}"))?;
-
-    cache_document_bytes(doc_id, docx_bytes.clone()).await;
-    log::info!("docs: saved {doc_id} with the {fidelity} package");
+    let (docx_bytes, fidelity) = crate::storage_docx_source::docx_bytes_with_fidelity(
+        state,
+        user_identifier,
+        doc_id,
+        title,
+        content,
+    )
+    .await?;
+    // Persist through the same path as the import so the package and its
+    // fingerprint stay in step: a later save then knows the HTML this package
+    // represents and only patches when the text actually changed.
+    crate::storage_docx_source::persist_original_docx(
+        state,
+        user_identifier,
+        doc_id,
+        &docx_bytes,
+        content,
+    )
+    .await?;
+    log::info!(
+        "docs: saved {doc_id} with the {} package",
+        fidelity.as_str()
+    );
 
     Ok(docx_bytes)
 }
@@ -159,8 +160,18 @@ async fn save_document_with_extras(
 
     // #2042 — keep the .docx sibling in step with the HTML for documents that
     // came from a DOCX. Without this a plain editor save never refreshed the
-    // package, so the next export rebuilt from HTML.
-    if get_cached_document_bytes(doc_id).await.is_some() {
+    // package, so the next export rebuilt from HTML. The Drive copy is checked
+    // too, because after a restart the process cache is empty.
+    let docx_path = format!("{base_path}/{doc_id}.docx");
+    let has_source_package = get_cached_document_bytes(doc_id).await.is_some()
+        || matches!(
+            state
+                .drive
+                .object_exists(&state.bucket_name, &docx_path)
+                .await,
+            Ok(true)
+        );
+    if has_source_package {
         if let Err(error) =
             save_document_as_docx(state, user_identifier, doc_id, title, content).await
         {
@@ -311,7 +322,7 @@ pub async fn delete_document_from_drive(
 ) -> Result<(), String> {
     let base_path = get_user_docs_path(user_identifier);
 
-    for ext in &[".html", ".docx", ".meta.json"] {
+    for ext in &[".html", ".docx", ".docx.source.json", ".meta.json"] {
         let path = format!("{base_path}/{doc_id}{ext}");
         let _ = state
             .drive

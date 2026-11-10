@@ -2,6 +2,7 @@ use crate::re_cache::cached_re;
 use crate::state::DocState;
 use crate::storage::{get_current_user_id, load_document_from_drive};
 use crate::storage_core::{parse_html_to_paragraphs, ParagraphData, strip_html};
+use crate::storage_docx_source::DocxFidelity;
 use crate::types::ExportQuery;
 use crate::utils::html_to_markdown;
 use crate::utils_ooxml::html_to_odt_zip;
@@ -44,7 +45,7 @@ pub async fn handle_export_docx(
                         Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
                     )
                 })?;
-                (rebuilt, "regenerated")
+                (rebuilt, DocxFidelity::Regenerated)
             }
         };
 
@@ -57,7 +58,7 @@ pub async fn handle_export_docx(
     );
     headers.insert(
         "x-gb-docx-fidelity",
-        axum::http::HeaderValue::from_static(fidelity),
+        axum::http::HeaderValue::from_static(fidelity.as_str()),
     );
     Ok((headers, docx_bytes))
 }
