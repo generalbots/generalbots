@@ -86,3 +86,40 @@ pub fn dynamic(pattern: &str) -> Option<Regex> {
     }
     Some(compiled)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compile_returns_some_for_a_valid_pattern() {
+        let re = compile(r"^[a-z]+$").expect("valid pattern");
+        assert!(re.is_match("abc"));
+        assert!(!re.is_match("ABC"));
+    }
+
+    #[test]
+    fn compile_returns_none_instead_of_panicking() {
+        assert!(compile("(unclosed").is_none());
+    }
+
+    #[test]
+    fn dynamic_compiles_and_memoizes_a_runtime_pattern() {
+        let first = dynamic(r"\d{4}-\d{2}-\d{2}").expect("valid pattern");
+        let second = dynamic(r"\d{4}-\d{2}-\d{2}").expect("cached pattern");
+        assert!(first.is_match("2026-11-10"));
+        assert!(second.is_match("2026-11-10"));
+    }
+
+    #[test]
+    fn dynamic_returns_none_for_an_invalid_pattern() {
+        assert!(dynamic("(unclosed").is_none());
+    }
+
+    #[test]
+    fn cached_re_macro_compiles_once_per_call_site() {
+        let re = cached_re!(r"^A[0-9]+$").expect("macro pattern");
+        assert!(re.is_match("A12"));
+        assert!(!re.is_match("B12"));
+    }
+}
