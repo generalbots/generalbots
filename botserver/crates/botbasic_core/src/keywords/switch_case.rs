@@ -227,4 +227,60 @@ END SWITCH
         let output = preprocess_switch(input);
         assert!(output.contains("||"));
     }
+
+    #[test]
+    fn test_switch_match_bools() {
+        assert!(switch_match_impl(&Dynamic::from(true), &Dynamic::from(true)));
+        assert!(!switch_match_impl(&Dynamic::from(true), &Dynamic::from(false)));
+    }
+
+    #[test]
+    fn test_switch_match_float_against_int() {
+        assert!(switch_match_impl(
+            &Dynamic::from(42.0_f64),
+            &Dynamic::from(42_i64)
+        ));
+        assert!(!switch_match_impl(
+            &Dynamic::from(42.5_f64),
+            &Dynamic::from(42_i64)
+        ));
+    }
+
+    #[test]
+    fn test_switch_match_never_crosses_types() {
+        // A number never equals its string spelling.
+        assert!(!switch_match_impl(
+            &Dynamic::from(1_i64),
+            &Dynamic::from("1")
+        ));
+        assert!(!switch_match_impl(
+            &Dynamic::from("true"),
+            &Dynamic::from(true)
+        ));
+        assert!(!switch_match_impl(&Dynamic::UNIT, &Dynamic::from(0_i64)));
+    }
+
+    #[test]
+    fn test_preprocess_keeps_plain_lines() {
+        let output = preprocess_switch("TALK \"hi\"\nTALK \"bye\"");
+        assert_eq!(output, "TALK \"hi\"\nTALK \"bye\"\n");
+    }
+
+    #[test]
+    fn test_preprocess_single_case_has_no_else_chain() {
+        let input = "SWITCH x\n  CASE 1\n    y = 1\nEND SWITCH";
+        let output = preprocess_switch(input);
+        assert!(output.contains("let __switch_expr_0 = x;"));
+        assert!(output.contains("if __switch_expr_0 == 1 {"));
+        assert!(!output.contains("} else "));
+        assert!(output.contains("END SWITCH") == false);
+    }
+
+    #[test]
+    fn test_preprocess_numbers_each_switch() {
+        let input = "SWITCH a\n CASE 1\n  x = 1\nEND SWITCH\nSWITCH b\n CASE 2\n  y = 2\nEND SWITCH";
+        let output = preprocess_switch(input);
+        assert!(output.contains("__switch_expr_0"));
+        assert!(output.contains("__switch_expr_1"));
+    }
 }
