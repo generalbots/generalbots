@@ -4,7 +4,7 @@ pub(crate) use diesel::prelude::*;
 pub(crate) use serde::Deserialize;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
-pub(crate) use crate::{people, people_departments, people_teams, people_time_off, PeopleState};
+pub(crate) use crate::{people, people_departments, people_teams, people_time_off, tenant_branch, PeopleState};
 
 #[derive(Queryable)]
 struct PersonListRow {

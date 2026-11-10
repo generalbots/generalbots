@@ -4,8 +4,10 @@
 //! `users/{owner}/papers/current/{id}.md` (or
 //! `users/{owner}/papers/named/{title}/…` for a named copy) inside the bot's
 //! Drive bucket (`PaperState::bucket_name`). `{owner}` is the verified user id
-//! from [`crate::auth::PaperUser`], so the bucket is the tenant boundary and
-//! the user prefix is the owner boundary; neither comes from a header.
+//! from [`crate::auth::PaperUser`], so the user prefix is the owner boundary;
+//! neither the owner nor the bucket comes from a header. The bucket is the
+//! deployment's object-store boundary — a per-tenant bucket is a separate,
+//! migration-heavy follow-up.
 //!
 //! **Legacy data.** Documents written before #2137 live under
 //! `users/anonymous@local/papers/` (the old shared account) and, for callers

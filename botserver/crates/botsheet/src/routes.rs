@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use crate::collaboration::{
 handle_get_collaborators, handle_get_mentions, handle_get_presence, handle_get_selections,
 handle_get_typing, handle_sheet_websocket,
@@ -91,7 +92,11 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/data-validation", post(handle_data_validation))
         .route("/api/sheet/validate-cell", post(handle_validate_cell))
         .route("/api/sheet/note", post(handle_add_note))
-        .route("/api/sheet/import", post(handle_import_sheet))
+        .route(
+            "/api/sheet/import",
+            post(handle_import_sheet)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::SpreadsheetImport)),
+        )
         .route("/api/sheet/ai", post(handle_sheet_ai))
         .route("/api/sheet/ai/evaluate-prompt", post(handle_evaluate_ai_prompt))
         .route("/api/sheet/ai/batch-evaluate", post(handle_batch_evaluate_ai))

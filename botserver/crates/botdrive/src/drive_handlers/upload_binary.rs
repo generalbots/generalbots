@@ -53,7 +53,7 @@ pub async fn upload_file_binary(
     let key = format!("uploads/{}.{}", uuid::Uuid::new_v4(), upload.extension);
 
     drive
-        .put_object(&bucket, &key, data, None)
+        .put_object(&bucket, &key, data.to_vec(), None)
         .await
         .map_err(|e| {
             err(

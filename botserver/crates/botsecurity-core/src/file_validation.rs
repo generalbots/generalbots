@@ -177,11 +177,37 @@ fn detect_file_type(data: &[u8]) -> Option<String> {
         return Some("text/plain".into());
     }
 
-    if data.iter().all(|&b| b.is_ascii() && !b.is_ascii_control()) {
+    if looks_like_text(data) {
         return Some("text/plain".into());
     }
 
     None
+}
+
+/// Whether the payload reads as text (ASCII or UTF-8) rather than binary.
+///
+/// Whitespace is allowed — a `.csv`, `.ics` or `.md` upload is full of newlines
+/// and a non-ASCII name/description is still text. Any other control character
+/// (or invalid UTF-8) means binary.
+fn looks_like_text(data: &[u8]) -> bool {
+    if data.is_empty() {
+        return false;
+    }
+
+    // Cap the scan: a 100 MiB upload does not need a full UTF-8 validation to
+    // prove it is not text.
+    let head = &data[0..data.len().min(8192)];
+
+    match std::str::from_utf8(head) {
+        Ok(text) => text.chars().all(|c| !c.is_control() || c.is_whitespace()),
+        Err(error) => {
+            // A multi-byte character split at the 8 KiB boundary is still
+            // text: judge the valid prefix.
+            let valid = &head[..error.valid_up_to()];
+            std::str::from_utf8(valid)
+                .is_ok_and(|text| text.chars().all(|c| !c.is_control() || c.is_whitespace()))
+        }
+    }
 }
 
 /// MIME type implied by the leading bytes of `data`, or `None` when the

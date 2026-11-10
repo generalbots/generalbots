@@ -103,8 +103,21 @@ impl WhatsAppChannel {
         self.post_request(&url, body)
     }
 
+    /// Meta subscription handshake.
+    ///
+    /// Fails closed (#2142): an unconfigured `webhook_secret` matches nothing
+    /// (an empty expected value used to accept an empty token), and the token
+    /// is compared in constant time so it cannot be recovered from timing.
     pub fn verify_webhook(&self, mode: &str, token: &str, challenge: &str) -> Result<String, String> {
-        if mode == "subscribe" && token == self.webhook_secret {
+        let expected = self.webhook_secret.trim();
+        if expected.is_empty() {
+            return Err("Webhook verification is not configured".to_string());
+        }
+
+        let provided = token.trim();
+        let matches = !provided.is_empty() && botsecurity_core::constant_time::eq_str(expected, provided);
+
+        if mode == "subscribe" && matches {
             Ok(challenge.to_string())
         } else {
             Err("Webhook verification failed".to_string())
@@ -159,6 +172,16 @@ mod tests {
         let ch = WhatsAppChannel::new("1", "2", "3").with_webhook("secret123");
         let result = ch.verify_webhook("subscribe", "wrong", "challenge_val");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_verify_webhook_without_a_secret_fails_closed() {
+        // An empty configured secret used to accept an empty token (#2142).
+        let ch = WhatsAppChannel::new("1", "2", "3");
+        assert!(ch.verify_webhook("subscribe", "", "challenge_val").is_err());
+        assert!(ch
+            .verify_webhook("subscribe", "anything", "challenge_val")
+            .is_err());
     }
 
     #[test]

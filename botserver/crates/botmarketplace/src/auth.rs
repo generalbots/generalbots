@@ -174,7 +174,11 @@ mod tests {
     }
 
     fn token(payload: &serde_json::Value, secret: &str) -> String {
-        token_with_header(r#"{"alg":"HS256","typ":"JWT"}"#, &payload.to_string(), secret)
+        token_with_header(
+            r#"{"alg":"HS256","typ":"JWT"}"#,
+            &payload.to_string(),
+            secret,
+        )
     }
 
     fn bearer(token: &str) -> HeaderMap {
@@ -272,7 +276,10 @@ mod tests {
         let payload = URL_SAFE_NO_PAD.encode(claims("admin").to_string().as_bytes());
         let header = URL_SAFE_NO_PAD.encode(br#"{"alg":"HS256","typ":"JWT"}"#);
 
-        for unsigned in [format!("{header}.{payload}"), format!("{header}.{payload}.")] {
+        for unsigned in [
+            format!("{header}.{payload}"),
+            format!("{header}.{payload}."),
+        ] {
             assert!(verify_hs256_jwt(&unsigned, SECRET).is_err());
             let headers = bearer(&unsigned);
             assert!(jwt_claims(&headers).is_none(), "{unsigned}");

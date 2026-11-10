@@ -228,7 +228,7 @@ async fn handle_webhook_in(
     // per-bot route, from the workspace default otherwise. The same scope then
     // drives the secret check and the session, so a delivery can never be
     // verified against one bot and processed by another.
-    let (bot_id, _branch_id) = match resolve_delivery_scope(&state, bot_name.as_deref()) {
+    let (bot_id, _) = match resolve_delivery_scope(&state, bot_name.as_deref()) {
         Ok(scope) => scope,
         Err(status) => return status.into_response(),
     };

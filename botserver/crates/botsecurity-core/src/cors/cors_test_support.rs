@@ -82,13 +82,14 @@ pub(super) async fn send(
     origin: Option<&str>,
     method: Method,
 ) -> Result<axum::response::Response, Box<dyn std::error::Error>> {
+    let is_preflight = method == Method::OPTIONS;
     let mut builder = Request::builder().method(method).uri("/api/ping");
 
     if let Some(origin) = origin {
         builder = builder.header(header::ORIGIN, origin);
     }
 
-    if method == Method::OPTIONS {
+    if is_preflight {
         builder = builder
             .header(header::ACCESS_CONTROL_REQUEST_METHOD, "POST")
             .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "x-user-id");

@@ -310,3 +310,38 @@ fn a_hidden_drive_file_with_a_known_extension_is_accepted() {
     assert_eq!(upload.filename, ".gbdesktop.json");
     assert_eq!(upload.extension, "json");
 }
+
+#[test]
+fn text_with_newlines_and_accents_is_still_text() {
+    // A CSV/ICS/Markdown upload is full of newlines and may be UTF-8: the
+    // magic-byte check must not mistake that for binary.
+    let csv = "nome,cidade\nJoão,São Paulo\n".as_bytes();
+    let upload = validate_upload(
+        UploadClass::SpreadsheetImport,
+        "contatos.csv",
+        "text/csv",
+        csv,
+    )
+    .expect("a UTF-8 CSV with newlines must be accepted");
+    assert_eq!(upload.mime, "text/csv");
+
+    let ical = b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n";
+    validate_upload(
+        UploadClass::CalendarImport,
+        "agenda.ics",
+        "text/calendar",
+        ical,
+    )
+    .expect("an iCalendar body must be accepted");
+}
+
+#[test]
+fn client_mime_aliases_are_canonicalized() {
+    // Browsers send `audio/x-wav`, `image/jpg` and `application/x-zip-compressed`.
+    let wav = b"RIFF\x24\x00\x00\x00WAVEfmt ";
+    validate_upload(UploadClass::ChatAttachment, "nota.wav", "audio/x-wav", wav)
+        .expect("audio/x-wav must be accepted for .wav");
+
+    let png_alias = validate_upload(UploadClass::Image, "avatar.jpg", "image/jpg", PNG);
+    assert!(png_alias.is_err(), "an image/jpg claim over PNG bytes must fail");
+}

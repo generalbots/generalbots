@@ -113,9 +113,7 @@ mod tests {
     #[tokio::test]
     async fn verified_identity_is_the_owner() {
         let mut parts = parts();
-        parts
-            .extensions
-            .insert(SlidesUser::new("user-a", "Alice"));
+        parts.extensions.insert(SlidesUser::new("user-a", "Alice"));
         let user = SlidesUser::from_request_parts(&mut parts, &())
             .await
             .expect("verified identity");

@@ -87,6 +87,7 @@ mod search_files;
 mod share_email;
 mod share_email_send;
 mod share_recipients;
+mod transfer;
 mod upload_binary;
 mod version_list_body;
 
@@ -105,5 +106,6 @@ pub use public_link_url::*;
 pub use search_files::*;
 pub use share_email::*;
 pub use share_recipients::*;
+pub use transfer::*;
 pub use upload_binary::*;
 pub use version_list_body::*;

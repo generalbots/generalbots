@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use axum::Router;
 use std::sync::Arc;
 
@@ -54,7 +55,10 @@ pub fn configure_video_routes() -> Router<Arc<AppState>> {
             get(get_audio_tracks).post(add_audio_track),
         )
         .route("/api/video/audio/:id", delete(delete_audio_track))
-        .route("/api/video/projects/:id/upload", post(upload_media))
+        .route(
+            "/api/video/projects/:id/upload",
+            post(upload_media).layer(upload_policy::body_limit(upload_policy::UploadClass::VideoMedia)),
+        )
         .route("/api/video/projects/:id/preview", get(get_preview_frame))
         .route(
             "/api/video/projects/:id/transcribe",

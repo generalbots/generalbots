@@ -61,8 +61,8 @@ pub fn office_install_owner() -> String {
     OWNER
         .get_or_init(|| {
             let stack_path = botcore::shared::utils::get_stack_path();
-            let config_path = std::path::PathBuf::from(stack_path)
-                .join("conf/system/directory_config.json");
+            let config_path =
+                std::path::PathBuf::from(stack_path).join("conf/system/directory_config.json");
             resolve_from_config(&config_path)
         })
         .clone()
@@ -161,16 +161,15 @@ mod tests {
         assert!(!is_usable_owner(""));
         assert!(!is_usable_owner("default-user"));
         assert!(!is_usable_owner("anonymous@local"));
-        assert!(is_usable_owner("local-8f14e45f-ceea-467f-a1a5-c4d1d2f4a9d6"));
+        assert!(is_usable_owner(
+            "local-8f14e45f-ceea-467f-a1a5-c4d1d2f4a9d6"
+        ));
     }
 
     #[cfg(feature = "desktop-local")]
     #[test]
     fn install_owner_is_persisted_and_reused() {
-        let dir = std::env::temp_dir().join(format!(
-            "office-owner-{}.json",
-            uuid::Uuid::new_v4()
-        ));
+        let dir = std::env::temp_dir().join(format!("office-owner-{}.json", uuid::Uuid::new_v4()));
         let first = resolve_from_config(&dir);
         assert!(first.starts_with("local-"));
         assert_eq!(resolve_from_config(&dir), first);

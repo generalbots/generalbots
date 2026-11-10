@@ -9,6 +9,7 @@ pub use types::*;
 pub use service::ProjectService;
 pub use import::{ConflictResolution, ImportFormat, ImportOptions, ProjectImportService};
 
+use botsecurity_core::upload_policy;
 use axum::{
     routing::{delete, get, post, put},
     Router,
@@ -71,7 +72,11 @@ pub fn configure(service: Arc<ProjectService>) -> Router<Arc<ProjectService>> {
         .route("/api/projects/:project_id/resources", post(create_resource))
         .route("/api/projects/:project_id/resources", get(list_resources))
         .route("/api/resources/:resource_id", delete(delete_resource))
-        .route("/api/projects/import", post(import_project))
+        .route(
+            "/api/projects/import",
+            post(import_project)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::ProjectImport)),
+        )
         .route("/api/projects/:project_id/export", get(export_project))
         .route("/projects/import", post(import_project))
         .route("/projects/:project_id/export", get(export_project))

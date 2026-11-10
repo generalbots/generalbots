@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use axum::{
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -90,7 +91,11 @@ pub fn configure_compliance_routes() -> Router<AppState> {
         .route("/api/compliance/training", get(handlers::handle_list_training).post(handlers::handle_create_training))
         .route("/api/compliance/risks", get(handlers::handle_list_risks))
         .route("/api/compliance/report", get(handlers::handle_get_report))
-        .route("/api/compliance/evidence", post(handlers::handle_upload_evidence))
+        .route(
+            "/api/compliance/evidence",
+            post(handlers::handle_upload_evidence)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::Evidence)),
+        )
         // Frameworks CRUD + controls + evidence mapping
         .route("/api/compliance/frameworks", get(framework_handlers::handle_list_frameworks).post(framework_handlers::handle_create_framework))
         .route("/api/ui/compliance/framework/:name", get(framework_handlers::handle_framework_detail_page))

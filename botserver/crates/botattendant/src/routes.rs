@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use axum::{
     routing::{delete, get, post, put},
     Router,
@@ -20,7 +21,11 @@ pub fn configure_attendant_routes() -> Router<Arc<AttendantConfig>> {
         .route("/api/attendant/sessions/:id/end", put(end_session))
         .route("/api/attendant/sessions/:id/rate", put(rate_session))
         .route("/api/attendant/sessions/:id/messages", post(send_message))
-        .route("/api/attendant/sessions/:id/attachments", post(upload_attachment))
+        .route(
+            "/api/attendant/sessions/:id/attachments",
+            post(upload_attachment)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::ChatAttachment)),
+        )
         .route("/api/attendant/attachments/:id/download", get(download_attachment))
         .route("/api/attendant/agents", get(list_agent_statuses))
         .route("/api/attendant/agents/:id/status", put(update_agent_status))

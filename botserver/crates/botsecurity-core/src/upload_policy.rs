@@ -29,11 +29,14 @@ use axum::http::{header, HeaderMap};
 
 use crate::file_validation::{blocked_extensions, detect_mime_type};
 pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
+pub use crate::upload_transport::{body_limit, check_declared_length};
 
 pub use crate::upload_error::{
     locale_from_headers, rejection_json, rejection_message, UploadError,
 };
-pub use crate::upload_tables::{extension_for_mime, is_text_mime, is_zip_container, mime_for_extension};
+pub use crate::upload_tables::{
+    canonical_mime, extension_for_mime, is_text_mime, is_zip_container, mime_for_extension,
+};
 
 const DRIVE_EXTENSIONS: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "pdf", "zip", "gz", "rar", "7z",
@@ -278,7 +281,8 @@ pub fn validate_upload(
         });
     }
 
-    let declared = normalize_mime(content_type);
+    let declared_raw = normalize_mime(content_type);
+    let declared = canonical_mime(&declared_raw).to_string();
     if !declared_matches(&declared, expected) {
         return Err(UploadError::TypeMismatch {
             expected: expected.to_string(),
@@ -319,22 +323,6 @@ pub fn validate_upload(
     })
 }
 
-/// Refuses the request from `Content-Length` alone, before the body is
-/// buffered. Handlers call this first; [`validate_upload`] re-checks the real
-/// length for chunked requests that carry no header.
-pub fn check_declared_length(class: UploadClass, headers: &HeaderMap) -> Result<(), UploadError> {
-    let max = max_bytes(class);
-    let declared = headers
-        .get(header::CONTENT_LENGTH)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.trim().parse::<u64>().ok());
-
-    match declared {
-        Some(length) if length > max as u64 => Err(UploadError::TooLarge { max }),
-        _ => Ok(()),
-    }
-}
-
 /// Formats without a reliable leading signature; their extension is the only
 /// type signal available.
 const UNVERIFIABLE_EXTENSIONS: &[&str] = &["bin", "dat", "mpp"];
@@ -365,6 +353,10 @@ fn declared_matches(declared: &str, expected: &str) -> bool {
     }
     // Browsers label `.md`, `.csv`, `.json` and friends inconsistently.
     if is_text_mime(declared) && is_text_mime(expected) {
+        return true;
+    }
+    // Windows labels a `.csv` as `application/vnd.ms-excel`.
+    if expected == "text/csv" && declared == "application/vnd.ms-excel" {
         return true;
     }
     // Office/ODF packages are zip files, and some clients say so.

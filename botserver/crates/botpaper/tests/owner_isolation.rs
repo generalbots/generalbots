@@ -18,9 +18,7 @@ type Store = Arc<Mutex<HashMap<String, Vec<u8>>>>;
 
 fn pool() -> DbPool {
     let manager = ConnectionManager::<PgConnection>::new("postgres://localhost/unused");
-    Pool::builder()
-        .max_size(1)
-        .build_unchecked(manager)
+    Pool::builder().max_size(1).build_unchecked(manager)
 }
 
 fn paper_state(store: &Store) -> Arc<PaperState> {
@@ -36,7 +34,8 @@ fn paper_state(store: &Store) -> Arc<PaperState> {
                     .map_err(|e| e.to_string())?
                     .insert(format!("{bucket}/{key}"), data);
                 Ok(())
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+            })
+                as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
         })
     };
 
@@ -52,9 +51,10 @@ fn paper_state(store: &Store) -> Arc<PaperState> {
                     .get(&format!("{bucket}/{key}"))
                     .cloned()
                     .ok_or_else(|| "404 Not Found".to_string())
-            }) as std::pin::Pin<
-                Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>,
-            >
+            })
+                as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<Vec<u8>, String>> + Send>,
+                >
         })
     };
 
@@ -70,7 +70,8 @@ fn paper_state(store: &Store) -> Arc<PaperState> {
                     .map_err(|e| e.to_string())?
                     .remove(&format!("{bucket}/{key}"));
                 Ok(())
-            }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
+            })
+                as std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send>>
         })
     };
 
@@ -90,9 +91,10 @@ fn paper_state(store: &Store) -> Arc<PaperState> {
                     .collect();
                 keys.sort();
                 Ok(keys)
-            }) as std::pin::Pin<
-                Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>,
-            >
+            })
+                as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<Vec<String>, String>> + Send>,
+                >
         })
     };
 
@@ -192,7 +194,10 @@ async fn as_alice(
 
 fn new_document_app(state: Arc<PaperState>, identity: bool) -> axum::Router {
     let router = axum::Router::new()
-        .route(botpaper::PAPER_NEW, axum::routing::post(botpaper::handle_new_document))
+        .route(
+            botpaper::PAPER_NEW,
+            axum::routing::post(botpaper::handle_new_document),
+        )
         .with_state(state);
     if identity {
         router.layer(axum::middleware::from_fn(as_alice))

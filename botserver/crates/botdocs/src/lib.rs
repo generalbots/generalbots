@@ -25,6 +25,7 @@ pub mod utils_pdf;
 
 mod re_cache;
 
+use botsecurity_core::upload_policy;
 use axum::{routing::get, Router};
 use state::DocState;
 use std::sync::Arc;
@@ -75,7 +76,11 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         .route("/api/docs/export/md", get(handle_export_md))
         .route("/api/docs/export/html", get(handle_export_html))
         .route("/api/docs/export/txt", get(handle_export_txt))
-        .route("/api/docs/import", axum::routing::post(handle_import_document))
+        .route(
+            "/api/docs/import",
+            axum::routing::post(handle_import_document)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::DocumentImport)),
+        )
         .route("/api/docs/open-from-drive", axum::routing::post(handle_open_from_drive))
         .route("/api/docs/comment", axum::routing::post(handle_add_comment))
         .route("/api/docs/comment/reply", axum::routing::post(handle_reply_comment))

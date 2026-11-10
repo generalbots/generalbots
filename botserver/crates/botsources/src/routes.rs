@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use crate::handlers::*;
 use crate::handlers::integrations_handlers;
 use crate::state::AppState;
@@ -14,7 +15,12 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
     let m365_routes = crate::routes_m365::configure_m365_api_routes();
 
     let kb_routes = Router::new()
-        .route("/", get(handle_list_sources).post(handle_upload_document))
+        .route(
+            "/",
+            get(handle_list_sources)
+                .post(handle_upload_document)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::KnowledgeBase)),
+        )
         .route("/query", axum::routing::post(handle_query_knowledge_base))
         .route("/reindex", axum::routing::post(handle_reindex_sources))
         .route("/stats", get(handle_get_stats))

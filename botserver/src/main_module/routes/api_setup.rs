@@ -118,7 +118,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             )
             .route(
                 "/api/files/write",
-                axum_post(crate::drive::drive_handlers::upload_file_to_drive),
+                axum_post(crate::drive::drive_handlers::upload_file_to_drive).layer(
+                    botsecurity_core::upload_policy::body_limit(
+                        botsecurity_core::upload_policy::UploadClass::Drive,
+                    ),
+                ),
             )
             .route(
                 "/api/files/versions/list",
@@ -247,7 +251,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             )
             .route(
                 "/api/files/upload-binary",
-                axum_post(crate::drive::drive_handlers::upload_file_binary),
+                axum_post(crate::drive::drive_handlers::upload_file_binary).layer(
+                    botsecurity_core::upload_policy::body_limit(
+                        botsecurity_core::upload_policy::UploadClass::Drive,
+                    ),
+                ),
             )
             // Public share links (token-based). The download endpoint is
             // registered here but served anonymously via the

@@ -98,6 +98,36 @@ pub fn extension_for_mime(mime: &str) -> Option<&'static str> {
     })
 }
 
+/// Client aliases for the same type. Browsers send `audio/x-wav`, `image/jpg`
+/// and `application/x-zip-compressed`; the policy compares canonical names.
+#[must_use]
+pub fn canonical_mime(mime: &str) -> &str {
+    match mime {
+        "image/jpg" => "image/jpeg",
+        "image/x-png" => "image/png",
+        "audio/x-m4a" | "audio/m4a" => "audio/mp4",
+        "audio/x-wav" | "audio/wave" | "audio/vnd.wave" => "audio/wav",
+        "audio/mp3" | "audio/x-mp3" => "audio/mpeg",
+        "video/x-m4v" => "video/mp4",
+        "application/x-pdf" => "application/pdf",
+        "application/x-zip-compressed" => "application/zip",
+        "application/x-rar-compressed" => "application/vnd.rar",
+        "application/x-gzip" => "application/gzip",
+        "image/svg" => "image/svg+xml",
+        "application/x-vnd.oasis.opendocument.text" => "application/vnd.oasis.opendocument.text",
+        "application/x-vnd.oasis.opendocument.spreadsheet" => {
+            "application/vnd.oasis.opendocument.spreadsheet"
+        }
+        "application/x-vnd.oasis.opendocument.presentation" => {
+            "application/vnd.oasis.opendocument.presentation"
+        }
+        "text/x-markdown" => "text/markdown",
+        "text/x-csv" => "text/csv",
+        "application/x-json" => "application/json",
+        _ => mime,
+    }
+}
+
 /// Text-ish types interchange freely between clients (a `.md` may arrive as
 /// `text/plain`), so the declared type is compared as a family.
 #[must_use]

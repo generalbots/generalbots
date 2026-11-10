@@ -23,6 +23,7 @@ pub mod upload_archive;
 pub mod upload_error;
 pub mod upload_policy;
 pub mod upload_tables;
+pub mod upload_transport;
 pub mod validation;
 pub mod verified_jwt;
 pub mod webhook;

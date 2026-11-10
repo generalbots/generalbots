@@ -3,6 +3,10 @@
 //! Every read and write resolves the owner from the verified identity, so a
 //! caller can only reach the decks under `users/{their id}/presentations/`.
 
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use axum::routing::get;
+use axum::Router;
 use botslides::auth::SlidesUser;
 use botslides::handlers::handle_new_presentation;
 use botslides::storage::{
@@ -10,10 +14,6 @@ use botslides::storage::{
     load_presentation_by_id, save_presentation_to_drive, DriveOps,
 };
 use botslides::SlidesState;
-use axum::body::Body;
-use axum::http::{Request, StatusCode};
-use axum::routing::get;
-use axum::Router;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower::ServiceExt;
@@ -164,9 +164,8 @@ async fn a_deck_copied_into_the_wrong_prefix_is_not_served() {
 }
 
 fn slides_state(drive: MemoryDrive) -> std::sync::Arc<SlidesState<MemoryDrive>> {
-    let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(
-        "postgres://localhost/unused",
-    );
+    let manager =
+        diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new("postgres://localhost/unused");
     let conn = diesel::r2d2::Pool::builder()
         .max_size(1)
         .build_unchecked(manager);
@@ -235,7 +234,6 @@ async fn creating_a_deck_uses_the_verified_owner() {
     let body = axum::body::to_bytes(response.into_body(), 64 * 1024)
         .await
         .expect("body");
-    let deck: botslides::types::Presentation =
-        serde_json::from_slice(&body).expect("deck json");
+    let deck: botslides::types::Presentation = serde_json::from_slice(&body).expect("deck json");
     assert_eq!(deck.owner_id, "user-a");
 }

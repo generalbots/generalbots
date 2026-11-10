@@ -1,3 +1,4 @@
+use botsecurity_core::upload_policy;
 use crate::collaboration::{
     handle_get_collaborators, handle_get_mentions, handle_get_presence,
     handle_get_presenter_control, handle_get_questions, handle_get_selections, handle_get_typing,
@@ -73,7 +74,8 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         )
         .route(
             "/api/slides/import",
-            post(handle_import_presentation::<D>),
+            post(handle_import_presentation::<D>)
+                .layer(upload_policy::body_limit(upload_policy::UploadClass::PresentationImport)),
         )
         .route("/api/slides/cursor", post(handle_update_cursor::<D>))
         .route(
