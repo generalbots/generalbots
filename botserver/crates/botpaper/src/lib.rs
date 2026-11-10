@@ -99,3 +99,7 @@ pub fn configure_paper_routes() -> Router<Arc<PaperState>> {
         .route(PAPER_EXPORT_HTML, get(handle_export_html))
         .route(PAPER_EXPORT_TXT, get(handle_export_txt))
 }
+
+#[cfg(test)]
+#[path = "owner_isolation_tests.rs"]
+mod owner_isolation_tests;

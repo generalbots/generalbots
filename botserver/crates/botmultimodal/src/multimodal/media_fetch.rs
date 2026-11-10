@@ -9,9 +9,9 @@
 use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 
 /// Cap for audio/image/video payloads pulled from a caller-supplied URL.
-pub(super) const MEDIA_MAX_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const MEDIA_MAX_BYTES: usize = 32 * 1024 * 1024;
 
-pub(super) async fn fetch_media_bytes(
+pub(crate) async fn fetch_media_bytes(
     url: &str,
     max_bytes: usize,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {

@@ -120,5 +120,5 @@ pub async fn handle_update_toc(
         use_hyperlinks: existing_toc.use_hyperlinks,
     };
 
-    handle_generate_toc(State(state), Json(gen_req)).await
+    handle_generate_toc(State(state), user, Json(gen_req)).await
 }

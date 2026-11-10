@@ -39,16 +39,20 @@ pub enum DeliveryAuth {
 ///
 /// The comparison is byte-wise constant time (`constant_time::eq_str`): `==`
 /// on `&str` returns at the first differing byte, which lets a caller recover a
-/// valid secret byte by byte from response timing. Both sides are trimmed
-/// because the Bot API forwards the value verbatim and an operator may paste it
-/// with surrounding spaces.
+/// valid secret byte by byte from response timing. Surrounding horizontal
+/// whitespace is ignored because the Bot API forwards the value verbatim and an
+/// operator may paste it with surrounding spaces; any other character has to
+/// match exactly.
 pub fn authorize_delivery(expected_secret: &str, provided: Option<&str>) -> DeliveryAuth {
     let expected = expected_secret.trim();
     if expected.is_empty() {
         return DeliveryAuth::Unconfigured;
     }
 
-    let provided = provided.unwrap_or_default().trim();
+    // Only horizontal whitespace is padding: a header may be pasted with
+    // spaces or a tab, but a newline or any other control character means the
+    // value is not the secret, so it must not be trimmed away (#2142).
+    let provided = provided.unwrap_or_default().trim_matches([' ', '\t']);
     if provided.is_empty() {
         return DeliveryAuth::Mismatch;
     }

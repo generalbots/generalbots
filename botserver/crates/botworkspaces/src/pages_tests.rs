@@ -227,11 +227,11 @@ fn a_public_page_grants_view_and_only_public_edit_grants_edit() {
 #[test]
 fn an_explicit_grant_beats_the_role_matrix() {
     let user = Uuid::from_u128(42);
-    let mut page = page(id(1), None, Vec::new(), "Root");
-    page.permissions.allowed_users.push(user);
+    let mut granted = page(id(1), None, Vec::new(), "Root");
+    granted.permissions.allowed_users.push(user);
 
     assert!(check_page_permission(
-        &page,
+        &granted,
         user,
         WorkspaceRole::Viewer,
         PagePermissionType::Delete

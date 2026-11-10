@@ -23,3 +23,7 @@ pub struct SlidesState<D: DriveOps> {
     pub conn: Arc<DbPool>,
     pub get_default_bot: GetDefaultBotFn,
 }
+
+#[cfg(test)]
+#[path = "owner_isolation_tests.rs"]
+mod owner_isolation_tests;

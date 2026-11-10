@@ -134,11 +134,13 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/paper/**", "PUT", ""),
         RoutePermission::new("/api/paper/**", "DELETE", ""),
 
-        // Sheet
-        RoutePermission::new("/api/sheet/**", "GET", "").with_anonymous(true),
-        RoutePermission::new("/api/sheet/**", "POST", "").with_anonymous(true),
-        RoutePermission::new("/api/sheet/**", "PUT", "").with_anonymous(true),
-        RoutePermission::new("/api/sheet/**", "DELETE", "").with_anonymous(true),
+        // Sheet — personal workbooks. Never anonymous (#2127): every route
+        // under /api/sheet is scoped by the verified user id, so the RBAC gate
+        // must require authentication just like the auth middleware does.
+        RoutePermission::new("/api/sheet/**", "GET", ""),
+        RoutePermission::new("/api/sheet/**", "POST", ""),
+        RoutePermission::new("/api/sheet/**", "PUT", ""),
+        RoutePermission::new("/api/sheet/**", "DELETE", ""),
 
         // Jukebox — was missing from the registry, so default_deny 403'd every
         // request (including /api/jukebox/health from the jukebox app).
