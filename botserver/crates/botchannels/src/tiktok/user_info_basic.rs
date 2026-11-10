@@ -69,3 +69,45 @@ pub fn validate_video_file(size_bytes: u64, duration_seconds: u32) -> Result<(),
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tiktok_payload_tests {
+    use super::*;
+
+    #[test]
+    fn hashtags_gain_a_hash_when_missing() {
+        let tags = vec!["launch".to_string(), "#gb".to_string()];
+        assert_eq!(build_hashtags(&tags), "#launch #gb");
+        assert_eq!(build_hashtags(&[]), "");
+    }
+
+    #[test]
+    fn a_video_inside_the_limits_is_accepted() {
+        assert!(validate_video_file(0, 0).is_ok());
+        assert!(validate_video_file(1024, 60).is_ok());
+        // Exactly at the ceiling is still allowed.
+        assert!(validate_video_file(4 * 1024 * 1024 * 1024, 600).is_ok());
+    }
+
+    #[test]
+    fn an_oversized_video_is_refused_with_its_code() {
+        let error = validate_video_file(4 * 1024 * 1024 * 1024 + 1, 10).unwrap_err();
+        match error {
+            ChannelError::ApiError { code, .. } => {
+                assert_eq!(code.as_deref(), Some("VIDEO_TOO_LARGE"));
+            }
+            other => panic!("expected ApiError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_overlong_video_is_refused_with_its_code() {
+        let error = validate_video_file(1024, 601).unwrap_err();
+        match error {
+            ChannelError::ApiError { code, .. } => {
+                assert_eq!(code.as_deref(), Some("VIDEO_TOO_LONG"));
+            }
+            other => panic!("expected ApiError, got {other:?}"),
+        }
+    }
+}
