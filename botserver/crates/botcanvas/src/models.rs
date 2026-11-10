@@ -366,3 +366,7 @@ mod element_type_tests {
         assert_eq!(ElementType::from_label("RECTANGLE").as_str(), "rectangle");
     }
 }
+
+#[cfg(test)]
+#[path = "models_tests.rs"]
+mod tests;

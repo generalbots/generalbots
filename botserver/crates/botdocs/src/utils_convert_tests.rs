@@ -64,6 +64,7 @@ fn markdown_to_html_covers_blocks_and_inline_runs() {
         ("> quoted", "<blockquote>quoted</blockquote>"),
         ("---", "<hr>"),
         ("- a\n- b", "<ul><li>a</li><li>b</li></ul>"),
+        ("- **bold** item", "<ul><li><strong>bold</strong> item</li></ul>"),
         ("- a\nplain", "<ul><li>a</li></ul><p>plain</p>"),
         ("", ""),
     ];

@@ -59,7 +59,7 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
     if include_background {
         svg.push_str(&format!(
             r##"<rect width="100%" height="100%" fill="{}"/>"##,
-            canvas.background_color
+            svg_escape(&canvas.background_color)
         ));
     }
 
@@ -75,16 +75,20 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
             String::new()
         };
 
-        let fill = element
-            .properties
-            .fill_color
-            .as_deref()
-            .unwrap_or("transparent");
-        let stroke = element
-            .properties
-            .stroke_color
-            .as_deref()
-            .unwrap_or("none");
+        let fill = svg_escape(
+            element
+                .properties
+                .fill_color
+                .as_deref()
+                .unwrap_or("transparent"),
+        );
+        let stroke = svg_escape(
+            element
+                .properties
+                .stroke_color
+                .as_deref()
+                .unwrap_or("none"),
+        );
         let stroke_width = element.properties.stroke_width.unwrap_or(1.0);
         let opacity = element.properties.opacity.unwrap_or(1.0);
 
@@ -108,13 +112,15 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
                 ));
             }
             ElementType::Text => {
-                let text = element.properties.text.as_deref().unwrap_or("");
+                let text = svg_escape(element.properties.text.as_deref().unwrap_or(""));
                 let font_size = element.properties.font_size.unwrap_or(16.0);
-                let font_family = element
-                    .properties
-                    .font_family
-                    .as_deref()
-                    .unwrap_or("sans-serif");
+                let font_family = svg_escape(
+                    element
+                        .properties
+                        .font_family
+                        .as_deref()
+                        .unwrap_or("sans-serif"),
+                );
                 svg.push_str(&format!(
                     r##"<text x="{}" y="{}" font-size="{}" font-family="{}" fill="{}" opacity="{}"{}>{}</text>"##,
                     element.x, element.y + font_size, font_size, font_family,
@@ -125,7 +131,7 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
                 if let Some(path_data) = &element.properties.path_data {
                     svg.push_str(&format!(
                         r##"<path d="{}" fill="none" stroke="{}" stroke-width="{}" opacity="{}"{}/>"##,
-                        path_data, stroke, stroke_width, opacity, transform
+                        svg_escape(path_data), stroke, stroke_width, opacity, transform
                     ));
                 }
             }
@@ -142,10 +148,65 @@ pub(crate) fn generate_svg(canvas: &Canvas, include_background: bool) -> String 
                     stroke, stroke_width, opacity, marker, transform
                 ));
             }
-            _ => {}
+            ElementType::Image => {
+                if let Some(url) = &element.properties.image_url {
+                    svg.push_str(&format!(
+                        r##"<image x="{}" y="{}" width="{}" height="{}" href="{}" opacity="{}"{}/>"##,
+                        element.x,
+                        element.y,
+                        element.width,
+                        element.height,
+                        svg_escape(url),
+                        opacity,
+                        transform
+                    ));
+                }
+            }
+            ElementType::Sticky => {
+                let radius = element.properties.corner_radius.unwrap_or(2.0);
+                svg.push_str(&format!(
+                    r##"<rect x="{}" y="{}" width="{}" height="{}" rx="{}" fill="{}" stroke="{}" stroke-width="{}" opacity="{}"{}/>"##,
+                    element.x, element.y, element.width, element.height,
+                    radius, fill, stroke, stroke_width, opacity, transform
+                ));
+                let text = svg_escape(element.properties.text.as_deref().unwrap_or(""));
+                if !text.is_empty() {
+                    let font_size = element.properties.font_size.unwrap_or(14.0);
+                    svg.push_str(&format!(
+                        r##"<text x="{}" y="{}" font-size="{}" fill="#1f2937">{}</text>"##,
+                        element.x + 8.0,
+                        element.y + 8.0 + font_size,
+                        font_size,
+                        text
+                    ));
+                }
+            }
+            ElementType::Frame | ElementType::Connector => {
+                // A frame is an outlined region; a connector joins two points.
+                svg.push_str(&format!(
+                    r##"<rect x="{}" y="{}" width="{}" height="{}" fill="none" stroke="{}" stroke-width="{}" opacity="{}"{}/>"##,
+                    element.x, element.y, element.width, element.height,
+                    stroke, stroke_width, opacity, transform
+                ));
+            }
         }
     }
 
     svg.push_str("</svg>");
     svg
 }
+
+/// Escapes the five XML markup characters so an `&` in a value cannot break
+/// the document.
+fn svg_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+#[cfg(test)]
+#[path = "export_tests.rs"]
+mod tests;

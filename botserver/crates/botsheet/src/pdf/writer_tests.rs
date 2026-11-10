@@ -122,10 +122,17 @@ fn unparsable_cell_keys_are_ignored() {
 fn xref_offsets_point_at_every_object() {
     let mut writer = PdfWriter::new(options(false, 1.0));
     writer.add_worksheet("S", &rows(1)).expect("layout");
-    let pdf = String::from_utf8_lossy(&writer.finish()).to_string();
-    let xref_at = pdf.rfind("\nxref\n").map(|at| at + 1).expect("xref table");
-    let table = &pdf[xref_at..];
+    let pdf = writer.finish();
+    // The header carries non-UTF-8 bytes, so offsets are checked on bytes.
+    let marker = b"\nxref\n";
+    let xref_at = pdf
+        .windows(marker.len())
+        .rposition(|window| window == marker)
+        .map(|at| at + 1)
+        .expect("xref table");
+    let table = std::str::from_utf8(&pdf[xref_at..]).expect("xref table is ASCII");
     assert!(table.contains(" 65535 f \n"));
+
     let entries: Vec<&str> = table
         .lines()
         .filter(|line| line.ends_with(" 00000 n "))
@@ -134,6 +141,6 @@ fn xref_offsets_point_at_every_object() {
     for entry in entries {
         let offset: usize = entry[..10].parse().expect("numeric offset");
         assert!(offset < xref_at, "offset {offset} must precede the xref");
-        assert!(pdf[offset..].starts_with(|c: char| c.is_ascii_digit()));
+        assert!(pdf[offset].is_ascii_digit(), "object header at {offset}");
     }
 }

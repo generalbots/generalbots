@@ -39,3 +39,7 @@ pub(crate) fn db_to_canvas(db: DbCanvas, elements: Vec<CanvasElement>) -> Canvas
         elements,
     }
 }
+
+#[cfg(test)]
+#[path = "convert_tests.rs"]
+mod tests;

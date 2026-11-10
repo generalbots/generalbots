@@ -56,20 +56,21 @@ pub fn markdown_to_html(md: &str) -> String {
             continue;
         }
 
-        let processed = process_markdown_line(line);
-
         if line.starts_with("- ") || line.starts_with("* ") {
             if !in_list {
                 html.push_str("<ul>");
                 in_list = true;
             }
-            html.push_str(&format!("<li>{}</li>", &processed[2..]));
+            // Format the item text, not the rendered block: slicing the block
+            // output used to leave `>- a</p>` inside the `<li>`.
+            let item = process_inline_formatting(&line[2..]);
+            html.push_str(&format!("<li>{item}</li>"));
         } else {
             if in_list {
                 html.push_str("</ul>");
                 in_list = false;
             }
-            html.push_str(&processed);
+            html.push_str(&process_markdown_line(line));
         }
     }
 
