@@ -90,6 +90,10 @@ async fn provision_component(
             // edition offers external providers, so a missing local runtime is
             // a degraded feature, not a broken install.
             if component.optional {
+                // #2152 — a skipped install must leave the cause on the log;
+                // it used to be discarded, which made CI-only failures
+                // undiagnosable from the captured logs.
+                log::error!("optional component {} skipped: {reason}", component.id);
                 progress(
                     component.id,
                     "ready",

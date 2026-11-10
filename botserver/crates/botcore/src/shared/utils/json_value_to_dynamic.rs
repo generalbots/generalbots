@@ -43,10 +43,13 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
         // #2131 — the URL is caller-supplied: guarded fetch with a size cap.
+        // #2152 — model data is big: the DeepSeek GGUF is ~880 MB, so the cap
+        // and the wall-clock budget must cover real model downloads, not just
+        // HTML pages.
         let policy = FetchPolicy::default()
-            .with_timeout(Duration::from_secs(300))
+            .with_timeout(Duration::from_secs(1800))
             .with_user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
-            .with_max_bytes(256 * 1024 * 1024);
+            .with_max_bytes(2 * 1024 * 1024 * 1024);
         let response = fetch_user_url(&url, &policy).await?;
         if !response.is_success() {
             return Err(anyhow::anyhow!("HTTP {}: {}", response.status, url));
@@ -77,10 +80,13 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
         // #2131 — the URL is caller-supplied: guarded fetch with a size cap.
+        // #2152 — model data is big: the DeepSeek GGUF is ~880 MB, so the cap
+        // and the wall-clock budget must cover real model downloads, not just
+        // HTML pages.
         let policy = FetchPolicy::default()
-            .with_timeout(Duration::from_secs(300))
+            .with_timeout(Duration::from_secs(1800))
             .with_user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
-            .with_max_bytes(256 * 1024 * 1024);
+            .with_max_bytes(2 * 1024 * 1024 * 1024);
         let response = fetch_user_url(&url, &policy).await?;
         if !response.is_success() {
             return Err(anyhow::anyhow!("HTTP {}: {}", response.status, url));
