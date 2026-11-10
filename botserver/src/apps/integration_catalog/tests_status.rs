@@ -203,3 +203,70 @@ fn dropbox_advertises_only_the_actions_it_implements() {
     }
 }
 
+
+/// #2048 — the `status` query parameter used to filter on the seed literal,
+/// so `?status=built` listed providers with no adapter and
+/// `?status=unsupported` listed adapter-backed ones. It must answer with the
+/// same badge the provider payload carries.
+#[test]
+fn the_status_filter_answers_with_the_derived_badge() {
+    for wanted in ["built", "partial", "unsupported"] {
+        let listed = super::search(None, None, Some(wanted));
+        for provider in &listed.providers {
+            assert_eq!(
+                provider.status.as_str(),
+                wanted,
+                "{} was listed under {wanted} but renders {}",
+                provider.id,
+                provider.status.as_str()
+            );
+        }
+        let expected = providers::all()
+            .iter()
+            .filter(|seed| super::derived_status_of(seed).as_str() == wanted)
+            .count();
+        assert_eq!(
+            listed.provider_count, expected,
+            "?status={wanted} listed {} providers, {expected} have that badge",
+            listed.provider_count
+        );
+    }
+    assert_eq!(
+        super::search(None, None, Some("nonsense")).provider_count,
+        0,
+        "an unknown status must not match every provider"
+    );
+}
+
+/// #2048 — the LLM-facing summaries are the chat surface, so they must carry
+/// the same badge as the catalog payload instead of a stale literal.
+#[test]
+fn the_llm_summaries_carry_the_derived_badge() {
+    let summaries = super::llm_search(None, None, None);
+    assert!(!summaries.is_empty(), "the catalog must expose providers");
+    for summary in summaries {
+        let Some(provider) = provider_by_id(summary.id) else {
+            panic!("{} is summarised but missing from the payload", summary.id);
+        };
+        assert_eq!(
+            summary.status, provider.status,
+            "{} reports a different badge to the model than to the UI",
+            summary.id
+        );
+    }
+}
+
+/// #2048 — one derivation, no parallel paths: the helper behind the filter
+/// and the LLM summaries must agree with the expanded payload for every seed.
+#[test]
+fn the_derived_helper_and_the_payload_agree_for_every_seed() {
+    for seed in providers::all() {
+        let item = super::expand(seed);
+        assert_eq!(
+            super::derived_status_of(seed),
+            item.status,
+            "{} derives two different badges",
+            seed.id
+        );
+    }
+}

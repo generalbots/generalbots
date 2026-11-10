@@ -2,7 +2,7 @@ use super::super::actions::{
     BANKING_ACTIONS, CRYPTO_ACTIONS, FINANCE_OPERATIONS_ACTIONS, PAYMENT_ACTIONS, STRIPE_ACTIONS,
 };
 use super::super::auth::{API_KEY, OAUTH2, TOKEN, UNKNOWN, UNSUPPORTED};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -18,7 +18,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Finance,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: Some("botbilling"),
                 official_docs: Some("https://docs.stripe.com/api"),
@@ -33,7 +33,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.paypal.com/api/rest/"),
@@ -47,7 +47,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some(
@@ -63,7 +63,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.wise.com/api-docs/api-reference"),
@@ -77,7 +77,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://api.ynab.com/"),
@@ -91,7 +91,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://dev.moonpay.com/reference/overview"),
@@ -105,7 +105,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Verify,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://rest.docs.qik.dev/"),
@@ -119,7 +119,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Finance,
             strategy: Strategy::Verify,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://robinhood.com/"),

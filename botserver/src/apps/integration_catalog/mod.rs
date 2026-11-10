@@ -69,7 +69,7 @@ fn registry_action_names(provider_id: &str) -> Vec<&'static str> {
 ///   the surface is a module / LLM-only integration;
 /// * `unsupported` means none of the above.
 fn derived_status(seed: &ProviderSeed, implemented: usize, adapter_present: bool) -> Status {
-    if seed.status == Status::Planned {
+    if seed.planned {
         return Status::Planned;
     }
     let adapted = adapter_present || seed.llm_available || seed.module.is_some();
@@ -80,6 +80,19 @@ fn derived_status(seed: &ProviderSeed, implemented: usize, adapter_present: bool
     } else {
         Status::Unsupported
     }
+}
+
+/// The badge for a seed, computed from the registry alone. Every consumer
+/// (payload, `status` filter, LLM summaries) goes through this so no path can
+/// report a different badge than the provider payload (#2048, #2051).
+fn derived_status_of(seed: &ProviderSeed) -> Status {
+    let adapter_present = !registry_action_names(seed.id).is_empty();
+    let implemented = seed
+        .actions
+        .iter()
+        .filter(|action| action_is_implemented(seed, action))
+        .count();
+    derived_status(seed, implemented, adapter_present)
 }
 
 fn expand(seed: &ProviderSeed) -> ProviderItem {
@@ -150,6 +163,9 @@ fn query_matches(seed: &ProviderSeed, query: &str) -> bool {
         })
 }
 
+/// #2048 — the stored status literal is gone, so this filter must ask the
+/// derived badge: filtering on a stale literal used to list an adapter-backed
+/// provider under "unsupported" and an empty one under "built".
 fn matching_seeds(
     query: Option<&str>,
     category: Option<&str>,
@@ -159,7 +175,9 @@ fn matching_seeds(
         .into_iter()
         .filter(|seed| query.is_none_or(|value| query_matches(seed, value)))
         .filter(|seed| category.is_none_or(|value| category_matches(seed, value)))
-        .filter(|seed| status.is_none_or(|value| seed.status.as_str().eq_ignore_ascii_case(value)))
+        .filter(|seed| {
+            status.is_none_or(|value| derived_status_of(seed).as_str().eq_ignore_ascii_case(value))
+        })
         .collect()
 }
 
@@ -224,7 +242,7 @@ pub fn llm_search(
             id: seed.id,
             name: seed.name,
             category: seed.category,
-            status: seed.status,
+            status: derived_status_of(seed),
             action_count: seed.actions.len(),
             llm_available: seed.llm_available || !registry_action_names(seed.id).is_empty(),
         })

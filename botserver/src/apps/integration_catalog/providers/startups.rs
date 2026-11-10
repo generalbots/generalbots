@@ -3,7 +3,7 @@ use super::super::actions::{
     MARKETING_ACTIONS, SEO_ACTIONS, SUPPORT_ACTIONS,
 };
 use super::super::auth::{API_KEY, BASIC, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN, ZENDESK_TOKEN};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -13,7 +13,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.apollo.io/reference/api-overview"),
@@ -27,7 +27,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.lemlist.com/"),
@@ -41,7 +41,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://loops.so/docs/api-reference/intro"),
@@ -55,7 +55,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some(
@@ -71,7 +71,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.ahrefs.com/docs/api/reference/introduction"),
@@ -85,7 +85,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/google-ads/api/docs/start"),
@@ -99,7 +99,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.mercury.com/reference/welcome-to-mercury-api"),
@@ -113,7 +113,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.ramp.com/developer-api/v1/guides/getting-started"),
@@ -127,7 +127,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Verify,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://integrations.expensify.com/Integration-Server/doc/"),
@@ -141,7 +141,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.rippling.com/documentation/rest-api"),
@@ -155,7 +155,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.ashbyhq.com/docs/authentication"),
@@ -169,7 +169,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.plain.com/docs"),
@@ -183,7 +183,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botintegrations"),
             official_docs: Some("https://developer.salesforce.com/docs/apis"),
@@ -197,7 +197,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botintegrations"),
             official_docs: Some("https://developers.hubspot.com/docs/api/overview"),
@@ -211,7 +211,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://mailchimp.com/developer/marketing/api/"),
@@ -225,7 +225,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.zendesk.com/api-reference/"),
@@ -239,7 +239,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some(
@@ -255,7 +255,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.attio.com/rest-api/overview"),
@@ -269,7 +269,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://data.crunchbase.com/docs/using-the-api"),
@@ -283,7 +283,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.greenhouse.io/harvest.html"),
@@ -297,7 +297,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.clickfunnels.com/"),
@@ -311,7 +311,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.canny.io/api-reference"),
@@ -325,7 +325,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Startups,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://hub.phantombuster.com/reference"),

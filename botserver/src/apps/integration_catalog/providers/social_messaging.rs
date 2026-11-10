@@ -6,7 +6,7 @@ use super::super::auth::{
     API_KEY, GOOGLE_OAUTH2, INSTAGRAM_OAUTH2, OAUTH2, TELEGRAM, TOKEN, UNKNOWN, UNSUPPORTED,
     WHATSAPP,
 };
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -21,7 +21,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("bottelegram"),
             official_docs: Some("https://core.telegram.org/bots/api"),
@@ -35,7 +35,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botwhatsapp"),
             official_docs: Some("https://developers.facebook.com/docs/whatsapp/cloud-api"),
@@ -45,8 +45,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ),
     // Instagram is a live adapter (`botintegrations::providers::instagram`),
     // so the seed flips llm_available while `action_is_implemented` keeps the
-    // per-action truth in sync with the registered adapter. Status stays
-    // Partial because the Graph API exposes no media search and no media
+    // per-action truth in sync with the registered adapter. The derived badge
+    // is partial because the Graph API exposes no media search and no media
     // delete for Instagram, so only list/get/publish execute today.
     ProviderSeed {
         llm_available: true,
@@ -56,7 +56,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::SocialMessaging,
                 strategy: Strategy::Integrate,
-                status: Status::Partial,
+                planned: false,
                 priority: Priority::Must,
                 module: Some("botinstagram"),
                 official_docs: Some("https://developers.facebook.com/docs/instagram-platform"),
@@ -71,7 +71,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botsocial"),
             official_docs: Some("https://developers.facebook.com/docs/pages-api/"),
@@ -85,7 +85,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.pinterest.com/docs/api/v5/"),
@@ -99,7 +99,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.reddit.com/dev/api/"),
@@ -113,7 +113,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://dev.twitch.tv/docs/api/"),
@@ -127,7 +127,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.bsky.app/docs/api/at-protocol-xrpc-api"),
@@ -141,7 +141,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.joinmastodon.org/api/"),
@@ -155,7 +155,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Verify,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://signal.org/docs/"),
@@ -169,7 +169,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/youtube/analytics"),
@@ -183,7 +183,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://learn.microsoft.com/linkedin/marketing/"),
@@ -197,7 +197,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.luma.com/reference/getting-started-with-your-api"),
@@ -211,7 +211,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/blogger/docs/3.0/getting_started"),
@@ -225,7 +225,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.beehiiv.com/api-reference"),
@@ -239,7 +239,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SocialMessaging,
             strategy: Strategy::Verify,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.moltbook.com/developers"),

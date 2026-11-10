@@ -2,7 +2,7 @@ use super::super::actions::{
     BOOKMARK_ACTIONS, FILE_ACTIONS, HEALTH_ACTIONS, MEDIA_ACTIONS, NEWS_ACTIONS, SMART_HOME_ACTIONS,
 };
 use super::super::auth::{API_KEY, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNSUPPORTED};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -12,7 +12,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/photos"),
@@ -26,7 +26,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://readwise.io/api_deets"),
@@ -40,7 +40,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://dev.fitbit.com/build/reference/web-api/"),
@@ -54,7 +54,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.meethue.com/develop/hue-api-v2/"),
@@ -68,7 +68,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.newscatcherapi.com/"),
@@ -82,7 +82,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Verify,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.eightsleep.com/"),
@@ -96,7 +96,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Lifestyle,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.last.fm/api"),

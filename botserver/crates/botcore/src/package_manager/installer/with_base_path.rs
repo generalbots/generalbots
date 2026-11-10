@@ -418,18 +418,3 @@ impl PackageManager {
     }
 
 }
-
-/// Resolves the database password for a fresh cluster exactly like the install
-/// commands resolve `{{DB_PASSWORD}}`.
-#[cfg(unix)]
-fn database_password() -> String {
-    if let Ok(password) = std::env::var("BOOTSTRAP_DB_PASSWORD") {
-        if !password.is_empty() {
-            return password;
-        }
-    }
-    match crate::shared::utils::get_database_url_sync() {
-        Ok(url) => crate::shared::utils::parse_database_url(&url).1,
-        Err(_) => String::new(),
-    }
-}

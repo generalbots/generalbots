@@ -1,6 +1,6 @@
 use super::super::actions::AI_PLATFORM_ACTIONS;
 use super::super::auth::{API_KEY, KEYLESS, OPENAI_COMPATIBLE};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 /// LLM inference providers. These seed the integration catalog so users can
@@ -24,7 +24,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -41,7 +41,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -58,7 +58,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -75,7 +75,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -92,7 +92,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -109,7 +109,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -126,7 +126,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -143,7 +143,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -160,7 +160,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kilocode.ai/docs"),
@@ -177,7 +177,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://platform.openai.com/api-keys"),
@@ -194,7 +194,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://console.anthropic.com/settings/keys"),
@@ -211,7 +211,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some(
@@ -230,7 +230,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some(
@@ -249,7 +249,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://docs.z.ai/guides/develop/http/introduction"),
@@ -266,7 +266,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some(
@@ -285,7 +285,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some(
@@ -304,7 +304,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://kiro.dev/docs/"),
@@ -321,7 +321,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://deepinfra.com/docs/getting-started"),
@@ -338,7 +338,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://inference-docs.cerebras.ai/introduction"),
@@ -355,7 +355,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://docs.fireworks.ai/getting-started/introduction"),
@@ -372,7 +372,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://docs.together.ai/docs/quickstart"),
@@ -389,7 +389,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://openrouter.ai/docs/quickstart"),
@@ -406,7 +406,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://docs.requesty.ai/"),
@@ -423,7 +423,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             ProviderSpec {
                 category: Category::Llm,
                 strategy: Strategy::Improve,
-                status: Status::Built,
+                planned: false,
                 priority: Priority::Must,
                 module: None,
                 official_docs: Some("https://platform.openai.com/docs/api-reference/chat"),

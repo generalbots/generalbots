@@ -201,7 +201,10 @@ pub(crate) struct ProviderSeed {
     pub name: &'static str,
     pub category: Category,
     pub strategy: Strategy,
-    pub status: Status,
+    /// #2048 — the only status a seed may declare: `planned` is a product
+    /// decision, never inferred. Every other badge is derived from the adapter
+    /// registry, so a seed cannot store a status the registry contradicts.
+    pub planned: bool,
     pub priority: Priority,
     pub module: Option<&'static str>,
     pub official_docs: Option<&'static str>,

@@ -4,21 +4,21 @@ use super::super::actions::{
     REPOSITORY_ACTIONS, SEARCH_ACTIONS,
 };
 use super::super::auth::{API_KEY, AWS, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
     // GitHub is a live adapter (#950 slice 2); the seed flips
     // llm_available while `action_is_implemented` keeps the per-action truth
-    // in sync with botintegrations::providers::registry. Status stays
-    // Partial because only the repository action subset is implemented.
+    // in sync with botintegrations::providers::registry. The derived badge is
+    // partial while only the repository action subset is implemented.
     ProviderSeed {
         llm_available: true,
         ..provider(
             "github",
             "GitHub",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Partial,
+                category: Category::Developer, strategy: Strategy::Improve, planned: false,
                 priority: Priority::Must, module: Some("botgit"),
                 official_docs: Some("https://docs.github.com/en/rest"), auth: &TOKEN,
                 actions: REPOSITORY_ACTIONS,
@@ -29,7 +29,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "cursor",
         "Cursor",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::NewApp, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::NewApp, planned: false,
             priority: Priority::Nice, module: None, official_docs: Some("https://docs.cursor.com/"),
             auth: &API_KEY, actions: AI_PLATFORM_ACTIONS,
         },
@@ -43,7 +43,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "aws",
             "AWS",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+                category: Category::Developer, strategy: Strategy::Integrate, planned: false,
                 priority: Priority::Must, module: Some("botintegrations"),
                 official_docs: Some(
                 "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
@@ -56,7 +56,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "google_cloud",
         "Google Cloud",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Must, module: None,
             official_docs: Some("https://cloud.google.com/apis/docs/overview"),
             auth: &GOOGLE_OAUTH2, actions: CLOUD_ACTIONS,
@@ -66,7 +66,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "vercel",
         "Vercel",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://vercel.com/docs/rest-api"), auth: &TOKEN,
             actions: DEPLOYMENT_ACTIONS,
@@ -76,7 +76,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "supabase",
         "Supabase",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://supabase.com/docs/reference/api/introduction"),
             auth: &API_KEY, actions: DATA_PLATFORM_ACTIONS,
@@ -86,7 +86,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "netlify",
         "Netlify",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://docs.netlify.com/api-and-cli-guides/api-guides/get-started-with-api/"),
             auth: &OAUTH2, actions: DEPLOYMENT_ACTIONS,
@@ -96,7 +96,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "cloudflare",
         "Cloudflare",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://developers.cloudflare.com/api/"), auth: &TOKEN,
             actions: CLOUD_ACTIONS,
@@ -106,7 +106,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "snowflake",
         "Snowflake",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Verify, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Verify, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://docs.snowflake.com/en/developer-guide/sql-api/index"),
             auth: &UNKNOWN, actions: DATA_PLATFORM_ACTIONS,
@@ -116,7 +116,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "databricks",
         "Databricks",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://docs.databricks.com/api/workspace/introduction"),
             auth: &TOKEN, actions: DATA_PLATFORM_ACTIONS,
@@ -126,7 +126,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "posthog",
         "PostHog",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://posthog.com/docs/api"), auth: &API_KEY,
             actions: ANALYTICS_ACTIONS,
@@ -136,7 +136,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "amplitude",
         "Amplitude",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://amplitude.com/docs/apis"), auth: &API_KEY,
             actions: ANALYTICS_ACTIONS,
@@ -146,7 +146,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "sentry",
         "Sentry",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Must, module: Some("botmonitoring"),
             official_docs: Some("https://docs.sentry.io/api/"), auth: &TOKEN,
             actions: OBSERVABILITY_ACTIONS,
@@ -156,7 +156,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "splunk",
         "Splunk",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: Some("botmonitoring"),
             official_docs: Some("https://dev.splunk.com/enterprise/docs/devtools/httpeventcollector/"),
             auth: &TOKEN, actions: OBSERVABILITY_ACTIONS,
@@ -166,7 +166,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "hugging_face",
         "Hugging Face",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://huggingface.co/docs/api-inference/index"), auth: &TOKEN,
             actions: AI_PLATFORM_ACTIONS,
@@ -176,7 +176,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "resend",
         "Resend",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: Some("botemail"),
             official_docs: Some("https://resend.com/docs/api-reference/introduction"),
             auth: &API_KEY, actions: EMAIL_DELIVERY_ACTIONS,
@@ -186,7 +186,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "postmark",
         "Postmark",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: Some("botemail"),
             official_docs: Some("https://postmarkapp.com/developer/api/overview"), auth: &TOKEN,
             actions: EMAIL_DELIVERY_ACTIONS,
@@ -196,7 +196,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "algolia",
         "Algolia",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://www.algolia.com/doc/rest-api/search/"), auth: &API_KEY,
             actions: SEARCH_ACTIONS,
@@ -206,7 +206,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "upstash_redis",
         "Upstash Redis",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://upstash.com/docs/redis/features/restapi"), auth: &TOKEN,
             actions: DATA_PLATFORM_ACTIONS,
@@ -216,7 +216,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "hex",
         "Hex",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://learn.hex.tech/docs/api/api-reference"), auth: &TOKEN,
             actions: DATA_PLATFORM_ACTIONS,
@@ -226,7 +226,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "mintlify",
         "Mintlify",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None, official_docs: Some("https://mintlify.com/docs/api/"),
             auth: &API_KEY, actions: CONTENT_ACTIONS,
         },
@@ -235,7 +235,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "devin",
         "Devin",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: None,
             official_docs: Some("https://docs.devin.ai/api-reference/overview"), auth: &API_KEY,
             actions: AI_PLATFORM_ACTIONS,
@@ -245,7 +245,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "pydantic_logfire",
         "Pydantic Logfire",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Nice, module: Some("botmonitoring"),
             official_docs: Some("https://logfire.pydantic.dev/docs/how-to-guides/query-api/"),
             auth: &TOKEN, actions: OBSERVABILITY_ACTIONS,
@@ -255,7 +255,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "grafana",
         "Grafana",
         ProviderSpec {
-            category: Category::Developer, strategy: Strategy::Integrate, status: Status::Built,
+            category: Category::Developer, strategy: Strategy::Integrate, planned: false,
             priority: Priority::Must, module: Some("botmonitoring"),
             official_docs: Some("https://grafana.com/docs/grafana/latest/developers/http_api/"),
             auth: &TOKEN, actions: OBSERVABILITY_ACTIONS,

@@ -8,16 +8,18 @@ mod small_business;
 mod social_messaging;
 mod startups;
 
-use super::types::{
-    ActionTemplate, AuthProfile, Category, Priority, ProviderSeed, Status, Strategy,
-};
+use super::types::{ActionTemplate, AuthProfile, Category, Priority, ProviderSeed, Strategy};
 
 /// Everything a catalog provider declares beyond its identity, grouped so
 /// [`provider`] keeps a short argument list.
+///
+/// #2048 — there is deliberately no `status` here: the badge is derived from
+/// the adapter registry by `super::derived_status`, so a seed cannot advertise
+/// a capability it does not have. `planned` is the single explicit exception.
 pub(super) struct ProviderSpec {
     pub(super) category: Category,
     pub(super) strategy: Strategy,
-    pub(super) status: Status,
+    pub(super) planned: bool,
     pub(super) priority: Priority,
     pub(super) module: Option<&'static str>,
     pub(super) official_docs: Option<&'static str>,
@@ -35,7 +37,7 @@ pub(super) const fn provider(
         name,
         category: spec.category,
         strategy: spec.strategy,
-        status: spec.status,
+        planned: spec.planned,
         priority: spec.priority,
         module: spec.module,
         official_docs: spec.official_docs,

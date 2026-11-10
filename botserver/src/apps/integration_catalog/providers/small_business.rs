@@ -3,7 +3,7 @@ use super::super::actions::{
     SHIPPING_ACTIONS,
 };
 use super::super::auth::{API_KEY, BASIC, OAUTH2, TOKEN};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -13,7 +13,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.squarespace.com/commerce-apis/overview"),
@@ -27,7 +27,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.webflow.com/data/reference/rest-introduction"),
@@ -41,7 +41,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://marketplace.gohighlevel.com/docs/"),
@@ -55,7 +55,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.bigcommerce.com/docs/rest-management"),
@@ -69,7 +69,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.squareup.com/reference/square"),
@@ -83,7 +83,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botbanking"),
             official_docs: Some("https://developer.intuit.com/app/developer/qbo/docs/get-started"),
@@ -97,7 +97,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.paddle.com/api-reference/overview"),
@@ -111,7 +111,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.printful.com/docs/"),
@@ -125,7 +125,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://dev.whop.com/api-reference"),
@@ -139,7 +139,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://woocommerce.github.io/woocommerce-rest-api-docs/"),
@@ -153,7 +153,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.xero.com/documentation/api/accounting/overview"),
@@ -167,7 +167,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://x-series-api.lightspeedhq.com/docs/introduction"),
@@ -181,7 +181,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.fedex.com/api/en-us/catalog.html"),
@@ -195,7 +195,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.ups.com/api/reference"),
@@ -209,7 +209,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::SmallBusiness,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.dhl.com/"),

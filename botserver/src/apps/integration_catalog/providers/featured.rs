@@ -4,7 +4,7 @@ use super::super::actions::{
     PROJECT_ACTIONS, SOCIAL_ACTIONS, SPREADSHEET_ACTIONS, TASK_ACTIONS,
 };
 use super::super::auth::{GOOGLE_OAUTH2, MICROSOFT_OAUTH2, OAUTH2};
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -14,7 +14,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botcalendar"),
             official_docs: Some("https://developers.google.com/calendar/api/guides/overview"),
@@ -28,7 +28,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botdrive"),
             official_docs: Some("https://developers.google.com/drive/api/guides/about-sdk"),
@@ -42,7 +42,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botsheet"),
             official_docs: Some("https://developers.google.com/sheets/api/guides/concepts"),
@@ -56,7 +56,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("bottasks"),
             official_docs: Some("https://developers.google.com/tasks/reference/rest"),
@@ -70,7 +70,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botintegrations"),
             official_docs: Some("https://developers.notion.com/reference/intro"),
@@ -84,7 +84,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some(
@@ -100,7 +100,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://airtable.com/developers/web/api/introduction"),
@@ -114,7 +114,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             // #2057 — metadata operations only: Dropbox is an integration
@@ -133,7 +133,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: None,
             official_docs: Some("https://developers.google.com/gmail/api/reference/rest"),
@@ -147,7 +147,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botm365"),
             official_docs: Some(
@@ -163,7 +163,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botm365"),
             official_docs: Some("https://learn.microsoft.com/graph/api/resources/calendar"),
@@ -177,7 +177,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botm365"),
             official_docs: Some("https://learn.microsoft.com/graph/onedrive-concept-overview"),
@@ -191,7 +191,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.spotify.com/documentation/web-api"),
@@ -205,7 +205,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Featured,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.x.com/en/docs/x-api"),

@@ -6,7 +6,7 @@ use super::super::actions::{
 use super::super::auth::{
     API_KEY, GOOGLE_OAUTH2, IMAP, MICROSOFT_OAUTH2, OAUTH2, TRELLO_KEY_TOKEN, UNKNOWN,
 };
-use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
+use super::super::types::{Category, Priority, ProviderSeed, Strategy};
 use super::{provider, ProviderSpec};
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
@@ -16,7 +16,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botintegrations"),
             official_docs: Some("https://api.slack.com/docs"),
@@ -30,7 +30,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botmeet"),
             official_docs: Some("https://developers.zoom.us/docs/api/"),
@@ -44,7 +44,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: None,
             official_docs: Some("https://developer.calendly.com/api-docs"),
@@ -58,7 +58,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::NewApp,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://www.canva.dev/docs/connect/"),
@@ -72,7 +72,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.clickup.com/reference/getstarted"),
@@ -86,7 +86,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.monday.com/api-reference/docs"),
@@ -100,7 +100,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.todoist.com/rest/v2/"),
@@ -114,7 +114,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/forms/api/guides"),
@@ -128,7 +128,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.box.com/reference/"),
@@ -142,7 +142,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.docusign.com/docs/esign-rest-api/"),
@@ -156,7 +156,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Verify,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.arena.im/"),
@@ -170,7 +170,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botintegrations"),
             official_docs: Some("https://docs.n8n.io/api/"),
@@ -184,7 +184,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.google.com/admin-sdk"),
@@ -198,7 +198,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.atlassian.com/cloud/trello/rest/"),
@@ -212,7 +212,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.atlassian.com/cloud/confluence/rest/"),
@@ -226,7 +226,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.typeform.com/"),
@@ -240,7 +240,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://api.jotform.com/docs/"),
@@ -254,7 +254,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://cal.com/docs/api-reference/v2/introduction"),
@@ -268,7 +268,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.smartsheet.com/api/smartsheet/openapi"),
@@ -282,7 +282,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://github.com/basecamp/bc3-api"),
@@ -296,7 +296,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some(
@@ -312,7 +312,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Verify,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developers.grain.com/"),
@@ -326,7 +326,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Improve,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Must,
             module: Some("botm365"),
             official_docs: Some("https://learn.microsoft.com/graph/api/resources/sharepoint"),
@@ -340,7 +340,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Verify,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://docs.descriptapi.com/"),
@@ -354,7 +354,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Integrate,
-            status: Status::Built,
+            planned: false,
             priority: Priority::Nice,
             module: None,
             official_docs: Some("https://developer.raindrop.io/"),
@@ -368,7 +368,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         ProviderSpec {
             category: Category::Productivity,
             strategy: Strategy::Improve,
-            status: Status::Unsupported,
+            planned: false,
             priority: Priority::Must,
             module: Some("botemail"),
             official_docs: Some("https://www.rfc-editor.org/rfc/rfc9051"),
