@@ -284,6 +284,29 @@ workflow.
 
 ---
 
+## Independent Review Invitation
+
+The program behind this policy (issue #1717, closed with the supply-chain side
+green) did **not** test: physical/social engineering, third-party SaaS
+providers, customer tenants, destructive payloads, kernel-level exploits,
+post-exploitation forensics, and supply-chain compromise of upstream
+dependencies beyond version/advisory level (maintainer ownership,
+release-pipeline integrity, typosquatting, transfer history).
+
+Independent researchers and vendors are invited to review the public surface
+with that lens in mind. The rules of engagement:
+
+1. Read this file first; report through the private channel above, never in a
+   public issue.
+2. Findings are acknowledged within two business days and triaged against the
+   `#1717` report and the residual-risk register in this file.
+3. Reproduction artifacts stay private until a fix ships; a fix and its test
+   land before any public write-up.
+4. Informational findings (hardening suggestions, dependency hygiene) may be
+   discussed publicly after acknowledgment.
+5. Duplicates are closed against the existing report or the residual-risk row
+   that already covers them, with a pointer to the row.
+
 ## Coverage Gaps
 
 - Windows, macOS and alternate-architecture installer checksums must be filled
