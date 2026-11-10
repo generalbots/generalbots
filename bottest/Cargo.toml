@@ -62,6 +62,12 @@ rhai = { workspace = true, features = ["sync"] }
 insta = { workspace = true }
 botschema = { workspace = true, features = ["full"] }
 botbasic_types = { workspace = true }
+# The office editors, so the cross-format fidelity contract (#2044) can drive
+# their public import/patch/export APIs instead of re-implementing them.
+botdocs = { workspace = true }
+botslides = { workspace = true }
+botsheet = { workspace = true }
+botsheet-core = { workspace = true }
 
 [features]
 default = ["full"]
@@ -90,6 +96,14 @@ required-features = ["e2e"]
 [[test]]
 name = "media_filing"
 path = "tests/media_filing_test.rs"
+
+# Offline cross-format fidelity contract for the office editors (#2044).
+# Declared explicitly for the same reason as `media_filing`: a `[[test]]` table
+# disables target auto-discovery, and this one must run with no database, no
+# MinIO and no LLM.
+[[test]]
+name = "office_fidelity"
+path = "tests/office_fidelity.rs"
 
 [[bin]]
 name = "bottest"
