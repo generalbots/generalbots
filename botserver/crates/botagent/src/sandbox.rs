@@ -21,7 +21,26 @@ const MAX_FILE_COUNT: usize = 10;
 const MAX_FILE_CHARS: usize = 20_000;
 const MAX_OUTPUT_CHARS: usize = 20_000;
 const DEFAULT_TIMEOUT_MS: u64 = 30_000;
-const MAX_TIMEOUT_MS: u64 = 120_000;
+/// #2045 — hard cap for a caller's `timeout_ms`. Ten minutes covers a cold
+/// image pull plus a real build; `GB_WORKSPACE_TIMEOUT_MAX_MS` raises it for a
+/// node that legitimately builds for longer.
+const MAX_TIMEOUT_MS: u64 = 600_000;
+
+/// Parses a positive integer out of an optional value; blank, non-numeric and
+/// zero values mean "not set", so a misconfigured override falls back to the
+/// default cap instead of removing it.
+fn parse_positive_u64(value: Option<&str>) -> Option<u64> {
+    value
+        .map(str::trim)
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+}
+
+/// The effective `timeout_ms` cap, overridable per node.
+pub fn timeout_cap_ms() -> u64 {
+    parse_positive_u64(std::env::var("GB_WORKSPACE_TIMEOUT_MAX_MS").ok().as_deref())
+        .unwrap_or(MAX_TIMEOUT_MS)
+}
 
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");
@@ -165,7 +184,7 @@ pub async fn run_sandbox(
     let timeout_ms = body
         .timeout_ms
         .unwrap_or(DEFAULT_TIMEOUT_MS)
-        .min(MAX_TIMEOUT_MS);
+        .min(timeout_cap_ms());
 
     let name = format!(
         "sbx-{}",
@@ -316,4 +335,35 @@ pub fn b64_encode(data: &[u8]) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod timeout_cap_tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_or_blank_override_keeps_the_default_cap() {
+        assert_eq!(parse_positive_u64(None), None);
+        assert_eq!(parse_positive_u64(Some("")), None);
+        assert_eq!(parse_positive_u64(Some("   ")), None);
+    }
+
+    #[test]
+    fn non_numeric_and_zero_overrides_do_not_disable_the_cap() {
+        assert_eq!(parse_positive_u64(Some("ten")), None);
+        assert_eq!(parse_positive_u64(Some("0")), None);
+        assert_eq!(parse_positive_u64(Some("-5")), None);
+    }
+
+    #[test]
+    fn a_positive_override_is_used() {
+        assert_eq!(parse_positive_u64(Some(" 900000 ")), Some(900_000));
+        assert_eq!(parse_positive_u64(Some("120000")), Some(120_000));
+    }
+
+    #[test]
+    fn the_default_cap_allows_a_real_build() {
+        // A cold image pull plus a build does not fit in the old two minutes.
+        assert!(MAX_TIMEOUT_MS >= 600_000);
+    }
 }

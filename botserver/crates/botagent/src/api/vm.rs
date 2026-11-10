@@ -71,7 +71,10 @@ pub async fn vm_exec(
         return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
     }
 
-    let timeout = body.timeout_ms.unwrap_or(30_000).min(120_000);
+    let timeout = body
+        .timeout_ms
+        .unwrap_or(30_000)
+        .min(crate::sandbox::timeout_cap_ms());
     let (ok, stdout, stderr) = vm::exec_in_conversation(
         &state,
         &session.vm_name,
