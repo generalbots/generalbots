@@ -226,7 +226,16 @@ impl LLMProvider for OpenAIClient {
             // Per-chunk read timeout: a provider that returns 200 and then
             // stalls the body used to hang this loop forever while holding
             // the process-wide call_gate, blocking every other LLM call.
-            let read_timeout = std::time::Duration::from_secs(120);
+            // Prefill on a CPU-only model can leave the socket silent for
+            // minutes before the first chunk arrives; `LLM_READ_TIMEOUT_SECS`
+            // (default 120) is the operator knob for that case.
+            let read_timeout = std::time::Duration::from_secs(
+                std::env::var("LLM_READ_TIMEOUT_SECS")
+                    .ok()
+                    .and_then(|value| value.trim().parse::<u64>().ok())
+                    .filter(|secs| *secs > 0)
+                    .unwrap_or(120),
+            );
             loop {
                 let next = match tokio::time::timeout(read_timeout, stream.next()).await {
                     Ok(item) => item,

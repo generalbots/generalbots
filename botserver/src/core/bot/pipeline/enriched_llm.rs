@@ -134,14 +134,24 @@ pub(super) async fn build_and_stream(
     )
     .await;
 
+    // A CPU-only model must prefill the whole system prompt before the first
+    // token, which can take many minutes for a ~9k-token prompt. The budget is
+    // therefore configurable: `LLM_TURN_TIMEOUT_SECS` (default 300) lets an
+    // operator give a slow local model a realistic window without loosening the
+    // default for hosted providers.
+    let turn_timeout_secs = std::env::var("LLM_TURN_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .filter(|secs| *secs > 0)
+        .unwrap_or(300);
     let timed_out = tokio::time::timeout(
-        std::time::Duration::from_secs(300),
+        std::time::Duration::from_secs(turn_timeout_secs),
         super::llm::stream_llm_response(identity, rx, &messages_val, &user_query, model_preference),
     )
     .await
     .is_err();
     if timed_out {
-        botlog::safe_warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
+        botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
         super::event_sink::step_finished(
             identity.sink,
             &run,

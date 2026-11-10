@@ -18,7 +18,10 @@ var GBTurn = (function () {
 
   var DEFAULT_TAB = "tab-default";
   var SLOW_AFTER_MS = 12000;
-  var STALL_AFTER_MS = 90000;
+  // Prefill on a CPU-only model can keep the socket silent for minutes before
+  // the first token; `window.GB_STALL_MS` lets a deployment widen the window
+  // without changing the default for hosted providers.
+  var STALL_AFTER_MS = Number(window.GB_STALL_MS) > 0 ? Number(window.GB_STALL_MS) : 90000;
   var DONE_LINGER_MS = 1600;
   var DEDUPE_MS = 60000;
 
