@@ -165,7 +165,7 @@ fn svg_uses_the_slide_background_and_escapes_text() {
     s.background.color = Some("#123456".to_string());
 
     let svg = export_to_svg(&s, 100, 100);
-    assert!(svg.contains(r#"fill="#123456""#));
+    assert!(svg.contains(r##"fill="#123456""##));
     assert!(svg.contains("a &lt; b &amp; &quot;c&quot;"));
     // The text baseline is offset by the font size, not drawn on the top edge.
     assert!(svg.contains(r#"<text x="10" y="44""#));
