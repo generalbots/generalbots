@@ -4,6 +4,10 @@ use super::translation_parser::LocaleBundle;
 use super::{Locale, MessageArgs};
 use crate::error::BotResult;
 
+#[cfg(test)]
+#[path = "bundle_plural_tests.rs"]
+mod plural_tests;
+
 #[derive(Debug)]
 pub struct I18nBundle {
     bundles: HashMap<String, LocaleBundle>,
