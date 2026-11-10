@@ -296,9 +296,6 @@ settings-time-format = 时间格式
 # -----------------------------------------------------------------------------
 # Auth / Login
 # -----------------------------------------------------------------------------
-auth-login = 登录
-auth-logout = 退出
-auth-signup = 注册
 auth-forgot-password = 忘记密码？
 auth-reset-password = 重置密码
 auth-email = 电子邮件
@@ -308,7 +305,6 @@ auth-remember-me = 记住我
 auth-login-success = 登录成功
 auth-logout-success = 退出成功
 auth-invalid-credentials = 电子邮件或密码无效
-auth-session-expired = 您的会话已过期
 
 # -----------------------------------------------------------------------------
 # Search
@@ -327,11 +323,6 @@ search-clear-filters = 清除过滤器
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-previous = 上一页
-pagination-next = 下一步
-pagination-first = 第一
-pagination-last = 最后
-pagination-page = 第 { $current } 页（共 { $total }）
 pagination-showing = 显示 { $total } 中的{ $from } 至 { $to }
 
 # -----------------------------------------------------------------------------
@@ -381,15 +372,11 @@ tooltip-exit-fullscreen = 退出全屏
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = 语言
 settings-language-desc = 选择您的首选语言
 settings-display-language = 显示语言
 settings-language-affects = 影响应用程序中的所有文本
-settings-date-format = 日期格式
 settings-date-format-desc = 日期如何显示
-settings-time-format = 时间格式
 settings-time-format-desc = 12 小时制或 24 小时制
-settings-saved = 设置保存成功
 settings-language-changed = 语言更改成功
 settings-reload-required = 需要重新加载页面才能应用更改
 
@@ -412,7 +399,6 @@ settings-location = 地点
 settings-website = 网站
 
 # Settings - Security
-settings-security = 安全设置
 settings-security-desc = 通过增强的安全性保护您的帐户
 settings-change-password = 更改密码
 settings-change-password-desc = 定期更新您的密码以提高安全性
@@ -437,8 +423,6 @@ settings-appearance = 外观
 settings-appearance-desc = 自定义应用程序的外观
 settings-theme-selection = 主题
 settings-theme-selection-desc = 选择您喜欢的颜色主题
-settings-theme-dark = 黑暗
-settings-theme-light = 光
 settings-theme-blue = 蓝色
 settings-theme-purple = 紫色
 settings-theme-green = 绿色
@@ -667,12 +651,6 @@ research-save-to-collection = 保存至收藏
 # Admin Panel (additional UI keys)
 # -----------------------------------------------------------------------------
 admin-panel-title = 管理面板
-admin-quick-actions = 快速行动
-admin-create-user = 创建用户
-admin-create-group = 创建群组
-admin-register-dns = 注册DNS
-admin-recent-activity = 最近的活动
-admin-system-health = 系统健康状况
 
 # -----------------------------------------------------------------------------
 # Meet (additional keys)
@@ -731,7 +709,6 @@ notifications-empty = 无通知
 # -----------------------------------------------------------------------------
 # All Applications
 # -----------------------------------------------------------------------------
-nav-all-apps = 所有应用程序
 
 # =============================================================================
 # AUTH SCREENS - Complete translations for login, register, forgot/reset password
@@ -740,7 +717,6 @@ nav-all-apps = 所有应用程序
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = 欢迎回来，{ $name }！
 auth-sign-in-to-account = 登录您的 General Bots 帐户
 auth-email-address = 电子邮件地址
 auth-email-placeholder = you@example.com
@@ -1579,8 +1555,6 @@ tickets-no-closed = 没有封闭门票
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = 安全性
-security-subtitle = 管理您的帐户安全设置
 security-tab-compliance = API 合规报告
 security-tab-protection = 保护
 security-export-report = 出口报告
@@ -1662,7 +1636,6 @@ goals-alignment = 对准
 goals-ai-suggestions = 人工智能建议
 
 # CRM / Mail / Campaigns integration keys
-crm-email = 电子邮件
 crm-compose-email = 撰写电子邮件
 crm-send-email = 发送电子邮件
 mail-snooze = 贪睡
@@ -1785,9 +1758,7 @@ attendant-emoji = 表情
 attendant-uploading = 上传中...
 attendant-attach-error = 上传失败
 attendant-emoji-search = 搜索表情...
-meet-record = 录制
 meet-record-title = 录制会议
-meet-recording = 录制中
 meet-recordings = 录制
 meet-recordings-empty = 暂无录制
 
@@ -1839,8 +1810,6 @@ chat-scroll-bottom = 滚动到底部
 chat-private-signin = 私有机器人 — 请登录后继续
 
 settings-profile = 个人资料
-settings-appearance = 外观
-settings-storage = 存储
 settings-integrations = 集成
 settings-vibe = Vibe
 settings-memory = 记忆

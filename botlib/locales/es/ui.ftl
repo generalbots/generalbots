@@ -296,9 +296,6 @@ settings-time-format = Formato de Hora
 # -----------------------------------------------------------------------------
 # Auth / Login
 # -----------------------------------------------------------------------------
-auth-login = Iniciar Sesión
-auth-logout = Cerrar Sesión
-auth-signup = Registrarse
 auth-forgot-password = ¿Olvidaste tu Contraseña?
 auth-reset-password = Restablecer Contraseña
 auth-email = Correo Electrónico
@@ -308,7 +305,6 @@ auth-remember-me = Recordarme
 auth-login-success = Sesión iniciada exitosamente
 auth-logout-success = Sesión cerrada exitosamente
 auth-invalid-credentials = Correo o contraseña inválidos
-auth-session-expired = Tu sesión ha expirado
 
 # -----------------------------------------------------------------------------
 # Search
@@ -327,11 +323,6 @@ search-clear-filters = Limpiar Filtros
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-previous = Anterior
-pagination-next = Siguiente
-pagination-first = Primera
-pagination-last = Última
-pagination-page = Página { $current } de { $total }
 pagination-showing = Mostrando { $from } a { $to } de { $total }
 
 # -----------------------------------------------------------------------------
@@ -381,15 +372,11 @@ tooltip-exit-fullscreen = Salir de Pantalla Completa
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = Idioma
 settings-language-desc = Elige tu idioma preferido
 settings-display-language = Idioma de Visualización
 settings-language-affects = Afecta todo el texto en la aplicación
-settings-date-format = Formato de Fecha
 settings-date-format-desc = Cómo se muestran las fechas
-settings-time-format = Formato de Hora
 settings-time-format-desc = Reloj de 12 horas o 24 horas
-settings-saved = Configuración guardada exitosamente
 settings-language-changed = Idioma cambiado exitosamente
 settings-reload-required = Se requiere recargar la página para aplicar cambios
 
@@ -412,7 +399,6 @@ settings-location = Ubicación
 settings-website = Sitio Web
 
 # Settings - Security
-settings-security = Configuración de Seguridad
 settings-security-desc = Protege tu cuenta con seguridad mejorada
 settings-change-password = Cambiar Contraseña
 settings-change-password-desc = Actualiza tu contraseña regularmente para mejor seguridad
@@ -437,8 +423,6 @@ settings-appearance = Apariencia
 settings-appearance-desc = Personaliza cómo se ve la aplicación
 settings-theme-selection = Tema
 settings-theme-selection-desc = Elige tu tema de color preferido
-settings-theme-dark = Oscuro
-settings-theme-light = Claro
 settings-theme-blue = Azul
 settings-theme-purple = Púrpura
 settings-theme-green = Verde
@@ -667,12 +651,6 @@ research-save-to-collection = Guardar en colección
 # Admin Panel (additional UI keys)
 # -----------------------------------------------------------------------------
 admin-panel-title = Panel de administración
-admin-quick-actions = Acciones Rápidas
-admin-create-user = Crear Usuario
-admin-create-group = Crear Grupo
-admin-register-dns = Registrar DNS
-admin-recent-activity = Actividad Reciente
-admin-system-health = Salud del Sistema
 
 # -----------------------------------------------------------------------------
 # Meet (additional keys)
@@ -731,7 +709,6 @@ notifications-empty = Sin notificaciones
 # -----------------------------------------------------------------------------
 # All Applications
 # -----------------------------------------------------------------------------
-nav-all-apps = Todas las Apps
 
 # =============================================================================
 # AUTH SCREENS - Complete translations for login, register, forgot/reset password
@@ -740,7 +717,6 @@ nav-all-apps = Todas las Apps
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = ¡Bienvenido de nuevo, { $name }!
 auth-sign-in-to-account = Inicia sesión en tu cuenta de General Bots
 auth-email-address = Dirección de correo electrónico
 auth-email-placeholder = you@example.com
@@ -1579,8 +1555,6 @@ tickets-no-closed = No hay tickets cerrados
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = Seguridad
-security-subtitle = Gestiona la configuración de seguridad de tu cuenta
 security-tab-compliance = Informe de Cumplimiento API
 security-tab-protection = Protección
 security-export-report = Exportar Informe
@@ -1662,7 +1636,6 @@ goals-alignment = Alineación
 goals-ai-suggestions = Sugerencias de IA
 
 # CRM / Mail / Campaigns integration keys
-crm-email = Correo
 crm-compose-email = Redactar Correo
 crm-send-email = Enviar Correo
 mail-snooze = Posponer
@@ -1785,9 +1758,7 @@ attendant-emoji = Emoji
 attendant-uploading = Subiendo...
 attendant-attach-error = Error al subir
 attendant-emoji-search = Buscar emoji...
-meet-record = Grabar
 meet-record-title = Grabar Reunión
-meet-recording = Grabando
 meet-recordings = Grabaciones
 meet-recordings-empty = Aún no hay grabaciones
 
@@ -1839,8 +1810,6 @@ chat-scroll-bottom = Ir al final
 chat-private-signin = Bot privado — inicia sesión para continuar
 
 settings-profile = Perfil
-settings-appearance = Apariencia
-settings-storage = Almacenamiento
 settings-integrations = Integraciones
 settings-vibe = Vibe
 settings-memory = Memoria

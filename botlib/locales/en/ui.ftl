@@ -296,9 +296,6 @@ settings-time-format = Time Format
 # -----------------------------------------------------------------------------
 # Auth / Login
 # -----------------------------------------------------------------------------
-auth-login = Log In
-auth-logout = Log Out
-auth-signup = Sign Up
 auth-forgot-password = Forgot Password?
 auth-reset-password = Reset Password
 auth-email = Email
@@ -327,11 +324,6 @@ search-clear-filters = Clear Filters
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-previous = Previous
-pagination-next = Next
-pagination-first = First
-pagination-last = Last
-pagination-page = Page { $current } of { $total }
 pagination-showing = Showing { $from } to { $to } of { $total }
 
 # -----------------------------------------------------------------------------
@@ -381,15 +373,11 @@ tooltip-exit-fullscreen = Exit Fullscreen
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = Language
 settings-language-desc = Choose your preferred language
 settings-display-language = Display Language
 settings-language-affects = Affects all text in the application
-settings-date-format = Date Format
 settings-date-format-desc = How dates are displayed
-settings-time-format = Time Format
 settings-time-format-desc = 12-hour or 24-hour clock
-settings-saved = Settings saved successfully
 settings-language-changed = Language changed successfully
 settings-reload-required = Page reload required to apply changes
 
@@ -437,8 +425,6 @@ settings-appearance = Appearance
 settings-appearance-desc = Customize how the application looks
 settings-theme-selection = Theme
 settings-theme-selection-desc = Choose your preferred color theme
-settings-theme-dark = Dark
-settings-theme-light = Light
 settings-theme-blue = Blue
 settings-theme-purple = Purple
 settings-theme-green = Green
@@ -667,12 +653,6 @@ research-save-to-collection = Save to Collection
 # Admin Panel (additional UI keys)
 # -----------------------------------------------------------------------------
 admin-panel-title = Admin Panel
-admin-quick-actions = Quick Actions
-admin-create-user = Create User
-admin-create-group = Create Group
-admin-register-dns = Register DNS
-admin-recent-activity = Recent Activity
-admin-system-health = System Health
 
 # -----------------------------------------------------------------------------
 # Meet (additional keys)
@@ -1579,7 +1559,6 @@ tickets-no-closed = No closed tickets
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = Security
 security-subtitle = Security tools, compliance scanning, and server protection
 security-tab-compliance = API Compliance Report
 security-tab-protection = Protection
@@ -1662,7 +1641,6 @@ goals-alignment = Alignment
 goals-ai-suggestions = AI Suggestions
 
 # CRM / Mail / Campaigns integration keys
-crm-email = Email
 crm-compose-email = Compose Email
 crm-send-email = Send Email
 mail-snooze = Snooze
@@ -1785,9 +1763,7 @@ attendant-emoji = Emoji
 attendant-uploading = Uploading...
 attendant-attach-error = Upload failed
 attendant-emoji-search = Search emoji...
-meet-record = Record
 meet-record-title = Record Meeting
-meet-recording = Recording
 meet-recordings = Recordings
 meet-recordings-empty = No recordings yet
 
@@ -1844,8 +1820,6 @@ chat-scroll-bottom = Scroll to bottom
 chat-private-signin = Private bot — sign in required
 
 settings-profile = Profile
-settings-appearance = Appearance
-settings-storage = Storage
 settings-integrations = Integrations
 settings-vibe = Vibe
 settings-ai-accounts = AI accounts

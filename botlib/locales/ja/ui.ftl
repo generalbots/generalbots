@@ -296,9 +296,6 @@ settings-time-format = 時間の形式
 # -----------------------------------------------------------------------------
 # Auth / Login
 # -----------------------------------------------------------------------------
-auth-login = ログイン
-auth-logout = ログアウト
-auth-signup = サインアップ
 auth-forgot-password = パスワードをお忘れですか?
 auth-reset-password = パスワードのリセット
 auth-email = 電子メール
@@ -308,7 +305,6 @@ auth-remember-me = 私を覚えていてください
 auth-login-success = 正常にログインしました
 auth-logout-success = 正常にログアウトされました
 auth-invalid-credentials = 無効な電子メールまたはパスワード
-auth-session-expired = セッションの有効期限が切れました
 
 # -----------------------------------------------------------------------------
 # Search
@@ -327,11 +323,6 @@ search-clear-filters = フィルターをクリアする
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-previous = 前へ
-pagination-next = 次へ
-pagination-first = まず
-pagination-last = 最後
-pagination-page = ページ { $current }/{ $total }
 pagination-showing = { $total }中 { $from }から{ $to }を表示中
 
 # -----------------------------------------------------------------------------
@@ -381,15 +372,11 @@ tooltip-exit-fullscreen = 全画面表示を終了する
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = 言語
 settings-language-desc = 好みの言語を選択してください
 settings-display-language = 表示言語
 settings-language-affects = アプリケーション内のすべてのテキストに影響します
-settings-date-format = 日付形式
 settings-date-format-desc = 日付の表示方法
-settings-time-format = 時間の形式
 settings-time-format-desc = 12 時間制または 24 時間制
-settings-saved = 設定が正常に保存されました
 settings-language-changed = 言語が正常に変更されました
 settings-reload-required = 変更を適用するにはページのリロードが必要です
 
@@ -412,7 +399,6 @@ settings-location = 場所
 settings-website = ウェブサイト
 
 # Settings - Security
-settings-security = セキュリティ設定
 settings-security-desc = 強化されたセキュリティでアカウントを保護する
 settings-change-password = パスワードの変更
 settings-change-password-desc = セキュリティを強化するためにパスワードを定期的に更新してください
@@ -437,8 +423,6 @@ settings-appearance = 外観
 settings-appearance-desc = アプリケーションの外観をカスタマイズする
 settings-theme-selection = テーマ
 settings-theme-selection-desc = 好みのカラーテーマを選択してください
-settings-theme-dark = 暗い
-settings-theme-light = ライト
 settings-theme-blue = ブルー
 settings-theme-purple = 紫
 settings-theme-green = 緑
@@ -667,12 +651,6 @@ research-save-to-collection = コレクションに保存
 # Admin Panel (additional UI keys)
 # -----------------------------------------------------------------------------
 admin-panel-title = 管理者パネル
-admin-quick-actions = クイックアクション
-admin-create-user = ユーザーの作成
-admin-create-group = グループの作成
-admin-register-dns = DNSを登録する
-admin-recent-activity = 最近の活動
-admin-system-health = システムの健全性
 
 # -----------------------------------------------------------------------------
 # Meet (additional keys)
@@ -731,7 +709,6 @@ notifications-empty = 通知はありません
 # -----------------------------------------------------------------------------
 # All Applications
 # -----------------------------------------------------------------------------
-nav-all-apps = すべてのアプリケーション
 
 # =============================================================================
 # AUTH SCREENS - Complete translations for login, register, forgot/reset password
@@ -740,7 +717,6 @@ nav-all-apps = すべてのアプリケーション
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = { $name }さん、おかえりなさい！
 auth-sign-in-to-account = General Bots アカウントにサインインします
 auth-email-address = メールアドレス
 auth-email-placeholder = you@example.com
@@ -1579,8 +1555,6 @@ tickets-no-closed = 終了したチケットはありません
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = セキュリティ
-security-subtitle = アカウントのセキュリティ設定を管理する
 security-tab-compliance = APIコンプライアンスレポート
 security-tab-protection = 保護
 security-export-report = レポートのエクスポート
@@ -1662,7 +1636,6 @@ goals-alignment = 位置合わせ
 goals-ai-suggestions = AIによる提案
 
 # CRM / Mail / Campaigns integration keys
-crm-email = 電子メール
 crm-compose-email = 電子メールを作成する
 crm-send-email = 電子メールを送信する
 mail-snooze = スヌーズ
@@ -1785,9 +1758,7 @@ attendant-emoji = 絵文字
 attendant-uploading = アップロード中...
 attendant-attach-error = アップロードに失敗しました
 attendant-emoji-search = 絵文字を検索...
-meet-record = 録画
 meet-record-title = 会議を録画
-meet-recording = 録画中
 meet-recordings = 録画
 meet-recordings-empty = 録画はまだありません
 
@@ -1839,8 +1810,6 @@ chat-scroll-bottom = 一番下へ
 chat-private-signin = プライベートボット — 続行するにはサインインしてください
 
 settings-profile = プロフィール
-settings-appearance = 外観
-settings-storage = ストレージ
 settings-integrations = 連携
 settings-vibe = Vibe
 settings-memory = メモリ

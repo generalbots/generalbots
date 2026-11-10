@@ -296,9 +296,6 @@ settings-time-format = 시간 형식
 # -----------------------------------------------------------------------------
 # Auth / Login
 # -----------------------------------------------------------------------------
-auth-login = 로그인
-auth-logout = 로그아웃
-auth-signup = 가입
 auth-forgot-password = 비밀번호를 잊으셨나요?
 auth-reset-password = 비밀번호 재설정
 auth-email = 이메일
@@ -308,7 +305,6 @@ auth-remember-me = 나를 기억해
 auth-login-success = 성공적으로 로그인되었습니다
 auth-logout-success = 성공적으로 로그아웃되었습니다
 auth-invalid-credentials = 잘못된 이메일 또는 비밀번호
-auth-session-expired = 세션이 만료되었습니다
 
 # -----------------------------------------------------------------------------
 # Search
@@ -327,11 +323,6 @@ search-clear-filters = 필터 지우기
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-previous = 이전
-pagination-next = 다음
-pagination-first = 첫 번째
-pagination-last = 마지막
-pagination-page = 페이지 { $current }/{ $total }
 pagination-showing = { $total } 중 { $from }~{ $to } 표시 중
 
 # -----------------------------------------------------------------------------
@@ -381,15 +372,11 @@ tooltip-exit-fullscreen = 전체 화면 종료
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = 언어
 settings-language-desc = 선호하는 언어를 선택하세요
 settings-display-language = 표시 언어
 settings-language-affects = 애플리케이션의 모든 텍스트에 영향을 미칩니다.
-settings-date-format = 날짜 형식
 settings-date-format-desc = 날짜 표시 방법
-settings-time-format = 시간 형식
 settings-time-format-desc = 12시간제 또는 24시간제
-settings-saved = 설정이 성공적으로 저장되었습니다.
 settings-language-changed = 언어가 성공적으로 변경되었습니다
 settings-reload-required = 변경 사항을 적용하려면 페이지를 다시 로드해야 합니다.
 
@@ -412,7 +399,6 @@ settings-location = 위치
 settings-website = 웹사이트
 
 # Settings - Security
-settings-security = 보안 설정
 settings-security-desc = 강화된 보안으로 계정을 보호하세요
 settings-change-password = 비밀번호 변경
 settings-change-password-desc = 보안 강화를 위해 정기적으로 비밀번호를 업데이트하세요.
@@ -437,8 +423,6 @@ settings-appearance = 외관
 settings-appearance-desc = 애플리케이션의 모양을 사용자 정의하세요.
 settings-theme-selection = 테마
 settings-theme-selection-desc = 원하는 색상 테마를 선택하세요
-settings-theme-dark = 어둠
-settings-theme-light = 빛
 settings-theme-blue = 블루
 settings-theme-purple = 보라색
 settings-theme-green = 녹색
@@ -667,12 +651,6 @@ research-save-to-collection = 컬렉션에 저장
 # Admin Panel (additional UI keys)
 # -----------------------------------------------------------------------------
 admin-panel-title = 관리자 패널
-admin-quick-actions = 빠른 작업
-admin-create-user = 사용자 생성
-admin-create-group = 그룹 만들기
-admin-register-dns = DNS 등록
-admin-recent-activity = 최근 활동
-admin-system-health = 시스템 상태
 
 # -----------------------------------------------------------------------------
 # Meet (additional keys)
@@ -731,7 +709,6 @@ notifications-empty = 알림 없음
 # -----------------------------------------------------------------------------
 # All Applications
 # -----------------------------------------------------------------------------
-nav-all-apps = 모든 애플리케이션
 
 # =============================================================================
 # AUTH SCREENS - Complete translations for login, register, forgot/reset password
@@ -740,7 +717,6 @@ nav-all-apps = 모든 애플리케이션
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = 돌아온 것을 환영합니다, { $name }!
 auth-sign-in-to-account = 일반 봇 계정에 로그인하세요
 auth-email-address = 이메일 주소
 auth-email-placeholder = you@example.com
@@ -1579,8 +1555,6 @@ tickets-no-closed = 마감된 티켓 없음
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = 보안
-security-subtitle = 계정 보안 설정 관리
 security-tab-compliance = API 규정 준수 보고서
 security-tab-protection = 보호
 security-export-report = 보고서 내보내기
@@ -1662,7 +1636,6 @@ goals-alignment = 정렬
 goals-ai-suggestions = AI 제안
 
 # CRM / Mail / Campaigns integration keys
-crm-email = 이메일
 crm-compose-email = 이메일 작성
 crm-send-email = 이메일 보내기
 mail-snooze = 스누즈
@@ -1785,9 +1758,7 @@ attendant-emoji = 이모지
 attendant-uploading = 업로드 중...
 attendant-attach-error = 업로드 실패
 attendant-emoji-search = 이모지 검색...
-meet-record = 녹화
 meet-record-title = 회의 녹화
-meet-recording = 녹화 중
 meet-recordings = 녹화
 meet-recordings-empty = 아직 녹화가 없습니다
 

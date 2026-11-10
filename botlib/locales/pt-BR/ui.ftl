@@ -298,9 +298,6 @@ settings-time-format = Formato de Hora
 # -----------------------------------------------------------------------------
 # Autenticação / Login
 # -----------------------------------------------------------------------------
-auth-login = Entrar
-auth-logout = Sair
-auth-signup = Cadastrar
 auth-forgot-password = Esqueceu a senha?
 auth-reset-password = Redefinir Senha
 auth-email = E-mail
@@ -329,11 +326,7 @@ search-clear-filters = Limpar Filtros
 # -----------------------------------------------------------------------------
 # Paginação
 # -----------------------------------------------------------------------------
-pagination-previous = Anterior
 pagination-next = Próximo
-pagination-first = Primeira
-pagination-last = Última
-pagination-page = Página { $current } de { $total }
 pagination-showing = Mostrando { $from } a { $to } de { $total }
 
 # -----------------------------------------------------------------------------
@@ -383,15 +376,11 @@ tooltip-exit-fullscreen = Sair da Tela Cheia
 # -----------------------------------------------------------------------------
 # Settings - Language & Localization
 # -----------------------------------------------------------------------------
-settings-language = Idioma
 settings-language-desc = Escolha seu idioma preferido
 settings-display-language = Idioma de Exibição
 settings-language-affects = Afeta todo o texto do aplicativo
-settings-date-format = Formato de Data
 settings-date-format-desc = Como as datas são exibidas
-settings-time-format = Formato de Hora
 settings-time-format-desc = Relógio de 12 ou 24 horas
-settings-saved = Configurações salvas com sucesso
 settings-language-changed = Idioma alterado com sucesso
 settings-reload-required = Atualização da página necessária para aplicar as alterações
 
@@ -439,8 +428,6 @@ settings-appearance = Aparência
 settings-appearance-desc = Personalize a aparência do aplicativo
 settings-theme-selection = Tema
 settings-theme-selection-desc = Escolha seu tema de cores preferido
-settings-theme-dark = Escuro
-settings-theme-light = Claro
 settings-theme-blue = Azul
 settings-theme-purple = Roxo
 settings-theme-green = Verde
@@ -669,12 +656,6 @@ research-save-to-collection = Salvar na Coleção
 # Painel Admin (chaves UI adicionais)
 # -----------------------------------------------------------------------------
 admin-panel-title = Painel Admin
-admin-quick-actions = Ações Rápidas
-admin-create-user = Criar Usuário
-admin-create-group = Criar Grupo
-admin-register-dns = Registrar DNS
-admin-recent-activity = Atividade Recente
-admin-system-health = Saúde do Sistema
 
 # -----------------------------------------------------------------------------
 # Reuniões (chaves adicionais)
@@ -1581,7 +1562,6 @@ tickets-no-closed = Nenhum chamado fechado
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-title = Segurança
 security-subtitle = Ferramentas de segurança, verificação de conformidade e proteção do servidor
 security-tab-compliance = Relatório de Conformidade API
 security-tab-protection = Proteção
@@ -1663,7 +1643,6 @@ goals-objectives = Objetivos
 goals-alignment = Alinhamento
 goals-ai-suggestions = Sugestões da IA
 
-crm-email = E-mail
 crm-compose-email = Redigir E-mail
 crm-send-email = Enviar E-mail
 mail-snooze = Adiar
@@ -1786,9 +1765,7 @@ attendant-emoji = Emoji
 attendant-uploading = Enviando...
 attendant-attach-error = Falha no envio
 attendant-emoji-search = Buscar emoji...
-meet-record = Gravar
 meet-record-title = Gravar Reunião
-meet-recording = Gravando
 meet-recordings = Gravações
 meet-recordings-empty = Nenhuma gravação ainda
 
@@ -1797,8 +1774,6 @@ meet-recordings-empty = Nenhuma gravação ainda
 
 
 # ── Navegação de configurações (issue #1304) ───────────────────────
-nav-about = Sobre
-nav-organizations = Organizações
 
 settings-theme-desc = Escolha o seu tema de cores preferido
 
@@ -1818,8 +1793,6 @@ chat-scroll-bottom = Rolar para o fim
 chat-private-signin = Bot privado — entre para continuar
 
 settings-profile = Perfil
-settings-appearance = Aparência
-settings-storage = Armazenamento
 settings-integrations = Integrações
 settings-vibe = Vibe
 settings-memory = Memória
