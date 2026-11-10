@@ -178,6 +178,30 @@ UPDATE products SET ... WHERE products.id = $1 AND products.branch_id = $2
 This prevents a caller from mutating another tenant's row whose id they guess
 (broken object level authorization).
 
+### CRM by-id endpoints are branch-scoped (#2138)
+
+`bottickets` and `botpeople` used to address rows by primary key alone, so any
+authenticated caller holding a UUID from another tenant could read, rewrite,
+delete or comment on it. Both crates now resolve the branch through one helper
+and address a single row through one predicate:
+
+| Crate | Helper | Predicate |
+|---|---|---|
+| `bottickets` | `request_scope::tenant_branch`, `scoped_ticket` | `support_tickets.id = $1 AND support_tickets.branch_id = $2` |
+| `botpeople` | `request_scope::tenant_branch`, `scoped_person` / `scoped_team` / `scoped_time_off` | `<table>.id = $1 AND <table>.branch_id = $2` |
+
+`tenant_branch` reads the verified JWT/session branch
+(`botsecurity_core::scope::branch_from_jwt`) and falls back to the crate default
+bot branch only for suite sessions that carry no token. A row from another
+branch matches nothing, so the handler answers `404` instead of confirming that
+the id exists. Comments, activities, team members, skills and time-off rows are
+resolved through their parent ticket, person or team, which gives them the
+parent's branch.
+
+The SQL shape is pinned by `bottickets/src/scope_tests.rs` and
+`botpeople/src/scope_tests.rs`; the HTTP contract by
+`bottest/tests/integration/crm_tenant_isolation.rs`.
+
 ## Never trust client-supplied tenant
 
 - The `X-Organization-Id` header and `org_id`/`branch_id` query/body parameters
@@ -295,8 +319,8 @@ Behavior changes that come with it:
   Move them into the install owner's prefix (or `legacy/`) with `mc` before
   deleting them.
 
-Tests: `botslides/tests/owner_isolation.rs` and
-`botpaper/tests/owner_isolation.rs` cover list/load/delete isolation, the
+Tests: `botslides/src/owner_isolation_tests.rs` and
+`botpaper/src/owner_isolation_tests.rs` cover list/load/delete isolation, the
 mismatched-owner read, the `401` on create without identity, and the verified
 owner persisted on create.
 

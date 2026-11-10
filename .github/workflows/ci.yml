@@ -1018,6 +1018,9 @@ jobs:
           - botsecurity-auth
           - botdocs
           - botslides
+          # Office document ownership (#2137): the owner-scoping tests live in
+          # the crate, so the matrix must run botpaper's unit tests.
+          - botpaper
           - botsheet
           - botdrive
           - botchannels
