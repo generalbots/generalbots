@@ -231,3 +231,131 @@ pub(crate) async fn consume_sse_stream(
 
         Ok(())
 }
+
+#[cfg(test)]
+mod sse_tests {
+    use super::*;
+
+    /// Feeds `chunks` through the consumer and collects everything it emitted.
+    async fn run(chunks: Vec<&str>) -> Vec<String> {
+        let (chunk_tx, chunk_rx) = mpsc::channel(16);
+        let (tx, mut rx) = mpsc::channel(64);
+
+        for chunk in chunks {
+            chunk_tx
+                .send(Ok(chunk.as_bytes().to_vec()))
+                .await
+                .expect("send chunk");
+        }
+        drop(chunk_tx);
+
+        let consumer = tokio::spawn(async move {
+            consume_sse_stream(chunk_rx, tx, "gpt-4o").await
+        });
+
+        let mut emitted = Vec::new();
+        while let Some(message) = rx.recv().await {
+            emitted.push(message);
+        }
+        consumer.await.expect("join").expect("consume");
+        emitted
+    }
+
+    fn content_delta(text: &str) -> String {
+        format!(
+            "data: {{\"choices\":[{{\"delta\":{{\"content\":\"{text}\"}}}}]}}\n\n"
+        )
+    }
+
+    #[tokio::test]
+    async fn content_deltas_are_forwarded_in_order() {
+        let emitted = run(vec![
+            &content_delta("Hel"),
+            &content_delta("lo"),
+            "data: [DONE]\n\n",
+        ])
+        .await;
+
+        assert_eq!(emitted.concat(), "Hello");
+    }
+
+    #[tokio::test]
+    async fn a_frame_split_across_chunks_is_reassembled() {
+        let frame = content_delta("split");
+        let (first, second) = frame.split_at(20);
+        let emitted = run(vec![first, second]).await;
+
+        assert_eq!(emitted.concat(), "split");
+    }
+
+    #[tokio::test]
+    async fn non_data_lines_and_comments_are_ignored() {
+        let emitted = run(vec![
+            ": keep-alive\n\n",
+            "event: message\n",
+            &content_delta("ok"),
+        ])
+        .await;
+
+        assert_eq!(emitted.concat(), "ok");
+    }
+
+    #[tokio::test]
+    async fn malformed_json_is_skipped_without_failing_the_stream() {
+        let emitted = run(vec![
+            "data: {not json}\n\n",
+            &content_delta("still here"),
+        ])
+        .await;
+
+        assert_eq!(emitted.concat(), "still here");
+    }
+
+    #[tokio::test]
+    async fn parallel_tool_calls_are_emitted_separately() {
+        // Two classify_media calls used to be merged into one JSON string.
+        let first = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"classify_media\",\"arguments\":\"{\\\"a\\\":1}\"}}]}}]}\n\n";
+        let second = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"classify_media\",\"arguments\":\"{\\\"b\\\":2}\"}}]}}]}\n\n";
+
+        let emitted = run(vec![first, second]).await;
+        let tool_calls: Vec<&String> = emitted
+            .iter()
+            .filter(|m| m.contains("__tool_call__"))
+            .collect();
+
+        assert_eq!(tool_calls.len(), 2, "each call must be its own message");
+        let first_args = serde_json::from_str::<Value>(tool_calls[0]).expect("json");
+        let second_args = serde_json::from_str::<Value>(tool_calls[1]).expect("json");
+        assert_eq!(first_args["name"], serde_json::json!("classify_media"));
+        assert_eq!(second_args["arguments"], serde_json::json!("{\"b\":2}"));
+    }
+
+    #[tokio::test]
+    async fn a_legacy_function_call_is_accumulated_across_chunks() {
+        let name = "data: {\"choices\":[{\"delta\":{\"function_call\":{\"name\":\"lookup\"}}}]}\n\n";
+        let args_a = "data: {\"choices\":[{\"delta\":{\"function_call\":{\"arguments\":\"{\\\"q\\\":\"}}}]}\n\n";
+        let args_b = "data: {\"choices\":[{\"delta\":{\"function_call\":{\"arguments\":\"\\\"x\\\"}\"}}}]}\n\n";
+
+        let emitted = run(vec![name, args_a, args_b]).await;
+        let tool_call = emitted
+            .iter()
+            .find(|m| m.contains("__tool_call__"))
+            .expect("tool call");
+
+        let parsed = serde_json::from_str::<Value>(tool_call).expect("json");
+        assert_eq!(parsed["name"], serde_json::json!("lookup"));
+        assert_eq!(parsed["arguments"], serde_json::json!("{\"q\":\"x\"}"));
+    }
+
+    #[tokio::test]
+    async fn a_tool_call_without_arguments_is_not_emitted() {
+        let name_only =
+            "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"lookup\"}}]}}]}\n\n";
+        let emitted = run(vec![name_only]).await;
+
+        assert!(
+            !emitted.iter().any(|m| m.contains("__tool_call__")),
+            "an argument-less call must not be executed"
+        );
+    }
+}
