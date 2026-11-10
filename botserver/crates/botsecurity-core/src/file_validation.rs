@@ -233,3 +233,113 @@ fn has_potential_malicious_pdf_content(data: &[u8]) -> bool {
         || lower.contains("/efilename")
 }
 
+
+#[cfg(test)]
+mod file_validation_tests {
+    use super::*;
+
+    fn cfg() -> FileValidationConfig {
+        FileValidationConfig::default()
+    }
+
+    const PNG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
+    const PDF: &[u8] = b"%PDF-1.7\n";
+
+    #[test]
+    fn a_png_is_detected_and_accepted() {
+        let result = validate_file_upload("photo.png", "image/png", PNG, &cfg());
+        assert!(result.is_valid, "{:?}", result.errors);
+        assert_eq!(result.detected_type.as_deref(), Some("image/png"));
+    }
+
+    #[test]
+    fn a_pdf_is_detected_and_accepted() {
+        let result = validate_file_upload("doc.pdf", "application/pdf", PDF, &cfg());
+        assert!(result.is_valid, "{:?}", result.errors);
+        assert_eq!(result.detected_type.as_deref(), Some("application/pdf"));
+    }
+
+    #[test]
+    fn a_mime_mismatch_is_a_warning_not_a_rejection() {
+        let result = validate_file_upload("photo.png", "image/jpeg", PNG, &cfg());
+        assert!(result.is_valid);
+        assert!(result.warnings.iter().any(|w| w.contains("does not match")));
+    }
+
+    #[test]
+    fn a_disallowed_detected_type_is_refused() {
+        let result = validate_file_upload("clip.mp4", "video/mp4", b"ftypisom", &cfg());
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| e.contains("not in the allowed types")));
+    }
+
+    #[test]
+    fn an_oversized_file_is_refused() {
+        let config = FileValidationConfig {
+            max_size: 4,
+            ..cfg()
+        };
+        let result = validate_file_upload("big.png", "image/png", PNG, &config);
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| e.contains("exceeds maximum")));
+    }
+
+    #[test]
+    fn blocked_extensions_are_refused_even_with_a_benign_mime() {
+        for name in ["setup.exe", "lib.so", "run.sh", "macro.docm", "app.jar"] {
+            let result = validate_file_upload(name, "application/pdf", PDF, &cfg());
+            assert!(!result.is_valid, "{name} must be refused");
+            assert!(result.errors.iter().any(|e| e.contains("blocked")));
+        }
+    }
+
+    #[test]
+    fn executables_are_detected_by_magic_bytes() {
+        // Windows PE ("MZ").
+        let result = validate_file_upload("x.png", "image/png", &[0x4D, 0x5A, 0x90, 0x00], &cfg());
+        assert!(!result.is_valid);
+        assert!(result.errors.iter().any(|e| e.contains("executable")));
+
+        // ELF.
+        let elf = [0x7F, 0x45, 0x4C, 0x46, 2, 1, 1, 0];
+        let result = validate_file_upload("x.png", "image/png", &elf, &cfg());
+        assert!(!result.is_valid);
+
+        // A shebang script.
+        let script = b"#!/bin/sh\nrm -rf /\n";
+        let result = validate_file_upload("notes.txt", "text/plain", script, &cfg());
+        assert!(!result.is_valid);
+    }
+
+    #[test]
+    fn plain_text_is_detected_as_text() {
+        let result = validate_file_upload("notes.txt", "text/plain", b"hello world", &cfg());
+        assert!(result.is_valid);
+        assert_eq!(result.detected_type.as_deref(), Some("text/plain"));
+    }
+
+    #[test]
+    fn html_is_detected_even_though_it_starts_with_a_bracket() {
+        let result = validate_file_upload("page.html", "text/html", b"<!DOCTYPE html><html></html>", &cfg());
+        assert_eq!(result.detected_type.as_deref(), Some("text/html"));
+    }
+
+    #[test]
+    fn a_pdf_with_javascript_only_warns() {
+        let data = b"%PDF-1.7\n/JavaScript alert(1)\n";
+        let result = validate_file_upload("doc.pdf", "application/pdf", data, &cfg());
+        assert!(result.is_valid, "defanging must not reject the upload");
+        assert!(result.warnings.iter().any(|w| w.contains("malicious")));
+    }
+
+    #[test]
+    fn magic_byte_checking_can_be_disabled() {
+        let config = FileValidationConfig {
+            check_magic_bytes: false,
+            ..cfg()
+        };
+        let result = validate_file_upload("clip.mp4", "video/mp4", b"ftypisom", &config);
+        assert!(result.is_valid);
+        assert!(result.detected_type.is_none());
+    }
+}
