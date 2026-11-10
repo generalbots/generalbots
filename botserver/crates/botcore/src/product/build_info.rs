@@ -54,7 +54,8 @@ mod tests {
 
     #[test]
     fn version_is_a_numeric_major_minor_patch() {
-        let parts: Vec<&str> = version().split('.').collect();
+        let value = version();
+        let parts: Vec<&str> = value.split('.').collect();
         assert_eq!(parts.len(), 3, "version must be MAJOR.MINOR.PATCH");
         for part in parts {
             assert!(
