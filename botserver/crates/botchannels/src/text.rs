@@ -49,3 +49,50 @@ impl PostContent {
         self
     }
 }
+
+#[cfg(test)]
+mod post_content_tests {
+    use super::*;
+
+    #[test]
+    fn a_text_post_carries_only_its_text() {
+        let content = PostContent::text("hello");
+        assert_eq!(content.text.as_deref(), Some("hello"));
+        assert!(content.image_urls.is_empty());
+        assert!(content.video_url.is_none());
+        assert!(content.link.is_none());
+        assert!(content.hashtags.is_empty());
+        assert!(content.mentions.is_empty());
+        assert!(content.scheduled_at.is_none());
+        assert!(content.metadata.is_empty());
+    }
+
+    #[test]
+    fn builders_accumulate_media_and_tags() {
+        let content = PostContent::text("launch")
+            .with_image("https://cdn/a.png")
+            .with_images(vec![
+                "https://cdn/b.png".to_string(),
+                "https://cdn/c.png".to_string(),
+            ])
+            .with_video("https://cdn/clip.mp4")
+            .with_link("https://example.com")
+            .with_hashtags(vec!["#launch".to_string()])
+            .with_hashtags(vec!["#gb".to_string()])
+            .with_mentions(vec!["@acme".to_string()]);
+
+        assert_eq!(content.image_urls.len(), 3);
+        assert_eq!(content.image_urls[0], "https://cdn/a.png");
+        assert_eq!(content.video_url.as_deref(), Some("https://cdn/clip.mp4"));
+        assert_eq!(content.link.as_deref(), Some("https://example.com"));
+        assert_eq!(content.hashtags, vec!["#launch", "#gb"]);
+        assert_eq!(content.mentions, vec!["@acme"]);
+    }
+
+    #[test]
+    fn scheduling_sets_the_timestamp() {
+        let when = chrono::DateTime::from_timestamp(1_800_000_000, 0).expect("ts");
+        let content = PostContent::text("later").scheduled(when);
+        assert_eq!(content.scheduled_at, Some(when));
+    }
+}
