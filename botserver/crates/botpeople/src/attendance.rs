@@ -99,3 +99,105 @@ impl Default for AttendanceService {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod attendance_tests {
+    use super::*;
+
+    fn employee() -> Uuid {
+        Uuid::new_v4()
+    }
+
+    #[test]
+    fn clock_in_records_an_open_entry_for_today() {
+        let service = AttendanceService::new();
+        let id = employee();
+        let record = service.clock_in(id).expect("clock in");
+        assert_eq!(record.employee_id, id);
+        assert!(record.clock_in.is_some());
+        assert!(record.clock_out.is_none());
+        assert_eq!(record.hours_worked, 0.0);
+        assert_eq!(record.overtime, 0.0);
+    }
+
+    #[test]
+    fn a_second_clock_in_on_the_same_day_is_refused() {
+        let service = AttendanceService::new();
+        let id = employee();
+        service.clock_in(id).expect("first clock in");
+        assert!(service.clock_in(id).is_err());
+    }
+
+    #[test]
+    fn clock_out_without_clock_in_is_refused() {
+        let service = AttendanceService::new();
+        assert!(service.clock_out(employee()).is_err());
+    }
+
+    #[test]
+    fn clock_out_closes_the_open_entry() {
+        let service = AttendanceService::new();
+        let id = employee();
+        service.clock_in(id).expect("clock in");
+        let closed = service.clock_out(id).expect("clock out");
+        assert!(closed.clock_out.is_some());
+        assert!(closed.hours_worked >= 0.0);
+        assert!(closed.hours_worked <= 24.0);
+        // A second clock-out finds nothing open.
+        assert!(service.clock_out(id).is_err());
+    }
+
+    #[test]
+    fn daily_summary_and_range_report_the_recorded_day() {
+        let service = AttendanceService::new();
+        let id = employee();
+        service.clock_in(id).expect("clock in");
+        service.clock_out(id).expect("clock out");
+        let today = Utc::now().date_naive();
+
+        let summary = service.get_daily_summary(id, today).expect("summary");
+        assert_eq!(summary.employee_id, id);
+
+        let range = service.get_range(id, today, today).expect("range");
+        assert_eq!(range.len(), 1);
+        assert_eq!(range[0].date, today);
+    }
+
+    #[test]
+    fn a_missing_day_is_reported_not_invented() {
+        let service = AttendanceService::new();
+        let id = employee();
+        let past = NaiveDate::from_ymd_opt(2020, 1, 1).expect("date");
+        assert!(service.get_daily_summary(id, past).is_err());
+        assert!(service.get_range(id, past, past).expect("range").is_empty());
+    }
+
+    #[test]
+    fn hours_and_overtime_aggregate_over_a_range() {
+        let service = AttendanceService::new();
+        let id = employee();
+        let today = Utc::now().date_naive();
+        service.clock_in(id).expect("clock in");
+        service.clock_out(id).expect("clock out");
+
+        let hours = service.calculate_hours_in_range(id, today, today).expect("hours");
+        let overtime = service
+            .calculate_overtime_in_range(id, today, today)
+            .expect("overtime");
+        assert!(hours >= 0.0);
+        assert!(overtime >= 0.0);
+        assert!(overtime <= hours);
+    }
+
+    #[test]
+    fn records_are_scoped_per_employee() {
+        let service = AttendanceService::new();
+        let first = employee();
+        let second = employee();
+        service.clock_in(first).expect("first");
+        service.clock_in(second).expect("second");
+        let today = Utc::now().date_naive();
+        assert_eq!(service.get_range(first, today, today).expect("range").len(), 1);
+        assert_eq!(service.get_range(second, today, today).expect("range").len(), 1);
+    }
+}
