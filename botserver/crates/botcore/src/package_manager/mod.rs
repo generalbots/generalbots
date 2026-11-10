@@ -168,7 +168,7 @@ pub async fn setup_directory() -> anyhow::Result<crate::package_manager::setup::
             secrets.insert("redirect_uri".to_string(), config.redirect_uri.clone());
             secrets.insert("project_id".to_string(), config.project_id.clone());
             secrets.insert("api_url".to_string(), config.api_url.clone());
-            if let Some(key) = config.service_credential() {
+            if let Some(key) = config.service_account_key.as_deref() {
                 secrets.insert("service_account_key".to_string(), key.to_string());
             }
 

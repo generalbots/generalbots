@@ -225,3 +225,118 @@ where
         .await
         .map_err(|_| ResilienceError::Timeout { duration })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    fn fast_config(attempts: u32) -> RetryConfig {
+        RetryConfig {
+            max_attempts: attempts,
+            initial_delay: Duration::from_millis(1),
+            max_delay: Duration::from_millis(5),
+            backoff_multiplier: 2.0,
+            jitter_factor: 0.0,
+            retryable: None,
+        }
+    }
+
+    #[test]
+    fn default_is_retryable_only_for_transient_errors() {
+        let config = fast_config(3);
+        assert!(config.is_retryable("connection reset"));
+        assert!(config.is_retryable("timeout after 5s"));
+        assert!(config.is_retryable("server said 503"));
+        assert!(config.is_retryable("too many requests: 429"));
+        assert!(!config.is_retryable("invalid argument"));
+    }
+
+    #[test]
+    fn custom_predicate_overrides_the_defaults() {
+        let config = fast_config(2).with_retryable(|error| error == "again");
+        assert!(config.is_retryable("again"));
+        assert!(!config.is_retryable("timeout"));
+    }
+
+    #[test]
+    fn delay_grows_and_is_capped() {
+        let growing = fast_config(10)
+            .with_initial_delay(Duration::from_millis(10))
+            .with_max_delay(Duration::from_secs(1));
+        let first = growing.calculate_delay(1);
+        let second = growing.calculate_delay(2);
+        assert!(second > first, "{second:?} must exceed {first:?}");
+
+        let capped = fast_config(10)
+            .with_initial_delay(Duration::from_millis(10))
+            .with_max_delay(Duration::from_millis(5));
+        assert!(capped.calculate_delay(10) <= Duration::from_millis(5));
+    }
+
+    #[tokio::test]
+    async fn retry_returns_after_a_transient_failure() {
+        let attempts = AtomicU32::new(0);
+        let result = retry(&fast_config(3), || {
+            let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
+            async move {
+                if attempt < 2 {
+                    Err("connection reset".to_string())
+                } else {
+                    Ok(42)
+                }
+            }
+        })
+        .await;
+        assert_eq!(result.expect("third attempt succeeds"), 42);
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn retry_stops_immediately_on_a_permanent_error() {
+        let attempts = AtomicU32::new(0);
+        let result: Result<(), ResilienceError> = retry(&fast_config(5), || {
+            attempts.fetch_add(1, Ordering::SeqCst);
+            async { Err("invalid argument".to_string()) }
+        })
+        .await;
+        match result {
+            Err(ResilienceError::Operation(message)) => assert_eq!(message, "invalid argument"),
+            other => panic!("expected Operation, got {other:?}"),
+        }
+        assert_eq!(attempts.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn retry_reports_exhaustion_after_the_last_attempt() {
+        let result: Result<(), ResilienceError> =
+            retry(&fast_config(2), || async { Err("timeout".to_string()) }).await;
+        match result {
+            Err(ResilienceError::RetriesExhausted { attempts, last_error }) => {
+                assert_eq!(attempts, 2);
+                assert_eq!(last_error, "timeout");
+            }
+            other => panic!("expected RetriesExhausted, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn with_timeout_reports_the_elapsed_budget() {
+        let result = with_timeout(Duration::from_millis(1), async {
+            sleep(Duration::from_millis(50)).await;
+        })
+        .await;
+        match result {
+            Err(ResilienceError::Timeout { duration }) => {
+                assert_eq!(duration, Duration::from_millis(1));
+            }
+            other => panic!("expected Timeout, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn with_timeout_returns_the_value_when_fast_enough() {
+        let value = with_timeout(Duration::from_secs(1), async { 7 }).await;
+        assert_eq!(value.expect("in time"), 7);
+    }
+}

@@ -245,3 +245,73 @@ pub fn format_limit_error_response(error: &LimitExceeded) -> (u16, String) {
     });
     (status, body.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn loop_limit_rejects_at_the_boundary() {
+        assert!(check_loop_limit(9, 10).is_ok());
+        let error = check_loop_limit(10, 10).expect_err("10 >= 10 must fail");
+        assert_eq!(error.limit_type, LimitType::LoopIterations);
+        assert_eq!(error.current, 10);
+        assert_eq!(error.maximum, 10);
+    }
+
+    #[test]
+    fn recursion_limit_rejects_at_the_boundary() {
+        assert!(check_recursion_limit(0, 1).is_ok());
+        assert_eq!(
+            check_recursion_limit(1, 1).expect_err("must fail").limit_type,
+            LimitType::RecursionDepth
+        );
+    }
+
+    #[test]
+    fn file_size_allows_exactly_the_maximum() {
+        assert!(check_file_size_limit(1024, 1024).is_ok());
+        let error = check_file_size_limit(1025, 1024).expect_err("must fail");
+        assert_eq!(error.limit_type, LimitType::FileSize);
+        assert_eq!(error.current, 1025);
+    }
+
+    #[test]
+    fn string_and_array_limits_allow_the_maximum() {
+        assert!(check_string_length_limit(5, 5).is_ok());
+        assert_eq!(
+            check_string_length_limit(6, 5).expect_err("must fail").limit_type,
+            LimitType::StringLength
+        );
+        assert!(check_array_length_limit(3, 3).is_ok());
+        assert_eq!(
+            check_array_length_limit(4, 3).expect_err("must fail").limit_type,
+            LimitType::ArrayLength
+        );
+    }
+
+    #[test]
+    fn limit_error_response_is_a_429_with_the_limit_metadata() {
+        let error = LimitExceeded {
+            limit_type: LimitType::LoopIterations,
+            current: 11,
+            maximum: 10,
+            retry_after_secs: Some(2),
+        };
+        let (status, body) = format_limit_error_response(&error);
+        assert_eq!(status, 429);
+        let parsed: serde_json::Value = serde_json::from_str(&body).expect("json");
+        assert_eq!(parsed["error"], "rate_limit_exceeded");
+        assert_eq!(parsed["limit_type"], "loop_iterations");
+        assert_eq!(parsed["current"], 11);
+        assert_eq!(parsed["maximum"], 10);
+        assert_eq!(parsed["retry_after_secs"], 2);
+    }
+
+    #[test]
+    fn limit_type_names_are_stable() {
+        assert_eq!(LimitType::LoopIterations.to_string(), "loop_iterations");
+        assert_eq!(LimitType::FileSize.to_string(), "file_size");
+        assert_eq!(LimitType::PendingTasks.to_string(), "pending_tasks");
+    }
+}
