@@ -33,6 +33,7 @@ fn api_error(status: StatusCode, message: &str) -> ApiError {
 }
 
 fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
+    let locale = botcore::i18n::locale_from_headers(headers);
     let token = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())

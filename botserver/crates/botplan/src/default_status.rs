@@ -64,3 +64,7 @@ pub(super) fn parse_plan_suggestions(text: &str) -> Vec<PlanAiSuggestion> {
     }
     Vec::new()
 }
+
+#[cfg(test)]
+#[path = "default_status_tests.rs"]
+mod default_status_tests;

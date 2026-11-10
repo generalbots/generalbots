@@ -316,3 +316,7 @@ pub async fn handle_get_plan_typing(Path(plan_id): Path<String>) -> impl IntoRes
         .collect();
     Json(serde_json::json!({ "typing": active }))
 }
+
+#[cfg(test)]
+#[path = "collaboration_tests.rs"]
+mod collaboration_tests;
