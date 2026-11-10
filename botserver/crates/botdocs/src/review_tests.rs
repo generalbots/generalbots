@@ -207,3 +207,73 @@ fn a_fence_stripper_leaves_bare_json_alone() {
     assert_eq!(strip_fence("```\n{\"a\":1}\n```"), "{\"a\":1}");
     assert_eq!(strip_fence("```json\n{\"a\":1}"), "{\"a\":1}", "an unclosed fence still parses");
 }
+
+#[test]
+fn severity_words_map_to_the_three_levels() {
+    assert_eq!(Severity::parse("critical"), Severity::Critical);
+    assert_eq!(Severity::parse("BLOCKER"), Severity::Critical);
+    assert_eq!(Severity::parse(" high "), Severity::Critical);
+    assert_eq!(Severity::parse("major"), Severity::Major);
+    assert_eq!(Severity::parse("medium"), Severity::Major);
+    assert_eq!(Severity::parse("minor"), Severity::Minor);
+    // An invented label must never escalate to Critical.
+    assert_eq!(Severity::parse("catastrophic"), Severity::Minor);
+    assert_eq!(Severity::parse(""), Severity::Minor);
+}
+
+#[test]
+fn severity_orders_minor_major_critical() {
+    assert!(Severity::Minor < Severity::Major);
+    assert!(Severity::Major < Severity::Critical);
+    assert_eq!(Severity::Minor.rank(), 0);
+    assert_eq!(Severity::Critical.rank(), 2);
+}
+
+#[test]
+fn the_two_roles_stay_in_their_lane() {
+    for role in ReviewerRole::ALL {
+        let prompt = role.system_prompt();
+        assert!(prompt.contains("JSON only"));
+        assert!(prompt.contains("Do not rewrite the document"));
+    }
+    assert!(ReviewerRole::Editor.system_prompt().contains("editor"));
+    assert!(ReviewerRole::Critic.system_prompt().contains("adversarial"));
+    assert_eq!(ReviewerRole::Editor.as_str(), "editor");
+    assert_eq!(ReviewerRole::Critic.as_str(), "critic");
+    assert_ne!(
+        ReviewerRole::Editor.system_prompt(),
+        ReviewerRole::Critic.system_prompt()
+    );
+}
+
+#[test]
+fn a_merged_finding_reports_its_severity_word() {
+    let merged = MergedFinding {
+        severity: Severity::Critical,
+        category: "claims".to_string(),
+        summary: "unsupported".to_string(),
+        agreement: 2,
+        reviewers: vec![ReviewerRole::Editor, ReviewerRole::Critic],
+    };
+    assert_eq!(merged.severity_rank(), "critical");
+
+    let minor = MergedFinding {
+        severity: Severity::Minor,
+        ..merged.clone()
+    };
+    assert_eq!(minor.severity_rank(), "minor");
+}
+
+#[test]
+fn a_fence_without_a_language_tag_is_stripped() {
+    assert_eq!(strip_fence("```\n{\"a\":1}\n```"), "{\"a\":1}");
+    assert_eq!(strip_fence("```json\n{\"a\":1}\n```"), "{\"a\":1}");
+    // Text around the fence is kept as-is.
+    assert!(strip_fence("before ```json {}``` after").contains("before"));
+}
+
+#[test]
+fn dedup_keys_ignore_case_and_punctuation() {
+    assert_eq!(dedup_key("Missing Caveat!"), dedup_key("missing caveat"));
+    assert_ne!(dedup_key("missing caveat"), dedup_key("unsupported claim"));
+}
