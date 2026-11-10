@@ -91,3 +91,7 @@ pub fn match_tool_triggers(tool_name: &str, bots: &[SessionBot]) -> Vec<SessionB
     matching_bots.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching_bots
 }
+
+#[cfg(test)]
+#[path = "delegate_to_bot_tests.rs"]
+mod delegate_to_bot_tests;
