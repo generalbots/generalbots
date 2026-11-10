@@ -13,7 +13,6 @@ auth-logout = Log Out
 auth-signup = Sign Up
 auth-welcome = Welcome
 auth-welcome-back = Welcome back, { $name }!
-auth-session-expired = Your session has expired
 auth-session-timeout = Session timeout in { $minutes } minutes
 
 # -----------------------------------------------------------------------------

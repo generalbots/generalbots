@@ -558,9 +558,7 @@ admin-selected-count = { $count ->
 
 admin-audit-subtitle = システム活動の記録
 admin-users-subtitle = このワークスペースにアクセスできるメンバー
-admin-groups-subtitle = ロールと権限
 admin-bots-subtitle = アシスタントボットの管理
-admin-dns-subtitle = ドメインレコードとルーティング
 admin-users = ユーザー
 admin-groups = グループ
 admin-bots = ボット

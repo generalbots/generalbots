@@ -323,7 +323,6 @@ search-clear-filters = Filter löschen
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = Angezeigt werden { $from } bis { $to } von { $total }
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -381,7 +380,6 @@ settings-language-changed = Die Sprache wurde erfolgreich geändert
 settings-reload-required = Zum Übernehmen der Änderungen ist ein Neuladen der Seite erforderlich
 
 # Settings - Profile
-settings-profile = Profileinstellungen
 settings-profile-desc = Verwalten Sie Ihre persönlichen Daten und Präferenzen
 settings-profile-photo = Profilfoto
 settings-profile-photo-desc = Ihr Profilfoto ist für andere Benutzer sichtbar
@@ -570,7 +568,6 @@ paper-export-html = HTML
 paper-export-txt = Klartext
 
 # Additional Chat translations
-chat-voice = Spracheingabe
 chat-camera = Kamera
 chat-camera-title = Foto aufnehmen
 chat-camera-capture = Foto aufnehmen
@@ -1810,8 +1807,6 @@ chat-scroll-bottom = Nach unten scrollen
 chat-private-signin = Privater Bot — zum Fortfahren anmelden
 
 settings-profile = Profil
-settings-appearance = Darstellung
-settings-storage = Speicher
 settings-integrations = Integrationen
 settings-vibe = Vibe
 settings-memory = Gedächtnis
@@ -1967,3 +1962,7 @@ settings-notifications-saved = Benachrichtigungseinstellungen gespeichert
 settings-notification-recipient = Zustellpostfach
 settings-notification-recipient-desc = Leer lassen, um Ihr primäres Mail-Konto oder Ihre Profil-E-Mail zu verwenden.
 language-search-placeholder = Sprachen suchen…
+
+settings-profile-title = Profileinstellungen
+
+settings-security-title = Sicherheitseinstellungen

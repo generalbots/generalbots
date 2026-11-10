@@ -13,7 +13,6 @@ auth-logout = 退出
 auth-signup = 注册
 auth-welcome = 欢迎
 auth-welcome-back = 欢迎回来，{ $name }！
-auth-session-expired = 您的会话已过期
 auth-session-timeout = { $minutes } 分钟后会话超时
 
 # -----------------------------------------------------------------------------

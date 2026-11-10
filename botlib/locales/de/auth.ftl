@@ -13,7 +13,6 @@ auth-logout = Abmelden
 auth-signup = Melden Sie sich an
 auth-welcome = Willkommen
 auth-welcome-back = Willkommen zurück, { $name }!
-auth-session-expired = Ihre Sitzung ist abgelaufen
 auth-session-timeout = Sitzungs-Timeout in { $minutes } Minuten
 
 # -----------------------------------------------------------------------------

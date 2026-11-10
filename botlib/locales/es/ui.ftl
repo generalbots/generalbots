@@ -323,7 +323,6 @@ search-clear-filters = Limpiar Filtros
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = Mostrando { $from } a { $to } de { $total }
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -381,7 +380,6 @@ settings-language-changed = Idioma cambiado exitosamente
 settings-reload-required = Se requiere recargar la página para aplicar cambios
 
 # Settings - Profile
-settings-profile = Configuración de Perfil
 settings-profile-desc = Administra tu información personal y preferencias
 settings-profile-photo = Foto de Perfil
 settings-profile-photo-desc = Tu foto de perfil es visible para otros usuarios
@@ -570,7 +568,6 @@ paper-export-html = HTML
 paper-export-txt = Texto sin formato
 
 # Additional Chat translations
-chat-voice = Entrada de voz
 chat-camera = Cámara
 chat-camera-title = Tomar una foto
 chat-camera-capture = Tomar foto
@@ -1965,3 +1962,7 @@ settings-notifications-saved = Preferencias de notificación guardadas
 settings-notification-recipient = Buzón de entrega
 settings-notification-recipient-desc = Déjalo en blanco para usar tu cuenta principal de Mail o el correo del perfil.
 language-search-placeholder = Buscar idiomas…
+
+settings-profile-title = Configuración de Perfil
+
+settings-security-title = Configuración de Seguridad

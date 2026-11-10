@@ -563,11 +563,9 @@ admin-audit-subtitle = Trilha de atividade do sistema
 admin-users = Usuários
 admin-users-subtitle = Pessoas com acesso a este workspace
 admin-groups = Grupos
-admin-groups-subtitle = Papéis e permissões
 admin-bots = Bots
 admin-bots-subtitle = Gerenciar bots assistentes
 admin-dns = DNS
-admin-dns-subtitle = Registros de domínio e roteamento
 
 nav-about = Sobre
 nav-organizations = Organizações

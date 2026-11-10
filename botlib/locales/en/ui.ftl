@@ -324,7 +324,6 @@ search-clear-filters = Clear Filters
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = Showing { $from } to { $to } of { $total }
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -382,7 +381,6 @@ settings-language-changed = Language changed successfully
 settings-reload-required = Page reload required to apply changes
 
 # Settings - Profile
-settings-profile = Profile Settings
 settings-profile-desc = Manage your personal information and preferences
 settings-profile-photo = Profile Photo
 settings-profile-photo-desc = Your profile photo is visible to other users
@@ -400,7 +398,6 @@ settings-location = Location
 settings-website = Website
 
 # Settings - Security
-settings-security = Security Settings
 settings-security-desc = Protect your account with enhanced security
 settings-change-password = Change Password
 settings-change-password-desc = Update your password regularly for better security
@@ -572,7 +569,6 @@ paper-export-html = HTML
 paper-export-txt = Plain Text
 
 # Additional Chat translations
-chat-voice = Voice input
 chat-camera = Camera
 chat-camera-title = Take a photo
 chat-camera-capture = Take photo
@@ -711,7 +707,6 @@ notifications-empty = No notifications
 # -----------------------------------------------------------------------------
 # All Applications
 # -----------------------------------------------------------------------------
-nav-all-apps = All Applications
 
 # =============================================================================
 # AUTH SCREENS - Complete translations for login, register, forgot/reset password
@@ -720,7 +715,6 @@ nav-all-apps = All Applications
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = Welcome Back
 auth-sign-in-to-account = Sign in to your General Bots account
 auth-email-address = Email Address
 auth-email-placeholder = you@example.com
@@ -1559,7 +1553,6 @@ tickets-no-closed = No closed tickets
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-subtitle = Security tools, compliance scanning, and server protection
 security-tab-compliance = API Compliance Report
 security-tab-protection = Protection
 security-export-report = Export Report
@@ -2029,3 +2022,7 @@ settings-notifications-saved = Notification preferences saved
 settings-notification-recipient = Delivery mailbox
 settings-notification-recipient-desc = Leave blank to use your primary Mail account or profile email.
 language-search-placeholder = Search languages…
+
+settings-profile-title = Profile Settings
+
+settings-security-title = Security Settings

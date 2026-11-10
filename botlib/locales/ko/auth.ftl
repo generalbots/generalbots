@@ -13,7 +13,6 @@ auth-logout = 로그아웃
 auth-signup = 가입
 auth-welcome = 환영합니다
 auth-welcome-back = 돌아온 것을 환영합니다, { $name }!
-auth-session-expired = 세션이 만료되었습니다
 auth-session-timeout = { $minutes }분 후 세션 시간 초과
 
 # -----------------------------------------------------------------------------

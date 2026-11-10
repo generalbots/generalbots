@@ -323,7 +323,6 @@ search-clear-filters = フィルターをクリアする
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = { $total }中 { $from }から{ $to }を表示中
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -381,7 +380,6 @@ settings-language-changed = 言語が正常に変更されました
 settings-reload-required = 変更を適用するにはページのリロードが必要です
 
 # Settings - Profile
-settings-profile = プロファイル設定
 settings-profile-desc = 個人情報と設定を管理する
 settings-profile-photo = プロフィール写真
 settings-profile-photo-desc = あなたのプロフィール写真は他のユーザーに表示されます
@@ -570,7 +568,6 @@ paper-export-html = HTML
 paper-export-txt = プレーンテキスト
 
 # Additional Chat translations
-chat-voice = 音声入力
 chat-camera = カメラ
 chat-camera-title = 写真を撮る
 chat-camera-capture = 撮影
@@ -1965,3 +1962,7 @@ settings-notifications-saved = 通知設定を保存しました
 settings-notification-recipient = 配信メールボックス
 settings-notification-recipient-desc = 空欄の場合は、主要なメールアカウントまたはプロフィールのメールアドレスを使用します。
 language-search-placeholder = 言語を検索…
+
+settings-profile-title = プロファイル設定
+
+settings-security-title = セキュリティ設定

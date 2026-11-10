@@ -558,9 +558,7 @@ admin-selected-count = { $计数 ->
 
 admin-audit-subtitle = 系统活动记录
 admin-users-subtitle = 有权访问此工作区的成员
-admin-groups-subtitle = 角色与权限
 admin-bots-subtitle = 管理助手机器人
-admin-dns-subtitle = 域名记录与路由
 admin-users = 用户
 admin-groups = 组
 admin-bots = 机器人

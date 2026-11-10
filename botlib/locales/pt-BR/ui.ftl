@@ -326,8 +326,6 @@ search-clear-filters = Limpar Filtros
 # -----------------------------------------------------------------------------
 # Paginação
 # -----------------------------------------------------------------------------
-pagination-next = Próximo
-pagination-showing = Mostrando { $from } a { $to } de { $total }
 
 # -----------------------------------------------------------------------------
 # Tabelas
@@ -385,7 +383,6 @@ settings-language-changed = Idioma alterado com sucesso
 settings-reload-required = Atualização da página necessária para aplicar as alterações
 
 # Settings - Profile
-settings-profile = Configurações de Perfil
 settings-profile-desc = Gerencie suas informações pessoais e preferências
 settings-profile-photo = Foto de Perfil
 settings-profile-photo-desc = Sua foto de perfil é visível para outros usuários
@@ -403,7 +400,6 @@ settings-location = Localização
 settings-website = Website
 
 # Settings - Security
-settings-security = Configurações de Segurança
 settings-security-desc = Proteja sua conta com segurança aprimorada
 settings-change-password = Alterar Senha
 settings-change-password-desc = Atualize sua senha regularmente para maior segurança
@@ -575,7 +571,6 @@ paper-export-html = HTML
 paper-export-txt = Texto Simples
 
 # Traduções adicionais do Chat
-chat-voice = Entrada de voz
 chat-camera = Câmera
 chat-camera-title = Tirar uma foto
 chat-camera-capture = Tirar foto
@@ -714,7 +709,6 @@ notifications-empty = Nenhuma notificação
 # -----------------------------------------------------------------------------
 # Todos os Aplicativos
 # -----------------------------------------------------------------------------
-nav-all-apps = Todos os Aplicativos
 
 # =============================================================================
 # TELAS DE AUTENTICAÇÃO - Traduções completas para login, registro, esqueci/redefinir senha
@@ -723,7 +717,6 @@ nav-all-apps = Todos os Aplicativos
 # -----------------------------------------------------------------------------
 # Tela de Login
 # -----------------------------------------------------------------------------
-auth-welcome-back = Bem-vindo de Volta
 auth-sign-in-to-account = Entre na sua conta do General Bots
 auth-email-address = Endereço de E-mail
 auth-email-placeholder = voce@exemplo.com
@@ -1562,7 +1555,6 @@ tickets-no-closed = Nenhum chamado fechado
 # -----------------------------------------------------------------------------
 # Security Module
 # -----------------------------------------------------------------------------
-security-subtitle = Ferramentas de segurança, verificação de conformidade e proteção do servidor
 security-tab-compliance = Relatório de Conformidade API
 security-tab-protection = Proteção
 security-export-report = Exportar Relatório
@@ -1958,3 +1950,7 @@ settings-notifications-saved = Preferências de notificação salvas
 settings-notification-recipient = Caixa de entrega
 settings-notification-recipient-desc = Deixe em branco para usar sua conta principal do Mail ou o e-mail do perfil.
 language-search-placeholder = Pesquisar idiomas…
+
+settings-profile-title = Configurações de Perfil
+
+settings-security-title = Configurações de Segurança

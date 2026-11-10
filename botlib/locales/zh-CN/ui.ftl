@@ -323,7 +323,6 @@ search-clear-filters = 清除过滤器
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = 显示 { $total } 中的{ $from } 至 { $to }
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -381,7 +380,6 @@ settings-language-changed = 语言更改成功
 settings-reload-required = 需要重新加载页面才能应用更改
 
 # Settings - Profile
-settings-profile = 配置文件设置
 settings-profile-desc = 管理您的个人信息和偏好
 settings-profile-photo = 个人资料照片
 settings-profile-photo-desc = 其他用户可以看到您的个人资料照片
@@ -570,7 +568,6 @@ paper-export-html = 超文本标记语言
 paper-export-txt = 纯文本
 
 # Additional Chat translations
-chat-voice = 语音输入
 chat-camera = 相机
 chat-camera-title = 拍照
 chat-camera-capture = 拍照
@@ -1965,3 +1962,7 @@ settings-notifications-saved = 通知首选项已保存
 settings-notification-recipient = 通知邮箱
 settings-notification-recipient-desc = 留空则使用您的主 Mail 账户或个人资料邮箱。
 language-search-placeholder = 搜索语言…
+
+settings-profile-title = 配置文件设置
+
+settings-security-title = 安全设置

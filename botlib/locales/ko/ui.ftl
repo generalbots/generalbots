@@ -323,7 +323,6 @@ search-clear-filters = 필터 지우기
 # -----------------------------------------------------------------------------
 # Pagination
 # -----------------------------------------------------------------------------
-pagination-showing = { $total } 중 { $from }~{ $to } 표시 중
 
 # -----------------------------------------------------------------------------
 # Tables
@@ -381,7 +380,6 @@ settings-language-changed = 언어가 성공적으로 변경되었습니다
 settings-reload-required = 변경 사항을 적용하려면 페이지를 다시 로드해야 합니다.
 
 # Settings - Profile
-settings-profile = 프로필 설정
 settings-profile-desc = 개인 정보 및 기본 설정 관리
 settings-profile-photo = 프로필 사진
 settings-profile-photo-desc = 귀하의 프로필 사진이 다른 사용자에게 표시됩니다.
@@ -570,7 +568,6 @@ paper-export-html = HTML
 paper-export-txt = 일반 텍스트
 
 # Additional Chat translations
-chat-voice = 음성 입력
 chat-camera = 카메라
 chat-camera-title = 사진 찍기
 chat-camera-capture = 사진 찍기
@@ -1810,8 +1807,6 @@ chat-scroll-bottom = 맨 아래로
 chat-private-signin = 비공개 봇 — 계속하려면 로그인하세요
 
 settings-profile = 프로필
-settings-appearance = 모양
-settings-storage = 저장소
 settings-integrations = 통합
 settings-vibe = Vibe
 settings-memory = 메모리
@@ -1967,3 +1962,7 @@ settings-notifications-saved = 알림 환경설정이 저장되었습니다
 settings-notification-recipient = 수신 사서함
 settings-notification-recipient-desc = 비워 두면 기본 Mail 계정 또는 프로필 이메일을 사용합니다.
 language-search-placeholder = 언어 검색…
+
+settings-profile-title = 프로필 설정
+
+settings-security-title = 보안 설정

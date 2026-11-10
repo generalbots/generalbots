@@ -13,7 +13,6 @@ auth-logout = ログアウト
 auth-signup = サインアップ
 auth-welcome = ようこそ
 auth-welcome-back = { $name }さん、おかえりなさい！
-auth-session-expired = セッションの有効期限が切れました
 auth-session-timeout = セッションタイムアウト: { $minutes } 分
 
 # -----------------------------------------------------------------------------
