@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 /// Local principal for single-user desktop installs (`no_security=true`).
 /// Normal deployments always answer `None`, so a missing auth extension can
@@ -89,6 +90,7 @@ pub async fn list_files(
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
     user: Option<Extension<AuthenticatedUser>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<WriteFileBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     // The global auth middleware always inserts a principal, including the
@@ -140,7 +142,41 @@ pub async fn upload_file_to_drive(
         _ => req.content.as_bytes().to_vec(),
     };
 
-    let key = scoped_key(&prefix, &req.path);
+    // #2132 — every write is an upload: the bytes must agree with the
+    // extension they are stored under, the filename must be safe and the size
+    // must fit the endpoint budget.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::Drive, &headers) {
+        botlog::safe_warn!(
+            "drive write refused before buffering: {}",
+            error.log_detail()
+        );
+        return Err(upload_policy::rejection_json(&error, &headers));
+    }
+    let upload = match upload_policy::validate_upload(UploadClass::Drive, &req.path, "", &data) {
+        Ok(upload) => upload,
+        Err(error) => {
+            botlog::safe_warn!(
+                "drive write refused for '{}': {}",
+                req.path,
+                error.log_detail()
+            );
+            return Err(upload_policy::rejection_json(&error, &headers));
+        }
+    };
+
+    // The client name is only a hint: the stored key keeps the sanitized
+    // basename and the (already normalized) parent folder.
+    let normalized = normalize_path(&req.path);
+    let parent = normalized
+        .rsplit_once('/')
+        .map(|(dir, _)| dir)
+        .unwrap_or_default();
+    let stored_path = if parent.is_empty() {
+        upload.filename.clone()
+    } else {
+        format!("{parent}/{}", upload.filename)
+    };
+    let key = scoped_key(&prefix, &stored_path);
     // GB7-14 — the previous revision becomes restorable history before the
     // overwrite. The snapshot never blocks the write.
     snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;

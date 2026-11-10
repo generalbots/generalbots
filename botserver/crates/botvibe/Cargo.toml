@@ -38,3 +38,6 @@ futures = { workspace = true }
 reqwest = { workspace = true, features = ["json"], default-features = true }
 base64 = { workspace = true }
 tokio-tungstenite = { workspace = true, features = ["connect"] }
+
+[dev-dependencies]
+hmac = { workspace = true }

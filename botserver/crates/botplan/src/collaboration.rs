@@ -1,6 +1,12 @@
+use crate::auth::{authorize, authorize_ws, Access, Caller, PlanError, PLAN_WS_CLOSE_FORBIDDEN};
+use crate::handlers::visible_plan;
 use axum::{
-    extract::{ws::WebSocketUpgrade, Path, Query},
-    response::IntoResponse,
+    extract::{
+        ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade},
+        Path, Query,
+    },
+    http::HeaderMap,
+    response::{IntoResponse, Response},
     Json,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -45,8 +51,11 @@ pub struct PlanTypingIndicator {
     pub started_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// Credential a browser WebSocket can carry: the same JWT (or suite session
+/// token) the REST surface accepts, sent as `?token=`.
 #[derive(Debug, Default, Deserialize)]
 pub struct WsAuthQuery {
+    #[serde(default)]
     pub token: String,
 }
 
@@ -64,82 +73,69 @@ pub fn get_plan_typing() -> &'static PlanTyping {
     PLAN_TYPING.get_or_init(|| Arc::new(tokio::sync::RwLock::new(HashMap::new())))
 }
 
-fn extract_user_from_token(token: &str) -> Option<(String, String)> {
-    if token.is_empty() {
-        return None;
-    }
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload_b64 = parts[1].replace('-', "+").replace('_', "/");
-    let padding = (4 - payload_b64.len() % 4) % 4;
-    let padded = format!("{}{}", payload_b64, "=".repeat(padding));
-    let chars: Vec<u8> = padded.bytes().collect();
-    let mut out = Vec::with_capacity(chars.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &c in &chars {
-        let v = match c {
-            b'A'..=b'Z' => c - b'A',
-            b'a'..=b'z' => c - b'a' + 26,
-            b'0'..=b'9' => c - b'0' + 52,
-            b'+' => 62,
-            b'/' => 63,
-            b'=' => break,
-            _ => return None,
-        };
-        buf = (buf << 6) | v as u32;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1u32 << bits) - 1;
-        }
-    }
-    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&out) {
-        let sub = v.get("sub").and_then(|x| x.as_str())
-            .or_else(|| v.get("user_id").and_then(|x| x.as_str()))
-            .or_else(|| v.get("email").and_then(|x| x.as_str()));
-        let name = v.get("name").and_then(|x| x.as_str())
-            .or_else(|| v.get("display_name").and_then(|x| x.as_str()))
-            .or_else(|| v.get("preferred_username").and_then(|x| x.as_str()))
-            .or_else(|| v.get("email").and_then(|x| x.as_str()));
-        if let (Some(s), Some(n)) = (sub, name) {
-            return Some((s.to_string(), n.to_string()));
-        }
-        if let Some(s) = sub {
-            return Some((s.to_string(), s.to_string()));
-        }
-    }
-    None
-}
-
 fn get_random_color() -> String {
     use rand::Rng;
     let colors = [
-        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD",
-        "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA",
+        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+        "#BB8FCE", "#85C1E9", "#F1948A", "#82E0AA",
     ];
     let idx = rand::rng().random_range(0..colors.len());
     colors[idx].to_string()
 }
 
+/// `GET /ws/plan/:plan_id` — refuses the upgrade unless the caller presents a
+/// **verified** credential *and* may read the plan.
+///
+/// Before #2136 a missing token produced a guest identity that still joined the
+/// plan channel. There is no guest path now: a missing/invalid token answers
+/// 401 with an `x-auth-reason` code, and a plan the caller cannot see answers
+/// 404 (never 403, so a guessed id stays indistinguishable from an unused one).
 pub async fn handle_plan_websocket(
     ws: WebSocketUpgrade,
     Path(plan_id): Path<String>,
     Query(q): Query<WsAuthQuery>,
-) -> impl IntoResponse {
-    let auth = extract_user_from_token(&q.token);
-    ws.on_upgrade(move |socket| handle_plan_connection(socket, plan_id, auth))
+    headers: HeaderMap,
+) -> Response {
+    let plan = match crate::load_plan(&plan_id).await {
+        Some(plan) => plan,
+        None => {
+            log::warn!("plan ws refused for {plan_id}: plan_not_found");
+            return PlanError::NotFound.into_response();
+        }
+    };
+    match authorize_ws(&plan, Some(&q.token), &headers) {
+        Ok(caller) => ws
+            .on_upgrade(move |socket| handle_plan_connection(socket, plan_id, caller))
+            .into_response(),
+        Err(refusal) => {
+            log::warn!("plan ws refused for {plan_id}: {refusal:?}");
+            refusal.into_response()
+        }
+    }
 }
 
-async fn handle_plan_connection(
-    socket: axum::extract::ws::WebSocket,
-    plan_id: String,
-    auth: Option<(String, String)>,
-) {
+/// Re-checks access right after the upgrade: a membership revocation (or a
+/// deleted plan) between the handshake and the subscription closes the socket
+/// with an explicit code instead of silently subscribing it.
+async fn still_readable(plan_id: &str, caller: &Caller) -> bool {
+    match crate::load_plan(plan_id).await {
+        Some(plan) => authorize(&plan, caller, Access::Read).is_ok(),
+        None => false,
+    }
+}
+
+async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Caller) {
     let (mut sender, mut receiver) = socket.split();
+
+    if !still_readable(&plan_id, &caller).await {
+        let _ = sender
+            .send(Message::Close(Some(CloseFrame {
+                code: PLAN_WS_CLOSE_FORBIDDEN,
+                reason: "plan_access_denied".into(),
+            })))
+            .await;
+        return;
+    }
 
     let channels = get_plan_channels();
     let broadcast_tx = {
@@ -150,13 +146,9 @@ async fn handle_plan_connection(
     };
     let mut broadcast_rx = broadcast_tx.subscribe();
 
-    let (user_id, user_name) = match auth {
-        Some((id, name)) => (id, name),
-        None => {
-            let id = uuid::Uuid::new_v4().to_string();
-            (id.clone(), format!("Guest {}", &id[..8]))
-        }
-    };
+    // Only a verified identity reaches this point; there is no guest fallback.
+    let user_id = caller.user_id.clone();
+    let user_name = caller.display_name();
     let user_id_for_send = user_id.clone();
     let user_color = get_random_color();
 
@@ -196,7 +188,7 @@ async fn handle_plan_connection(
     let receive = tokio::spawn(async move {
         while let Some(msg) = receiver.next().await {
             match msg {
-                Ok(axum::extract::ws::Message::Text(text)) => {
+                Ok(Message::Text(text)) => {
                     if let Ok(mut m) = serde_json::from_str::<PlanMessage>(&text) {
                         m.user_id = uid_clone.clone();
                         m.user_name = uname_clone.clone();
@@ -229,7 +221,10 @@ async fn handle_plan_connection(
                                 if let Some(users) = presence.get_mut(&pid_clone) {
                                     for u in users.iter_mut() {
                                         if u.user_id == uid_clone {
-                                            u.current_view = m.content.clone().unwrap_or_else(|| "kanban".to_string());
+                                            u.current_view = m
+                                                .content
+                                                .clone()
+                                                .unwrap_or_else(|| "kanban".to_string());
                                             u.last_active = chrono::Utc::now();
                                         }
                                     }
@@ -241,7 +236,7 @@ async fn handle_plan_connection(
                         let _ = bc_tx_clone.send(m);
                     }
                 }
-                Ok(axum::extract::ws::Message::Close(_)) | Err(_) => break,
+                Ok(Message::Close(_)) | Err(_) => break,
                 _ => {}
             }
         }
@@ -253,7 +248,11 @@ async fn handle_plan_connection(
                 continue;
             }
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(axum::extract::ws::Message::Text(json)).await.is_err() {
+                if sender
+                    .send(Message::Text(json))
+                    .await
+                    .is_err()
+                {
                     break;
                 }
             }
@@ -289,32 +288,47 @@ async fn handle_plan_connection(
     let _ = broadcast_tx.send(leave_msg);
 }
 
+/// `GET /api/plan/:plan_id/collaborators`
 pub async fn handle_get_plan_collaborators(
+    headers: HeaderMap,
     Path(plan_id): Path<String>,
-) -> impl IntoResponse {
+) -> Result<Json<serde_json::Value>, PlanError> {
+    let caller = Caller::from_headers(&headers)?;
+    visible_plan(&plan_id, &caller, Access::Read).await?;
     let presence = get_plan_presence().read().await;
-    let users: Vec<&PlanUserPresence> = presence
-        .get(&plan_id)
-        .map(|v| v.iter().collect())
-        .unwrap_or_default();
-    Json(serde_json::json!({ "count": users.len(), "users": users }))
+    let users: Vec<PlanUserPresence> = presence.get(&plan_id).cloned().unwrap_or_default();
+    Ok(Json(
+        serde_json::json!({ "count": users.len(), "users": users }),
+    ))
 }
 
-pub async fn handle_get_plan_presence(Path(plan_id): Path<String>) -> impl IntoResponse {
+/// `GET /api/plan/:plan_id/presence`
+pub async fn handle_get_plan_presence(
+    headers: HeaderMap,
+    Path(plan_id): Path<String>,
+) -> Result<Json<serde_json::Value>, PlanError> {
+    let caller = Caller::from_headers(&headers)?;
+    visible_plan(&plan_id, &caller, Access::Read).await?;
     let presence = get_plan_presence().read().await;
     let users = presence.get(&plan_id).cloned().unwrap_or_default();
-    Json(serde_json::json!({ "users": users }))
+    Ok(Json(serde_json::json!({ "users": users })))
 }
 
-pub async fn handle_get_plan_typing(Path(plan_id): Path<String>) -> impl IntoResponse {
+/// `GET /api/plan/:plan_id/typing`
+pub async fn handle_get_plan_typing(
+    headers: HeaderMap,
+    Path(plan_id): Path<String>,
+) -> Result<Json<serde_json::Value>, PlanError> {
+    let caller = Caller::from_headers(&headers)?;
+    visible_plan(&plan_id, &caller, Access::Read).await?;
     let typing = get_plan_typing().read().await;
     let indicators = typing.get(&plan_id).cloned().unwrap_or_default();
     let now = chrono::Utc::now();
-    let active: Vec<&PlanTypingIndicator> = indicators
-        .iter()
+    let active: Vec<PlanTypingIndicator> = indicators
+        .into_iter()
         .filter(|t| (now - t.started_at).num_seconds() < 5)
         .collect();
-    Json(serde_json::json!({ "typing": active }))
+    Ok(Json(serde_json::json!({ "typing": active })))
 }
 
 #[cfg(test)]

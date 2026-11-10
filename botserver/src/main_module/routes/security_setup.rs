@@ -20,7 +20,12 @@ pub struct SecurityComponents {
     pub no_security: bool,
 }
 
-pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
+/// Builds the auth/JWT/RBAC stack.
+///
+/// #2140 — returns an error when the SaaS JWT secret cannot be resolved (a
+/// production deployment with no persisted secret). The caller must refuse to
+/// start: serving with a guessable key would let anyone mint a valid token.
+pub async fn setup_security(app_state: &Arc<AppState>) -> Result<SecurityComponents, String> {
     use botcore::config::ConfigManager;
 
     let cfg = ConfigManager::new(app_state.conn.clone());
@@ -55,11 +60,6 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
 
     let auth_config = {
         let mut cfg = AuthConfig::from_env();
-        // ⚠️ Remove catch-all "/" from public paths — CRITICAL SECURITY.
-        // The default AuthConfig includes "/" which makes every endpoint
-        // publicly accessible, including /api/files/buckets that enumerates
-        // all MinIO buckets. Only explicitly listed paths are public.
-        cfg.public_paths.retain(|p| p != "/");
 
         // Wire no_security from .product into the auth middleware: when
         // the product config sets no_security=true, failed auth falls
@@ -69,114 +69,25 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             cfg.require_auth = false;
         }
 
-        Arc::new(
-            cfg.add_anonymous_path("/health")
-                .add_anonymous_path("/healthz")
-                .add_anonymous_path("/api/health")
-                .add_anonymous_path("/api/product")
-                .add_anonymous_path("/api/whats-new")
-                .add_anonymous_path("/api/manifest")
-                .add_anonymous_path("/api/i18n")
-                .add_anonymous_path("/api/auth")
-                .add_anonymous_path("/api/auth/login")
-                .add_anonymous_path("/api/auth/refresh")
-                .add_anonymous_path("/api/auth/bootstrap")
-                .add_anonymous_path("/api/setup/status")
-                .add_anonymous_path("/api/bot/public")
-                .add_anonymous_path("/api/weather")
-                .add_anonymous_path("/api/marketing/track/")
-                .add_anonymous_path("/api/suggestions")
-                .add_anonymous_path("/api/client-errors")
-                // Opt-in peer-network foundation (#1864): peers are machines,
-                // not browser sessions, so they cannot carry a JWT. Each
-                // handler enforces GB_PEER_NETWORK and the optional
-                // GB_PEER_TOKEN itself; while disabled it returns 403.
-                .add_anonymous_path("/api/peer/*")
-                // #1342 — the app catalog feeds the desktop launcher, which must
-                // render for anonymous visitors of a public bot (the reported
-                // "Design app won't open" is the launcher grid failing on the
-                // 401). The handler already scopes per-tenant and degrades to the
-                // global (nil) scope for unbound callers, so anonymous reads
-                // never leak other orgs' bots or published apps.
-                .add_anonymous_path("/api/apps/catalog")
-                // #1428 — the Integrations provider catalog is the same static
-                // surface: an internal app's browse list. The handler serves the
-                // built-in provider seeds only (no tenant data), so the 401 the
-                // middleware answered made the catalog show a "Sign in"
-                // interstitial that blocked the whole app.
-                .add_anonymous_path("/api/apps/integrations/catalog")
-                .add_anonymous_path("/ws")
-                // Terminal WS: the browser WebSocket API cannot send an
-                // Authorization header, so the upgrade is anonymous and gated by
-                // the session id (?id=...) issued by the authenticated
-                // /api/terminal/create endpoint (a random UUID capability).
-                .add_anonymous_path("/api/terminal/ws")
-                .add_anonymous_path("/auth")
-                .add_anonymous_path("/webhook/whatsapp")
-                .add_anonymous_path("/api/whatsapp/webhook")
-                .add_anonymous_path("/api/facebook/webhook")
-                // Inbound channel deliveries carry no token: the provider posts
-                // straight from its own infrastructure. Each handler proves the
-                // call itself (Telegram secret token / Instagram verify token +
-                // signature), so the transport gate must let them in — otherwise
-                // the whole channel is unreachable in production (#1327, #1330).
-                .add_anonymous_path("/webhook/telegram")
-                // Per-bot Telegram webhook: the bot name selects the bot; the
-                // handler proves the call with the secret-token header (#1327).
-                .add_anonymous_path("/webhook/telegram/*")
-                .add_anonymous_path("/api/instagram/webhook")
-                .add_anonymous_path("/api/msteams/messages")
-                .add_anonymous_path("/api/catalog")
-                // Only the bot access-check endpoint is anonymous: it must answer
-                // whether a bot is public before the caller has a token. The
-                // trailing-slash `/api/bots/` previously listed here was a no-op
-                // (the matcher produced the `/api/bots//` prefix), so bot config
-                // mutations stayed protected — keep it that way with an exact glob.
-                .add_anonymous_path("/api/bots/*/access")
-                .add_anonymous_path("/api/cloud/auth/login")
-                .add_anonymous_path("/api/cloud/auth/signup")
-                .add_anonymous_path("/api/cloud/auth")
-                .add_anonymous_path("/api/cloud/store")
-                .add_anonymous_path("/api/cloud/plans")
-                .add_anonymous_path("/api/cloud/offers")
-                .add_anonymous_path("/api/cloud/llm-providers")
-                // Public store catalog only: the Store page reads
-                // /api/products/items anonymously; all other /api/products/*
-                // (pricelists, inventory, low-stock, services, stats) stay
-                // authenticated — prefix matching must never widen this to the
-                // whole namespace (issue #738).
-                .add_anonymous_path("/api/products/items")
-                .add_anonymous_path("/api/sheet")
-                .add_anonymous_path("/api/ui/sheet")
-                .add_anonymous_path("/suite/sheet")
-                .add_public_path("/static")
-                .add_public_path("/favicon.ico")
-                .add_public_path("/suite")
-                .add_public_path("/themes")
-                .add_public_path("/api/product")
-                .add_public_path("/api/whats-new")
-                .add_public_path("/api/auth/suite-sso")
-                // Vibe domain forward-auth: Caddy calls this without a token;
-                // it validates the domain cookie/JWT itself (public gate).
-                .add_anonymous_path("/api/vibe/domain-auth")
-                // Drive public share links: token-only anonymous download. The
-                // token is a random 128-bit UUID captured at creation time; this
-                // prefix only exposes the exact-token download handler, nothing
-                // else under /api/files.
-                .add_anonymous_path("/api/files/public")
-                // Integration OAuth2 callback: the provider browser redirect
-                // carries no JWT; the HMAC-signed state parameter is the
-                // authenticity proof (verified inside the handler).
-                .add_anonymous_path("/api/bots/*/integrations/oauth/*/callback")
-                // External drive OAuth callback (OneDrive / Google Drive): same
-                // shape — the provider redirects a browser that carries no API
-                // token, and the HMAC-signed state is the authenticity proof
-                // (verified in the handler before any token is stored).
-                .add_anonymous_path("/api/external-drives/callback"),
-        )
+        // #2133 — anonymous access is an exact (method, path) declaration, not
+        // a path prefix. Anything not declared in `platform_public_routes()` is
+        // authenticated, and a state-changing method cannot be declared as a
+        // plain read route. The old prefix chain made every route added under
+        // `/api/auth`, `/api/products/items` and `/api/sheet` public by
+        // accident (#2127, #2128).
+        let public_routes = botsecurity_auth::auth_api::platform_public_routes();
+        info!(
+            "Anonymous allowlist: {} explicit (method, path) routes",
+            public_routes.len()
+        );
+        Arc::new(cfg.with_public_routes(public_routes))
     };
 
-    let jwt_secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+    // #2140 — one resolver for the whole workspace. Resolution fails closed in
+    // production when no secret can be obtained, so the server refuses to start
+    // instead of minting and verifying with a public constant.
+    let jwt_secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+        .map_err(|error| error.to_string())?;
 
     // SECURITY: the agent VM API reads the token payload itself; without a
     // signature check any handcrafted JWT reached another user's VM. Hand the
@@ -272,7 +183,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
         Arc::clone(&auth_provider_registry),
     );
 
-    SecurityComponents {
+    Ok(SecurityComponents {
         cors,
         auth_config,
         jwt_manager,
@@ -280,5 +191,5 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
         auth_provider_registry,
         auth_middleware_state,
         no_security,
-    }
+    })
 }

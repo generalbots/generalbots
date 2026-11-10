@@ -1,5 +1,16 @@
-//! WebSocket auth token parsing (split from [`super::websocket`]).
+//! Sheet WebSocket authentication (split from [`super::websocket`]).
+//!
+//! #2136 — the token used to be base64-decoded and trusted as-is, so anyone
+//! could join a sheet as another user, or as a writable "guest", by handing
+//! over a hand-made `{"alg":"none"}` payload. Identity now comes only from
+//! [`botsecurity_core::verified_jwt::verify_saas_jwt`]: HS256 pinned, HMAC
+//! compared in constant time, `exp`/`nbf` enforced. A refusal carries a stable
+//! machine-readable code so the client sees why the upgrade was rejected.
 
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use botsecurity_core::verified_jwt::{verify_saas_jwt, JwtVerifyError};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]
@@ -8,65 +19,52 @@ pub struct WsAuthQuery {
     pub token: String,
 }
 
-/// Decodes the JWT payload and extracts `(user_id, display_name)`.
-pub fn extract_user_from_token(token: &str) -> Option<(String, String)> {
-    if token.is_empty() {
-        return None;
-    }
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload_b64 = parts[1].replace('-', "+").replace('_', "/");
-    let padding = (4 - payload_b64.len() % 4) % 4;
-    let padded = format!("{}{}", payload_b64, "=".repeat(padding));
-    if let Ok(bytes) = base64_decode(&padded) {
-        if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes) {
-            let sub = v.get("sub").and_then(|x| x.as_str())
-                .or_else(|| v.get("user_id").and_then(|x| x.as_str()))
-                .or_else(|| v.get("email").and_then(|x| x.as_str()));
-            let name = v.get("name").and_then(|x| x.as_str())
-                .or_else(|| v.get("display_name").and_then(|x| x.as_str()))
-                .or_else(|| v.get("preferred_username").and_then(|x| x.as_str()))
-                .or_else(|| v.get("email").and_then(|x| x.as_str()));
-            if let (Some(s), Some(n)) = (sub, name) {
-                return Some((s.to_string(), n.to_string()));
-            }
-            if let Some(s) = sub {
-                return Some((s.to_string(), s.to_string()));
-            }
-        }
-    }
-    None
+/// Resolves `(user_id, display_name)` from a **verified** sheet token.
+///
+/// The display name prefers the verified `email` claim and falls back to the
+/// subject, so a collaborator never gets to choose their own label.
+pub fn extract_user_from_token(token: &str) -> Result<(String, String), JwtVerifyError> {
+    let verified = verify_saas_jwt(token)?;
+    let name = verified.email.clone().unwrap_or_else(|| verified.sub.clone());
+    Ok((verified.sub, name))
 }
 
-fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
-    use std::str;
-    let chars: Vec<u8> = input.bytes().collect();
-    let mut out = Vec::with_capacity(chars.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &c in &chars {
-        let v = match c {
-            b'A'..=b'Z' => c - b'A',
-            b'a'..=b'z' => c - b'a' + 26,
-            b'0'..=b'9' => c - b'0' + 52,
-            b'+' => 62,
-            b'/' => 63,
-            b'=' => break,
-            _ => return Err(format!("invalid base64 char: {}", c as char)),
-        };
-        buf = (buf << 6) | v as u32;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1u32 << bits) - 1;
-        }
-    }
-    if str::from_utf8(&out).is_ok() {
-        Ok(out)
-    } else {
-        Err("decode failed".to_string())
+/// Stable machine-readable code for a refusal, safe to log and to return.
+pub fn reason_code(reason: &JwtVerifyError) -> &'static str {
+    match reason {
+        JwtVerifyError::Malformed => "malformed_token",
+        JwtVerifyError::InvalidHeader => "invalid_header",
+        JwtVerifyError::UnsupportedAlgorithm => "unsupported_algorithm",
+        JwtVerifyError::InvalidSignature => "invalid_signature",
+        JwtVerifyError::MissingSecret => "verifier_unavailable",
+        JwtVerifyError::InvalidPayload => "invalid_payload",
+        JwtVerifyError::MissingSubject => "missing_subject",
+        JwtVerifyError::MissingExpiry => "missing_expiry",
+        JwtVerifyError::Expired => "token_expired",
+        JwtVerifyError::NotYetValid => "token_not_yet_valid",
     }
 }
+
+/// Refuses the WebSocket upgrade with a machine-readable 401.
+///
+/// The connection never upgrades, so no presence row and no write-capable
+/// socket exists for a rejected token.
+pub fn unauthorized(reason: JwtVerifyError) -> Response {
+    (
+        StatusCode::UNAUTHORIZED,
+        [
+            ("x-auth-error", "invalid_token"),
+            ("x-auth-reason", reason_code(&reason)),
+        ],
+        Json(serde_json::json!({
+            "error": "invalid_token",
+            "code": "sheet_ws_unauthorized",
+            "reason": reason_code(&reason),
+        })),
+    )
+        .into_response()
+}
+
+#[cfg(test)]
+#[path = "websocket_auth_tests.rs"]
+mod websocket_auth_tests;

@@ -6,7 +6,7 @@ pub mod itsm;
 
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, put},
     Json, Router,
 };
@@ -278,9 +278,14 @@ mod change_status;
 mod list_categories;
 mod list_activities;
 mod ai_suggest_for_ticket;
+mod request_scope;
 
 pub use get_bot_context::*;
 pub use change_status::*;
 pub use list_categories::*;
 pub use list_activities::*;
 pub use ai_suggest_for_ticket::*;
+pub use request_scope::*;
+
+#[cfg(test)]
+mod scope_tests;

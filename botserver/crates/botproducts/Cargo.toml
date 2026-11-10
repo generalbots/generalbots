@@ -24,5 +24,12 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time", "rt", "rt-multi-thread", "macros", "fs"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+[dev-dependencies]
+# HS256 minting for the write-scope tests (issue #2128): the tests verify that
+# a token signed with another key can never select a tenant branch.
+base64 = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+
 [lints]
 workspace = true

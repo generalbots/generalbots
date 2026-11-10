@@ -7,22 +7,11 @@ pub fn configure_itsm_routes() -> Router<Arc<TicketsState>> {
         .route("/api/tickets/kb", get(list_kb_articles).post(create_kb_article))
         .route("/api/tickets/kb/:id", get(get_kb_article).put(update_kb_article).delete(delete_kb_article))
 }
-pub(super) fn resolve_branch_id(state: &Arc<TicketsState>) -> Uuid {
+pub(super) fn resolve_branch_id(state: &Arc<TicketsState>, headers: &HeaderMap) -> Uuid {
     let Ok(mut conn) = state.pool.get() else {
         return Uuid::nil();
     };
-    #[derive(diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct BranchRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        branch_id: Uuid,
-    }
-    diesel::sql_query(
-        "SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE ORDER BY created_at ASC LIMIT 1",
-    )
-    .get_result::<BranchRow>(&mut conn)
-    .map(|r| r.branch_id)
-    .unwrap_or(Uuid::nil())
+    tenant_branch(state, headers, &mut conn)
 }
 pub(super) fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -31,8 +20,11 @@ pub(super) fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
 }
-pub(super) async fn list_cis(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
-    let branch_id = resolve_branch_id(&state);
+pub(super) async fn list_cis(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
 
     let rows: Vec<CiRow> = tokio::task::spawn_blocking(move || {
@@ -87,13 +79,14 @@ pub(super) async fn list_cis(State(state): State<Arc<TicketsState>>) -> impl Int
 }
 pub(super) async fn create_ci(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Json(payload): Json<NewCiRequest>,
 ) -> Result<Json<CiRow>, (axum::http::StatusCode, String)> {
     if payload.name.trim().is_empty() {
         return Err((axum::http::StatusCode::BAD_REQUEST, "name is required".to_string()));
     }
 
-    let branch_id = resolve_branch_id(&state);
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
     let id = Uuid::new_v4();
     let name = payload.name.clone();
@@ -139,7 +132,12 @@ pub(super) async fn create_ci(
         status,
     }))
 }
-pub(super) async fn get_ci(State(state): State<Arc<TicketsState>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+pub(super) async fn get_ci(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
 
     let row: Option<CiRow> = tokio::task::spawn_blocking(move || {
@@ -164,9 +162,12 @@ pub(super) async fn get_ci(State(state): State<Arc<TicketsState>>, Path(id): Pat
             #[diesel(sql_type = diesel::sql_types::Text)]
             status: String,
         }
-        diesel::sql_query("SELECT id, name, ci_type, description, status FROM ticket_cis WHERE id = $1")
-            .bind::<diesel::sql_types::Uuid, _>(&id)
-            .get_result::<Row>(&mut db_conn)
+        diesel::sql_query(
+            "SELECT id, name, ci_type, description, status FROM ticket_cis WHERE id = $1 AND branch_id = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(&id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+        .get_result::<Row>(&mut db_conn)
             .ok()
             .map(|r| CiRow {
                 id: r.id,
@@ -186,9 +187,11 @@ pub(super) async fn get_ci(State(state): State<Arc<TicketsState>>, Path(id): Pat
 }
 pub(super) async fn update_ci(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(payload): Json<NewCiRequest>,
 ) -> Result<Json<CiRow>, (axum::http::StatusCode, String)> {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
     let name = payload.name.clone();
     let ci_type = payload.ci_type.clone();
@@ -202,26 +205,32 @@ pub(super) async fn update_ci(
         status.clone(),
     );
 
-    tokio::task::spawn_blocking(move || {
+    let updated = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {e}");
-                return;
+                return 0;
             }
         };
-        let _ = diesel::sql_query(
-            "UPDATE ticket_cis SET name = $1, ci_type = $2, description = $3, status = $4, updated_at = NOW() WHERE id = $5",
+        diesel::sql_query(
+            "UPDATE ticket_cis SET name = $1, ci_type = $2, description = $3, status = $4, updated_at = NOW() WHERE id = $5 AND branch_id = $6",
         )
         .bind::<diesel::sql_types::Text, _>(&name_c)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&ci_type_c)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&description_c)
         .bind::<diesel::sql_types::Text, _>(&status_c)
         .bind::<diesel::sql_types::Uuid, _>(&id)
-        .execute(&mut db_conn);
+        .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+        .execute(&mut db_conn)
+        .unwrap_or(0)
     })
     .await
     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Task error: {e}")))?;
+
+    if updated == 0 {
+        return Err((axum::http::StatusCode::NOT_FOUND, "CI not found".to_string()));
+    }
 
     Ok(Json(CiRow {
         id,
@@ -231,24 +240,38 @@ pub(super) async fn update_ci(
         status,
     }))
 }
-pub(super) async fn delete_ci(State(state): State<Arc<TicketsState>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+pub(super) async fn delete_ci(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
-    match tokio::task::spawn_blocking(move || {
+    let deleted = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {e}");
-                return;
+                return 0;
             }
         };
-        let _ = diesel::sql_query("DELETE FROM ticket_cis WHERE id = $1")
+        diesel::sql_query("DELETE FROM ticket_cis WHERE id = $1 AND branch_id = $2")
             .bind::<diesel::sql_types::Uuid, _>(&id)
-            .execute(&mut db_conn);
+            .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+            .execute(&mut db_conn)
+            .unwrap_or(0)
     })
     .await
     {
-        Ok(()) => (),
-        Err(e) => log::error!("Delete CI task error: {e}"),
+        Ok(count) => count,
+        Err(e) => {
+            log::error!("Delete CI task error: {e}");
+            0
+        }
+    };
+
+    if deleted == 0 {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
     }
 
     axum::http::StatusCode::NO_CONTENT.into_response()

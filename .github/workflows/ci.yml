@@ -16,6 +16,9 @@ name: CI
 #   readiness     one gate over every readiness check + the BotBook scoreboard (#2121)
 #   windows       Windows agent/VM adapter compile check
 #
+# The `guard` job also runs the security-directive gates (IMP-07 rate limiting,
+# IMP-08 CSRF, IMP-09 headers, #2125 JWT) so a router cannot ship unguarded.
+#
 # Desktop binaries are built by `.github/workflows/release.yml` on version
 # tags; this workflow runs the quality gates, including the Windows adapter
 # compile check, on pushes to main and pull requests.
@@ -226,6 +229,30 @@ jobs:
           set -euo pipefail
           python3 scripts/check_jwt_hardening.py --check
           python3 scripts/check_jwt_hardening.py --self-test
+
+      # IMP-09 — the six security headers must reach every response of every
+      # server, including error and static-file responses. The gate fails when
+      # an `axum::serve` is mounted without the shared layer, when a
+      # `configure_*_router` factory stops applying it, when the API layer stack
+      # is no longer layered outermost, or when a header is dropped from the
+      # shared applier. Pure Python, no network, no extra action to pin.
+      - name: Security header guards (IMP-09)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_security_headers.py --check
+          python3 scripts/check_security_headers.py --self-test
+
+      # IMP-08 / IMP-07 — the two directives AGENTS.md marks mandatory but
+      # nothing verified. The gate greps the route registration surface and
+      # fails when a state-changing handler is reachable without the CSRF
+      # layer and without a shrink-only exemption entry, or when the
+      # general/auth/api or WebSocket message limiters are not installed.
+      # Pure Python, no network, no extra action to pin.
+      - name: CSRF + rate-limit guards (IMP-08, IMP-07)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_security_directives.py --check
+          python3 scripts/check_security_directives.py --self-test
 
       # #2103 — Cargo.toml is the single source of truth for the product
       # version. Every other version-bearing file must agree with it, and the
@@ -958,6 +985,7 @@ jobs:
           - botschema
           - botlog
           - botbasic_types
+          - botproducts
           - botdocs
           - botslides
           - botsheet

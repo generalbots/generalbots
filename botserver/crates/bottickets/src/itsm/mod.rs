@@ -1,9 +1,9 @@
-pub(crate) use axum::{ extract::{Path, State}, response::{Html, IntoResponse}, routing::get, Json, Router, };
+pub(crate) use axum::{ extract::{Path, State}, http::HeaderMap, response::{Html, IntoResponse}, routing::get, Json, Router, };
 pub(crate) use diesel::prelude::*;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
-pub(crate) use crate::TicketsState;
+pub(crate) use crate::{tenant_branch, TicketsState};
 
 #[derive(Debug, Deserialize)]
 pub struct NewCiRequest {

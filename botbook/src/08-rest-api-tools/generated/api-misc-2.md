@@ -51,8 +51,8 @@ Families with fewer than 8 routes, grouped so the book stays navigable. `Invento
 
 | Method | Path | Summary | Inventory | Registered in |
 |---|---|---|---|---|
-| GET | `/api/marketing/track/click/:param/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
-| POST | `/api/marketing/track/click/:param/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
+| GET | `/api/marketing/track/click/:param` | signed click redirect (u/e/s query params) | yes | `botserver/crates/botmarketing/src/routes.rs` |
+| POST | `/api/marketing/track/click/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 | GET | `/api/marketing/track/open/:param` | registered in crates/botmarketing/src/routes.rs | yes | `botserver/crates/botmarketing/src/routes.rs` |
 | POST | `/api/marketing/track/open/:param` | schema not modeled | no | `botserver/crates/botmarketing/src/routes.rs` |
 

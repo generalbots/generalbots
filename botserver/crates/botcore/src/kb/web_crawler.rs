@@ -1,4 +1,5 @@
 use anyhow::Result;
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 
@@ -93,7 +94,6 @@ pub struct WebPage {
 
 #[derive(Debug)]
 pub struct WebCrawler {
-    client: reqwest::Client,
     config: WebsiteCrawlConfig,
     visited_urls: HashSet<String>,
     pages: Vec<WebPage>,
@@ -101,14 +101,7 @@ pub struct WebCrawler {
 
 impl WebCrawler {
     pub fn new(config: WebsiteCrawlConfig) -> Self {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .user_agent("GeneralBots/1.0 (Knowledge Base Crawler)")
-            .build()
-            .unwrap_or_default();
-
         Self {
-            client,
             config,
             visited_urls: HashSet::new(),
             pages: Vec::new(),
@@ -166,53 +159,43 @@ impl WebCrawler {
             sleep(Duration::from_millis(self.config.crawl_delay_ms)).await;
         }
 
-        let response = match tokio::time::timeout(
-            Duration::from_secs(30), // Add timeout to prevent hanging
-            self.client.get(url).send()
-        ).await {
-            Ok(Ok(resp)) => resp,
-            Ok(Err(e)) => {
-                warn!("Failed to fetch {}: {}", url, e);
-                return Ok(());
-            }
-            Err(_) => {
-                warn!("Timeout fetching {}", url);
+        // #2131 — `config.url` and every discovered link are caller-supplied
+        // (KB source configured by an admin or a bot script), so each hop goes
+        // through the shared SSRF guard. A link pointing at the metadata
+        // endpoint or a private service is skipped, never fetched.
+        let policy = FetchPolicy::default()
+            .with_timeout(Duration::from_secs(30))
+            .with_user_agent("GeneralBots/1.0 (Knowledge Base Crawler)");
+        let response = match fetch_user_url(url, &policy).await {
+            Ok(response) => response,
+            Err(e) => {
+                warn!(
+                    "Refused crawl URL ({}): {}",
+                    e.kind().as_str(),
+                    e.detail()
+                );
                 return Ok(());
             }
         };
 
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
+        if !response.is_success() {
+            warn!("Crawl URL answered HTTP {}", response.status);
+            return Ok(());
+        }
+
+        let content_type = response.content_type.clone().unwrap_or_default();
 
         if !content_type.contains("text/html") {
             trace!("Skipping non-HTML content: {}", url);
             return Ok(());
         }
 
-        let html_text = match tokio::time::timeout(
-            Duration::from_secs(15), // Reduced timeout
-            response.text()
-        ).await {
-            Ok(Ok(text)) => {
-                // Strict size limit to prevent memory issues
-                if text.len() > 500_000 { // 500KB limit
-                    text.chars().take(500_000).collect()
-                } else {
-                    text
-                }
-            }
-            Ok(Err(e)) => {
-                warn!("Failed to read response from {}: {}", url, e);
-                return Ok(());
-            }
-            Err(_) => {
-                warn!("Timeout reading response from {}", url);
-                return Ok(());
-            }
-        };
+        // Strict size limit to prevent memory issues (the guard already capped
+        // the body; this bounds the decoded text the parser walks).
+        let mut html_text = response.text();
+        if html_text.len() > 500_000 {
+            html_text = html_text.chars().take(500_000).collect();
+        }
 
         let page = Self::extract_page_content(&html_text, url);
         self.pages.push(page);

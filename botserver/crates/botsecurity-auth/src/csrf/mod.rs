@@ -239,6 +239,8 @@ mod is_valid;
 mod from_secret;
 mod csrf_middleware;
 mod manager;
+mod secret;
 
 pub use from_secret::*;
 pub use csrf_middleware::*;
+pub use secret::*;

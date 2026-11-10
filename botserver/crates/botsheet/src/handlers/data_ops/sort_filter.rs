@@ -19,7 +19,7 @@ pub async fn handle_sort_range(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<SortRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -130,7 +130,7 @@ pub async fn handle_filter_data(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<FilterRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -192,7 +192,7 @@ pub async fn handle_clear_filter(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ClearFilterRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)

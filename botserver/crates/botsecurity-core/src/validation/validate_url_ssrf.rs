@@ -6,6 +6,10 @@ use super::*;
 /// plain IPv6 address and passed every check, and the unique-local
 /// (`fc00::/7`) / link-local (`fe80::/10`) ranges were only matched by two
 /// hard-coded substrings. Every non-global range is refused here instead.
+///
+/// #2131 — multicast, CGNAT (`100.64.0.0/10`), the reserved `240.0.0.0/4`
+/// block and the NAT64 prefix are refused as well; the fetch path layers
+/// `ssrf_guard::is_blocked_address` on top for the ranges `std` does not model.
 pub(crate) fn is_blocked_ip(addr: IpAddr) -> bool {
     match addr {
         IpAddr::V4(v4) => {
@@ -15,6 +19,7 @@ pub(crate) fn is_blocked_ip(addr: IpAddr) -> bool {
                 || v4.is_unspecified()
                 || v4.is_broadcast()
                 || v4.is_documentation()
+                || v4.is_multicast()
         }
         IpAddr::V6(v6) => {
             if let Some(mapped) = v6.to_ipv4_mapped() {
@@ -23,12 +28,18 @@ pub(crate) fn is_blocked_ip(addr: IpAddr) -> bool {
             let first = v6.segments()[0];
             v6.is_loopback()
                 || v6.is_unspecified()
+                || v6.is_multicast()
                 || (first & 0xfe00) == 0xfc00
                 || (first & 0xffc0) == 0xfe80
         }
     }
 }
 
+/// Validates a URL for form/field input and, since #2131, applies the same
+/// outbound-request policy the fetch path uses.
+///
+/// The reason string is intentionally generic: the host is not echoed back,
+/// because this error can reach an API caller.
 pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
     validate_url(url)?;
 
@@ -43,23 +54,11 @@ pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
         }
     }
 
-    if let Ok(parsed) = url::Url::parse(url) {
-        let host_str: &str = match parsed.host_str() {
-            Some(h) => h,
-            None => {
-                return Err(ValidationError::InvalidUrl(url.to_string()));
-            }
-        };
-
-        if let Ok(addr) = host_str.parse::<IpAddr>() {
-            if is_blocked_ip(addr) {
-                return Err(ValidationError::Forbidden {
-                    field: "url".to_string(),
-                    reason: format!("URL resolves to private/internal address: {}", addr),
-                });
-            }
-        }
+    match super::ssrf_guard::validate_url_ssrf_strict(url) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(ValidationError::Forbidden {
+            field: "url".to_string(),
+            reason: format!("URL rejected by the outbound request policy ({})", err.kind().as_str()),
+        }),
     }
-
-    Ok(())
 }

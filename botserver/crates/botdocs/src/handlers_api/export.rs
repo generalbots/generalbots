@@ -1,7 +1,7 @@
 use crate::export_isolation::{html_export_headers, render_html_export, text_export_headers};
 use crate::re_cache::cached_re;
 use crate::state::DocState;
-use crate::storage::{get_current_user_id, load_document_from_drive};
+use crate::storage::{load_document_from_drive};
 use crate::storage_core::{parse_html_to_paragraphs, ParagraphData, strip_html};
 use crate::storage_docx_source::DocxFidelity;
 use crate::types::ExportQuery;
@@ -11,12 +11,14 @@ use crate::utils_pdf::html_to_pdf;
 use axum::{extract::{Query, State}, http::StatusCode, Json, response::IntoResponse};
 use docx_rs::{AlignmentType, Docx, Paragraph, Run, RunFonts, Table, TableCell, TableRow};
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_export_pdf(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
     let pdf_bytes = html_to_pdf(&doc.content);
 
     Ok((
@@ -27,12 +29,13 @@ pub async fn handle_export_pdf(
 
 pub async fn handle_export_docx(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
     // #2042 — export honours the preserved package, like save does. Rebuilding
     // from HTML drops styles, headers/footers, tables and images.
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     // The richer builder below stays as the last-resort rebuild; the preserving
     // path is preferred because it keeps the original package.
     let (docx_bytes, fidelity) =
@@ -66,9 +69,10 @@ pub async fn handle_export_docx(
 
 pub async fn handle_export_odt(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
     let odt_bytes = html_to_odt_zip(&doc.title, &doc.content)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)}))))?;
 
@@ -83,11 +87,12 @@ pub async fn handle_export_odt(
 
 async fn load_export_document(
     state: &Arc<DocState>,
+    user: &DocUser,
     query: &ExportQuery,
 ) -> Result<crate::types::Document, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id();
 
-    match load_document_from_drive(state, &user_id, &query.id).await {
+    match load_document_from_drive(state, user_id, &query.id).await {
         Ok(Some(d)) => Ok(d),
         Ok(None) => Err((
             StatusCode::NOT_FOUND,
@@ -282,9 +287,10 @@ fn extract_img_alt(tag: &str) -> String {
 
 pub async fn handle_export_md(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
     let markdown = html_to_markdown(&doc.content);
 
     // A download, not a page: `attachment` keeps the browser from rendering it
@@ -302,9 +308,10 @@ pub async fn handle_export_md(
 /// `Content-Disposition` (#2124 follow-up). See [`crate::export_isolation`].
 pub async fn handle_export_html(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
 
     Ok((
         html_export_headers(&doc.title),
@@ -314,9 +321,10 @@ pub async fn handle_export_html(
 
 pub async fn handle_export_txt(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let doc = load_export_document(&state, &query).await?;
+    let doc = load_export_document(&state, &user, &query).await?;
     let plain_text = strip_html(&doc.content);
 
     Ok((

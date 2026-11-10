@@ -11,9 +11,7 @@ use botcoredirectory::auth_routes::{session_from_persisted, SESSION_CACHE};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use super::jwt::{
-    base64_url_decode, base64_url_encode, claims_org, get_saas_jwt_secret, jwt_sign_inner,
-};
+use super::jwt::{base64_url_decode, base64_url_encode, claims_org, jwt_sign_inner};
 use super::pages::{redirect_to_login, sanitize_redirect, session_cookie, sso_html};
 use super::session::{create_suite_session, resolve_session_roles};
 
@@ -41,7 +39,18 @@ pub async fn handle_cloud_sso(
     Json(req): Json<SsoRequest>,
 ) -> Result<Json<SsoResponse>, (StatusCode, Json<serde_json::Value>)> {
     let locale = botcore::i18n::locale_from_headers(&headers);
-    let jwt_secret = get_saas_jwt_secret();
+    // #2140 — one resolver; a missing secret fails closed instead of falling
+    // back to a public constant that anybody could sign with.
+    let jwt_secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret().map_err(|error| {
+        log::error!("cloud-sso: {error}");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-token-signing-failed",
+            )),
+        )
+    })?;
 
     // Validate JWT signature — reject on mismatch, no fallback
     let parts: Vec<&str> = req.cloud_token.split('.').collect();
@@ -135,7 +144,15 @@ pub async fn handle_suite_sso(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SuiteSsoQuery>,
 ) -> Result<Response, StatusCode> {
-    let jwt_secret = get_saas_jwt_secret();
+    // #2140 — one resolver; without a secret this fails closed (500) rather
+    // than verifying with a public constant.
+    let jwt_secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+        Ok(secret) => secret,
+        Err(error) => {
+            log::error!("suite-sso: {error}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
 
     let parts: Vec<&str> = query.token.split('.').collect();
 
@@ -215,7 +232,18 @@ pub async fn handle_unified_login(
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let locale = botcore::i18n::locale_from_headers(&headers);
-    let jwt_secret = get_saas_jwt_secret();
+    // #2140 — one resolver; a missing secret fails closed instead of falling
+    // back to a public constant that anybody could sign with.
+    let jwt_secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret().map_err(|error| {
+        log::error!("cloud-sso: {error}");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-token-signing-failed",
+            )),
+        )
+    })?;
 
     let email: String;
     let user_id: String;

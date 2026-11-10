@@ -230,7 +230,14 @@ pub(crate) fn resolve_token_user(token: &str) -> Option<(String, Vec<String>)> {
 pub(crate) fn cloud_jwt_session_user(
     token: &str,
 ) -> Option<botcoredirectory::auth_routes::SessionUserData> {
-    let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+    // #2140 — one resolver, failing closed: no secret means no identity.
+    let secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+        Ok(secret) => secret,
+        Err(error) => {
+            log::error!("cloud-jwt session: {error}");
+            return None;
+        }
+    };
 
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
@@ -288,7 +295,14 @@ pub(crate) fn cloud_jwt_session_user(
 /// Validates a cloud management JWT (HMAC-SHA256, SaaS secret) and returns
 /// the verified subject (Zitadel user id) as the chat user identity.
 fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
-    let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+    // #2140 — one resolver, failing closed: no secret means no identity.
+    let secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+        Ok(secret) => secret,
+        Err(error) => {
+            log::error!("cloud-jwt user: {error}");
+            return (String::new(), Vec::new(), false);
+        }
+    };
 
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {

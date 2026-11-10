@@ -41,12 +41,28 @@ pub(super) fn register_scrape_images_keyword(_state: Arc<dyn BasicRuntime>, _use
     debug!("Registered SCRAPE_IMAGES keyword");
 }
 pub(super) async fn fetch_page(url: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let client = reqwest::Client::builder()
-        .user_agent(concat!("Mozilla/5.0 (compatible; BotServer/", env!("CARGO_PKG_VERSION"), ")"))
-        .timeout(Duration::from_secs(30))
-        .build()?;
-    let response = client.get(url).send().await?.text().await?;
-    Ok(response)
+    // #2131 — SCRAPE/SCRAPE_ALL/SCRAPE_TABLE/SCRAPE_LINKS/SCRAPE_IMAGES all
+    // take the URL from the script or the LLM. One guarded fetch for all of
+    // them: public http(s) only, redirects re-validated, body capped.
+    let policy = FetchPolicy::default()
+        .with_timeout(Duration::from_secs(30))
+        .with_user_agent(concat!(
+            "Mozilla/5.0 (compatible; BotServer/",
+            env!("CARGO_PKG_VERSION"),
+            ")"
+        ));
+    let response = fetch_user_url(url, &policy).await.map_err(|e| {
+        log::warn!(
+            "SCRAPE: refused fetch ({}): {}",
+            e.kind().as_str(),
+            e.detail()
+        );
+        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+    })?;
+    if !response.is_success() {
+        return Err(format!("target answered HTTP {}", response.status).into());
+    }
+    Ok(response.text())
 }
 pub(super) async fn scrape_first(
     url: &str,

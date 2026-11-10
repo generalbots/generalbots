@@ -87,7 +87,7 @@ pub async fn handle_pivot(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<PivotRequest>,
 ) -> Result<Json<PivotResult>, (StatusCode, Json<Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)

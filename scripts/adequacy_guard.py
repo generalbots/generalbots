@@ -43,6 +43,8 @@ import re
 import sys
 import time
 
+from adequacy_baseline import baseline_count, load_baseline, write_baseline
+
 # `GB_ADEQUACY_ROOT` lets the self-test scan a fixture tree (and lets a reviewer
 # point the guard at a worktree) without touching the checked-out sources.
 ROOT = os.path.abspath(
@@ -325,56 +327,6 @@ def scan_tree() -> tuple[dict[str, list[Violation]], int]:
     return found, scanned
 
 
-def load_baseline(path: str) -> dict:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-    except (OSError, json.JSONDecodeError) as error:
-        raise SystemExit(f"adequacy_guard: cannot read baseline {path}: {error}")
-    rules = data.get("rules")
-    if not isinstance(rules, dict):
-        raise SystemExit(f"adequacy_guard: baseline {path} has no `rules` object")
-    missing = [rule for rule in RULE_META if rule not in rules]
-    if missing:
-        raise SystemExit(f"adequacy_guard: baseline {path} is missing: {', '.join(missing)}")
-    return data
-
-
-def baseline_count(entry) -> int:
-    if isinstance(entry, int):
-        return entry
-    if isinstance(entry, dict) and isinstance(entry.get("count"), int):
-        return entry["count"]
-    raise SystemExit(f"adequacy_guard: malformed baseline entry: {entry!r}")
-
-
-def write_baseline(path: str, counts: dict[str, int], previous: dict | None) -> None:
-    old_rules = (previous or {}).get("rules", {})
-    rules = {
-        rule: {
-            "count": counts[rule],
-            "owner": (old_rules.get(rule) or {}).get("owner", RULE_META[rule][0]),
-        }
-        for rule in RULE_META
-    }
-    data = {
-        "issue": "#1735",
-        "generated": time.strftime("%Y-%m-%d"),
-        "contract": (
-            "Ceilings, not snapshots: a count may stay equal or fall, never rise. "
-            "Lower a number in the change that removes the deviation."
-        ),
-        "rules": rules,
-    }
-    directory = os.path.dirname(path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2)
-        handle.write("\n")
-    print(f"adequacy_guard: baseline written to {os.path.relpath(path, ROOT)}")
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Structural adequacy guard (#1735)")
     parser.add_argument("--baseline", default=DEFAULT_BASELINE, help="baseline JSON path")
@@ -410,10 +362,10 @@ def main() -> int:
                     previous = json.load(handle)
             except (OSError, json.JSONDecodeError):
                 previous = None
-        write_baseline(args.baseline, counts, previous)
+        write_baseline(args.baseline, counts, previous, RULE_META, ROOT)
         return 0
 
-    baseline = load_baseline(args.baseline)
+    baseline = load_baseline(args.baseline, RULE_META)
     ceilings = {rule: baseline_count(baseline["rules"][rule]) for rule in RULE_META}
 
     strict = []

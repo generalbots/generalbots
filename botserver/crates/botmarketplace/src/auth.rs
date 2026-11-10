@@ -40,19 +40,27 @@ pub fn jwt_claims(headers: &HeaderMap) -> Option<VerifiedJwt> {
 
 /// Whether the caller is an administrator.
 ///
-/// A token that carries role claims decides on its own: the claims were signed
-/// by the server, so a token saying `user` is never upgraded by a database
-/// lookup. Cloud-login tokens carry no role at all (#736), so for those the
-/// RBAC groups decide, exactly like `resolve_user_role` does for the rest of
-/// the API. An unverifiable token is never an administrator.
+/// An unverifiable token is never an administrator; otherwise the decision is
+/// [`claims_are_admin`] on the verified claims.
 pub fn jwt_is_admin(headers: &HeaderMap, pool: &DbPool) -> bool {
-    let Some(claims) = jwt_claims(headers) else {
-        return false;
-    };
+    match jwt_claims(headers) {
+        Some(claims) => claims_are_admin(&claims, pool),
+        None => false,
+    }
+}
+
+/// Whether verified claims grant the administrator role.
+///
+/// A token that carries role claims decides on its own: those claims were
+/// signed by the server, so a token saying `user` is never upgraded by a
+/// database lookup. Cloud-login tokens carry no role at all (#736), so for
+/// those the RBAC groups decide, exactly like `resolve_user_role` does for the
+/// rest of the API.
+pub fn claims_are_admin(claims: &VerifiedJwt, pool: &DbPool) -> bool {
     if !claims.roles.is_empty() {
         return claims.roles.iter().any(|role| role == ADMIN_ROLE);
     }
-    rbac_says_admin(pool, &claims)
+    rbac_says_admin(pool, claims)
 }
 
 /// Resolves the role from the RBAC tables for a token without role claims.

@@ -508,7 +508,55 @@ The Suite email interface shows tracking status:
 - Hover over emails to see open timestamp
 - Statistics panel shows open rates
 
-## Security Notes
+## Email Click Tracking
+
+HTML campaign emails also wrap every `href` in a tracked link, so a click is
+recorded on the `email_tracking` row (`clicked`, `clicked_at`) and can be read
+back through the campaign metrics endpoints.
+
+### How a tracked link is built
+
+When a campaign email is sent, `botserver/crates/botmarketing/src/email.rs`
+replaces each `href` value with:
+
+```text
+{server-url}/api/marketing/track/click/{tracking_id}?u=<destination>&e=<expiry>&s=<signature>
+```
+
+`u` is the destination (percent-encoded), `e` is a Unix expiry
+(`CLICK_LINK_TTL_SECS`, 30 days) and `s` is a hex HMAC-SHA256 over
+`tracking_id`, campaign, recipient, destination and expiry
+(`botmarketing/src/click_sign.rs`).
+
+### Destination policy
+
+The endpoint never redirects to caller input. A destination is honoured only
+when it was signed into the link and is one of:
+
+| Shape | Example |
+|---|---|
+| Relative path on the platform domain | `/pricing` |
+| Absolute `http`/`https` URL with a host | `https://shop.example/promo` |
+
+Rejected regardless of signature: protocol-relative `//host`, backslashes,
+control characters, and any other scheme (`javascript:`, `data:`, `file:`,
+`mailto:`).
+
+### Responses
+
+| Condition | Status |
+|---|---|
+| Valid signature, unexpired, safe destination | `302` with `Location: <destination>` |
+| Tampered destination, missing/invalid signature, expired link, unsafe shape | `400` |
+| Tracking id not present in `email_tracking` | `404` |
+| Legacy `…/click/{id}/{destination}` path | `400` (the destination in the path is never read) |
+
+The click is recorded whenever the tracking id exists, including requests whose
+redirect is refused. Signatures use `MARKETING_TRACKING_SECRET` when set,
+otherwise a key derived from the persisted SaaS secret, so rotating the secret
+invalidates previously issued links.
+
+
 
 1. **Never hardcode credentials** - Use config.csv
 2. **Use App Passwords** - Not main account passwords

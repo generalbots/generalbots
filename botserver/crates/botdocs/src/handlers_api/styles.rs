@@ -1,5 +1,5 @@
 use crate::state::DocState;
-use crate::storage::{get_current_user_id, load_document_from_drive, save_document};
+use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
     ApplyStyleRequest, CreateStyleRequest, DeleteStyleRequest, ListStylesResponse,
     UpdateStyleRequest,
@@ -8,12 +8,14 @@ use axum::{extract::{Query, State}, http::StatusCode, Json};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_create_style(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<CreateStyleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -33,9 +35,10 @@ pub async fn handle_create_style(
 
 pub async fn handle_update_style(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<UpdateStyleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -61,9 +64,10 @@ pub async fn handle_update_style(
 
 pub async fn handle_delete_style(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<DeleteStyleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -84,10 +88,11 @@ pub async fn handle_delete_style(
 
 pub async fn handle_list_styles(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListStylesResponse>, (StatusCode, Json<serde_json::Value>)> {
     let doc_id = params.get("doc_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -100,9 +105,10 @@ pub async fn handle_list_styles(
 
 pub async fn handle_apply_style(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<ApplyStyleRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),

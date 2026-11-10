@@ -43,6 +43,11 @@ Two details make the WhatsApp gate hard to bypass accidentally:
 `Mismatch` as separate outcomes, so the log names the operator action
 (`set whatsapp_app_secret`) instead of reporting a generic signature failure.
 
+Both hardened paths are pinned by regression tests, which the readiness gate
+`security-webhooks` looks for before it reports `PASS`
+(`botwhatsapp/src/utils_tests.rs`, `botmsteams/src/auth/tests.rs` — see
+[Production Readiness Gate](../10-configuration-deployment/production-readiness.md)).
+
 ## WhatsApp
 
 `handle_webhook` reads the body as `Bytes` and only parses JSON **after** the

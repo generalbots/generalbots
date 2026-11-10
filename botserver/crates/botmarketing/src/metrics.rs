@@ -230,3 +230,7 @@ pub async fn get_campaign_metrics_by_channel(
 
     Ok(breakdown)
 }
+
+#[cfg(test)]
+#[path = "metrics_tests.rs"]
+mod metrics_tests;

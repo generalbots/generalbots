@@ -69,7 +69,10 @@ pub fn normalize_origins(origins: &[String]) -> Vec<String> {
             continue;
         }
 
-        if normalized.iter().any(|existing| existing == candidate) {
+        if normalized
+            .iter()
+            .any(|existing| existing.as_str() == candidate)
+        {
             continue;
         }
 
@@ -118,6 +121,16 @@ pub(super) fn log_origin_policy(policy: &OriginPolicy, context: &str) {
     }
 }
 
+/// Exact-match check used by the credentials predicate.
+fn is_listed_origin(allowlist: &[String], origin: &HeaderValue) -> bool {
+    match origin.to_str() {
+        Ok(candidate) => allowlist
+            .iter()
+            .any(|allowed| allowed.as_str() == candidate),
+        Err(_) => false,
+    }
+}
+
 /// Build the layer for a resolved policy.
 ///
 /// `Deny` deliberately configures nothing: tower-http's default origin set is an
@@ -154,10 +167,7 @@ pub(super) fn build_cors_layer(
                 let allowlist = origins.clone();
                 cors = cors.allow_credentials(AllowCredentials::predicate(
                     move |origin: &HeaderValue, _parts: &axum::http::request::Parts| {
-                        match origin.to_str() {
-                            Ok(candidate) => allowlist.iter().any(|allowed| allowed == candidate),
-                            Err(_) => false,
-                        }
+                        is_listed_origin(&allowlist, origin)
                     },
                 ));
             }

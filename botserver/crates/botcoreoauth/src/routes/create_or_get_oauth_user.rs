@@ -51,6 +51,9 @@ pub(super) async fn create_or_get_oauth_user(
     let avatar_url = user_info.avatar_url.clone();
 
     tokio::task::spawn_blocking(move || {
+        // `transaction` comes from the `Connection` trait.
+        use diesel::prelude::*;
+
         let mut db_conn = conn.get().map_err(|e| anyhow!("DB connection error: {e}"))?;
         let db: &mut diesel::PgConnection = &mut db_conn;
 
@@ -81,7 +84,9 @@ pub(super) async fn create_or_get_oauth_user(
                     warn!(
                         "OAuth link conflict: {provider}:{provider_id} is already bound elsewhere"
                     );
-                    Ok(OAuthLoginOutcome::LinkRequired { provider })
+                    Ok(OAuthLoginOutcome::LinkRequired {
+                        provider: provider.clone(),
+                    })
                 }
             }
             OAuthResolution::Create {
@@ -90,13 +95,13 @@ pub(super) async fn create_or_get_oauth_user(
                 let user_id = db
                     .transaction::<Uuid, anyhow::Error, _>(|tx| {
                         let user_id = insert_oauth_user(
-                            tx,
+                            &mut *tx,
                             &provider,
                             &provider_id,
                             account_email.as_deref(),
                             display_name.as_deref(),
                         )?;
-                        if !bind_subject(tx, user_id, &link)? {
+                        if !bind_subject(&mut *tx, user_id, &link)? {
                             return Err(anyhow!("oauth link conflict for new user"));
                         }
                         Ok(user_id)
@@ -110,7 +115,9 @@ pub(super) async fn create_or_get_oauth_user(
                 warn!(
                     "OAuth login refused for {provider}:{provider_id}: email already owns a local account"
                 );
-                Ok(OAuthLoginOutcome::LinkRequired { provider })
+                Ok(OAuthLoginOutcome::LinkRequired {
+                    provider: provider.clone(),
+                })
             }
         }
     })
@@ -120,6 +127,7 @@ pub(super) async fn create_or_get_oauth_user(
 
 /// One row of `oauth_account_links` reduced to the identity we need.
 #[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct LinkRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     user_id: Uuid,
@@ -127,6 +135,7 @@ struct LinkRow {
 
 /// The columns of `users` that decide whether an email may be adopted.
 #[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct UserRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: Uuid,
@@ -134,6 +143,8 @@ struct UserRow {
     is_admin: bool,
     #[diesel(sql_type = diesel::sql_types::Text)]
     password_hash: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    has_bound_identity: bool,
 }
 
 /// Reads the bound subject and the owner of the (normalized) provider email.
@@ -143,13 +154,15 @@ fn load_identity_facts(
     provider_id: &str,
     email: Option<&str>,
 ) -> anyhow::Result<LocalIdentityFacts> {
+    use diesel::prelude::*;
+
     let linked_user_id = diesel::sql_query(
         "SELECT user_id FROM oauth_account_links \
          WHERE provider = $1 AND provider_user_id = $2 LIMIT 1",
     )
     .bind::<diesel::sql_types::Text, _>(provider)
     .bind::<diesel::sql_types::Text, _>(provider_id)
-    .load::<LinkRow>(db)
+    .load::<LinkRow>(&mut *db)
     .map_err(|e| anyhow!("oauth link lookup failed: {e}"))?
     .into_iter()
     .next()
@@ -157,11 +170,12 @@ fn load_identity_facts(
 
     let email_owner = match email {
         Some(address) => diesel::sql_query(
-            "SELECT id, is_admin, password_hash FROM users \
-             WHERE lower(email) = $1 LIMIT 1",
+            "SELECT u.id, u.is_admin, u.password_hash, \
+                    EXISTS (SELECT 1 FROM oauth_account_links l WHERE l.user_id = u.id) AS has_bound_identity \
+             FROM users u WHERE lower(u.email) = $1 LIMIT 1",
         )
         .bind::<diesel::sql_types::Text, _>(address)
-        .load::<UserRow>(db)
+        .load::<UserRow>(&mut *db)
         .map_err(|e| anyhow!("user lookup by email failed: {e}"))?
         .into_iter()
         .next()
@@ -170,6 +184,7 @@ fn load_identity_facts(
             is_admin: row.is_admin,
             has_password: !row.password_hash.is_empty()
                 && row.password_hash != OAUTH_NO_PASSWORD_HASH,
+            has_bound_identity: row.has_bound_identity,
         }),
         None => None,
     };
@@ -190,6 +205,8 @@ fn bind_subject(
     user_id: Uuid,
     link: &SubjectLink<'_>,
 ) -> anyhow::Result<bool> {
+    use diesel::prelude::*;
+
     diesel::sql_query(
         "INSERT INTO oauth_account_links \
          (id, user_id, provider, provider_user_id, email, display_name, avatar_url, linked_at, updated_at) \
@@ -203,7 +220,7 @@ fn bind_subject(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.email)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.display_name)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.avatar_url)
-    .execute(db)
+    .execute(&mut *db)
     .map_err(|e| anyhow!("oauth link insert failed: {e}"))?;
 
     let bound = diesel::sql_query(
@@ -212,7 +229,7 @@ fn bind_subject(
     )
     .bind::<diesel::sql_types::Text, _>(link.provider)
     .bind::<diesel::sql_types::Text, _>(link.provider_id)
-    .load::<LinkRow>(db)
+    .load::<LinkRow>(&mut *db)
     .map_err(|e| anyhow!("oauth link re-read failed: {e}"))?
     .into_iter()
     .next()
@@ -275,7 +292,7 @@ fn insert_oauth_user(
             users::dsl::created_at.eq(diesel::dsl::now),
             users::dsl::updated_at.eq(diesel::dsl::now),
         ))
-        .execute(db)
+        .execute(&mut *db)
         .map_err(|e| anyhow!("Failed to create user: {e}"))?;
 
     Ok(user_id)

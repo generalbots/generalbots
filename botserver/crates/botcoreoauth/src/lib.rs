@@ -1,11 +1,23 @@
 pub mod oauth_identity;
+pub mod binding;
+pub mod cookies;
+pub mod nonce_store;
 pub mod providers;
+pub mod redirect;
 pub mod routes;
 pub mod schema;
+pub mod state;
 
+mod github_email;
+
+pub use binding::{consume_bound_nonce, BindingError};
 pub use providers::{ProviderEndpoints, get_enabled_providers, load_oauth_config};
+pub use redirect::{safe_redirect_target, RedirectPolicy, DEFAULT_REDIRECT};
 pub use routes::{
     configure, EnabledProvidersResponse, OAuthCallbackParams, OAuthStartParams, ProviderInfo,
+};
+pub use state::{
+    server_signer, OAuthState, StateError, StateSigner, STATE_TTL_SECS,
 };
 
 use serde::{Deserialize, Serialize};
@@ -149,6 +161,11 @@ pub struct OAuthUserInfo {
     pub provider_id: String,
     pub provider: OAuthProvider,
     pub email: Option<String>,
+    /// Whether the provider asserted that it verified `email` (#2134). `None`
+    /// means the provider does not report it, which is treated as unverified:
+    /// such an address may never be matched to an existing local account.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_verified: Option<bool>,
     pub name: Option<String>,
     pub avatar_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -186,80 +203,22 @@ impl fmt::Display for OAuthError {
 
 impl std::error::Error for OAuthError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuthState {
-    pub token: String,
-    pub provider: OAuthProvider,
-    pub redirect_after: Option<String>,
-    pub created_at: i64,
-    /// Owning user id when the flow is an account *link* (Settings) rather
-    /// than a fresh login. Binds the OAuth callback to the authenticated
-    /// user so the external identity is attached to their profile.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// PKCE code verifier (S256). Generated server-side, carried inside the
-    /// state token, and presented during the code exchange. Never logged.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pkce_verifier: Option<String>,
-}
-
-impl OAuthState {
-    pub fn new(provider: OAuthProvider, redirect_after: Option<String>) -> Self {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let token = uuid::Uuid::new_v4().to_string();
-        let created_at = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0);
-
-        Self {
-            token,
-            provider,
-            redirect_after,
-            created_at,
-            user_id: None,
-            pkce_verifier: None,
-        }
-    }
-
-    /// Marks the flow as an account link for `user_id` (Settings flow).
-    pub fn for_user(mut self, user_id: &str) -> Self {
-        self.user_id = Some(user_id.to_string());
-        self
-    }
-
-    /// Attaches a freshly generated PKCE S256 code verifier.
-    pub fn with_pkce(mut self) -> Self {
-        self.pkce_verifier = Some(generate_pkce_verifier());
-        self
-    }
-
-    pub fn is_expired(&self) -> bool {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0);
-
-        now - self.created_at > 600
-    }
-
-    pub fn encode(&self) -> String {
-        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-        let json = serde_json::to_string(self).unwrap_or_default();
-        URL_SAFE_NO_PAD.encode(json.as_bytes())
-    }
-
-    pub fn decode(encoded: &str) -> Option<Self> {
-        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-        let bytes = URL_SAFE_NO_PAD.decode(encoded).ok()?;
-        let json = String::from_utf8(bytes).ok()?;
-        serde_json::from_str(&json).ok()
-    }
-}
-
 #[cfg(test)]
 #[path = "pkce_tests.rs"]
 mod pkce_tests;
+
+#[cfg(test)]
+#[path = "state_tests.rs"]
+mod state_tests;
+
+#[cfg(test)]
+#[path = "redirect_tests.rs"]
+mod redirect_tests;
+
+#[cfg(test)]
+#[path = "cookies_tests.rs"]
+mod cookies_tests;
+
+#[cfg(test)]
+#[path = "oauth_identity_tests.rs"]
+mod oauth_identity_tests;

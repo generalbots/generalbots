@@ -1,5 +1,6 @@
 use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult};
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -119,37 +120,41 @@ fn web_crawl() -> ToolHandler {
                 return err("url must be a full http(s) URL".into());
             }
             let max_chars = args.get("max_chars").and_then(|v| v.as_u64()).unwrap_or(4000) as usize;
-            let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(30))
-                .build()
-                .unwrap_or_default();
-            match client.get(&url).header("User-Agent", user_agent()).send().await {
-                Ok(resp) if resp.status().is_success() => {
-                    let content_type = resp
-                        .headers()
-                        .get("content-type")
-                        .and_then(|v| v.to_str().ok())
-                        .unwrap_or("")
-                        .to_string();
-                    let body = resp.text().await.unwrap_or_default();
-                    let mut text = if content_type.contains("text/html") {
-                        strip_html(&body)
-                    } else {
-                        body.trim().to_string()
-                    };
-                    if text.chars().count() > max_chars {
-                        text = text.chars().take(max_chars).collect::<String>();
-                        text.push_str("\n…[truncated]");
-                    }
-                    ok(json!({
-                        "url": url,
-                        "content_type": content_type,
-                        "text": text,
-                    }))
+            // #2131 — the URL comes from the LLM tool call, so it must pass the
+            // shared SSRF guard (public http(s), per-hop redirect checks, body cap).
+            let policy = FetchPolicy::default()
+                .with_timeout(std::time::Duration::from_secs(30))
+                .with_user_agent(user_agent());
+            let response = match fetch_user_url(&url, &policy).await {
+                Ok(response) => response,
+                Err(e) => {
+                    log::warn!(
+                        "vibe web_crawl: refused URL ({}): {}",
+                        e.kind().as_str(),
+                        e.detail()
+                    );
+                    return err(e.to_string());
                 }
-                Ok(resp) => err(format!("Fetch returned status {}", resp.status())),
-                Err(e) => err(format!("Fetch request failed: {e}")),
+            };
+            if !response.is_success() {
+                return err(format!("Fetch returned status {}", response.status));
             }
+            let content_type = response.content_type.clone().unwrap_or_default();
+            let body = response.text();
+            let mut text = if content_type.contains("text/html") {
+                strip_html(&body)
+            } else {
+                body.trim().to_string()
+            };
+            if text.chars().count() > max_chars {
+                text = text.chars().take(max_chars).collect::<String>();
+                text.push_str("\n…[truncated]");
+            }
+            ok(json!({
+                "url": response.final_url,
+                "content_type": content_type,
+                "text": text,
+            }))
         })
     })
 }

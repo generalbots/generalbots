@@ -116,5 +116,4 @@ fn generated_ids_are_unique_uuids() {
     let second = generate_document_id();
     assert_eq!(first.len(), 36);
     assert_ne!(first, second);
-    assert_eq!(get_user_docs_path("u1"), "users/u1/docs");
 }

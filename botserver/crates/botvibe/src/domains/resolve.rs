@@ -252,33 +252,9 @@ impl ProjectDomains {
             .map(|r| r.into_bind())
     }
 
-    /// Resolves the SaaS JWT secret used to sign cloud-login tokens
-    /// (same resolution as `directory_setup::resolve_saas_jwt_secret` in the
-    /// botserver crate, replicated here because that fn is `pub(crate)`).
-    pub fn saas_jwt_secret() -> String {
-        let stack = std::env::var("BOTSERVER_STACK_PATH")
-            .ok()
-            .filter(|p| !p.trim().is_empty())
-            .or_else(|| std::env::var("GBO_STACK_PATH").ok().filter(|p| !p.trim().is_empty()))
-            .unwrap_or_else(|| "/opt/gbo".to_string());
-        let config_path = format!("{stack}/conf/system/directory_config.json");
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(secret) = json
-                    .get("saas_jwt_secret")
-                    .and_then(|v| v.as_str())
-                    .filter(|s| !s.is_empty())
-                {
-                    return secret.to_string();
-                }
-            }
-        }
-        std::env::var("SAAS_JWT_SECRET")
-            .or_else(|_| std::env::var("JWT_SECRET"))
-            .unwrap_or_else(|_| {
-                "dev-secret-key-change-in-production-minimum-32-chars".to_string()
-            })
-    }
+    // #2140 — the SaaS JWT secret has exactly one resolver, in
+    // `botsecurity_core::verified_jwt`; this crate used to re-implement the
+    // lookup with a public fallback, which accepted forged tokens.
 
     pub fn list(&self, project_id: Uuid) -> Result<Vec<DomainBind>, String> {
         let mut conn = self.conn()?;

@@ -70,7 +70,6 @@ pub struct ClickQuery {
 /// Why a click link was not honoured. Every variant maps to a `400`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClickError {
-    InvalidTrackingId,
     UnknownTrackingId,
     MissingDestination,
     UnsafeDestination,
@@ -86,7 +85,6 @@ impl ClickError {
     /// return verbatim in the response body.
     pub fn reason(self) -> &'static str {
         match self {
-            Self::InvalidTrackingId => "invalid tracking id",
             Self::UnknownTrackingId => "unknown tracking id",
             Self::MissingDestination => "missing destination",
             Self::UnsafeDestination => "destination not allowed",
@@ -159,14 +157,10 @@ fn canonical_message(record: &TrackingRecord, destination: &str, expires_at: i64
             .map(|id| id.to_string())
             .unwrap_or_else(|| "-".to_string())
     };
-    format!(
-        "v1|{}|{}|{}|{}|{}",
-        record.id,
-        optional(record.campaign_id),
-        optional(record.recipient_id),
-        destination,
-        expires_at
-    )
+    let id = record.id;
+    let campaign = optional(record.campaign_id);
+    let recipient = optional(record.recipient_id);
+    format!("v1|{id}|{campaign}|{recipient}|{destination}|{expires_at}")
 }
 
 /// Hex HMAC-SHA256 signature over the canonical message.
@@ -263,13 +257,10 @@ pub fn build_click_url(
     }
     let encoded: String =
         url::form_urlencoded::byte_serialize(destination.as_bytes()).collect();
+    let base = base_url.trim_end_matches('/');
+    let id = record.id;
     Some(format!(
-        "{}/api/marketing/track/click/{}?u={}&e={}&s={}",
-        base_url.trim_end_matches('/'),
-        record.id,
-        encoded,
-        expires_at,
-        signature
+        "{base}/api/marketing/track/click/{id}?u={encoded}&e={expires_at}&s={signature}"
     ))
 }
 

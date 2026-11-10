@@ -135,7 +135,7 @@ row per scenario exercised:
 |----------|----------|----------|-----------|-------|
 | LLM provider killed for 5 min | Users get a clear fallback message | | | |
 | PostgreSQL stopped for 60 s | Reconnect or fail gracefully | | | |
-| Backup restored into a scratch DB | Tenant-isolation suite passes, smoke chat works | | | |
+| Backup restored into a scratch DB | `scripts/restore_drill.sh` exits 0: row counts match, tenant probes return zero rows | | | |
 | One deploy rolled back | Previous version serves traffic | | | |
 
 ## See also

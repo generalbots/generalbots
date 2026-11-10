@@ -10,6 +10,7 @@ pub mod session;
 pub mod state;
 pub mod types;
 pub mod webhook;
+pub mod webhook_gate;
 
 pub use adapter::TelegramAdapter;
 pub use channel::ChannelAdapter;

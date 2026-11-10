@@ -25,7 +25,7 @@ impl InstagramAdapter {
 
     pub fn new() -> Self {
         let access_token = String::new();
-        let verify_token = "webhook_verify".to_string();
+        let verify_token = String::new();
         let page_id = String::new();
         let instagram_account_id = String::new();
 
@@ -39,8 +39,10 @@ impl InstagramAdapter {
 
     pub fn with_config(get_config: &GetConfigFn, bot_id: &str) -> Self {
         let access_token = get_config(bot_id, "instagram-access-token", None).unwrap_or_default();
-        let verify_token = get_config(bot_id, "instagram-verify-token", Some("webhook_verify"))
-            .unwrap_or_else(|_| "webhook_verify".to_string());
+        // No default (#2142): a published default verify token is a published
+        // secret, and the handshake must fail closed until the bot sets one.
+        let verify_token =
+            get_config(bot_id, crate::auth::VERIFY_TOKEN_KEY, None).unwrap_or_default();
         let page_id = get_config(bot_id, "instagram-page-id", None).unwrap_or_default();
         let instagram_account_id =
             get_config(bot_id, "instagram-account-id", None).unwrap_or_default();
@@ -261,8 +263,23 @@ impl InstagramAdapter {
         }
     }
 
+    /// Whether `token` completes the Meta subscription handshake.
+    ///
+    /// Fails closed (#2142): an unconfigured verify token matches nothing, and
+    /// the comparison is constant time so the token cannot be recovered byte by
+    /// byte from response timing.
     pub fn verify_webhook(&self, token: &str) -> bool {
-        token == self.verify_token
+        let expected = self.verify_token.trim();
+        if expected.is_empty() {
+            return false;
+        }
+
+        let provided = token.trim();
+        if provided.is_empty() {
+            return false;
+        }
+
+        botsecurity_core::constant_time::eq_str(expected, provided)
     }
 
     pub fn handle_webhook_verification(

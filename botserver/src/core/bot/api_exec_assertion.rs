@@ -35,7 +35,10 @@ pub(super) fn mint(
     user_id: Uuid,
     bot_uuid: Option<Uuid>,
 ) -> Result<String, String> {
-    let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+    // #2140 — one resolver, failing closed: without a secret this refuses to
+    // mint rather than signing with a public constant.
+    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+        .map_err(|error| format!("service assertion: {error}"))?;
     let now = chrono::Utc::now().timestamp();
     let claims = json!({
         "sub": user_id.to_string(),

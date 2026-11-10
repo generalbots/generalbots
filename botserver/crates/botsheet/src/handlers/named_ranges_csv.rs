@@ -29,7 +29,7 @@ pub async fn handle_export_named_ranges_csv(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<NamedRangesExportResponse>, (StatusCode, Json<Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &sheet_id)
@@ -72,7 +72,7 @@ pub async fn handle_import_named_ranges_csv(
     body: Bytes,
 ) -> Result<Json<NamedRangesImportResponse>, (StatusCode, Json<Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &sheet_id)

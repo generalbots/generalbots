@@ -4,7 +4,7 @@
 use super::*;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -23,7 +23,7 @@ impl Scratch {
         Self(path)
     }
 
-    fn path(&self) -> &PathBuf {
+    fn path(&self) -> &Path {
         &self.0
     }
 }
@@ -34,9 +34,14 @@ impl Drop for Scratch {
     }
 }
 
-fn write(path: &std::path::Path, contents: &str) {
+fn write(path: &Path, contents: &str) {
     fs::create_dir_all(path.parent().expect("parent")).expect("parent dir");
     fs::write(path, contents).expect("write file");
+}
+
+/// `<work>/<bot>/<bot>.gbdialog` — the layout `scan_for_empty_files` walks.
+fn bot_dir(work: &Path, bot: &str) -> PathBuf {
+    work.join(bot).join(format!("{bot}.gbdialog"))
 }
 
 #[test]
@@ -74,22 +79,22 @@ fn a_missing_work_dir_scans_to_nothing() {
 #[test]
 fn a_bot_with_an_empty_script_is_reported() {
     let scratch = Scratch::new();
-    write(&scratch.path().join("acme.gbai/acme.gbdialog/start.bas"), "");
+    write(&bot_dir(scratch.path(), "acme").join("start.bas"), "");
 
-    assert_eq!(scan_for_empty_files(scratch.path()), vec!["acme".to_string()]);
+    assert_eq!(
+        scan_for_empty_files(scratch.path()),
+        vec!["acme".to_string()]
+    );
 }
 
 #[test]
 fn a_bot_with_only_filled_scripts_is_not_reported() {
     let scratch = Scratch::new();
     write(
-        &scratch.path().join("acme.gbai/acme.gbdialog/start.bas"),
+        &bot_dir(scratch.path(), "acme").join("start.bas"),
         "TALK \"ready\"",
     );
-    write(
-        &scratch.path().join("acme.gbai/acme.gbdialog/compile.ast"),
-        "binary",
-    );
+    write(&bot_dir(scratch.path(), "acme").join("compile.ast"), "binary");
 
     assert!(scan_for_empty_files(scratch.path()).is_empty());
 }
@@ -97,8 +102,17 @@ fn a_bot_with_only_filled_scripts_is_not_reported() {
 #[test]
 fn directories_without_a_dialog_folder_are_ignored() {
     let scratch = Scratch::new();
-    fs::create_dir_all(scratch.path().join("loose.gbai/files")).expect("dirs");
-    write(&scratch.path().join("loose.gbai/files/empty.bas"), "");
+    write(&scratch.path().join("loose/files/empty.bas"), "");
+
+    assert!(scan_for_empty_files(scratch.path()).is_empty());
+}
+
+#[test]
+fn only_script_extensions_are_inspected() {
+    let scratch = Scratch::new();
+    let dialog = bot_dir(scratch.path(), "acme");
+    write(&dialog.join("start.bas"), "TALK \"ready\"");
+    write(&dialog.join("notes.txt"), "");
 
     assert!(scan_for_empty_files(scratch.path()).is_empty());
 }
@@ -106,8 +120,24 @@ fn directories_without_a_dialog_folder_are_ignored() {
 #[test]
 fn each_bot_is_reported_once_even_with_several_empty_scripts() {
     let scratch = Scratch::new();
-    write(&scratch.path().join("acme.gbai/acme.gbdialog/start.bas"), "");
-    write(&scratch.path().join("acme.gbai/acme.gbdialog/help.bas"), "");
+    write(&bot_dir(scratch.path(), "acme").join("start.bas"), "");
+    write(&bot_dir(scratch.path(), "acme").join("help.bas"), "");
 
-    assert_eq!(scan_for_empty_files(scratch.path()), vec!["acme".to_string()]);
+    assert_eq!(
+        scan_for_empty_files(scratch.path()),
+        vec!["acme".to_string()]
+    );
+}
+
+#[test]
+fn two_affected_bots_are_both_reported() {
+    let scratch = Scratch::new();
+    write(&bot_dir(scratch.path(), "acme").join("start.bas"), "");
+    write(&bot_dir(scratch.path(), "globex").join("start.bas"), "");
+    write(&bot_dir(scratch.path(), "initech").join("start.bas"), "TALK 1");
+
+    let mut found = scan_for_empty_files(scratch.path());
+    found.sort();
+
+    assert_eq!(found, vec!["acme".to_string(), "globex".to_string()]);
 }

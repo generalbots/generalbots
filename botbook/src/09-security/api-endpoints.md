@@ -230,7 +230,7 @@ Clients should implement error handling that examines the error code to determin
 
 ## Cross-Origin Resource Sharing
 
-The API supports Cross-Origin Resource Sharing (CORS) to enable browser-based applications hosted on different domains. In development environments, the server accepts requests from any origin. Production deployments should configure specific allowed origins to prevent unauthorized cross-domain access. The allowed methods include GET, POST, PUT, DELETE, and OPTIONS, with Content-Type and Authorization as permitted headers.
+The API supports Cross-Origin Resource Sharing (CORS) to enable browser-based applications hosted on different domains, but it is fail-closed by default (#2129). With no configured origin the API is same-origin only: it returns no `Access-Control-Allow-Origin`, so a browser blocks every cross-origin read, and a preflight carries no CORS grant. Deployments that need cross-origin access set `cors-allowed-origins` to a comma-separated list of exact origins; only those origins are echoed, and `Access-Control-Allow-Credentials: true` is announced for them alone. `X-User-ID` is not a CORS-allowed header. The `CORS_ALLOW_ANY_ORIGIN=1` development override is off unless explicitly set and never allows credentials. The allowed methods include GET, POST, PUT, DELETE and PATCH, with Content-Type, Authorization and X-Request-ID as permitted headers.
 
 ## Health Monitoring
 

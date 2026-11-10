@@ -1,5 +1,6 @@
 use super::{empty_fragment, html_escape};
 use botuifragments::ui_fragments::{panel_shell, panel_shell_with_body_style};
+use crate::auth::DocUser;
 use crate::state::DocState;
 use axum::extract::State;
 use axum::{response::Html, Json};
@@ -119,11 +120,12 @@ pub async fn handle_comments_panel(Json(payload): Json<serde_json::Value>) -> Ht
 
 pub async fn handle_track_changes_panel(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
     let mut changes: Vec<TrackChange> = serde_json::from_value(payload.get("track_changes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
     if changes.is_empty() {
-        if let Some(doc) = panel_document(&state, &payload).await {
+        if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             changes = doc.track_changes.unwrap_or_default();
         }
     }
@@ -187,11 +189,12 @@ pub async fn handle_track_changes_panel(
 
 pub async fn handle_footnotes_panel(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
     let mut notes: Vec<Footnote> = serde_json::from_value(payload.get("footnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
     if notes.is_empty() {
-        if let Some(doc) = panel_document(&state, &payload).await {
+        if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             notes = doc.footnotes.unwrap_or_default();
         }
     }
@@ -220,11 +223,12 @@ pub async fn handle_footnotes_panel(
 
 pub async fn handle_endnotes_panel(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
     let mut notes: Vec<Endnote> = serde_json::from_value(payload.get("endnotes").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
     if notes.is_empty() {
-        if let Some(doc) = panel_document(&state, &payload).await {
+        if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             notes = doc.endnotes.unwrap_or_default();
         }
     }
@@ -248,11 +252,12 @@ pub async fn handle_endnotes_panel(
 
 pub async fn handle_styles_panel(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Html<String> {
     let mut styles: Vec<DocumentStyle> = serde_json::from_value(payload.get("styles").cloned().unwrap_or(serde_json::Value::Null)).unwrap_or_default();
     if styles.is_empty() {
-        if let Some(doc) = panel_document(&state, &payload).await {
+        if let Some(doc) = panel_document(&state, user.id(), &payload).await {
             styles = doc.styles.unwrap_or_default();
         }
     }
@@ -344,6 +349,7 @@ pub async fn handle_ai_panel(Json(payload): Json<serde_json::Value>) -> Html<Str
 /// the unsaved `current` session are not stored yet, so they stay empty.
 async fn panel_document(
     state: &Arc<DocState>,
+    user_id: &str,
     payload: &serde_json::Value,
 ) -> Option<crate::types::Document> {
     let id = payload
@@ -353,8 +359,7 @@ async fn panel_document(
     if id.is_empty() || id == "current" || id.starts_with("drive-") {
         return None;
     }
-    let user_id = crate::storage::get_current_user_id();
-    crate::storage::load_document_from_drive(state, &user_id, id)
+    crate::storage::load_document_from_drive(state, user_id, id)
         .await
         .ok()
         .flatten()

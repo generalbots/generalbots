@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod collaboration;
 pub mod handlers;
 pub mod layouts;

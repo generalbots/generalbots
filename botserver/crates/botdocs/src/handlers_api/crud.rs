@@ -1,7 +1,6 @@
 use crate::state::DocState;
 use crate::storage::{
-    create_new_document, delete_document_from_drive, get_current_user_id,
-    list_documents_from_drive, load_document_from_drive, save_document_to_drive,
+    create_new_document, delete_document_from_drive, list_documents_from_drive, load_document_from_drive, save_document_to_drive,
 };
 use crate::types::{DocsSaveRequest, DocsSaveResponse, Document, DocumentMetadata, SearchQuery};
 use axum::{
@@ -11,6 +10,7 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::auth::DocUser;
 
 /// Resolution of the title stored with a save. The editor autosave sends only
 /// `{id, content}`; an empty title must keep the existing one instead of
@@ -32,9 +32,10 @@ async fn effective_title(
 
 pub async fn handle_docs_save(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
 
@@ -56,9 +57,10 @@ pub async fn handle_docs_save(
 
 pub async fn handle_docs_get_by_id(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Path(doc_id): Path<String>,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(doc)) => Ok(Json(doc)),
@@ -74,15 +76,16 @@ pub async fn handle_docs_get_by_id(
 }
 
 pub async fn handle_new_document(
-    State(_state): State<Arc<DocState>>,
+    user: DocUser,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
-    Ok(Json(create_new_document()))
+    Ok(Json(create_new_document(user.id())))
 }
 
 pub async fn handle_list_documents(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
 ) -> Result<Json<Vec<DocumentMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     match list_documents_from_drive(&state, &user_id).await {
         Ok(docs) => Ok(Json(docs)),
@@ -95,9 +98,10 @@ pub async fn handle_list_documents(
 
 pub async fn handle_search_documents(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<Vec<DocumentMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     let docs = list_documents_from_drive(&state, &user_id)
         .await
@@ -117,9 +121,10 @@ pub async fn handle_search_documents(
 
 pub async fn handle_get_document(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(query): Query<crate::types::LoadQuery>,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     let doc_id = query.id.ok_or_else(|| {
         (
@@ -143,9 +148,10 @@ pub async fn handle_get_document(
 
 pub async fn handle_save_document(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
 
@@ -164,16 +170,18 @@ pub async fn handle_save_document(
 
 pub async fn handle_autosave(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    handle_save_document(State(state), Json(req)).await
+    handle_save_document(State(state), user, Json(req)).await
 }
 
 pub async fn handle_delete_document(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<crate::types::LoadQuery>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     let doc_id = req.id.ok_or_else(|| {
         (
@@ -202,6 +210,7 @@ pub async fn handle_delete_document(
 /// files (.txt/.md/.html) are used as-is.
 pub async fn handle_open_from_drive(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<crate::types::OpenFromDriveRequest>,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
     if req.bucket.is_empty() || req.path.is_empty() {
@@ -270,7 +279,7 @@ pub async fn handle_open_from_drive(
         id: format!("drive-{}", req.path.replace(['/', '.', ':'], "-")),
         title,
         content,
-        owner_id: get_current_user_id(),
+        owner_id: user.id().to_string(),
         storage_path: format!("{}/{}", req.bucket, req.path),
         created_at: now,
         updated_at: now,

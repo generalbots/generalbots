@@ -68,20 +68,35 @@ pub async fn import_document(
     })?;
 
     let content = if let Some(url) = &req.source_url {
-        let client = reqwest::Client::new();
-        let response = client.get(url).send().await.map_err(|e| {
-            (
+        // #2131 — `source_url` is caller-supplied. The shared guard restricts
+        // the fetch to public http(s) targets, re-validates every redirect hop
+        // and caps the body, so a request can never read Vault, MinIO or the
+        // cloud metadata endpoint and return it as document content.
+        let policy = botsecurity_core::validation::FetchPolicy::default()
+            .with_timeout(std::time::Duration::from_secs(30))
+            .with_max_bytes(32 * 1024 * 1024);
+        let response = botsecurity_core::validation::fetch_user_url(url, &policy)
+            .await
+            .map_err(|e| {
+                log::warn!(
+                    "import_document: refused source_url ({}): {}",
+                    e.kind().as_str(),
+                    e.detail()
+                );
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": e.to_string() })),
+                )
+            })?;
+        if !response.is_success() {
+            return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdrive::document_processing::export_document", None) })),
-            )
-        })?;
-
-        response.text().await.map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdrive::document_processing::export_document", None) })),
-            )
-        })?
+                Json(serde_json::json!({
+                    "error": format!("source_url answered HTTP {}", response.status)
+                })),
+            ));
+        }
+        response.text()
     } else if let Some(data) = &req.source_data {
         data.clone()
     } else {

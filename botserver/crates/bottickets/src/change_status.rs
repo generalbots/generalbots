@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn change_status(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<ChangeStatusRequest>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
@@ -9,9 +10,15 @@ pub async fn change_status(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = Utc::now();
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+    // 404 before any write: a ticket from another branch is not addressable.
+    let _existing: SupportTicket = scoped_ticket(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
+    diesel::update(scoped_ticket(id, branch_id))
         .set((
             support_tickets::status.eq(&req.status),
             support_tickets::updated_at.eq(now),
@@ -20,27 +27,29 @@ pub async fn change_status(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if req.status == "resolved" {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::resolved_at.eq(Some(now)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if req.status == "closed" {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::closed_at.eq(Some(now)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    get_ticket(State(state), Path(id)).await
+    get_ticket(State(state), headers, Path(id)).await
 }
 pub async fn resolve_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     change_status(
         State(state),
+        headers,
         Path(id),
         Json(ChangeStatusRequest {
             status: "resolved".to_string(),
@@ -51,10 +60,12 @@ pub async fn resolve_ticket(
 }
 pub async fn close_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     change_status(
         State(state),
+        headers,
         Path(id),
         Json(ChangeStatusRequest {
             status: "closed".to_string(),
@@ -65,15 +76,22 @@ pub async fn close_ticket(
 }
 pub async fn reopen_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = Utc::now();
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+    // 404 before any write: a ticket from another branch is not addressable.
+    let _existing: SupportTicket = scoped_ticket(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
+    diesel::update(scoped_ticket(id, branch_id))
         .set((
             support_tickets::status.eq("open"),
             support_tickets::resolved_at.eq(None::<DateTime<Utc>>),
@@ -83,30 +101,46 @@ pub async fn reopen_ticket(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
-    get_ticket(State(state), Path(id)).await
+    get_ticket(State(state), headers, Path(id)).await
 }
 pub async fn delete_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    diesel::delete(support_tickets::table.filter(support_tickets::id.eq(id)))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let deleted = diesel::delete(scoped_ticket(id, branch_id))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+
+    if deleted == 0 {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
 pub async fn add_comment(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(ticket_id): Path<Uuid>,
     Json(req): Json<CreateCommentRequest>,
 ) -> Result<Json<TicketComment>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
+
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // Comments inherit the ticket's branch: the ticket is resolved first, so a
+    // foreign id never receives a comment and never reveals its existence.
+    let ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -128,19 +162,14 @@ pub async fn add_comment(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
 
-    let ticket: SupportTicket = support_tickets::table
-        .filter(support_tickets::id.eq(ticket_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
-
     if ticket.first_response_at.is_none() && !comment.is_internal {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(ticket_id)))
+        diesel::update(scoped_ticket(ticket_id, branch_id))
             .set(support_tickets::first_response_at.eq(Some(now)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(ticket_id)))
+    diesel::update(scoped_ticket(ticket_id, branch_id))
         .set(support_tickets::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
@@ -149,11 +178,18 @@ pub async fn add_comment(
 }
 pub async fn list_comments(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(ticket_id): Path<Uuid>,
 ) -> Result<Json<Vec<TicketComment>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
+
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let _ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let comments: Vec<TicketComment> = ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(ticket_id))

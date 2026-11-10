@@ -1,236 +1,10 @@
-//! directory_setup - extracted from bootstrap.rs
+//! Zitadel configuration resolution and directory bootstrap.
 
 use botcore::shared::utils::get_stack_path;
-use log::{error, info, warn};
+use log::{info, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-/// Resolve a stable SaaS JWT secret for cloud API tokens.
-/// Priority: `directory_config.json` → env `SAAS_JWT_SECRET` → env `JWT_SECRET` →
-/// development default. The resolved value is persisted into
-/// `directory_config.json` so cloud tokens survive botserver restarts.
-///
-/// #2112 — the read chain itself lives in
-/// `botsecurity_core::verified_jwt::resolve_saas_jwt_secret`, the same
-/// function the token verifier calls, so the minting side and the verifying
-/// side cannot drift apart.
-pub(crate) fn resolve_saas_jwt_secret() -> String {
-    let stack_path = get_stack_path();
-    let config_path = format!("{}/conf/system/directory_config.json", stack_path);
-
-    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret();
-
-    // The embedded/SBC sample config ships a placeholder JWT secret
-    // (#1347). Serving with it means every token is forgeable by anyone who
-    // read the repository. Dev builds may continue (explicitly warned);
-    // release builds get a random per-boot secret instead — nothing is
-    // forgeable, and the fix is forced by tokens no longer surviving a
-    // restart until a real secret is configured.
-    const PLACEHOLDER_SECRETS: [&str; 2] = [
-        "embedded-change-me-in-production",
-        "dev-secret-key-change-in-production-minimum-32-chars",
-    ];
-    let secret = if PLACEHOLDER_SECRETS.contains(&secret.as_str()) {
-        if cfg!(debug_assertions) {
-            warn!(
-                "JWT secret is a known placeholder; tokens minted with it are NOT secure - set SAAS_JWT_SECRET or JWT_SECRET"
-            );
-            secret
-        } else {
-            use rand::Rng;
-            const CHARSET: &[u8; 64] =
-                b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-            let random: String = (0..48)
-                .map(|_| CHARSET[rand::rng().random_range(0..CHARSET.len())] as char)
-                .collect();
-            error!(
-                "JWT secret is a known placeholder; a random per-boot secret was generated so tokens are not forgeable. \
-                 Cloud logins will not survive restarts until SAAS_JWT_SECRET or JWT_SECRET is configured."
-            );
-            random
-        }
-    } else {
-        secret
-    };
-
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&content) {
-            if json.get("saas_jwt_secret").is_none() {
-                json["saas_jwt_secret"] = serde_json::Value::String(secret.clone());
-                match std::fs::File::create(&config_path) {
-                    Ok(mut file) => {
-                        use std::io::Write;
-                        if let Ok(pretty) = serde_json::to_string_pretty(&json) {
-                            let _ = writeln!(&mut file, "{pretty}");
-                        }
-                    }
-                    Err(e) => warn!("Failed to persist saas_jwt_secret: {e}"),
-                }
-            }
-        }
-    }
-
-    secret
-}
-
-/// The desktop first-run wizard writes this file before the suite opens. It is
-/// the only credential for local/single-user installs, where the directory API
-/// may not be reachable at all.
-#[derive(Debug, Clone)]
-pub(crate) struct BootstrapAdminIdentity {
-    pub email: String,
-    pub user_id: Option<uuid::Uuid>,
-}
-
-fn bootstrap_admin_credentials_paths() -> Vec<std::path::PathBuf> {
-    let mut paths = Vec::new();
-    for var in ["BOTSERVER_STACK_PATH", "GBO_STACK_PATH"] {
-        if let Ok(stack) = std::env::var(var) {
-            if !stack.trim().is_empty() {
-                paths.push(
-                    std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"),
-                );
-            }
-        }
-    }
-    let stack = get_stack_path();
-    paths.push(std::path::PathBuf::from(&stack).join("conf/directory/admin-credentials.json"));
-    if let Ok(cwd) = std::env::current_dir() {
-        paths.push(cwd.join("botserver-stack/conf/directory/admin-credentials.json"));
-        paths.push(cwd.join("../botserver-stack/conf/directory/admin-credentials.json"));
-    }
-    paths
-}
-
-/// Reads the wizard administrator identity from disk. Returns `None` for
-/// Zitadel/cloud deployments, which have no `admin-credentials.json`.
-pub(crate) fn bootstrap_admin_identity() -> Option<BootstrapAdminIdentity> {
-    let mut seen = std::collections::HashSet::new();
-    for path in bootstrap_admin_credentials_paths() {
-        if !seen.insert(path.clone()) {
-            continue;
-        }
-        let Ok(content) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
-            continue;
-        };
-        let email = json
-            .get("email")
-            .and_then(|value| value.as_str())
-            .unwrap_or("")
-            .trim();
-        if email.is_empty() {
-            continue;
-        }
-        let user_id = json
-            .get("user_id")
-            .and_then(|value| value.as_str())
-            .and_then(|value| uuid::Uuid::parse_str(value.trim()).ok());
-        return Some(BootstrapAdminIdentity {
-            email: email.to_string(),
-            user_id,
-        });
-    }
-    None
-}
-
-/// Whether a session identity is the first-run administrator. Used when a
-/// desktop/login path has to create a `users` row on demand.
-pub(crate) fn is_bootstrap_admin_identity(user_id: uuid::Uuid, email: Option<&str>) -> bool {
-    let Some(identity) = bootstrap_admin_identity() else {
-        return false;
-    };
-    if identity.user_id == Some(user_id) {
-        return true;
-    }
-    email
-        .map(|value| identity.email.eq_ignore_ascii_case(value.trim()))
-        .unwrap_or(false)
-}
-
-/// #1839 — persist the wizard administrator as an admin in the local `users`
-/// table. Desktop logins do not go through directory provisioning, so without
-/// this the account only appeared after an AI-account connect inserted a bare
-/// row with `is_admin = false`.
-///
-/// No-op when `admin-credentials.json` is absent, so Zitadel/cloud installs
-/// are untouched. Idempotent: it upgrades by id or email, otherwise inserts.
-pub(crate) fn ensure_bootstrap_admin_user(pool: &botcore::shared::utils::DbPool) {
-    use diesel::RunQueryDsl;
-
-    let Some(identity) = bootstrap_admin_identity() else {
-        return;
-    };
-    let Ok(mut conn) = pool.get() else {
-        warn!("bootstrap admin: database unavailable; users row not reconciled");
-        return;
-    };
-
-    let user_id = identity.user_id.unwrap_or_else(|| {
-        uuid::Uuid::new_v5(
-            &uuid::Uuid::NAMESPACE_DNS,
-            format!("zitadel:{}", identity.email).as_bytes(),
-        )
-    });
-    let username = identity
-        .email
-        .split('@')
-        .next()
-        .filter(|value| !value.is_empty())
-        .unwrap_or("admin");
-
-    let updated = diesel::sql_query(
-        "UPDATE users SET is_admin = TRUE, is_active = TRUE, updated_at = NOW() \
-         WHERE id = $1 OR lower(email) = lower($2)",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(user_id)
-    .bind::<diesel::sql_types::Text, _>(&identity.email)
-    .execute(&mut conn);
-
-    match updated {
-        Ok(count) if count > 0 => {
-            info!(
-                "bootstrap admin: users row for {} reconciled with is_admin=true",
-                identity.email
-            );
-        }
-        Ok(_) => {
-            let inserted = diesel::sql_query(
-                "INSERT INTO users \
-                   (id, username, email, password_hash, is_active, is_admin, created_at, updated_at) \
-                 VALUES ($1, $2, $3, '', TRUE, TRUE, NOW(), NOW()) \
-                 ON CONFLICT DO NOTHING",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .bind::<diesel::sql_types::Text, _>(username)
-            .bind::<diesel::sql_types::Text, _>(&identity.email)
-            .execute(&mut conn);
-
-            match inserted {
-                Ok(1) => info!(
-                    "bootstrap admin: created users row for {} with is_admin=true",
-                    identity.email
-                ),
-                Ok(_) => warn!(
-                    "bootstrap admin: {} already has a conflicting users row",
-                    identity.email
-                ),
-                Err(e) => warn!(
-                    "bootstrap admin: could not create users row for {}: {e}",
-                    identity.email
-                ),
-            }
-        }
-        Err(e) => warn!(
-            "bootstrap admin: could not reconcile users row for {}: {e}",
-            identity.email
-        ),
-    }
-}
-
-#[cfg(feature = "directory")]
 /// `DirectoryConfig` serializes both the canonical and legacy keys for some
 /// fields (`service_account_key` + `service_token`). `ZitadelConfig` maps the
 /// legacy key onto the canonical one with `#[serde(alias)]`, and serde rejects a
@@ -254,7 +28,6 @@ fn normalize_directory_config(value: &mut serde_json::Value) {
     }
 }
 
-#[cfg(feature = "directory")]
 /// Resolve the Zitadel config for the directory service.
 /// Priority: `directory_config.json` → Vault `secret/gbo/directory` → defaults.
 /// The Vault fallback lets a fresh stack pick up the OAuth client even when the
@@ -303,7 +76,6 @@ async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
     }
 }
 
-#[cfg(feature = "directory")]
 /// Load the Zitadel config from Vault `secret/gbo/directory`.
 /// Vault may store `url`/`api_url`; older entries use `host`/`port`, which is
 /// normalized into an `api_url` here.
@@ -372,7 +144,6 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
     })
 }
 
-#[cfg(feature = "directory")]
 pub(crate) async fn init_directory_service() -> Result<
     (
         Arc<Mutex<crate::directory::AuthService>>,
@@ -390,7 +161,6 @@ pub(crate) async fn init_directory_service() -> Result<
     Ok((auth_service, zitadel_config))
 }
 
-#[cfg(feature = "directory")]
 pub(crate) fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     crate::directory::ZitadelConfig {
         issuer_url: "".to_string(),
@@ -407,7 +177,6 @@ pub(crate) fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     }
 }
 
-#[cfg(feature = "directory")]
 pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelConfig) {
     use crate::directory::{bootstrap, ZitadelClient};
 

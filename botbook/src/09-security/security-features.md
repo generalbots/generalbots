@@ -47,6 +47,17 @@ rotation happens automatically when tokens approach expiry, ensuring continuous
 secure access without user interruption.
 
 
+### Multi-Factor Authentication
+
+Zitadel provides TOTP and WebAuthn for the directory login. Separately, the
+server carries an in-process MFA module
+(`botserver/crates/botsecurity-auth/src/mfa/`) that fixes **one** TOTP wire
+format so the enrollment QR code and the verifier cannot disagree: an unpadded
+uppercase RFC 4648 base32 secret, `SHA1`/6 digits/30 s written into the
+`otpauth://` URI, a ±1 period verification window, and a legacy 40-character hex
+row converted on read. The format, the migration and the vectors are in
+[User Authentication](./user-auth.md#totp-secret-format-botsecurity-auth).
+
 ## Encryption and Cryptography
 
 ### Cryptographic Libraries
@@ -66,13 +77,25 @@ Encryption in transit protects data during transmission. All external communicat
 
 Rate limiting through Caddy protects against abuse. Per-IP limits default to 100 requests per minute. Per-user limits default to 1000 requests per hour. These limits are configured in the Caddyfile and can be adjusted for specific deployment requirements.
 
-CORS configuration through Caddy controls cross-origin requests. Origins use a strict whitelist approach. Credentials are enabled for authenticated requests. HTTP methods are explicitly allowed rather than using wildcards.
+CORS is fail-closed (#2129). The API reads its allowlist from the `cors-allowed-origins` configuration value (comma-separated exact origins) and every builder in `botsecurity-core` shares one rule: with no origin configured the response carries **no** `Access-Control-Allow-Origin`, so browsers treat the API as same-origin only. A configured origin is echoed exactly, and `Access-Control-Allow-Credentials: true` is announced only for an origin on that list — never for a caller-supplied origin that merely looks like one. A `*` entry in the configuration is ignored (it can never widen a credentialed allowlist); deployments must list their origins. The only escape hatch is `CORS_ALLOW_ANY_ORIGIN=1`, a development switch that is off unless explicitly set, accepts only format-valid `http(s)` origins and always refuses credentials. HTTP methods are explicitly allowed rather than using wildcards.
 
 Input validation protects against injection attacks. Schema validation applies to all inputs before processing. SQL injection prevention uses PostgreSQL prepared statements exclusively. XSS protection applies output encoding to all user-generated content. Path traversal prevention validates all file paths against allowed directories.
 
 ### WebSocket Security
 
 WebSocket connections require authentication before establishment. Message size limits default to 10MB to prevent resource exhaustion. Heartbeat and ping-pong mechanisms validate connection health. Suspicious activity triggers automatic disconnection to protect the system.
+
+### HTTP Security Headers (IMP-09)
+
+Every response from every server in the workspace carries six headers: `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Permissions-Policy`. One implementation emits them — `botsecurity_core::headers::with_security_headers` — and it is applied to all four surfaces: the API (`botserver`, port 8080), the suite (`botui`, port 3000), the cloud UI (port 4000) and the login UI (port 5000). The deployment gateway, the sandbox listener and the ChatGPT OAuth loopback listener are separate `axum::serve` calls and each applies the same layer.
+
+The layer is applied *outermost*, wrapping the finished router. Axum only layers routes that already exist, so it must be the last step; doing so is what puts the headers on fallbacks, nested static files (`ServeDir`) and error responses — 401, 403, 404, 429 and 500 — and not just on successful responses. Handler-scoped policies win where they exist: the CSP and `X-Frame-Options` entries use insert-if-absent, so a sandboxed preview or a same-origin file preview keeps its own stricter value.
+
+`Permissions-Policy` delegates `microphone` and `camera` to `self` in the default profile, because the chat composer records voice notes and takes camera shots from the same origin; setting them to `()` makes those buttons silently fail. API-only responses use the `api()` profile, which disables every sensor but still emits all six headers — a profile may widen a policy, never drop a header.
+
+**Plain-HTTP local development.** HSTS is emitted by default. A browser that receives it on an `http://localhost` origin pins that host to HTTPS for the whole `max-age`, and a dev server that does not speak TLS then refuses to load until the browser's transport-security state is cleared. Local dev therefore sets `GB_SECURITY_HSTS=off` (accepted values: `0`, `off`, `false`, `no`). Production never sets it. The flag removes HSTS only; the other five headers stay on.
+
+The `scripts/check_security_headers.py` gate (wired into `ci.yml`) fails when an `axum::serve` is mounted without the layer, when a `configure_*_router` factory stops applying it, when the API layer stack is no longer layered outermost, or when one of the six headers disappears from the shared applier.
 
 
 ## Data Protection
@@ -123,6 +146,8 @@ Optional security enhancements include BOTSERVER_ENABLE_AUDIT to enable comprehe
 
 Network security settings include BOTSERVER_ALLOWED_ORIGINS for CORS whitelist, BOTSERVER_RATE_LIMIT_PER_IP for per-IP request limits, BOTSERVER_RATE_LIMIT_PER_USER for per-user request limits, and BOTSERVER_MAX_UPLOAD_SIZE for maximum file upload size in bytes.
 
+Local development over plain HTTP sets GB_SECURITY_HSTS to off, false, 0 or no to suppress Strict-Transport-Security for that process only (see HTTP Security Headers above). Production leaves it unset so HSTS is emitted.
+
 ### Database Configuration
 
 PostgreSQL security settings should be added to postgresql.conf to enable SSL with ssl set to on, specify certificate files with ssl_cert_file and ssl_key_file, configure strong ciphers with ssl_ciphers, enable server cipher preference with ssl_prefer_server_ciphers, and set the ECDH curve with ssl_ecdh_curve. The database connection string should include sslmode=require to enforce encrypted connections.
@@ -153,18 +178,21 @@ reported.
 |---|---|---|
 | JWT hardening (#2125) | `python3 scripts/check_jwt_hardening.py --check` | `jsonwebtoken::dangerous` / `insecure_decode`; a file that base64url-decodes a JWT payload and reads `sub`/`user_id`/`email` without calling the shared verifier |
 | Container runtime (#2126) | `python3 scripts/check_container_runtime.py --check` | spawning `lxc`/`lxd`/`lxc-execute` (even through `SafeCommand`), or `incus` through a raw `Command::new` instead of `SafeCommand` |
-| Security directives | not present in the tree today | — |
-| Security headers | not present in the tree today | — |
+| Security directives (IMP-07/IMP-08) | `python3 scripts/check_security_directives.py` | a state-changing handler reachable without the CSRF layer and without an entry in `scripts/security_directives_exemptions.toml`; a missing general/auth/API rate limiter or the WebSocket message limiter |
+| Security headers (IMP-09) | `python3 scripts/check_security_headers.py --check` | an `axum::serve` without the header layer, a `configure_*_router` factory that stopped applying it, an API stack no longer layered outermost, a missing header, or a profile that drops a required header (rules R1–R5) |
 
-Both existing gates also carry a `--self-test` that proves each rule fires, so a
-regex that silently stops matching fails instead of passing everything. CI runs
-them in the `guard` job of `.github/workflows/ci.yml`; the JWT allowlist is
-`scripts/jwt_hardening_allowlist.txt`, the container allowlist is
-`scripts/container_runtime_allowlist.txt`.
+Each gate carries a `--self-test` that proves its rules fire, so a regex that
+silently stops matching fails instead of passing everything. The ones wired into
+`.github/workflows/ci.yml` run in the `guard` job, and every script also runs
+standalone with the command above. Every allowlist and exemption list is
+shrink-only: `scripts/jwt_hardening_allowlist.txt`,
+`scripts/container_runtime_allowlist.txt`,
+`scripts/security_directives_exemptions.toml`,
+`scripts/security_headers_allowlist.txt`.
 
-`scripts/prod_readiness.py` is the aggregator: it runs every readiness check the
-repository owns and prints one row per check with the issue that owns it. It
-distinguishes three states, and `SKIP` is never a pass:
+`scripts/prod_readiness.py` is the aggregator: it runs the checks registered in
+`scripts/prod_readiness_gates.py` and prints one row per check with the issue
+that owns it. It distinguishes three states, and `SKIP` is never a pass:
 
 | Status | Meaning |
 |---|---|

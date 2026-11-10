@@ -1,7 +1,9 @@
 //! HTTP server initialization and routing
 
 pub(crate) use super::routes::{api_setup, security_setup, sub_router};
-pub(crate) use crate::security::csrf::{csrf_middleware, CsrfConfig, CsrfManager};
+pub(crate) use crate::security::csrf::{
+    csrf_middleware, resolve_secret, CsrfConfig, CsrfManager, CsrfSecretSource, ENV_CSRF_SECRET,
+};
 pub(crate) use crate::security::headers::{
     with_security_headers, SecurityHeadersConfig,
 };

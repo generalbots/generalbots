@@ -13,7 +13,7 @@ pub async fn handle_data_validation(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<DataValidationRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -109,7 +109,7 @@ pub async fn handle_validate_cell(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ValidateCellRequest>,
 ) -> Result<Json<ValidationResult>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -211,7 +211,7 @@ pub async fn handle_add_note(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<AddNoteRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)

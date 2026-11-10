@@ -61,10 +61,17 @@ fn webhook_verification_rejects_a_wrong_token_or_mode() {
 }
 
 #[test]
-fn verify_token_defaults_when_the_config_has_none() {
+fn an_unconfigured_verify_token_rejects_every_handshake() {
+    // There is no default (#2142): the old fallback was the literal
+    // `webhook_verify`, so anyone could complete the subscription for a bot
+    // that had not configured a token.
     let adapter = InstagramAdapter::with_config(&config_with(vec![]), "bot");
-    assert!(adapter.verify_webhook("webhook_verify"));
-    assert!(!adapter.verify_webhook("anything-else"));
+    assert!(!adapter.verify_webhook("webhook_verify"));
+    assert!(!adapter.verify_webhook(""));
+    assert_eq!(
+        adapter.handle_webhook_verification("subscribe", "webhook_verify", "challenge-42"),
+        None
+    );
 }
 
 #[test]

@@ -10,7 +10,9 @@ fn state(server_url: &'static str) -> Arc<AppState> {
     let pool = Pool::builder().build_unchecked(manager);
     Arc::new(AppState {
         pool: Arc::new(pool),
-        get_default_bot: |_conn: &mut diesel::PgConnection| Uuid::nil(),
+        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| {
+            (Uuid::nil(), "default".to_string())
+        }),
         secrets_provider: Arc::new(move |key: &str| {
             if key == "server-url" {
                 Ok(server_url.to_string())

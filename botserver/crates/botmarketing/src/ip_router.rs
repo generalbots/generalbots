@@ -430,3 +430,7 @@ pub struct UpdateReputationRequest {
     pub complained: i64,
 }
 
+
+#[cfg(test)]
+#[path = "ip_router_tests.rs"]
+mod ip_router_tests;

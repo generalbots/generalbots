@@ -19,12 +19,14 @@ pub mod auth_types_users;
 pub mod config;
 pub mod error;
 pub mod middleware;
+pub mod public_routes;
 #[cfg(test)]
 pub mod tests;
 pub mod types;
 // Re-export commonly used types at the module level
-pub use config::AuthConfig;
+pub use config::{AuthConfig, AuthConfigError, PublicAccess, PublicRoute};
 pub use error::AuthError;
+pub use public_routes::platform_public_routes;
 pub use middleware::{
     admin_only_middleware, auth_middleware, auth_middleware_with_providers,
     bot_operator_middleware, bot_owner_middleware, bot_scope_middleware,

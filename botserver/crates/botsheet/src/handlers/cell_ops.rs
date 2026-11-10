@@ -54,7 +54,7 @@ pub async fn handle_update_cell(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<CellUpdateRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     if !in_bounds(req.row, req.col) {
         return Err((
@@ -186,7 +186,7 @@ pub async fn handle_update_cell(
     broadcast_sheet_change(
         &req.sheet_id,
         &user_id,
-        &resolve_user_name(user.as_deref()),
+        &resolve_user_name(user.as_deref())?,
         req.row,
         req.col,
         &req.value,
@@ -206,7 +206,7 @@ pub async fn handle_format_cells(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<FormatRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -298,7 +298,7 @@ pub async fn handle_evaluate_formula(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<FormulaRequest>,
 ) -> Result<Json<FormulaResult>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let sheet = match state.sessions.get_or_load(&state, &user_id, &req.sheet_id).await {
         Ok(s) => {

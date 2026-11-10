@@ -2,14 +2,16 @@ use super::*;
 
 pub async fn ai_suggest_for_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(ticket_id): Path<Uuid>,
 ) -> Result<Json<AiSuggestion>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let ticket: SupportTicket = support_tickets::table
-        .filter(support_tickets::id.eq(ticket_id))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
@@ -50,6 +52,7 @@ pub async fn ai_suggest_for_ticket(
     };
 
     let similar: Vec<Uuid> = support_tickets::table
+        .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::id.ne(ticket_id))
         .filter(support_tickets::category.is_not_null())
         .order(support_tickets::created_at.desc())

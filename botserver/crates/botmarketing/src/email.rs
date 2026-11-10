@@ -10,6 +10,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::campaigns::CrmCampaign;
+use crate::click_sign::{self, TrackingRecord};
 use crate::schema::{email_tracking, marketing_campaigns, marketing_recipients};
 use crate::state::AppState;
 
@@ -58,15 +59,71 @@ fn inject_tracking_pixel(html: &str, token: Uuid, base_url: &str) -> String {
     }
 }
 
-fn wrap_tracking_links(html: &str, tracking_id: Uuid, base_url: &str) -> String {
-    let wrapped = html.replace(
-        "href=\"",
-        &format!("href=\"{}/api/marketing/track/click/{}/", base_url, tracking_id),
-    );
-    wrapped.replace(
-        "href='",
-        &format!("href='{}/api/marketing/track/click/{}/", base_url, tracking_id),
-    )
+/// Rewrites every `href` in the email body to a signed tracking link.
+///
+/// #2139 — the destination travels as a signed query parameter (`u`, `e`, `s`),
+/// not as a path segment, so the click endpoint can prove the link was issued
+/// here. Links that cannot be signed (anchors, `mailto:`, `tel:`, already
+/// tracked, or a destination the endpoint would refuse) are left untouched
+/// rather than wrapped into a link that can only answer `400`.
+fn wrap_tracking_links(
+    html: &str,
+    record: &TrackingRecord,
+    base_url: &str,
+    expires_at: i64,
+    key: &str,
+) -> String {
+    const MARKERS: [(&str, char); 2] = [("href=\"", '"'), ("href='", '\'')];
+
+    let mut out = String::with_capacity(html.len());
+    let mut cursor = 0usize;
+    while cursor < html.len() {
+        let Some((offset, quote)) = MARKERS
+            .iter()
+            .filter_map(|&(marker, quote)| html[cursor..].find(marker).map(|i| (i, quote)))
+            .min_by_key(|(i, _)| *i)
+        else {
+            break;
+        };
+        // `href="` and `href='` are both six bytes long.
+        let value_start = cursor + offset + 6;
+        let Some(close) = html[value_start..].find(quote) else {
+            break;
+        };
+        let value_end = value_start + close;
+        let original = &html[value_start..value_end];
+
+        out.push_str(&html[cursor..value_start]);
+        match tracked_destination(original, record, base_url, expires_at, key) {
+            Some(replacement) => out.push_str(&replacement),
+            None => out.push_str(original),
+        }
+        cursor = value_end;
+    }
+    out.push_str(&html[cursor..]);
+    out
+}
+
+fn tracked_destination(
+    original: &str,
+    record: &TrackingRecord,
+    base_url: &str,
+    expires_at: i64,
+    key: &str,
+) -> Option<String> {
+    let destination = original.trim();
+    if destination.is_empty() || destination.starts_with('#') {
+        return None;
+    }
+    let lower = destination.to_ascii_lowercase();
+    if lower.starts_with("mailto:")
+        || lower.starts_with("tel:")
+        || lower.starts_with("cid:")
+        || lower.contains("/api/marketing/track/")
+    {
+        return None;
+    }
+    click_sign::build_click_url(base_url, record, destination, expires_at, key)
 }
 
 pub async fn send_campaign_email(
@@ -80,9 +137,22 @@ pub async fn send_campaign_email(
     let base_url = (state.get_config)(&bot_id, "server-url", Some(""))
         .unwrap_or_else(|_| "".to_string());
 
+    // #2139 — links carry a signed destination instead of a caller-supplied
+    // path, so the anonymous click endpoint can never redirect anywhere this
+    // server did not put into the email.
+    let record = click_sign::TrackingRecord {
+        id: tracking_id,
+        campaign_id: payload.campaign_id,
+        recipient_id: payload.recipient_id,
+    };
+    let signing_key = click_sign::signing_key();
+    let link_expires_at = Utc::now().timestamp() + click_sign::CLICK_LINK_TTL_SECS;
+
     let body_html = payload
         .body_html
-        .map(|html| wrap_tracking_links(&html, tracking_id, &base_url))
+        .map(|html| {
+            wrap_tracking_links(&html, &record, &base_url, link_expires_at, signing_key)
+        })
         .map(|html| inject_tracking_pixel(&html, open_token, &base_url));
 
     let mut conn = state.conn.get().map_err(|e| format!("DB connection failed: {}", e))?;

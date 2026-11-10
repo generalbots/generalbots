@@ -148,11 +148,11 @@ async fn document_bytes_cache_round_trips() {
 
 #[test]
 fn new_documents_start_empty_and_versioned() {
-    let doc = create_new_document();
+    let doc = create_new_document("user-1");
     assert_eq!(doc.title, "Untitled Document");
     assert_eq!(doc.content, "<p><br></p>");
     assert_eq!(doc.version, 1);
-    assert_eq!(doc.owner_id, "default-user");
+    assert_eq!(doc.owner_id, "user-1");
     assert_eq!(doc.id.len(), 36);
-    assert_ne!(doc.id, create_new_document().id);
+    assert_ne!(doc.id, create_new_document("user-1").id);
 }

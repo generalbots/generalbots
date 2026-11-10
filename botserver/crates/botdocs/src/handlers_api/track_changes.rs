@@ -1,5 +1,5 @@
 use crate::state::DocState;
-use crate::storage::{get_current_user_id, load_document_from_drive, save_document};
+use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
     AcceptRejectAllRequest, AcceptRejectChangeRequest, EnableTrackChangesRequest,
     ListTrackChangesResponse,
@@ -8,12 +8,14 @@ use axum::{extract::{Query, State}, http::StatusCode, Json};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_enable_track_changes(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<EnableTrackChangesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -32,9 +34,10 @@ pub async fn handle_enable_track_changes(
 
 pub async fn handle_accept_reject_change(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<AcceptRejectChangeRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -60,9 +63,10 @@ pub async fn handle_accept_reject_change(
 
 pub async fn handle_accept_reject_all(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<AcceptRejectAllRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),
@@ -85,10 +89,11 @@ pub async fn handle_accept_reject_all(
 
 pub async fn handle_list_track_changes(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListTrackChangesResponse>, (StatusCode, Json<serde_json::Value>)> {
     let doc_id = params.get("doc_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => return Err((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Document not found" })))),

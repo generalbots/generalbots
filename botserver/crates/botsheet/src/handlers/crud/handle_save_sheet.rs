@@ -7,7 +7,7 @@ pub async fn handle_save_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<SaveRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let action = req.action.as_deref().unwrap_or("save");
 
     if action == "rename" {
@@ -152,7 +152,7 @@ pub async fn handle_delete_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<LoadQuery>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let id = req
         .id
         .as_deref()
@@ -188,7 +188,7 @@ pub async fn handle_get_sheet_by_id(
     headers: HeaderMap,
     Path(sheet_id): Path<String>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &sheet_id)
@@ -215,7 +215,7 @@ pub async fn handle_sheet_ops(
     Path(sheet_id): Path<String>,
     Query(q): Query<OpsQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &sheet_id)
@@ -245,7 +245,7 @@ pub async fn handle_share_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ShareRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions

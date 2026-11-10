@@ -37,7 +37,7 @@ pub async fn handle_protect_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ProtectSheetRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -81,7 +81,7 @@ pub async fn handle_unprotect_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<UnprotectSheetRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -148,7 +148,7 @@ pub async fn handle_lock_cells(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<LockCellsRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -219,7 +219,7 @@ pub async fn handle_add_external_link(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<AddExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -269,7 +269,7 @@ pub async fn handle_refresh_external_link(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<RefreshExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -315,7 +315,7 @@ pub async fn handle_remove_external_link(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<RemoveExternalLinkRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -357,7 +357,7 @@ pub async fn handle_list_external_links(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListExternalLinksResponse>, (StatusCode, Json<serde_json::Value>)> {
     let sheet_id = params.get("sheet_id").cloned().unwrap_or_default();
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &sheet_id)

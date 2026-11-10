@@ -3,49 +3,10 @@ use async_trait::async_trait;
 use botcore::shared::state::AppState;
 use botlib::message_types::MessageType;
 use botlib::models::{BotResponse, UserMessage};
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, ToSocketAddrs};
 use std::sync::Arc;
 use uuid::Uuid;
-
-fn is_safe_url(url: &str) -> bool {
-    let parsed = match url::Url::parse(url) {
-        Ok(u) => u,
-        Err(_) => return false,
-    };
-    let host = match parsed.host_str() {
-        Some(h) => h,
-        None => return false,
-    };
-    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
-        return false;
-    }
-    if host.ends_with(".local") || host.ends_with(".internal") {
-        return false;
-    }
-    if let Ok(addrs) = (host, 0).to_socket_addrs() {
-        for addr in addrs {
-            match addr.ip() {
-                IpAddr::V4(v4) => {
-                    if v4.is_loopback()
-                        || v4.is_private()
-                        || v4.is_link_local()
-                        || v4.is_unspecified()
-                        || v4.octets()[0] == 0
-                    {
-                        return false;
-                    }
-                }
-                IpAddr::V6(v6) => {
-                    if v6.is_loopback() || v6.is_unspecified() {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-    true
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -335,18 +296,27 @@ impl MultimediaHandler for DefaultMultimediaHandler {
     }
 
     async fn download_media(&self, url: &str) -> Result<Vec<u8>> {
-        if url.starts_with("http://") || url.starts_with("https://") {
-            if !is_safe_url(url) {
-                return Err(anyhow::anyhow!("Blocked request to unsafe URL: {}", url));
-            }
-            let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
-                .build()?;
-            let response = client.get(url).send().await?;
-            Ok(response.bytes().await?.to_vec())
-        } else {
-            Err(anyhow::anyhow!("Unsupported URL scheme: {}", url))
+        // #2131 — replaces the ad-hoc `is_safe_url` check: the shared guard
+        // also resolves the host, blocks CGNAT/metadata ranges, re-validates
+        // redirects and caps the body.
+        let policy = FetchPolicy::default()
+            .with_timeout(std::time::Duration::from_secs(30))
+            .with_max_bytes(64 * 1024 * 1024);
+        let response = fetch_user_url(url, &policy).await.map_err(|e| {
+            log::warn!(
+                "multimedia: refused media URL ({}): {}",
+                e.kind().as_str(),
+                e.detail()
+            );
+            anyhow::anyhow!("{e}")
+        })?;
+        if !response.is_success() {
+            return Err(anyhow::anyhow!(
+                "media URL answered HTTP {}",
+                response.status
+            ));
         }
+        Ok(response.body)
     }
 
     async fn web_search(&self, query: &str, max_results: usize) -> Result<Vec<SearchResult>> {

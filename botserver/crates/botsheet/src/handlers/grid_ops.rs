@@ -30,7 +30,7 @@ pub async fn handle_resize(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ResizeRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -105,7 +105,7 @@ pub async fn handle_paste(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<PasteRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     if req.html.trim().is_empty() {
         return Err(bad_request("Clipboard content is empty"));
@@ -279,7 +279,7 @@ pub async fn handle_table_create(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<TableRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let name = req
         .name
         .clone()
@@ -347,7 +347,7 @@ pub async fn handle_table_list(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<TableRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -381,7 +381,7 @@ pub async fn handle_table_delete(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<TableRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions

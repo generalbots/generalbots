@@ -225,51 +225,27 @@ fn uuid_claim(payload: &serde_json::Value, name: &str) -> Option<Uuid> {
         .and_then(|value| Uuid::parse_str(value.trim()).ok())
 }
 
-/// Resolves the secret that mints cloud-login and suite JWTs.
+/// The single resolver for the SaaS JWT signing secret (#2140).
 ///
-/// Same chain as `directory_setup::resolve_saas_jwt_secret` in the botserver
-/// crate (persisted `directory_config.json` → `SAAS_JWT_SECRET` →
-/// `JWT_SECRET` → development default), so a token verified here is the token
-/// the login flow produced.
-pub fn resolve_saas_jwt_secret() -> String {
-    let stack_path = botlib::security::get_stack_path();
-    let config_path = format!("{stack_path}/conf/system/directory_config.json");
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(secret) = json
-                .get("saas_jwt_secret")
-                .and_then(|v| v.as_str())
-                .filter(|value| !value.is_empty())
-            {
-                return secret.to_string();
-            }
-        }
-    }
-    std::env::var("SAAS_JWT_SECRET")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .or_else(|| {
-            std::env::var("JWT_SECRET")
-                .ok()
-                .filter(|value| !value.trim().is_empty())
-        })
-        .unwrap_or_else(|| "dev-secret-key-change-in-production-minimum-32-chars".to_string())
-}
+/// Re-exported here because this module is the documented JWT entry point; the
+/// implementation lives in [`crate::jwt_secret`] so every crate — minter and
+/// verifier alike — resolves the same value and a public fallback cannot be
+/// reintroduced by a copy.
+pub use crate::jwt_secret::{
+    resolve_saas_jwt_secret, JwtSecret, JwtSecretError, JwtSecretPolicy, JwtSecretSource,
+};
 
 /// Verifies a token against the server's SaaS JWT secret.
 ///
-/// The secret is resolved once per process: it is persisted into
-/// `directory_config.json` during bootstrap before any request is served, and
-/// tenant resolution runs on every handler, so re-reading the file per call
-/// would add a syscall to each request for a value that cannot change.
+/// The secret is resolved once per process by
+/// [`crate::jwt_secret::process_saas_jwt_secret`]: the login path and every
+/// verifier therefore observe the same value, and a process that could not
+/// obtain a secret fails closed with [`JwtVerifyError::MissingSecret`] instead
+/// of accepting a token signed with a public default.
 pub fn verify_saas_jwt(token: &str) -> Result<VerifiedJwt, JwtVerifyError> {
-    verify_hs256_jwt(token, saas_jwt_secret())
-}
-
-/// The process-wide secret, resolved once.
-fn saas_jwt_secret() -> &'static str {
-    static SECRET: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    SECRET.get_or_init(resolve_saas_jwt_secret).as_str()
+    let secret = crate::jwt_secret::process_saas_jwt_secret()
+        .map_err(|_| JwtVerifyError::MissingSecret)?;
+    verify_hs256_jwt(token, secret)
 }
 
 #[cfg(test)]
@@ -301,7 +277,7 @@ pub(crate) mod test_support {
 
     /// The secret the verifier uses in this process.
     pub(crate) fn process_secret() -> String {
-        super::saas_jwt_secret().to_string()
+        super::resolve_saas_jwt_secret().expect("saas jwt secret resolves in tests")
     }
 
     /// A valid token for `claims`, signed with the process secret.

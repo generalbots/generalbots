@@ -79,7 +79,7 @@ Consequences:
 ### One verifier for the whole tree
 
 `botserver/crates/botsecurity-core/src/verified_jwt.rs` is the only module that
-may turn a token into claims (issue #2123). It exposes four items:
+may turn a token into claims (issue #2123). Its callable surface:
 
 | Item | Purpose |
 |---|---|
@@ -101,9 +101,9 @@ payload:
 | `MissingExpiry` / `Expired` | no `exp`, or `exp` in the past |
 | `NotYetValid` | `nbf` more than 60 s ahead (clock-skew leeway) |
 
-**Rule: claims exist only as `VerifiedJwt`.** No handler, crate or helper keeps
-claims as a `serde_json::Value`, a `(sub, email)` tuple or a locally decoded
-payload; the type is produced by the two `verify_*` functions and nowhere else.
+**Rule: claims exist only as `VerifiedJwt`.** A verifying path never hands claims
+around as a `serde_json::Value`, a `(sub, email)` tuple or a locally decoded
+payload: the type is produced by the two `verify_*` functions and nowhere else.
 Role claims (`role`/`roles`) are read only after the signature checks pass, so
 an authorization decision that reads `VerifiedJwt::roles` cannot be driven by a
 payload the caller wrote.
@@ -125,11 +125,12 @@ Consumers, all through the same module:
 | `botserver/src/main_module/directory_setup.rs` | persists the secret the others verify with |
 
 Known exceptions live in `scripts/jwt_hardening_allowlist.txt` and are
-shrink-only: `cloud_sso_handler.rs` verifies the HMAC itself in constant time
-before decoding, and six files still read a payload without a signature
-(`botcloud` payment cards and vouchers, `botlearn`, `botsecurity-auth`
-platform admin and the Zitadel request authenticator, `ai_accounts_chatgpt`).
-Each carries the follow-up that must remove it; the gate described in
+shrink-only: the cloud SSO handler (`cloud_sso_handler/handlers.rs`) verifies
+the HMAC itself in constant time before decoding, and six files still read a
+payload without a signature (`botcloud` payment cards and vouchers, `botlearn`,
+`botsecurity-auth` platform admin and the Zitadel request authenticator,
+`ai_accounts_chatgpt`). The unverified readers each name the follow-up that must
+remove them; the gate described in
 [Security Features](./security-features.md#mechanical-gates-in-ci) fails on any
 new occurrence.
 
@@ -195,6 +196,20 @@ SELECT branch_id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1
 ```
 
 When no bot is flagged default, `Uuid::nil()` is used (legacy global scope).
+
+### Writes never fall back to the default branch (#2128)
+
+The default branch is a **read** convenience for suite sessions only. A write
+handler must resolve the branch from the verified identity and answer `401`
+when it cannot. `botproducts` used to call
+`branch_from_jwt_pool(..).unwrap_or_else(|| get_bot_context(..))` in
+`create_product` and `adjust_stock`, so an anonymous `POST /api/products/items`
+silently inserted into the default branch — another tenant's catalogue. Writes
+now resolve through `verified_branch`
+(`botserver/crates/botproducts/src/write_scope.rs`), which has no default
+parameter, and the whole `/api/products/*` namespace is absent from the
+anonymous allowlist. The public storefront catalogue is the exact-path,
+GET-only `/api/catalog/products` route.
 
 ## Covered Apps
 

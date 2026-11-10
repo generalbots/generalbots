@@ -32,6 +32,11 @@ struct CatalogProduct {
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// Anonymous storefront projection (issue #2128).
+///
+/// Display fields only: cost, stock, `branch_id`/`org_id` and the internal
+/// `is_public`/`is_active` flags stay out of the public payload. `id` is the
+/// catalogue's own public identifier (the store keys products by `sku`).
 #[derive(Debug, Clone, Serialize)]
 pub struct CatalogProductResponse {
     id: uuid::Uuid,

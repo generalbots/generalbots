@@ -226,7 +226,20 @@ impl OAuthProvider {
             .await
             .map_err(|e| anyhow!("Failed to parse user info: {}", e))?;
 
-        let user_info = self.parse_user_info(&raw)?;
+        let mut user_info = self.parse_user_info(&raw)?;
+
+        // #2134: `/user` may expose a public profile email without proving
+        // ownership. `/user/emails` (scope `user:email`, already requested)
+        // reports `verified` per address, which is the only GitHub signal we
+        // accept before an email may be matched to a local account.
+        if matches!(self, Self::GitHub) {
+            if let Some((email, verified)) =
+                crate::github_email::fetch_primary_email(client, access_token).await
+            {
+                user_info.email = Some(email);
+                user_info.email_verified = Some(verified);
+            }
+        }
 
         Ok(user_info)
     }
@@ -237,6 +250,11 @@ impl OAuthProvider {
                 provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
+                // Google's userinfo endpoint reports `verified_email`; the
+                // OpenID `email_verified` claim is accepted as a fallback.
+                email_verified: raw["verified_email"]
+                    .as_bool()
+                    .or_else(|| raw["email_verified"].as_bool()),
                 name: raw["name"].as_str().map(String::from),
                 avatar_url: raw["picture"].as_str().map(String::from),
                 raw: Some(raw.clone()),
@@ -245,6 +263,8 @@ impl OAuthProvider {
                 provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
+                // `/users/@me` reports whether the address was verified.
+                email_verified: raw["verified"].as_bool(),
                 name: raw["username"].as_str().map(String::from),
                 avatar_url: raw["avatar"].as_str().map(|avatar| {
                     let user_id = raw["id"].as_str().unwrap_or_default();
@@ -256,6 +276,7 @@ impl OAuthProvider {
                 provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
                 provider: self,
                 email: None,
+                email_verified: None,
                 name: raw["name"].as_str().map(String::from),
                 avatar_url: raw["icon_img"]
                     .as_str()
@@ -268,6 +289,7 @@ impl OAuthProvider {
                     provider_id: data["id"].as_str().unwrap_or_default().to_string(),
                     provider: self,
                     email: None,
+                    email_verified: None,
                     name: data["name"].as_str().map(String::from),
                     avatar_url: data["profile_image_url"].as_str().map(String::from),
                     raw: Some(raw.clone()),
@@ -280,6 +302,10 @@ impl OAuthProvider {
                     .as_str()
                     .or_else(|| raw["userPrincipalName"].as_str())
                     .map(String::from),
+                // Graph exposes no verification flag: `mail` and
+                // `userPrincipalName` are tenant assertions, not proof that
+                // the caller owns the mailbox, so they stay unverified (#2134).
+                email_verified: None,
                 name: raw["displayName"].as_str().map(String::from),
                 avatar_url: None,
                 raw: Some(raw.clone()),
@@ -288,6 +314,8 @@ impl OAuthProvider {
                 provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
                 provider: self,
                 email: raw["email"].as_str().map(String::from),
+                // Graph exposes no verification flag for the account email.
+                email_verified: None,
                 name: raw["name"].as_str().map(String::from),
                 avatar_url: raw["picture"]["data"]["url"].as_str().map(String::from),
                 raw: Some(raw.clone()),
@@ -306,6 +334,10 @@ impl OAuthProvider {
                     provider_id,
                     provider: self,
                     email: raw["email"].as_str().map(String::from),
+                    // `/user` never proves ownership: `email` may be a public
+                    // profile address. `fetch_user_info` upgrades this from
+                    // `/user/emails`, which reports per-address `verified`.
+                    email_verified: None,
                     name: raw["name"]
                         .as_str()
                         .map(String::from)
@@ -373,3 +405,7 @@ pub fn get_enabled_providers(
         .filter(|config| config.is_valid())
         .collect()
 }
+
+#[cfg(test)]
+#[path = "providers_tests.rs"]
+mod providers_tests;

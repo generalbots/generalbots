@@ -2,22 +2,26 @@ use super::*;
 
 pub async fn list_activities(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(ticket_id): Path<Uuid>,
 ) -> Result<Json<Vec<TicketActivity>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // Activities are comments on a ticket: resolving the ticket first keeps
+    // them inside the ticket's branch (#2138).
+    let ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
     let comments: Vec<TicketComment> = ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(ticket_id))
         .order(ticket_comments::created_at.asc())
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-
-    let ticket: SupportTicket = support_tickets::table
-        .filter(support_tickets::id.eq(ticket_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let mut activities: Vec<TicketActivity> = comments
         .into_iter()
@@ -62,6 +66,7 @@ pub async fn list_activities(
 }
 pub async fn add_activity(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(ticket_id): Path<Uuid>,
     Json(req): Json<AddActivityRequest>,
 ) -> Result<Json<TicketActivity>, (StatusCode, String)> {
@@ -69,16 +74,12 @@ pub async fn add_activity(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let exists: bool = support_tickets::table
-        .filter(support_tickets::id.eq(ticket_id))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .map(|c| c > 0)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
-    if !exists {
-        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
-    }
+    // 404 before any write: a ticket from another branch is not addressable.
+    let _ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let now = Utc::now();
     let id = Uuid::new_v4();
@@ -99,7 +100,7 @@ pub async fn add_activity(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(ticket_id)))
+    diesel::update(scoped_ticket(ticket_id, branch_id))
         .set(support_tickets::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;

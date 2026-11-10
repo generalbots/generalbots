@@ -1,3 +1,21 @@
+//! Deck persistence.
+//!
+//! **Storage boundary (#2137).** A deck is one object at
+//! `users/{owner}/presentations/{id}.json` (plus `{id}.pptx` when the deck was
+//! imported from a package) inside the deployment's deck bucket (`gbo`).
+//! `{owner}` is the verified user id from [`crate::auth::SlidesUser`] — never a
+//! shared default and never a client-supplied value — so one user's prefix is
+//! unreachable from another user's request. The user prefix is the isolation
+//! boundary here; a per-tenant bucket (instead of the shared `gbo`) is a
+//! follow-up that needs a data migration, so this change keeps the bucket and
+//! removes the shared owner.
+//!
+//! **Legacy data.** Decks written before #2137 live under
+//! `users/default-user/presentations/`. No verified identity resolves to
+//! `default-user`, so that prefix is quarantined in place: still on Drive, no
+//! longer served to any caller. Move it to the install owner (or to
+//! `legacy/`) with `mc` before deleting it.
+
 use crate::types::{Presentation, PresentationMetadata, Slide};
 use crate::utils::{create_content_slide, create_default_theme, create_title_slide, create_blank_slide};
 use chrono::{DateTime, Utc};
@@ -43,10 +61,6 @@ pub trait DriveOps: Clone + Send + Sync + 'static {
 
 pub fn get_user_presentations_path(user_id: &str) -> String {
     format!("users/{user_id}/presentations")
-}
-
-pub fn get_current_user_id() -> String {
-    "default-user".to_string()
 }
 
 pub fn generate_presentation_id() -> String {
@@ -179,6 +193,17 @@ pub async fn load_presentation_by_id<D: DriveOps>(
     let presentation: Presentation =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse presentation: {e}"))?;
 
+    // The path already scopes the read to `user_id`; the stored owner is a
+    // second, independent check so a deck copied (or forged) into the wrong
+    // prefix is still never served (#2137).
+    if presentation.owner_id != user_id {
+        log::warn!(
+            "slides: deck {presentation_id} is owned by '{}', refusing read for '{user_id}'",
+            presentation.owner_id
+        );
+        return Err("Presentation not found".to_string());
+    }
+
     Ok(presentation)
 }
 
@@ -213,11 +238,18 @@ pub async fn list_presentations_from_drive<D: DriveOps>(
     Ok(presentations)
 }
 
+/// Deletes a deck from the caller's own namespace.
+///
+/// A missing (or foreign) id answers `Err("Presentation not found")` so the
+/// handler renders `404`: delete used to report success for any id, which
+/// hid typos and made a cross-user probe look like a successful delete.
 pub async fn delete_presentation_from_drive<D: DriveOps>(
     drive: &D,
     user_id: &str,
     presentation_id: &str,
 ) -> Result<(), String> {
+    load_presentation_by_id(drive, user_id, presentation_id).await?;
+
     let json_path = format!(
         "{}/{}.json",
         get_user_presentations_path(user_id),
@@ -235,14 +267,15 @@ pub async fn delete_presentation_from_drive<D: DriveOps>(
     Ok(())
 }
 
-pub fn create_new_presentation() -> Presentation {
+/// Builds an empty deck owned by `owner_id`.
+pub fn create_new_presentation(owner_id: &str) -> Presentation {
     let theme = create_default_theme();
     let id = generate_presentation_id();
 
     Presentation {
         id,
         name: "Untitled Presentation".to_string(),
-        owner_id: get_current_user_id(),
+        owner_id: owner_id.to_string(),
         slides: vec![create_title_slide(&theme)],
         theme,
         created_at: Utc::now(),

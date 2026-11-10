@@ -10,7 +10,7 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Path, Query, State,
     },
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 use botsheet_core::formulas::cell_to_a1;
 use chrono::Utc;
@@ -20,23 +20,33 @@ use tokio::sync::broadcast;
 
 mod websocket_auth;
 
-use self::websocket_auth::{extract_user_from_token, WsAuthQuery};
+use self::websocket_auth::{extract_user_from_token, reason_code, unauthorized, WsAuthQuery};
 
 pub async fn handle_sheet_websocket(
     ws: WebSocketUpgrade,
     State(state): State<Arc<SheetState>>,
     Path(sheet_id): Path<String>,
     Query(q): Query<WsAuthQuery>,
-) -> impl IntoResponse {
-    let auth = extract_user_from_token(&q.token);
-    ws.on_upgrade(move |socket| handle_sheet_connection(socket, state, sheet_id, auth))
+) -> Response {
+    match extract_user_from_token(&q.token) {
+        Ok(identity) => ws
+            .on_upgrade(move |socket| handle_sheet_connection(socket, state, sheet_id, identity))
+            .into_response(),
+        Err(reason) => {
+            log::warn!(
+                "sheet ws refused for sheet {sheet_id}: {}",
+                reason_code(&reason)
+            );
+            unauthorized(reason)
+        }
+    }
 }
 
 pub async fn handle_sheet_connection(
     socket: WebSocket,
     state: Arc<SheetState>,
     sheet_id: String,
-    auth: Option<(String, String)>,
+    identity: (String, String),
 ) {
     ensure_sweep_started();
     let (mut sender, mut receiver) = socket.split();
@@ -52,13 +62,8 @@ pub async fn handle_sheet_connection(
 
     let mut broadcast_rx = broadcast_tx.subscribe();
 
-    let (user_id, user_name) = match auth {
-        Some((id, name)) => (id, name),
-        None => {
-            let id = uuid::Uuid::new_v4().to_string();
-            (id.clone(), format!("Guest {}", &id[..8]))
-        }
-    };
+    // Only a verified identity reaches this point; there is no guest fallback.
+    let (user_id, user_name) = identity;
     let user_id_for_send = user_id.clone();
     let user_color = get_random_color();
 

@@ -19,22 +19,22 @@ use botsecurity_auth::rate_limiter::{CombinedRateLimiter, HttpRateLimitConfig};
 pub(super) const GATEWAY_REQUESTS_PER_SECOND: u32 = 20;
 pub(super) const GATEWAY_BURST: u32 = 40;
 
-/// Builds the limiter and the extension the middleware extracts.
-pub(super) fn gateway_rate_limit(
-) -> (Extension<Arc<CombinedRateLimiter>>, Arc<CombinedRateLimiter>) {
-    let limiter = Arc::new(CombinedRateLimiter::new(
+/// Builds the limiter and hands it to the router as an `Extension`. The
+/// extension owns the only `Arc`, so the middleware and the quota cannot drift
+/// apart.
+pub(super) fn gateway_rate_limit_extension() -> Extension<Arc<CombinedRateLimiter>> {
+    Extension(Arc::new(CombinedRateLimiter::new(
         HttpRateLimitConfig {
             requests_per_second: GATEWAY_REQUESTS_PER_SECOND,
             burst_size: GATEWAY_BURST,
         },
         SystemLimits::default(),
-    ));
-    (Extension(Arc::clone(&limiter)), limiter)
+    )))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{gateway_rate_limit, GATEWAY_BURST, GATEWAY_REQUESTS_PER_SECOND};
+    use super::{gateway_rate_limit_extension, GATEWAY_BURST, GATEWAY_REQUESTS_PER_SECOND};
     use botsecurity_auth::rate_limiter::HttpRateLimitConfig;
 
     #[test]
@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn the_limiter_accepts_a_first_request() {
-        let (_extension, limiter) = gateway_rate_limit();
-        assert!(limiter.check_http_limit());
+        let extension = gateway_rate_limit_extension();
+        assert!(extension.0.check_http_limit());
     }
 }

@@ -22,7 +22,7 @@ pub async fn handle_new_sheet(
     State(_state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     Ok(Json(create_new_spreadsheet(&user_id)))
 }
 
@@ -30,7 +30,7 @@ pub async fn handle_list_sheets(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
 ) -> Result<Json<Vec<SpreadsheetMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     match list_sheets_from_drive(&state, &user_id).await {
         Ok(sheets) => Ok(Json(sheets)),
@@ -46,7 +46,7 @@ pub async fn handle_search_sheets(
     user: Option<Extension<SheetUser>>,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<Vec<SpreadsheetMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let sheets = list_sheets_from_drive(&state, &user_id).await.unwrap_or_default();
 
@@ -69,7 +69,7 @@ pub async fn handle_load_sheet(
     headers: HeaderMap,
     Query(query): Query<LoadQuery>,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let sheet_id = query.id.as_deref().ok_or_else(|| {
         (
@@ -157,7 +157,7 @@ pub async fn handle_load_from_drive(
         }
     };
 
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     // Deterministic working-copy id: SHA-256(bucket|path) truncated to a v4
     // UUID, so reopening the same source reuses its prior edits.
     let digest = sha2::Sha256::digest(format!("{}|{}", req.bucket, req.path).as_bytes());

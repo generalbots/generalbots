@@ -1,7 +1,9 @@
 const CAT_MAP = { compute: 'vps-small', gpu: 'gpu-basic', storage: 'storage-50', comms: 'number-local', apps: 'domain-search' };
 
 // ── Product catalogue — dynamically loaded from API ──
-// All prices, specs, and descriptions come from /api/products/items
+// All prices, specs, and descriptions come from the public, read-only
+// catalogue route (GET /api/catalog/products). `/api/products/*` requires a
+// verified identity and is never used by the storefront (issue #2128).
 
 let CATALOGUE = {};     // Populated by loadCatalogProducts()
 let TLD_PRICES = [];    // Populated from domain-type products
@@ -10,9 +12,12 @@ let PRODUCT_MAP = {};   // All products keyed by sku
 async function loadCatalogProducts() {
   let items;
   try {
-    const res = await fetch('/api/products/items?limit=100');
+    const res = await fetch('/api/catalog/products');
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    items = await res.json();
+    const raw = await res.json();
+    // The public catalogue exposes display fields only and prices as
+    // `price_usd`/`price_cents`; the store renders `price`.
+    items = raw.map(p => ({ ...p, price: p.price_usd ?? (p.price_cents || 0) / 100 }));
   } catch(e) {
     console.warn('Catalog API unavailable, using fallback:', e);
   }

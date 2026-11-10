@@ -8,6 +8,10 @@ use reqwest::Url;
 use std::sync::Arc;
 use std::time::Duration;
 
+// #2131 — every URL these keywords fetch comes from the script/LLM, so they go
+// through the shared SSRF guard (public http(s) only, per-hop redirect checks).
+pub(crate) use botsecurity::validation::{fetch_user_url, FetchPolicy};
+
 mod static_selector;
 mod register_scrape_images_keyword;
 

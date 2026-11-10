@@ -42,7 +42,7 @@ pub async fn handle_find_replace(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<FindReplaceRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     if req.find.is_empty() {
         return Err((
             StatusCode::UNPROCESSABLE_ENTITY,

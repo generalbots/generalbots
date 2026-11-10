@@ -184,7 +184,7 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/m365/sharepoint", summary: "registered in crates/botm365/src/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/m365/sites", summary: "registered in crates/botsources/src/routes_m365.rs" },
     ApiEndpoint { method: "GET", path: "/api/manifest", summary: "registered in src/main_module/routes/api_setup.rs" },
-    ApiEndpoint { method: "GET", path: "/api/marketing/track/click/:id/*destination", summary: "registered in crates/botmarketing/src/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/marketing/track/click/:id", summary: "signed click redirect (u/e/s query params)" },
     ApiEndpoint { method: "GET", path: "/api/marketing/track/open/:token", summary: "registered in crates/botmarketing/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/meet/join", summary: "registered in crates/botmeet/src/lib.rs" },
     ApiEndpoint { method: "POST", path: "/conversations/create", summary: "registered in crates/botmeet/src/lib.rs" },

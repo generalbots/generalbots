@@ -3,6 +3,7 @@ pub mod manager;
 pub mod paths;
 pub mod peer;
 pub mod service_configs;
+pub mod sync;
 pub mod tenant;
 pub mod env_defaults;
 pub mod vault_addr;
@@ -14,6 +15,7 @@ pub use tenant::{alm_config, app_runtime, internal_api_token, TenantSecrets};
 pub use env_defaults::init_secrets_manager;
 pub use vault_addr::{local_vault_addr, pick_vault_addr, vault_addr_from_env};
 pub use peer::peer_secret_sync;
+pub use sync::{csrf_secret_sync, secret_sync};
 
 use serde::{Deserialize, Serialize};
 use std::env;

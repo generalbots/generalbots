@@ -1,6 +1,7 @@
 use super::{empty_fragment, err_fragment, html_escape, render_metadata_card};
 use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 use axum::{extract::{Query, State}, response::Html, Json};
+use crate::auth::DocUser;
 use crate::state::DocState;
 use crate::types_core::DocumentMetadata;
 
@@ -8,14 +9,15 @@ use crate::types_core::DocumentMetadata;
 /// the id; the full Document is loaded from Drive here).
 pub async fn handle_document_view_by_id(
     State(state): State<std::sync::Arc<DocState>>,
+    user: DocUser,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Html<String> {
     let doc_id = params.get("id").cloned().unwrap_or_default();
     if doc_id.is_empty() {
         return Html(err_fragment("id ausente"));
     }
-    let user_id = crate::storage::get_current_user_id();
-    match crate::storage_drive::load_document_from_drive(&state, &user_id, &doc_id).await {
+    let user_id = user.id();
+    match crate::storage_drive::load_document_from_drive(&state, user_id, &doc_id).await {
         Ok(Some(doc)) => {
             handle_document_view(Json(serde_json::json!({
                 "id": doc.id,
@@ -118,8 +120,8 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
 /// GET /suite/docs/fragments/new — creates an unsaved document view.
 /// The id is a fresh UUID and the first autosave persists it, so an empty
 /// document does not appear in the sidebar until it has content.
-pub async fn handle_new_document_view() -> Html<String> {
-    let doc = crate::storage::create_new_document();
+pub async fn handle_new_document_view(user: DocUser) -> Html<String> {
+    let doc = crate::storage::create_new_document(user.id());
     handle_document_view(Json(serde_json::json!({
         "id": doc.id,
         "title": doc.title,

@@ -12,6 +12,11 @@ static MAGIC_BYTES: LazyLock<Vec<(&'static [u8], &'static str)>> = LazyLock::new
         (b"II*\x00", "image/tiff"),
         (b"MM\x00*", "image/tiff"),
         (b"%PDF-", "application/pdf"),
+        // Legacy Microsoft Office (doc/xls/ppt) and other OLE2 compound files.
+        (
+            &[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1],
+            "application/x-ole-storage",
+        ),
         (b"PK\x03\x04", "application/zip"),
         (b"PK\x05\x06", "application/zip"),
         (b"PK\x07\x08", "application/zip"),
@@ -156,6 +161,12 @@ fn detect_file_type(data: &[u8]) -> Option<String> {
         }
     }
 
+    // ISO base media (MP4/MOV/M4A/M4V): the `ftyp` box sits at offset 4,
+    // behind a 4-byte size, so a `starts_with(b"ftyp")` test never matches.
+    if data.len() >= 8 && &data[4..8] == b"ftyp" {
+        return Some("video/mp4".into());
+    }
+
     if data.starts_with(b"<") || data.starts_with(b"<!DOCTYPE") {
         if data.to_ascii_lowercase().windows(5).any(|w| w == b"<html") {
             return Some("text/html".into());
@@ -173,15 +184,33 @@ fn detect_file_type(data: &[u8]) -> Option<String> {
     None
 }
 
-fn get_blocked_extensions() -> Option<Vec<&'static str>> {
-    Some(vec![
+/// MIME type implied by the leading bytes of `data`, or `None` when the
+/// payload carries no recognised signature (#2132). Upload handlers use this
+/// to prove the bytes agree with the extension they were stored under.
+#[must_use]
+pub fn detect_mime_type(data: &[u8]) -> Option<String> {
+    detect_file_type(data)
+}
+
+/// Extensions refused on every upload surface: executables, scripts and
+/// installer/macro containers. Markup types (`.html`, `.svg`) are not blocked
+/// here — they are simply absent from the endpoint allowlists, except where an
+/// endpoint explicitly accepts them (the document importer).
+#[must_use]
+pub fn blocked_extensions() -> &'static [&'static str] {
+    &[
         "exe", "dll", "so", "dylib", "app", "deb", "rpm", "dmg", "pkg", "msi", "scr", "bat",
         "cmd", "com", "pif", "vbs", "vbe", "js", "jse", "ws", "wsf", "wsc", "wsh", "ps1",
         "ps1xml", "ps2", "ps2xml", "psc1", "psc2", "msh", "msh1", "msh2", "mshxml", "msh1xml",
         "msh2xml", "scf", "lnk", "inf", "reg", "docm", "dotm", "xlsm", "xltm", "xlam",
         "pptm", "potm", "ppam", "ppsm", "sldm", "jar", "appx", "appxbundle", "msix",
-        "msixbundle", "sh", "csh", "bash", "zsh", "fish",
-    ])
+        "msixbundle", "sh", "csh", "bash", "zsh", "fish", "php", "php3", "php4", "php5",
+        "phtml", "jsp", "jspx", "asp", "aspx", "cgi",
+    ]
+}
+
+fn get_blocked_extensions() -> Option<Vec<&'static str>> {
+    Some(blocked_extensions().to_vec())
 }
 
 fn is_potentially_executable(data: &[u8]) -> bool {

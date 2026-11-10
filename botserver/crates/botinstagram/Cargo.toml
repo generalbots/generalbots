@@ -11,10 +11,13 @@ async-trait = { workspace = true }
 axum = { workspace = true }
 botlib = { workspace = true }
 botsecurity-core = { workspace = true }
+hmac = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4"] }
 urlencoding = { workspace = true }

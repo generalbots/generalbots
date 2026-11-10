@@ -97,9 +97,9 @@ fn budget_status_reports_percentages_and_remaining_amounts() {
     let status = ObservabilityManager::calculate_budget_status(&budget(100.0, 85.0, 2000.0, 100.0));
 
     assert_eq!(status.daily_remaining, 15.0);
-    assert_eq!(status.daily_percentage, 85.0);
+    assert!((status.daily_percentage - 85.0).abs() < 1e-9);
     assert_eq!(status.monthly_remaining, 1900.0);
-    assert_eq!(status.monthly_percentage, 5.0);
+    assert!((status.monthly_percentage - 5.0).abs() < 1e-9);
     assert!(!status.daily_exceeded);
     assert!(!status.monthly_exceeded);
     assert!(status.near_daily_limit, "85% of the daily limit is near");

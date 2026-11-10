@@ -11,19 +11,21 @@ pub async fn handle_named_ranges_panel(
     user: Option<Extension<crate::auth::SheetUser>>,
     headers: HeaderMap,
     Json(payload): Json<serde_json::Value>,
-) -> Html<String> {
+) -> Result<Html<String>, crate::auth::SheetError> {
     let lang = Lang::from_headers(&headers);
+    // Identity is required before anything is rendered (#2127): a fragment
+    // refresh must never fall back to a shared namespace.
+    let user_id = crate::auth::resolve_user_id(user.as_deref())?;
     // The panel refresh posts only {id} (a browser fetch), not a whole
     // Spreadsheet; binding Json<Spreadsheet> answered 422 and the panel was
     // never refreshed after create/delete.
     let id = payload.get("id").and_then(|value| value.as_str()).unwrap_or("");
     if id.is_empty() {
-        return Html(super::err_fragment(lang, "id ausente"));
+        return Ok(Html(super::err_fragment(lang, "id ausente")));
     }
-    let user_id = crate::auth::resolve_user_id(user.as_deref());
     let session = match state.sessions.get_or_load(&state, &user_id, id).await {
         Ok(session) => session,
-        Err(error) => return Html(super::err_fragment(lang, &error)),
+        Err(error) => return Ok(Html(super::err_fragment(lang, &error))),
     };
     let sheet = session.sheet.read().await;
     match &sheet.named_ranges {
@@ -53,7 +55,7 @@ pub async fn handle_named_ranges_panel(
                 html.push_str(&render_named_range(r, lang, &sheet.id));
             }
             html.push_str("</div></div>");
-            Html(html)
+            Ok(Html(html))
         }
         _ => {
             // An empty list still needs the panel shell and its New action,
@@ -72,7 +74,7 @@ pub async fn handle_named_ranges_panel(
             html.push_str("</button></div><div class=\"ss-panel-body\" style=\"padding:8px;\">");
             html.push_str(&empty_fragment(&t(lang, "panel.ranges.empty")));
             html.push_str("</div></div>");
-            Html(html)
+            Ok(Html(html))
         }
     }
 }

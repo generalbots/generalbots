@@ -32,6 +32,9 @@ calamine = { workspace = true, optional = true }
 zip = { workspace = true, optional = true }
 quick-xml = { workspace = true }
 
+[dev-dependencies]
+hmac = { workspace = true }
+
 [features]
 default = ["xlsx"]
 xlsx = ["dep:umya-spreadsheet", "dep:rust_xlsxwriter", "dep:calamine", "dep:zip"]

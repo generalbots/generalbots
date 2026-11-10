@@ -1,10 +1,12 @@
 pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
 pub(crate) use botbasic_core::security_utils::sanitize_identifier;
+pub(crate) use botsecurity::validation::{
+    fetch_user_url, validate_url_ssrf_strict, FetchPolicy,
+};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_types::Text;
 pub(crate) use log::{error, trace};
-use reqwest::{self, Client};
 pub(crate) use rhai::{Dynamic, Engine};
 pub(crate) use serde_json::Value;
 pub(crate) use std::error::Error;

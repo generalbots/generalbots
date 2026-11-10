@@ -6,14 +6,15 @@ use crate::session::{
     route_to_attendant, route_to_bot,
 };
 use crate::types::{TelegramCallbackQuery, TelegramMessage, TelegramUpdate};
+use crate::webhook_gate::{self, DeliveryAuth};
 
 use axum::{
+    body::Bytes,
     extract::{Path, State},
-    http::HeaderMap,
-    http::StatusCode,
-    response::IntoResponse,
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
     routing::post,
-    Json, Router,
+    Router,
 };
 use log::{debug, info, warn};
 use std::collections::HashSet;
@@ -157,86 +158,50 @@ pub fn configure() -> Router<Arc<ChannelState>> {
         .route("/api/telegram/send", post(crate::handlers::send_message))
 }
 
-/// Header Telegram sends on every delivery once the webhook is registered with
-/// `secret_token` (Bot API `setWebhook`).
-const SECRET_HEADER: &str = "x-telegram-bot-api-secret-token";
-
-/// Bot config key holding the expected secret token. When it is absent or
-/// empty the endpoint accepts unsigned deliveries, which is the behaviour for
-/// every existing installation and the documented default.
-const SECRET_CONFIG_KEY: &str = "telegram-webhook-secret";
-
-/// Outcome of the webhook authenticity gate.
-enum WebhookGate {
-    Allowed,
-    Rejected(StatusCode),
-}
-
-/// A webhook is accepted when no secret is configured, or when the delivered
-/// header matches the configured secret exactly. An empty delivery never
-/// satisfies a configured secret.
-///
-/// The comparison is byte-wise constant time (beyond the length, which is
-/// already public through the header size): `==` on `&str` returns at the first
-/// differing byte, which lets a caller recover a valid secret byte by byte from
-/// response timing. The secret is short and shared per bot, so this endpoint is
-/// exactly where that attack is cheap.
-fn secret_matches(expected: &str, provided: &str) -> bool {
-    let expected = expected.trim();
-    if expected.is_empty() {
-        return true;
-    }
-    let provided = provided.trim();
-    if provided.is_empty() {
-        return false;
-    }
-    constant_time_eq(expected.as_bytes(), provided.as_bytes())
-}
-
-/// Byte-wise equality that does not short-circuit on the first difference.
-pub(crate) fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() {
-        return false;
-    }
-    let mut diff = 0u8;
-    for (left, right) in a.iter().zip(b.iter()) {
-        diff |= left ^ right;
-    }
-    diff == 0
-}
-
 /// Reads the configured secret for `bot_id` and compares it with the delivered
-/// header. Returns `500` when the configuration cannot be read: the message
-/// would fail later anyway (the session needs the same database), and failing
-/// closed keeps a spoofed delivery out during a database outage.
+/// header. Fails closed on every path: an unreadable configuration answers
+/// `500` (the message would fail later anyway, and a spoofed delivery must not
+/// slip through during a database outage), an unset secret answers `503`
+/// naming the operator action, and a wrong header answers `401`.
 fn verify_webhook_secret_for_bot(
     state: &Arc<ChannelState>,
     bot_id: Uuid,
     headers: &HeaderMap,
-) -> WebhookGate {
-    let expected = (state.get_config)(&bot_id, SECRET_CONFIG_KEY, None).unwrap_or_default();
+) -> Result<(), StatusCode> {
+    let expected = match (state.get_config)(&bot_id, webhook_gate::SECRET_CONFIG_KEY, None) {
+        Ok(secret) => secret,
+        Err(e) => {
+            warn!("Telegram webhook secret unreadable for bot {bot_id}: {e}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
 
     let provided = headers
-        .get(SECRET_HEADER)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default();
+        .get(webhook_gate::SECRET_HEADER)
+        .and_then(|value| value.to_str().ok());
 
-    if secret_matches(&expected, provided) {
-        WebhookGate::Allowed
-    } else {
-        warn!(
-            "Telegram webhook delivery for bot {bot_id} rejected: {SECRET_HEADER} missing or mismatched"
-        );
-        WebhookGate::Rejected(StatusCode::UNAUTHORIZED)
+    match webhook_gate::authorize_delivery(&expected, provided) {
+        DeliveryAuth::Verified => Ok(()),
+        DeliveryAuth::Mismatch => {
+            warn!(
+                "Telegram webhook delivery for bot {bot_id} rejected: {} missing or mismatched",
+                webhook_gate::SECRET_HEADER
+            );
+            Err(StatusCode::UNAUTHORIZED)
+        }
+        DeliveryAuth::Unconfigured => {
+            webhook_gate::warn_unconfigured_once(bot_id);
+            Err(StatusCode::SERVICE_UNAVAILABLE)
+        }
     }
 }
 
 pub async fn handle_webhook(
     State(state): State<Arc<ChannelState>>,
     headers: HeaderMap,
-    Json(update): Json<TelegramUpdate>,
-) -> impl IntoResponse {
-    handle_webhook_in(state, None, headers, update).await
+    body: Bytes,
+) -> Response {
+    handle_webhook_in(state, None, headers, body).await
 }
 
 /// Per-bot inbound webhook: the bot name is carried in the path so a shared
@@ -246,30 +211,39 @@ pub async fn handle_webhook_for_bot(
     State(state): State<Arc<ChannelState>>,
     Path(bot_name): Path<String>,
     headers: HeaderMap,
-    Json(update): Json<TelegramUpdate>,
-) -> impl IntoResponse {
-    handle_webhook_in(state, Some(bot_name), headers, update).await
+    body: Bytes,
+) -> Response {
+    handle_webhook_in(state, Some(bot_name), headers, body).await
 }
 
+/// Gate first, parse second: an unsigned POST must not even reach the JSON
+/// decoder, so a stranger cannot probe the schema through error messages.
 async fn handle_webhook_in(
     state: Arc<ChannelState>,
     bot_name: Option<String>,
     headers: HeaderMap,
-    update: TelegramUpdate,
-) -> StatusCode {
+    body: Bytes,
+) -> Response {
     // The delivery is attributed to one bot up front: from the URL path on the
     // per-bot route, from the workspace default otherwise. The same scope then
     // drives the secret check and the session, so a delivery can never be
     // verified against one bot and processed by another.
     let (bot_id, _branch_id) = match resolve_delivery_scope(&state, bot_name.as_deref()) {
         Ok(scope) => scope,
-        Err(status) => return status,
+        Err(status) => return status.into_response(),
     };
 
-    match verify_webhook_secret_for_bot(&state, bot_id, &headers) {
-        WebhookGate::Allowed => {}
-        WebhookGate::Rejected(status) => return status,
+    if let Err(status) = verify_webhook_secret_for_bot(&state, bot_id, &headers) {
+        return status.into_response();
     }
+
+    let update: TelegramUpdate = match serde_json::from_slice(&body) {
+        Ok(update) => update,
+        Err(e) => {
+            warn!("Telegram webhook payload is not a valid update: {e}");
+            return (StatusCode::BAD_REQUEST, "Invalid update").into_response();
+        }
+    };
 
     // Redelivery guard first: a duplicate update costs one registry lookup.
     if !register_update_id(update.update_id).await {
@@ -277,7 +251,7 @@ async fn handle_webhook_in(
             "Telegram webhook duplicate update_id={} dropped",
             update.update_id
         );
-        return StatusCode::OK;
+        return StatusCode::OK.into_response();
     }
 
     info!("Telegram webhook received: update_id={}", update.update_id);
@@ -303,7 +277,7 @@ async fn handle_webhook_in(
         }
     });
 
-    StatusCode::OK
+    StatusCode::OK.into_response()
 }
 
 /// Resolves the bot a delivery belongs to. The per-bot route looks the name up

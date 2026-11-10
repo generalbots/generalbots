@@ -130,16 +130,37 @@ pub(super) async fn merge_office_sub_routes(
 
     #[cfg(feature = "docs")]
     {
+        // #2135 — every Docs handler derives its namespace from the verified
+        // owner, so the router gets the middleware that turns the platform
+        // principal into a `DocUser`. The per-install id used by the
+        // single-user desktop profile is resolved once here (it is persisted,
+        // never per request).
+        let docs_local_owner: Arc<str> =
+            Arc::from(crate::docs::install_owner::docs_local_owner_id());
+        let docs_state = Arc::new(botdocs::state::DocState {
+            pool: Arc::new(app_state.conn.clone()),
+            drive: app_state
+                .drive
+                .clone()
+                .unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
+            bucket_name: app_state.bucket_name.clone(),
+            history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+        });
+        // Pre-#2135 documents live under `users/default-user/docs`, a namespace
+        // every account shared. No owner can be derived from that prefix, so
+        // they stay orphaned and are reported once instead of being handed to a
+        // guess.
+        let audit_state = docs_state.clone();
+        tokio::spawn(async move {
+            botdocs::legacy::audit_legacy_namespace(&audit_state).await;
+        });
         *sub_router = sub_router.clone().merge(
-            crate::docs::configure_docs_routes().with_state(Arc::new(botdocs::state::DocState {
-                pool: Arc::new(app_state.conn.clone()),
-                drive: app_state
-                    .drive
-                    .clone()
-                    .unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
-                bucket_name: app_state.bucket_name.clone(),
-                history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
-            })),
+            crate::docs::configure_docs_routes()
+                .layer(axum::middleware::from_fn_with_state(
+                    docs_local_owner,
+                    crate::docs::user_middleware::docs_user_middleware,
+                ))
+                .with_state(docs_state),
         );
     }
 

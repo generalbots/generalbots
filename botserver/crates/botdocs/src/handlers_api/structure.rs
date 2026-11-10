@@ -1,15 +1,17 @@
 use crate::state::DocState;
-use crate::storage::{get_current_user_id, load_document_from_drive};
+use crate::storage::{load_document_from_drive};
 use crate::types::{GetOutlineRequest, OutlineItem, OutlineResponse};
 use crate::utils::strip_html;
 use axum::{extract::State, http::StatusCode, Json};
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_get_outline(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<GetOutlineRequest>,
 ) -> Result<Json<OutlineResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {

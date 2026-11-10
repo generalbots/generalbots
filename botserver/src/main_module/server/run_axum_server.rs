@@ -6,7 +6,15 @@ pub async fn run_axum_server(
     port: u16,
     _worker_count: usize,
 ) -> std::io::Result<()> {
-    let sec = security_setup::setup_security(&app_state).await;
+    let sec = match security_setup::setup_security(&app_state).await {
+        Ok(sec) => sec,
+        Err(error) => {
+            // #2140 — fail closed: a server that cannot obtain its JWT signing
+            // secret must not serve tokens it (or anyone) can forge.
+            error!("Refusing to start: {error}");
+            return Err(std::io::Error::other(error));
+        }
+    };
 
     use crate::core::product::PRODUCT_CONFIG;
     {
@@ -113,10 +121,6 @@ pub async fn run_axum_server(
         PanicHandlerConfig::development()
     };
 
-    let csrf_secret = std::env::var("CSRF_SECRET").unwrap_or_else(|_| {
-        info!("CSRF_SECRET not set, using default development secret");
-        "dev-csrf-secret-change-in-production-minimum-32-bytes".to_string()
-    });
     let csrf_config = CsrfConfig {
         // Single-user desktop (`no_security=true`): there is no account
         // session or auth cookie for CSRF to protect, and the double-submit
@@ -137,9 +141,15 @@ pub async fn run_axum_server(
             "/api/manifest".into(),
             "/api/i18n".into(),
             "/api/client-errors".into(),
-            // Peer registration is machine-to-machine and authenticates with
-            // the optional GB_PEER_TOKEN bearer header, not a CSRF cookie.
-            "/api/peer/*".into(),
+            // Peer machine-to-machine routes (#2141): a peer presents the shared
+            // node token, not a CSRF cookie, so only these exact routes are
+            // exempt. `enable`/`disable` are admin controls and stay under the
+            // normal CSRF check.
+            "/api/peer/status".into(),
+            "/api/peer/register".into(),
+            "/api/peer/heartbeat".into(),
+            "/api/peer/home-site".into(),
+            "/api/peer/payloads".into(),
             "/api/cloud/auth*".into(),
             "/api/sheet*".into(),
             "/suite/sheet*".into(),
@@ -169,18 +179,38 @@ pub async fn run_axum_server(
         ],
         ..Default::default()
     };
+    // #2141 — the CSRF signing secret must never be a public constant: anyone
+    // who can read the repository could then mint a valid token/header pair.
+    // Resolution order is env → Vault → ephemeral (development only); in
+    // production a missing secret refuses to start rather than degrading.
     let csrf_manager = {
-        let fallback_secret = "dev-csrf-fallback-32byte-minimum!!";
-        let secret = if csrf_secret.len() >= 32 {
-            csrf_secret.as_bytes()
-        } else {
-            log::warn!(
-                "CSRF secret too short ({} bytes), using fallback",
-                csrf_secret.len()
-            );
-            fallback_secret.as_bytes()
+        let env_secret = std::env::var(ENV_CSRF_SECRET).ok();
+        let vault_secret = botcoresecrets::csrf_secret_sync();
+        let resolved = match resolve_secret(
+            env_secret.as_deref(),
+            vault_secret.as_deref(),
+            is_production,
+        ) {
+            Ok(secret) => secret,
+            Err(error) => {
+                log::error!("CSRF signing secret unavailable: {error}");
+                return Err(std::io::Error::other(format!("CSRF init failed: {error}")));
+            }
         };
-        match CsrfManager::new(csrf_config, secret) {
+        if resolved.source() == CsrfSecretSource::Ephemeral {
+            log::warn!(
+                "CSRF_SECRET is not configured; signing tokens with an ephemeral \
+                 per-process secret. Tokens minted before a restart stop validating. \
+                 Set CSRF_SECRET or Vault secret/gbo/system/security csrf_secret for \
+                 any multi-instance or long-lived deployment."
+            );
+        } else {
+            info!(
+                "CSRF signing secret loaded from {}",
+                resolved.source().as_str()
+            );
+        }
+        match CsrfManager::new(csrf_config, resolved.bytes()) {
             Ok(manager) => Arc::new(manager),
             Err(e) => {
                 log::error!("Failed to create CSRF manager: {e}");

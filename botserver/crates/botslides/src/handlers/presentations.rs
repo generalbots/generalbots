@@ -1,5 +1,6 @@
+use crate::auth::SlidesUser;
 use crate::storage::{
-    create_new_presentation, delete_presentation_from_drive, get_current_user_id,
+    create_new_presentation, delete_presentation_from_drive,
     list_presentations_from_drive, load_presentation_by_id, load_presentation_from_drive,
     save_presentation_to_drive, DriveOps,
 };
@@ -19,14 +20,16 @@ use uuid::Uuid;
 
 pub async fn handle_new_presentation<D: DriveOps>(
     State(_state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
-    Ok(Json(create_new_presentation()))
+    Ok(Json(create_new_presentation(user.owner_id())))
 }
 
 pub async fn handle_list_presentations<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
 ) -> Result<Json<Vec<PresentationMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let presentations = match &state.drive {
         Some(drive) => match list_presentations_from_drive(drive, &user_id).await {

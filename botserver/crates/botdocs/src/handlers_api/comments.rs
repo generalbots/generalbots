@@ -1,5 +1,5 @@
 use crate::state::DocState;
-use crate::storage::{get_current_user_id, load_document_from_drive, save_document};
+use crate::storage::{load_document_from_drive, save_document};
 use crate::types::{
     AddCommentRequest, CommentReply, DeleteCommentRequest, DocumentComment,
     ListCommentsResponse, ReplyCommentRequest, ResolveCommentRequest,
@@ -8,12 +8,14 @@ use axum::{extract::{Query, State}, http::StatusCode, Json};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_add_comment(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<AddCommentRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {
@@ -59,9 +61,10 @@ pub async fn handle_add_comment(
 
 pub async fn handle_reply_comment(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<ReplyCommentRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {
@@ -108,9 +111,10 @@ pub async fn handle_reply_comment(
 
 pub async fn handle_resolve_comment(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<ResolveCommentRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {
@@ -150,9 +154,10 @@ pub async fn handle_resolve_comment(
 
 pub async fn handle_delete_comment(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<DeleteCommentRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let mut doc = match load_document_from_drive(&state, &user_id, &req.doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {
@@ -186,10 +191,11 @@ pub async fn handle_delete_comment(
 
 pub async fn handle_list_comments(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListCommentsResponse>, (StatusCode, Json<serde_json::Value>)> {
     let doc_id = params.get("doc_id").cloned().unwrap_or_default();
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
     let doc = match load_document_from_drive(&state, &user_id, &doc_id).await {
         Ok(Some(d)) => d,
         Ok(None) => {

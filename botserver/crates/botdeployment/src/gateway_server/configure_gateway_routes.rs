@@ -5,7 +5,6 @@ pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
     // IMP-07 — this router is served by its own listener, so it must carry the
     // limiter itself (see `rate_limit.rs`). The extension is applied last so it
     // is outermost and therefore visible to the middleware.
-    let (rate_limit_extension, _limiter) = gateway_rate_limit();
     Router::new()
         .route("/deploy", post(gateway_deploy))
         .route("/deploy/stop", post(gateway_stop))
@@ -15,7 +14,7 @@ pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
         .layer(axum::middleware::from_fn(
             botsecurity_auth::rate_limiter::rate_limit_middleware,
         ))
-        .layer(rate_limit_extension)
+        .layer(gateway_rate_limit_extension())
         .with_state((state, registry))
 }
 pub(super) fn validate_deploy_key(headers: &HeaderMap, state: &GatewayState) -> Result<(), StatusCode> {

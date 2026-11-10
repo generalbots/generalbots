@@ -213,11 +213,33 @@ mod validation_error;
 mod add_error;
 mod validate_required;
 mod required;
+mod ssrf_allowlist;
+mod ssrf_fetch;
+mod ssrf_guard;
 mod validate_url_ssrf;
 
 #[cfg(test)]
 #[path = "ssrf_tests.rs"]
 mod ssrf_tests;
 
+#[cfg(test)]
+#[path = "ssrf_guard_tests.rs"]
+mod ssrf_guard_tests;
+
 pub use validate_required::*;
 pub use validate_url_ssrf::*;
+
+// #2131 — the shared outbound-request policy. `fetch_user_url` is the only
+// function allowed to fetch a caller-supplied URL; `fetch_internal_service_url`
+// is restricted to the documented host allowlist.
+pub use ssrf_allowlist::{
+    internal_service_reason, is_internal_service_host, InternalService, INTERNAL_SERVICES,
+};
+pub use ssrf_fetch::{
+    fetch_internal_service_url, fetch_user_url, fetch_user_url_default, FetchPolicy,
+    FetchedResponse,
+};
+pub use ssrf_guard::{
+    is_blocked_address, resolve_checked, validate_redirect_target, validate_url_ssrf_strict,
+    SsrfError, SsrfErrorKind, BLOCKED_PORTS,
+};

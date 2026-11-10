@@ -132,11 +132,11 @@ if [ -n "$dump" ] && [ ! -f "$dump" ]; then
 fi
 
 if [ -z "$dump" ]; then
-  dump="$workdir/drill.dump"
+  dump="${TMPDIR:-/tmp}/gb-restore-drill-$$.dump"
   created_dump="$dump"
   echo "-- dump: $masked -> $dump"
   pg_dump -Fc -d "$dsn" -f "$dump"
-  expected="${expected:-$workdir/source-manifest.json}"
+  expected="${expected:-$dump.manifest.json}"
   python3 "$checks" --dsn "$dsn" --manifest "$expected"
 elif [ -z "$expected" ] && [ -f "${dump}.manifest.json" ]; then
   expected="${dump}.manifest.json"

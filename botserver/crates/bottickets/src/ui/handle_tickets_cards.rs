@@ -94,15 +94,16 @@ pub(super) async fn handle_tickets_search(
 }
 pub(super) async fn handle_ticket_detail(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html(render_empty_state("❌", "Error", "Unable to load ticket"));
     };
 
-    let ticket: Result<SupportTicket, _> = support_tickets::table
-        .filter(support_tickets::id.eq(id))
-        .first(&mut conn);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let ticket: Result<SupportTicket, _> = scoped_ticket(id, branch_id).first(&mut conn);
 
     let Ok(ticket) = ticket else {
         return Html(render_empty_state("❌", "Not found", "Ticket not found"));
@@ -233,11 +234,22 @@ pub(super) async fn handle_ticket_detail(
 }
 pub(super) async fn handle_ticket_comments(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("<p>Unable to load comments</p>".to_string());
     };
+
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // Comments inherit the ticket's branch: a foreign id renders "not found".
+    if scoped_ticket(id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Html("<p class=\"no-comments\">Ticket not found</p>".to_string());
+    }
 
     let comments: Vec<TicketComment> = ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(id))

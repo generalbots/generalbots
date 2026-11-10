@@ -1,5 +1,5 @@
 use crate::state::DocState;
-use crate::storage::{create_new_document, get_current_user_id, load_document_from_drive, save_document};
+use crate::storage::{create_new_document, load_document_from_drive, save_document};
 use crate::types::{
     CompareDocumentsRequest, CompareDocumentsResponse, ComparisonSummary, Document,
     DocumentComparison, DocumentDiff,
@@ -10,9 +10,11 @@ use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::Utc;
 use std::sync::Arc;
+use crate::auth::DocUser;
 
 pub async fn handle_import_document(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
     let mut file_bytes: Option<Vec<u8>> = None;
@@ -66,8 +68,8 @@ pub async fn handle_import_document(
         .unwrap_or(&filename)
         .to_string();
 
-    let user_id = get_current_user_id();
-    let mut doc = create_new_document();
+    let user_id = user.id().to_string();
+    let mut doc = create_new_document(&user_id);
     doc.title = title;
     doc.content = content;
     doc.owner_id = user_id.clone();
@@ -109,9 +111,10 @@ fn detect_import_format(filename: &str, bytes: &[u8]) -> String {
 
 pub async fn handle_compare_documents(
     State(state): State<Arc<DocState>>,
+    user: DocUser,
     Json(req): Json<CompareDocumentsRequest>,
 ) -> Result<Json<CompareDocumentsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.id().to_string();
 
     let original = match load_document_from_drive(&state, &user_id, &req.original_doc_id).await {
         Ok(Some(d)) => d,

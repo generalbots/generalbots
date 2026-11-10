@@ -26,6 +26,10 @@ pub struct EmailOwner {
     pub is_admin: bool,
     /// `false` when the row was created by an OAuth flow (no password set).
     pub has_password: bool,
+    /// `true` when some provider identity is already bound to the account.
+    /// Adopting such an account would stack a second identity on it, so it is
+    /// refused and routed through the authenticated link flow instead.
+    pub has_bound_identity: bool,
 }
 
 /// Local facts the resolver needs, gathered in one round trip by the callback.
@@ -101,6 +105,11 @@ pub fn resolve_oauth_identity(
     // A password account belongs to whoever knows the password: linking it is
     // the owner's decision, taken from Settings while authenticated.
     if owner.has_password {
+        return OAuthResolution::LinkRequired { email_owner: owner };
+    }
+    // An account that already carries a provider identity is never re-bound by
+    // a different identity: that is the explicit link flow's job.
+    if owner.has_bound_identity {
         return OAuthResolution::LinkRequired { email_owner: owner };
     }
 

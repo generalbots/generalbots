@@ -156,14 +156,15 @@ pub async fn list_tickets(
 }
 pub async fn get_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let ticket: SupportTicket = support_tickets::table
-        .filter(support_tickets::id.eq(id))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+    let ticket: SupportTicket = scoped_ticket(id, branch_id)
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
@@ -171,14 +172,15 @@ pub async fn get_ticket(
 }
 pub async fn get_ticket_with_comments(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<TicketWithComments>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let ticket: SupportTicket = support_tickets::table
-        .filter(support_tickets::id.eq(id))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+    let ticket: SupportTicket = scoped_ticket(id, branch_id)
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
@@ -192,6 +194,7 @@ pub async fn get_ticket_with_comments(
 }
 pub async fn update_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateTicketRequest>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
@@ -199,65 +202,80 @@ pub async fn update_ticket(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = Utc::now();
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+    // 404 before any write: a ticket from another branch is not addressable.
+    let _existing: SupportTicket = scoped_ticket(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+
+    diesel::update(scoped_ticket(id, branch_id))
         .set(support_tickets::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
     if let Some(subject) = req.subject {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::subject.eq(subject))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(description) = req.description {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::description.eq(description))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(priority) = req.priority {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::priority.eq(priority))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(category) = req.category {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::category.eq(category))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(assignee_id) = req.assignee_id {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::assignee_id.eq(Some(assignee_id)))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
     if let Some(tags) = req.tags {
-        diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+        diesel::update(scoped_ticket(id, branch_id))
             .set(support_tickets::tags.eq(tags))
             .execute(&mut conn)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
     }
 
-    get_ticket(State(state), Path(id)).await
+    get_ticket(State(state), headers, Path(id)).await
 }
 pub async fn assign_ticket(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<AssignTicketRequest>,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
+
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // 404 before resolving the assignee: a foreign ticket id must not be
+    // confirmed to exist, and must never be mutated.
+    let _existing: SupportTicket = scoped_ticket(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
 
     let assignee_id = if let Some(assignee_id) = req.assignee_id {
         assignee_id
@@ -273,7 +291,7 @@ pub async fn assign_ticket(
 
     let now = Utc::now();
 
-    diesel::update(support_tickets::table.filter(support_tickets::id.eq(id)))
+    diesel::update(scoped_ticket(id, branch_id))
         .set((
             support_tickets::assignee_id.eq(Some(assignee_id)),
             support_tickets::updated_at.eq(now),
@@ -281,7 +299,7 @@ pub async fn assign_ticket(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
 
-    get_ticket(State(state), Path(id)).await
+    get_ticket(State(state), headers, Path(id)).await
 }
 pub(super) fn resolve_user_id(conn: &mut diesel::PgConnection, value: &str) -> Result<Uuid, (StatusCode, String)> {
     use diesel::prelude::*;

@@ -15,15 +15,23 @@ static DOCUMENT_CACHE: DocumentCache = Lazy::new(|| RwLock::new(HashMap::new()))
 
 const CACHE_TTL_SECS: i64 = 3600;
 
-pub fn get_user_docs_path(user_identifier: &str) -> String {
-    let safe_id = user_identifier
+/// Normalises an owner id into a single Drive path segment.
+///
+/// The owner is always a server-verified id (#2135) — a directory UUID or the
+/// per-install `local-…` id — so this only removes separators a future identity
+/// source could smuggle in; it is not an authorisation check.
+pub fn sanitize_owner(user_identifier: &str) -> String {
+    user_identifier
         .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
-        .to_lowercase();
-    format!("users/{safe_id}/docs")
+        .to_lowercase()
 }
 
-pub fn get_current_user_id() -> String {
-    "default-user".to_string()
+/// Drive prefix owning every document of `user_identifier`.
+///
+/// Callers must pass a verified owner (`DocUser::id`); there is no default, so
+/// no request can fall back to a namespace shared with other accounts.
+pub fn get_user_docs_path(user_identifier: &str) -> String {
+    format!("users/{}/docs", sanitize_owner(user_identifier))
 }
 
 pub fn generate_doc_id() -> String {
@@ -56,13 +64,13 @@ pub fn count_words(content: &str) -> usize {
         .count()
 }
 
-pub fn create_new_document() -> Document {
+pub fn create_new_document(owner_id: &str) -> Document {
     let doc_id = generate_doc_id();
     Document {
         id: doc_id,
         title: "Untitled Document".to_string(),
         content: "<p><br></p>".to_string(),
-        owner_id: get_current_user_id(),
+        owner_id: owner_id.to_string(),
         storage_path: String::new(),
         created_at: Utc::now(),
         updated_at: Utc::now(),

@@ -15,7 +15,7 @@ pub async fn handle_add_comment(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<AddCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -44,7 +44,7 @@ pub async fn handle_add_comment(
     let comment = CellComment {
         id: Uuid::new_v4().to_string(),
         author_id: user_id.clone(),
-        author_name: resolve_user_name(user.as_deref()),
+        author_name: resolve_user_name(user.as_deref())?,
         content: req.content,
         created_at: Utc::now(),
         updated_at: Utc::now(),
@@ -91,7 +91,7 @@ pub async fn handle_reply_comment(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ReplyCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -123,7 +123,7 @@ pub async fn handle_reply_comment(
                 let reply = CommentReply {
                     id: Uuid::new_v4().to_string(),
                     author_id: user_id.clone(),
-                    author_name: resolve_user_name(user.as_deref()),
+                    author_name: resolve_user_name(user.as_deref())?,
                     content: req.content,
                     created_at: Utc::now(),
                 };
@@ -154,7 +154,7 @@ pub async fn handle_resolve_comment(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ResolveCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -210,7 +210,7 @@ pub async fn handle_delete_comment(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteCommentRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -265,7 +265,7 @@ pub async fn handle_list_comments(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ListCommentsRequest>,
 ) -> Result<Json<ListCommentsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)

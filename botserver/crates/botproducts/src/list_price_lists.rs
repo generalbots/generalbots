@@ -29,13 +29,13 @@ pub async fn create_price_list(
     Json(req): Json<CreatePriceListRequest>,
 ) -> Result<Json<PriceList>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // Price-list writes are tenant-scoped by the verified caller (issue #2128).
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let mut conn = state
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -211,6 +211,13 @@ pub async fn list_low_stock(
 
     Ok(Json(prods))
 }
+/// Authenticated products API (`/api/products/*`).
+///
+/// Every route here requires a verified caller: the auth allowlist no longer
+/// contains an `/api/products/items` entry, because the legacy prefix match also
+/// covered `POST/PUT/DELETE` (issue #2128). The public storefront catalogue is
+/// served by the exact-path, GET-only `/api/catalog/products` route in
+/// `botserver/src/main_module/routes/catalog.rs`.
 pub fn configure_products_api_routes() -> Router<Arc<ProductsState>> {
     Router::new()
         .route("/api/products/items", get(list_products).post(create_product))

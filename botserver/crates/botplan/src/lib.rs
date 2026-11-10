@@ -1,13 +1,9 @@
 
 
+pub mod auth;
 pub mod collaboration;
 
-use axum::{
-    extract::Path,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{response::IntoResponse, Json};
 use botllm::provider_catalog::LLMProviderType;
 use botllm::provider_factory::create_llm_provider;
 use chrono::{DateTime, Utc};
@@ -18,11 +14,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-
-use collaboration::{
-    handle_get_plan_collaborators, handle_get_plan_presence, handle_get_plan_typing,
-    handle_plan_websocket,
-};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -47,11 +38,28 @@ pub struct Plan {
     pub id: String,
     pub title: String,
     pub description: Option<String>,
+    /// Verified subject of the creator (#2136). Never `"anonymous"`.
     pub owner_id: String,
+    /// Tenant that minted the plan. `None` for plans created by a branchless
+    /// suite session (and for pre-#2136 snapshots).
+    #[serde(default)]
+    pub org_id: Option<String>,
+    #[serde(default)]
+    pub branch_id: Option<String>,
     pub members: Vec<String>,
     pub tasks: HashMap<String, Task>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// Body of `POST /api/plan`. Ids are minted server-side, so the client never
+/// chooses (or reuses) a plan id.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CreatePlanRequest {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -102,6 +110,12 @@ pub struct AddMemberRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeleteTaskRequest {
+    pub plan_id: String,
+    pub task_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SetDependenciesRequest {
     pub plan_id: String,
     pub task_id: String,
@@ -134,8 +148,13 @@ pub struct PlanAiSuggestion {
     pub assignee: Option<String>,
 }
 
-mod get_store;
 mod default_status;
+mod get_store;
+mod handlers;
+mod routes;
 
-pub use get_store::*;
+pub use auth::*;
 pub use default_status::*;
+pub use get_store::*;
+pub use handlers::*;
+pub use routes::*;

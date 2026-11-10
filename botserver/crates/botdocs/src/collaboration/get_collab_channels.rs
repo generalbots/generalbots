@@ -69,7 +69,17 @@ pub async fn handle_docs_websocket(
     Path(doc_id): Path<String>,
     Query(q): Query<WsAuthQuery>,
     State(_state): State<Arc<DocState>>,
-) -> impl IntoResponse {
-    let auth = extract_user_from_token(&q.token);
-    ws.on_upgrade(move |socket| handle_docs_connection(socket, doc_id, auth))
+) -> Response {
+    match extract_user_from_token(&q.token) {
+        Ok(identity) => ws
+            .on_upgrade(move |socket| handle_docs_connection(socket, doc_id, identity))
+            .into_response(),
+        Err(reason) => {
+            log::warn!(
+                "docs ws refused for document {doc_id}: {}",
+                reason_code(&reason)
+            );
+            unauthorized(reason)
+        }
+    }
 }

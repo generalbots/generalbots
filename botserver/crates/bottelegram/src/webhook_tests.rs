@@ -1,9 +1,9 @@
 //! Inbound Telegram delivery tests (TG-1..TG-3 in #2070).
 //!
-//! Covers the three decisions the webhook makes before any database work:
-//! what the message *means* (`extract_message_content`), whether the delivery
-//! is authentic (`secret_matches`), and whether it was already handled
-//! (`DedupRegistry`, the redelivery state machine).
+//! Covers the two decisions the webhook makes before any database work: what
+//! the message *means* (`extract_message_content`) and whether it was already
+//! handled (`DedupRegistry`, the redelivery state machine). The authenticity
+//! gate lives in `webhook_gate_tests.rs` (#2142).
 
 use super::*;
 use crate::types::{
@@ -172,43 +172,6 @@ fn location_and_contact_render_their_fields() {
 #[test]
 fn a_message_without_content_yields_an_empty_string() {
     assert_eq!(extract_message_content(&botlib::i18n::Locale::default(), &message()), "");
-}
-
-#[test]
-fn unsigned_delivery_is_accepted_when_no_secret_is_configured() {
-    assert!(secret_matches("", ""));
-    assert!(secret_matches("   ", ""));
-    assert!(secret_matches("", "anything"));
-}
-
-#[test]
-fn configured_secret_requires_the_exact_header_value() {
-    assert!(secret_matches("s3cret", "s3cret"));
-    assert!(secret_matches(" s3cret ", "s3cret"));
-    // Both sides are trimmed: a delivery that pads the header still matches.
-    assert!(secret_matches("s3cret", "s3cret "));
-    assert!(!secret_matches("s3cret", ""));
-    assert!(!secret_matches("s3cret", "s3cre"));
-    assert!(!secret_matches("s3cret", "S3CRET"));
-    assert!(!secret_matches("s3cret", "s3cret extra"));
-}
-
-#[test]
-fn secret_header_name_matches_the_bot_api() {
-    assert_eq!(SECRET_HEADER, "x-telegram-bot-api-secret-token");
-}
-
-#[test]
-fn constant_time_eq_compares_content_not_identity() {
-    assert!(constant_time_eq(b"", b""));
-    assert!(constant_time_eq(b"abc", b"abc"));
-    // Length mismatch is rejected without indexing out of bounds.
-    assert!(!constant_time_eq(b"abc", b"abcd"));
-    // Same length, last byte differs: the comparison must still walk the whole
-    // slice (a short-circuit would return at the first byte).
-    assert!(!constant_time_eq(b"abc", b"abd"));
-    assert!(!constant_time_eq(b"abc", b"xbc"));
-    assert!(!constant_time_eq(b"abc", b""));
 }
 
 fn registry() -> DedupRegistry {

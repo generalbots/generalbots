@@ -73,7 +73,11 @@ async fn authorize(
     bind: &crate::domains::DomainBind,
     token: &str,
 ) -> Result<Option<String>, String> {
-    let secret = ProjectDomains::saas_jwt_secret();
+    // #2140 — one resolver for the whole workspace. It fails closed when no
+    // secret is configured, so a token signed with a public placeholder can
+    // never pass this gate.
+    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+        .map_err(|error| format!("saas jwt secret unavailable: {error}"))?;
     let provider = SaasJwtAuthProvider::new(secret);
     let user = provider
         .authenticate(token)
@@ -188,4 +192,85 @@ pub fn domain_auth_router(pool: DbPool) -> axum::Router {
     axum::Router::new()
         .route("/api/vibe/domain-auth", axum::routing::get(domain_auth))
         .layer(Extension(Arc::new(ProjectDomains::new(pool))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domains::DomainBind;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use chrono::Utc;
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    use uuid::Uuid;
+
+    const ATTACKER_SECRET: &str = "attacker-secret-that-must-never-be-accepted";
+
+    fn binding(access: &str, allowed_emails: &str) -> DomainBind {
+        let now = Utc::now();
+        DomainBind {
+            id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
+            org_id: Uuid::new_v4(),
+            branch_id: Uuid::new_v4(),
+            domain: "app.example.com".to_string(),
+            env: "production".to_string(),
+            container: "vibe-app".to_string(),
+            verified: true,
+            verify_token: None,
+            tls_status: "active".to_string(),
+            tls_error: None,
+            access: access.to_string(),
+            allowed_emails: (!allowed_emails.is_empty()).then(|| allowed_emails.to_string()),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    fn mint(secret: &str, email: &str) -> String {
+        let header = URL_SAFE_NO_PAD.encode(br#"{"alg":"HS256","typ":"JWT"}"#);
+        let payload = serde_json::json!({
+            "sub": Uuid::new_v4().to_string(),
+            "email": email,
+            "exp": Utc::now().timestamp() + 3600,
+        });
+        let payload = URL_SAFE_NO_PAD.encode(payload.to_string().as_bytes());
+        let signing_input = format!("{header}.{payload}");
+        let mut mac =
+            Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac accepts any key");
+        mac.update(signing_input.as_bytes());
+        format!(
+            "{signing_input}.{}",
+            URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
+        )
+    }
+
+    /// #2140 — Vibe domain auth is the gate for private project sites. A token
+    /// signed with any other key (including the removed public fallback) must
+    /// not authorize access.
+    #[tokio::test]
+    async fn a_token_signed_with_another_secret_is_rejected() {
+        let bind = binding("authenticated", "");
+        let forged = mint(ATTACKER_SECRET, "victim@example.com");
+        let result = authorize(&bind, &forged).await;
+        assert!(result.is_err(), "forged token was accepted: {result:?}");
+    }
+
+    #[tokio::test]
+    async fn a_token_signed_with_the_server_secret_follows_the_binding_policy() {
+        let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+            .expect("tests always resolve a secret");
+
+        let rbac = binding("rbac", "boss@example.com");
+        let allowed = mint(&secret, "boss@example.com");
+        assert_eq!(
+            authorize(&rbac, &allowed).await.expect("allowed email"),
+            Some("boss@example.com".to_string())
+        );
+        let intruder = mint(&secret, "intruder@example.com");
+        assert!(authorize(&rbac, &intruder).await.is_err());
+
+        let authenticated = binding("authenticated", "");
+        assert!(authorize(&authenticated, &allowed).await.is_ok());
+    }
 }

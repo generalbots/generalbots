@@ -1,7 +1,7 @@
 use super::*;
 
-pub(super) async fn render_kb_list(state: &Arc<TicketsState>) -> String {
-    let branch_id = resolve_branch_id(state);
+pub(super) async fn render_kb_list(state: &Arc<TicketsState>, headers: &HeaderMap) -> String {
+    let branch_id = resolve_branch_id(state, headers);
     let conn = state.pool.clone();
 
     let rows = tokio::task::spawn_blocking(move || {
@@ -53,9 +53,15 @@ pub fn configure_itsm_ui_routes() -> Router<Arc<TicketsState>> {
         .route("/api/ui/tickets/cis", get(handle_ci_fragment))
         .route("/api/ui/tickets/kb", get(handle_kb_fragment))
 }
-pub(super) async fn handle_ci_fragment(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
-    Html(render_ci_list(&state).await)
+pub(super) async fn handle_ci_fragment(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    Html(render_ci_list(&state, &headers).await)
 }
-pub(super) async fn handle_kb_fragment(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
-    Html(render_kb_list(&state).await)
+pub(super) async fn handle_kb_fragment(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    Html(render_kb_list(&state, &headers).await)
 }

@@ -130,11 +130,29 @@ impl SheetSession {
     }
 }
 
-/// Registry of live document sessions, keyed by sheet id.
+/// Registry of live document sessions, keyed by owner + sheet id (#2127).
+///
+/// The key is composite on purpose: a session holds the workbook snapshot and
+/// the oplog, so handing the same `Arc` to a second user would leak both. With
+/// `owner:sheet` a live document is only ever reachable by the user whose
+/// namespace loaded it.
 pub struct SessionStore {
     sessions: Arc<tokio::sync::RwLock<HashMap<String, Arc<SheetSession>>>>,
     /// Handle set at mount time so the eviction loop can persist dirty sheets.
     state_handle: Arc<tokio::sync::Mutex<Option<Arc<SheetState>>>>,
+}
+
+/// Key of a live session: owner id plus sheet id.
+fn session_key(user_id: &str, sheet_id: &str) -> String {
+    format!("{user_id}:{sheet_id}")
+}
+
+/// True when `key` belongs to `sheet_id`, whatever owner it was loaded for.
+fn key_targets_sheet(key: &str, sheet_id: &str) -> bool {
+    match key.split_once(':') {
+        Some((_, id)) => id == sheet_id,
+        None => false,
+    }
 }
 
 impl Default for SessionStore {
@@ -201,15 +219,20 @@ impl SessionStore {
 
     /// Returns the live session for a sheet, loading it from Drive on first
     /// access. Access is denied when the user cannot read the sheet (#789).
+    ///
+    /// Sessions are per user (#2127): a cached session is only returned to the
+    /// user id it was created for, so two users can never share the same
+    /// workbook snapshot through the cache.
     pub async fn get_or_load(
         &self,
         state: &SheetState,
         user_id: &str,
         sheet_id: &str,
     ) -> Result<Arc<SheetSession>, String> {
+        let key = session_key(user_id, sheet_id);
         {
             let map = self.sessions.read().await;
-            if let Some(session) = map.get(sheet_id) {
+            if let Some(session) = map.get(&key) {
                 session.touch();
                 return Ok(Arc::clone(session));
             }
@@ -220,11 +243,11 @@ impl SessionStore {
         }
         let session = SheetSession::new(sheet);
         let mut map = self.sessions.write().await;
-        if let Some(existing) = map.get(sheet_id) {
+        if let Some(existing) = map.get(&key) {
             existing.touch();
             return Ok(Arc::clone(existing));
         }
-        map.insert(sheet_id.to_string(), Arc::clone(&session));
+        map.insert(key, Arc::clone(&session));
         Ok(session)
     }
 
@@ -243,12 +266,160 @@ impl SessionStore {
         seq
     }
 
-    /// Drops a session immediately, persisting if dirty (used on sheet delete).
+    /// Drops every live session of a sheet immediately, persisting the dirty
+    /// ones (used on sheet delete). All owners are closed because deleting the
+    /// workbook invalidates each user's snapshot of it (#2127).
     pub async fn close(&self, state: &SheetState, sheet_id: &str) {
-        if let Some(session) = self.sessions.write().await.remove(sheet_id) {
+        let removed: Vec<Arc<SheetSession>> = {
+            let mut map = self.sessions.write().await;
+            let keys: Vec<String> = map
+                .keys()
+                .filter(|key| key_targets_sheet(key.as_str(), sheet_id))
+                .cloned()
+                .collect();
+            keys.into_iter().filter_map(|key| map.remove(&key)).collect()
+        };
+        for session in removed {
             if session.is_dirty() {
                 let _ = session.persist_now(state).await;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{save_sheet_to_drive, DriveOps};
+    use crate::types::{Spreadsheet, Worksheet};
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+
+    #[derive(Default)]
+    struct MemDrive(Mutex<HashMap<String, Vec<u8>>>);
+
+    #[async_trait::async_trait]
+    impl DriveOps for MemDrive {
+        async fn put_object(
+            &self,
+            _bucket: &str,
+            key: &str,
+            body: Vec<u8>,
+            _content_type: &str,
+        ) -> Result<(), String> {
+            self.0
+                .lock()
+                .map_err(|_| "poisoned".to_string())?
+                .insert(key.to_string(), body);
+            Ok(())
+        }
+
+        async fn get_object(&self, _bucket: &str, key: &str) -> Result<Vec<u8>, String> {
+            self.0
+                .lock()
+                .map_err(|_| "poisoned".to_string())?
+                .get(key)
+                .cloned()
+                .ok_or_else(|| format!("404 {key}"))
+        }
+
+        async fn list_objects(&self, _bucket: &str, prefix: &str) -> Result<Vec<String>, String> {
+            let map = self.0.lock().map_err(|_| "poisoned".to_string())?;
+            Ok(map
+                .keys()
+                .filter(|key| key.starts_with(prefix))
+                .cloned()
+                .collect())
+        }
+
+        async fn delete_object(&self, _bucket: &str, key: &str) -> Result<(), String> {
+            self.0
+                .lock()
+                .map_err(|_| "poisoned".to_string())?
+                .remove(key);
+            Ok(())
+        }
+    }
+
+    fn sheet(owner: &str) -> Spreadsheet {
+        Spreadsheet {
+            id: "s1".to_string(),
+            name: "Report".to_string(),
+            owner_id: owner.to_string(),
+            worksheets: vec![Worksheet::default()],
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            named_ranges: None,
+            external_links: None,
+            source_bucket: None,
+            source_path: None,
+            source_bytes: None,
+            acl: HashMap::new(),
+        }
+    }
+
+    fn state() -> SheetState {
+        SheetState {
+            drive: Some(Arc::new(MemDrive::default())),
+            on_save: None,
+            sessions: SessionStore::default(),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_cached_session_is_never_handed_to_another_user() {
+        let state = state();
+        save_sheet_to_drive(&state, "u-alice", &sheet("u-alice"))
+            .await
+            .expect("alice's sheet is persisted");
+
+        let first = state
+            .sessions
+            .get_or_load(&state, "u-alice", "s1")
+            .await
+            .expect("alice loads her sheet");
+        let again = state
+            .sessions
+            .get_or_load(&state, "u-alice", "s1")
+            .await
+            .expect("alice reuses her live session");
+        assert!(
+            Arc::ptr_eq(&first, &again),
+            "the owner must keep working on the same live document"
+        );
+
+        let stolen = state.sessions.get_or_load(&state, "u-bob", "s1").await;
+        assert!(
+            stolen.is_err(),
+            "bob must never receive alice's live workbook session (#2127)"
+        );
+    }
+
+    #[tokio::test]
+    async fn closing_a_sheet_drops_its_live_session() {
+        let state = state();
+        save_sheet_to_drive(&state, "u-alice", &sheet("u-alice"))
+            .await
+            .expect("sheet persisted");
+
+        let live = state
+            .sessions
+            .get_or_load(&state, "u-alice", "s1")
+            .await
+            .expect("loaded");
+        live.sheet.write().await.name = "Edited in memory".to_string();
+
+        state.sessions.close(&state, "s1").await;
+
+        let reloaded = state
+            .sessions
+            .get_or_load(&state, "u-alice", "s1")
+            .await
+            .expect("reloaded from drive");
+        assert_eq!(
+            reloaded.sheet.read().await.name,
+            "Report",
+            "close must drop the session so the next load reads Drive again"
+        );
     }
 }

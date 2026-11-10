@@ -350,7 +350,13 @@ fn persisted_enabled(data_dir: Option<&Path>) -> bool {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PeerError {
     Disabled,
+    /// #2141 — no shared node token is configured. Every peer endpoint fails
+    /// closed (503) instead of accepting anonymous payloads.
+    Unconfigured,
     Unauthorized,
+    /// Authenticated, but not an admin: the control surface (`status`,
+    /// `enable`, `disable`) is admin-only when the caller is not a peer.
+    Forbidden,
     Invalid(String),
     UnknownNode(Uuid),
     RegistryFull,
@@ -360,7 +366,12 @@ impl std::fmt::Display for PeerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Disabled => write!(f, "peer network is disabled; set {ENV_ENABLED}=1 to opt in"),
+            Self::Unconfigured => write!(
+                f,
+                "peer network has no shared token; set {ENV_TOKEN} or Vault secret/{SECRET_PATH} token"
+            ),
             Self::Unauthorized => write!(f, "a valid peer bearer token is required"),
+            Self::Forbidden => write!(f, "an administrator session is required"),
             Self::Invalid(message) => write!(f, "{message}"),
             Self::UnknownNode(id) => write!(f, "peer {id} is not registered"),
             Self::RegistryFull => write!(f, "peer registry is full"),

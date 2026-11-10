@@ -11,6 +11,16 @@ fn owner(is_admin: bool, has_password: bool) -> EmailOwner {
         user_id: Uuid::new_v4(),
         is_admin,
         has_password,
+        has_bound_identity: false,
+    }
+}
+
+fn linked_owner() -> EmailOwner {
+    EmailOwner {
+        user_id: Uuid::new_v4(),
+        is_admin: false,
+        has_password: false,
+        has_bound_identity: true,
     }
 }
 
@@ -118,6 +128,22 @@ fn verified_email_adopts_a_passwordless_oauth_account() {
     );
 
     assert_eq!(resolution, OAuthResolution::Adopt(existing.user_id));
+}
+
+#[test]
+fn an_account_with_a_bound_identity_is_not_adopted() {
+    // A second identity must never stack onto an account that already has one:
+    // the owner has to link it explicitly while authenticated.
+    let resolution = resolve_oauth_identity(
+        Some("user@example.com"),
+        true,
+        &facts(None, Some(linked_owner())),
+    );
+
+    assert!(matches!(
+        resolution,
+        OAuthResolution::LinkRequired { .. }
+    ));
 }
 
 #[test]

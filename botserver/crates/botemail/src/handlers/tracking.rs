@@ -322,3 +322,7 @@ pub async fn track_click(
     info!("Click tracked - Campaign: {}, Email: {}", campaign_id, email);
     Ok(Json(serde_json::json!({ "success": true, "message": "Click tracked successfully" })))
 }
+
+#[cfg(test)]
+#[path = "tracking_tests.rs"]
+mod tracking_tests;

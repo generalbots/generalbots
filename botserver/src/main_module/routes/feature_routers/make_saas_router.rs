@@ -67,6 +67,19 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         }
     }
 
+    // #2140 — the SaaS JWT secret comes from the single resolver, which reads
+    // this same config file, then env, then persists a generated value. The
+    // local `j("saas_jwt_secret")` read that used to live below was a second
+    // resolver with a public fallback; without a secret the SaaS routes are not
+    // mounted at all (fail closed).
+    let jwt_secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+        Ok(secret) => secret,
+        Err(error) => {
+            tracing::error!("SaaS routes disabled: {error}");
+            return Router::new();
+        }
+    };
+
     // Load all SaaS config from directory_config.json (written during init from Vault)
     let (
         base_url,
@@ -115,9 +128,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                         }
                         (
                             j("saas_base_url").unwrap_or_default(),
-                            j("saas_jwt_secret").unwrap_or_else(
-                                crate::main_module::directory_setup::resolve_saas_jwt_secret,
-                            ),
+                            jwt_secret.clone(),
                             j("bot_templates_dir")
                                 .unwrap_or_else(|| "work/templates/bots".to_string()),
                             j("mc_path")
@@ -134,7 +145,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                     }
                     Err(_) => (
                         String::new(),
-                        crate::main_module::directory_setup::resolve_saas_jwt_secret(),
+                        jwt_secret.clone(),
                         "work/templates/bots".to_string(),
                         "/tmp/mc".to_string(),
                         "local".to_string(),

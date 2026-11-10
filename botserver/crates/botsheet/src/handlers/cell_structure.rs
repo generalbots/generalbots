@@ -21,7 +21,7 @@ pub async fn handle_merge_cells(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<MergeCellsRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -86,7 +86,7 @@ pub async fn handle_unmerge_cells(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<MergeCellsRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -150,7 +150,7 @@ pub async fn handle_freeze_panes(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<FreezePanesRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -207,7 +207,7 @@ pub async fn handle_get_range(
     headers: HeaderMap,
     Json(req): Json<RangeRequest>,
 ) -> Result<Json<RangeResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -277,7 +277,7 @@ pub async fn handle_worksheet_meta(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<RangeRequest>,
 ) -> Result<Json<WorksheetMetaResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions

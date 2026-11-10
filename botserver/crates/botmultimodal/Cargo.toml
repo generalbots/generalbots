@@ -10,6 +10,7 @@ repository = "https://github.com/generalbots/generalbots"
 [dependencies]
  botcore = { workspace = true }
  botlib = { workspace = true, features = ["http-client"] }
+botsecurity-core = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json", "multipart"] }
 serde = { workspace = true, features = ["derive"] }

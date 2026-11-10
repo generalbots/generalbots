@@ -133,10 +133,6 @@ pub fn generate_document_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
-pub fn get_user_docs_path(user_id: &str) -> String {
-    format!("users/{}/docs", user_id)
-}
-
 #[cfg(test)]
 #[path = "utils_format_tests.rs"]
 mod tests;

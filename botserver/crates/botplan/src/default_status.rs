@@ -10,7 +10,16 @@ pub(super) fn default_priority() -> String {
 /// instruction and asks the configured LLM to propose tasks. The LLM call is
 /// built from environment configuration (`LLM_URL`, `LLM_KEY`, `LLM_MODEL`);
 /// when those are absent the endpoint degrades gracefully instead of panicking.
-pub async fn handle_plan_ai_assist(Json(req): Json<PlanAiRequest>) -> impl IntoResponse {
+///
+/// The caller must present a verified credential (#2136): the endpoint spends
+/// LLM tokens, so it is never reachable anonymously.
+pub async fn handle_plan_ai_assist(
+    headers: axum::http::HeaderMap,
+    Json(req): Json<PlanAiRequest>,
+) -> axum::response::Response {
+    if let Err(refusal) = crate::auth::Caller::from_headers(&headers) {
+        return refusal.into_response();
+    }
     let url = match std::env::var("LLM_URL") {
         Ok(v) if !v.is_empty() => v,
         _ => {

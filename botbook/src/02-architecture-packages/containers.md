@@ -92,14 +92,13 @@ Restore in place by copying the snapshot to a new instance and swapping names;
 
 ## Runtime rules the build enforces
 
-Three rules are checked mechanically (issue #2126,
+Two rules are checked mechanically (issue #2126,
 `python3 scripts/check_container_runtime.py --check`) instead of in review:
 
 | Rule | What fails the build |
 |---|---|
 | Incus is the only container layer | any spawn of `lxc`, `lxd` or `lxc-execute` — `SafeCommand` does not make LXC supported |
 | Incus is spawned through `SafeCommand` | `std::process::Command::new("incus")` or `tokio::process::Command::new("incus")` |
-| A container name is data, not an argument | see below |
 
 `SafeCommand` (`botsecurity-core/src/command_guard.rs`) is what adds the binary
 allowlist, argv validation and a scrubbed environment; a raw `Command` skips all
@@ -108,15 +107,16 @@ three. The one accepted exception is
 (`botserver/src/api/terminal/`), which builds an argv for the container shell
 rather than a host command.
 
-Container names are derived, never taken verbatim from user input:
+Container names are a third rule, enforced at each call site rather than by the
+gate. A name is derived, never taken verbatim from user input:
 
 - the installer uses `{tenant}-{component}`
   (`botcore/src/package_manager/facade/install.rs`);
-- Vibe derives `{project}-{env}[-runner]` and refuses the platform's own names
-  (`is_protected_container_name`: `bot`, `system`, `tables`, `cache`, `drive`,
-  `vault`, `directory`, `proxy`, `dns`, `email`, `webmail`, `meet`, `vectordb`,
-  `llm`, `alm`, `alm-ci`, `table-editor`, `vibe`, `vibe-runner`, `host`,
-  `incus`);
+- Vibe derives `{project}-{env}[-runner]` (`production` shortened to `prod`) and
+  refuses the platform's own names (`is_protected_container_name`: `bot`,
+  `system`, `tables`, `cache`, `drive`, `vault`, `directory`, `proxy`, `dns`,
+  `email`, `webmail`, `meet`, `vectordb`, `llm`, `alm`, `alm-ci`,
+  `table-editor`, `vibe`, `vibe-runner`, `host`, `incus`);
 - the deployment gateway accepts only `[A-Za-z0-9_-]`, rejects a leading `-` and
   an empty name before it reaches the `incus` argv
   (`botdeployment/src/gateway_runtime.rs`).

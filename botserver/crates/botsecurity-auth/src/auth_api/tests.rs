@@ -1,6 +1,6 @@
 use super::super::types::*;
-use super::{AuthConfig, AuthError};
-use axum::http::StatusCode;
+use super::{AuthConfig, AuthError, PublicRoute};
+use axum::http::{Method, StatusCode};
 
 #[test]
 fn test_role_permissions() {
@@ -94,42 +94,87 @@ fn test_bot_user() {
 
 #[test]
 fn test_auth_config_paths() {
-    let config = AuthConfig::default();
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::read(Method::GET, "/health").expect("valid route"))
+        .with_public_route(PublicRoute::asset("/static/*").expect("valid asset tree"));
 
-    assert!(config.is_anonymous_allowed("/health"));
-    assert!(config.is_anonymous_allowed("/api/health"));
-    assert!(!config.is_anonymous_allowed("/api/users"));
+    assert!(config.is_public_route(&Method::GET, "/health"));
+    assert!(!config.is_public_route(&Method::POST, "/health"));
+    assert!(!config.is_public_route(&Method::GET, "/api/users"));
 
-    assert!(config.is_public_path("/static"));
-    assert!(config.is_public_path("/static/css/style.css"));
-    assert!(!config.is_public_path("/api/private"));
+    assert!(config.is_public_route(&Method::GET, "/static/css/style.css"));
+    assert!(!config.is_public_route(&Method::GET, "/api/private"));
 }
 
 #[test]
-fn test_auth_config_glob_paths() {
-    let config = AuthConfig::default().add_anonymous_path("/api/bots/*/access");
+fn test_auth_config_parameterized_paths() {
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::read(Method::GET, "/api/bots/:bot_name/access").expect("valid route"));
 
-    // Wildcard scopes exactly one route shape.
-    assert!(config.is_anonymous_allowed("/api/bots/foo/access"));
-    assert!(config.is_anonymous_allowed("/api/bots/default/access"));
-    // Sibling routes under /api/bots must NOT be caught by the glob.
-    assert!(!config.is_anonymous_allowed("/api/bots/list"));
-    assert!(!config.is_anonymous_allowed("/api/bots/config"));
-    assert!(!config.is_anonymous_allowed("/api/bots"));
-    assert!(!config.is_anonymous_allowed("/api/bots/foo/config"));
-    assert!(!config.is_anonymous_allowed("/api/bots/a/access/extra"));
+    // The parameter scopes exactly one route shape.
+    assert!(config.is_public_route(&Method::GET, "/api/bots/foo/access"));
+    assert!(config.is_public_route(&Method::GET, "/api/bots/default/access"));
+    // Sibling routes under /api/bots must NOT be caught by the pattern.
+    assert!(!config.is_public_route(&Method::GET, "/api/bots/list"));
+    assert!(!config.is_public_route(&Method::GET, "/api/bots/config"));
+    assert!(!config.is_public_route(&Method::GET, "/api/bots"));
+    assert!(!config.is_public_route(&Method::GET, "/api/bots/foo/config"));
+    assert!(!config.is_public_route(&Method::GET, "/api/bots/a/access/extra"));
 }
 
 #[test]
-fn test_auth_config_trailing_slash_is_noop() {
-    // A trailing-slash entry must not widen the namespace: the legacy
-    // matcher produced a `//` prefix that matches nothing. Pin that the
-    // anonymous allowlist never exposes sibling routes via a trailing
-    // slash — the previous `/api/bots/` entry was a silent no-op.
-    let config = AuthConfig::default().add_anonymous_path("/api/bots/");
-    assert!(!config.is_anonymous_allowed("/api/bots/list"));
-    assert!(!config.is_anonymous_allowed("/api/bots/foo/access"));
-    assert!(!config.is_anonymous_allowed("/api/bots"));
+fn a_bare_prefix_is_never_a_public_route() {
+    // #2133 — the exact route only. A sibling added later stays authenticated.
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::read(Method::GET, "/api/auth/login").expect("valid route"));
+
+    assert!(config.is_public_route(&Method::GET, "/api/auth/login"));
+    assert!(!config.is_public_route(&Method::GET, "/api/auth/login/extra"));
+    assert!(!config.is_public_route(&Method::GET, "/api/auth/directory-config"));
+    assert!(!config.is_public_route(&Method::GET, "/api/auth"));
+}
+
+#[test]
+fn a_trailing_slash_declaration_is_refused() {
+    // A trailing slash used to be a silent no-op (the matcher produced a `//`
+    // prefix). It is now rejected instead of being kept as dead policy.
+    assert!(PublicRoute::read(Method::GET, "/api/bots/").is_err());
+}
+
+#[test]
+fn a_write_method_cannot_be_declared_as_a_read_route() {
+    for method in [Method::POST, Method::PUT, Method::PATCH, Method::DELETE] {
+        assert!(
+            PublicRoute::read(method.clone(), "/api/products/items").is_err(),
+            "{method} must not be declarable as an anonymous read route"
+        );
+    }
+    // ... unless the route is explicitly a credential entry or a webhook.
+    assert!(PublicRoute::credential_entry(Method::POST, "/api/auth/login").is_ok());
+    assert!(PublicRoute::webhook(Method::POST, "/api/whatsapp/webhook").is_ok());
+}
+
+#[test]
+fn a_write_request_never_matches_a_read_declaration() {
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::read(Method::GET, "/api/products/items").expect("valid route"));
+
+    assert!(config.is_public_route(&Method::GET, "/api/products/items"));
+    assert!(!config.is_public_route(&Method::POST, "/api/products/items"));
+    assert!(!config.is_public_route(&Method::PUT, "/api/products/items"));
+    assert!(!config.is_public_route(&Method::DELETE, "/api/products/items"));
+}
+
+#[test]
+fn an_asset_tree_never_exposes_a_server_route() {
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::asset("/suite/*").expect("valid asset tree"));
+
+    assert!(config.is_public_route(&Method::GET, "/suite/desktop.html"));
+    assert!(config.is_public_route(&Method::GET, "/suite/sheet/sheet.js"));
+    // Server-rendered fragments under the same prefix stay authenticated.
+    assert!(!config.is_public_route(&Method::GET, "/suite/sheet/fragments/list"));
+    assert!(!config.is_public_route(&Method::GET, "/suite/dashboards"));
 }
 
 #[test]

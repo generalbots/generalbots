@@ -41,23 +41,9 @@ pub(super) fn execute_get_from(
 }
 pub(super) fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {
-        if let Ok(parsed_url) = url::Url::parse(path) {
-            if let Some(host) = parsed_url.host_str() {
-                let host_lower = host.to_lowercase();
-                if host_lower == "localhost" 
-                    || host_lower.contains("169.254") 
-                    || host_lower.starts_with("127.") 
-                    || host_lower.starts_with("10.") 
-                    || host_lower.starts_with("192.168.") 
-                    || host_lower.starts_with("172.")
-                    || host_lower == "::1"
-                    || host_lower.contains("0x7f")
-                    || host_lower.contains("metadata.google.internal") {
-                    return false; // Prevent obvious SSRF
-                }
-            }
-        }
-        return true;
+        // #2131 — replaces the ad-hoc host substring checks: the shared
+        // validator covers encoded IPv4, IPv6, metadata names and ports.
+        return validate_url_ssrf_strict(path).is_ok();
     }
     if path.contains("..") || path.starts_with('/') {
         return false;
@@ -82,42 +68,32 @@ pub(super) fn is_safe_path(path: &str) -> bool {
     true
 }
 pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(30))
-        .connect_timeout(Duration::from_secs(10))
-        .tcp_keepalive(Duration::from_secs(30))
-        .build()
-        .map_err(|e| {
-            log::error!("Failed to build HTTP client: {}", e);
-            e
-        })?;
-    let response = client.get(url).send().await.map_err(|e| {
-        log::error!("HTTP request failed for URL {}: {}", url, e);
-        e
-    })?;
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_body = response.text().await.unwrap_or_default();
+    // #2131 — `GET <url>` takes the URL straight from the bot script. The
+    // shared guard is the only thing between that script and the internal
+    // network: public http(s) only, per-hop redirect checks, capped body.
+    let policy = FetchPolicy::default()
+        .with_timeout(Duration::from_secs(30))
+        .with_max_bytes(16 * 1024 * 1024);
+    let response = fetch_user_url(url, &policy).await.map_err(|e| {
         error!(
-            "HTTP request returned non-success status for URL {}: {} - {}",
-            url, status, error_body
+            "GET: refused URL ({}): {}",
+            e.kind().as_str(),
+            e.detail()
         );
-        return Err(format!(
-            "HTTP request failed with status: {} - {}",
-            status, error_body
-        )
-        .into());
-    }
-    let content = response.text().await.map_err(|e| {
-        log::error!("Failed to read response text for URL {}: {}", url, e);
-        e
+        Box::new(e) as Box<dyn Error + Send + Sync>
     })?;
+    if !response.is_success() {
+        error!(
+            "HTTP request returned non-success status for GET: {}",
+            response.status
+        );
+        return Err(format!("HTTP request failed with status: {}", response.status).into());
+    }
     trace!(
-        "Successfully executed GET request for URL: {}, content length: {}",
-        url,
-        content.len()
+        "Successfully executed GET request, content length: {}",
+        response.body.len()
     );
-    Ok(content)
+    Ok(response.text())
 }
 #[cfg(feature = "drive")]
 pub async fn get_from_bucket(

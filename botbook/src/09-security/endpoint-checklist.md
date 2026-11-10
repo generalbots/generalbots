@@ -16,9 +16,10 @@ enforces it, so a reviewer can verify instead of trusting the description.
 
 ### Identity on the internal hop
 
-`api.exec` (the BASIC `POST`/`GET` executor) performs a real HTTP request back
-into the running server, so the call passes through the same auth, RBAC and CSRF
-layers as a browser request. Two rules make that hop attributable (#2122):
+`api.exec` — the executor behind the API command catalog the LLM can call —
+performs a real HTTP request back into the running server, so the call passes
+through the same auth, RBAC and CSRF layers as a browser request. Two rules make
+that hop attributable (#2122):
 
 | Rule | Implementation |
 |---|---|
@@ -30,8 +31,8 @@ with, lives 120 seconds, and carries `sub` (session user), `email` (tenant and
 drive scoping), `bot_id` when the call is bot-scoped, `gb_aud`/`scope`
 (`"api-exec"`, a marker of origin — no verifier enforces an audience today),
 plus `iat` and `exp`. The middleware verifies signature and expiry before any
-handler runs, so the header can no longer be forged and the assertion cannot be
-replayed after it expires.
+handler runs, so the assertion cannot be forged and cannot be replayed after it
+expires.
 
 Two consequences worth knowing when writing a route:
 
@@ -42,6 +43,21 @@ Two consequences worth knowing when writing a route:
 - The per-user quota is keyed on the peer address
   (`rate_limit_middleware` in `botsecurity-auth/src/rate_limiter.rs`), not on a
   request header, so a caller cannot buy a fresh quota by inventing a user id.
+
+### Identity on the generic CRUD surface
+
+`/api/db/{table}` is table-driven CRUD: the caller names a table, and the
+handlers evaluate the table's `read_roles`/`write_roles` and per-field
+restrictions from `dynamic_table_definitions`. Those rules were applied to a
+`UserRoles` built from the `X-User-Id` and `X-User-Roles` headers, so a caller
+could claim any identity and grant itself `admin` (#2122). Identity now comes
+from the `AuthenticatedUser` extension or from a Bearer credential verified by
+`botsecurity_core::verified_jwt`, and the role set is the verified principal's
+roles plus the caller's active `rbac_groups` rows
+(`botserver/crates/botbasic_data/src/keywords/db_api/verified_caller.rs`). A
+request with neither credential is answered `401` before the table is touched —
+there is no default identity and no default role. The `api.exec` loopback hop
+reaches the same handlers with its signed assertion, not with headers.
 
 ## Inside the handler
 

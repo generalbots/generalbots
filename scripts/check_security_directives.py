@@ -14,21 +14,14 @@ handler is reachable without either
 It also proves the rate limiters are installed: the general/auth/api limiters
 in the main stack and the per-socket WebSocket message limiter.
 
-Surface
--------
-* `botserver/src/main_module/**/*.rs` -- the main server, its routers and the
-  side listeners it spawns.
-* `botserver/crates/*/src/**/*routes*.rs` -- every crate router (this is a
-  superset of the literal `routes*.rs` spelling, so `configure_*_routes.rs`
-  files are covered too; the deploy gateway lives in one of those).
-
 Coverage model
 --------------
 A router merged into the main app inherits the layers `apply_middleware`
 installs, so its state-changing routes are covered by (a). A router served by
-its *own* listener bypasses them: the script resolves every `axum::serve(...)`
-call site to the file that builds the served router and requires that file to
-carry a rate limit and either a CSRF layer or an exemption.
+its *own* listener bypasses them: every `axum::serve(...)` call site is
+resolved to the file that builds the served router, and that file must carry a
+rate limit and either a CSRF layer or an exemption. The scanning lives in
+`scripts/security_directives_surface.py`.
 
 Usage
 -----
@@ -48,248 +41,31 @@ import re
 import shutil
 import sys
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
-    print("error: python3.11+ is required (tomllib)")
-    raise SystemExit(1)
-
-EXEMPTIONS = Path("scripts/security_directives_exemptions.toml")
+from security_directives_surface import (
+    EXEMPTIONS,
+    load_exemptions,
+    route_surface,
+    standalone_router_files,
+    state_changing_routes,
+)
 
 MAIN_LAYERS = Path("botserver/src/main_module/server/server_layers.rs")
-MAIN_SERVE = Path("botserver/src/main_module/listen_impl.rs")
 MAIN_BOOT = Path("botserver/src/main_module/server/run_axum_server.rs")
 WS_SESSION = Path("botserver/src/core/bot/ws/session.rs")
 WS_LIMITER = Path("botserver/src/core/bot/ws/session/message_limit.rs")
 
-STATE_CHANGING = ("post", "put", "patch", "delete")
-ROUTE_CALL = re.compile(r"\.route\s*\(")
-ROUTE_PATH = re.compile(r'\s*"((?:[^"\\]|\\.)*)"')
-METHOD_IN_BLOCK = re.compile(r"\b(?:%s)\s*\(" % "|".join(STATE_CHANGING))
-SERVE_CALL = re.compile(r"axum::serve\s*\(\s*[^,]+,\s*([^,)]+)")
-IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-CALLED = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(")
-# axum combinators are not router builders; the first remaining call in a
-# `let` right-hand side is the builder we want to resolve.
-COMBINATORS = {
-    "new",
-    "with_state",
-    "layer",
-    "route",
-    "nest",
-    "nest_service",
-    "merge",
-    "fallback",
-    "into_make_service",
-    "into_make_service_with_connect_info",
-    "await",
-    # axum method routers: `get(handler)` is never a router builder.
-    "get",
-    "post",
-    "put",
-    "patch",
-    "delete",
-    "head",
-    "options",
-    "any",
-    "on",
-}
+DIRECTIVES = {"csrf", "rate-limit"}
 
 
-@dataclass(frozen=True)
-class Exemption:
-    file: str
-    directive: str
-    reason: str
-    evidence: str
-    routes: tuple[str, ...]
-
-
-# `fn name` -> defining files, filled by `definition_index` once per run.
-_INDEX_CACHE: dict[str, dict[str, list[Path]]] = {}
-
-
-def route_surface(root: Path) -> list[Path]:
-    files: list[Path] = []
-    main = root / "botserver/src/main_module"
-    if main.is_dir():
-        files.extend(sorted(main.rglob("*.rs")))
-    crates = root / "botserver/crates"
-    if crates.is_dir():
-        for crate in sorted(crates.iterdir()):
-            src = crate / "src"
-            if src.is_dir():
-                files.extend(sorted(src.rglob("*routes*.rs")))
-    return files
-
-
-def rust_files(root: Path) -> list[Path]:
-    base = root / "botserver"
-    if not base.is_dir():
-        return []
-    files: list[Path] = []
-    for path in sorted(base.rglob("*.rs")):
-        if "target" in path.parts:
-            continue
-        relative = path.relative_to(root).as_posix()
-        if "/tests/" in relative or path.name == "tests.rs" or path.name.endswith("_tests.rs"):
-            continue
-        files.append(path)
-    return files
-
-
-def code_before_tests(text: str) -> str:
-    """Drops `#[cfg(test)]` modules: test routers are not served."""
-    marker = text.find("#[cfg(test)]")
-    return text if marker == -1 else text[:marker]
-
-
-def line_of(text: str, index: int) -> int:
-    return text.count("\n", 0, index) + 1
-
-
-def balanced_block(text: str, start: int) -> str:
-    """Returns the text from `start` to the `)` matching the open paren before it."""
-    depth = 1
-    index = start
-    in_string = False
-    while index < len(text) and depth:
-        char = text[index]
-        if in_string:
-            if char == "\\":
-                index += 2
-                continue
-            if char == '"':
-                in_string = False
-        elif char == '"':
-            in_string = True
-        elif char == "(":
-            depth += 1
-        elif char == ")":
-            depth -= 1
-        index += 1
-    return text[start:index]
-
-
-def state_changing_routes(text: str) -> list[tuple[str, int]]:
-    """Every `path` mounted with POST/PUT/PATCH/DELETE in this file."""
-    found: list[tuple[str, int]] = []
-    for call in ROUTE_CALL.finditer(text):
-        path_match = ROUTE_PATH.match(text, call.end())
-        if not path_match:
-            continue
-        block = balanced_block(text, path_match.end())
-        if METHOD_IN_BLOCK.search(block):
-            found.append((path_match.group(1), line_of(text, call.start())))
-    return found
-
-
-def definition_index(root: Path) -> dict[str, list[Path]]:
-    """`fn name` -> files defining it (built once per run)."""
-    cached = _INDEX_CACHE.get(str(root))
-    if cached is not None:
-        return cached
-    index: dict[str, list[Path]] = {}
-    for path in rust_files(root):
-        text = code_before_tests(path.read_text(encoding="utf-8", errors="replace"))
-        for name in re.findall(r"\bfn\s+([A-Za-z_][A-Za-z0-9_]*)", text):
-            index.setdefault(name, []).append(path)
-    _INDEX_CACHE[str(root)] = index
-    return index
-
-
-def resolve_builder(root: Path, serving: Path, served: str, depth: int = 0) -> list[Path]:
-    """Files that build the router passed to `axum::serve` in `serving`."""
-    if depth > 4:
-        return []
-    text = code_before_tests(serving.read_text(encoding="utf-8", errors="replace"))
-    assign = re.compile(r"let\s+(?:mut\s+)?%s\s*=\s*(.+?);" % re.escape(served), re.S)
-    match = assign.search(text)
-    if not match:
-        # `listen(app, port)` receives the finished router; the main listener
-        # is validated by the explicit layer checks instead.
-        return []
-    rhs = match.group(1)
-    if "apply_middleware(" in rhs:
-        return []
-    calls = [name for name in CALLED.findall(rhs) if name not in COMBINATORS]
-    if not calls:
-        # `let service = gateway_router.into_make_service...()` -- follow the
-        # variable back to the `let` that built the router.
-        lead = IDENT.match(rhs.strip())
-        if lead and lead.group(0) != served:
-            return resolve_builder(root, serving, lead.group(0), depth + 1)
-        return [serving]
-    index = definition_index(root)
-    candidates: list[Path] = []
-    for name in calls:
-        for path in index.get(name, []):
-            if path not in candidates:
-                candidates.append(path)
-    if serving in candidates:
-        # The router is built here and only wrapped by another call
-        # (`with_security_headers(router().with_state(state), ..)`).
-        return [serving]
-    if not candidates:
-        return [serving]
-    if "::" in rhs:
-        segments = [
-            segment
-            for segment in rhs.split("(")[0].split("::")
-            if segment not in {"crate", "super", "self"}
-        ]
-        hint = segments[-2] if len(segments) >= 2 else ""
-        narrowed = [path for path in candidates if hint and hint in path.as_posix()]
-        if narrowed:
-            return narrowed
-    return candidates
-
-
-def standalone_router_files(root: Path) -> set[Path]:
-    """Router-builder files served by a listener other than the main one."""
-    standalone: set[Path] = set()
-    for path in rust_files(root):
-        text = code_before_tests(path.read_text(encoding="utf-8", errors="replace"))
-        if "axum::serve(" not in text:
-            continue
-        for call in SERVE_CALL.finditer(text):
-            served = IDENT.match(call.group(1).strip())
-            if not served:
-                continue
-            for builder in resolve_builder(root, path, served.group(0)):
-                if builder.resolve() != (root / MAIN_SERVE).resolve():
-                    standalone.add(builder)
-    return standalone
-
-
-def load_exemptions(root: Path, errors: list[str]) -> tuple[list[Exemption], int]:
-    path = root / EXEMPTIONS
-    if not path.is_file():
-        return [], 0
-    try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as error:
-        errors.append(f"{EXEMPTIONS}: not valid TOML: {error}")
-        return [], 0
-    entries = data.get("exemption", [])
-    exemptions = [
-        Exemption(
-            file=entry.get("file", ""),
-            directive=entry.get("directive", ""),
-            reason=entry.get("reason", ""),
-            evidence=entry.get("evidence", ""),
-            routes=tuple(entry.get("routes", [])),
-        )
-        for entry in entries
-    ]
-    return exemptions, int(data.get("max_entries", len(exemptions)))
+def read(root: Path, relative: Path) -> str:
+    return (root / relative).read_text(encoding="utf-8", errors="replace")
 
 
 def check_main_layers(root: Path, errors: list[str]) -> None:
-    layers = (root / MAIN_LAYERS).read_text(encoding="utf-8", errors="replace")
+    """The layers every router merged into the main app depends on."""
+    layers = read(root, MAIN_LAYERS)
     if "csrf_middleware(" not in layers:
         errors.append(
             f"{MAIN_LAYERS}: the CSRF middleware is not installed; every route "
@@ -301,25 +77,29 @@ def check_main_layers(root: Path, errors: list[str]) -> None:
     ):
         if marker not in layers:
             errors.append(f"{MAIN_LAYERS}: {why} is not installed ({marker}, IMP-07)")
-    boot = (root / MAIN_BOOT).read_text(encoding="utf-8", errors="replace")
+    boot = read(root, MAIN_BOOT)
     if "apply_middleware(" not in boot:
         errors.append(f"{MAIN_BOOT}: the served router is not passed through apply_middleware")
     if "create_rate_limit_layer(" not in boot:
         errors.append(f"{MAIN_BOOT}: the rate limiter is never constructed (IMP-07)")
+    if "HttpRateLimitConfig::api()" not in boot:
+        errors.append(
+            f"{MAIN_BOOT}: the API limiter preset is not used; the general and "
+            "per-client quotas then come from an undocumented config (IMP-07)"
+        )
 
 
 def check_ws_limit(root: Path, errors: list[str]) -> None:
-    session = root / WS_SESSION
-    limiter = root / WS_LIMITER
-    if not limiter.is_file():
+    """The WebSocket path needs its own limiter: HTTP middleware stops at the upgrade."""
+    if not (root / WS_LIMITER).is_file():
         errors.append(f"{WS_LIMITER}: the WebSocket message limiter module is missing (IMP-07)")
         return
-    module = limiter.read_text(encoding="utf-8", errors="replace")
+    module = read(root, WS_LIMITER)
     if not re.search(r"MESSAGES_PER_SECOND:\s*u32\s*=\s*10\b", module):
         errors.append(f"{WS_LIMITER}: the documented 10 messages/second quota is not declared")
-    text = session.read_text(encoding="utf-8", errors="replace")
+    session = read(root, WS_SESSION)
     for marker in ("MessageLimiter::new()", ".allow()"):
-        if marker not in text:
+        if marker not in session:
             errors.append(
                 f"{WS_SESSION}: the WebSocket message rate limit is not wired "
                 f"({marker}); one socket can drive unbounded LLM turns (IMP-07)"
@@ -327,6 +107,7 @@ def check_ws_limit(root: Path, errors: list[str]) -> None:
 
 
 def check_route_coverage(root: Path, errors: list[str]) -> int:
+    """Every state-changing router served by its own listener needs a guard."""
     exemptions, _ = load_exemptions(root, errors)
     exempted = {entry.file for entry in exemptions if entry.directive == "csrf"}
     standalone = {path.resolve() for path in standalone_router_files(root)}
@@ -358,6 +139,7 @@ def check_route_coverage(root: Path, errors: list[str]) -> int:
 
 
 def check_exemptions(root: Path, errors: list[str]) -> None:
+    """An exemption must stay live, justified and inside the shrink-only ceiling."""
     exemptions, max_entries = load_exemptions(root, errors)
     if len(exemptions) > max_entries:
         errors.append(
@@ -366,7 +148,7 @@ def check_exemptions(root: Path, errors: list[str]) -> None:
         )
     seen: set[str] = set()
     for entry in exemptions:
-        if entry.directive not in {"csrf", "rate-limit"}:
+        if entry.directive not in DIRECTIVES:
             errors.append(f"{EXEMPTIONS}: {entry.file}: unknown directive '{entry.directive}'")
         if not entry.reason.strip():
             errors.append(f"{EXEMPTIONS}: {entry.file}: an exemption needs a reason")
@@ -415,6 +197,8 @@ def run(root: Path) -> int:
 # self-test: a fixture tree where a POST router is served on its own listener
 # --------------------------------------------------------------------------
 
+PLANTED = "botserver/crates/fake/src/gateway_server/configure_gateway_routes.rs"
+
 FIXTURE = {
     "botserver/src/main_module/listen_impl.rs": """
 pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
@@ -424,7 +208,8 @@ pub(crate) async fn listen(app: Router, port: u16) -> std::io::Result<()> {
 """,
     "botserver/src/main_module/server/run_axum_server.rs": """
 pub async fn run_axum_server(app_state: Arc<AppState>) -> std::io::Result<()> {
-    let (rate_limit_extension, _rate_limiter) = create_rate_limit_layer(config, limits);
+    let (rate_limit_extension, _rate_limiter) =
+        create_rate_limit_layer(HttpRateLimitConfig::api(), limits);
     let app = apply_middleware(base_router, app_state, layers);
     tokio::spawn(async move {
         let gateway_router = crate::deployment::configure_gateway_routes(gateway_state);
@@ -455,16 +240,13 @@ pub async fn handle_ws(socket: WebSocket) {
     "botserver/src/core/bot/ws/session/message_limit.rs": """
 const MESSAGES_PER_SECOND: u32 = 10;
 """,
-    "botserver/crates/fake/src/gateway_server/configure_gateway_routes.rs": """
+    PLANTED: """
 pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
     Router::new().route("/deploy", post(gateway_deploy))
 }
 """,
     "scripts/security_directives_exemptions.toml": "max_entries = 1\n",
 }
-
-
-PLANTED = "botserver/crates/fake/src/gateway_server/configure_gateway_routes.rs"
 
 PLANTED_ROUTER_FIXED = """
 pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
@@ -513,18 +295,22 @@ def self_test() -> int:
             problems.append("a documented exemption was not accepted")
 
         layers = temp / MAIN_LAYERS
-        original = layers.read_text(encoding="utf-8")
-        layers.write_text(original.replace("csrf_middleware(", "csrf_removed("), encoding="utf-8")
+        original_layers = layers.read_text(encoding="utf-8")
+        layers.write_text(
+            original_layers.replace("csrf_middleware(", "csrf_removed("), encoding="utf-8"
+        )
         if gate() == 0:
             problems.append("a removed CSRF layer was not detected")
-        layers.write_text(original, encoding="utf-8")
+        layers.write_text(original_layers, encoding="utf-8")
 
         session = temp / WS_SESSION
-        original = session.read_text(encoding="utf-8")
-        session.write_text(original.replace("MessageLimiter::new()", "None"), encoding="utf-8")
+        original_session = session.read_text(encoding="utf-8")
+        session.write_text(
+            original_session.replace("MessageLimiter::new()", "None"), encoding="utf-8"
+        )
         if gate() == 0:
             problems.append("an unwired WebSocket message limit was not detected")
-        session.write_text(original, encoding="utf-8")
+        session.write_text(original_session, encoding="utf-8")
 
         (temp / EXEMPTIONS).write_text("max_entries = 0\n", encoding="utf-8")
         if gate() == 0:
@@ -546,6 +332,7 @@ def self_test() -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
+    parser.add_argument("--check", action="store_true", help="run the gate (default)")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:

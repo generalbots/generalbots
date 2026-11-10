@@ -31,7 +31,7 @@ pub async fn add_worksheet(
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
     let lang = Lang::from_headers(&headers);
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.id)
@@ -91,7 +91,7 @@ pub async fn delete_worksheet(
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
     let lang = Lang::from_headers(&headers);
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.id)
@@ -123,7 +123,7 @@ pub async fn switch_worksheet(
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
     let lang = Lang::from_headers(&headers);
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.id)
@@ -144,7 +144,7 @@ pub async fn rename_worksheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<WorksheetActionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.id)

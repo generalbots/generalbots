@@ -1,6 +1,9 @@
+pub mod auth;
 pub mod collaboration;
 pub mod export_isolation;
 pub mod handlers_api;
+pub mod legacy;
+pub mod local_owner;
 pub mod ooxml;
 pub mod preview;
 pub mod review;
@@ -27,6 +30,7 @@ use axum::{routing::get, Router};
 use state::DocState;
 use std::sync::Arc;
 
+pub use auth::{DocAuthError, DocUser};
 pub use collaboration::{
     handle_docs_websocket, handle_get_collaborators, handle_get_mentions, handle_get_presence,
     handle_get_selections, handle_get_typing,

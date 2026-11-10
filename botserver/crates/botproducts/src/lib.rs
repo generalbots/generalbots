@@ -323,6 +323,7 @@ mod handle_products_items;
 mod handle_products_pricelists;
 mod handle_product_detail_view;
 mod errors;
+mod write_scope;
 
 pub use get_bot_context::*;
 use bd::*;
@@ -333,3 +334,8 @@ use handle_products_items::*;
 use handle_products_pricelists::*;
 pub use handle_product_detail_view::*;
 pub use errors::*;
+use write_scope::*;
+
+#[cfg(test)]
+#[path = "write_scope_tests.rs"]
+mod write_scope_tests;

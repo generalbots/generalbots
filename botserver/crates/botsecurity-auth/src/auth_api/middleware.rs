@@ -39,11 +39,11 @@ pub async fn auth_middleware_with_providers(
     state: AuthMiddlewareState,
 ) -> Response {
     let path = request.uri().path().to_string();
-    let method = request.method().to_string();
+    let method = request.method().clone();
 
     info!("Processing {} {}", method, path);
 
-    if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
+    if state.config.is_public_route(&method, &path) {
         info!("Path is public/anonymous, skipping auth: {}", path);
         // Public/anonymous paths must still resolve a supplied Bearer token
         // so handlers (e.g. the bot access check) can tell real users apart
@@ -158,8 +158,9 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, AuthError> {
     let path = request.uri().path().to_string();
+    let method = request.method().clone();
 
-    if config.is_public_path(&path) || config.is_anonymous_allowed(&path) {
+    if config.is_public_route(&method, &path) {
         request.extensions_mut().insert(fallback_user(&config));
         return Ok(next.run(request).await);
     }

@@ -9,7 +9,7 @@
 
 # Verifies the HMAC-SHA256 signature itself, in constant time, before the
 # payload is decoded — one of the two reference implementations.
-botserver/src/main_module/routes/cloud_sso_handler.rs # inline HS256 check + constant_time::eq_str before decoding
+botserver/src/main_module/routes/cloud_sso_handler/handlers.rs # inline HS256 check + constant_time::eq_str before decoding
 
 # The following read claims without checking a signature. They are only safe
 # while an upstream layer already authenticated the request, which is not

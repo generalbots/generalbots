@@ -3,6 +3,7 @@ pub mod ai;
 pub mod scope;
 pub mod campaign;
 pub mod campaigns;
+pub mod click_sign;
 pub mod email;
 pub mod ip_router;
 pub mod lists;

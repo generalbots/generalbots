@@ -6,13 +6,16 @@ pub async fn create_product(
     Json(req): Json<CreateProductRequest>,
 ) -> Result<Json<Product>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // Resolve the tenant branch before the pool: an anonymous or unverifiable
+    // caller is rejected with `401` and never reaches the insert. There is no
+    // default-branch fallback — a write may only land in the caller's own
+    // catalogue (issue #2128).
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let mut conn = state
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -67,11 +70,12 @@ pub async fn list_products(
         .unwrap_or(false);
 
     // Anonymous storefront callers (no token) may only see the public global
-    // catalog (branch nil); authenticated callers get their own tenant-scoped
-    // branch products.
+    // catalog (branch nil, `is_public` rows); authenticated callers get their
+    // own tenant branch. A token that does not resolve to a branch is rejected
+    // instead of falling back to the default branch, which used to hand one
+    // tenant the other tenant's catalogue (issue #2128).
     let branch_id = if has_token {
-        crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-            .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot))
+        verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?
     } else {
         Uuid::nil()
     };

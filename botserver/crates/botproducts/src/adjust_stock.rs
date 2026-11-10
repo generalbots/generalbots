@@ -7,13 +7,16 @@ pub async fn adjust_stock(
     Json(req): Json<AdjustStockRequest>,
 ) -> Result<Json<Product>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // No default-branch fallback: stock is only adjusted by a caller whose
+    // verified identity resolves to the branch that owns the product, and the
+    // statements below filter on that branch, so a caller from branch A can
+    // never move branch B's stock (issue #2128).
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let mut conn = state
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let now = Utc::now();
 
     let product: Product = products::table
@@ -72,13 +75,15 @@ pub async fn create_service(
     Json(req): Json<CreateServiceRequest>,
 ) -> Result<Json<Service>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // Service writes follow the same rule as product writes: the branch comes
+    // from the verified caller, never from the default-branch fallback
+    // (issue #2128).
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let mut conn = state
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -276,13 +281,13 @@ pub async fn create_category(
     Json(req): Json<CreateCategoryRequest>,
 ) -> Result<Json<ProductCategory>, ApiError> {
     let locale = locale_from_headers(&headers);
+    // Category writes are tenant-scoped by the verified caller (issue #2128).
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let mut conn = state
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
     let id = Uuid::new_v4();
     let now = Utc::now();
 

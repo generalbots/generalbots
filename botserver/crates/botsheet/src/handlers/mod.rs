@@ -14,3 +14,7 @@ pub mod named_ranges_csv;
 pub mod pivot;
 pub mod validation;
 pub mod worksheets;
+
+#[cfg(test)]
+#[path = "isolation_tests.rs"]
+mod isolation_tests;

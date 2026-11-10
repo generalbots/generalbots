@@ -1,6 +1,10 @@
 use super::*;
 
-pub(super) async fn handle_docs_connection(socket: WebSocket, doc_id: String, auth: Option<(String, String)>) {
+pub(super) async fn handle_docs_connection(
+    socket: WebSocket,
+    doc_id: String,
+    identity: (String, String),
+) {
     let (mut sender, mut receiver) = socket.split();
 
     let channels = get_collab_channels();
@@ -14,13 +18,8 @@ pub(super) async fn handle_docs_connection(socket: WebSocket, doc_id: String, au
 
     let mut broadcast_rx = broadcast_tx.subscribe();
 
-    let (user_id, user_name) = match auth {
-        Some((id, name)) => (id, name),
-        None => {
-            let id = uuid::Uuid::new_v4().to_string();
-            (id.clone(), format!("Guest {}", &id[..8]))
-        }
-    };
+    // Only a verified identity reaches this point; there is no guest fallback.
+    let (user_id, user_name) = identity;
     let user_id_for_send = user_id.clone();
     let user_color = get_random_color();
 

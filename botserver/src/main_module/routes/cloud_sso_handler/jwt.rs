@@ -2,13 +2,11 @@
 //!
 //! Duplicated from `botcloud::api` on purpose: the routes layer must not depend
 //! on the cloud crate just to verify a signature.
-
-/// Load SAAS_JWT_SECRET from directory_config.json (written from Vault),
-/// falling back to env vars; same resolution as the SaaS config so all
-/// consumers share one stable secret.
-pub(super) fn get_saas_jwt_secret() -> String {
-    crate::main_module::directory_setup::resolve_saas_jwt_secret()
-}
+//!
+//! #2140 — the signing secret has exactly one resolver,
+//! `botsecurity_core::verified_jwt::resolve_saas_jwt_secret`. The handlers call
+//! it directly so a failure is visible at the call site (and fails closed)
+//! instead of being hidden behind a second wrapper with its own fallback.
 
 /// HMAC-SHA256 sign a message and return the base64url-encoded signature.
 /// Duplicado de botcloud::api::jwt_sign_inner para evitar dependência entre crates.

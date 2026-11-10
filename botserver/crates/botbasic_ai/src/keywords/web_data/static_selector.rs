@@ -95,12 +95,20 @@ pub(super) async fn fetch_rss(
     url: &str,
     limit: usize,
 ) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
-    let client = reqwest::Client::builder()
-        .user_agent(concat!("BotServer/", env!("CARGO_PKG_VERSION")))
-        .timeout(Duration::from_secs(30))
-        .build()?;
-    let content = client.get(url).send().await?.bytes().await?;
-    let channel = rss::Channel::read_from(&content[..])?;
+    // #2131 — the URL comes from the script/LLM, so it is fetched through the
+    // shared SSRF guard: public http(s) only, redirects re-validated per hop,
+    // body capped.
+    let policy = FetchPolicy::default()
+        .with_timeout(Duration::from_secs(30))
+        .with_user_agent(concat!("BotServer/", env!("CARGO_PKG_VERSION")));
+    let response = fetch_user_url(url, &policy).await.map_err(|e| {
+        log::warn!("RSS: refused fetch ({}): {}", e.kind().as_str(), e.detail());
+        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+    })?;
+    if !response.is_success() {
+        return Err(format!("RSS source answered HTTP {}", response.status).into());
+    }
+    let channel = rss::Channel::read_from(&response.body[..])?;
     let mut results = Array::new();
     for item in channel.items().iter().take(limit) {
         let mut entry = Map::new();

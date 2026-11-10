@@ -35,7 +35,7 @@ pub async fn handle_export_sheet(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ExportRequest>,
 ) -> Result<(axum::http::HeaderMap, Vec<u8>), (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
 
     let session = state
         .sessions
@@ -141,7 +141,7 @@ pub async fn handle_print_preview(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ExportRequest>,
 ) -> Result<Html<String>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.id)
@@ -181,7 +181,7 @@ pub async fn handle_import_sheet(
     user: Option<Extension<SheetUser>>,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut filename = "import.xlsx".to_string();
 
@@ -208,7 +208,7 @@ pub async fn handle_import_sheet(
         )
     })?;
 
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     sheet.owner_id = user_id.clone();
 
     if let Err(e) = save_sheet_to_drive(&state, &user_id, &sheet).await {

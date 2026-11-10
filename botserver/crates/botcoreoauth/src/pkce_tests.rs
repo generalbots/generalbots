@@ -8,6 +8,7 @@
 use crate::providers::ProviderEndpoints;
 use crate::{
     generate_pkce_verifier, pkce_s256_challenge, OAuthConfig, OAuthProvider, OAuthState,
+    StateSigner,
 };
 
 fn config(provider: OAuthProvider) -> OAuthConfig {
@@ -161,31 +162,36 @@ fn redirect_uri_is_percent_encoded() {
 }
 
 #[test]
-fn state_token_round_trips_through_base64url() {
+fn state_token_round_trips_through_a_signed_token() {
+    let signer = StateSigner::from_secret(b"unit-test-key").expect("signer");
     let state = OAuthState::new(OAuthProvider::Microsoft, Some("/suite/desktop".to_string()))
         .for_user("user-42")
         .with_pkce();
-    let encoded = state.encode();
+    let encoded = signer.sign(&state).expect("state must sign");
     assert!(!encoded.contains('='));
     assert!(!encoded.contains('+'));
     assert!(!encoded.contains('/'));
 
-    let decoded = OAuthState::decode(&encoded).expect("state must decode");
+    let decoded = signer.verify(&encoded).expect("state must verify");
     assert_eq!(decoded.token, state.token);
     assert_eq!(decoded.provider, OAuthProvider::Microsoft);
     assert_eq!(decoded.redirect_after.as_deref(), Some("/suite/desktop"));
     assert_eq!(decoded.user_id.as_deref(), Some("user-42"));
     assert_eq!(decoded.created_at, state.created_at);
     assert_eq!(decoded.pkce_verifier, state.pkce_verifier);
+    assert_eq!(decoded.nonce, state.nonce);
     assert!(decoded.pkce_verifier.is_some());
 }
 
 #[test]
-fn state_decode_rejects_garbage() {
-    assert!(OAuthState::decode("not-base64!!").is_none());
-    assert!(OAuthState::decode("").is_none());
-    // Valid base64 of non-JSON bytes.
-    assert!(OAuthState::decode("aGVsbG8gd29ybGQ").is_none());
+fn state_verify_rejects_garbage() {
+    let signer = StateSigner::from_secret(b"unit-test-key").expect("signer");
+    assert!(signer.verify("not-base64!!").is_err());
+    assert!(signer.verify("").is_err());
+    // Valid base64 of non-JSON bytes, with no MAC at all.
+    assert!(signer.verify("aGVsbG8gd29ybGQ").is_err());
+    // Right shape, unparseable payload.
+    assert!(signer.verify("v1.aGVsbG8gd29ybGQ.aGVsbG8").is_err());
 }
 
 #[test]

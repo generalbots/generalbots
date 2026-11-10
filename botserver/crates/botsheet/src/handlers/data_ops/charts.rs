@@ -20,7 +20,7 @@ pub async fn handle_create_chart(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<ChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -120,7 +120,7 @@ pub async fn handle_move_chart(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<MoveChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -186,7 +186,7 @@ pub async fn handle_update_chart(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<UpdateChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)
@@ -295,7 +295,7 @@ pub async fn handle_delete_chart(
     user: Option<Extension<SheetUser>>,
     Json(req): Json<DeleteChartRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = resolve_user_id(user.as_deref());
+    let user_id = resolve_user_id(user.as_deref())?;
     let session = state
         .sessions
         .get_or_load(&state, &user_id, &req.sheet_id)

@@ -1,5 +1,6 @@
 //! Page fetch/extract for browser computer-use actions (#1644).
 
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
 use std::time::Duration;
 
 pub(super) struct PageContent {
@@ -11,34 +12,34 @@ pub(super) struct PageContent {
 /// Fetches a page server-side and returns a bounded, readable extract. This is
 /// what lets the assistant cite a real page title even when the client iframe
 /// cannot read a cross-origin document.
+///
+/// The URL comes from the approved computer-use action (i.e. from the LLM or
+/// the user), so it goes through the shared SSRF guard (#2131): only public
+/// http(s) targets are reachable, redirects are re-validated per hop, and the
+/// body is capped. The error text is generic — the rejected host never reaches
+/// the caller.
 pub(super) async fn fetch_page(url: &str) -> Result<PageContent, String> {
-    if !(url.starts_with("http://") || url.starts_with("https://")) {
-        return Err("only http(s) URLs can be opened".to_string());
+    let policy = FetchPolicy::default()
+        .with_timeout(Duration::from_secs(20))
+        .with_user_agent("GeneralBots-ComputerUse/1.0")
+        .with_max_bytes(2_000_000);
+    let response = match fetch_user_url(url, &policy).await {
+        Ok(response) => response,
+        Err(err) => {
+            log::warn!(
+                "computer_use: refused or failed page fetch ({}): {}",
+                err.kind().as_str(),
+                err.detail()
+            );
+            return Err(err.to_string());
+        }
+    };
+    if !response.is_success() {
+        return Err(format!("the page answered HTTP {}", response.status));
     }
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .user_agent("GeneralBots-ComputerUse/1.0")
-        .build()
-        .map_err(|e| format!("http client: {e}"))?;
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("fetch failed: {e}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "the page answered HTTP {}",
-            response.status().as_u16()
-        ));
-    }
-    let final_url = response.url().to_string();
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("read failed: {e}"))?;
-    let html = String::from_utf8_lossy(&bytes[..bytes.len().min(2_000_000)]).to_string();
+    let html = response.text();
     Ok(PageContent {
-        url: final_url,
+        url: response.final_url,
         title: extract_tag(&html, "title").unwrap_or_default(),
         text: html_to_text(&html, 12_000),
     })

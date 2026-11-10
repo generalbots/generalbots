@@ -32,5 +32,9 @@ tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 zip = { workspace = true }
 
+[dev-dependencies]
+hmac = { workspace = true }
+sha2 = { workspace = true }
+
 [lints]
 workspace = true
