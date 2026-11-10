@@ -14,7 +14,31 @@ fn parse_uuid(value: &serde_json::Value) -> Option<Uuid> {
     value.as_str().and_then(|s| Uuid::parse_str(s).ok())
 }
 
+/// Rejects an unsecured JWT header (`alg: none`) or one with no algorithm.
+///
+/// #2069 — the payload used to be decoded with no look at the header, so a
+/// forged unsecured token could select any tenant branch. An unsecured token
+/// can never have been minted by the server.
+fn header_is_secured(bearer: &str) -> bool {
+    let Some(header) = bearer.split('.').next() else {
+        return false;
+    };
+    let Some(decoded) = base64_url_decode(header).ok() else {
+        return false;
+    };
+    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
+        return false;
+    };
+    match json.get("alg").and_then(|v| v.as_str()) {
+        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
+        None => false,
+    }
+}
+
 fn claims_from_bearer(bearer: &str) -> Option<Claims> {
+    if !header_is_secured(bearer) {
+        return None;
+    }
     let payload = bearer.split('.').nth(1)?;
     let decoded = base64_url_decode(payload).ok()?;
     let json: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
@@ -162,5 +186,49 @@ mod tests {
         let token = bearer(serde_json::json!({}));
         let headers = headers_with(&token);
         assert_eq!(bearer_from_headers(&headers).as_deref(), Some(token.as_str()));
+    }
+
+    #[test]
+    fn an_unsecured_token_is_refused() {
+        // #2069 — a forged alg=none token must not select a tenant branch.
+        let header = b64url(br#"{"alg":"none","typ":"JWT"}"#);
+        let body = b64url(serde_json::json!({"branch_id": Uuid::new_v4().to_string()}).to_string().as_bytes());
+        let token = format!("{header}.{body}.signature");
+
+        assert_eq!(claims_from_bearer(&token), None);
+        assert!(!header_is_secured(&token));
+    }
+
+    #[test]
+    fn an_unsecured_header_in_any_casing_is_refused() {
+        for header in [r#"{"alg":"NONE"}"#, r#"{"alg":"None"}"#, r#"{"alg":" none "}"#] {
+            let encoded = b64url(header.as_bytes());
+            let body = b64url(br#"{"sub":"x"}"#);
+            let token = format!("{encoded}.{body}.sig");
+            assert!(!header_is_secured(&token), "{header} must be refused");
+        }
+    }
+
+    #[test]
+    fn a_token_without_an_algorithm_is_refused() {
+        let header = b64url(br#"{"typ":"JWT"}"#);
+        let body = b64url(br#"{"sub":"x"}"#);
+        let token = format!("{header}.{body}.sig");
+        assert!(!header_is_secured(&token));
+    }
+
+    #[test]
+    fn a_secured_token_is_accepted() {
+        let token = bearer(serde_json::json!({"sub": Uuid::new_v4().to_string()}));
+        assert!(header_is_secured(&token));
+        assert!(claims_from_bearer(&token).is_some());
+    }
+
+    #[test]
+    fn a_malformed_header_never_panics() {
+        for token in ["", "a", "a.b", "!!!.payload.sig", ".."] {
+            assert!(!header_is_secured(token), "{token:?} must be refused");
+            assert_eq!(claims_from_bearer(token), None, "{token:?}");
+        }
     }
 }
