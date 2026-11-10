@@ -531,7 +531,7 @@ jobs:
           }
           $actual = (Get-FileHash $src -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actual -ne $expected.ToLowerInvariant()) {
-            throw "checksum mismatch for $assetName: expected $expected, got $actual"
+            throw "checksum mismatch for ${assetName}: expected $expected, got $actual"
           }
           New-Item -ItemType Directory -Force -Path 'dist\installers' | Out-Null
           Copy-Item $src 'dist\installers' -Force
