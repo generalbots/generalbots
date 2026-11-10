@@ -138,7 +138,8 @@ the same two authorities a generator would read:
 1. **`botserver/src/apps/registry/`** — the app list the suite renders
    (`all_apps()`); a screen for an id that is not there is a phantom.
 2. **`botui/ui/suite/<app>/`** markup, following `hx-get` partials, and
-   **`botlib/locales/en/ui.ftl`** for every `data-i18n` label.
+   **`botlib/locales/en/ui-*.ftl`** for every `data-i18n` label (the old
+   `ui.ftl` was split by topic in #2087).
 
 Conventions the screens must follow:
 

@@ -128,6 +128,25 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "$(brew --prefix libpq)/bin" >> "$GITHUB_PATH"
 
+      # #2103 — same single source as the release workflow. A branch ref has no
+      # product tag, so only a `vMAJOR.MINOR.PATCH` ref rewrites the version.
+      - name: Sync the release version
+        env:
+          VERSION: ${{ inputs.tag || github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::warning::$VERSION is not a product tag; keeping the Cargo.toml version"
+            exit 0
+          fi
+          python3 scripts/release_version.py --root . sync "${VERSION#v}"
+          python3 scripts/release_version.py --root . check
+          {
+            echo "BOTSERVER_BUILD_VERSION=${VERSION#v}"
+            echo "BOTSERVER_COMMIT=$(git rev-parse --short HEAD)"
+            echo "BOTSERVER_BUILD_DATE=$(date -u +%Y-%m-%d)"
+          } >> "$GITHUB_ENV"
+
       - name: Cache Cargo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:

@@ -21,6 +21,12 @@ Violation kinds:
 ``--check`` compares against the baseline: the baseline may only shrink. A
 violation already recorded passes; a new one (or a new instance of a recorded
 one) fails the gate.
+
+Scope of the ``MISSING`` check: every ``*.html``/``*.js`` under ``botui/ui``
+except ``vendor/`` (third-party bundles with their own ``localize()`` keys) and
+``wizard/`` (the setup wizard ships its own dictionaries under
+``botui/ui/wizard/i18n/`` and never uses ``data-i18n``). Both subtrees are not
+consumers of ``botlib/locales``; scanning them only produced phantom gaps.
 """
 
 from __future__ import annotations

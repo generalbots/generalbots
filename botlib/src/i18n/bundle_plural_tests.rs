@@ -152,5 +152,8 @@ fn locales_without_a_one_form_fall_back_to_other() {
 fn plural_block_without_zero_form_uses_other() {
     let template = "{ $count ->\n    [one] One\n   *[other] Many\n}";
 
-    assert_eq!(I18nBundle::interpolate(template, Some(&args_for(0))), "Many");
+    assert_eq!(
+        I18nBundle::interpolate(template, Some(&args_for(0))),
+        "Many"
+    );
 }

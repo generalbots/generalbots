@@ -106,6 +106,22 @@ jobs:
           cache-scope: release-linux
           packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
+      # #2103 — the tag is the single source of truth. Write it into every
+      # version-bearing file, then export the metadata the binary reports from
+      # `/api/product` (version, commit, build date).
+      - name: Sync the release version
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release_version.py --root . sync "${VERSION#v}"
+          python3 scripts/release_version.py --root . check
+          {
+            echo "BOTSERVER_BUILD_VERSION=${VERSION#v}"
+            echo "BOTSERVER_COMMIT=$(git rev-parse --short HEAD)"
+            echo "BOTSERVER_BUILD_DATE=$(date -u +%Y-%m-%d)"
+          } >> "$GITHUB_ENV"
+
       - name: Build botserver (desktop-local)
         # #1868 — a packaged desktop must connect Gmail/Drive/Outlook with no
         # user registration. The ids are public identifiers (not secrets), so
@@ -426,6 +442,21 @@ jobs:
       - uses: ./.github/actions/rust-setup
         with:
           cache-scope: release-windows
+
+      # #2103 — same single source as the Linux job: sync the tag into every
+      # version-bearing file and export the build metadata for `/api/product`.
+      - name: Sync the release version
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          $version = $env:VERSION -replace '^v', ''
+          python scripts/release_version.py --root . sync $version
+          python scripts/release_version.py --root . check
+          Add-Content -Path $env:GITHUB_ENV -Value "BOTSERVER_BUILD_VERSION=$version"
+          Add-Content -Path $env:GITHUB_ENV -Value "BOTSERVER_COMMIT=$(git rev-parse --short HEAD)"
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          Add-Content -Path $env:GITHUB_ENV -Value "BOTSERVER_BUILD_DATE=$built"
 
       - name: Build botserver (desktop-local)
         # #1868 — a packaged desktop must connect Gmail/Drive/Outlook with no

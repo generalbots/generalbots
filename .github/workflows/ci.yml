@@ -213,6 +213,15 @@ jobs:
           python3 scripts/test_guards.py --check
           python3 scripts/test_guards.py --self-test
 
+      # #2103 — Cargo.toml is the single source of truth for the product
+      # version. Every other version-bearing file must agree with it, and the
+      # simulated-tag selftest proves `sync` writes the tag it is given.
+      - name: Version consistency (#2103)
+        run: |
+          set -euo pipefail
+          python3 scripts/release_version.py --check
+          python3 scripts/release_version.py selftest
+
   reindex:
     name: Verify the committed BotBook
     needs: [changes]

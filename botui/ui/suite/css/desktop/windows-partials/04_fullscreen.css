@@ -1,0 +1,63 @@
+/* ============================================ */
+/* Fullscreen app windows (#2104)               */
+/* ============================================ */
+
+/* Fullscreen control dot: expand-to-corners, mirrored while active. The
+   state class lives on the window element (08_fullscreen.js owns it). */
+.window-dot-fullscreen       { background: #0a84ff; }
+.window-dot-fullscreen:hover { background: #0066d6; }
+.window-dot-fullscreen::after {
+  content: "⤢";
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.window-fullscreen-active .window-dot-fullscreen::after { content: "⤡"; }
+
+/* Legacy header: one icon per state, swapped by the same class. */
+.btn-fullscreen .icon-exit { display: none; }
+.window-fullscreen-active .btn-fullscreen .icon-enter { display: none; }
+.window-fullscreen-active .btn-fullscreen .icon-exit { display: inline; }
+
+/* Two entry points land in this rule:
+   - :fullscreen — the Fullscreen API promoted the element to the top layer,
+     but the inline width/height/top/left set by the window manager still win
+     over the UA rules, so the viewport size is forced explicitly;
+   - .window-fullscreen-fallback — no API (WebKitGTK) or the desktop shell,
+     where the OS window is fullscreen and the page hides its own chrome.
+   The `body.window-maximized ...` variants out-specify the maximize rules in
+   taskbar.css and 01_app_icon.css, which reserve the taskbar strip with
+   !important — a maximized window taken to fullscreen must still reach the
+   screen edges. */
+.window-element-glass:fullscreen,
+.window-element:fullscreen,
+.window-element-glass.window-fullscreen-fallback,
+.window-element.window-fullscreen-fallback,
+body.window-maximized .window-element-glass.window-fullscreen-active,
+body.window-maximized .window-element.window-fullscreen-active,
+body.window-maximized .window-element-glass.window-maximized-target.window-fullscreen-active,
+body.window-maximized .window-element.window-maximized-target.window-fullscreen-active {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border: none !important;
+  border-radius: 0 !important;
+  resize: none !important;
+  overflow: hidden !important;
+  /* Above the taskbar (2000) for the CSS fallback, harmless for the API. */
+  z-index: 2147483000 !important;
+}
+
+/* Tool windows and fixed modal dialogs never offer fullscreen. */
+.window-tool .window-dot-fullscreen,
+.window-settings-modal .window-dot-fullscreen,
+.window-tool .btn-fullscreen,
+.window-settings-modal .btn-fullscreen {
+  display: none;
+}

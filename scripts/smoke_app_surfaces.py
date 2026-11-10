@@ -187,6 +187,65 @@ def check_catalog(url: str, ids: set[str]) -> None:
     print(f"ok   {'catalog':<24} {len(ids)} registry ids present and compiled")
 
 
+def check_integrations_api(base: str) -> None:
+    """#2100 — an Integrations app whose API is missing renders empty.
+
+    The provider catalogue is the app's first request: it must answer `200`
+    with providers, and the workspace context must answer `200` with either a
+    bot id or the documented `no_active_bot` payload. A 404 here is the blank
+    pane, so it fails the run instead of reaching a user.
+    """
+    root = base.rstrip("/")
+    status, _, body = fetch(f"{root}/api/apps/integrations/catalog")
+    if status != 200:
+        raise SystemExit(
+            f"FAIL integrations: GET /api/apps/integrations/catalog -> {status} "
+            "(expected 200; the Explore pane would be empty)"
+        )
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as error:
+        raise SystemExit(
+            f"FAIL integrations: catalog is not JSON ({error}); the app cannot render it"
+        ) from error
+    providers = payload.get("providers")
+    if not isinstance(providers, list) or not providers:
+        raise SystemExit(
+            "FAIL integrations: GET /api/apps/integrations/catalog returned no providers"
+        )
+    unusable = [
+        str(item.get("id"))
+        for item in providers
+        if not isinstance(item, dict) or not item.get("id")
+    ]
+    if unusable:
+        raise SystemExit(
+            "FAIL integrations: catalog providers without an id: " + ", ".join(unusable[:5])
+        )
+
+    status, _, body = fetch(f"{root}/api/apps/integrations/context")
+    if status != 200:
+        raise SystemExit(
+            f"FAIL integrations: GET /api/apps/integrations/context -> {status} "
+            "(expected 200, or the documented no_active_bot payload)"
+        )
+    try:
+        context = json.loads(body)
+    except json.JSONDecodeError as error:
+        raise SystemExit(
+            f"FAIL integrations: context is not JSON ({error})"
+        ) from error
+    if not context.get("bot_id") and context.get("reason") != "no_active_bot":
+        raise SystemExit(
+            "FAIL integrations: context has no bot_id and no documented "
+            f"no_active_bot reason (got {sorted(context)})"
+        )
+    print(
+        f"ok   {'integrations':<24} {len(providers)} providers, context "
+        f"{'bound' if context.get('bot_id') else 'no_active_bot'}"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite-base", required=True, help="botserver base URL")
@@ -211,6 +270,9 @@ def main() -> int:
 
     catalog = args.catalog or f"{args.suite_base.rstrip('/')}/api/apps/catalog"
     check_catalog(catalog, {app_id for app_id, _ in suite})
+    # #2100 — an app can answer its page and still render empty because the
+    # API behind it is missing from the profile.
+    check_integrations_api(args.suite_base)
 
     print("smoke_app_surfaces: every shipped app surface answered")
     return 0

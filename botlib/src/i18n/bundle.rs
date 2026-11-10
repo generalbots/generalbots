@@ -328,21 +328,16 @@ greeting = Hello, { $name }!
         let template = "{ $count ->\n    [one] One item\n   *[other] { $count } items\n}";
         let mut args = MessageArgs::new();
         args.insert("count".to_string(), "1".to_string());
-        assert_eq!(
-            I18nBundle::interpolate(template, Some(&args)),
-            "One item"
-        );
+        assert_eq!(I18nBundle::interpolate(template, Some(&args)), "One item");
 
         args.insert("count".to_string(), "5".to_string());
-        assert_eq!(
-            I18nBundle::interpolate(template, Some(&args)),
-            "5 items"
-        );
+        assert_eq!(I18nBundle::interpolate(template, Some(&args)), "5 items");
     }
 
     #[test]
     fn plural_block_prefers_zero_when_defined() {
-        let template = "{ $count ->\n    [zero] No items\n    [one] One item\n   *[other] { $count } items\n}";
+        let template =
+            "{ $count ->\n    [zero] No items\n    [one] One item\n   *[other] { $count } items\n}";
         let mut args = MessageArgs::new();
         args.insert("count".to_string(), "0".to_string());
         assert_eq!(I18nBundle::interpolate(template, Some(&args)), "No items");

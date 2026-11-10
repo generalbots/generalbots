@@ -125,11 +125,27 @@
     console.log("[BotApp] Tauri event listeners registered");
   }
 
+  function readProductVersion() {
+    if (typeof window.fetch !== "function") return;
+    window
+      .fetch("/api/product", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((product) => {
+        if (product && product.version) {
+          window.BotApp.version = String(product.version);
+        }
+      })
+      .catch(() => {
+        /* the About and Settings surfaces read /api/product themselves */
+      });
+  }
+
   function init() {
     console.log("[BotApp] Initializing app extensions...");
     injectStyles();
     injectAppGuides();
     setupTauriEvents();
+    readProductVersion();
     console.log("[BotApp] App extensions initialized");
   }
 
@@ -141,7 +157,9 @@
 
   window.BotApp = {
     isApp: true,
-    version: "6.1.0",
+    // #2103 — no literal version here: `readProductVersion` fills it from
+    // /api/product so the desktop shell reports the same release tag.
+    version: null,
     guides: APP_GUIDES,
 
     invoke: async function (cmd, args) {
