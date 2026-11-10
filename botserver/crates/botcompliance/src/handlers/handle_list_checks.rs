@@ -55,7 +55,17 @@ pub async fn handle_run_check(
         let now = Utc::now();
         let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let controls = framework_controls(&req.framework);
+        let controls = match req.framework {
+            ComplianceFramework::Gdpr => vec![
+                ("gdpr_7.2", "Data Retention Policy", 95.0),
+                ("gdpr_5.1.f", "Data Protection Measures", 100.0),
+                ("gdpr_6.1", "Lawful Basis for Processing", 98.0),
+            ],
+            ComplianceFramework::Soc2 => vec![("cc6.1", "Logical and Physical Access Controls", 94.0)],
+            ComplianceFramework::Iso27001 => vec![("a.8.1", "Inventory of Assets", 90.0)],
+            ComplianceFramework::Hipaa => vec![("164.312", "Technical Safeguards", 85.0)],
+            ComplianceFramework::PciDss => vec![("req_3", "Protect Stored Cardholder Data", 88.0)],
+        };
 
         let mut results = Vec::new();
         for (control_id, control_name, score) in controls {

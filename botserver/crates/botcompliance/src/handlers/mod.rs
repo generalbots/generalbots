@@ -13,9 +13,7 @@ const BRANCH_ID_PLACEHOLDER: Uuid = Uuid::nil();
 mod handle_list_checks;
 mod handle_list_audit_logs;
 mod handle_get_report;
-mod handle_run_scan;
 
 pub use handle_list_checks::*;
 pub use handle_list_audit_logs::*;
 pub use handle_get_report::*;
-pub use handle_run_scan::*;
