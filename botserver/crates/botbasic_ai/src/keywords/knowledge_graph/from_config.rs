@@ -278,3 +278,136 @@ pub(super) fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
         }
     }
 }
+
+#[cfg(test)]
+mod knowledge_graph_tests {
+    use super::*;
+
+    fn manager() -> KnowledgeGraphManager {
+        KnowledgeGraphManager::new(KnowledgeGraphConfig::default())
+    }
+
+    #[test]
+    fn defaults_apply_when_the_config_map_is_empty() {
+        let manager = KnowledgeGraphManager::from_config(&HashMap::new());
+        assert!(manager.should_extract());
+        assert!(manager.is_valid_entity_type("person"));
+        assert!(manager.is_valid_entity_type("PERSON"));
+        assert!(!manager.is_valid_entity_type("spaceship"));
+    }
+
+    #[test]
+    fn config_map_overrides_the_flags_and_limits() {
+        let mut map = HashMap::new();
+        map.insert("knowledge-graph-enabled".to_string(), "false".to_string());
+        map.insert("knowledge-graph-min-confidence".to_string(), "0.95".to_string());
+        map.insert(
+            "knowledge-graph-entity-types".to_string(),
+            "person, company".to_string(),
+        );
+
+        let manager = KnowledgeGraphManager::from_config(&map);
+        assert!(!manager.should_extract());
+        assert!(manager.is_valid_entity_type("company"));
+        assert!(!manager.is_valid_entity_type("location"));
+    }
+
+    #[test]
+    fn the_extraction_prompt_lists_types_and_the_text() {
+        let prompt = manager().generate_extraction_prompt("Ana works at Acme.");
+        assert!(prompt.contains("ENTITY TYPES TO EXTRACT:"));
+        assert!(prompt.contains("Ana works at Acme."));
+        assert!(prompt.contains("\"entities\""));
+        assert!(prompt.contains("\"relationships\""));
+        assert!(prompt.contains("\"confidence\""));
+    }
+
+    #[test]
+    fn the_query_prompt_carries_question_and_context() {
+        let prompt = manager().generate_query_prompt("Who is Ana?", "Ana -> Acme");
+        assert!(prompt.contains("QUESTION: Who is Ana?"));
+        assert!(prompt.contains("KNOWLEDGE GRAPH CONTEXT:"));
+        assert!(prompt.contains("Ana -> Acme"));
+    }
+
+    #[test]
+    fn extraction_maps_entities_and_relationships() {
+        let response = r#"{
+            "entities": [
+                {"name": "Ana", "canonical_name": "ana", "entity_type": "person", "confidence": 0.9,
+                 "properties": {"role": "cto"}},
+                {"name": "Acme", "entity_type": "organization", "confidence": 0.8}
+            ],
+            "relationships": [
+                {"from_entity": "Ana", "to_entity": "Acme", "relationship_type": "works_on",
+                 "confidence": 0.85, "evidence": "Ana works at Acme"}
+            ]
+        }"#;
+
+        let result = manager()
+            .parse_extraction_response(response, 400, 120)
+            .expect("extraction");
+
+        assert_eq!(result.entities.len(), 2);
+        assert_eq!(result.entities[0].name, "Ana");
+        assert_eq!(result.entities[0].canonical_name, "ana");
+        // canonical_name defaults to the name when absent.
+        assert_eq!(result.entities[1].canonical_name, "Acme");
+        assert_eq!(result.entities[0].properties["role"], serde_json::json!("cto"));
+        assert_eq!(result.relationships.len(), 1);
+        assert_eq!(result.relationships[0].relationship_type, "works_on");
+        assert_eq!(result.metadata.text_length, 400);
+        assert_eq!(result.metadata.tokens_processed, 100);
+        assert_eq!(result.metadata.processing_time_ms, 120);
+    }
+
+    #[test]
+    fn low_confidence_items_are_dropped() {
+        let response = r#"{
+            "entities": [
+                {"name": "Sure", "entity_type": "person", "confidence": 0.99},
+                {"name": "Unsure", "entity_type": "person", "confidence": 0.1}
+            ],
+            "relationships": [
+                {"from_entity": "A", "to_entity": "B", "relationship_type": "related_to", "confidence": 0.2}
+            ]
+        }"#;
+
+        let result = manager()
+            .parse_extraction_response(response, 10, 1)
+            .expect("extraction");
+        assert_eq!(result.entities.len(), 1);
+        assert_eq!(result.entities[0].name, "Sure");
+        assert!(result.relationships.is_empty());
+    }
+
+    #[test]
+    fn incomplete_items_are_skipped_instead_of_failing() {
+        let response = r#"{
+            "entities": [
+                {"entity_type": "person"},
+                {"name": "Ana", "entity_type": "person", "confidence": 0.9}
+            ],
+            "relationships": [{"from_entity": "Ana"}]
+        }"#;
+        let result = manager()
+            .parse_extraction_response(response, 10, 1)
+            .expect("extraction");
+        assert_eq!(result.entities.len(), 1);
+        assert!(result.relationships.is_empty());
+    }
+
+    #[test]
+    fn missing_collections_yield_empty_vectors() {
+        let result = manager()
+            .parse_extraction_response("{}", 0, 0)
+            .expect("extraction");
+        assert!(result.entities.is_empty());
+        assert!(result.relationships.is_empty());
+    }
+
+    #[test]
+    fn non_json_responses_are_rejected() {
+        assert!(manager().parse_extraction_response("nope", 0, 0).is_err());
+    }
+}
