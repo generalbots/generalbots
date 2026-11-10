@@ -13,6 +13,9 @@ pub mod text;
 pub mod text365;
 pub mod trig;
 
+#[cfg(test)]
+mod tests_core;
+
 pub use helpers::{
     count_matching, evaluate_condition, format_number, matches_criteria, resolve_cell_value,
     split_args,

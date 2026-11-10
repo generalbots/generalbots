@@ -59,6 +59,12 @@ pub fn evaluate_condition(condition: &str, worksheet: &Worksheet) -> bool {
     if condition.eq_ignore_ascii_case("FALSE") {
         return false;
     }
+    // #2067 — a bare number is a truth value in every spreadsheet: AND/OR/NOT
+    // with literal arguments used to read `1` as false because the condition
+    // parser only understood comparison operators.
+    if let Ok(number) = condition.parse::<f64>() {
+        return number != 0.0;
+    }
 
     let operators = [">=", "<=", "<>", "!=", "=", ">", "<"];
     for op in &operators {
