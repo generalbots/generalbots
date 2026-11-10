@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="/suite/crm/crm-detail-forms.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-bulk-drawers.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm-crud.css?v=1">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap/01_tokens.js"></script>
@@ -35,7 +35,7 @@
             </nav>
         </div>
         <div class="crm-header-right">
-            <button class="btn-secondary" id="crm-audit-btn" title="Audit trail">History</button>
+            <button class="btn-secondary" id="crm-audit-btn" title="Audit trail" data-i18n="attendant-history">History</button>
             <div class="crm-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -370,27 +370,27 @@
 <template id="campaign-form-template">
     <form id="campaignForm" class="crm-form">
         <div class="crm-form-group">
-            <label class="crm-form-label">Name</label>
+            <label class="crm-form-label" data-i18n="label-name">Name</label>
             <input type="text" name="name" class="crm-form-input" required>
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Channel</label>
+            <label class="crm-form-label" data-i18n="auto-channel">Channel</label>
             <select name="channel" class="crm-form-select">
-                <option value="email">Email</option>
+                <option value="email" data-i18n="attendant-channel-email">Email</option>
                 <option value="whatsapp">WhatsApp</option>
             </select>
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Budget</label>
+            <label class="crm-form-label" data-i18n="auto-budget">Budget</label>
             <input type="number" name="budget" class="crm-form-input" min="0" step="0.01">
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Scheduled at</label>
+            <label class="crm-form-label" data-i18n="auto-scheduled-at">Scheduled at</label>
             <input type="datetime-local" name="scheduled_at" class="crm-form-input">
         </div>
         <div class="crm-form-actions">
-            <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()">Cancel</button>
-            <button type="submit" class="crm-form-btn primary">Create</button>
+            <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()" data-i18n="action-cancel">Cancel</button>
+            <button type="submit" class="crm-form-btn primary" data-i18n="action-create">Create</button>
         </div>
     </form>
 </template>

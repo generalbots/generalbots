@@ -18,8 +18,7 @@ use serde::Deserialize;
 use super::AuthError;
 
 /// OpenID metadata for the Bot Framework channel.
-const OPENID_CONFIG_URL: &str =
-    "https://login.botframework.com/v1/.well-known/openidconfiguration";
+const OPENID_CONFIG_URL: &str = "https://login.botframework.com/v1/.well-known/openidconfiguration";
 
 /// How long a fetched key set is trusted before it is fetched again.
 const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
@@ -60,7 +59,9 @@ static CACHE: LazyLock<Mutex<Option<CachedKeySet>>> = LazyLock::new(|| Mutex::ne
 /// Poisoning is not a reason to reject every activity: the guarded value is a
 /// plain key map and stays usable.
 fn cache() -> MutexGuard<'static, Option<CachedKeySet>> {
-    CACHE.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    CACHE
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 /// Resolves the key that signed a token with `kid`, refreshing the set once

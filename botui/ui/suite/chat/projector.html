@@ -7,7 +7,7 @@
         <div class="projector-header">
             <div class="projector-title-section">
                 <span class="projector-icon" id="projector-icon">🎬</span>
-                <span class="projector-title" id="projector-title">Content Viewer</span>
+                <span class="projector-title" id="projector-title" data-i18n="auto-content-viewer">Content Viewer</span>
             </div>
             <div class="projector-actions">
                 <button class="projector-btn" onclick="toggleFullscreen()" title="Fullscreen">
@@ -30,7 +30,7 @@
             <!-- Dynamic content loaded here -->
             <div class="projector-loading" id="projector-loading">
                 <div class="loading-spinner"></div>
-                <span>Loading content...</span>
+                <span data-i18n="auto-loading-content">Loading content...</span>
             </div>
         </div>
 
@@ -75,7 +75,7 @@
                 <button class="control-btn" onclick="prevSlide()" title="Previous">
                     ◀️
                 </button>
-                <span class="slide-info" id="slide-info">Slide 1 of 1</span>
+                <span class="slide-info" id="slide-info" data-i18n="auto-slide-1-of-1">Slide 1 of 1</span>
                 <button class="control-btn" onclick="nextSlide()" title="Next">
                     ▶️
                 </button>
@@ -116,7 +116,7 @@
 
             <!-- Code Controls -->
             <div class="code-controls hidden" id="code-controls">
-                <span class="code-info" id="code-info">code.rs</span>
+                <span class="code-info" id="code-info" data-i18n="auto-code-rs">code.rs</span>
                 <button class="control-btn" onclick="toggleLineNumbers()" title="Line Numbers">
                     #️⃣
                 </button>

@@ -441,3 +441,7 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String, au
         log::info!("User left (broadcast may have no receivers): {}", e);
     }
 }
+
+#[cfg(test)]
+#[path = "ws_tests.rs"]
+mod ws_tests;

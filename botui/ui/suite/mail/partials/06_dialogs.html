@@ -2,7 +2,7 @@
 <dialog id="templates-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Email Templates</h2>
+            <h2 data-i18n="auto-email-templates">Email Templates</h2>
             <button class="icon-btn" onclick="closeTemplates()">
                 <svg
                     width="16"
@@ -27,10 +27,10 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeTemplates()">
+            <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewTemplate()">
+            <button class="btn-primary" onclick="createNewTemplate()" data-i18n="auto-new-template-2">
                 + New Template
             </button>
         </div>
@@ -41,7 +41,7 @@
 <dialog id="signatures-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Email Signatures</h2>
+            <h2 data-i18n="auto-email-signatures">Email Signatures</h2>
             <button class="icon-btn" onclick="closeSignatures()">
                 <svg
                     width="16"
@@ -66,10 +66,10 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeSignatures()">
+            <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewSignature()">
+            <button class="btn-primary" onclick="createNewSignature()" data-i18n="auto-new-signature">
                 + New Signature
             </button>
         </div>
@@ -80,7 +80,7 @@
 <dialog id="rules-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h2>Email Rules</h2>
+            <h2 data-i18n="auto-email-rules">Email Rules</h2>
             <button class="icon-btn" onclick="closeRules()">
                 <svg
                     width="16"
@@ -105,8 +105,8 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeRules()">Cancel</button>
-            <button class="btn-primary" onclick="createNewRule()">
+            <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="createNewRule()" data-i18n="auto-new-rule">
                 + New Rule
             </button>
         </div>
@@ -117,7 +117,7 @@
 <dialog id="autoresponder-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Automatic Replies</h2>
+            <h2 data-i18n="auto-automatic-replies">Automatic Replies</h2>
             <button class="icon-btn" onclick="closeAutoResponder()">
                 <svg
                     width="16"
@@ -145,11 +145,11 @@
                         id="autoresponder-enabled"
                     />
                     <span class="toggle-switch"></span>
-                    <span>Send automatic replies</span>
+                    <span data-i18n="auto-send-automatic-replies">Send automatic replies</span>
                 </label>
             </div>
             <div class="form-group">
-                <label>Start date</label>
+                <label data-i18n="auto-start-date">Start date</label>
                 <input
                     type="datetime-local"
                     name="start_date"
@@ -157,7 +157,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>End date</label>
+                <label data-i18n="auto-end-date">End date</label>
                 <input
                     type="datetime-local"
                     name="end_date"
@@ -165,7 +165,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Subject</label>
+                <label data-i18n="tickets-subject">Subject</label>
                 <input
                     type="text"
                     name="subject"
@@ -174,7 +174,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Message</label>
+                <label data-i18n="email-body">Message</label>
                 <textarea
                     name="body"
                     rows="6"
@@ -184,15 +184,15 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="internal_only" />
-                    <span>Send only to people in my organization</span>
+                    <span data-i18n="auto-send-only-to-people-in-my-organization">Send only to people in my organization</span>
                 </label>
             </div>
         </form>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeAutoResponder()">
+            <button class="btn-secondary" onclick="closeAutoResponder()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="saveAutoResponder()">
+            <button class="btn-primary" onclick="saveAutoResponder()" data-i18n="action-save">
                 Save
             </button>
         </div>
@@ -204,7 +204,7 @@
 <dialog id="add-account-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Add Email Account</h2>
+            <h2 data-i18n="auto-add-email-account">Add Email Account</h2>
             <button
                 class="icon-btn"
                 onclick="document.getElementById('add-account-modal').close()"
@@ -229,7 +229,7 @@
             hx-on::after-request="if(event.detail.successful) document.getElementById('add-account-modal').close()"
         >
             <div class="form-group">
-                <label>Account Name</label>
+                <label data-i18n="auto-account-name">Account Name</label>
                 <input
                     type="text"
                     name="name"
@@ -238,7 +238,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Email Address</label>
+                <label data-i18n="auth-email-address">Email Address</label>
                 <input
                     type="email"
                     name="email"
@@ -247,7 +247,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>IMAP Server</label>
+                <label data-i18n="auto-imap-server">IMAP Server</label>
                 <input
                     type="text"
                     name="imap_server"
@@ -256,11 +256,11 @@
                 />
             </div>
             <div class="form-group">
-                <label>IMAP Port</label>
+                <label data-i18n="auto-imap-port">IMAP Port</label>
                 <input type="number" name="imap_port" value="993" required />
             </div>
             <div class="form-group">
-                <label>SMTP Server</label>
+                <label data-i18n="auto-smtp-server">SMTP Server</label>
                 <input
                     type="text"
                     name="smtp_server"
@@ -269,11 +269,11 @@
                 />
             </div>
             <div class="form-group">
-                <label>SMTP Port</label>
+                <label data-i18n="auto-smtp-port">SMTP Port</label>
                 <input type="number" name="smtp_port" value="587" required />
             </div>
             <div class="form-group">
-                <label>Username</label>
+                <label data-i18n="dashboards-username">Username</label>
                 <input
                     type="text"
                     name="username"
@@ -283,7 +283,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Password</label>
+                <label data-i18n="dashboards-password">Password</label>
                 <input
                     type="password"
                     name="password"
@@ -295,7 +295,7 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="use_ssl" checked />
-                    <span>Use SSL/TLS</span>
+                    <span data-i18n="auto-use-ssl-tls">Use SSL/TLS</span>
                 </label>
             </div>
             <div class="modal-footer">
@@ -303,10 +303,10 @@
                     type="button"
                     class="btn-secondary"
                     onclick="document.getElementById('add-account-modal').close()"
-                >
+                 data-i18n="action-cancel">
                     Cancel
                 </button>
-                <button type="submit" class="btn-primary">Add Account</button>
+                <button type="submit" class="btn-primary" data-i18n="auto-add-account">Add Account</button>
             </div>
         </form>
     </div>
@@ -315,7 +315,7 @@
 <dialog id="schedule-modal" class="modal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h2>Schedule Send</h2>
+            <h2 data-i18n="auto-schedule-send">Schedule Send</h2>
             <button class="icon-btn" onclick="closeScheduleModal()">
                 <svg
                     width="16"
@@ -332,19 +332,19 @@
         </div>
         <div class="schedule-form">
             <div class="form-group">
-                <label>Date</label>
+                <label data-i18n="label-date">Date</label>
                 <input type="date" id="schedule-date" min="" />
             </div>
             <div class="form-group">
-                <label>Time</label>
+                <label data-i18n="label-time">Time</label>
                 <input type="time" id="schedule-time" value="09:00" />
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeScheduleModal()">
+            <button class="btn-secondary" onclick="closeScheduleModal()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="confirmSchedule()">
+            <button class="btn-primary" onclick="confirmSchedule()" data-i18n="auto-schedule">
                 Schedule
             </button>
         </div>

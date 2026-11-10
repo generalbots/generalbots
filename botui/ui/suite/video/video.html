@@ -1,9 +1,9 @@
 <link rel="stylesheet" href="/suite/video/video.css">?v=2
 <div class="gb-app" data-gb-app="video">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading cameras…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Camera service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-cameras">Loading cameras…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-camera-service-unavailable">Camera service unavailable</span></div>
   <header class="header">
-    <h1>Monitoramento por IA</h1>
+    <h1 data-i18n="auto-monitoramento-por-ia">Monitoramento por IA</h1>
     <div class="header-actions">
       <button class="btn btn-primary" id="btnAddCamera">+ Adicionar Câmera</button>
     </div>
@@ -15,11 +15,11 @@
       <span class="value accent" id="statDetections">0</span>
     </div>
     <div class="stat-card">
-      <span class="label">Uptime</span>
+      <span class="label" data-i18n="monitoring-uptime">Uptime</span>
       <span class="value success" id="statUptime">0%</span>
     </div>
     <div class="stat-card">
-      <span class="label">Armazenamento Usado</span>
+      <span class="label" data-i18n="auto-armazenamento-usado">Armazenamento Usado</span>
       <span class="value warning" id="statStorage">0 GB</span>
     </div>
     <div class="stat-card">
@@ -73,7 +73,7 @@
           <input type="text" id="cameraName" placeholder="Ex: Entrada Principal">
         </div>
         <div class="form-group">
-          <label>URL RTSP</label>
+          <label data-i18n="auto-url-rtsp">URL RTSP</label>
           <input type="text" id="cameraRtsp" placeholder="rtsp://user:pass@ip:port/stream">
         </div>
         <div class="form-group">

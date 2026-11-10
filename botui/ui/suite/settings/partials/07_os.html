@@ -5,51 +5,51 @@
      unlocks it; the backing API also requires shell mode + admin + loopback. -->
 <section id="os-section" class="settings-section" data-admin-only="true" data-shell-only="true" hidden>
     <div class="section-header">
-        <h1>Operating System</h1>
-        <p class="subtitle">Low-level host settings and tools for this shell installation</p>
+        <h1 data-i18n="auto-operating-system">Operating System</h1>
+        <p class="subtitle" data-i18n="auto-low-level-host-settings-and-tools-for-this-shell-installatio">Low-level host settings and tools for this shell installation</p>
     </div>
 
     <div class="os-grid">
         <div class="setting-card">
             <div class="card-header">
                 <div>
-                    <h2>System</h2>
-                    <p>Host identity, kernel and timezone</p>
+                    <h2 data-i18n="admin-system">System</h2>
+                    <p data-i18n="auto-host-identity-kernel-and-timezone">Host identity, kernel and timezone</p>
                 </div>
-                <button type="button" class="btn-secondary btn-sm" onclick="window.refreshOsPanel && window.refreshOsPanel()">Refresh</button>
+                <button type="button" class="btn-secondary btn-sm" onclick="window.refreshOsPanel && window.refreshOsPanel()" data-i18n="action-refresh">Refresh</button>
             </div>
             <div class="os-info-grid">
-                <div class="os-info-row"><span class="os-label">Hostname</span><code id="os-hostname">—</code></div>
-                <div class="os-info-row"><span class="os-label">Timezone</span><code id="os-timezone">—</code></div>
-                <div class="os-info-row"><span class="os-label">Operating system</span><code id="os-os">—</code></div>
-                <div class="os-info-row"><span class="os-label">Kernel</span><code id="os-kernel">—</code></div>
-                <div class="os-info-row"><span class="os-label">Architecture</span><code id="os-arch">—</code></div>
-                <div class="os-info-row"><span class="os-label">Uptime</span><code id="os-uptime">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="label-hostname">Hostname</span><code id="os-hostname">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="settings-timezone">Timezone</span><code id="os-timezone">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="auto-operating-system-2">Operating system</span><code id="os-os">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="auto-kernel">Kernel</span><code id="os-kernel">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="auto-architecture">Architecture</span><code id="os-arch">—</code></div>
+                <div class="os-info-row"><span class="os-label" data-i18n="monitoring-uptime">Uptime</span><code id="os-uptime">—</code></div>
             </div>
-            <p class="os-hint">Hostname and timezone are read-only in this phase. Use the Terminal app or the host tools in the kiosk image to change them.</p>
+            <p class="os-hint" data-i18n="auto-hostname-and-timezone-are-read-only-in-this-phase-use-the-te">Hostname and timezone are read-only in this phase. Use the Terminal app or the host tools in the kiosk image to change them.</p>
         </div>
 
         <div class="setting-card">
             <div class="card-header">
                 <div>
-                    <h2>Services</h2>
-                    <p>Start, stop and restart host services</p>
+                    <h2 data-i18n="monitoring-services">Services</h2>
+                    <p data-i18n="auto-start-stop-and-restart-host-services">Start, stop and restart host services</p>
                 </div>
             </div>
             <div id="os-services" class="os-service-list">
-                <p class="os-empty">Open the panel to load services.</p>
+                <p class="os-empty" data-i18n="auto-open-the-panel-to-load-services">Open the panel to load services.</p>
             </div>
         </div>
 
         <div class="setting-card">
             <div class="card-header">
                 <div>
-                    <h2>Storage</h2>
-                    <p>Disk usage for mounted filesystems</p>
+                    <h2 data-i18n="monitoring-health-storage">Storage</h2>
+                    <p data-i18n="auto-disk-usage-for-mounted-filesystems">Disk usage for mounted filesystems</p>
                 </div>
             </div>
             <div id="os-disks" class="os-disk-list">
-                <p class="os-empty">Open the panel to load storage.</p>
+                <p class="os-empty" data-i18n="auto-open-the-panel-to-load-storage">Open the panel to load storage.</p>
             </div>
         </div>
 
@@ -58,21 +58,21 @@
         <div class="setting-card">
             <div class="card-header">
                 <div>
-                    <h2>Log files</h2>
-                    <p>Files this installation writes, with location and size</p>
+                    <h2 data-i18n="auto-log-files">Log files</h2>
+                    <p data-i18n="auto-files-this-installation-writes-with-location-and-size">Files this installation writes, with location and size</p>
                 </div>
-                <button type="button" class="btn-secondary btn-sm" onclick="window.loadOsPanel && window.loadOsPanel(true)">Refresh</button>
+                <button type="button" class="btn-secondary btn-sm" onclick="window.loadOsPanel && window.loadOsPanel(true)" data-i18n="action-refresh">Refresh</button>
             </div>
             <div id="os-log-files" class="os-log-file-list">
-                <p class="os-empty">Open the panel to load log files.</p>
+                <p class="os-empty" data-i18n="auto-open-the-panel-to-load-log-files">Open the panel to load log files.</p>
             </div>
         </div>
 
         <div class="setting-card">
             <div class="card-header">
                 <div>
-                    <h2>Logs</h2>
-                    <p>Tail the last 200 lines of a service log</p>
+                    <h2 data-i18n="admin-logs">Logs</h2>
+                    <p data-i18n="auto-tail-the-last-200-lines-of-a-service-log">Tail the last 200 lines of a service log</p>
                 </div>
                 <div class="os-log-controls">
                     <select id="os-log-service" class="form-select" onchange="window.changeOsLogService && window.changeOsLogService(this.value)">
@@ -87,7 +87,7 @@
                         <option value="caddy">caddy</option>
                         <option value="stalwart">stalwart</option>
                     </select>
-                    <button type="button" class="btn-secondary btn-sm" onclick="window.changeOsLogService && window.changeOsLogService(document.getElementById('os-log-service').value)">Reload</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="window.changeOsLogService && window.changeOsLogService(document.getElementById('os-log-service').value)" data-i18n="auto-reload">Reload</button>
                 </div>
             </div>
             <pre id="os-logs" class="os-log-output">Open the panel to load logs.</pre>
@@ -101,7 +101,7 @@
 <dialog id="os-restart-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Restart service</h2>
+            <h2 data-i18n="auto-restart-service">Restart service</h2>
             <button type="button" class="close-btn" id="os-restart-cancel" aria-label="Cancel">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -110,17 +110,17 @@
             </button>
         </div>
         <form id="os-restart-form">
-            <p class="os-hint">
-                Restart <strong id="os-restart-service-name">the service</strong>?
+            <p class="os-hint" data-i18n="auto-restart">
+                Restart <strong id="os-restart-service-name" data-i18n="auto-the-service">the service</strong>?
                 Type the service name to confirm; the restart is written to the audit log.
             </p>
             <div class="form-group">
-                <label for="os-restart-confirm">Service name</label>
+                <label for="os-restart-confirm" data-i18n="auto-service-name-3">Service name</label>
                 <input type="text" id="os-restart-confirm" autocomplete="off" spellcheck="false">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" id="os-restart-cancel-button">Cancel</button>
-                <button type="submit" class="btn-primary">Restart</button>
+                <button type="button" class="btn-secondary" id="os-restart-cancel-button" data-i18n="action-cancel">Cancel</button>
+                <button type="submit" class="btn-primary" data-i18n="auto-restart">Restart</button>
             </div>
         </form>
     </div>

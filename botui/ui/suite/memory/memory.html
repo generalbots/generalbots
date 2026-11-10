@@ -3,21 +3,21 @@
 <div class="gb-app mem-app" id="memory-app" data-gb-app="memory">
   <header class="mem-header">
     <div class="mem-title-group">
-      <h2 class="mem-title">Memory</h2>
+      <h2 class="mem-title" data-i18n="monitoring-memory">Memory</h2>
       <span class="mem-subtitle" id="mem-count" aria-live="polite"></span>
     </div>
     <div class="mem-header-actions">
       <!-- #1886 — Settings → Memory is the single editor. The app keeps its
            read/export value and hands every edit to Settings. -->
-      <button type="button" class="mem-btn ghost" id="mem-manage">Edit in Settings</button>
-      <button type="button" class="mem-btn ghost" id="mem-export">Export</button>
-      <button type="button" class="mem-btn ghost" id="mem-import">Import</button>
+      <button type="button" class="mem-btn ghost" id="mem-manage" data-i18n="auto-edit-in-settings">Edit in Settings</button>
+      <button type="button" class="mem-btn ghost" id="mem-export" data-i18n="action-export">Export</button>
+      <button type="button" class="mem-btn ghost" id="mem-import" data-i18n="action-import">Import</button>
       <button type="button" class="mem-btn primary" id="mem-add">Add</button>
     </div>
   </header>
 
   <div class="mem-privacy-banner" role="note">
-    <strong>Privacy:</strong> memories are scoped to your workspace branch. Private items are visible only to you;
+    <strong data-i18n="auto-privacy">Privacy:</strong> memories are scoped to your workspace branch. Private items are visible only to you;
     shared branch items are visible to members of the same workspace. Nothing is published across organizations.
   </div>
 
@@ -33,26 +33,26 @@
   <div class="mem-modal" id="mem-modal" role="dialog" aria-modal="true" aria-labelledby="mem-modal-title">
     <div class="mem-backdrop" data-mem-close="1"></div>
     <div class="mem-modal-box">
-      <h3 class="mem-modal-title" id="mem-modal-title">Add Memory</h3>
+      <h3 class="mem-modal-title" id="mem-modal-title" data-i18n="auto-add-memory">Add Memory</h3>
       <form id="mem-form" novalidate>
         <div class="mem-field">
-          <label for="mem-f-kind">Kind</label>
+          <label for="mem-f-kind" data-i18n="auto-kind">Kind</label>
           <select id="mem-f-kind">
-            <option value="fact">Fact</option>
-            <option value="preference">Preference</option>
-            <option value="goal">Goal</option>
-            <option value="event">Event</option>
+            <option value="fact" data-i18n="auto-fact">Fact</option>
+            <option value="preference" data-i18n="auto-preference">Preference</option>
+            <option value="goal" data-i18n="auto-goal">Goal</option>
+            <option value="event" data-i18n="auto-event">Event</option>
           </select>
         </div>
         <div class="mem-field">
-          <label for="mem-f-content">Content</label>
+          <label for="mem-f-content" data-i18n="dashboards-content">Content</label>
           <textarea id="mem-f-content" rows="4" required placeholder="State the memory in a single clear sentence."></textarea>
         </div>
       </form>
       <div class="mem-modal-actions">
         <span class="mem-spacer"></span>
-        <button type="button" class="mem-btn ghost" data-mem-close="1">Cancel</button>
-        <button type="button" class="mem-btn primary" id="mem-save-item">Save</button>
+        <button type="button" class="mem-btn ghost" data-mem-close="1" data-i18n="action-cancel">Cancel</button>
+        <button type="button" class="mem-btn primary" id="mem-save-item" data-i18n="action-save">Save</button>
       </div>
     </div>
   </div>
@@ -60,19 +60,19 @@
   <div class="mem-modal" id="mem-import-modal" role="dialog" aria-modal="true" aria-labelledby="mem-import-title">
     <div class="mem-backdrop" data-mem-close="1"></div>
     <div class="mem-modal-box">
-      <h3 class="mem-modal-title" id="mem-import-title">Import Memories</h3>
+      <h3 class="mem-modal-title" id="mem-import-title" data-i18n="auto-import-memories">Import Memories</h3>
       <div class="mem-field">
         <label for="mem-import-file">JSON file (array of {kind, content} objects)</label>
         <input type="file" id="mem-import-file" accept=".json,application/json" />
       </div>
       <div class="mem-field mem-check-field">
-        <label><input type="checkbox" id="mem-dry-run" checked /> Dry run — validate and preview counts without writing</label>
+        <label data-i18n="auto-dry-run-validate-and-preview-counts-without-writing"><input type="checkbox" id="mem-dry-run" checked /> Dry run — validate and preview counts without writing</label>
       </div>
       <div class="mem-import-report hidden" id="mem-import-report" aria-live="polite"></div>
       <div class="mem-modal-actions">
         <span class="mem-spacer"></span>
-        <button type="button" class="mem-btn ghost" data-mem-close="1">Close</button>
-        <button type="button" class="mem-btn primary" id="mem-import-run">Run Import</button>
+        <button type="button" class="mem-btn ghost" data-mem-close="1" data-i18n="action-close">Close</button>
+        <button type="button" class="mem-btn primary" id="mem-import-run" data-i18n="auto-run-import">Run Import</button>
       </div>
     </div>
   </div>

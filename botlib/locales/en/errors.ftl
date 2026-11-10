@@ -295,3 +295,23 @@ error-ai-account-not-connected-chat = Connect the account before selecting it fo
 error-computer-use-action-id-mismatch = The action id does not match the path.
 error-http-no-route = No route matches this path.
 error-goal-run-advance-refused = The run cannot advance in its current state.
+
+# =============================================================================
+# People, attendance and products routes (#2094)
+# =============================================================================
+
+error-person-not-found = Person not found.
+error-team-not-found = Team not found.
+error-time-off-not-found = Time-off request not found.
+error-people-invalid-start-date = The start date is invalid. Use the YYYY-MM-DD format.
+error-people-invalid-end-date = The end date is invalid. Use the YYYY-MM-DD format.
+error-attendance-webhook-not-found = Webhook not found.
+error-attendance-session-id-invalid = The session id is invalid.
+error-attendance-session-not-found = Session not found.
+error-attendance-attendant-id-required = An attendant id is required.
+attendance-no-attendant-matching-skills = No attendant was found with the required skills.
+attendance-response-sent = Response sent.
+error-product-not-found = Product not found.
+error-service-not-found = Service not found.
+error-service-invalid-value = The service value is invalid.
+error-service-price-required = This service has no price; provide a value.

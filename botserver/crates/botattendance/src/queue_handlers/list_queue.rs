@@ -109,9 +109,11 @@ pub async fn list_attendants(
 }
 pub async fn assign_conversation(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(request): Json<AssignRequest>,
 ) -> impl IntoResponse {
     botlog::safe_info!("Assigning session {} to attendant {}", request.session_id, request.attendant_id);
+    let locale = locale_from_headers(&headers);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         let session_id = request.session_id;
@@ -143,15 +145,23 @@ pub async fn assign_conversation(
             "success": true, "session_id": request.session_id,
             "attendant_id": request.attendant_id, "assigned_at": Utc::now().to_rfc3339()
         }))),
-        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
+        Ok(Err(e)) => {
+            log::warn!("list_queue operation failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-db-unavailable")
+        }
+        Err(e) => {
+            log::warn!("list_queue task failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        }
     }
 }
 pub async fn assign_by_skill(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(request): Json<SkillBasedAssignRequest>,
 ) -> impl IntoResponse {
     botlog::safe_info!("Skill-based assignment for session {} with skills {:?}", request.session_id, request.required_skills);
+    let locale = locale_from_headers(&headers);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         let session_id = request.session_id;
@@ -232,17 +242,26 @@ pub async fn assign_by_skill(
         }))),
         Ok(Ok(None)) => (StatusCode::OK, Json(serde_json::json!({
             "success": true, "session_id": request.session_id,
-            "message": "No attendant found with matching skills", "assignment_type": "skill_based"
+            "message": botlib::i18n::get(&locale, "attendance-no-attendant-matching-skills"),
+            "assignment_type": "skill_based"
         }))),
-        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
+        Ok(Err(e)) => {
+            log::warn!("list_queue operation failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-db-unavailable")
+        }
+        Err(e) => {
+            log::warn!("list_queue task failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        }
     }
 }
 pub async fn transfer_conversation(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(request): Json<TransferRequest>,
 ) -> impl IntoResponse {
     botlog::safe_info!("Transferring session {} from {} to {}", request.session_id, request.from_attendant_id, request.to_attendant_id);
+    let locale = locale_from_headers(&headers);
     let reason_for_webhook = request.reason.clone();
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
@@ -279,7 +298,13 @@ pub async fn transfer_conversation(
             "from_attendant": request.from_attendant_id, "to_attendant": request.to_attendant_id,
             "transferred_at": Utc::now().to_rfc3339()
         }))),
-        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::list_queue", None)}))),
+        Ok(Err(e)) => {
+            log::warn!("list_queue operation failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-db-unavailable")
+        }
+        Err(e) => {
+            log::warn!("list_queue task failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        }
     }
 }

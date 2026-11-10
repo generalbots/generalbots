@@ -3,10 +3,12 @@ use super::*;
 pub async fn list_price_lists(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
-) -> Result<Json<Vec<PriceList>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<PriceList>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -17,7 +19,7 @@ pub async fn list_price_lists(
         .filter(price_lists::is_active.eq(true))
         .order(price_lists::name.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(lists))
 }
@@ -25,10 +27,12 @@ pub async fn create_price_list(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Json(req): Json<CreatePriceListRequest>,
-) -> Result<Json<PriceList>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<PriceList>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -66,34 +70,39 @@ pub async fn create_price_list(
     diesel::insert_into(price_lists::table)
         .values(&price_list)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(price_list))
 }
 pub async fn list_inventory_movements(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(product_id): Path<Uuid>,
-) -> Result<Json<Vec<InventoryMovement>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<InventoryMovement>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let movements: Vec<InventoryMovement> = inventory_movements::table
         .filter(inventory_movements::product_id.eq(product_id))
         .order(inventory_movements::created_at.desc())
         .limit(100)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(movements))
 }
 pub async fn get_product_stats(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
-) -> Result<Json<ProductStats>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<ProductStats>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -181,10 +190,12 @@ pub async fn get_product_stats(
 pub async fn list_low_stock(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
-) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<Product>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -196,7 +207,7 @@ pub async fn list_low_stock(
         .filter(products::stock_quantity.le(products::low_stock_threshold))
         .order(products::stock_quantity.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(prods))
 }

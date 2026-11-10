@@ -17,17 +17,17 @@ pub async fn create_playlist(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreatePlaylistRequest>,
 ) -> Result<Json<PlaylistSummary>, (StatusCode, Json<serde_json::Value>)> {
-    let name = body.name.trim().to_string();
-    if name.is_empty() || name.len() > MAX_TITLE_LEN {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Playlist name is required (max 255 chars)" })),
-        ));
-    }
-    let visibility = match body.visibility.as_str() {
-        "private" | "org" | "public" => body.visibility.clone(),
-        _ => "private".to_string(),
+    let name = match normalize_playlist_name(&body.name) {
+        Some(name) => name,
+        None => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Playlist name is required (max 255 chars)" })),
+            ))
+        }
     };
+    let visibility =
+        normalize_visibility(&body.visibility).unwrap_or_else(|| "private".to_string());
 
     let id = Uuid::new_v4();
     let now = Utc::now();

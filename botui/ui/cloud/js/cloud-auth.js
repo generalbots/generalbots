@@ -8,7 +8,7 @@ async function handleLogin(e) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
-  btn.textContent = 'Signing in…';
+  btn.textContent = gbT('cloud-auth-signing-in', 'Signing in…');
   btn.disabled = true;
   errEl.style.display = 'none';
 
@@ -30,10 +30,10 @@ async function handleLogin(e) {
     localStorage.setItem('management_name',  data.name  || '');
     window.location.href = CLOUD_CONFIG.baseUrl + '/dashboard?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message;
     errEl.style.display = 'block';
   } finally {
-    btn.textContent = 'Sign In';
+    btn.textContent = gbT('cloud-auth-sign-in', 'Sign In');
     btn.disabled = false;
   }
 }
@@ -52,7 +52,7 @@ async function handleSignup(e) {
   const botName = document.getElementById('signup-botname').value.trim();
   const plan = document.querySelector('input[name="plan"]:checked')?.value || 'free';
 
-  btn.textContent = 'Creating account…';
+  btn.textContent = gbT('cloud-auth-creating', 'Creating account…');
   btn.disabled = true;
   errEl.style.display = 'none';
 
@@ -86,10 +86,10 @@ async function handleSignup(e) {
       + '&email=' + encodeURIComponent(emailOut)
       + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message;
     errEl.style.display = 'block';
   } finally {
-    btn.textContent = 'Create Account';
+    btn.textContent = gbT('cloud-create-account', 'Create Account');
     btn.disabled = false;
   }
 }
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var isPrivate = el.querySelector('input[name="plan"]')?.value === 'private-cloud';
       if (infoEl) infoEl.style.display = isPrivate ? 'block' : 'none';
       // All plans use "Create Account" — private redirects to store after signup
-      if (btn) btn.textContent = 'Create Account';
+      if (btn) btn.textContent = gbT('cloud-create-account', 'Create Account');
     });
   });
 });

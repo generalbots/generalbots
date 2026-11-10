@@ -103,11 +103,12 @@ pub async fn sop_logging_middleware(
 
     // Audit identity comes from the verified bearer JWT `sub` claim, never
     // from the caller-supplied `X-User-ID` header (#2122).
-    let user_id = botsecurity_core::tenant::user_id_from_claims(&request.headers())
-        .map(|sub| match Uuid::parse_str(&sub) {
+    let user_id = botsecurity_core::tenant::user_id_from_claims(request.headers()).map(|sub| {
+        match Uuid::parse_str(&sub) {
             Ok(u) => u,
             Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes()),
-        });
+        }
+    });
 
     let organization_id = request
         .headers()

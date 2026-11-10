@@ -9,12 +9,12 @@
              data-i18n-placeholder="designer-search-placeholder"
              autocomplete="off" />
       <select id="designer-category-filter">
-        <option value="">All categories</option>
-        <option value="triggers">Triggers</option>
-        <option value="actions">Actions</option>
-        <option value="integrations">Integrations</option>
-        <option value="flow">Flow control</option>
-        <option value="ai">AI / LLM</option>
+        <option value="" data-i18n="auto-all-categories">All categories</option>
+        <option value="triggers" data-i18n="auto-triggers">Triggers</option>
+        <option value="actions" data-i18n="billing-col-actions">Actions</option>
+        <option value="integrations" data-i18n="settings-integrations">Integrations</option>
+        <option value="flow" data-i18n="auto-flow-control">Flow control</option>
+        <option value="ai" data-i18n="auto-ai-llm">AI / LLM</option>
       </select>
     </div>
     <div class="designer-actions">
@@ -27,14 +27,14 @@
     <aside class="designer-palette">
       <h4 data-i18n="designer-palette-title">Components</h4>
       <ul id="designer-palette-list" class="palette-list">
-        <li draggable="true" data-node-type="trigger" data-category="triggers"><span>Trigger</span></li>
-        <li draggable="true" data-node-type="action" data-category="actions"><span>Action</span></li>
-        <li draggable="true" data-node-type="integration" data-category="integrations"><span>Integration</span></li>
-        <li draggable="true" data-node-type="branch" data-category="flow"><span>Branch</span></li>
-        <li draggable="true" data-node-type="parallel" data-category="flow"><span>Parallel</span></li>
-        <li draggable="true" data-node-type="merge" data-category="flow"><span>Merge</span></li>
+        <li draggable="true" data-node-type="trigger" data-category="triggers"><span data-i18n="auto-trigger">Trigger</span></li>
+        <li draggable="true" data-node-type="action" data-category="actions"><span data-i18n="security-col-action">Action</span></li>
+        <li draggable="true" data-node-type="integration" data-category="integrations"><span data-i18n="auto-integration">Integration</span></li>
+        <li draggable="true" data-node-type="branch" data-category="flow"><span data-i18n="auto-branch">Branch</span></li>
+        <li draggable="true" data-node-type="parallel" data-category="flow"><span data-i18n="auto-parallel">Parallel</span></li>
+        <li draggable="true" data-node-type="merge" data-category="flow"><span data-i18n="tickets-merge">Merge</span></li>
         <li draggable="true" data-node-type="llm" data-category="ai"><span>LLM</span></li>
-        <li draggable="true" data-node-type="kb" data-category="ai"><span>Knowledge Base</span></li>
+        <li draggable="true" data-node-type="kb" data-category="ai"><span data-i18n="auto-knowledge-base">Knowledge Base</span></li>
       </ul>
     </aside>
     <section class="designer-canvas">

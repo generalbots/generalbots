@@ -2,9 +2,9 @@
 
 <div class="gb-clock" id="gb-clock-root">
     <div class="gb-clock-tabs" role="tablist">
-        <button type="button" class="gb-clock-tab active" data-tab="time">Time</button>
-        <button type="button" class="gb-clock-tab" data-tab="stopwatch">Stopwatch</button>
-        <button type="button" class="gb-clock-tab" data-tab="timer">Timer</button>
+        <button type="button" class="gb-clock-tab active" data-tab="time" data-i18n="label-time">Time</button>
+        <button type="button" class="gb-clock-tab" data-tab="stopwatch" data-i18n="auto-stopwatch">Stopwatch</button>
+        <button type="button" class="gb-clock-tab" data-tab="timer" data-i18n="auto-timer">Timer</button>
     </div>
 
     <section id="gb-clock-time" class="gb-clock-panel">
@@ -16,9 +16,9 @@
     <section id="gb-clock-stopwatch" class="gb-clock-panel" hidden>
         <div class="gb-clock-digital" id="gb-clock-sw-display">00:00.0</div>
         <div class="gb-clock-controls">
-            <button type="button" class="gb-clock-btn primary" id="gb-clock-sw-start">Start</button>
+            <button type="button" class="gb-clock-btn primary" id="gb-clock-sw-start" data-i18n="action-start">Start</button>
             <button type="button" class="gb-clock-btn" id="gb-clock-sw-lap">Lap</button>
-            <button type="button" class="gb-clock-btn warn" id="gb-clock-sw-reset">Reset</button>
+            <button type="button" class="gb-clock-btn warn" id="gb-clock-sw-reset" data-i18n="action-reset">Reset</button>
         </div>
         <ul id="gb-clock-sw-laps" class="gb-clock-laps"></ul>
     </section>
@@ -35,8 +35,8 @@
         </div>
         <div class="gb-clock-digital" id="gb-clock-t-display">05:00</div>
         <div class="gb-clock-controls">
-            <button type="button" class="gb-clock-btn primary" id="gb-clock-t-start">Start</button>
-            <button type="button" class="gb-clock-btn warn" id="gb-clock-t-reset">Reset</button>
+            <button type="button" class="gb-clock-btn primary" id="gb-clock-t-start" data-i18n="action-start">Start</button>
+            <button type="button" class="gb-clock-btn warn" id="gb-clock-t-reset" data-i18n="action-reset">Reset</button>
         </div>
     </section>
 </div>

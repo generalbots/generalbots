@@ -3,67 +3,67 @@
      could create, read and delete accounts but never edit one. -->
 <form class="crm-form" id="crm-record-form" data-entity="account">
     <div class="crm-form-header">
-        <h2 class="crm-form-title" data-form-title>New Account</h2>
+        <h2 class="crm-form-title" data-form-title data-i18n="crm-new-account">New Account</h2>
         <button type="button" class="crm-form-close" onclick="closeCrmModal()" title="Close">×</button>
     </div>
     <input type="hidden" name="id" id="crm-record-id" value="">
 
     <div class="crm-form-group">
-        <label class="crm-form-label">Name *</label>
+        <label class="crm-form-label" data-i18n="auto-name">Name *</label>
         <input type="text" name="name" id="crm-name" class="crm-form-input" required>
     </div>
 
     <div class="crm-form-row">
         <div class="crm-form-group">
-            <label class="crm-form-label">Industry</label>
+            <label class="crm-form-label" data-i18n="crm-col-industry">Industry</label>
             <input type="text" name="industry" id="crm-industry" class="crm-form-input">
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Website</label>
+            <label class="crm-form-label" data-i18n="crm-source-website">Website</label>
             <input type="url" name="website" id="crm-website" class="crm-form-input" placeholder="https://">
         </div>
     </div>
 
     <div class="crm-form-row">
         <div class="crm-form-group">
-            <label class="crm-form-label">Phone</label>
+            <label class="crm-form-label" data-i18n="attendant-customer-phone">Phone</label>
             <input type="tel" name="phone" id="crm-phone" class="crm-form-input">
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Email</label>
+            <label class="crm-form-label" data-i18n="attendant-channel-email">Email</label>
             <input type="email" name="email" id="crm-email" class="crm-form-input">
         </div>
     </div>
 
     <div class="crm-form-row">
         <div class="crm-form-group">
-            <label class="crm-form-label">Employees</label>
+            <label class="crm-form-label" data-i18n="auto-employees">Employees</label>
             <input type="number" name="employees_count" id="crm-employees" class="crm-form-input" min="0" step="1">
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Annual Revenue</label>
+            <label class="crm-form-label" data-i18n="crm-col-revenue">Annual Revenue</label>
             <input type="number" name="annual_revenue" id="crm-revenue" class="crm-form-input" min="0" step="0.01">
         </div>
     </div>
 
     <div class="crm-form-row">
         <div class="crm-form-group">
-            <label class="crm-form-label">City</label>
+            <label class="crm-form-label" data-i18n="crm-col-city">City</label>
             <input type="text" name="city" id="crm-city" class="crm-form-input">
         </div>
         <div class="crm-form-group">
-            <label class="crm-form-label">Country</label>
+            <label class="crm-form-label" data-i18n="auto-country">Country</label>
             <input type="text" name="country" id="crm-country" class="crm-form-input">
         </div>
     </div>
 
     <div class="crm-form-group">
-        <label class="crm-form-label">Description</label>
+        <label class="crm-form-label" data-i18n="label-description">Description</label>
         <textarea name="description" id="crm-description" class="crm-form-textarea" rows="3"></textarea>
     </div>
 
     <div class="crm-form-actions">
-        <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()">Cancel</button>
-        <button type="submit" class="crm-form-btn primary">Create Account</button>
+        <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()" data-i18n="action-cancel">Cancel</button>
+        <button type="submit" class="crm-form-btn primary" data-i18n="auto-create-account">Create Account</button>
     </div>
 </form>

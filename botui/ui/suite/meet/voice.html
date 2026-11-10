@@ -17,26 +17,26 @@
 <!-- Voice + Telephony Console (#1184) -->
 <div class="gb-voice-console">
   <div class="gb-voice-card">
-    <h3>🎙️ Voice Session</h3>
+    <h3 data-i18n="auto-voice-session">🎙️ Voice Session</h3>
     <div class="gb-voice-row">
       <input id="voiceSessionId" placeholder="session_id (optional)" style="width: 16rem" />
-      <button id="voiceStartBtn" class="gb-voice-btn">▶ Start session</button>
-      <button id="voiceStopBtn" class="gb-voice-btn danger" disabled>■ Stop session</button>
-      <span id="voiceStatus" class="gb-voice-session-status">Idle</span>
+      <button id="voiceStartBtn" class="gb-voice-btn" data-i18n="auto-start-session">▶ Start session</button>
+      <button id="voiceStopBtn" class="gb-voice-btn danger" disabled data-i18n="auto-stop-session">■ Stop session</button>
+      <span id="voiceStatus" class="gb-voice-session-status" data-i18n="auto-idle">Idle</span>
     </div>
     <div id="voiceMsg" class="gb-voice-msg"></div>
   </div>
 
   <div class="gb-voice-card">
-    <h3>📞 Provision Telephony Trunk</h3>
+    <h3 data-i18n="auto-provision-telephony-trunk">📞 Provision Telephony Trunk</h3>
     <div class="gb-voice-row">
       <input id="trunkName" placeholder="Name (e.g. Support line)" />
       <input id="trunkNumber" placeholder="+1 555 0100" />
       <input id="trunkCarrier" placeholder="carrier (default livekit-sip)" />
-      <button id="trunkProvisionBtn" class="gb-voice-btn">Provision</button>
+      <button id="trunkProvisionBtn" class="gb-voice-btn" data-i18n="auto-provision">Provision</button>
     </div>
     <table class="gb-trunk-table">
-      <thead><tr><th>Name</th><th>Number</th><th>Carrier</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th data-i18n="label-name">Name</th><th data-i18n="crm-col-number">Number</th><th data-i18n="auto-carrier">Carrier</th><th data-i18n="label-status">Status</th><th></th></tr></thead>
       <tbody id="trunkList"></tbody>
     </table>
     <div id="trunkMsg" class="gb-voice-msg"></div>

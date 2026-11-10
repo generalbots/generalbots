@@ -2,7 +2,7 @@
         <section id="appearance-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-appearance">Appearance</h1>
-                <p class="subtitle">Customize how the application looks</p>
+                <p class="subtitle" data-i18n="settings-appearance-desc">Customize how the application looks</p>
             </div>
 
             <!-- Theme Selection — driven by the shared ThemeManager (#1304).
@@ -19,8 +19,8 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Desktop Wallpaper</h2>
-                    <p>Choose the background displayed on your desktop</p>
+                    <h2 data-i18n="auto-desktop-wallpaper">Desktop Wallpaper</h2>
+                    <p data-i18n="auto-choose-the-background-displayed-on-your-desktop">Choose the background displayed on your desktop</p>
                 </div>
                 <div class="wallpaper-grid" id="wallpaper-grid"></div>
             </div>
@@ -28,12 +28,12 @@
             <!-- Layout Preferences -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Layout Preferences</h2>
+                    <h2 data-i18n="settings-layout-preferences">Layout Preferences</h2>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Compact Mode</span>
-                        <span class="setting-desc">Reduce spacing for more content</span>
+                        <span class="setting-title" data-i18n="settings-compact-mode">Compact Mode</span>
+                        <span class="setting-desc" data-i18n="settings-compact-mode-desc">Reduce spacing for more content</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="compact_mode" onchange="toggleCompactMode(this)">
@@ -42,8 +42,8 @@
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Show Sidebar</span>
-                        <span class="setting-desc">Always show navigation sidebar</span>
+                        <span class="setting-title" data-i18n="settings-show-sidebar">Show Sidebar</span>
+                        <span class="setting-desc" data-i18n="settings-show-sidebar-desc">Always show navigation sidebar</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="show_sidebar" checked onchange="toggleShowSidebar(this)">
@@ -52,8 +52,8 @@
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Animations</span>
-                        <span class="setting-desc">Enable UI animations and transitions</span>
+                        <span class="setting-title" data-i18n="settings-animations">Animations</span>
+                        <span class="setting-desc" data-i18n="settings-animations-desc">Enable UI animations and transitions</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="animations" checked onchange="toggleAnimations(this)">
@@ -74,32 +74,32 @@
              settings/organizations.html page -->
         <section id="organizations-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
-                <h1>Organizations &amp; Bots</h1>
-                <p class="subtitle">Manage your organizations and bot hierarchy</p>
+                <h1 data-i18n="auto-organizations-bots">Organizations &amp; Bots</h1>
+                <p class="subtitle" data-i18n="auto-manage-your-organizations-and-bot-hierarchy">Manage your organizations and bot hierarchy</p>
             </div>
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Current Organization</h2>
-                    <p>Select the organization you want to manage</p>
+                    <h2 data-i18n="auto-current-organization">Current Organization</h2>
+                    <p data-i18n="auto-select-the-organization-you-want-to-manage">Select the organization you want to manage</p>
                 </div>
                 <div hx-get="/api/user/organizations" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading organizations...</p>
+                        <p data-i18n="auto-loading-organizations">Loading organizations...</p>
                     </div>
                 </div>
             </div>
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Bot Tree</h2>
-                    <p>Bots belonging to the selected organization</p>
+                    <h2 data-i18n="auto-bot-tree">Bot Tree</h2>
+                    <p data-i18n="auto-bots-belonging-to-the-selected-organization">Bots belonging to the selected organization</p>
                 </div>
                 <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading bots...</p>
+                        <p data-i18n="auto-loading-bots">Loading bots...</p>
                     </div>
                 </div>
             </div>
@@ -225,30 +225,30 @@
         <section id="storage-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-storage">Storage</h1>
-                <p class="subtitle">Manage your storage and sync settings</p>
+                <p class="subtitle" data-i18n="auto-manage-your-storage-and-sync-settings">Manage your storage and sync settings</p>
             </div>
 
             <!-- #1545: Drive as knowledge base -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Knowledge</h2>
+                    <h2 data-i18n="auto-knowledge">Knowledge</h2>
                 </div>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
                     <input type="checkbox" id="settings-index-all-drive" onchange="toggleIndexAllDrive(this)">
-                    <span>Use all Drive files as knowledge context</span>
+                    <span data-i18n="auto-use-all-drive-files-as-knowledge-context">Use all Drive files as knowledge context</span>
                 </label>
-                <p class="subtitle" style="margin-top:8px;">When enabled (the default), the names of your recent Drive files travel with each chat turn so the assistant can use them as context. Turn it off to keep Drive out of the prompt.</p>
+                <p class="subtitle" style="margin-top:8px;" data-i18n="auto-when-enabled-the-default-the-names-of-your-recent-drive-file">When enabled (the default), the names of your recent Drive files travel with each chat turn so the assistant can use them as context. Turn it off to keep Drive out of the prompt.</p>
             </div>
 
             <!-- Storage Usage -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Storage Usage</h2>
+                    <h2 data-i18n="settings-storage-usage">Storage Usage</h2>
                 </div>
                 <div class="storage-display" hx-get="/api/ui/user/storage" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading storage information...</p>
+                        <p data-i18n="auto-loading-storage-information">Loading storage information...</p>
                     </div>
                 </div>
             </div>
@@ -256,13 +256,13 @@
             <!-- Connected Storage -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Connected Cloud Storage</h2>
+                    <h2 data-i18n="auto-connected-cloud-storage">Connected Cloud Storage</h2>
                 </div>
                 <div class="connections-list" id="storage-connections" hx-get="/api/ui/user/storage/connections"
                     hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading storage connections...</p>
+                        <p data-i18n="auto-loading-storage-connections">Loading storage connections...</p>
                     </div>
                 </div>
             </div>

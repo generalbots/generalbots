@@ -2,8 +2,8 @@
         <section id="profile-section" class="settings-section active">
             <div class="section-header">
                 <h1 data-i18n="settings-profile-title">Profile Settings</h1>
-                <p class="subtitle"><span id="profile-directory-note">Managed by the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory profile</a></p>
-                <p class="subtitle">Manage your personal information and preferences</p>
+                <p class="subtitle"><span id="profile-directory-note" data-i18n="auto-managed-by-the-zitadel-directory">Managed by the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();" data-i18n="auto-open-directory-profile">Open directory profile</a></p>
+                <p class="subtitle" data-i18n="settings-profile-desc">Manage your personal information and preferences</p>
             </div>
 
             <form class="settings-form" hx-put="/api/user/profile" hx-swap="none"
@@ -11,8 +11,8 @@
                 <!-- Avatar -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>Profile Photo</h2>
-                        <p>Your profile photo is visible to other users</p>
+                        <h2 data-i18n="settings-profile-photo">Profile Photo</h2>
+                        <p data-i18n="settings-profile-photo-desc">Your profile photo is visible to other users</p>
                     </div>
                     <div class="avatar-section">
                         <div class="current-avatar" id="current-avatar">
@@ -29,7 +29,7 @@
                                 </svg>
                                 Upload Photo
                             </label>
-                            <button type="button" class="btn-text" onclick="removeAvatar()">Remove</button>
+                            <button type="button" class="btn-text" onclick="removeAvatar()" data-i18n="action-remove">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -37,20 +37,20 @@
                 <!-- Basic Info -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>Basic Information</h2>
+                        <h2 data-i18n="settings-basic-info">Basic Information</h2>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Display Name</label>
+                            <label data-i18n="settings-display-name">Display Name</label>
                             <input type="text" name="display_name" placeholder="John Doe" hx-get="/api/user/profile"
                                 hx-trigger="load" hx-swap="outerHTML" hx-select="[name='display_name']">
                         </div>
                         <div class="form-group">
-                            <label>Username</label>
+                            <label data-i18n="dashboards-username">Username</label>
                             <input type="text" name="username" placeholder="johndoe">
                         </div>
                         <div class="form-group full-width">
-                            <label>Email Address</label>
+                            <label data-i18n="auth-email-address">Email Address</label>
                             <input type="email" name="email" placeholder="john@example.com">
                         </div>
                         <div class="form-group full-width">
@@ -68,32 +68,32 @@
                      made from this card. -->
                 <div class="setting-card" id="public-profile-card">
                     <div class="card-header">
-                        <h2>Public Profile</h2>
-                        <p>How you appear on your General Bots home page</p>
+                        <h2 data-i18n="auto-public-profile">Public Profile</h2>
+                        <p data-i18n="auto-how-you-appear-on-your-general-bots-home-page">How you appear on your General Bots home page</p>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Public Display Name</label>
+                            <label data-i18n="auto-public-display-name">Public Display Name</label>
                             <input type="text" name="public_display_name" id="public-display-name"
                                 placeholder="Your Name"
                                 oninput="(function(v){var slug=(v||'your-name').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var el1=document.getElementById('public-profile-url-preview');var el2=document.getElementById('public-profile-url-hint');if(el1)el1.textContent=slug+'.generalbots.org';if(el2)el2.textContent=slug+'.generalbots.org';})(this.value)">
                         </div>
                         <div class="form-group">
-                            <label>Your profile URL will be</label>
+                            <label data-i18n="auto-your-profile-url-will-be">Your profile URL will be</label>
                             <div class="profile-url-preview">
                                 <code id="public-profile-url-preview">your-name.generalbots.org</code>
-                                <span class="coming-soon-badge">Coming soon</span>
+                                <span class="coming-soon-badge" data-i18n="auto-coming-soon">Coming soon</span>
                             </div>
                         </div>
                         <div class="form-group full-width">
-                            <label>Public Bio</label>
+                            <label data-i18n="auto-public-bio">Public Bio</label>
                             <textarea name="public_bio" rows="3"
                                 placeholder="A short description visible on your public profile..."></textarea>
                         </div>
                     </div>
-                    <p class="settings-hint">
+                    <p class="settings-hint" data-i18n="auto-the-page-will-be-live-at">
                         The page will be live at
-                        <strong><span id="public-profile-url-hint">your-name.generalbots.org</span></strong>
+                        <strong><span id="public-profile-url-hint" data-i18n="auto-your-name-generalbots-org">your-name.generalbots.org</span></strong>
                         once the General Bots home-site relay ships (#1867).
                     </p>
                 </div>
@@ -101,29 +101,29 @@
                 <!-- Contact Info -->
                 <div class="setting-card">
                     <div class="card-header">
-                        <h2>Contact Information</h2>
+                        <h2 data-i18n="settings-contact-info">Contact Information</h2>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Phone Number</label>
+                            <label data-i18n="settings-phone-number">Phone Number</label>
                             <input type="tel" name="phone" placeholder="+1 (555) 000-0000">
                         </div>
                         <div class="form-group">
-                            <label>Location</label>
+                            <label data-i18n="security-col-location">Location</label>
                             <input type="text" name="location" placeholder="City, Country">
                         </div>
                         <div class="form-group">
-                            <label>Website</label>
+                            <label data-i18n="crm-source-website">Website</label>
                             <input type="url" name="website" placeholder="https://example.com">
                         </div>
                         <!-- #1888 — the timezone has exactly one control:
                              Language & region. The profile form still carries
                              the value (hidden) so both stores converge. -->
                         <div class="form-group">
-                            <label>Timezone</label>
+                            <label data-i18n="settings-timezone">Timezone</label>
                             <p class="settings-hint profile-timezone-hint">
                                 Set in <a href="#language" class="info-link"
-                                    onclick="showSection('language', document.querySelector('.settings-nav a[href=\'#language\']')); return false;">Language &amp; region</a>.
+                                    onclick="showSection('language', document.querySelector('.settings-nav a[href=\'#language\']')); return false;" data-i18n="auto-language-region">Language &amp; region</a>.
                             </p>
                             <input type="hidden" name="timezone" id="profile-timezone">
                         </div>
@@ -131,7 +131,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <button type="submit" class="btn-primary" data-i18n="settings-save">Save Changes</button>
                 </div>
             </form>
         </section>
@@ -140,36 +140,36 @@
         <section id="security-section" class="settings-section">
             <div class="section-header">
                 <h1 data-i18n="settings-security-title">Security Settings</h1>
-                <p class="subtitle"><span>Identity, sessions and 2FA live in the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory security</a></p>
-                <p class="subtitle">Protect your account with enhanced security</p>
+                <p class="subtitle"><span data-i18n="auto-identity-sessions-and-2fa-live-in-the-zitadel-directory">Identity, sessions and 2FA live in the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();" data-i18n="auto-open-directory-security">Open directory security</a></p>
+                <p class="subtitle" data-i18n="settings-security-desc">Protect your account with enhanced security</p>
             </div>
 
             <!-- Password Change — rendered only when this deployment keeps
                  passwords in the platform database (#1887). -->
             <div class="setting-card" id="security-password-card">
                 <div class="card-header">
-                    <h2>Change Password</h2>
-                    <p>Update your password regularly for better security</p>
+                    <h2 data-i18n="settings-change-password">Change Password</h2>
+                    <p data-i18n="settings-change-password-desc">Update your password regularly for better security</p>
                 </div>
                 <form hx-post="/api/user/password" hx-swap="none"
                     hx-on::after-request="this.reset(); showToast('Password changed successfully')">
                     <div class="form-grid">
                         <div class="form-group full-width">
-                            <label>Current Password</label>
+                            <label data-i18n="settings-current-password">Current Password</label>
                             <input type="password" name="current_password" required autocomplete="current-password">
                         </div>
                         <div class="form-group">
-                            <label>New Password</label>
+                            <label data-i18n="auth-new-password">New Password</label>
                             <input type="password" name="new_password" required minlength="8"
                                 autocomplete="new-password">
                         </div>
                         <div class="form-group">
-                            <label>Confirm New Password</label>
+                            <label data-i18n="auth-confirm-new-password">Confirm New Password</label>
                             <input type="password" name="confirm_password" required autocomplete="new-password">
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">Update Password</button>
+                        <button type="submit" class="btn-primary" data-i18n="settings-update-password">Update Password</button>
                     </div>
                 </form>
             </div>
@@ -177,16 +177,16 @@
             <!-- Two-Factor Authentication -->
             <div class="setting-card" id="security-2fa-card">
                 <div class="card-header">
-                    <h2>Two-Factor Authentication</h2>
-                    <p>Add an extra layer of security to your account</p>
+                    <h2 data-i18n="auth-2fa-title">Two-Factor Authentication</h2>
+                    <p data-i18n="settings-2fa-desc">Add an extra layer of security to your account</p>
                 </div>
                 <div class="setting-row" id="2fa-status" hx-get="/api/ui/user/security/2fa/status" hx-trigger="load"
                     hx-swap="innerHTML">
                     <div class="setting-info">
-                        <span class="setting-title">Authenticator App</span>
-                        <span class="setting-desc">Use an authenticator app for 2FA codes</span>
+                        <span class="setting-title" data-i18n="settings-authenticator-app">Authenticator App</span>
+                        <span class="setting-desc" data-i18n="settings-authenticator-desc">Use an authenticator app for 2FA codes</span>
                     </div>
-                    <button class="btn-primary" hx-post="/api/ui/user/security/2fa/enable" hx-swap="none">
+                    <button class="btn-primary" hx-post="/api/ui/user/security/2fa/enable" hx-swap="none" data-i18n="settings-enable-2fa">
                         Enable 2FA
                     </button>
                 </div>
@@ -195,8 +195,8 @@
             <!-- Active Sessions -->
             <div class="setting-card" id="security-sessions-card">
                 <div class="card-header">
-                    <h2>Active Sessions</h2>
-                    <p>Manage your active login sessions</p>
+                    <h2 data-i18n="settings-active-sessions">Active Sessions</h2>
+                    <p data-i18n="settings-active-sessions-desc">Manage your active login sessions</p>
                 </div>
                 <div class="sessions-list" id="sessions-list" hx-get="/api/ui/user/security/sessions" hx-trigger="load"
                     hx-swap="innerHTML">
@@ -207,7 +207,7 @@
                 <div class="card-footer">
                     <button class="btn-danger-outline" hx-post="/api/ui/user/security/sessions/revoke-all"
                         hx-confirm="Sign out of all other devices?"
-                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')">
+                        hx-on::after-request="htmx.trigger('#sessions-list', 'load'); showToast('All other sessions revoked')" data-i18n="auto-sign-out-all-other-sessions">
                         Sign Out All Other Sessions
                     </button>
                 </div>
@@ -216,8 +216,8 @@
             <!-- Connected Devices -->
             <div class="setting-card" id="security-devices-card">
                 <div class="card-header">
-                    <h2>Connected Devices</h2>
-                    <p>Devices that have accessed your account</p>
+                    <h2 data-i18n="auto-connected-devices">Connected Devices</h2>
+                    <p data-i18n="auto-devices-that-have-accessed-your-account">Devices that have accessed your account</p>
                 </div>
                 <div class="devices-list" id="devices-list" hx-get="/api/ui/user/security/devices" hx-trigger="load"
                     hx-swap="innerHTML">
@@ -230,23 +230,23 @@
                  no directory, no password form, no session listings. -->
             <div class="setting-card" id="security-local-card" hidden>
                 <div class="card-header">
-                    <h2>Local data</h2>
-                    <p>This installation keeps everything on this device.</p>
+                    <h2 data-i18n="auto-local-data">Local data</h2>
+                    <p data-i18n="auto-this-installation-keeps-everything-on-this-device">This installation keeps everything on this device.</p>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Export local data</span>
-                        <span class="setting-desc">Download the data stored on this device</span>
+                        <span class="setting-title" data-i18n="auto-export-local-data">Export local data</span>
+                        <span class="setting-desc" data-i18n="auto-download-the-data-stored-on-this-device">Download the data stored on this device</span>
                     </div>
-                    <button type="button" class="btn-secondary btn-sm" onclick="downloadDataExport()">Export</button>
+                    <button type="button" class="btn-secondary btn-sm" onclick="downloadDataExport()" data-i18n="action-export">Export</button>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Clear local cache</span>
-                        <span class="setting-desc">Removes cached settings and drafts stored in this browser profile</span>
+                        <span class="setting-title" data-i18n="auto-clear-local-cache">Clear local cache</span>
+                        <span class="setting-desc" data-i18n="auto-removes-cached-settings-and-drafts-stored-in-this-browser-pr">Removes cached settings and drafts stored in this browser profile</span>
                     </div>
                     <button type="button" class="btn-danger-outline"
-                        onclick="window.clearLocalCache && window.clearLocalCache(); return false;">
+                        onclick="window.clearLocalCache && window.clearLocalCache(); return false;" data-i18n="auto-clear-cache">
                         Clear cache
                     </button>
                 </div>

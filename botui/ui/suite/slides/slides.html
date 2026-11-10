@@ -6,7 +6,7 @@
     <div class="slides-toolbar">
         <div class="toolbar-left">
             <input type="text" class="slides-title-input" id="presTitle" name="name" value="Untitled Presentation" spellcheck="false" hx-post="/api/slides/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
-            <span class="slides-save-status" id="saveStatus" style="color:#94a3b8;font-size:12px;margin-left:8px;">All changes saved</span>
+            <span class="slides-save-status" id="saveStatus" style="color:#94a3b8;font-size:12px;margin-left:8px;" data-i18n="auto-all-changes-saved">All changes saved</span>
         </div>
         <div class="toolbar-center">
             <div class="toolbar-group">
@@ -56,7 +56,7 @@
                 </button>
             </div>
             <div class="toolbar-group" id="rotation-group" style="display:none;">
-                <label style="color:#94a3b8;font-size:11px;margin-right:4px;">Rotate</label>
+                <label style="color:#94a3b8;font-size:11px;margin-right:4px;" data-i18n="auto-rotate-2">Rotate</label>
                 <input type="number" id="rotationInput" value="0" min="-180" max="180" step="15" style="width:50px;padding:2px 4px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#f8fafc;font-size:12px;text-align:center;" title="Rotation degrees">
                 <span style="color:#94a3b8;font-size:11px;">°</span>
                 <button class="btn-icon" id="resetRotationBtn" title="Reset rotation" style="margin-left:2px;">

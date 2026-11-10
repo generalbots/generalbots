@@ -22,8 +22,16 @@ mod jwks;
 mod jwt;
 
 #[cfg(test)]
+#[path = "fixtures.rs"]
+mod fixtures;
+
+#[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "jwt_tests.rs"]
+mod jwt_tests;
 
 use axum::http::{header::AUTHORIZATION, HeaderMap, StatusCode};
 
@@ -80,7 +88,9 @@ impl AuthError {
     /// Log-safe description: no header value and no secret.
     pub fn reason(self) -> &'static str {
         match self {
-            Self::Unconfigured => "no Teams credential configured (teams-app-id / teams-security-token)",
+            Self::Unconfigured => {
+                "no Teams credential configured (teams-app-id / teams-security-token)"
+            }
             Self::MissingHeader => "missing Authorization header",
             Self::UnsupportedScheme => "unsupported Authorization scheme",
             Self::InvalidSignature => "HMAC signature mismatch",

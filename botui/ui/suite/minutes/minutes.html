@@ -1,30 +1,30 @@
 <link rel="stylesheet" href="/suite/minutes/minutes.css">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 
 <div class="gb-app min-container" data-gb-app="minutes">
     <header class="min-header">
-        <h1>Meeting Minutes</h1>
+        <h1 data-i18n="auto-meeting-minutes">Meeting Minutes</h1>
         <div class="min-header-actions">
             <button class="min-btn" onclick="openMinModal('min-meeting-modal')">Agendar</button>
             <button class="min-btn" onclick="openMinModal('min-action-modal')">Nova Ação</button>
             <button class="min-btn" onclick="openMinModal('min-attendance-modal')">Presença</button>
             <button class="min-btn" onclick="openMinModal('min-doc-modal')">Ata</button>
-            <button class="min-btn" onclick="openMinModal('min-sign-modal')">Assinatura</button>
+            <button class="min-btn" onclick="openMinModal('min-sign-modal')" data-i18n="auto-assinatura">Assinatura</button>
             <button class="min-btn" hx-get="/suite/minutes/fragments/upcoming" hx-target="#min-content" hx-swap="innerHTML">Atualizar</button>
         </div>
     </header>
 
     <nav class="min-tabs">
         <button class="min-tab active" data-tab-trigger="upcoming" hx-get="/suite/minutes/fragments/upcoming" hx-target="#min-content" hx-swap="innerHTML">Próximas</button>
-        <button class="min-tab" data-tab-trigger="live" hx-get="/suite/minutes/fragments/live" hx-target="#min-content" hx-swap="innerHTML">Em andamento</button>
+        <button class="min-tab" data-tab-trigger="live" hx-get="/suite/minutes/fragments/live" hx-target="#min-content" hx-swap="innerHTML" data-i18n="auto-em-andamento">Em andamento</button>
         <button class="min-tab" data-tab-trigger="transcripts" hx-get="/suite/minutes/fragments/transcripts" hx-target="#min-content" hx-swap="innerHTML">Transcrições</button>
-        <button class="min-tab" data-tab-trigger="documents" hx-get="/suite/minutes/fragments/documents" hx-target="#min-content" hx-swap="innerHTML">Atas</button>
+        <button class="min-tab" data-tab-trigger="documents" hx-get="/suite/minutes/fragments/documents" hx-target="#min-content" hx-swap="innerHTML" data-i18n="auto-atas">Atas</button>
         <button class="min-tab" data-tab-trigger="actions" hx-get="/suite/minutes/fragments/actions" hx-target="#min-content" hx-swap="innerHTML">Ações</button>
-        <button class="min-tab" data-tab-trigger="templates" hx-get="/suite/minutes/fragments/templates" hx-target="#min-content" hx-swap="innerHTML">Templates</button>
-        <button class="min-tab" data-tab-trigger="signatures" hx-get="/suite/minutes/fragments/signatures" hx-target="#min-content" hx-swap="innerHTML">Assinaturas</button>
+        <button class="min-tab" data-tab-trigger="templates" hx-get="/suite/minutes/fragments/templates" hx-target="#min-content" hx-swap="innerHTML" data-i18n="workspace-templates">Templates</button>
+        <button class="min-tab" data-tab-trigger="signatures" hx-get="/suite/minutes/fragments/signatures" hx-target="#min-content" hx-swap="innerHTML" data-i18n="auto-assinaturas">Assinaturas</button>
     </nav>
 
     <div class="min-content" id="min-content" hx-get="/suite/minutes/fragments/upcoming" hx-trigger="load delay:0" hx-swap="innerHTML">
@@ -37,10 +37,10 @@
         <h3>Agendar reunião</h3>
         <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/meeting')">
             <label>Título <input name="title" required></label>
-            <label>Data <input type="date" name="date" required></label>
+            <label data-i18n="auto-data">Data <input type="date" name="date" required></label>
             <label>Hora <input type="time" name="time" required></label>
             <label>Duração (min) <input type="number" name="duration" value="30" min="5" required></label>
-            <label>Local <input name="location" placeholder="Sala ou link"></label>
+            <label data-i18n="auto-local">Local <input name="location" placeholder="Sala ou link"></label>
             <div class="min-modal-actions">
                 <button type="button" class="min-btn" onclick="closeMinModal('min-meeting-modal')">Cancelar</button>
                 <button type="submit" class="min-btn min-btn-primary">Agendar</button>
@@ -56,7 +56,7 @@
             <label>ID da reunião (opcional) <input name="meeting_id" placeholder="UUID da reunião"></label>
             <label>Título <input name="title" required></label>
             <label>Responsável <input name="owner" required></label>
-            <label>Prazo <input type="date" name="due"></label>
+            <label data-i18n="auto-prazo">Prazo <input type="date" name="due"></label>
             <label>Prioridade
                 <select name="priority">
                     <option value="low">Baixa</option>
@@ -79,17 +79,17 @@
         <h3>Confirmação de presença</h3>
         <form onsubmit="return submitMinuteFormWithId(event, 'min-attendance-meeting', '/api/minutes/forms/attendance/')">
             <label>ID da reunião <input id="min-attendance-meeting" name="meeting_id" required placeholder="UUID da reunião"></label>
-            <label>Participante <input name="attendee" required placeholder="Nome ou e-mail"></label>
+            <label data-i18n="auto-participante">Participante <input name="attendee" required placeholder="Nome ou e-mail"></label>
             <label>Status
                 <select name="status">
-                    <option value="confirmed" selected>Confirmado</option>
-                    <option value="declined">Recusado</option>
-                    <option value="tentative">Talvez</option>
+                    <option value="confirmed" selected data-i18n="auto-confirmado">Confirmado</option>
+                    <option value="declined" data-i18n="auto-recusado">Recusado</option>
+                    <option value="tentative" data-i18n="auto-talvez">Talvez</option>
                 </select>
             </label>
             <div class="min-modal-actions">
                 <button type="button" class="min-btn" onclick="closeMinModal('min-attendance-modal')">Cancelar</button>
-                <button type="submit" class="min-btn min-btn-primary">Registrar</button>
+                <button type="submit" class="min-btn min-btn-primary" data-i18n="auto-registrar">Registrar</button>
             </div>
         </form>
     </div>
@@ -97,7 +97,7 @@
 
 <div id="min-doc-modal" class="min-modal" hidden>
     <div class="min-modal-content">
-        <h3>Editor de ata</h3>
+        <h3 data-i18n="auto-editor-de-ata">Editor de ata</h3>
         <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/document')">
             <label>ID da reunião (opcional) <input name="meeting_id" placeholder="UUID da reunião"></label>
             <label>Título <input name="title" required></label>
@@ -105,7 +105,7 @@
                 <select name="kind">
                     <option value="minutes" selected>Ata</option>
                     <option value="transcript">Transcrição</option>
-                    <option value="summary">Resumo</option>
+                    <option value="summary" data-i18n="auto-resumo">Resumo</option>
                 </select>
             </label>
             <label>Conteúdo <textarea name="content" rows="4"></textarea></label>
@@ -119,13 +119,13 @@
 
 <div id="min-sign-modal" class="min-modal" hidden>
     <div class="min-modal-content">
-        <h3>Assinatura digital</h3>
+        <h3 data-i18n="auto-assinatura-digital">Assinatura digital</h3>
         <form onsubmit="return submitMinuteFormWithId(event, 'min-sign-doc', '/api/minutes/forms/sign/')">
-            <label>ID do documento <input id="min-sign-doc" name="document_id" required placeholder="UUID do documento"></label>
-            <label>Assinante <input name="signer" required placeholder="Nome ou e-mail"></label>
+            <label data-i18n="auto-id-do-documento">ID do documento <input id="min-sign-doc" name="document_id" required placeholder="UUID do documento"></label>
+            <label data-i18n="auto-assinante">Assinante <input name="signer" required placeholder="Nome ou e-mail"></label>
             <div class="min-modal-actions">
                 <button type="button" class="min-btn" onclick="closeMinModal('min-sign-modal')">Cancelar</button>
-                <button type="submit" class="min-btn min-btn-primary">Assinar</button>
+                <button type="submit" class="min-btn min-btn-primary" data-i18n="auto-assinar">Assinar</button>
             </div>
         </form>
     </div>

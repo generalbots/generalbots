@@ -1,6 +1,7 @@
 pub use botcorebot::*;
 pub mod api_catalog;
 pub mod api_exec;
+pub mod api_exec_assertion;
 pub mod commands_derived;
 pub mod crm_commands;
 pub mod endpoint_inventory;

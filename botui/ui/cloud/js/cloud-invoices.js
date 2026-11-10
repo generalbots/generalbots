@@ -11,18 +11,18 @@ async function loadInvoices(token) {
     const res = await fetch(`${API_BASE}/invoices`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { showError('Failed to load invoices'); return; }
+    if (!res.ok) { showError(gbT('cloud-invoices-load-failed', 'Failed to load invoices')); return; }
     const data = await res.json();
     renderInvoices(data.invoices || []);
   } catch (err) {
-    showError('Error: ' + err.message);
+    showError(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 
 function renderInvoices(invoices) {
   const container = document.getElementById('invoices-list');
   if (invoices.length === 0) {
-    container.innerHTML = '<div class="saas-loading">No invoices yet.</div>';
+    container.innerHTML = '<div class="saas-loading">' + gbT('cloud-invoices-empty', 'No invoices yet.') + '</div>';
     return;
   }
   container.innerHTML = invoices.map(inv => `

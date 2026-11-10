@@ -8,7 +8,7 @@
 //! record is persisted per call.
 
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use rust_decimal::Decimal;
 use serde::Deserialize;
@@ -17,6 +17,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{api_error, api_error_db, locale_from_headers, ApiError};
 use crate::ProductsState;
 
 #[derive(Debug, Deserialize)]
@@ -49,13 +50,16 @@ struct ServiceRow {
 
 pub async fn calculate_service_tax(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Query(query): Query<ServiceTaxQuery>,
     Json(req): Json<ServiceTaxRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let branch_id = crate::get_bot_context(&state.pool, &state.get_default_bot);
     let result = calculate_service_tax_inner(
         &mut conn,
@@ -67,7 +71,7 @@ pub async fn calculate_service_tax(
     .await;
     match result {
         Ok(value) => Ok(Json(value)),
-        Err((code, msg)) => Err((code, msg)),
+        Err((status, code)) => Err(api_error(&locale, status, code)),
     }
 }
 
@@ -81,7 +85,7 @@ pub async fn calculate_service_tax_inner(
     service_id_or_name: &str,
     name: Option<&str>,
     value: Option<&str>,
-) -> Result<serde_json::Value, (StatusCode, String)> {
+) -> Result<serde_json::Value, (StatusCode, &'static str)> {
     use diesel::prelude::*;
     let id = service_id_or_name;
 
@@ -115,15 +119,18 @@ pub async fn calculate_service_tax_inner(
         .get_result::<ServiceRow>(conn)
         .ok()
     });
-    let service = by_name.ok_or((StatusCode::NOT_FOUND, format!("Service '{id}' not found")))?;
+    let service = by_name.ok_or((StatusCode::NOT_FOUND, "error-service-not-found"))?;
 
     let service_value = value
         .map(Decimal::from_str)
         .transpose()
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid value: {e}")))?
+        .map_err(|e| {
+            log::warn!("service tax value rejected: {e}");
+            (StatusCode::BAD_REQUEST, "error-service-invalid-value")
+        })?
         .or(service.fixed_price)
         .or(service.hourly_rate)
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "Service has no price; provide 'value'".to_string()))?;
+        .ok_or((StatusCode::BAD_REQUEST, "error-service-price-required"))?;
 
     let loaded = bottax::storage::load_rates_from_billing(conn, &branch_id);
     let mut rates = loaded.unwrap_or_default();

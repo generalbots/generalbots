@@ -322,6 +322,7 @@ mod list_price_lists;
 mod handle_products_items;
 mod handle_products_pricelists;
 mod handle_product_detail_view;
+mod errors;
 
 pub use get_bot_context::*;
 use bd::*;
@@ -331,3 +332,4 @@ pub use list_price_lists::*;
 use handle_products_items::*;
 use handle_products_pricelists::*;
 pub use handle_product_detail_view::*;
+pub use errors::*;

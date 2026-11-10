@@ -10,7 +10,7 @@
                  carries the title bar and the ✕ close button. The filename
                  and dirty indicator still exist for save/status JS logic,
                  kept hidden off-screen. -->
-            <span id="editor-filename" style="display:none">Untitled</span>
+            <span id="editor-filename" style="display:none" data-i18n="paper-untitled">Untitled</span>
             <span class="dirty-indicator" id="dirty-indicator" style="display: none;" title="Unsaved changes"></span>
 
             <!-- Toolbar -->
@@ -26,7 +26,7 @@
                         class="btn btn-small"
                         hx-get="/api/editor/save-as"
                         hx-target="#save-dialog"
-                        hx-swap="innerHTML">
+                        hx-swap="innerHTML" data-i18n="auto-save-as">
                         Save As
                     </button>
                 </div>
@@ -36,14 +36,14 @@
                         class="btn btn-small"
                         hx-post="/api/editor/undo"
                         hx-target="#editor-content"
-                        hx-swap="innerHTML">
+                        hx-swap="innerHTML" data-i18n="auto-undo">
                         ↩️ Undo
                     </button>
                     <button
                         class="btn btn-small"
                         hx-post="/api/editor/redo"
                         hx-target="#editor-content"
-                        hx-swap="innerHTML">
+                        hx-swap="innerHTML" data-i18n="auto-redo">
                         ↪️ Redo
                     </button>
                 </div>
@@ -60,7 +60,7 @@
                     <button
                         class="btn btn-small btn-magic"
                         onclick="showMagicPanel()"
-                        title="AI Improvements (Ctrl+M)">
+                        title="AI Improvements (Ctrl+M)" data-i18n="auto-magic">
                         ✨ Magic
                     </button>
                 </div>
@@ -73,7 +73,7 @@
                     </button>
                     <button
                         class="btn btn-small"
-                        onclick="csvAddColumn()">
+                        onclick="csvAddColumn()" data-i18n="auto-column">
                         ➕ Column
                     </button>
                 </div>
@@ -82,11 +82,11 @@
             <!-- Magic AI Panel -->
             <div class="magic-panel" id="magic-panel">
                 <div class="magic-header">
-                    <h3>✨ AI Improvements</h3>
+                    <h3 data-i18n="auto-ai-improvements">✨ AI Improvements</h3>
                     <button class="magic-close" onclick="hideMagicPanel()">×</button>
                 </div>
                 <div class="magic-content" id="magic-content">
-                    <div class="magic-loading">Analyzing code...</div>
+                    <div class="magic-loading" data-i18n="auto-analyzing-code">Analyzing code...</div>
                 </div>
             </div>
 
@@ -98,11 +98,11 @@
                      can review/edit them before commit (Source Control) or deploy. -->
                 <div class="editor-sidebar" id="editor-sidebar" style="display: none;">
                     <div class="editor-sidebar-head">
-                        <span id="editor-tree-root">FILES</span>
+                        <span id="editor-tree-root" data-i18n="auto-files">FILES</span>
                         <button id="editor-tree-refresh" title="Refresh workspace files">↻</button>
                     </div>
                     <div class="editor-tree" id="editor-tree">
-                        <div class="editor-tree-empty">No project selected.</div>
+                        <div class="editor-tree-empty" data-i18n="auto-no-project-selected">No project selected.</div>
                     </div>
                 </div>
 
@@ -125,17 +125,17 @@
             <!-- Status Bar -->
             <div class="status-bar">
                 <div class="status-left">
-                    <span id="file-type">📄 Plain Text</span>
+                    <span id="file-type" data-i18n="auto-plain-text">📄 Plain Text</span>
                     <span>UTF-8</span>
                     <span
                         id="autosave-indicator"
                         class="htmx-indicator"
-                        style="font-size: 11px;">
+                        style="font-size: 11px;" data-i18n="label-saving">
                         Saving...
                     </span>
                 </div>
                 <div class="status-right">
-                    <span id="cursor-position">Ln 1, Col 1</span>
+                    <span id="cursor-position" data-i18n="auto-ln-1-col-1">Ln 1, Col 1</span>
                 </div>
             </div>
                 </div>
@@ -148,8 +148,8 @@
         <!-- Notification -->
         <div class="notification" id="notification"></div>
 
-        <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading editor…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Editor unavailable</span></div>
+        <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-editor">Loading editor…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-editor-unavailable">Editor unavailable</span></div>
 <script src="/suite/editor/modules/01_editor_magic.js?v=3"></script>
 <script src="/suite/editor/modules/02_editor_save_csv.js?v=3"></script>
 <script src="/suite/editor/modules/03_editor_boot_vibe.js?v=3"></script>

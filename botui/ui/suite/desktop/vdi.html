@@ -38,28 +38,28 @@
                 <button class="toolbar-btn" id="btn-clipboard" title="Clipboard Sync">&#x1F4CB;</button>
                 <button class="toolbar-btn" id="btn-ctrl-alt-del" title="Ctrl+Alt+Del">CAD</button>
                 <select id="resolution-select" class="toolbar-select">
-                    <option value="auto">Auto</option>
+                    <option value="auto" data-i18n="chat-model-auto">Auto</option>
                     <option value="1024x768">1024x768</option>
                     <option value="1280x720">1280x720</option>
                     <option value="1920x1080">1920x1080</option>
                 </select>
                 <select id="scaling-select" class="toolbar-select">
-                    <option value="scale">Fit to Window</option>
-                    <option value="none">Actual Size</option>
-                    <option value="stretch">Stretch</option>
+                    <option value="scale" data-i18n="auto-fit-to-window">Fit to Window</option>
+                    <option value="none" data-i18n="auto-actual-size">Actual Size</option>
+                    <option value="stretch" data-i18n="auto-stretch">Stretch</option>
                 </select>
-                <button class="btn btn-danger btn-sm" id="btn-disconnect">Disconnect</button>
+                <button class="btn btn-danger btn-sm" id="btn-disconnect" data-i18n="action-disconnect">Disconnect</button>
             </div>
             <div class="vnc-canvas-wrapper" id="vnc-container">
                 <canvas id="vnc-canvas"></canvas>
                 <div id="rfb-container"></div>
                 <div class="connection-overlay" id="vnc-loading" style="display:none">
                     <div class="spinner"></div>
-                    <span id="connection-status-text">Connecting...</span>
+                    <span id="connection-status-text" data-i18n="vdi-connecting">Connecting...</span>
                 </div>
             </div>
             <div class="session-statusbar">
-                <span id="connection-status">Disconnected</span>
+                <span id="connection-status" data-i18n="status-disconnected">Disconnected</span>
                 <span id="connection-info"></span>
             </div>
         </section>
@@ -72,40 +72,40 @@
 <div class="modal-overlay hidden" id="modal-overlay">
     <div class="modal" id="new-connection-modal">
         <div class="modal-header">
-            <h2>New Connection</h2>
+            <h2 data-i18n="vdi-new-connection">New Connection</h2>
             <button class="modal-close" id="btn-modal-close">&times;</button>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="conn-name">Connection Name</label>
+                <label for="conn-name" data-i18n="vdi-connection-name">Connection Name</label>
                 <input type="text" id="conn-name" class="input-field" maxlength="255">
             </div>
             <div class="form-group">
-                <label for="conn-host">Hostname or IP</label>
+                <label for="conn-host" data-i18n="auto-hostname-or-ip">Hostname or IP</label>
                 <input type="text" id="conn-host" class="input-field" placeholder="10.0.0.1">
             </div>
             <div class="form-group">
-                <label for="conn-port">Port</label>
+                <label for="conn-port" data-i18n="dashboards-port">Port</label>
                 <input type="number" id="conn-port" class="input-field" value="5900" min="1" max="65535">
             </div>
             <div class="form-group">
-                <label for="conn-protocol">Protocol</label>
+                <label for="conn-protocol" data-i18n="vdi-protocol">Protocol</label>
                 <select id="conn-protocol" class="input-field" onchange="VDI.onProtocolChange()">
                     <option value="vnc">VNC</option>
                     <option value="rdp">RDP</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="conn-auth-type">Authentication</label>
+                <label for="conn-auth-type" data-i18n="auto-authentication">Authentication</label>
                 <select id="conn-auth-type" class="input-field">
-                    <option value="none">None</option>
-                    <option value="password" selected>Password</option>
+                    <option value="none" data-i18n="label-none">None</option>
+                    <option value="password" selected data-i18n="dashboards-password">Password</option>
                 </select>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
-            <button class="btn btn-primary" id="btn-modal-save">Save &amp; Connect</button>
+            <button class="btn btn-secondary" id="btn-modal-cancel" data-i18n="action-cancel">Cancel</button>
+            <button class="btn btn-primary" id="btn-modal-save" data-i18n="vdi-save-connect">Save &amp; Connect</button>
         </div>
     </div>
 </div>
@@ -114,16 +114,16 @@
 <div class="modal-overlay hidden" id="auth-modal-overlay">
     <div class="modal modal-sm" id="auth-modal">
         <div class="modal-header">
-            <h2>VNC Authentication</h2>
+            <h2 data-i18n="auto-vnc-authentication">VNC Authentication</h2>
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="auth-password">Password</label>
+                <label for="auth-password" data-i18n="dashboards-password">Password</label>
                 <input type="password" id="auth-password" class="input-field">
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-primary" id="btn-auth-submit">Connect</button>
+            <button class="btn btn-primary" id="btn-auth-submit" data-i18n="action-connect">Connect</button>
         </div>
     </div>
 </div>

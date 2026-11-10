@@ -3,8 +3,8 @@
 <link rel="stylesheet" href="/suite/campaigns/campaigns-publish.css?v=1" />
 <link rel="stylesheet" href="/suite/campaigns/campaigns-studio.css?v=1" />
 <link rel="stylesheet" href="/suite/campaigns/campaigns-publish.css?v=1" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading campaigns…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Campaigns unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-campaigns">Loading campaigns…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-campaigns-unavailable">Campaigns unavailable</span></div>
 <script src="/suite/campaigns/campaigns-templates.js?v=1"></script>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
@@ -46,32 +46,32 @@
         <div class="studio-monitor-toolbar">
             <div class="studio-monitor-filters">
                 <button class="studio-chip active" data-monitor-filter="all">All</button>
-                <button class="studio-chip" data-monitor-filter="email">📧 Email</button>
+                <button class="studio-chip" data-monitor-filter="email" data-i18n="auto-email">📧 Email</button>
                 <button class="studio-chip" data-monitor-filter="whatsapp">💬 WhatsApp</button>
-                <button class="studio-chip" data-monitor-filter="instagram">📸 Instagram</button>
-                <button class="studio-chip" data-monitor-filter="facebook">📘 Facebook</button>
+                <button class="studio-chip" data-monitor-filter="instagram" data-i18n="auto-instagram">📸 Instagram</button>
+                <button class="studio-chip" data-monitor-filter="facebook" data-i18n="auto-facebook-2">📘 Facebook</button>
                 <button class="studio-chip" data-monitor-filter="sms">✉️ SMS</button>
             </div>
-            <button class="btn-secondary" id="studio-monitor-refresh">⟳ Refresh</button>
+            <button class="btn-secondary" id="studio-monitor-refresh" data-i18n="auto-refresh">⟳ Refresh</button>
         </div>
         <div class="studio-monitor-totals" id="studio-monitor-totals"></div>
         <div class="studio-table-wrap">
             <table class="studio-monitor-table">
                 <thead>
                     <tr>
-                        <th>Campaign</th>
-                        <th>Channel</th>
-                        <th>Status</th>
-                        <th>Sent</th>
-                        <th>Delivered</th>
-                        <th>Opened</th>
-                        <th>Clicked</th>
-                        <th>Replied</th>
+                        <th data-i18n="auto-campaign">Campaign</th>
+                        <th data-i18n="auto-channel">Channel</th>
+                        <th data-i18n="label-status">Status</th>
+                        <th data-i18n="billing-quote-sent">Sent</th>
+                        <th data-i18n="auto-delivered">Delivered</th>
+                        <th data-i18n="auto-opened">Opened</th>
+                        <th data-i18n="auto-clicked">Clicked</th>
+                        <th data-i18n="auto-replied">Replied</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody id="studio-monitor-body">
-                    <tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-secondary,#888);">Loading campaigns…</td></tr>
+                    <tr><td colspan="9" style="padding:40px;text-align:center;color:var(--text-secondary,#888);" data-i18n="auto-loading-campaigns">Loading campaigns…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -81,12 +81,12 @@
     <div id="lists-view" class="crm-view">
         <div class="crm-view-header" style="padding: 16px 24px; display: flex; justify-content: flex-end;">
             <button class="btn-primary" onclick="showListModal()">
-                <span>New List</span>
+                <span data-i18n="auto-new-list">New List</span>
             </button>
         </div>
         <div class="campaigns-grid" id="listsList">
             <div class="pipeline-column" style="grid-column: 1 / -1;">
-                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);" data-i18n="auto-loading-lists">
                     Loading lists...
                 </div>
             </div>
@@ -97,12 +97,12 @@
     <div id="templates-view" class="crm-view">
         <div class="crm-view-header" style="padding: 16px 24px; display: flex; justify-content: flex-end;">
             <button class="btn-primary" onclick="showTemplateModal()">
-                <span>New Template</span>
+                <span data-i18n="auto-new-template">New Template</span>
             </button>
         </div>
         <div class="campaigns-grid" id="templatesList">
             <div class="pipeline-column" style="grid-column: 1 / -1;">
-                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);" data-i18n="auto-loading-templates">
                     Loading templates...
                 </div>
             </div>
@@ -121,27 +121,27 @@
     <div class="crm-modal-overlay" onclick="window.CampStudio.actions.closePublish()"></div>
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
-            <h2>🚀 Publish Campaign</h2>
+            <h2 data-i18n="auto-publish-campaign">🚀 Publish Campaign</h2>
             <button class="crm-modal-close" onclick="window.CampStudio.actions.closePublish()">×</button>
         </div>
         <div class="studio-ai-channel-hint" id="studio-publish-desc"></div>
         <div class="crm-form-group">
-            <label>Recipient list</label>
+            <label data-i18n="auto-recipient-list">Recipient list</label>
             <select id="studio-publish-list"></select>
         </div>
         <div class="crm-form-group">
-            <label>Channels</label>
+            <label data-i18n="auto-channels">Channels</label>
             <div class="studio-publish-channels">
-                <label class="studio-check"><input type="checkbox" data-publish-channel="email"> 📧 Email</label>
+                <label class="studio-check" data-i18n="auto-email"><input type="checkbox" data-publish-channel="email"> 📧 Email</label>
                 <label class="studio-check"><input type="checkbox" data-publish-channel="whatsapp"> 💬 WhatsApp</label>
-                <label class="studio-check"><input type="checkbox" data-publish-channel="instagram"> 📸 Instagram (feed post)</label>
+                <label class="studio-check" data-i18n="auto-instagram-feed-post"><input type="checkbox" data-publish-channel="instagram"> 📸 Instagram (feed post)</label>
                 <label class="studio-check"><input type="checkbox" data-publish-channel="sms"> ✉️ SMS</label>
             </div>
         </div>
-        <div class="studio-ai-status" id="studio-publish-status" style="display:none;">Publishing…</div>
+        <div class="studio-ai-status" id="studio-publish-status" style="display:none;" data-i18n="auto-publishing">Publishing…</div>
         <div class="crm-form-actions">
-            <button type="button" class="btn-secondary" onclick="window.CampStudio.actions.closePublish()">Cancel</button>
-            <button type="button" class="btn-primary" onclick="window.CampStudio.actions.doPublish()">🚀 Publish</button>
+            <button type="button" class="btn-secondary" onclick="window.CampStudio.actions.closePublish()" data-i18n="action-cancel">Cancel</button>
+            <button type="button" class="btn-primary" onclick="window.CampStudio.actions.doPublish()" data-i18n="auto-publish">🚀 Publish</button>
         </div>
     </div>
 </div>
@@ -151,18 +151,18 @@
     <div class="crm-modal-overlay"></div>
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
-            <h2>🖼 AI Image Generator</h2>
+            <h2 data-i18n="auto-ai-image-generator">🖼 AI Image Generator</h2>
             <button class="crm-modal-close" id="studio-img-close">×</button>
         </div>
         <div class="crm-form-group">
-            <label>Prompt</label>
+            <label data-i18n="auto-prompt">Prompt</label>
             <textarea id="studio-img-prompt" rows="3" placeholder="e.g., Modern coffee shop interior, warm light, product on wooden table, 4:5 vertical composition for Instagram"></textarea>
         </div>
         <div class="crm-form-row">
             <div class="crm-form-group">
-                <label>Format</label>
+                <label data-i18n="chat-format">Format</label>
                 <select id="studio-img-size">
-                    <option value="auto">Auto</option>
+                    <option value="auto" data-i18n="chat-model-auto">Auto</option>
                     <option value="4:5 portrait">4:5 Portrait (Instagram)</option>
                     <option value="1:1 square">1:1 Square</option>
                     <option value="16:9 landscape">16:9 Landscape</option>
@@ -170,21 +170,21 @@
                 </select>
             </div>
             <div class="crm-form-group">
-                <label>Style</label>
+                <label data-i18n="auto-style">Style</label>
                 <select id="studio-img-style">
-                    <option value="none">No style</option>
-                    <option value="photorealistic">Photorealistic</option>
-                    <option value="minimalist">Minimalist</option>
-                    <option value="vibrant">Vibrant</option>
+                    <option value="none" data-i18n="auto-no-style">No style</option>
+                    <option value="photorealistic" data-i18n="auto-photorealistic">Photorealistic</option>
+                    <option value="minimalist" data-i18n="auto-minimalist">Minimalist</option>
+                    <option value="vibrant" data-i18n="auto-vibrant">Vibrant</option>
                     <option value="3d render">3D render</option>
                 </select>
             </div>
         </div>
         <div class="studio-ai-channel-hint" id="studio-img-hint"></div>
-        <div class="studio-ai-status" id="studio-img-status" style="display:none;">Generating…</div>
+        <div class="studio-ai-status" id="studio-img-status" style="display:none;" data-i18n="auto-generating">Generating…</div>
         <div class="crm-form-actions">
-            <button type="button" class="btn-secondary" id="studio-img-close-2" onclick="window.CampStudio.media.closeDialog()">Cancel</button>
-            <button type="button" class="btn-primary" id="studio-img-generate">🖼 Generate</button>
+            <button type="button" class="btn-secondary" id="studio-img-close-2" onclick="window.CampStudio.media.closeDialog()" data-i18n="action-cancel">Cancel</button>
+            <button type="button" class="btn-primary" id="studio-img-generate" data-i18n="auto-generate-2">🖼 Generate</button>
         </div>
     </div>
 </div>
@@ -194,34 +194,34 @@
     <div class="crm-modal-overlay"></div>
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
-            <h2>✨ AI Content Writer</h2>
+            <h2 data-i18n="auto-ai-content-writer">✨ AI Content Writer</h2>
             <button class="crm-modal-close" id="studio-ai-close">×</button>
         </div>
         <div class="crm-form-group">
-            <label>Goal</label>
+            <label data-i18n="auto-goal">Goal</label>
             <textarea id="studio-ai-goal" rows="3" placeholder="e.g., Announce a 20% discount for returning customers this weekend"></textarea>
         </div>
         <div class="crm-form-group">
-            <label>Audience</label>
+            <label data-i18n="auto-audience">Audience</label>
             <input type="text" id="studio-ai-audience" placeholder="e.g., Existing customers aged 25-40 interested in tech">
         </div>
         <div class="crm-form-row">
             <div class="crm-form-group">
-                <label>Tone</label>
+                <label data-i18n="paper-ai-tone">Tone</label>
                 <select id="studio-ai-tone">
-                    <option value="professional">Professional</option>
-                    <option value="casual">Casual</option>
-                    <option value="persuasive">Persuasive</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="urgent">Urgent</option>
+                    <option value="professional" data-i18n="paper-ai-tone-professional">Professional</option>
+                    <option value="casual" data-i18n="paper-ai-tone-casual">Casual</option>
+                    <option value="persuasive" data-i18n="auto-persuasive">Persuasive</option>
+                    <option value="friendly" data-i18n="paper-ai-tone-friendly">Friendly</option>
+                    <option value="urgent" data-i18n="attendant-priority-urgent">Urgent</option>
                 </select>
             </div>
             <div class="crm-form-group">
-                <label>Length</label>
+                <label data-i18n="auto-length">Length</label>
                 <select id="studio-ai-length">
-                    <option value="short">Short</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="long">Long</option>
+                    <option value="short" data-i18n="auto-short">Short</option>
+                    <option value="medium" selected data-i18n="monitoring-alert-medium">Medium</option>
+                    <option value="long" data-i18n="auto-long">Long</option>
                 </select>
             </div>
             <div class="crm-form-group">
@@ -230,10 +230,10 @@
             </div>
         </div>
         <div class="studio-ai-variations" id="studio-ai-variations" style="display:none;"></div>
-        <div class="studio-ai-status" id="studio-ai-status" style="display:none;">Generating with AI…</div>
+        <div class="studio-ai-status" id="studio-ai-status" style="display:none;" data-i18n="auto-generating-with-ai">Generating with AI…</div>
         <div class="crm-form-actions">
-            <button type="button" class="btn-secondary" id="studio-ai-close-2" onclick="window.CampStudio.ai.closeDialog()">Cancel</button>
-            <button type="button" class="btn-primary" id="studio-ai-generate">✨ Generate</button>
+            <button type="button" class="btn-secondary" id="studio-ai-close-2" onclick="window.CampStudio.ai.closeDialog()" data-i18n="action-cancel">Cancel</button>
+            <button type="button" class="btn-primary" id="studio-ai-generate" data-i18n="auto-generate">✨ Generate</button>
         </div>
     </div>
 </div>
@@ -243,28 +243,28 @@
     <div class="crm-modal-overlay" onclick="closeListModal()"></div>
     <div class="crm-modal-content" style="max-width:520px;">
         <div class="crm-modal-header">
-            <h2 id="list-modal-title">New List</h2>
+            <h2 id="list-modal-title" data-i18n="auto-new-list">New List</h2>
             <button class="crm-modal-close" onclick="closeListModal()">×</button>
         </div>
         <form id="list-form">
             <div class="crm-form-group">
-                <label for="list-name">List Name</label>
+                <label for="list-name" data-i18n="auto-list-name">List Name</label>
                 <input type="text" id="list-name" required placeholder="e.g., Newsletter subscribers">
             </div>
             <div class="crm-form-group">
-                <label for="list-type">Type</label>
+                <label for="list-type" data-i18n="label-type">Type</label>
                 <select id="list-type">
-                    <option value="static">Static</option>
-                    <option value="dynamic">Dynamic (query-based)</option>
+                    <option value="static" data-i18n="auto-static">Static</option>
+                    <option value="dynamic" data-i18n="auto-dynamic-query-based">Dynamic (query-based)</option>
                 </select>
             </div>
             <div class="crm-form-group">
-                <label for="list-query">Segment query (optional)</label>
+                <label for="list-query" data-i18n="auto-segment-query-optional">Segment query (optional)</label>
                 <textarea id="list-query" rows="3" placeholder="e.g., status = 'active' AND country = 'BR'"></textarea>
             </div>
             <div class="crm-form-actions">
-                <button type="button" class="btn-secondary" onclick="closeListModal()">Cancel</button>
-                <button type="button" class="btn-primary" onclick="saveList()">Create List</button>
+                <button type="button" class="btn-secondary" onclick="closeListModal()" data-i18n="action-cancel">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveList()" data-i18n="auto-create-list">Create List</button>
             </div>
         </form>
     </div>

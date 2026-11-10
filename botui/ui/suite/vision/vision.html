@@ -1,22 +1,22 @@
 <link rel="stylesheet" href="/suite/vision/vision.css?v=3">
 <div class="gb-app" data-gb-app="vision">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading vision…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Vision service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-vision">Loading vision…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-vision-service-unavailable">Vision service unavailable</span></div>
   <header class="header">
-    <h1>Reconhecimento de Imagens</h1>
+    <h1 data-i18n="auto-reconhecimento-de-imagens">Reconhecimento de Imagens</h1>
   </header>
 
   <div class="tabs">
     <button class="tab active" data-tab="ocr">OCR</button>
     <button class="tab" data-tab="objects">Detecção de Objetos</button>
     <button class="tab" data-tab="damage">Análise de Danos</button>
-    <button class="tab" data-tab="plates">Reconhecimento de Placas</button>
+    <button class="tab" data-tab="plates" data-i18n="auto-reconhecimento-de-placas">Reconhecimento de Placas</button>
   </div>
 
   <div class="content">
     <div class="upload-area" id="uploadArea">
       <span class="icon">🖼️</span>
-      <span class="text">Arraste uma imagem ou clique para selecionar</span>
+      <span class="text" data-i18n="auto-arraste-uma-imagem-ou-clique-para-selecionar">Arraste uma imagem ou clique para selecionar</span>
       <span class="hint">Suporta JPG, PNG, WEBP (máx. 10MB)</span>
       <input type="file" id="fileInput" accept="image/*">
     </div>
@@ -28,11 +28,11 @@
     <div class="results-layout" id="resultsArea" style="display:none;">
       <div class="results-panel">
         <div class="results-header">
-          <h3 id="resultsTitle">Resultados</h3>
-          <button class="btn btn-sm" id="btnClearResults">Limpar</button>
+          <h3 id="resultsTitle" data-i18n="auto-resultados">Resultados</h3>
+          <button class="btn btn-sm" id="btnClearResults" data-i18n="auto-limpar">Limpar</button>
         </div>
         <div class="results-body" id="resultsBody">
-          <div class="empty-state">Envie uma imagem para analisar</div>
+          <div class="empty-state" data-i18n="auto-envie-uma-imagem-para-analisar">Envie uma imagem para analisar</div>
         </div>
       </div>
 

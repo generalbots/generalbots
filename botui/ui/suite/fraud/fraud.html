@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="/suite/fraud/fraud.css?v=2">
   <div class="gb-app" data-gb-app="fraud">
 <header class="header">
-    <h1>Motor Anti-Fraude</h1>
+    <h1 data-i18n="auto-motor-anti-fraude">Motor Anti-Fraude</h1>
     <div class="header-actions">
       <button class="btn btn-primary" id="btnAddRule">+ Nova Regra</button>
     </div>
@@ -17,7 +17,7 @@
       <span class="value warning" id="statReview">0</span>
     </div>
     <div class="stat-card">
-      <span class="label">Taxa de Falso Positivo</span>
+      <span class="label" data-i18n="auto-taxa-de-falso-positivo">Taxa de Falso Positivo</span>
       <span class="value accent" id="statFalsePositive">0%</span>
     </div>
     <div class="stat-card">
@@ -28,8 +28,8 @@
 
   <div class="tabs">
     <button class="tab active" data-tab="transactions">Transações</button>
-    <button class="tab" data-tab="rules">Regras</button>
-    <button class="tab" data-tab="blocklist">Bloqueio</button>
+    <button class="tab" data-tab="rules" data-i18n="auto-regras">Regras</button>
+    <button class="tab" data-tab="blocklist" data-i18n="auto-bloqueio">Bloqueio</button>
     <button class="tab" data-tab="reports">Relatórios</button>
   </div>
 
@@ -41,9 +41,9 @@
           <div class="table-actions">
             <select id="filterStatus" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-primary);font-size:13px;">
               <option value="">Todos os status</option>
-              <option value="approved">Aprovado</option>
+              <option value="approved" data-i18n="auto-aprovado">Aprovado</option>
               <option value="review">Revisão</option>
-              <option value="blocked">Bloqueado</option>
+              <option value="blocked" data-i18n="auto-bloqueado">Bloqueado</option>
             </select>
           </div>
         </div>
@@ -68,7 +68,7 @@
     <div class="tab-panel" id="panel-blocklist">
       <div class="table-container">
         <div class="table-header">
-          <h3>Lista de Bloqueio</h3>
+          <h3 data-i18n="auto-lista-de-bloqueio">Lista de Bloqueio</h3>
           <button class="btn btn-primary btn-sm" id="btnAddBlocklist">+ Adicionar</button>
         </div>
         <div id="blocklistTableContainer">
@@ -109,13 +109,13 @@
           <div class="form-group">
             <label>Ação</label>
             <select id="ruleAction">
-              <option value="flag">Marcar (Flag)</option>
-              <option value="block">Bloquear</option>
+              <option value="flag" data-i18n="auto-marcar-flag">Marcar (Flag)</option>
+              <option value="block" data-i18n="auto-bloquear">Bloquear</option>
               <option value="review">Revisão</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Prioridade</label>
+            <label data-i18n="auto-prioridade">Prioridade</label>
             <select id="rulePriority">
               <option value="low">Baixa</option>
               <option value="medium">Média</option>
@@ -139,9 +139,9 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Tipo</label>
+          <label data-i18n="auto-tipo">Tipo</label>
           <select id="blocklistType">
-            <option value="email">E-mail</option>
+            <option value="email" data-i18n="auto-e-mail">E-mail</option>
             <option value="phone">Telefone</option>
             <option value="ip">IP</option>
           </select>
@@ -151,7 +151,7 @@
           <input type="text" id="blocklistValue" placeholder="Ex: usuario@email.com">
         </div>
         <div class="form-group">
-          <label>Motivo</label>
+          <label data-i18n="auto-motivo">Motivo</label>
           <input type="text" id="blocklistReason" placeholder="Ex: Fraude confirmada">
         </div>
       </div>

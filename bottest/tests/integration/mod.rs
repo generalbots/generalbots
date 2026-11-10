@@ -9,6 +9,7 @@ mod internationalization;
 mod cloud_tenant;
 mod tenant_isolation;
 mod tenant_tokens;
+mod data_integrity;
 mod verification;
 
 use bottest::prelude::*;

@@ -235,3 +235,7 @@ pub async fn record_attendance(
 #[cfg(test)]
 #[path = "parse_dt_tests.rs"]
 mod parse_dt_tests;
+
+#[cfg(test)]
+#[path = "forms_tests.rs"]
+mod forms_tests;

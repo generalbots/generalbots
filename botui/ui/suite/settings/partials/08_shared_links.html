@@ -6,12 +6,12 @@
      installation currently produces, and the configuration each tier needs. -->
 <section id="shared-links-section" class="settings-section" data-shell-only="true" hidden>
     <div class="section-header">
-        <h1>Shared Links</h1>
-        <p class="subtitle">Choose how a public file link reaches the person you send it to</p>
+        <h1 data-i18n="auto-shared-links">Shared Links</h1>
+        <p class="subtitle" data-i18n="auto-choose-how-a-public-file-link-reaches-the-person-you-send-it">Choose how a public file link reaches the person you send it to</p>
     </div>
 
-    <div id="shared-links-reach-note" class="shared-links-reach-note" hidden>
-        <strong>Only this machine is reachable right now.</strong>
+    <div id="shared-links-reach-note" class="shared-links-reach-note" hidden data-i18n="auto-a-copied-loopback-link">
+        <strong data-i18n="auto-only-this-machine-is-reachable-right-now">Only this machine is reachable right now.</strong>
         A copied loopback link (<code>127.0.0.1</code>) opens on the recipient's own
         computer, not yours. Use a LAN address, set a domain, or wait for the free
         General Bots address before sharing a link outside this machine.
@@ -24,8 +24,8 @@
                 <div class="shared-tier-title">
                     <span class="shared-tier-index" aria-hidden="true">1</span>
                     <div>
-                        <h2>This network</h2>
-                        <p>Anyone on your Wi-Fi or wired network</p>
+                        <h2 data-i18n="auto-this-network">This network</h2>
+                        <p data-i18n="auto-anyone-on-your-wi-fi-or-wired-network">Anyone on your Wi-Fi or wired network</p>
                     </div>
                 </div>
                 <span id="shared-lan-status" class="shared-status shared-status-pending">
@@ -34,30 +34,30 @@
             </div>
 
             <div class="shared-url-row">
-                <span class="shared-url-label">On this computer</span>
+                <span class="shared-url-label" data-i18n="auto-on-this-computer">On this computer</span>
                 <code id="shared-links-local-url">http://127.0.0.1:8080/api/files/public/…</code>
-                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-local-url">Copy</button>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-local-url" data-i18n="action-copy">Copy</button>
             </div>
             <div class="shared-url-row">
-                <span class="shared-url-label">On this network</span>
+                <span class="shared-url-label" data-i18n="auto-on-this-network">On this network</span>
                 <code id="shared-links-lan-url">http://this-computer.local:8080/api/files/public/…</code>
-                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-lan-url">Copy</button>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-lan-url" data-i18n="action-copy">Copy</button>
             </div>
 
-            <p id="shared-lan-detail" class="shared-tier-detail">
+            <p id="shared-lan-detail" class="shared-tier-detail" data-i18n="auto-works-for-anyone-on-the-same-network-nothing-leaves-this-mac">
                 Works for anyone on the same network. Nothing leaves this machine.
             </p>
 
             <div class="shared-config">
-                <h3>Configuration</h3>
-                <p>
+                <h3 data-i18n="auto-configuration">Configuration</h3>
+                <p data-i18n="auto-this-tier-is-on-by-default-the-local-server-listens-on-all-i">
                     This tier is on by default: the local server listens on all
                     interfaces. Open the network address from another device on the
                     same network. If device-to-device traffic is blocked, allow
                     inbound TCP port <code id="shared-links-port">8080</code> on this
                     computer.
                 </p>
-                <p>
+                <p data-i18n="auto-if-the">
                     If the <code>.local</code> name does not resolve, use this
                     computer's IPv4 address instead (for example
                     <code>http://192.168.1.20:8080</code>).
@@ -71,8 +71,8 @@
                 <div class="shared-tier-title">
                     <span class="shared-tier-index" aria-hidden="true">2</span>
                     <div>
-                        <h2>My own domain</h2>
-                        <p>A name you control, reachable from the internet</p>
+                        <h2 data-i18n="auto-my-own-domain">My own domain</h2>
+                        <p data-i18n="auto-a-name-you-control-reachable-from-the-internet">A name you control, reachable from the internet</p>
                     </div>
                 </div>
                 <span id="shared-domain-status" class="shared-status shared-status-off">
@@ -81,35 +81,35 @@
             </div>
 
             <div class="shared-url-row">
-                <span class="shared-url-label">Public link</span>
+                <span class="shared-url-label" data-i18n="auto-public-link">Public link</span>
                 <code id="shared-links-domain-url">https://files.example.com/api/files/public/…</code>
-                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-domain-url">Copy</button>
+                <button type="button" class="btn-secondary btn-sm" data-copy-target="shared-links-domain-url" data-i18n="action-copy">Copy</button>
             </div>
 
-            <p id="shared-domain-detail" class="shared-tier-detail">
+            <p id="shared-domain-detail" class="shared-tier-detail" data-i18n="auto-not-configured-new-links-fall-back-to-the-local-address-abov">
                 Not configured — new links fall back to the local address above.
             </p>
 
             <div class="shared-config">
-                <h3>How to configure</h3>
+                <h3 data-i18n="auto-how-to-configure">How to configure</h3>
                 <ol class="shared-steps">
-                    <li>
+                    <li data-i18n="auto-point-a-dns-record-for-example">
                         Point a DNS record (for example
                         <code>files.example.com</code>) at this computer's public
                         address.
                     </li>
-                    <li>
+                    <li data-i18n="auto-set-the-public-base-url-for-this-installation">
                         Set the public base URL for this installation:
                         <pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre>
                         or, in the product file:
                         <pre><code>public_base_url=https://files.example.com</code></pre>
                     </li>
-                    <li>
+                    <li data-i18n="auto-restart-the-desktop-app-so-new-share-links-are-composed-agai">
                         Restart the desktop app so new share links are composed
                         against the domain; existing links keep their tokens.
                     </li>
                 </ol>
-                <p class="shared-hint">
+                <p class="shared-hint" data-i18n="auto-the-registrar-token-stays-in-the-local-vault-and-is-never-wr">
                     The registrar token stays in the local vault and is never
                     written to logs. Automatic DNS refresh and TLS certificates
                     are part of the domain-provider work tracked in this issue;
@@ -124,8 +124,8 @@
                 <div class="shared-tier-title">
                     <span class="shared-tier-index" aria-hidden="true">3</span>
                     <div>
-                        <h2>Free General Bots address</h2>
-                        <p>A name provided by General Bots, no domain needed</p>
+                        <h2 data-i18n="auto-free-general-bots-address">Free General Bots address</h2>
+                        <p data-i18n="auto-a-name-provided-by-general-bots-no-domain-needed">A name provided by General Bots, no domain needed</p>
                     </div>
                 </div>
                 <span id="shared-free-status" class="shared-status shared-status-off">
@@ -134,11 +134,11 @@
             </div>
 
             <div class="shared-url-row">
-                <span class="shared-url-label">Public link</span>
+                <span class="shared-url-label" data-i18n="auto-public-link">Public link</span>
                 <code id="shared-links-free-url">https://your-name.generalbots.org/api/files/public/…</code>
             </div>
 
-            <p class="shared-tier-detail">
+            <p class="shared-tier-detail" data-i18n="auto-not-available-yet-the-desktop-works-offline-so-this-tier-nee">
                 Not available yet. The desktop works offline, so this tier needs a
                 free DNS zone and a relay for machines that cannot be reached
                 directly. It ships disabled with the <code>botpublic</code> work
@@ -146,8 +146,8 @@
             </p>
 
             <div class="shared-config">
-                <h3>What it will do</h3>
-                <p>
+                <h3 data-i18n="auto-what-it-will-do">What it will do</h3>
+                <p data-i18n="auto-the-free-account-will-hold-a-name-not-your-files-when-a-mach">
                     The free account will hold a name — not your files. When a
                     machine cannot be reached directly, the managed relay
                     (<code id="shared-links-relay-host">peer.generalbots.org</code>) keeps only an encrypted
@@ -160,26 +160,26 @@
 
     <div class="setting-card shared-master-switch">
         <div class="card-header">
-            <h2>Master peer switch</h2>
+            <h2 data-i18n="auto-master-peer-switch">Master peer switch</h2>
             <p>Stop all P2P traffic for this installation. Offline mode keeps every
             connection on <code>127.0.0.1</code>.</p>
         </div>
         <div class="inline-row">
-            <label for="peer-network-mode">Network mode</label>
+            <label for="peer-network-mode" data-i18n="auto-network-mode">Network mode</label>
             <select id="peer-network-mode">
-                <option value="offline">Offline (default)</option>
-                <option value="p2p">P2P (opt-in)</option>
+                <option value="offline" data-i18n="auto-offline-default">Offline (default)</option>
+                <option value="p2p" data-i18n="auto-p2p-opt-in">P2P (opt-in)</option>
             </select>
-            <button type="button" class="btn-secondary btn-sm" id="peer-master-switch">Apply</button>
+            <button type="button" class="btn-secondary btn-sm" id="peer-master-switch" data-i18n="action-apply">Apply</button>
         </div>
-        <p class="shared-hint">
+        <p class="shared-hint" data-i18n="auto-the-relay-endpoint-is-fixed">
             The relay endpoint is fixed (<code>peer.generalbots.org</code>). Changing this
             setting may require restarting the app to take full effect.
         </p>
     </div>
 
     <div class="shared-links-footer">
-        <button type="button" class="btn-secondary btn-sm" onclick="window.refreshSharedLinks && window.refreshSharedLinks()">
+        <button type="button" class="btn-secondary btn-sm" onclick="window.refreshSharedLinks && window.refreshSharedLinks()" data-i18n="auto-check-again">
             Check again
         </button>
         <span id="shared-links-checked" class="shared-links-checked"></span>

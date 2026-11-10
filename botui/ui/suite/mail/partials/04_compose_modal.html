@@ -2,7 +2,7 @@
 <dialog id="compose-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h2>New Message</h2>
+            <h2 data-i18n="auto-new-message">New Message</h2>
             <div class="compose-actions-top">
                 <button
                     class="icon-btn"
@@ -56,7 +56,7 @@
                         type="button"
                         class="field-toggle"
                         onclick="toggleCcBcc()"
-                    >
+                     data-i18n="auto-cc-bcc">
                         Cc/Bcc
                     </button>
                 </div>
@@ -79,7 +79,7 @@
                     />
                 </div>
                 <div class="field-row">
-                    <label>Subject:</label>
+                    <label data-i18n="auto-subject">Subject:</label>
                     <input
                         type="text"
                         name="subject"
@@ -101,16 +101,16 @@
                 <div class="compose-options">
                     <label class="option-checkbox">
                         <input type="checkbox" name="track_opens" checked />
-                        <span>Track opens</span>
+                        <span data-i18n="auto-track-opens">Track opens</span>
                     </label>
                     <label class="option-checkbox">
                         <input type="checkbox" name="request_receipt" />
-                        <span>Request read receipt</span>
+                        <span data-i18n="auto-request-read-receipt">Request read receipt</span>
                     </label>
                     <select name="priority" class="priority-select">
-                        <option value="normal">Normal priority</option>
-                        <option value="high">High priority</option>
-                        <option value="low">Low priority</option>
+                        <option value="normal" data-i18n="auto-normal-priority">Normal priority</option>
+                        <option value="high" data-i18n="auto-high-priority">High priority</option>
+                        <option value="low" data-i18n="auto-low-priority">Low priority</option>
                     </select>
                 </div>
                 <div class="compose-actions">
@@ -121,7 +121,7 @@
                         hx-include="#compose-form"
                         hx-swap="none"
                         onclick="prepareSubmit()"
-                    >
+                     data-i18n="mail-save-draft">
                         Save Draft
                     </button>
                     <div class="send-group">

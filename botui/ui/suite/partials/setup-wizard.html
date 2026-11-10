@@ -1,8 +1,8 @@
 <div class="setup-wizard-overlay" id="setupWizardOverlay">
   <div class="setup-wizard-modal">
     <div class="setup-wizard-header">
-      <h2>Welcome to General Bots</h2>
-      <p>Let's get you set up in a few quick steps</p>
+      <h2 data-i18n="auto-welcome-to-general-bots-2">Welcome to General Bots</h2>
+      <p data-i18n="auto-let-s-get-you-set-up-in-a-few-quick-steps">Let's get you set up in a few quick steps</p>
     </div>
 
     <!-- Progress Bar -->
@@ -11,17 +11,17 @@
         <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
       </div>
       <div class="setup-progress-steps">
-        <span class="setup-step active" data-step="1">LLM Provider</span>
-        <span class="setup-step" data-step="2">User Profile</span>
-        <span class="setup-step" data-step="3">Bot Config</span>
-        <span class="setup-step" data-step="4">Training</span>
+        <span class="setup-step active" data-step="1" data-i18n="auto-llm-provider">LLM Provider</span>
+        <span class="setup-step" data-step="2" data-i18n="auto-user-profile">User Profile</span>
+        <span class="setup-step" data-step="3" data-i18n="auto-bot-config">Bot Config</span>
+        <span class="setup-step" data-step="4" data-i18n="products-cat-training">Training</span>
       </div>
     </div>
 
     <!-- Step 1: LLM Provider -->
     <div class="setup-step-content active" id="setupStep1">
-      <h3>Choose your LLM Provider</h3>
-      <p>Select the AI model provider for your bot</p>
+      <h3 data-i18n="auto-choose-your-llm-provider">Choose your LLM Provider</h3>
+      <p data-i18n="auto-select-the-ai-model-provider-for-your-bot">Select the AI model provider for your bot</p>
       <div class="setup-options">
         <div class="setup-option" data-value="openai" onclick="selectSetupOption(this, 'llm_provider')">
           <div class="setup-option-icon">
@@ -42,8 +42,8 @@
             </svg>
           </div>
           <div class="setup-option-info">
-            <span class="setup-option-title">NVIDIA</span>
-            <span class="setup-option-desc">NVIDIA NIM inference</span>
+            <span class="setup-option-title" data-i18n="auto-nvidia">NVIDIA</span>
+            <span class="setup-option-desc" data-i18n="auto-nvidia-nim-inference">NVIDIA NIM inference</span>
           </div>
         </div>
         <div class="setup-option" data-value="anthropic" onclick="selectSetupOption(this, 'llm_provider')">
@@ -54,7 +54,7 @@
           </div>
           <div class="setup-option-info">
             <span class="setup-option-title">Anthropic</span>
-            <span class="setup-option-desc">Claude 3, Claude 3.5 models</span>
+            <span class="setup-option-desc" data-i18n="auto-claude-3-claude-3-5-models">Claude 3, Claude 3.5 models</span>
           </div>
         </div>
         <div class="setup-option" data-value="local" onclick="selectSetupOption(this, 'llm_provider')">
@@ -74,8 +74,8 @@
 
     <!-- Step 2: User Profile -->
     <div class="setup-step-content" id="setupStep2">
-      <h3>What describes you best?</h3>
-      <p>Select your profile type for personalized defaults</p>
+      <h3 data-i18n="auto-what-describes-you-best">What describes you best?</h3>
+      <p data-i18n="auto-select-your-profile-type-for-personalized-defaults">Select your profile type for personalized defaults</p>
       <div class="setup-options">
         <div class="setup-option" data-value="developer" onclick="selectSetupOption(this, 'user_profile')">
           <div class="setup-option-icon">
@@ -108,8 +108,8 @@
             </svg>
           </div>
           <div class="setup-option-info">
-            <span class="setup-option-title">Support</span>
-            <span class="setup-option-desc">Customer service, ticket management</span>
+            <span class="setup-option-title" data-i18n="products-cat-support">Support</span>
+            <span class="setup-option-desc" data-i18n="auto-customer-service-ticket-management">Customer service, ticket management</span>
           </div>
         </div>
       </div>
@@ -117,15 +117,15 @@
 
     <!-- Step 3: Bot Name and Purpose -->
     <div class="setup-step-content" id="setupStep3">
-      <h3>Configure your Bot</h3>
-      <p>Give your bot a name and describe its purpose</p>
+      <h3 data-i18n="auto-configure-your-bot">Configure your Bot</h3>
+      <p data-i18n="auto-give-your-bot-a-name-and-describe-its-purpose">Give your bot a name and describe its purpose</p>
       <div class="setup-form">
         <div class="setup-form-group">
-          <label for="setupBotName">Bot Name</label>
+          <label for="setupBotName" data-i18n="auto-bot-name">Bot Name</label>
           <input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" />
         </div>
         <div class="setup-form-group">
-          <label for="setupBotPurpose">Bot Purpose</label>
+          <label for="setupBotPurpose" data-i18n="auto-bot-purpose">Bot Purpose</label>
           <textarea id="setupBotPurpose" rows="3" placeholder="Describe what your bot should do..." class="setup-input"></textarea>
         </div>
       </div>
@@ -133,7 +133,7 @@
 
     <!-- Step 4: Training Files -->
     <div class="setup-step-content" id="setupStep4">
-      <h3>Treinar seu Bot</h3>
+      <h3 data-i18n="auto-treinar-seu-bot">Treinar seu Bot</h3>
       <p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p>
       <div class="setup-form">
         <div class="setup-form-group">
@@ -151,7 +151,7 @@
           <div id="setupFileList" class="setup-file-list"></div>
         </div>
         <div class="setup-form-group" id="setupMediaFeatures" style="display: none;">
-          <label>Media features</label>
+          <label data-i18n="auto-media-features">Media features</label>
           <div class="setup-file-list" id="setupMediaFeatureRows"></div>
           <p class="setup-drop-hint" id="setupMediaFeatureNote" style="margin-top: 8px;"></p>
         </div>
@@ -160,10 +160,10 @@
 
     <!-- Navigation Buttons -->
     <div class="setup-wizard-footer">
-      <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="setupWizardBack()" style="display: none;">Back</button>
-      <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="setupWizardNext()">Next</button>
-      <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="setupWizardFinish()" style="display: none;">Finish</button>
-      <button class="setup-btn setup-btn-text" onclick="setupWizardSkip()">Skip Setup</button>
+      <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="setupWizardBack()" style="display: none;" data-i18n="action-back">Back</button>
+      <button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="setupWizardNext()" data-i18n="action-next">Next</button>
+      <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="setupWizardFinish()" style="display: none;" data-i18n="action-finish">Finish</button>
+      <button class="setup-btn setup-btn-text" onclick="setupWizardSkip()" data-i18n="auto-skip-setup">Skip Setup</button>
     </div>
   </div>
 </div>

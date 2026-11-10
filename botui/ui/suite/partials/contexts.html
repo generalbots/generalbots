@@ -1,5 +1,5 @@
 <div class="contexts-selector">
-    <label class="contexts-label">Context:</label>
+    <label class="contexts-label" data-i18n="auto-context">Context:</label>
     <select
         class="contexts-dropdown"
         name="context"
@@ -7,7 +7,7 @@
         hx-trigger="change"
         hx-swap="none"
     >
-        <option value="">Select context...</option>
+        <option value="" data-i18n="auto-select-context">Select context...</option>
         {% for context in contexts %}
         <option value="{{ context.id }}">{{ context.name }}</option>
         {% endfor %}
@@ -30,7 +30,7 @@
 </div>
 {% else %}
 <div class="contexts-empty">
-    <p>No contexts configured</p>
+    <p data-i18n="auto-no-contexts-configured">No contexts configured</p>
 </div>
 {% endif %}
 

@@ -1,62 +1,62 @@
 <link rel="stylesheet" href="/suite/hr/hr.css">
 <div class="hr-app gb-app" data-gb-app="hr">
 <header class="app-header">
-<h1>HR Management</h1>
+<h1 data-i18n="auto-hr-management">HR Management</h1>
 <div class="header-meta">
-<span class="header-meta-item">Cycle: <strong>Q1 2025 review</strong></span>
+<span class="header-meta-item">Cycle: <strong data-i18n="auto-q1-2025-review">Q1 2025 review</strong></span>
 <span class="header-meta-item">Open positions: <strong id="hrOpenPositions">--</strong></span>
 <span class="header-meta-item">Updated: <strong id="hrUpdated">--</strong></span>
 </div>
 <button class="btn-refresh" id="refreshBtn">&#8635;</button>
 </header>
 <nav class="tab-bar">
-<button class="tab active" data-tab="employees">Employees</button>
-<button class="tab" data-tab="recruitment">Recruitment</button>
-<button class="tab" data-tab="attendance">Attendance</button>
-<button class="tab" data-tab="performance">Performance</button>
-<button class="tab" data-tab="payroll">Payroll</button>
-<button class="tab" data-tab="benefits">Benefits</button>
-<button class="tab" data-tab="training">Training</button>
-<button class="tab" data-tab="reports">Reports</button>
+<button class="tab active" data-tab="employees" data-i18n="auto-employees">Employees</button>
+<button class="tab" data-tab="recruitment" data-i18n="auto-recruitment">Recruitment</button>
+<button class="tab" data-tab="attendance" data-i18n="auto-attendance">Attendance</button>
+<button class="tab" data-tab="performance" data-i18n="auto-performance">Performance</button>
+<button class="tab" data-tab="payroll" data-i18n="auto-payroll">Payroll</button>
+<button class="tab" data-tab="benefits" data-i18n="auto-benefits">Benefits</button>
+<button class="tab" data-tab="training" data-i18n="products-cat-training">Training</button>
+<button class="tab" data-tab="reports" data-i18n="auto-reports">Reports</button>
 </nav>
 <section class="hr-stats">
-<article class="hr-stat-card"><span class="hr-stat-label">Headcount</span><span class="hr-stat-value" id="hr-stat-headcount">--</span></article>
-<article class="hr-stat-card"><span class="hr-stat-label">On leave today</span><span class="hr-stat-value orange" id="hr-stat-leave">--</span></article>
-<article class="hr-stat-card"><span class="hr-stat-label">Open requisitions</span><span class="hr-stat-value blue" id="hr-stat-reqs">--</span></article>
-<article class="hr-stat-card"><span class="hr-stat-label">Pending reviews</span><span class="hr-stat-value purple" id="hr-stat-reviews">--</span></article>
-<article class="hr-stat-card"><span class="hr-stat-label">Turnover (90d)</span><span class="hr-stat-value red" id="hr-stat-turnover">--%</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label" data-i18n="auto-headcount">Headcount</span><span class="hr-stat-value" id="hr-stat-headcount">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label" data-i18n="auto-on-leave-today">On leave today</span><span class="hr-stat-value orange" id="hr-stat-leave">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label" data-i18n="auto-open-requisitions">Open requisitions</span><span class="hr-stat-value blue" id="hr-stat-reqs">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label" data-i18n="auto-pending-reviews">Pending reviews</span><span class="hr-stat-value purple" id="hr-stat-reviews">--</span></article>
+<article class="hr-stat-card"><span class="hr-stat-label" data-i18n="auto-turnover-90d">Turnover (90d)</span><span class="hr-stat-value red" id="hr-stat-turnover">--%</span></article>
 </section>
 <main class="tab-content">
 <section class="tab-panel active" id="panel-employees">
 <div class="section-header">
-<h2>Employee Directory</h2>
+<h2 data-i18n="auto-employee-directory">Employee Directory</h2>
 <div class="header-actions">
-<button class="btn-primary" id="addEmployeeBtn">Add Employee</button>
-<button class="btn-secondary" id="exportEmployeesBtn">Export</button>
+<button class="btn-primary" id="addEmployeeBtn" data-i18n="auto-add-employee">Add Employee</button>
+<button class="btn-secondary" id="exportEmployeesBtn" data-i18n="action-export">Export</button>
 </div>
 </div>
 <div class="emp-toolbar">
 <input type="text" class="search-input" id="empSearch" placeholder="Search employees...">
 <select class="filter-select" id="empDeptFilter">
-<option value="">All Departments</option>
-<option value="engineering">Engineering</option>
-<option value="sales">Sales</option>
-<option value="marketing">Marketing</option>
+<option value="" data-i18n="auto-all-departments">All Departments</option>
+<option value="engineering" data-i18n="auto-engineering">Engineering</option>
+<option value="sales" data-i18n="dashboards-filter-sales">Sales</option>
+<option value="marketing" data-i18n="dashboards-filter-marketing">Marketing</option>
 <option value="hr">HR</option>
-<option value="finance">Finance</option>
-<option value="operations">Operations</option>
+<option value="finance" data-i18n="dashboards-filter-finance">Finance</option>
+<option value="operations" data-i18n="dashboards-filter-operations">Operations</option>
 </select>
 <select class="filter-select" id="empStatusFilter">
-<option value="">All Status</option>
-<option value="active">Active</option>
-<option value="on_leave">On Leave</option>
-<option value="terminated">Terminated</option>
+<option value="" data-i18n="auto-all-status">All Status</option>
+<option value="active" data-i18n="label-active">Active</option>
+<option value="on_leave" data-i18n="auto-on-leave">On Leave</option>
+<option value="terminated" data-i18n="auto-terminated">Terminated</option>
 </select>
 <select class="filter-select" id="empLocationFilter">
-<option value="">All locations</option>
+<option value="" data-i18n="auto-all-locations">All locations</option>
 <option value="sao-paulo">São Paulo</option>
 <option value="rio">Rio de Janeiro</option>
-<option value="remote">Remote</option>
+<option value="remote" data-i18n="auto-remote">Remote</option>
 <option value="new-york">New York</option>
 </select>
 </div>
@@ -64,59 +64,59 @@
 <div class="modal-overlay" id="empModal">
 <div class="modal">
 <div class="modal-header">
-<h3 id="empModalTitle">Add Employee</h3>
+<h3 id="empModalTitle" data-i18n="auto-add-employee">Add Employee</h3>
 <button class="modal-close" id="closeEmpModal">&times;</button>
 </div>
 <form id="empForm">
 <div class="form-row">
 <div class="form-group">
-<label>First Name</label>
+<label data-i18n="auth-first-name">First Name</label>
 <input type="text" id="empFirstName" required>
 </div>
 <div class="form-group">
-<label>Last Name</label>
+<label data-i18n="auth-last-name">Last Name</label>
 <input type="text" id="empLastName" required>
 </div>
 </div>
 <div class="form-group">
-<label>Email</label>
+<label data-i18n="attendant-channel-email">Email</label>
 <input type="email" id="empEmail" required>
 </div>
 <div class="form-row">
 <div class="form-group">
-<label>Role</label>
+<label data-i18n="label-role">Role</label>
 <input type="text" id="empRole" required>
 </div>
 <div class="form-group">
-<label>Department</label>
+<label data-i18n="auto-department">Department</label>
 <select id="empDept" required>
-<option value="engineering">Engineering</option>
-<option value="sales">Sales</option>
-<option value="marketing">Marketing</option>
+<option value="engineering" data-i18n="auto-engineering">Engineering</option>
+<option value="sales" data-i18n="dashboards-filter-sales">Sales</option>
+<option value="marketing" data-i18n="dashboards-filter-marketing">Marketing</option>
 <option value="hr">HR</option>
-<option value="finance">Finance</option>
-<option value="operations">Operations</option>
+<option value="finance" data-i18n="dashboards-filter-finance">Finance</option>
+<option value="operations" data-i18n="dashboards-filter-operations">Operations</option>
 </select>
 </div>
 </div>
 <div class="form-row">
 <div class="form-group">
-<label>Hire Date</label>
+<label data-i18n="auto-hire-date">Hire Date</label>
 <input type="date" id="empHireDate" required>
 </div>
 <div class="form-group">
-<label>Location</label>
+<label data-i18n="security-col-location">Location</label>
 <select id="empLocation">
 <option value="sao-paulo">São Paulo</option>
 <option value="rio">Rio de Janeiro</option>
-<option value="remote">Remote</option>
+<option value="remote" data-i18n="auto-remote">Remote</option>
 <option value="new-york">New York</option>
 </select>
 </div>
 </div>
 <div class="form-row">
 <div class="form-group">
-<label>Manager</label>
+<label data-i18n="auto-manager">Manager</label>
 <input type="text" id="empManager" placeholder="Manager name or email">
 </div>
 <div class="form-group">
@@ -125,17 +125,17 @@
 </div>
 </div>
 <div class="form-group">
-<label>Employment type</label>
+<label data-i18n="auto-employment-type">Employment type</label>
 <select id="empType">
-<option value="full-time">Full time</option>
-<option value="part-time">Part time</option>
-<option value="contractor">Contractor</option>
-<option value="intern">Intern</option>
+<option value="full-time" data-i18n="auto-full-time">Full time</option>
+<option value="part-time" data-i18n="auto-part-time">Part time</option>
+<option value="contractor" data-i18n="auto-contractor">Contractor</option>
+<option value="intern" data-i18n="auto-intern">Intern</option>
 </select>
 </div>
 <div class="form-actions">
-<button type="button" class="btn-secondary" id="cancelEmpBtn">Cancel</button>
-<button type="submit" class="btn-primary">Save</button>
+<button type="button" class="btn-secondary" id="cancelEmpBtn" data-i18n="action-cancel">Cancel</button>
+<button type="submit" class="btn-primary" data-i18n="action-save">Save</button>
 </div>
 </form>
 </div>
@@ -143,90 +143,90 @@
 </section>
 <section class="tab-panel" id="panel-recruitment">
 <div class="section-header">
-<h2>Job Postings</h2>
-<button class="btn-primary" id="postJobBtn">Post Job</button>
+<h2 data-i18n="auto-job-postings">Job Postings</h2>
+<button class="btn-primary" id="postJobBtn" data-i18n="auto-post-job">Post Job</button>
 </div>
 <div class="job-list" id="jobList"></div>
 <div class="section-header" style="margin-top:24px">
-<h2>Pipeline Overview</h2>
+<h2 data-i18n="auto-pipeline-overview">Pipeline Overview</h2>
 </div>
 <div class="pipeline-grid" id="pipelineGrid"></div>
 </section>
 <section class="tab-panel" id="panel-attendance">
 <div class="section-header">
-<h2>Today's Attendance</h2>
+<h2 data-i18n="auto-today-s-attendance">Today's Attendance</h2>
 <div class="attendance-stats" id="attendanceStats"></div>
 </div>
 <table class="data-table" id="attendanceTable">
-<thead><tr><th>Employee</th><th>Department</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+<thead><tr><th data-i18n="auto-employee">Employee</th><th data-i18n="auto-department">Department</th><th data-i18n="auto-clock-in">Clock In</th><th data-i18n="auto-clock-out">Clock Out</th><th data-i18n="auto-hours-2">Hours</th><th data-i18n="label-status">Status</th></tr></thead>
 <tbody></tbody>
 </table>
 <div class="section-header" style="margin-top:24px">
-<h2>Department Summary</h2>
+<h2 data-i18n="auto-department-summary">Department Summary</h2>
 </div>
 <div class="dept-summary-grid" id="deptSummaryGrid"></div>
 </section>
 <section class="tab-panel" id="panel-performance">
 <div class="section-header">
-<h2>Review Cycles</h2>
-<button class="btn-primary" id="startReviewBtn">Start new cycle</button>
+<h2 data-i18n="auto-review-cycles">Review Cycles</h2>
+<button class="btn-primary" id="startReviewBtn" data-i18n="auto-start-new-cycle">Start new cycle</button>
 </div>
 <div class="review-cycles" id="reviewCycles"></div>
 <div class="section-header" style="margin-top:24px">
-<h2>Goal Completion</h2>
+<h2 data-i18n="auto-goal-completion">Goal Completion</h2>
 </div>
 <div class="goals-grid" id="goalsGrid"></div>
 </section>
 <section class="tab-panel" id="panel-payroll">
 <div class="section-header">
-<h2>Payroll runs</h2>
-<button class="btn-primary" id="runPayrollBtn">Run payroll</button>
+<h2 data-i18n="auto-payroll-runs">Payroll runs</h2>
+<button class="btn-primary" id="runPayrollBtn" data-i18n="auto-run-payroll">Run payroll</button>
 </div>
 <div class="banking-table-wrap" style="padding:24px">
 <table class="data-table">
-<thead><tr><th>Period</th><th>Employees</th><th>Gross</th><th>Net</th><th>Taxes</th><th>Status</th><th>Actions</th></tr></thead>
+<thead><tr><th data-i18n="auto-period">Period</th><th data-i18n="auto-employees">Employees</th><th data-i18n="auto-gross">Gross</th><th>Net</th><th data-i18n="auto-taxes">Taxes</th><th data-i18n="label-status">Status</th><th data-i18n="billing-col-actions">Actions</th></tr></thead>
 <tbody id="payrollBody"></tbody>
 </table>
 </div>
 </section>
 <section class="tab-panel" id="panel-benefits">
 <div class="section-header">
-<h2>Benefits enrollment</h2>
+<h2 data-i18n="auto-benefits-enrollment">Benefits enrollment</h2>
 </div>
 <div class="banking-table-wrap" style="padding:24px">
 <table class="data-table">
-<thead><tr><th>Plan</th><th>Provider</th><th>Type</th><th>Enrolled</th><th>Monthly cost</th><th>Status</th></tr></thead>
+<thead><tr><th data-i18n="auto-plan">Plan</th><th data-i18n="sources-model-provider">Provider</th><th data-i18n="label-type">Type</th><th data-i18n="auto-enrolled">Enrolled</th><th data-i18n="auto-monthly-cost">Monthly cost</th><th data-i18n="label-status">Status</th></tr></thead>
 <tbody id="benefitsBody"></tbody>
 </table>
 </div>
 </section>
 <section class="tab-panel" id="panel-training">
 <div class="section-header">
-<h2>Training & certifications</h2>
-<button class="btn-primary" id="addCourseBtn">+ Add course</button>
+<h2 data-i18n="auto-training-certifications">Training & certifications</h2>
+<button class="btn-primary" id="addCourseBtn" data-i18n="auto-add-course">+ Add course</button>
 </div>
 <div class="banking-table-wrap" style="padding:24px">
 <table class="data-table">
-<thead><tr><th>Course</th><th>Provider</th><th>Duration</th><th>Assigned</th><th>Completed</th><th>Status</th></tr></thead>
+<thead><tr><th data-i18n="auto-course">Course</th><th data-i18n="sources-model-provider">Provider</th><th data-i18n="auto-duration">Duration</th><th data-i18n="auto-assigned">Assigned</th><th data-i18n="learn-completed">Completed</th><th data-i18n="label-status">Status</th></tr></thead>
 <tbody id="trainingBody"></tbody>
 </table>
 </div>
 </section>
 <section class="tab-panel" id="panel-reports">
 <div class="section-header">
-<h2>HR analytics</h2>
+<h2 data-i18n="auto-hr-analytics">HR analytics</h2>
 </div>
 <section class="hr-report-grid" id="hrReportGrid">
-<article class="hr-report-card"><h3>Headcount by department</h3><div class="hr-report-body" id="hrReportDept">Loading...</div></article>
-<article class="hr-report-card"><h3>Attrition (12m)</h3><div class="hr-report-body" id="hrReportAttrition">Loading...</div></article>
-<article class="hr-report-card"><h3>Time to hire</h3><div class="hr-report-body" id="hrReportTimeToHire">Loading...</div></article>
-<article class="hr-report-card"><h3>Compensation distribution</h3><div class="hr-report-body" id="hrReportComp">Loading...</div></article>
+<article class="hr-report-card"><h3 data-i18n="auto-headcount-by-department">Headcount by department</h3><div class="hr-report-body" id="hrReportDept" data-i18n="label-loading">Loading...</div></article>
+<article class="hr-report-card"><h3 data-i18n="auto-attrition-12m">Attrition (12m)</h3><div class="hr-report-body" id="hrReportAttrition" data-i18n="label-loading">Loading...</div></article>
+<article class="hr-report-card"><h3 data-i18n="auto-time-to-hire">Time to hire</h3><div class="hr-report-body" id="hrReportTimeToHire" data-i18n="label-loading">Loading...</div></article>
+<article class="hr-report-card"><h3 data-i18n="auto-compensation-distribution">Compensation distribution</h3><div class="hr-report-body" id="hrReportComp" data-i18n="label-loading">Loading...</div></article>
 </section>
 </section>
 </main>
 </div>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/hr/modules/01_state_utils.js"></script>
 <script src="/suite/hr/modules/02_employees_shell.js"></script>
 <script src="/suite/hr/modules/03_tables.js"></script>

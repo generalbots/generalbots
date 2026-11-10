@@ -1,27 +1,27 @@
 <!-- VDI Session Management partial for Desktop app -->
 <div class="vdi-sessions" id="vdi-sessions-panel">
-  <h3>Session Management</h3>
-  <p class="hint">Active remote desktop sessions across all VMs</p>
+  <h3 data-i18n="auto-session-management">Session Management</h3>
+  <p class="hint" data-i18n="auto-active-remote-desktop-sessions-across-all-vms">Active remote desktop sessions across all VMs</p>
   <div class="kpi-grid">
-    <div class="kpi"><span class="kpi-label">Active sessions</span><span class="kpi-value" data-counter="active">0</span></div>
-    <div class="kpi"><span class="kpi-label">Idle</span><span class="kpi-value" data-counter="idle">0</span></div>
-    <div class="kpi"><span class="kpi-label">Disconnected</span><span class="kpi-value" data-counter="disconnected">0</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="auto-active-sessions">Active sessions</span><span class="kpi-value" data-counter="active">0</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="auto-idle">Idle</span><span class="kpi-value" data-counter="idle">0</span></div>
+    <div class="kpi"><span class="kpi-label" data-i18n="status-disconnected">Disconnected</span><span class="kpi-value" data-counter="disconnected">0</span></div>
     <div class="kpi"><span class="kpi-label">Total CPU</span><span class="kpi-value" data-counter="cpu">0%</span></div>
   </div>
   <table class="data-table" id="vdi-sessions-table">
     <thead>
       <tr>
-        <th>User</th>
+        <th data-i18n="start-menu-user">User</th>
         <th>VM</th>
-        <th>State</th>
-        <th>Duration</th>
+        <th data-i18n="auto-state">State</th>
+        <th data-i18n="auto-duration">Duration</th>
         <th>CPU</th>
-        <th>Memory</th>
-        <th>Actions</th>
+        <th data-i18n="monitoring-memory">Memory</th>
+        <th data-i18n="billing-col-actions">Actions</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td colspan="7" class="empty">No active sessions.</td></tr>
+      <tr><td colspan="7" class="empty" data-i18n="auto-no-active-sessions">No active sessions.</td></tr>
     </tbody>
   </table>
   <script>

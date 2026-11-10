@@ -33,9 +33,9 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
       body: JSON.stringify({ name, email, company }),
     });
     if (!res.ok) { const err = await res.json(); alert(err.detail || 'Save failed'); return; }
-    alert('Profile saved!');
+    alert(gbT('cloud-profile-saved', 'Profile saved!'));
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 });
 

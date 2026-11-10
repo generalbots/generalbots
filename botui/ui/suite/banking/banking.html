@@ -1,19 +1,19 @@
 <link rel="stylesheet" href="/suite/banking/banking.css?v=2">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <div class="banking-container gb-app" data-gb-app="banking">
     <header class="banking-header">
         <div class="banking-header-left">
-            <h1>Banking Reconciliation</h1>
+            <h1 data-i18n="auto-banking-reconciliation">Banking Reconciliation</h1>
             <nav class="banking-tabs">
-                <button class="banking-tab active" data-view="transactions">Transactions</button>
-                <button class="banking-tab" data-view="accounts">Accounts</button>
-                <button class="banking-tab" data-view="platforms">Platforms</button>
-                <button class="banking-tab" data-view="reconcile">Reconciliation</button>
-                <button class="banking-tab" data-view="pix">PIX & Transfers</button>
-                <button class="banking-tab" data-view="statements">Statements</button>
-                <button class="banking-tab" data-view="reports">Reports</button>
-                <button class="banking-tab" data-view="settings">Settings</button>
+                <button class="banking-tab active" data-view="transactions" data-i18n="auto-transactions">Transactions</button>
+                <button class="banking-tab" data-view="accounts" data-i18n="crm-accounts">Accounts</button>
+                <button class="banking-tab" data-view="platforms" data-i18n="auto-platforms">Platforms</button>
+                <button class="banking-tab" data-view="reconcile" data-i18n="auto-reconciliation">Reconciliation</button>
+                <button class="banking-tab" data-view="pix" data-i18n="auto-pix-transfers">PIX & Transfers</button>
+                <button class="banking-tab" data-view="statements" data-i18n="auto-statements">Statements</button>
+                <button class="banking-tab" data-view="reports" data-i18n="auto-reports">Reports</button>
+                <button class="banking-tab" data-view="settings" data-i18n="workspace-settings">Settings</button>
             </nav>
         </div>
         <div class="banking-header-right">
@@ -185,7 +185,7 @@
 <div id="bankingTransferModal" class="banking-modal" style="display:none">
     <div class="banking-modal-dialog">
         <header class="banking-modal-header">
-            <h2 id="bankingTransferTitle">New PIX transfer</h2>
+            <h2 id="bankingTransferTitle" data-i18n="auto-new-pix-transfer">New PIX transfer</h2>
             <button onclick="BankingApp.closeTransferModal()">&times;</button>
         </header>
         <div class="banking-modal-body">
@@ -193,27 +193,27 @@
                 <select id="transferKeyType">
                     <option value="cpf">CPF</option>
                     <option value="cnpj">CNPJ</option>
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                    <option value="random">Random key</option>
+                    <option value="email" data-i18n="attendant-channel-email">Email</option>
+                    <option value="phone" data-i18n="attendant-customer-phone">Phone</option>
+                    <option value="random" data-i18n="auto-random-key">Random key</option>
                 </select>
             </label>
-            <label>Recipient key
+            <label data-i18n="auto-recipient-key">Recipient key
                 <input type="text" id="transferKey" placeholder="000.000.000-00 or email">
             </label>
             <label>Amount (R$)
                 <input type="number" id="transferAmount" step="0.01" min="0.01">
             </label>
-            <label>Description
+            <label data-i18n="label-description">Description
                 <input type="text" id="transferDescription" placeholder="Optional">
             </label>
-            <label>Schedule
+            <label data-i18n="auto-schedule">Schedule
                 <input type="datetime-local" id="transferSchedule">
             </label>
         </div>
         <footer class="banking-modal-footer">
-            <button class="btn-secondary" onclick="BankingApp.closeTransferModal()">Cancel</button>
-            <button class="btn-primary" onclick="BankingApp.confirmTransfer()">Send PIX</button>
+            <button class="btn-secondary" onclick="BankingApp.closeTransferModal()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="BankingApp.confirmTransfer()" data-i18n="auto-send-pix">Send PIX</button>
         </footer>
     </div>
 </div>
@@ -221,35 +221,35 @@
 <div id="bankingAccountModal" class="banking-modal" style="display:none">
     <div class="banking-modal-dialog">
         <header class="banking-modal-header">
-            <h2>Add bank account</h2>
+            <h2 data-i18n="auto-add-bank-account">Add bank account</h2>
             <button onclick="BankingApp.closeModal('bankingAccountModal')">&times;</button>
         </header>
         <form class="banking-modal-body" onsubmit="BankingApp.submitAccount(event)">
-            <label>Bank
+            <label data-i18n="auto-bank">Bank
                 <input type="text" id="accountBank" placeholder="e.g. Banco do Brasil" required>
             </label>
-            <label>Agency
+            <label data-i18n="auto-agency">Agency
                 <input type="text" id="accountAgency" placeholder="0001">
             </label>
-            <label>Account number
+            <label data-i18n="auto-account-number">Account number
                 <input type="text" id="accountNumber" placeholder="12345-6">
             </label>
             <label>Type
                 <select id="accountType">
-                    <option value="checking">Checking</option>
-                    <option value="savings">Savings</option>
-                    <option value="payment">Payment</option>
+                    <option value="checking" data-i18n="auto-checking">Checking</option>
+                    <option value="savings" data-i18n="auto-savings">Savings</option>
+                    <option value="payment" data-i18n="billing-payment">Payment</option>
                 </select>
             </label>
             <label>Balance (R$)
                 <input type="number" id="accountBalance" step="0.01" min="0" value="0">
             </label>
-            <label>Currency
+            <label data-i18n="billing-currency">Currency
                 <input type="text" id="accountCurrency" value="BRL">
             </label>
             <div style="display:flex;gap:8px;margin-top:16px">
-                <button type="button" class="btn-secondary" onclick="BankingApp.closeModal('bankingAccountModal')">Cancel</button>
-                <button type="submit" class="btn-primary">Save account</button>
+                <button type="button" class="btn-secondary" onclick="BankingApp.closeModal('bankingAccountModal')" data-i18n="action-cancel">Cancel</button>
+                <button type="submit" class="btn-primary" data-i18n="auto-save-account">Save account</button>
             </div>
         </form>
     </div>

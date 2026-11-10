@@ -6,6 +6,9 @@ use crate::handlers::*;
 use crate::handlers_activity::*;
 use crate::handlers_charts::*;
 use crate::handlers_dashboard::*;
+use crate::handlers_ops::handle_ops_slo;
+use crate::handlers_ops_runtime::{handle_ops_cost, handle_ops_endpoints, handle_ops_queue};
+use crate::handlers_ops_traffic::handle_ops_traffic;
 use crate::{DbPool, GetBotContextFn, GetDefaultBotFn};
 
 pub fn create_analytics_router(pool: Arc<DbPool>) -> Router {
@@ -39,6 +42,19 @@ pub fn create_analytics_router(pool: Arc<DbPool>) -> Router {
         .route("/api/ui/analytics/dashboard", axum::routing::get(handle_dashboard_cards))
         .route("/api/ui/analytics/metric", axum::routing::get(handle_metric_chart))
         .route("/api/ui/analytics/metrics/list", axum::routing::get(handle_metrics_list))
+        // Operational view (#2116): SLO burn, traffic, endpoint classes,
+        // queues and LLM cost. Same handlers under both prefixes, matching the
+        // rest of this router.
+        .route("/api/ui/analytics/ops/slo", axum::routing::get(handle_ops_slo))
+        .route("/api/ui/analytics/ops/traffic", axum::routing::get(handle_ops_traffic))
+        .route("/api/ui/analytics/ops/endpoints", axum::routing::get(handle_ops_endpoints))
+        .route("/api/ui/analytics/ops/queue", axum::routing::get(handle_ops_queue))
+        .route("/api/ui/analytics/ops/cost", axum::routing::get(handle_ops_cost))
+        .route("/api/analytics/ops/slo", axum::routing::get(handle_ops_slo))
+        .route("/api/analytics/ops/traffic", axum::routing::get(handle_ops_traffic))
+        .route("/api/analytics/ops/endpoints", axum::routing::get(handle_ops_endpoints))
+        .route("/api/analytics/ops/queue", axum::routing::get(handle_ops_queue))
+        .route("/api/analytics/ops/cost", axum::routing::get(handle_ops_cost))
         .with_state(pool)
 }
 

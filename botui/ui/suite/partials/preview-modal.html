@@ -1,18 +1,18 @@
 <div id="previewModal" class="preview-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;justify-content:center;align-items:center;">
   <div class="preview-modal" style="background:#FFFBE6;border:2px solid #F5C518;border-radius:12px;padding:24px;max-width:640px;width:90%;margin:20px auto;box-shadow:0 8px 32px rgba(0,0,0,0.15);font-family:system-ui,sans-serif;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #F5C518;padding-bottom:8px;margin-bottom:16px;">
-      <h2 id="previewTitle" style="color:#B8860B;margin:0;font-size:1.5em;">Preview</h2>
+      <h2 id="previewTitle" style="color:#B8860B;margin:0;font-size:1.5em;" data-i18n="sources-template-preview">Preview</h2>
       <div style="display:flex;gap:4px;">
         <button onclick="toggleProjector()" title="Toggle projector mode" style="background:none;border:1px solid #E8D5A0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:16px;">&#x26A1;</button>
         <button onclick="closePreviewModal()" title="Close" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;line-height:1;">&times;</button>
       </div>
     </div>
     <div id="previewBody" style="margin:16px 0;">
-      <p style="color:#666;font-style:italic;">Loading parameters...</p>
+      <p style="color:#666;font-style:italic;" data-i18n="auto-loading-parameters">Loading parameters...</p>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid #E8D5A0;">
-      <button onclick="confirmPreview()" style="background:#F5C518;color:#000;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">Confirm</button>
-      <button onclick="closePreviewModal()" style="background:#f0f0f0;color:#333;border:1px solid #ddd;padding:10px 24px;border-radius:6px;cursor:pointer;font-size:14px;">Cancel</button>
+      <button onclick="confirmPreview()" style="background:#F5C518;color:#000;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;" data-i18n="action-confirm">Confirm</button>
+      <button onclick="closePreviewModal()" style="background:#f0f0f0;color:#333;border:1px solid #ddd;padding:10px 24px;border-radius:6px;cursor:pointer;font-size:14px;" data-i18n="action-cancel">Cancel</button>
     </div>
   </div>
 </div>

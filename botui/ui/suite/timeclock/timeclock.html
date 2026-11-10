@@ -1,12 +1,12 @@
 <link rel="stylesheet" href="/suite/timeclock/timeclock.css">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 
 <div class="gb-app tc-container" data-gb-app="timeclock">
     <header class="tc-header">
-        <h1>Electronic Time Clock</h1>
+        <h1 data-i18n="auto-electronic-time-clock">Electronic Time Clock</h1>
         <div class="tc-header-actions">
             <button class="tc-btn" onclick="openTcOtModal()">Solicitar Hora Extra</button>
             <button class="tc-btn" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML">Atualizar</button>
@@ -19,14 +19,14 @@
     </div>
 
     <nav class="tc-tabs">
-        <button class="tc-tab active" data-tab-trigger="dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML">Dashboard</button>
-        <button class="tc-tab" data-tab-trigger="records" hx-get="/suite/timeclock/fragments/records" hx-target="#tc-content" hx-swap="innerHTML">Registros</button>
-        <button class="tc-tab" data-tab-trigger="overtime" hx-get="/suite/timeclock/fragments/overtime" hx-target="#tc-content" hx-swap="innerHTML">Overtime</button>
-        <button class="tc-tab" data-tab-trigger="justifications" hx-get="/suite/timeclock/fragments/justifications" hx-target="#tc-content" hx-swap="innerHTML">Justificativas</button>
-        <button class="tc-tab" data-tab-trigger="schedule" hx-get="/suite/timeclock/fragments/schedule" hx-target="#tc-content" hx-swap="innerHTML">Escala</button>
-        <button class="tc-tab" data-tab-trigger="holidays" hx-get="/suite/timeclock/fragments/holidays" hx-target="#tc-content" hx-swap="innerHTML">Feriados</button>
+        <button class="tc-tab active" data-tab-trigger="dashboard" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="goals-dashboard">Dashboard</button>
+        <button class="tc-tab" data-tab-trigger="records" hx-get="/suite/timeclock/fragments/records" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-registros">Registros</button>
+        <button class="tc-tab" data-tab-trigger="overtime" hx-get="/suite/timeclock/fragments/overtime" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-overtime">Overtime</button>
+        <button class="tc-tab" data-tab-trigger="justifications" hx-get="/suite/timeclock/fragments/justifications" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-justificativas">Justificativas</button>
+        <button class="tc-tab" data-tab-trigger="schedule" hx-get="/suite/timeclock/fragments/schedule" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-escala">Escala</button>
+        <button class="tc-tab" data-tab-trigger="holidays" hx-get="/suite/timeclock/fragments/holidays" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-feriados">Feriados</button>
         <button class="tc-tab" data-tab-trigger="team" hx-get="/suite/timeclock/fragments/team" hx-target="#tc-content" hx-swap="innerHTML">Equipe</button>
-        <button class="tc-tab" data-tab-trigger="audit" hx-get="/suite/timeclock/fragments/audit" hx-target="#tc-content" hx-swap="innerHTML">Auditoria</button>
+        <button class="tc-tab" data-tab-trigger="audit" hx-get="/suite/timeclock/fragments/audit" hx-target="#tc-content" hx-swap="innerHTML" data-i18n="auto-auditoria">Auditoria</button>
         <button class="tc-tab" data-tab-trigger="reports" hx-get="/suite/timeclock/fragments/reports" hx-target="#tc-content" hx-swap="innerHTML">Relatórios</button>
     </nav>
 
@@ -39,8 +39,8 @@
     <div class="tc-modal-content">
         <h3>Solicitar hora extra</h3>
         <form onsubmit="return submitTcOtForm(event)">
-            <label>Data <input type="date" name="date" required></label>
-            <label>Horas <input type="number" name="hours" step="0.25" min="0.25" max="12" required></label>
+            <label data-i18n="auto-data">Data <input type="date" name="date" required></label>
+            <label data-i18n="auto-horas">Horas <input type="number" name="hours" step="0.25" min="0.25" max="12" required></label>
             <label>Motivo <textarea name="reason" rows="2" required></textarea></label>
             <label>Funcionário <input type="text" name="employee_id" placeholder="UUID" required></label>
             <div class="tc-modal-actions">

@@ -12,15 +12,15 @@
         >
             <div class="stat-item running">
                 <span class="stat-number">--</span>
-                <span class="stat-label">Running</span>
+                <span class="stat-label" data-i18n="monitoring-status-running">Running</span>
             </div>
             <div class="stat-item warning">
                 <span class="stat-number">--</span>
-                <span class="stat-label">Warning</span>
+                <span class="stat-label" data-i18n="status-warning">Warning</span>
             </div>
             <div class="stat-item stopped">
                 <span class="stat-number">--</span>
-                <span class="stat-label">Stopped</span>
+                <span class="stat-label" data-i18n="monitoring-status-stopped">Stopped</span>
             </div>
             <div class="stat-item total">
                 <span class="stat-number">--</span>
@@ -48,10 +48,10 @@
                 />
             </div>
             <select id="status-filter" onchange="filterByStatus(this.value)">
-                <option value="all">All Status</option>
-                <option value="running">Running</option>
-                <option value="warning">Warning</option>
-                <option value="stopped">Stopped</option>
+                <option value="all" data-i18n="auto-all-status">All Status</option>
+                <option value="running" data-i18n="monitoring-status-running">Running</option>
+                <option value="warning" data-i18n="status-warning">Warning</option>
+                <option value="stopped" data-i18n="monitoring-status-stopped">Stopped</option>
             </select>
 
         </div>
@@ -87,7 +87,7 @@
     <!-- Service Detail Panel (slides in from right) -->
     <div class="service-detail-panel" id="service-detail-panel">
         <div class="panel-header">
-            <h3 id="detail-service-name">Service Details</h3>
+            <h3 id="detail-service-name" data-i18n="auto-service-details">Service Details</h3>
             <button class="close-btn" onclick="closeServiceDetail()">
                 <svg
                     width="20"
@@ -143,12 +143,12 @@
             </div>
             <div class="status-badge running">
                 <span class="status-dot"></span>
-                <span class="status-text">Running</span>
+                <span class="status-text" data-i18n="monitoring-status-running">Running</span>
             </div>
         </div>
         <div class="card-body">
-            <h4 class="service-name">Service Name</h4>
-            <p class="service-description">Service description goes here</p>
+            <h4 class="service-name" data-i18n="auto-service-name-2">Service Name</h4>
+            <p class="service-description" data-i18n="auto-service-description-goes-here">Service description goes here</p>
             <div class="service-meta">
                 <span class="meta-item">
                     <svg
@@ -238,8 +238,8 @@
 
 <!-- CSS moved to services.css -->
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script>
     function filterServices(query) {
         const cards = document.querySelectorAll(".service-card:not(.skeleton)");

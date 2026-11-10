@@ -9,9 +9,21 @@ pub async fn update_playlist(
     let name = body
         .get("name")
         .and_then(|v| v.as_str())
-        .map(str::trim)
-        .filter(|s| !s.is_empty() && s.len() <= MAX_TITLE_LEN);
-    let visibility = body.get("visibility").and_then(|v| v.as_str());
+        .and_then(normalize_playlist_name);
+    let visibility = match body.get("visibility").and_then(|v| v.as_str()) {
+        Some(raw) => match normalize_visibility(raw) {
+            Some(visibility) => Some(visibility),
+            None => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "Invalid visibility (expected private, org or public)"
+                    })),
+                ))
+            }
+        },
+        None => None,
+    };
 
     if name.is_none() && visibility.is_none() {
         return Err((
@@ -21,8 +33,6 @@ pub async fn update_playlist(
     }
 
     let pool = state.conn.clone();
-    let name = name.map(str::to_string);
-    let visibility = visibility.map(str::to_string);
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;

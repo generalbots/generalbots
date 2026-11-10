@@ -32,15 +32,9 @@ APPS = ("suite", "cloud", "login")
 
 SKIP_DIRS = frozenset(
     {
-        "vendor",
-        "wizard",
-        "embedded",
-        "minimal",
-        "public",
-        "themes",
-        "shared",
-        "dist",
-        "node_modules",
+        "vendor", "wizard", "embedded",
+        "minimal", "public", "themes",
+        "shared", "dist", "node_modules",
     }
 )
 
@@ -49,14 +43,9 @@ SKIP_TAGS = frozenset(
 )
 
 I18N_ATTRS = (
-    "data-i18n",
-    "data-i18n-html",
-    "data-i18n-placeholder",
-    "data-i18n-title",
-    "data-i18n-aria-label",
-    "data-i18n-value",
-    "data-i18n-label",
-    "data-i18n-document-title",
+        "data-i18n", "data-i18n-html", "data-i18n-placeholder",
+        "data-i18n-title", "data-i18n-aria-label", "data-i18n-value",
+        "data-i18n-label", "data-i18n-document-title",
 )
 
 # Proper nouns, product names, protocol/standard identifiers and the acronyms
@@ -64,117 +53,43 @@ I18N_ATTRS = (
 # normalized string is one of these — "General Bots is ready" is still flagged.
 ALLOWLIST = frozenset(
     {
-        "General Bots",
-        "General Bots Cloud",
-        "General Bots Desktop",
-        "General Bots 6",
-        "General Bots Suite",
-        "BotBook",
-        "BotServer",
-        "BotUI",
-        "GitHub",
-        "GitLab",
-        "Google",
-        "Google Drive",
-        "Google Calendar",
-        "Microsoft",
-        "Microsoft 365",
-        "Microsoft Teams",
-        "OpenAI",
-        "Anthropic",
-        "DeepSeek",
-        "Qwen",
-        "Gemma",
-        "Llama",
-        "Mistral",
-        "Groq",
-        "WhatsApp",
-        "Telegram",
-        "Slack",
-        "Discord",
-        "Zoom",
-        "Stripe",
-        "PayPal",
-        "PIX",
-        "NFe",
-        "NFSe",
-        "SPED",
-        "Zitadel",
-        "MinIO",
-        "Vault",
-        "PostgreSQL",
-        "Valkey",
-        "Redis",
-        "Qdrant",
-        "LiveKit",
-        "Stalwart",
-        "Forgejo",
-        "Incus",
-        "Caddy",
-        "CoreDNS",
-        "Docker",
-        "Kubernetes",
-        "Tauri",
-        "HTMX",
-        "BASIC",
-        "CSV",
-        "PDF",
-        "JSON",
-        "API",
-        "URL",
-        "SLA",
-        "SMTP",
-        "IMAP",
-        "DNS",
-        "SSL",
-        "TLS",
-        "SSO",
-        "MFA",
-        "TOTP",
-        "QR",
-        "LDAP",
-        "OAuth",
-        "JWT",
-        "UUID",
-        "SQL",
-        "CSS",
-        "HTML",
-        "XML",
-        "YAML",
-        "ISO",
-        "SOC 2",
-        "SOC 2 Type II",
-        "ISO 27001",
-        "GDPR",
-        "LGPD",
-        "HIPAA",
-        "PCI DSS",
-        "English",
-        "Deutsch",
-        "Español",
-        "Français",
-        "Português",
-        "Italiano",
-        "Acme Corporation",
-        "Rio de Janeiro",
-        "New York",
-        "São Paulo",
-        "Sarah Johnson",
-        "Mike Chen",
-        "Emily Davis",
-        "software_development",
-        "Localhost",
-        "Ok",
-        "OK",
-        "PT-BR",
-        "en",
-        "pt-BR",
-        "es",
-        "fr",
-        "de",
-        "ja",
-        "ko",
-        "zh-CN",
+        "General Bots", "General Bots Cloud", "General Bots Desktop",
+        "General Bots 6", "General Bots Suite", "BotBook",
+        "BotServer", "BotUI", "GitHub",
+        "GitLab", "Google", "Google Drive",
+        "Google Calendar", "Microsoft", "Microsoft 365",
+        "Microsoft Teams", "OpenAI", "Anthropic",
+        "DeepSeek", "Qwen", "Gemma",
+        "Llama", "Mistral", "Groq",
+        "WhatsApp", "Telegram", "Slack",
+        "Discord", "Zoom", "Stripe",
+        "PayPal", "PIX", "NFe",
+        "NFSe", "SPED", "Zitadel",
+        "MinIO", "Vault", "PostgreSQL",
+        "Valkey", "Redis", "Qdrant",
+        "LiveKit", "Stalwart", "Forgejo",
+        "Incus", "Caddy", "CoreDNS",
+        "Docker", "Kubernetes", "Tauri",
+        "HTMX", "BASIC", "CSV",
+        "PDF", "JSON", "API",
+        "URL", "SLA", "SMTP",
+        "IMAP", "DNS", "SSL",
+        "TLS", "SSO", "MFA",
+        "TOTP", "QR", "LDAP",
+        "OAuth", "JWT", "UUID",
+        "SQL", "CSS", "HTML",
+        "XML", "YAML", "ISO",
+        "SOC 2", "SOC 2 Type II", "ISO 27001",
+        "GDPR", "LGPD", "HIPAA",
+        "PCI DSS", "English", "Deutsch",
+        "Español", "Français", "Português",
+        "Italiano", "Acme Corporation", "Rio de Janeiro",
+        "New York", "São Paulo", "Sarah Johnson",
+        "Mike Chen", "Emily Davis", "software_development",
+        "Localhost", "Ok", "OK",
+        "PT-BR", "en", "pt-BR",
+        "es", "fr", "de",
+        "ja", "ko", "zh-CN",
     }
 )
 
@@ -222,6 +137,8 @@ VOID_TAGS = frozenset(
         "link", "meta", "param", "source", "track", "wbr",
     }
 )
+
+INLINE_SCRIPT_RE = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.S | re.I)
 
 JS_PATTERNS = (
     re.compile(
@@ -312,7 +229,17 @@ def scan_html(text: str, path: str = "") -> list:
         masked[match.start():match.end()] = " " * (match.end() - match.start())
     masked = "".join(masked)
 
+    # Inline <script> blocks are JS, not markup: scan them with the JS rules so
+    # a page that inlines its module does not escape the gate.
     literals = []
+    for match in INLINE_SCRIPT_RE.finditer(text):
+        opening = text[match.start():match.start() + 200]
+        if "src=" in opening.split(">")[0]:
+            continue
+        base_line = text.count("\n", 0, match.start())
+        for literal in scan_js(match.group(1), path):
+            literal.line += base_line
+            literals.append(literal)
     stack = []          # open elements: dict(tag, blocked, insert_at, kids, texts, literal)
     cursor = 0
 
@@ -370,6 +297,21 @@ def scan_html(text: str, path: str = "") -> list:
     return literals
 
 
+TAG_STRIP_RE = re.compile(r"<[^>]*>")
+
+
+def _html_string_text(value: str) -> list:
+    """Text nodes hidden inside an HTML string a JS file assigns to innerHTML."""
+    if "<" not in value:
+        return []
+    found = []
+    for segment in TAG_STRIP_RE.split(value):
+        candidate = normalize(segment)
+        if looks_english(candidate):
+            found.append(candidate)
+    return found
+
+
 def scan_js(text: str, path: str = "") -> list:
     literals = []
     for pattern in JS_PATTERNS:
@@ -377,9 +319,14 @@ def scan_js(text: str, path: str = "") -> list:
             literal = normalize(match.group(2))
             if "${" in literal:
                 continue
-            if not looks_english(literal):
+            line = _line_of(text, match.start())
+            if looks_english(literal):
+                literals.append(Literal(path, line, literal, "js"))
                 continue
-            literals.append(Literal(path, _line_of(text, match.start()), literal, "js"))
+            # innerHTML = '<p>No invoices yet.</p>' — the markup is fine, the
+            # English text node inside it is not.
+            for hidden in _html_string_text(literal):
+                literals.append(Literal(path, line, hidden, "js"))
     return literals
 
 

@@ -14,12 +14,12 @@ async function loadStore(token) {
     const res = await fetch(`${API_BASE}/store`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { showError('Failed to load store'); return; }
+    if (!res.ok) { showError(gbT('cloud-store-load-failed', 'Failed to load store')); return; }
     const data = await res.json();
     storeItems = data.items || [];
     renderStore('all');
   } catch (err) {
-    showError('Error: ' + err.message);
+    showError(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 
@@ -28,7 +28,7 @@ function renderStore(category) {
   const filtered = category === 'all' ? storeItems : storeItems.filter(i => i.category === category);
 
   if (filtered.length === 0) {
-    grid.innerHTML = '<div class="saas-loading">No items in this category.</div>';
+    grid.innerHTML = '<div class="saas-loading">' + gbT('cloud-store-empty-category', 'No items in this category.') + '</div>';
     return;
   }
 
@@ -58,7 +58,7 @@ function formatStorePrice(item) {
 function openPurchase(id) {
   selectedItem = storeItems.find(i => i.id === id);
   if (!selectedItem) return;
-  document.getElementById('modal-title').textContent = 'Purchase: ' + selectedItem.name;
+  document.getElementById('modal-title').textContent = gbT('cloud-store-purchase', 'Purchase:') + ' ' + selectedItem.name;
   document.getElementById('modal-body').innerHTML = `
     <p>${escapeHtml(selectedItem.description || '')}</p>
     <p><strong>Price:</strong> ${formatStorePrice(selectedItem)}</p>
@@ -95,10 +95,10 @@ async function confirmPurchase() {
       body: JSON.stringify({ item_id: selectedItem.id, org_id: orgId }),
     });
     if (!res.ok) { const err = await res.json(); alert(err.detail || 'Purchase failed'); return; }
-    alert('Purchase initiated! Check My Services for status.');
+    alert(gbT('cloud-store-purchase-initiated', 'Purchase initiated! Check My Services for status.'));
     hideModal();
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

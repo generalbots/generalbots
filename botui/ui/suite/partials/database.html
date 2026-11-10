@@ -3,18 +3,18 @@
 <div class="botcoder-database-container">
     <div class="botcoder-db-sidebar">
         <div class="botcoder-db-header">
-            <h3>🗄️ Database Schema</h3>
+            <h3 data-i18n="auto-database-schema">🗄️ Database Schema</h3>
             <button class="botcoder-btn-icon" onclick="DB.refreshSchema()" title="Refresh Schema">↻</button>
         </div>
 
         <div id="dbTableList" class="botcoder-table-list">
-            <div class="botcoder-loading">Loading tables...</div>
+            <div class="botcoder-loading" data-i18n="auto-loading-tables">Loading tables...</div>
         </div>
 
         <div class="botcoder-query-builder">
-            <h4>Query Builder</h4>
+            <h4 data-i18n="auto-query-builder">Query Builder</h4>
             <textarea id="dbSqlEditor" placeholder="SELECT * FROM table..."></textarea>
-            <button class="botcoder-btn botcoder-btn-primary" onclick="DB.executeSql()">Run Query</button>
+            <button class="botcoder-btn botcoder-btn-primary" onclick="DB.executeSql()" data-i18n="auto-run-query">Run Query</button>
             <span id="dbQueryDuration" class="db-query-duration"></span>
             <div id="dbSqlResults" class="db-sql-results"></div>
         </div>
@@ -22,20 +22,20 @@
 
     <div class="botcoder-db-main">
         <div class="botcoder-grid-toolbar">
-            <span id="dbTableName" class="db-table-name">Results</span>
-            <button class="botcoder-btn" onclick="DB.exportCsv()">Export CSV</button>
+            <span id="dbTableName" class="db-table-name" data-i18n="compliance-results">Results</span>
+            <button class="botcoder-btn" onclick="DB.exportCsv()" data-i18n="compliance-export-csv">Export CSV</button>
         </div>
 
         <div id="dbDataGrid" class="botcoder-data-grid">
             <!-- Grid data here -->
-            <div class="botcoder-empty">Select a table to view data</div>
+            <div class="botcoder-empty" data-i18n="auto-select-a-table-to-view-data">Select a table to view data</div>
         </div>
 
         <div class="db-pagination">
             <span id="dbRowCount" class="db-pagination-info"></span>
-            <button id="dbPrevBtn" class="botcoder-btn" onclick="DB.prevPage()">◀ Prev</button>
-            <span id="dbPageInfo" class="db-pagination-info">Page 1 of 1</span>
-            <button id="dbNextBtn" class="botcoder-btn" onclick="DB.nextPage()">Next ▶</button>
+            <button id="dbPrevBtn" class="botcoder-btn" onclick="DB.prevPage()" data-i18n="auto-prev">◀ Prev</button>
+            <span id="dbPageInfo" class="db-pagination-info" data-i18n="auto-page-1-of-1">Page 1 of 1</span>
+            <button id="dbNextBtn" class="botcoder-btn" onclick="DB.nextPage()" data-i18n="auto-next-2">Next ▶</button>
         </div>
     </div>
 </div>

@@ -82,7 +82,8 @@ fn teams_credentials(state: &Arc<ChannelState>) -> TeamsCredentials {
     drop(conn);
 
     let app_id = (state.get_config)(&bot_id, auth::APP_ID_KEY, None).unwrap_or_default();
-    let security_token = (state.get_config)(&bot_id, auth::SECURITY_TOKEN_KEY, None).unwrap_or_default();
+    let security_token =
+        (state.get_config)(&bot_id, auth::SECURITY_TOKEN_KEY, None).unwrap_or_default();
 
     TeamsCredentials::new(&app_id, &security_token)
 }

@@ -2,7 +2,7 @@
 <dialog id="labels-modal" class="modal">
     <div class="gb-app modal-content modal-small" data-gb-app="mail">
         <div class="modal-header">
-            <h2>Manage Labels</h2>
+            <h2 data-i18n="auto-manage-labels">Manage Labels</h2>
             <button class="icon-btn" onclick="document.getElementById('labels-modal').close()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -11,16 +11,16 @@
             </button>
         </div>
         <div class="form-group">
-            <label>Label Name</label>
+            <label data-i18n="auto-label-name">Label Name</label>
             <input type="text" id="new-label-name" placeholder="e.g. Work" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>Color</label>
+            <label data-i18n="auto-color">Color</label>
             <input type="color" id="new-label-color" value="#3b82f6" style="width:100%; height:40px; padding:0; cursor:pointer;" />
         </div>
         <div class="modal-footer" style="margin-top:1.5rem;">
-            <button class="btn-secondary" onclick="document.getElementById('labels-modal').close()">Cancel</button>
-            <button class="btn-primary" onclick="saveLabel()">Create</button>
+            <button class="btn-secondary" onclick="document.getElementById('labels-modal').close()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="saveLabel()" data-i18n="action-create">Create</button>
         </div>
     </div>
 </dialog>
@@ -29,7 +29,7 @@
 <dialog id="new-signature-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>New Email Signature</h2>
+            <h2 data-i18n="auto-new-email-signature">New Email Signature</h2>
             <button class="icon-btn" onclick="document.getElementById('new-signature-modal').close()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -38,16 +38,16 @@
             </button>
         </div>
         <div class="form-group">
-            <label>Signature Name</label>
+            <label data-i18n="auto-signature-name">Signature Name</label>
             <input type="text" id="new-sig-name" placeholder="e.g. Professional Signature" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>HTML Content</label>
+            <label data-i18n="auto-html-content">HTML Content</label>
             <textarea id="new-sig-content" placeholder="Best regards,<br><b>Your Name</b>" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
         </div>
         <div class="modal-footer" style="margin-top:1.5rem;">
-            <button class="btn-secondary" onclick="document.getElementById('new-signature-modal').close()">Cancel</button>
-            <button class="btn-primary" onclick="saveSignature()">Save</button>
+            <button class="btn-secondary" onclick="document.getElementById('new-signature-modal').close()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="saveSignature()" data-i18n="action-save">Save</button>
         </div>
     </div>
 </dialog>
@@ -56,7 +56,7 @@
 <dialog id="new-rule-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>New Email Rule</h2>
+            <h2 data-i18n="auto-new-email-rule">New Email Rule</h2>
             <button class="icon-btn" onclick="document.getElementById('new-rule-modal').close()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -65,24 +65,24 @@
             </button>
         </div>
         <div class="form-group">
-            <label>Rule Name</label>
+            <label data-i18n="auto-rule-name">Rule Name</label>
             <input type="text" id="new-rule-name" placeholder="e.g. Archive Newsletters" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>Condition (Sender contains)</label>
+            <label data-i18n="auto-condition-sender-contains">Condition (Sender contains)</label>
             <input type="text" id="new-rule-condition" placeholder="e.g. newsletter" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>Action</label>
+            <label data-i18n="security-col-action">Action</label>
             <select id="new-rule-action" style="width:100%; padding:8px; background:#1e293b; color:#fff; border:1px solid #475569;">
-                <option value="archive">Archive</option>
-                <option value="star">Star</option>
-                <option value="delete">Delete</option>
+                <option value="archive" data-i18n="action-archive">Archive</option>
+                <option value="star" data-i18n="auto-star">Star</option>
+                <option value="delete" data-i18n="action-delete">Delete</option>
             </select>
         </div>
         <div class="modal-footer" style="margin-top:1.5rem;">
-            <button class="btn-secondary" onclick="document.getElementById('new-rule-modal').close()">Cancel</button>
-            <button class="btn-primary" onclick="saveRule()">Create</button>
+            <button class="btn-secondary" onclick="document.getElementById('new-rule-modal').close()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="saveRule()" data-i18n="action-create">Create</button>
         </div>
     </div>
 </dialog>
@@ -91,7 +91,7 @@
 <dialog id="new-template-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>New Email Template</h2>
+            <h2 data-i18n="auto-new-email-template">New Email Template</h2>
             <button class="icon-btn" onclick="document.getElementById('new-template-modal').close()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -100,20 +100,20 @@
             </button>
         </div>
         <div class="form-group">
-            <label>Template Name</label>
+            <label data-i18n="auto-template-name">Template Name</label>
             <input type="text" id="new-template-name" placeholder="e.g. Welcome Email" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>Subject</label>
+            <label data-i18n="tickets-subject">Subject</label>
             <input type="text" id="new-template-subject" placeholder="Standard Welcome Subject" style="width:100%; box-sizing:border-box; padding:8px;" required />
         </div>
         <div class="form-group" style="margin-top:1rem;">
-            <label>Body HTML</label>
+            <label data-i18n="auto-body-html">Body HTML</label>
             <textarea id="new-template-body" placeholder="Hello {{name}}, welcome to our platform!" style="width:100%; height:120px; box-sizing:border-box; padding:8px;" required></textarea>
         </div>
         <div class="modal-footer" style="margin-top:1.5rem;">
-            <button class="btn-secondary" onclick="document.getElementById('new-template-modal').close()">Cancel</button>
-            <button class="btn-primary" onclick="saveTemplate()">Create</button>
+            <button class="btn-secondary" onclick="document.getElementById('new-template-modal').close()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="saveTemplate()" data-i18n="action-create">Create</button>
         </div>
     </div>
 </dialog>
@@ -131,7 +131,7 @@
 <dialog id="templates-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Email Templates</h2>
+            <h2 data-i18n="auto-email-templates">Email Templates</h2>
             <button class="icon-btn" onclick="closeTemplates()">
                 <svg
                     width="16"
@@ -156,10 +156,10 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeTemplates()">
+            <button class="btn-secondary" onclick="closeTemplates()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewTemplate()">
+            <button class="btn-primary" onclick="createNewTemplate()" data-i18n="auto-new-template-2">
                 + New Template
             </button>
         </div>
@@ -170,7 +170,7 @@
 <dialog id="signatures-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Email Signatures</h2>
+            <h2 data-i18n="auto-email-signatures">Email Signatures</h2>
             <button class="icon-btn" onclick="closeSignatures()">
                 <svg
                     width="16"
@@ -195,10 +195,10 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeSignatures()">
+            <button class="btn-secondary" onclick="closeSignatures()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="createNewSignature()">
+            <button class="btn-primary" onclick="createNewSignature()" data-i18n="auto-new-signature">
                 + New Signature
             </button>
         </div>
@@ -209,7 +209,7 @@
 <dialog id="rules-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h2>Email Rules</h2>
+            <h2 data-i18n="auto-email-rules">Email Rules</h2>
             <button class="icon-btn" onclick="closeRules()">
                 <svg
                     width="16"
@@ -234,8 +234,8 @@
             <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeRules()">Cancel</button>
-            <button class="btn-primary" onclick="createNewRule()">
+            <button class="btn-secondary" onclick="closeRules()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="createNewRule()" data-i18n="auto-new-rule">
                 + New Rule
             </button>
         </div>
@@ -246,7 +246,7 @@
 <dialog id="autoresponder-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Automatic Replies</h2>
+            <h2 data-i18n="auto-automatic-replies">Automatic Replies</h2>
             <button class="icon-btn" onclick="closeAutoResponder()">
                 <svg
                     width="16"
@@ -274,11 +274,11 @@
                         id="autoresponder-enabled"
                     />
                     <span class="toggle-switch"></span>
-                    <span>Send automatic replies</span>
+                    <span data-i18n="auto-send-automatic-replies">Send automatic replies</span>
                 </label>
             </div>
             <div class="form-group">
-                <label>Start date</label>
+                <label data-i18n="auto-start-date">Start date</label>
                 <input
                     type="datetime-local"
                     name="start_date"
@@ -286,7 +286,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>End date</label>
+                <label data-i18n="auto-end-date">End date</label>
                 <input
                     type="datetime-local"
                     name="end_date"
@@ -294,7 +294,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Subject</label>
+                <label data-i18n="tickets-subject">Subject</label>
                 <input
                     type="text"
                     name="subject"
@@ -303,7 +303,7 @@
                 />
             </div>
             <div class="form-group">
-                <label>Message</label>
+                <label data-i18n="email-body">Message</label>
                 <textarea
                     name="body"
                     rows="6"
@@ -313,15 +313,15 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="internal_only" />
-                    <span>Send only to people in my organization</span>
+                    <span data-i18n="auto-send-only-to-people-in-my-organization">Send only to people in my organization</span>
                 </label>
             </div>
         </form>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeAutoResponder()">
+            <button class="btn-secondary" onclick="closeAutoResponder()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="saveAutoResponder()">
+            <button class="btn-primary" onclick="saveAutoResponder()" data-i18n="action-save">
                 Save
             </button>
         </div>
@@ -337,7 +337,7 @@
 <dialog id="schedule-modal" class="modal">
     <div class="modal-content modal-small">
         <div class="modal-header">
-            <h2>Schedule Send</h2>
+            <h2 data-i18n="auto-schedule-send">Schedule Send</h2>
             <button class="icon-btn" onclick="closeScheduleModal()">
                 <svg
                     width="16"
@@ -354,19 +354,19 @@
         </div>
         <div class="schedule-form">
             <div class="form-group">
-                <label>Date</label>
+                <label data-i18n="label-date">Date</label>
                 <input type="date" id="schedule-date" min="" />
             </div>
             <div class="form-group">
-                <label>Time</label>
+                <label data-i18n="label-time">Time</label>
                 <input type="time" id="schedule-time" value="09:00" />
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeScheduleModal()">
+            <button class="btn-secondary" onclick="closeScheduleModal()" data-i18n="action-cancel">
                 Cancel
             </button>
-            <button class="btn-primary" onclick="confirmSchedule()">
+            <button class="btn-primary" onclick="confirmSchedule()" data-i18n="auto-schedule">
                 Schedule
             </button>
         </div>
@@ -374,8 +374,8 @@
 </dialog>
 
 <link rel="stylesheet" href="/suite/mail/mail.css" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/mail/mail-templates.js?v=1"></script>
 <script src="/suite/mail/modules/01_compose.js?v=2"></script>
 <script src="/suite/mail/modules/02_panels_compose.js?v=2"></script>

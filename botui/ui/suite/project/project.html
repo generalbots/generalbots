@@ -31,7 +31,7 @@
 
         <nav class="sidebar-nav">
             <div id="project-list">
-                <div class="loading-placeholder">Loading projects...</div>
+                <div class="loading-placeholder" data-i18n="auto-loading-projects">Loading projects...</div>
             </div>
         </nav>
     </aside>
@@ -41,11 +41,11 @@
         <!-- Project Header -->
         <header class="project-header">
             <div class="project-info">
-                <h1 id="project-name">Select a Project</h1>
+                <h1 id="project-name" data-i18n="auto-select-a-project">Select a Project</h1>
                 <div class="project-meta">
                     <span class="meta-item" id="project-status">
                         <span class="status-dot"></span>
-                        <span>No project selected</span>
+                        <span data-i18n="auto-no-project-selected-3">No project selected</span>
                     </span>
                     <select
                         class="status-select"
@@ -53,14 +53,14 @@
                         onchange="updateProjectStatus(this.value)"
                         style="display: none"
                     >
-                        <option value="planning">Planning</option>
-                        <option value="active">Active</option>
-                        <option value="on_hold">On Hold</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="planning" data-i18n="auto-planning">Planning</option>
+                        <option value="active" data-i18n="label-active">Active</option>
+                        <option value="on_hold" data-i18n="tickets-status-on-hold">On Hold</option>
+                        <option value="completed" data-i18n="learn-completed">Completed</option>
+                        <option value="cancelled" data-i18n="status-cancelled">Cancelled</option>
                     </select>
                     <span class="meta-item" id="project-progress">
-                        <span class="progress-label">Progress:</span>
+                        <span class="progress-label" data-i18n="auto-progress-2">Progress:</span>
                         <span class="progress-value">--</span>
                     </span>
                 </div>
@@ -89,7 +89,7 @@
                     onclick="openProjectComments()"
                     title="Comments"
                     disabled
-                >
+                 data-i18n="auto-comments">
                     💬 Comments
                 </button>
                 <button
@@ -97,7 +97,7 @@
                     id="project-import-btn"
                     onclick="triggerImportPicker()"
                     title="Open an MS Project (.xml/.mpp), CSV, or JSON file"
-                >
+                 data-i18n="auto-open">
                     📂 Open
                 </button>
                 <button
@@ -106,7 +106,7 @@
                     onclick="exportProject('xml')"
                     title="Export as MS Project XML"
                     disabled
-                >
+                 data-i18n="auto-export">
                     ⬇ Export
                 </button>
                 <button
@@ -127,9 +127,9 @@
                 <div class="gantt-toolbar">
                     <div class="gantt-zoom">
                         <button class="zoom-btn" onclick="zoomGantt('day')">Day</button>
-                        <button class="zoom-btn active" onclick="zoomGantt('week')">Week</button>
-                        <button class="zoom-btn" onclick="zoomGantt('month')">Month</button>
-                        <button class="zoom-btn" onclick="zoomGantt('quarter')">Quarter</button>
+                        <button class="zoom-btn active" onclick="zoomGantt('week')" data-i18n="calendar-week">Week</button>
+                        <button class="zoom-btn" onclick="zoomGantt('month')" data-i18n="products-unit-month">Month</button>
+                        <button class="zoom-btn" onclick="zoomGantt('quarter')" data-i18n="auto-quarter">Quarter</button>
                     </div>
                     <div class="gantt-filters">
                         <label>
@@ -141,7 +141,7 @@
                             <span data-i18n="project-milestones">Show Milestones</span>
                         </label>
                     </div>
-                    <button class="btn-secondary" onclick="fitGanttToScreen()">
+                    <button class="btn-secondary" onclick="fitGanttToScreen()" data-i18n="auto-fit-to-screen">
                         Fit to Screen
                     </button>
                 </div>
@@ -149,18 +149,18 @@
                 <div class="gantt-container">
                     <div class="gantt-table">
                         <div class="gantt-table-header">
-                            <div class="col-name">Task Name</div>
-                            <div class="col-start">Start</div>
+                            <div class="col-name" data-i18n="auto-task-name">Task Name</div>
+                            <div class="col-start" data-i18n="action-start">Start</div>
                             <div class="col-end">End</div>
-                            <div class="col-duration">Duration</div>
-                            <div class="col-progress">Progress</div>
-                            <div class="col-assignee">Assignee</div>
+                            <div class="col-duration" data-i18n="auto-duration">Duration</div>
+                            <div class="col-progress" data-i18n="auto-progress">Progress</div>
+                            <div class="col-assignee" data-i18n="auto-assignee">Assignee</div>
                         </div>
                         <div
                             id="gantt-table-body"
                             class="gantt-table-body"
                         >
-                            <div class="empty-state-inline">
+                            <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-tasks">
                                 Select a project to view tasks
                             </div>
                         </div>
@@ -175,7 +175,7 @@
                             class="gantt-chart-body"
                         >
                             <div class="empty-state-inline">
-                                <p>No tasks to display</p>
+                                <p data-i18n="auto-no-tasks-to-display">No tasks to display</p>
                             </div>
                         </div>
                     </div>
@@ -188,7 +188,7 @@
                     id="timeline-container"
                     class="timeline-container"
                 >
-                    <div class="empty-state-inline">Select a project to view timeline</div>
+                    <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-timeline">Select a project to view timeline</div>
                 </div>
             </div>
 
@@ -198,7 +198,7 @@
                     id="list-container"
                     class="list-container"
                 >
-                    <div class="empty-state-inline">Select a project to view tasks</div>
+                    <div class="empty-state-inline" data-i18n="auto-select-a-project-to-view-tasks">Select a project to view tasks</div>
                 </div>
             </div>
 
@@ -206,15 +206,15 @@
             <div id="board-view" class="view-container">
                 <div class="board-columns">
                     <div class="board-column" data-status="not-started">
-                        <h3>Not Started</h3>
+                        <h3 data-i18n="auto-not-started">Not Started</h3>
                         <div id="board-tasks-not-started" class="column-tasks"></div>
                     </div>
                     <div class="board-column" data-status="in-progress">
-                        <h3>In Progress</h3>
+                        <h3 data-i18n="status-in-progress">In Progress</h3>
                         <div id="board-tasks-in-progress" class="column-tasks"></div>
                     </div>
                     <div class="board-column" data-status="completed">
-                        <h3>Completed</h3>
+                        <h3 data-i18n="learn-completed">Completed</h3>
                         <div id="board-tasks-completed" class="column-tasks"></div>
                     </div>
                 </div>
@@ -223,7 +223,7 @@
             <!-- Resource View -->
             <div id="resource-view" class="view-container">
                 <div id="resource-container" class="resource-container">
-                    <div class="empty-state-inline">Select a project to view resources</div>
+                    <div class="empty-state-inline" data-i18n="project-select-project-resources">Select a project to view resources</div>
                 </div>
             </div>
         </div>
@@ -231,8 +231,8 @@
         <!-- Empty State -->
         <div id="project-empty" class="empty-state">
             <div class="empty-state-icon">&#x1F4CB;</div>
-            <h2>No Project Selected</h2>
-            <p>Select a project from the sidebar or create a new one</p>
+            <h2 data-i18n="auto-no-project-selected-2">No Project Selected</h2>
+            <p data-i18n="auto-select-a-project-from-the-sidebar-or-create-a-new-one">Select a project from the sidebar or create a new one</p>
             <button
                 class="btn-primary"
                 hx-get="/api/ui/project/new"
@@ -251,7 +251,7 @@
         </button>
         <div class="panel-content">
             <div id="task-details">
-                <p class="empty-message">Select a task to view details</p>
+                <p class="empty-message" data-i18n="auto-select-a-task-to-view-details">Select a task to view details</p>
             </div>
         </div>
     </aside>
@@ -272,8 +272,8 @@
 <link rel="stylesheet" href="/suite/project/project-layout.css?v=1" />
 <link rel="stylesheet" href="/suite/project/project-views.css?v=1" />
 <link rel="stylesheet" href="/suite/project/project-modals.css?v=1" />
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/collab-comments/01_helpers.js"></script>
 <script src="/suite/js/collab-comments/02_data.js"></script>
 <script src="/suite/js/collab-comments/99_panel.js"></script>

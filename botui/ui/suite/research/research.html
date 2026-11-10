@@ -100,7 +100,7 @@
                         </span>
                     </label>
                     <button type="submit" class="search-btn">
-                        <span>Search</span>
+                        <span data-i18n="action-search">Search</span>
                         <svg
                             width="16"
                             height="16"
@@ -121,20 +121,20 @@
                 <div class="indicator-dots">
                     <span></span><span></span><span></span>
                 </div>
-                <span class="indicator-text">Searching sources...</span>
+                <span class="indicator-text" data-i18n="auto-searching-sources">Searching sources...</span>
             </div>
         </div>
 
         <!-- Suggestions (shown when no search) -->
         <div class="suggestions-panel" id="suggestions-panel">
-            <h3>Try asking about</h3>
+            <h3 data-i18n="research-try-asking">Try asking about</h3>
             <div class="suggestion-cards">
                 <button
                     class="suggestion-card"
                     data-query="What are the latest developments in AI?"
                 >
                     <span class="suggestion-icon">🤖</span>
-                    <span class="suggestion-text">Latest AI developments</span>
+                    <span class="suggestion-text" data-i18n="auto-latest-ai-developments">Latest AI developments</span>
                 </button>
                 <button
                     class="suggestion-card"
@@ -142,7 +142,7 @@
                 >
                     <span class="suggestion-icon">⚛️</span>
                     <span class="suggestion-text"
-                        >Quantum computing explained</span
+                         data-i18n="auto-quantum-computing-explained">Quantum computing explained</span
                     >
                 </button>
                 <button
@@ -150,20 +150,20 @@
                     data-query="Best practices for software architecture"
                 >
                     <span class="suggestion-icon">🏗️</span>
-                    <span class="suggestion-text">Software architecture</span>
+                    <span class="suggestion-text" data-i18n="auto-software-architecture">Software architecture</span>
                 </button>
                 <button
                     class="suggestion-card"
                     data-query="How to improve productivity with AI tools"
                 >
                     <span class="suggestion-icon">📈</span>
-                    <span class="suggestion-text">AI productivity tools</span>
+                    <span class="suggestion-text" data-i18n="auto-ai-productivity-tools">AI productivity tools</span>
                 </button>
             </div>
 
             <!-- Trending Topics -->
             <div class="trending-section">
-                <h3>Trending</h3>
+                <h3 data-i18n="research-trending">Trending</h3>
                 <div
                     class="trending-tags"
                     id="trending-tags"
@@ -185,7 +185,7 @@
     <!-- Sources Panel (Right) -->
     <aside class="sources-panel hidden" id="sources-panel">
         <div class="sources-header">
-            <h3>Sources</h3>
+            <h3 data-i18n="research-sources">Sources</h3>
             <div class="sources-actions">
                 <button
                     class="btn-icon-sm"
@@ -312,7 +312,7 @@
 
         <!-- Related Questions -->
         <div class="related-questions">
-            <h4>Related</h4>
+            <h4 data-i18n="auto-related">Related</h4>
             <div class="related-list" id="related-questions">
                 <!-- Related questions loaded here -->
             </div>
@@ -321,8 +321,8 @@
         <!-- Sources Preview -->
         <div class="sources-preview">
             <div class="sources-preview-header">
-                <h4>Sources</h4>
-                <button class="btn-text" id="view-all-sources">View all</button>
+                <h4 data-i18n="research-sources">Sources</h4>
+                <button class="btn-text" id="view-all-sources" data-i18n="auto-view-all">View all</button>
             </div>
             <div class="sources-preview-list" id="sources-preview">
                 <!-- Top sources shown here -->
@@ -333,7 +333,7 @@
 
 
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Research…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Research service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="auto-loading-research">Loading Research…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-research-service-unavailable">Research service unavailable</span></div>
 <script src="/suite/research/research-templates.js?v=1"></script>
 <script src="/suite/research/research-inline.js?v=1"></script>

@@ -7,7 +7,7 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>User Management</h2>
+                    <h2 data-i18n="auto-user-management">User Management</h2>
                     <button class="btn-primary btn-sm"
                         onclick="document.getElementById('create-user-modal').showModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -21,7 +21,7 @@
                 <div hx-get="/api/admin/users" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading users...</p>
+                        <p data-i18n="auto-loading-users">Loading users...</p>
                     </div>
                 </div>
             </div>
@@ -36,7 +36,7 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Group Management</h2>
+                    <h2 data-i18n="auto-group-management">Group Management</h2>
                     <button class="btn-primary btn-sm"
                         onclick="document.getElementById('create-group-modal').showModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -50,7 +50,7 @@
                 <div hx-get="/api/admin/groups" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading groups...</p>
+                        <p data-i18n="auto-loading-groups">Loading groups...</p>
                     </div>
                 </div>
             </div>
@@ -65,12 +65,12 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Bot Management</h2>
+                    <h2 data-i18n="auto-bot-management">Bot Management</h2>
                 </div>
                 <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading bots...</p>
+                        <p data-i18n="auto-loading-bots">Loading bots...</p>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Domain Configuration</h2>
+                    <h2 data-i18n="auto-domain-configuration">Domain Configuration</h2>
                     <button class="btn-primary btn-sm"
                         onclick="document.getElementById('register-dns-modal').showModal()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -99,7 +99,7 @@
                 <div hx-get="/api/admin/dns" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading DNS records...</p>
+                        <p data-i18n="auto-loading-dns-records">Loading DNS records...</p>
                     </div>
                 </div>
             </div>
@@ -114,12 +114,12 @@
 
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Recent Activity</h2>
+                    <h2 data-i18n="dashboard-recent-activity">Recent Activity</h2>
                 </div>
                 <div hx-get="/api/admin/audit" hx-trigger="load" hx-swap="innerHTML">
                     <div class="loading-state">
                         <div class="spinner"></div>
-                        <p>Loading audit log...</p>
+                        <p data-i18n="auto-loading-audit-log">Loading audit log...</p>
                     </div>
                 </div>
             </div>
@@ -129,18 +129,18 @@
              browser/cloud deployments by settings/main/02_edition.js. -->
         <section id="updates-section" class="settings-section" data-shell-only="true" hidden>
             <div class="section-header">
-                <h1>Updates</h1>
-                <p class="subtitle">Check the latest GitHub release and jump to the official download</p>
+                <h1 data-i18n="auto-updates">Updates</h1>
+                <p class="subtitle" data-i18n="auto-check-the-latest-github-release-and-jump-to-the-official-dow">Check the latest GitHub release and jump to the official download</p>
             </div>
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Desktop updates</h2>
-                    <p>The app checks <code>github.com/generalbots/generalbots/releases/latest</code>. Installing is always opt-in.</p>
+                    <h2 data-i18n="auto-desktop-updates">Desktop updates</h2>
+                    <p data-i18n="auto-the-app-checks">The app checks <code>github.com/generalbots/generalbots/releases/latest</code>. Installing is always opt-in.</p>
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Check for updates at startup</span>
-                        <span class="setting-desc">Runs at most once a day and only shows a notification. You can still use “Check now” when this is off.</span>
+                        <span class="setting-title" data-i18n="auto-check-for-updates-at-startup">Check for updates at startup</span>
+                        <span class="setting-desc" data-i18n="auto-runs-at-most-once-a-day-and-only-shows-a-notification-you-ca">Runs at most once a day and only shows a notification. You can still use “Check now” when this is off.</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" id="update-check-startup"
@@ -150,33 +150,33 @@
                 </div>
                 <div class="setting-row">
                     <div class="setting-info">
-                        <span class="setting-title">Current version</span>
-                        <span class="setting-desc">Last check: <span id="updates-last-check">Never</span></span>
+                        <span class="setting-title" data-i18n="auto-current-version">Current version</span>
+                        <span class="setting-desc">Last check: <span id="updates-last-check" data-i18n="auto-never">Never</span></span>
                     </div>
                     <!-- #2103 — filled from /api/product (window.GBUpdate). -->
-                    <span id="updates-current-version" class="version-number">Unknown</span>
+                    <span id="updates-current-version" class="version-number" data-i18n="label-unknown">Unknown</span>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-primary" id="updates-check-now"
-                        onclick="window.GBUpdate && GBUpdate.checkNow()">Check now</button>
+                        onclick="window.GBUpdate && GBUpdate.checkNow()" data-i18n="auto-check-now">Check now</button>
                     <button type="button" class="btn-secondary" id="updates-notes-button" disabled
-                        onclick="window.GBUpdate && GBUpdate.showReleaseNotes()">View release notes</button>
+                        onclick="window.GBUpdate && GBUpdate.showReleaseNotes()" data-i18n="auto-view-release-notes">View release notes</button>
                 </div>
-                <p id="updates-status" class="setting-desc" role="status">Not checked yet.</p>
+                <p id="updates-status" class="setting-desc" role="status" data-i18n="auto-not-checked-yet">Not checked yet.</p>
             </div>
         </section>
 
         <!-- Versions Section -->
         <section id="versions-section" class="settings-section">
             <div class="section-header">
-                <h1>System Versions</h1>
-                <p class="subtitle">Component versions and update availability</p>
+                <h1 data-i18n="auto-system-versions">System Versions</h1>
+                <p class="subtitle" data-i18n="auto-component-versions-and-update-availability">Component versions and update availability</p>
             </div>
             <div class="setting-card">
                 <div class="versions-table-container" id="versionsTableContainer">
                     <div class="versions-loading">
                         <div class="versions-spinner"></div>
-                        <span>Loading version information...</span>
+                        <span data-i18n="auto-loading-version-information">Loading version information...</span>
                     </div>
                 </div>
             </div>
@@ -185,21 +185,21 @@
         <!-- Ledger Section (#1702) -->
         <section id="ledger-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
-                <h1>Ledger</h1>
-                <p class="section-description">Every terminal and browser action, with the consent decision, outcome and screenshot path.</p>
+                <h1 data-i18n="auto-ledger">Ledger</h1>
+                <p class="section-description" data-i18n="auto-every-terminal-and-browser-action-with-the-consent-decision">Every terminal and browser action, with the consent decision, outcome and screenshot path.</p>
             </div>
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Actions ledger</h2>
-                    <button type="button" class="btn-secondary btn-sm" id="ledger-refresh">Refresh</button>
+                    <h2 data-i18n="auto-actions-ledger">Actions ledger</h2>
+                    <button type="button" class="btn-secondary btn-sm" id="ledger-refresh" data-i18n="action-refresh">Refresh</button>
                 </div>
                 <div class="ledger-tabs">
-                    <button type="button" class="ledger-tab active" data-kind="terminal">Terminal</button>
-                    <button type="button" class="ledger-tab" data-kind="browser">Browser</button>
-                    <button type="button" class="ledger-tab" data-kind="budget">Budgets</button>
-                    <button type="button" class="ledger-tab" data-kind="ttft">TTFT</button>
+                    <button type="button" class="ledger-tab active" data-kind="terminal" data-i18n="auto-terminal">Terminal</button>
+                    <button type="button" class="ledger-tab" data-kind="browser" data-i18n="auto-browser">Browser</button>
+                    <button type="button" class="ledger-tab" data-kind="budget" data-i18n="auto-budgets">Budgets</button>
+                    <button type="button" class="ledger-tab" data-kind="ttft" data-i18n="auto-ttft">TTFT</button>
                 </div>
-                <div id="ledger-list" class="ledger-list">Loading…</div>
+                <div id="ledger-list" class="ledger-list" data-i18n="crm-loading">Loading…</div>
             </div>
         </section>
         <!-- #1889 — the declarative nav registry must load before the edition

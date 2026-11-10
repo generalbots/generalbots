@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentProfile = null;
       document.querySelectorAll('.calc-prof-btn').forEach(function(b) { b.classList.remove('active'); });
       var rec = document.getElementById('calc-recommend');
-      if (rec) rec.textContent = 'Select a profile for personalized recommendations';
+      if (rec) rec.textContent = gbT('cloud-store-profile-select', 'Select a profile for personalized recommendations');
       calcUpdate();
       var anchor = location.hash === '#calc-llm-grid' ? document.getElementById('calc-llm-grid') : null;
       if (anchor) {

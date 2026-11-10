@@ -44,7 +44,7 @@
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
-                    <div class="loading-placeholder">Loading...</div>
+                    <div class="loading-placeholder" data-i18n="label-loading">Loading...</div>
                 </div>
             </div>
 
@@ -56,19 +56,19 @@
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
-                    <div class="loading-placeholder">Loading...</div>
+                    <div class="loading-placeholder" data-i18n="label-loading">Loading...</div>
                 </div>
             </div>
 
             <div class="nav-section">
-                <h3>Pages</h3>
+                <h3 data-i18n="workspace-pages">Pages</h3>
                 <div
                     id="page-tree"
                     hx-get="/api/ui/workspaces/current/pages"
                     hx-trigger="load, pageCreated from:body, pageDeleted from:body"
                     hx-swap="innerHTML"
                 >
-                    <div class="loading-placeholder">Loading...</div>
+                    <div class="loading-placeholder" data-i18n="label-loading">Loading...</div>
                 </div>
             </div>
         </nav>
@@ -124,7 +124,7 @@
                     hx-vals='js:{title: document.getElementById("page-title").value}'
                 />
                 <div class="page-meta">
-                    <span class="meta-item">Last edited: just now</span>
+                    <span class="meta-item" data-i18n="auto-last-edited-just-now">Last edited: just now</span>
                 </div>
             </header>
 
@@ -139,7 +139,7 @@
                 >
                     <!-- Empty state -->
                     <div class="empty-page">
-                        <p>
+                        <p data-i18n="auto-press">
                             Press <kbd>/</kbd> for commands or start typing...
                         </p>
                     </div>
@@ -165,8 +165,8 @@
         <!-- Empty State (no page selected) -->
         <div id="empty-state" class="empty-state hidden">
             <div class="empty-state-icon">📝</div>
-            <h2>Select a page or create a new one</h2>
-            <p>Your workspace pages will appear in the sidebar</p>
+            <h2 data-i18n="auto-select-a-page-or-create-a-new-one">Select a page or create a new one</h2>
+            <p data-i18n="auto-your-workspace-pages-will-appear-in-the-sidebar">Your workspace pages will appear in the sidebar</p>
             <button
                 class="btn-primary"
                 hx-post="/api/ui/workspaces/current/pages"
@@ -192,14 +192,14 @@
                 hx-trigger="load"
                 hx-swap="innerHTML"
             >
-                <div class="loading-placeholder">Loading...</div>
+                <div class="loading-placeholder" data-i18n="label-loading">Loading...</div>
             </div>
             <button
                 class="btn-secondary btn-sm"
                 hx-get="/api/ui/workspaces/current/invite"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
-            >
+             data-i18n="auto-invite-members">
                 Invite Members
             </button>
         </div>
@@ -211,6 +211,6 @@
 
 <link rel="stylesheet" href="/suite/workspace/workspace-inline.css">
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/workspace/workspace-inline.js"></script>

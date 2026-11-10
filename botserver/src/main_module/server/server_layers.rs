@@ -48,7 +48,7 @@ pub(super) fn apply_middleware(
         response
     }
 
-    app
+    let app = app
         .layer(axum::middleware::from_fn({
             let name = app_state.config.as_ref()
                 .map(|c| format!("botserver:{}", c.server.host))
@@ -106,7 +106,15 @@ pub(super) fn apply_middleware(
         .layer(axum::Extension(app_state))
         .layer(cors)
         .layer(axum::middleware::from_fn(crate::security::cors::strip_proxy_cors_middleware))
-        .layer(TraceLayer::new_for_http())
+        .layer(TraceLayer::new_for_http());
+
+    // Operational counters for the Analytics app (#2116). Outermost so the
+    // measured latency is what the caller waited for, including auth, rate
+    // limiting and compression.
+    #[cfg(feature = "analytics")]
+    let app = app.layer(axum::middleware::from_fn(ops_metrics_middleware));
+
+    app
 }
 #[cfg(feature = "calendar")]
 pub(super) fn add_calendar_routes(r: Router, s: &Arc<AppState>) -> Router {

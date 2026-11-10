@@ -233,7 +233,9 @@ pub async fn handle_webhook(
     match authorize_delivery(&app_secret, signature, &body) {
         DeliveryAuth::Verified => {}
         DeliveryAuth::Mismatch => {
-            log::warn!("WhatsApp webhook delivery rejected: {SIGNATURE_HEADER} missing or mismatched");
+            log::warn!(
+                "WhatsApp webhook delivery rejected: {SIGNATURE_HEADER} missing or mismatched"
+            );
             return (StatusCode::FORBIDDEN, "Invalid signature").into_response();
         }
         DeliveryAuth::Unconfigured => {

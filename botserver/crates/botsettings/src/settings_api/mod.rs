@@ -11,9 +11,7 @@ pub(crate) use axum::{
 };
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::RunQueryDsl;
-pub(crate) use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 pub(crate) use serde::Deserialize;
-pub(crate) use std::collections::HashSet;
 pub(crate) use std::sync::Arc;
 
 #[derive(Debug, diesel::QueryableByName)]

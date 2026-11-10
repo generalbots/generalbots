@@ -1,6 +1,6 @@
 <div class="gb-app roles-view" data-gb-app="adminpanel">
 <div class="page-header"> <div class="header-left">
-<h1>Role Management</h1> <p class="subtitle">Configure roles and assign permissions to control access across the suite</p>
+<h1 data-i18n="auto-role-management">Role Management</h1> <p class="subtitle" data-i18n="auto-configure-roles-and-assign-permissions-to-control-access-acr">Configure roles and assign permissions to control access across the suite</p>
 </div> <div class="header-actions">
 <button class="btn-secondary" onclick="document.getElementById('import-roles-modal').showModal()"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="17 8 12 3 7 8"></polyline>
@@ -12,10 +12,10 @@ Import </button>
 Create Role </button>
 </div> </div>
 <div class="roles-layout"> <div class="roles-sidebar">
-<div class="sidebar-header"> <h3>Roles</h3>
+<div class="sidebar-header"> <h3 data-i18n="auto-roles">Roles</h3>
 <div class="role-filters"> <select id="role-type-filter" onchange="filterRoles(this.value)">
-<option value="all">All Roles</option> <option value="system">System Roles</option>
-<option value="custom">Custom Roles</option> </select>
+<option value="all" data-i18n="auto-all-roles">All Roles</option> <option value="system" data-i18n="auto-system-roles">System Roles</option>
+<option value="custom" data-i18n="auto-custom-roles">Custom Roles</option> </select>
 </div> </div>
 <div class="search-box"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -26,14 +26,14 @@ Create Role </button>
 </div> <div class="roles-content">
 <div class="role-detail-placeholder" id="role-placeholder"> <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path> </svg>
-<h3>Select a Role</h3> <p>Choose a role from the list to view and manage its permissions</p>
+<h3 data-i18n="auto-select-a-role">Select a Role</h3> <p data-i18n="auto-choose-a-role-from-the-list-to-view-and-manage-its-permissio">Choose a role from the list to view and manage its permissions</p>
 </div> <div class="role-detail-content" id="role-detail" style="display: none;">
 <div class="role-header"> <div class="role-header-info">
 <div class="role-icon"> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path> </svg>
 </div> <div class="role-title-section">
-<h2 id="role-display-name">Role Name</h2> <span class="role-name-badge" id="role-name">role_name</span>
-<span class="role-type-badge system" id="role-type-badge">System</span> </div>
+<h2 id="role-display-name" data-i18n="auto-role-name">Role Name</h2> <span class="role-name-badge" id="role-name" data-i18n="auto-role-name-2">role_name</span>
+<span class="role-type-badge system" id="role-type-badge" data-i18n="admin-system">System</span> </div>
 </div> <div class="role-header-actions">
 <button class="btn-secondary" id="btn-duplicate-role" onclick="duplicateRole()"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect> <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -43,35 +43,35 @@ Create Role </button>
 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path> </svg>
 Delete </button>
 </div> </div>
-<div class="role-description" id="role-description"> <p>Role description goes here</p>
+<div class="role-description" id="role-description"> <p data-i18n="auto-role-description-goes-here">Role description goes here</p>
 </div> <div class="role-stats">
 <div class="stat-card"> <div class="stat-value" id="stat-users">0</div>
-<div class="stat-label">Users</div> </div>
+<div class="stat-label" data-i18n="settings-users">Users</div> </div>
 <div class="stat-card"> <div class="stat-value" id="stat-groups">0</div>
-<div class="stat-label">Groups</div> </div>
+<div class="stat-label" data-i18n="settings-groups">Groups</div> </div>
 <div class="stat-card"> <div class="stat-value" id="stat-permissions">0</div>
-<div class="stat-label">Permissions</div> </div>
+<div class="stat-label" data-i18n="auto-permissions">Permissions</div> </div>
 </div> <div class="role-tabs">
-<button class="tab-btn active" onclick="showTab('permissions', this)">Permissions</button> <button class="tab-btn" onclick="showTab('users', this)">Assigned Users</button>
-<button class="tab-btn" onclick="showTab('groups', this)">Assigned Groups</button> <button class="tab-btn" onclick="showTab('audit', this)">Audit Log</button>
+<button class="tab-btn active" onclick="showTab('permissions', this)" data-i18n="auto-permissions">Permissions</button> <button class="tab-btn" onclick="showTab('users', this)" data-i18n="auto-assigned-users">Assigned Users</button>
+<button class="tab-btn" onclick="showTab('groups', this)" data-i18n="auto-assigned-groups">Assigned Groups</button> <button class="tab-btn" onclick="showTab('audit', this)" data-i18n="settings-audit">Audit Log</button>
 </div> <div class="tab-content" id="tab-permissions">
 <div class="permissions-assignment"> <div class="assignment-header">
-<h4>Permission Assignment</h4> <p class="help-text">Use the dual-list to assign permissions to this role</p>
+<h4 data-i18n="auto-permission-assignment">Permission Assignment</h4> <p class="help-text" data-i18n="auto-use-the-dual-list-to-assign-permissions-to-this-role">Use the dual-list to assign permissions to this role</p>
 </div> <div class="dual-list-container">
 <div class="list-box available-box"> <div class="list-box-header">
-<span>Available Permissions</span> <span class="count" id="available-count">0</span>
+<span data-i18n="auto-available-permissions">Available Permissions</span> <span class="count" id="available-count">0</span>
 </div> <div class="list-box-search">
 <input type="text" placeholder="Filter available..." onkeyup="filterAvailable(this.value)"> </div>
 <div class="category-filter"> <select onchange="filterByCategory(this.value, 'available')">
-<option value="">All Categories</option> <option value="admin">Administration</option>
-<option value="compliance">Compliance</option> <option value="security">Security</option>
-<option value="mail">Mail</option> <option value="calendar">Calendar</option>
-<option value="drive">Drive</option> <option value="docs">Documents</option>
-<option value="sheet">Spreadsheets</option> <option value="slides">Presentations</option>
-<option value="meet">Meetings</option> <option value="chat">Chat</option>
-<option value="tasks">Tasks</option> <option value="ai">AI & Bots</option>
-<option value="analytics">Analytics</option> <option value="integrations">Integrations</option>
-<option value="automation">Automation</option> </select>
+<option value="" data-i18n="products-cat-all">All Categories</option> <option value="admin" data-i18n="settings-administration">Administration</option>
+<option value="compliance" data-i18n="learn-compliance">Compliance</option> <option value="security" data-i18n="learn-security">Security</option>
+<option value="mail" data-i18n="email-title">Mail</option> <option value="calendar" data-i18n="calendar-title">Calendar</option>
+<option value="drive" data-i18n="drive-title">Drive</option> <option value="docs" data-i18n="auto-documents">Documents</option>
+<option value="sheet" data-i18n="auto-spreadsheets">Spreadsheets</option> <option value="slides" data-i18n="auto-presentations">Presentations</option>
+<option value="meet" data-i18n="auto-meetings">Meetings</option> <option value="chat" data-i18n="chat-title">Chat</option>
+<option value="tasks" data-i18n="tasks-title">Tasks</option> <option value="ai" data-i18n="auto-ai-bots">AI & Bots</option>
+<option value="analytics" data-i18n="settings-analytics">Analytics</option> <option value="integrations" data-i18n="settings-integrations">Integrations</option>
+<option value="automation" data-i18n="auto-automation">Automation</option> </select>
 </div> <div class="list-box-content" id="available-permissions">
 <div class="loading-state"><div class="spinner"></div></div> </div>
 </div> <div class="transfer-buttons">
@@ -87,31 +87,31 @@ Delete </button>
 <polyline points="18 17 13 12 18 7"></polyline> <polyline points="11 17 6 12 11 7"></polyline>
 </svg> </button>
 </div> <div class="list-box assigned-box">
-<div class="list-box-header"> <span>Assigned Permissions</span>
+<div class="list-box-header"> <span data-i18n="auto-assigned-permissions">Assigned Permissions</span>
 <span class="count" id="assigned-count">0</span> </div>
 <div class="list-box-search"> <input type="text" placeholder="Filter assigned..." onkeyup="filterAssigned(this.value)">
 </div> <div class="category-filter">
-<select onchange="filterByCategory(this.value, 'assigned')"> <option value="">All Categories</option>
-<option value="admin">Administration</option> <option value="compliance">Compliance</option>
-<option value="security">Security</option> <option value="mail">Mail</option>
-<option value="calendar">Calendar</option> <option value="drive">Drive</option>
-<option value="docs">Documents</option> <option value="sheet">Spreadsheets</option>
-<option value="slides">Presentations</option> <option value="meet">Meetings</option>
-<option value="chat">Chat</option> <option value="tasks">Tasks</option>
-<option value="ai">AI & Bots</option> <option value="analytics">Analytics</option>
-<option value="integrations">Integrations</option> <option value="automation">Automation</option>
+<select onchange="filterByCategory(this.value, 'assigned')"> <option value="" data-i18n="products-cat-all">All Categories</option>
+<option value="admin" data-i18n="settings-administration">Administration</option> <option value="compliance" data-i18n="learn-compliance">Compliance</option>
+<option value="security" data-i18n="learn-security">Security</option> <option value="mail" data-i18n="email-title">Mail</option>
+<option value="calendar" data-i18n="calendar-title">Calendar</option> <option value="drive" data-i18n="drive-title">Drive</option>
+<option value="docs" data-i18n="auto-documents">Documents</option> <option value="sheet" data-i18n="auto-spreadsheets">Spreadsheets</option>
+<option value="slides" data-i18n="auto-presentations">Presentations</option> <option value="meet" data-i18n="auto-meetings">Meetings</option>
+<option value="chat" data-i18n="chat-title">Chat</option> <option value="tasks" data-i18n="tasks-title">Tasks</option>
+<option value="ai" data-i18n="auto-ai-bots">AI & Bots</option> <option value="analytics" data-i18n="settings-analytics">Analytics</option>
+<option value="integrations" data-i18n="settings-integrations">Integrations</option> <option value="automation" data-i18n="auto-automation">Automation</option>
 </select> </div>
-<div class="list-box-content" id="assigned-permissions"> <div class="empty-state">No permissions assigned</div>
+<div class="list-box-content" id="assigned-permissions"> <div class="empty-state" data-i18n="auto-no-permissions-assigned">No permissions assigned</div>
 </div> </div>
 </div> <div class="assignment-footer">
-<button class="btn-secondary" onclick="resetPermissions()">Reset to Default</button> <button class="btn-primary" onclick="savePermissions()" id="btn-save-permissions">
+<button class="btn-secondary" onclick="resetPermissions()" data-i18n="auto-reset-to-default">Reset to Default</button> <button class="btn-primary" onclick="savePermissions()" id="btn-save-permissions">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
 <polyline points="17 21 17 13 7 13 7 21"></polyline> <polyline points="7 3 7 8 15 8"></polyline>
 </svg> Save Changes
 </button> </div>
 </div> </div>
 <div class="tab-content" id="tab-users" style="display: none;"> <div class="users-assignment">
-<div class="assignment-header"> <h4>Users with this Role</h4>
+<div class="assignment-header"> <h4 data-i18n="auto-users-with-this-role">Users with this Role</h4>
 <button class="btn-secondary btn-sm" onclick="document.getElementById('add-user-modal').showModal()"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="12" y1="5" x2="12" y2="19"></line> <line x1="5" y1="12" x2="19" y2="12"></line>
 </svg> Add User
@@ -120,7 +120,7 @@ Delete </button>
 </div> </div>
 </div> <div class="tab-content" id="tab-groups" style="display: none;">
 <div class="groups-assignment"> <div class="assignment-header">
-<h4>Groups with this Role</h4> <button class="btn-secondary btn-sm" onclick="document.getElementById('add-group-modal').showModal()">
+<h4 data-i18n="auto-groups-with-this-role">Groups with this Role</h4> <button class="btn-secondary btn-sm" onclick="document.getElementById('add-group-modal').showModal()">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="12" y1="5" x2="12" y2="19"></line>
 <line x1="5" y1="12" x2="19" y2="12"></line> </svg>
 Add Group </button>
@@ -128,7 +128,7 @@ Add Group </button>
 <div class="loading-state"><div class="spinner"></div></div> </div>
 </div> </div>
 <div class="tab-content" id="tab-audit" style="display: none;"> <div class="audit-log">
-<div class="assignment-header"> <h4>Role Change History</h4>
+<div class="assignment-header"> <h4 data-i18n="auto-role-change-history">Role Change History</h4>
 <button class="btn-secondary btn-sm" onclick="exportAuditLog()"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline>
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
@@ -139,28 +139,28 @@ Export </button>
 </div> </div>
 </div> </div>
 <dialog id="create-role-modal" class="modal"> <div class="modal-content">
-<div class="modal-header"> <h2>Create New Role</h2>
+<div class="modal-header"> <h2 data-i18n="auto-create-new-role">Create New Role</h2>
 <button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <form hx-post="/api/rbac/roles" hx-target="#roles-list" hx-swap="innerHTML" hx-on::after-request="this.closest('dialog').close(); this.reset();">
 <div class="form-group"> <label>Role Name <span class="required">*</span></label>
-<input type="text" name="name" placeholder="e.g., content_editor" required pattern="[a-z_]+" title="Lowercase letters and underscores only"> <p class="help-text">Lowercase, no spaces (use underscores)</p>
+<input type="text" name="name" placeholder="e.g., content_editor" required pattern="[a-z_]+" title="Lowercase letters and underscores only"> <p class="help-text" data-i18n="auto-lowercase-no-spaces-use-underscores">Lowercase, no spaces (use underscores)</p>
 </div> <div class="form-group">
 <label>Display Name <span class="required">*</span></label> <input type="text" name="display_name" placeholder="e.g., Content Editor" required>
 </div> <div class="form-group">
-<label>Description</label> <textarea name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
+<label data-i18n="label-description">Description</label> <textarea name="description" rows="3" placeholder="Describe what this role is for..."></textarea>
 </div> <div class="form-group">
-<label>Copy Permissions From</label> <select name="copy_from">
-<option value="">Start with no permissions</option> <option value="standard_user">Standard User</option>
-<option value="power_user">Power User</option> <option value="viewer">Viewer</option>
-<option value="guest_user">Guest User</option> </select>
+<label data-i18n="auto-copy-permissions-from">Copy Permissions From</label> <select name="copy_from">
+<option value="" data-i18n="auto-start-with-no-permissions">Start with no permissions</option> <option value="standard_user" data-i18n="auto-standard-user">Standard User</option>
+<option value="power_user" data-i18n="auto-power-user">Power User</option> <option value="viewer" data-i18n="auto-viewer">Viewer</option>
+<option value="guest_user" data-i18n="auto-guest-user">Guest User</option> </select>
 </div> <div class="modal-footer">
-<button type="button" class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button> <button type="submit" class="btn-primary">Create Role</button>
+<button type="button" class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button> <button type="submit" class="btn-primary" data-i18n="auto-create-role">Create Role</button>
 </div> </form>
 </div> </dialog>
 <dialog id="delete-role-modal" class="modal modal-small"> <div class="modal-content">
-<div class="modal-header"> <h2>Delete Role</h2>
+<div class="modal-header"> <h2 data-i18n="auto-delete-role">Delete Role</h2>
 <button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
@@ -168,42 +168,42 @@ Export </button>
 <div class="warning-icon"> <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path> <line x1="12" y1="9" x2="12" y2="13"></line>
 <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
-</div> <p class="warning-text">Are you sure you want to delete the role <strong id="delete-role-name">Role Name</strong>?</p>
-<p class="warning-subtext">This will remove the role from all users and groups. This action cannot be undone.</p> </div>
-<div class="modal-footer"> <button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+</div> <p class="warning-text">Are you sure you want to delete the role <strong id="delete-role-name" data-i18n="auto-role-name">Role Name</strong>?</p>
+<p class="warning-subtext" data-i18n="auto-this-will-remove-the-role-from-all-users-and-groups-this-act">This will remove the role from all users and groups. This action cannot be undone.</p> </div>
+<div class="modal-footer"> <button class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button>
 <button class="btn-danger" id="confirm-delete-btn" onclick="deleteRole()"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <polyline points="3 6 5 6 21 6"></polyline> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
 </svg> Delete Role
 </button> </div>
 </div> </dialog>
 <dialog id="add-user-modal" class="modal"> <div class="modal-content">
-<div class="modal-header"> <h2>Assign Role to Users</h2>
+<div class="modal-header"> <h2 data-i18n="auto-assign-role-to-users">Assign Role to Users</h2>
 <button class="close-btn" onclick="this.closest('dialog').close()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
-<div class="form-group"> <label>Search Users</label>
+<div class="form-group"> <label data-i18n="auto-search-users">Search Users</label>
 <input type="text" id="user-search" placeholder="Type to search users..." hx-get="/api/rbac/users/search" hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results" hx-swap="innerHTML"> </div>
-<div class="search-results" id="user-search-results"> <p class="empty-text">Type to search for users</p>
+<div class="search-results" id="user-search-results"> <p class="empty-text" data-i18n="auto-type-to-search-for-users">Type to search for users</p>
 </div> <div class="selected-items" id="selected-users">
 </div> <div class="form-group">
-<label>Expiration (Optional)</label> <input type="datetime-local" id="role-expires-at" name="expires_at">
-<p class="help-text">Leave empty for permanent assignment</p> </div>
+<label data-i18n="auto-expiration-optional">Expiration (Optional)</label> <input type="datetime-local" id="role-expires-at" name="expires_at">
+<p class="help-text" data-i18n="auto-leave-empty-for-permanent-assignment">Leave empty for permanent assignment</p> </div>
 </div> <div class="modal-footer">
-<button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button> <button class="btn-primary" onclick="assignUsersToRole()">Assign Role</button>
+<button class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button> <button class="btn-primary" onclick="assignUsersToRole()" data-i18n="auto-assign-role">Assign Role</button>
 </div> </div>
 </dialog> <dialog id="add-group-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2>Assign Role to Groups</h2> <button class="close-btn" onclick="this.closest('dialog').close()">
+<h2 data-i18n="auto-assign-role-to-groups">Assign Role to Groups</h2> <button class="close-btn" onclick="this.closest('dialog').close()">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <div class="modal-body"> <div class="form-group">
-<label>Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
+<label data-i18n="auto-search-groups">Search Groups</label> <input type="text" id="group-search" placeholder="Type to search groups..." hx-get="/api/rbac/groups/search" hx-trigger="keyup changed delay:300ms" hx-target="#group-search-results" hx-swap="innerHTML">
 </div> <div class="search-results" id="group-search-results">
-<p class="empty-text">Type to search for groups</p> </div>
+<p class="empty-text" data-i18n="auto-type-to-search-for-groups">Type to search for groups</p> </div>
 <div class="selected-items" id="selected-groups"> </div>
 </div> <div class="modal-footer">
-<button class="btn-secondary" onclick="this.closest('dialog').close()">Cancel</button> <button class="btn-primary" onclick="assignGroupsToRole()">Assign Role</button>
+<button class="btn-secondary" onclick="this.closest('dialog').close()" data-i18n="action-cancel">Cancel</button> <button class="btn-primary" onclick="assignGroupsToRole()" data-i18n="auto-assign-role">Assign Role</button>
 </div> </div>
 </dialog> <link rel="stylesheet" href="/suite/admin/roles-inline.css">

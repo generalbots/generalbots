@@ -15,7 +15,7 @@
             <div class="org-avatar" id="current-org-avatar">A</div>
             <div class="org-info">
                 <div class="org-name" id="current-org-name">Acme Corporation</div>
-                <div class="org-plan" id="current-org-plan">Pro Plan</div>
+                <div class="org-plan" id="current-org-plan" data-i18n="settings-pro-plan">Pro Plan</div>
             </div>
             <svg class="org-switcher-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6,9 12,15 18,9"></polyline>
@@ -24,7 +24,7 @@
 
         <div class="org-switcher-dropdown" id="org-dropdown">
             <div class="org-dropdown-header">
-                <div class="org-dropdown-title">Switch Organization</div>
+                <div class="org-dropdown-title" data-i18n="auto-switch-organization">Switch Organization</div>
             </div>
 
             <div class="org-search">
@@ -61,37 +61,37 @@
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Create New Organization</h2>
+                <h2 data-i18n="auto-create-new-organization">Create New Organization</h2>
                 <button class="modal-close" id="close-modal">&times;</button>
             </div>
             <form id="create-org-form">
                 <div class="form-group">
-                    <label for="new-org-name">Organization Name</label>
+                    <label for="new-org-name" data-i18n="auto-organization-name">Organization Name</label>
                     <input type="text" id="new-org-name" required placeholder="Enter organization name">
                 </div>
                 <div class="form-group">
-                    <label for="new-org-slug">URL Slug</label>
+                    <label for="new-org-slug" data-i18n="auto-url-slug">URL Slug</label>
                     <input type="text" id="new-org-slug" required placeholder="organization-slug">
-                    <small>This will be used in URLs: app.generalbots.ai/<span id="slug-preview">organization-slug</span></small>
+                    <small>This will be used in URLs: app.generalbots.ai/<span id="slug-preview" data-i18n="auto-organization-slug">organization-slug</span></small>
                 </div>
                 <div class="form-group">
-                    <label for="new-org-plan">Plan</label>
+                    <label for="new-org-plan" data-i18n="auto-plan">Plan</label>
                     <select id="new-org-plan">
-                        <option value="free">Free</option>
-                        <option value="starter">Starter</option>
+                        <option value="free" data-i18n="auto-free">Free</option>
+                        <option value="starter" data-i18n="auto-starter">Starter</option>
                         <option value="pro" selected>Pro</option>
                                             </select>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn-secondary" id="cancel-create">Cancel</button>
-                    <button type="submit" class="btn-primary">Create Organization</button>
+                    <button type="button" class="btn-secondary" id="cancel-create" data-i18n="action-cancel">Cancel</button>
+                    <button type="submit" class="btn-primary" data-i18n="auto-create-organization">Create Organization</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/admin/organization-switcher-inline.js"></script>
 
     <link rel="stylesheet" href="/suite/admin/organization-switcher-modal.css">

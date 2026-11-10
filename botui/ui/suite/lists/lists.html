@@ -1,8 +1,8 @@
 <!-- Marketing Lists - Complete CRUD with Search, Import/Export -->
 
 <link rel="stylesheet" href="/suite/lists/lists.css?v=2">
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap/01_tokens.js"></script>
@@ -15,9 +15,9 @@
         <div class="crm-header-left">
             <h1 data-i18n="lists-title">Marketing Lists</h1>
             <nav class="crm-tabs">
-                <button class="crm-tab active" data-view="all" onclick="filterLists('all', this)">All Lists</button>
-                <button class="crm-tab" data-view="static" onclick="filterLists('static', this)">Static</button>
-                <button class="crm-tab" data-view="dynamic" onclick="filterLists('dynamic', this)">Dynamic</button>
+                <button class="crm-tab active" data-view="all" onclick="filterLists('all', this)" data-i18n="auto-all-lists">All Lists</button>
+                <button class="crm-tab" data-view="static" onclick="filterLists('static', this)" data-i18n="auto-static">Static</button>
+                <button class="crm-tab" data-view="dynamic" onclick="filterLists('dynamic', this)" data-i18n="auto-dynamic">Dynamic</button>
             </nav>
         </div>
         <div class="crm-header-right">

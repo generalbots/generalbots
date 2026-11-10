@@ -102,8 +102,11 @@ GATES: tuple[Gate, ...] = (
         title="SLOs are defined, instrumented and gated",
         owner=2115,
         proves="A latency/error/cost regression fails instead of shipping silently",
-        evidence=("scripts/slo_check.py",),
-        ok_detail="SLO gate present",
+        steps=(
+            ("python3", "scripts/check_slo.py", "--self-test"),
+            ("python3", "scripts/check_slo.py", "--snapshot", "perf/baselines/local-mock.json"),
+        ),
+        requires=("ops/slo.yaml", "perf/baselines/local-mock.json"),
     ),
     Gate(
         id="ops-runbooks",
@@ -137,6 +140,13 @@ GATES: tuple[Gate, ...] = (
         steps=(("python3", "scripts/test_guards.py", "--check"), ("python3", "scripts/test_guards.py", "--self-test")),
     ),
     Gate(
+        id="app-contracts",
+        title="Every registry app declares its classification, smoke and API surface",
+        owner=2119,
+        proves="A shipped app is documented and an invented route fails the build",
+        steps=(("python3", "scripts/smoke_app_surfaces.py", "--contracts"),),
+    ),
+    Gate(
         id="coverage-ratchet",
         title="Coverage ratchet against a committed baseline",
         owner=2119,
@@ -149,7 +159,10 @@ GATES: tuple[Gate, ...] = (
         title="Every app is classified always/preview/hidden and its feature compiles",
         owner=2120,
         proves="The supported surface is bounded and owned",
-        steps=(("python3", "scripts/product_profile_check.py"),),
+        steps=(
+            ("python3", "scripts/product_profile_check.py"),
+            ("python3", "scripts/app_complexity_budget.py"),
+        ),
     ),
     Gate(
         id="security-scan",
@@ -192,7 +205,7 @@ CHILDREN: tuple[tuple[int, str, tuple[str, ...]], ...] = (
     (2116, "ops(analytics): console, budgets, runbooks", ("ops-runbooks",)),
     (2117, "data(integrity): migrations, restore, tenancy", ("data-restore",)),
     (2118, "release(auto-bump): one version", ("release-version",)),
-    (2119, "test(quality): ratchet, contracts, fuzzing", ("test-guards", "coverage-ratchet")),
+    (2119, "test(quality): ratchet, contracts, fuzzing", ("test-guards", "app-contracts", "coverage-ratchet")),
     (2120, "product(focus): supported matrix", ("product-profile",)),
 )
 
@@ -262,6 +275,12 @@ def run_gate(gate: Gate) -> Result:
     if gate.id == "security-scan":
         return check_security_scan(gate)
     if gate.steps:
+        needed = list(gate.requires) + [
+            step[1] for step in gate.steps if len(step) > 1 and step[0] == "python3" and step[1].endswith(".py")
+        ]
+        missing = [name for name in needed if not (ROOT / name).exists()]
+        if missing:
+            return Result(gate, SKIP, f"not landed yet — expected {', '.join(missing)}")
         return run_commands(gate)
     return check_evidence(gate)
 

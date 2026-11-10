@@ -79,3 +79,7 @@ impl Metrics {
             .at(Utc::now())
     }
 }
+
+#[cfg(test)]
+#[path = "message_tests.rs"]
+mod message_tests;

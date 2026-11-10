@@ -852,6 +852,50 @@ jobs:
           cache-scope: bottest-unit
       - name: Cross-crate unit tests
         run: cargo test -p bottest --test unit
+      - name: In-process SLO budgets (#2115)
+        # The budgets live in ops/slo.yaml (profile `hotpath`); the Rust test
+        # fails fast with the measured number and emits target/slo/hotpath.json,
+        # which the checker then validates against the ratified targets.
+        run: |
+          set -euo pipefail
+          cargo test -p bottest --test slo_budget_test
+          python3 scripts/check_slo.py --profile hotpath --snapshot target/slo/hotpath.json
+
+  # #2115 — performance budgets. The numbers live in `ops/slo.yaml`, the table
+  # in `botbook/src/11-hardware-scaling/slo.md`; this job proves the gate fails
+  # closed and that the committed baseline still satisfies every budget. It runs
+  # no cargo and calls no provider, so it is cheap enough for every pull request.
+  slo:
+    name: SLO budgets
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Checker self-test (must fail closed)
+        run: python3 scripts/check_slo.py --self-test
+      - name: Committed baseline satisfies every budget
+        run: |
+          set -euo pipefail
+          python3 scripts/check_slo.py --snapshot perf/baselines/local-mock.json --json \
+            > /tmp/slo-report.json
+          python3 -c 'import json; report = json.load(open("/tmp/slo-report.json")); print("checked", report["checked"], "SLOs, breaches", len(report["breaches"]))'
+      - name: k6 summary converts into a checkable snapshot
+        # Proves the load pipeline (k6 -> adapter -> gate) without running k6:
+        # the summary shape is the one `--summary-export` writes.
+        run: |
+          set -euo pipefail
+          python3 -c 'import json; json.dump({"metrics": {"http_req_duration": {"values": {"p(50)": 70, "p(95)": 210, "p(99)": 480}}, "http_req_failed": {"values": {"rate": 0.003}}}}, open("/tmp/k6-summary.json", "w"))'
+          python3 scripts/load/k6_to_snapshot.py --summary /tmp/k6-summary.json \
+            --out /tmp/slo-api.json --class api
+          python3 scripts/check_slo.py --snapshot /tmp/slo-api.json --class api
+      - name: Upload the SLO report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: slo-report
+          path: /tmp/slo-report.json
+          if-no-files-found: warn
 
   # #2074 — coverage measurement. The crate matrix is generated from
   # `coverage-exclusions.toml`, so adding or dropping a measured crate is a

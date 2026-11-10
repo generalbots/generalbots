@@ -1,7 +1,8 @@
+use crate::errors::{api_error, locale_from_headers};
 use crate::AttendanceConfig;
 use axum::{
     extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -61,17 +62,21 @@ pub struct AttendantRespondResponse {
 
 pub async fn attendant_respond(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(request): Json<AttendantRespondRequest>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
     info!("Attendant {} responding to session {}", request.attendant_id, request.session_id);
 
     let Ok(session_id) = Uuid::parse_str(&request.session_id) else {
+        let message = botlib::i18n::get(&locale, "error-attendance-session-id-invalid");
+
         return (
             StatusCode::BAD_REQUEST,
             Json(AttendantRespondResponse {
                 success: false,
-                message: "Invalid session ID".to_string(),
-                error: Some("Could not parse session ID as UUID".to_string()),
+                message: message.clone(),
+                error: Some(message),
             }),
         );
     };
@@ -92,12 +97,14 @@ pub async fn attendant_respond(
     .flatten();
 
     let Some(session) = session_result else {
+        let message = botlib::i18n::get(&locale, "error-attendance-session-not-found");
+
         return (
             StatusCode::NOT_FOUND,
             Json(AttendantRespondResponse {
                 success: false,
-                message: "Session not found".to_string(),
-                error: Some("No session with that ID exists".to_string()),
+                message: message.clone(),
+                error: Some(message),
             }),
         );
     };
@@ -140,7 +147,7 @@ pub async fn attendant_respond(
         StatusCode::OK,
         Json(AttendantRespondResponse {
             success: true,
-            message: "Response sent".to_string(),
+            message: botlib::i18n::get(&locale, "attendance-response-sent"),
             error: None,
         }),
     )
@@ -189,11 +196,14 @@ pub async fn save_attendance_message(
 pub async fn attendant_websocket_handler(
     ws: WebSocketUpgrade,
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let attendant_id = params.get("attendant_id").cloned();
     let Some(attendant_id) = attendant_id else {
-        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "attendant_id is required" }))).into_response();
+        let locale = locale_from_headers(&headers);
+
+        return api_error(&locale, StatusCode::BAD_REQUEST, "error-attendance-attendant-id-required").into_response();
     };
     info!("Attendant WebSocket connection request from: {}", attendant_id);
     ws.on_upgrade(move |socket| handle_attendant_websocket(socket, config, attendant_id)).into_response()

@@ -13,8 +13,8 @@
                         </svg>
                     </div>
                     <div class="step-info">
-                        <span class="step-title">Welcome</span>
-                        <span class="step-desc">Tell us about yourself</span>
+                        <span class="step-title" data-i18n="auto-welcome">Welcome</span>
+                        <span class="step-desc" data-i18n="auto-tell-us-about-yourself">Tell us about yourself</span>
                     </div>
                 </div>
                 <div class="wizard-step" data-step="2">
@@ -25,8 +25,8 @@
                         </svg>
                     </div>
                     <div class="step-info">
-                        <span class="step-title">Organization</span>
-                        <span class="step-desc">Create your workspace</span>
+                        <span class="step-title" data-i18n="deploy-organization">Organization</span>
+                        <span class="step-desc" data-i18n="auto-create-your-workspace">Create your workspace</span>
                     </div>
                 </div>
                 <div class="wizard-step" data-step="3">
@@ -37,8 +37,8 @@
                         </svg>
                     </div>
                     <div class="step-info">
-                        <span class="step-title">Choose Plan</span>
-                        <span class="step-desc">Select your subscription</span>
+                        <span class="step-title" data-i18n="auto-choose-plan">Choose Plan</span>
+                        <span class="step-desc" data-i18n="auto-select-your-subscription">Select your subscription</span>
                     </div>
                 </div>
                 <div class="wizard-step" data-step="4">
@@ -49,8 +49,8 @@
                         </svg>
                     </div>
                     <div class="step-info">
-                        <span class="step-title">Payment</span>
-                        <span class="step-desc">Add payment method</span>
+                        <span class="step-title" data-i18n="billing-payment">Payment</span>
+                        <span class="step-desc" data-i18n="auto-add-payment-method">Add payment method</span>
                     </div>
                 </div>
                 <div class="wizard-step" data-step="5">
@@ -61,8 +61,8 @@
                         </svg>
                     </div>
                     <div class="step-info">
-                        <span class="step-title">Get Started</span>
-                        <span class="step-desc">Create your first bot</span>
+                        <span class="step-title" data-i18n="auto-get-started">Get Started</span>
+                        <span class="step-desc" data-i18n="auto-create-your-first-bot">Create your first bot</span>
                     </div>
                 </div>
             </div>
@@ -72,65 +72,65 @@
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
-                <span>Need help? <a href="/docs/getting-started">View guide</a></span>
+                <span>Need help? <a href="/docs/getting-started" data-i18n="auto-view-guide">View guide</a></span>
             </div>
         </div>
 
         <div class="wizard-content">
             <div class="wizard-panel active" data-panel="1">
                 <div class="panel-header">
-                    <h1>Welcome to General Bots!</h1>
-                    <p>Let's get you set up in just a few minutes. First, tell us a bit about yourself.</p>
+                    <h1 data-i18n="auto-welcome-to-general-bots">Welcome to General Bots!</h1>
+                    <p data-i18n="auto-let-s-get-you-set-up-in-just-a-few-minutes-first-tell-us-a-b">Let's get you set up in just a few minutes. First, tell us a bit about yourself.</p>
                 </div>
                 <form class="panel-form" id="welcomeForm">
                     <div class="form-group">
-                        <label for="fullName">Full Name</label>
+                        <label for="fullName" data-i18n="auto-full-name">Full Name</label>
                         <input type="text" id="fullName" name="full_name" required placeholder="John Smith">
                     </div>
                     <div class="form-group">
-                        <label for="role">Your Role</label>
+                        <label for="role" data-i18n="auto-your-role">Your Role</label>
                         <select id="role" name="role" required>
-                            <option value="">Select your role...</option>
-                            <option value="developer">Developer / Engineer</option>
-                            <option value="product">Product Manager</option>
-                            <option value="marketing">Marketing</option>
-                            <option value="sales">Sales</option>
-                            <option value="support">Customer Support</option>
-                            <option value="executive">Executive / Founder</option>
-                            <option value="other">Other</option>
+                            <option value="" data-i18n="auto-select-your-role">Select your role...</option>
+                            <option value="developer" data-i18n="auto-developer-engineer">Developer / Engineer</option>
+                            <option value="product" data-i18n="auto-product-manager">Product Manager</option>
+                            <option value="marketing" data-i18n="dashboards-filter-marketing">Marketing</option>
+                            <option value="sales" data-i18n="dashboards-filter-sales">Sales</option>
+                            <option value="support" data-i18n="auto-customer-support">Customer Support</option>
+                            <option value="executive" data-i18n="auto-executive-founder">Executive / Founder</option>
+                            <option value="other" data-i18n="label-other">Other</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="useCase">What do you want to build?</label>
+                        <label for="useCase" data-i18n="auto-what-do-you-want-to-build">What do you want to build?</label>
                         <select id="useCase" name="use_case" required>
-                            <option value="">Select primary use case...</option>
-                            <option value="customer_support">Customer Support Bot</option>
-                            <option value="sales_assistant">Sales Assistant</option>
-                            <option value="internal_kb">Internal Knowledge Base</option>
-                            <option value="lead_gen">Lead Generation</option>
-                            <option value="onboarding">Employee Onboarding</option>
-                            <option value="ecommerce">E-commerce Assistant</option>
-                            <option value="other">Something else</option>
+                            <option value="" data-i18n="auto-select-primary-use-case">Select primary use case...</option>
+                            <option value="customer_support" data-i18n="auto-customer-support-bot">Customer Support Bot</option>
+                            <option value="sales_assistant" data-i18n="auto-sales-assistant">Sales Assistant</option>
+                            <option value="internal_kb" data-i18n="auto-internal-knowledge-base">Internal Knowledge Base</option>
+                            <option value="lead_gen" data-i18n="auto-lead-generation">Lead Generation</option>
+                            <option value="onboarding" data-i18n="auto-employee-onboarding">Employee Onboarding</option>
+                            <option value="ecommerce" data-i18n="auto-e-commerce-assistant">E-commerce Assistant</option>
+                            <option value="other" data-i18n="auto-something-else">Something else</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>How did you hear about us?</label>
+                        <label data-i18n="auto-how-did-you-hear-about-us">How did you hear about us?</label>
                         <div class="radio-group">
                             <label class="radio-option">
                                 <input type="radio" name="source" value="search">
-                                <span>Search Engine</span>
+                                <span data-i18n="auto-search-engine">Search Engine</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="source" value="social">
-                                <span>Social Media</span>
+                                <span data-i18n="auto-social-media">Social Media</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="source" value="referral">
-                                <span>Friend / Colleague</span>
+                                <span data-i18n="auto-friend-colleague">Friend / Colleague</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="source" value="other">
-                                <span>Other</span>
+                                <span data-i18n="label-other">Other</span>
                             </label>
                         </div>
                     </div>
@@ -149,28 +149,28 @@
 
             <div class="wizard-panel" data-panel="2">
                 <div class="panel-header">
-                    <h1>Create Your Organization</h1>
-                    <p>Your organization is where you'll manage bots, team members, and knowledge bases.</p>
+                    <h1 data-i18n="auto-create-your-organization">Create Your Organization</h1>
+                    <p data-i18n="auto-your-organization-is-where-you-ll-manage-bots-team-members-a">Your organization is where you'll manage bots, team members, and knowledge bases.</p>
                 </div>
                 <form class="panel-form" id="orgForm">
                     <div class="form-group">
-                        <label for="orgName">Organization Name</label>
+                        <label for="orgName" data-i18n="auto-organization-name">Organization Name</label>
                         <input type="text" id="orgName" name="org_name" required placeholder="Acme Corporation">
-                        <span class="form-hint">This will be visible to your team members</span>
+                        <span class="form-hint" data-i18n="auto-this-will-be-visible-to-your-team-members">This will be visible to your team members</span>
                     </div>
                     <div class="form-group">
-                        <label for="orgSlug">Organization URL</label>
+                        <label for="orgSlug" data-i18n="auto-organization-url">Organization URL</label>
                         <div class="input-with-prefix">
-                            <span class="input-prefix">app.generalbots.com/</span>
+                            <span class="input-prefix" data-i18n="auto-app-generalbots-com">app.generalbots.com/</span>
                             <input type="text" id="orgSlug" name="org_slug" required placeholder="acme" pattern="[a-z0-9-]+">
                         </div>
-                        <span class="form-hint">Only lowercase letters, numbers, and hyphens</span>
+                        <span class="form-hint" data-i18n="auto-only-lowercase-letters-numbers-and-hyphens">Only lowercase letters, numbers, and hyphens</span>
                     </div>
                     <div class="form-group">
-                        <label for="teamSize">Team Size</label>
+                        <label for="teamSize" data-i18n="auto-team-size">Team Size</label>
                         <select id="teamSize" name="team_size" required>
-                            <option value="">How many people will use this?</option>
-                            <option value="1">Just me</option>
+                            <option value="" data-i18n="auto-how-many-people-will-use-this">How many people will use this?</option>
+                            <option value="1" data-i18n="auto-just-me">Just me</option>
                             <option value="2-5">2-5 people</option>
                             <option value="6-20">6-20 people</option>
                             <option value="21-50">21-50 people</option>
@@ -178,19 +178,19 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="industry">Industry</label>
+                        <label for="industry" data-i18n="crm-col-industry">Industry</label>
                         <select id="industry" name="industry">
-                            <option value="">Select your industry (optional)</option>
-                            <option value="technology">Technology</option>
-                            <option value="healthcare">Healthcare</option>
-                            <option value="finance">Finance / Banking</option>
-                            <option value="retail">Retail / E-commerce</option>
-                            <option value="education">Education</option>
-                            <option value="manufacturing">Manufacturing</option>
-                            <option value="consulting">Consulting / Services</option>
-                            <option value="government">Government</option>
-                            <option value="nonprofit">Non-profit</option>
-                            <option value="other">Other</option>
+                            <option value="" data-i18n="auto-select-your-industry-optional">Select your industry (optional)</option>
+                            <option value="technology" data-i18n="auto-technology">Technology</option>
+                            <option value="healthcare" data-i18n="auto-healthcare">Healthcare</option>
+                            <option value="finance" data-i18n="auto-finance-banking">Finance / Banking</option>
+                            <option value="retail" data-i18n="auto-retail-e-commerce">Retail / E-commerce</option>
+                            <option value="education" data-i18n="auto-education">Education</option>
+                            <option value="manufacturing" data-i18n="auto-manufacturing">Manufacturing</option>
+                            <option value="consulting" data-i18n="auto-consulting-services">Consulting / Services</option>
+                            <option value="government" data-i18n="auto-government">Government</option>
+                            <option value="nonprofit" data-i18n="auto-non-profit">Non-profit</option>
+                            <option value="other" data-i18n="label-other">Other</option>
                         </select>
                     </div>
                 </form>
@@ -214,11 +214,11 @@
 
             <div class="wizard-panel" data-panel="3">
                 <div class="panel-header">
-                    <h1>Choose Your Plan</h1>
-                    <p>Select the plan that best fits your needs. You can upgrade or downgrade anytime.</p>
+                    <h1 data-i18n="auto-choose-your-plan">Choose Your Plan</h1>
+                    <p data-i18n="auto-select-the-plan-that-best-fits-your-needs-you-can-upgrade-or">Select the plan that best fits your needs. You can upgrade or downgrade anytime.</p>
                 </div>
                 <div class="billing-toggle">
-                    <span class="toggle-label">Monthly</span>
+                    <span class="toggle-label" data-i18n="products-cycle-monthly">Monthly</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="annualToggle" onchange="toggleBilling()">
                         <span class="toggle-slider"></span>
@@ -228,12 +228,12 @@
                 <div class="plans-grid">
                     <div class="plan-card" data-plan="free">
                         <div class="plan-header">
-                            <h3>Free</h3>
-                            <p>For individuals and small projects</p>
+                            <h3 data-i18n="auto-free">Free</h3>
+                            <p data-i18n="auto-for-individuals-and-small-projects">For individuals and small projects</p>
                         </div>
                         <div class="plan-price">
                             <span class="price-amount">$0</span>
-                            <span class="price-period">/month</span>
+                            <span class="price-period" data-i18n="auto-month">/month</span>
                         </div>
                         <ul class="plan-features">
                             <li>
@@ -267,18 +267,18 @@
                                 Community support
                             </li>
                         </ul>
-                        <button class="btn-plan" onclick="selectPlan('free')">Select Free</button>
+                        <button class="btn-plan" onclick="selectPlan('free')" data-i18n="auto-select-free">Select Free</button>
                     </div>
 
                     <div class="plan-card popular" data-plan="pro">
-                        <div class="popular-badge">Most Popular</div>
+                        <div class="popular-badge" data-i18n="auto-most-popular">Most Popular</div>
                         <div class="plan-header">
                             <h3>Pro</h3>
-                            <p>For growing teams</p>
+                            <p data-i18n="auto-for-growing-teams">For growing teams</p>
                         </div>
                         <div class="plan-price">
                             <span class="price-amount" data-monthly="49" data-annual="39">$49</span>
-                            <span class="price-period">/month</span>
+                            <span class="price-period" data-i18n="auto-month">/month</span>
                         </div>
                         <ul class="plan-features">
                             <li>
@@ -318,9 +318,9 @@
                                 Custom branding
                             </li>
                         </ul>
-                        <button class="btn-plan primary" onclick="selectPlan('pro')">Select Pro</button>
+                        <button class="btn-plan primary" onclick="selectPlan('pro')" data-i18n="auto-select-pro">Select Pro</button>
                     </div>
 
                     
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>

@@ -18,10 +18,10 @@
     <button class="gb-tab active" data-tab-trigger="dashboard" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Visão Geral</button>
     <button class="gb-tab" data-tab-trigger="nfe" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFe</button>
     <button class="gb-tab" data-tab-trigger="nfse" hx-get="/suite/brazil/fragments/nfse" hx-target="#gb-brazil-content" hx-swap="innerHTML">NFSe</button>
-    <button class="gb-tab" data-tab-trigger="cte" hx-get="/suite/brazil/fragments/cte" hx-target="#gb-brazil-content" hx-swap="innerHTML">CTe / MDFe</button>
-    <button class="gb-tab" data-tab-trigger="sped" hx-get="/suite/brazil/fragments/sped" hx-target="#gb-brazil-content" hx-swap="innerHTML">EFD / SPED</button>
+    <button class="gb-tab" data-tab-trigger="cte" hx-get="/suite/brazil/fragments/cte" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-cte-mdfe">CTe / MDFe</button>
+    <button class="gb-tab" data-tab-trigger="sped" hx-get="/suite/brazil/fragments/sped" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-efd-sped">EFD / SPED</button>
     <button class="gb-tab" data-tab-trigger="history" hx-get="/suite/brazil/fragments/history" hx-target="#gb-brazil-content" hx-swap="innerHTML">Histórico</button>
-    <button class="gb-tab" data-tab-trigger="validators" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML">Validadores</button>
+    <button class="gb-tab" data-tab-trigger="validators" hx-get="/suite/brazil/fragments/nfe" hx-target="#gb-brazil-content" hx-swap="innerHTML" data-i18n="auto-validadores">Validadores</button>
     <button class="gb-tab" data-tab-trigger="settings" hx-get="/suite/brazil/fragments/dashboard" hx-target="#gb-brazil-content" hx-swap="innerHTML">Configurações</button>
   </nav>
 
@@ -49,7 +49,7 @@
         </select>
       </label>
       <label>Valor <input name="value" required></label>
-      <button type="submit" class="gb-btn gb-btn-primary">Validar</button>
+      <button type="submit" class="gb-btn gb-btn-primary" data-i18n="auto-validar">Validar</button>
     </form>
     <div id="gb-validate-result"></div>
   </aside>

@@ -1,12 +1,12 @@
 <section class="billing-dashboard">
-<div class="gb-app billing-header" data-gb-app="adminpanel"> <h1>Billing & Subscription</h1>
-<p>Manage your organization's subscription, payment methods, and billing history</p> </div>
+<div class="gb-app billing-header" data-gb-app="adminpanel"> <h1 data-i18n="auto-billing-subscription">Billing & Subscription</h1>
+<p data-i18n="auto-manage-your-organization-s-subscription-payment-methods-and">Manage your organization's subscription, payment methods, and billing history</p> </div>
  <div class="billing-grid">
 <div class="billing-card current-plan"> <div class="card-header">
-<h2>Current Plan</h2> <span class="plan-badge pro">Pro</span>
+<h2 data-i18n="settings-current-plan">Current Plan</h2> <span class="plan-badge pro">Pro</span>
 </div> <div class="plan-details">
 <div class="plan-price"> <span class="amount">$49</span>
-<span class="period">/month</span> </div>
+<span class="period" data-i18n="auto-month">/month</span> </div>
 <div class="plan-features"> <div class="feature-item">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <polyline points="20 6 9 17 4 12"></polyline>
 </svg> <span>50 team members</span>
@@ -20,39 +20,39 @@
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <polyline points="20 6 9 17 4 12"></polyline>
 </svg> <span>500,000 API calls/month</span>
 </div> </div>
-<div class="plan-renewal"> <span class="renewal-label">Next billing date:</span>
-<span class="renewal-date" id="nextBillingDate">February 21, 2025</span> </div>
+<div class="plan-renewal"> <span class="renewal-label" data-i18n="auto-next-billing-date">Next billing date:</span>
+<span class="renewal-date" id="nextBillingDate" data-i18n="auto-february-21-2025">February 21, 2025</span> </div>
 </div> <div class="plan-actions">
 <button class="btn-primary" onclick="showUpgradeModal()"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <line x1="12" y1="19" x2="12" y2="5"></line> <polyline points="5 12 12 5 19 12"></polyline>
 </svg> Upgrade Plan
-</button> <button class="btn-secondary" onclick="showCancelModal()">Cancel Subscription</button>
+</button> <button class="btn-secondary" onclick="showCancelModal()" data-i18n="auto-cancel-subscription">Cancel Subscription</button>
 </div> </div>
  <div class="billing-card usage-summary">
-<div class="card-header"> <h2>Usage This Period</h2>
-<span class="period-label">Jan 21 - Feb 21, 2025</span> </div>
+<div class="card-header"> <h2 data-i18n="auto-usage-this-period">Usage This Period</h2>
+<span class="period-label" data-i18n="auto-jan-21-feb-21-2025">Jan 21 - Feb 21, 2025</span> </div>
 <div class="usage-items" hx-get="/api/billing/usage" hx-trigger="load" hx-swap="innerHTML"> <div class="usage-item">
-<div class="usage-info"> <span class="usage-label">Storage</span>
+<div class="usage-info"> <span class="usage-label" data-i18n="monitoring-health-storage">Storage</span>
 <span class="usage-value">12.5 GB / 50 GB</span> </div>
 <div class="usage-bar"> <div class="usage-fill" style="width: 25%"></div>
 </div> </div>
 <div class="usage-item"> <div class="usage-info">
-<span class="usage-label">API Calls</span> <span class="usage-value">125,000 / 500,000</span>
+<span class="usage-label" data-i18n="auto-api-calls">API Calls</span> <span class="usage-value">125,000 / 500,000</span>
 </div> <div class="usage-bar">
 <div class="usage-fill" style="width: 25%"></div> </div>
 </div> <div class="usage-item">
-<div class="usage-info"> <span class="usage-label">Messages</span>
+<div class="usage-info"> <span class="usage-label" data-i18n="monitoring-messages">Messages</span>
 <span class="usage-value">45,000 / 100,000</span> </div>
 <div class="usage-bar"> <div class="usage-fill" style="width: 45%"></div>
 </div> </div>
 <div class="usage-item"> <div class="usage-info">
-<span class="usage-label">Team Members</span> <span class="usage-value">12 / 50</span>
+<span class="usage-label" data-i18n="auto-team-members">Team Members</span> <span class="usage-value">12 / 50</span>
 </div> <div class="usage-bar">
 <div class="usage-fill" style="width: 24%"></div> </div>
 </div> </div>
 </div> 
 <div class="billing-card payment-method"> <div class="card-header">
-<h2>Payment Method</h2> <button class="btn-icon" onclick="showAddPaymentModal()">
+<h2 data-i18n="auto-payment-method">Payment Method</h2> <button class="btn-icon" onclick="showAddPaymentModal()">
 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"> <line x1="12" y1="5" x2="12" y2="19"></line>
 <line x1="5" y1="12" x2="19" y2="12"></line> </svg>
 </button> </div>
@@ -61,35 +61,35 @@
 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect> <line x1="1" y1="10" x2="23" y2="10"></line>
 </svg> </div>
 <div class="card-details"> <span class="card-number">•••• •••• •••• 4242</span>
-<span class="card-expiry">Expires 12/2026</span> </div>
-<span class="default-badge">Default</span> </div>
+<span class="card-expiry" data-i18n="auto-expires-12-2026">Expires 12/2026</span> </div>
+<span class="default-badge" data-i18n="label-default">Default</span> </div>
 </div> </div>
  <div class="billing-card billing-address">
-<div class="card-header"> <h2>Billing Address</h2>
+<div class="card-header"> <h2 data-i18n="auto-billing-address">Billing Address</h2>
 <button class="btn-icon" onclick="showEditAddressModal()"> <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path> <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
 </svg> </button>
 </div> <div class="address-content" hx-get="/api/billing/address" hx-trigger="load" hx-swap="innerHTML">
 <p class="address-name">Acme Corporation</p> <p class="address-line">123 Business Street</p>
-<p class="address-line">Suite 456</p> <p class="address-line">San Francisco, CA 94102</p>
-<p class="address-line">United States</p> </div>
+<p class="address-line" data-i18n="auto-suite-456">Suite 456</p> <p class="address-line" data-i18n="auto-san-francisco-ca-94102">San Francisco, CA 94102</p>
+<p class="address-line" data-i18n="auto-united-states">United States</p> </div>
 </div> </div>
  <div class="billing-section">
-<div class="section-header"> <h2>Billing History</h2>
+<div class="section-header"> <h2 data-i18n="settings-billing-history">Billing History</h2>
 <button class="btn-secondary" onclick="exportInvoices()"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline>
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
 Export All </button>
 </div> <div class="billing-table-container">
 <table class="billing-table" hx-get="/api/ui/billing/invoices/admin" hx-trigger="load" hx-swap="innerHTML"> <thead>
-<tr> <th>Invoice</th>
-<th>Date</th> <th>Amount</th>
-<th>Status</th> <th>Actions</th>
+<tr> <th data-i18n="billing-col-invoice">Invoice</th>
+<th data-i18n="label-date">Date</th> <th data-i18n="billing-col-amount">Amount</th>
+<th data-i18n="label-status">Status</th> <th data-i18n="billing-col-actions">Actions</th>
 </tr> </thead>
 <tbody> <tr>
 <td> <span class="invoice-number">INV-2025-0001</span>
 </td> <td>Jan 21, 2025</td>
-<td>$49.00</td> <td><span class="status-badge paid">Paid</span></td>
+<td>$49.00</td> <td><span class="status-badge paid" data-i18n="billing-paid">Paid</span></td>
 <td> <button class="btn-icon" title="Download Invoice">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -101,7 +101,7 @@ Export All </button>
 <tr> <td>
 <span class="invoice-number">INV-2024-0012</span> </td>
 <td>Dec 21, 2024</td> <td>$49.00</td>
-<td><span class="status-badge paid">Paid</span></td> <td>
+<td><span class="status-badge paid" data-i18n="billing-paid">Paid</span></td> <td>
 <button class="btn-icon" title="Download Invoice"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline>
 <line x1="12" y1="15" x2="12" y2="3"></line> </svg>
@@ -112,7 +112,7 @@ Export All </button>
 </tr> <tr>
 <td> <span class="invoice-number">INV-2024-0011</span>
 </td> <td>Nov 21, 2024</td>
-<td>$49.00</td> <td><span class="status-badge paid">Paid</span></td>
+<td>$49.00</td> <td><span class="status-badge paid" data-i18n="billing-paid">Paid</span></td>
 <td> <button class="btn-icon" title="Download Invoice">
 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
 <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -125,35 +125,35 @@ Export All </button>
 </div> </div>
 </section> 
 <dialog id="upgradeModal" class="billing-modal"> <div class="modal-content">
-<div class="modal-header"> <h2>Upgrade Your Plan</h2>
+<div class="modal-header"> <h2 data-i18n="auto-upgrade-your-plan">Upgrade Your Plan</h2>
 <button class="btn-close" onclick="closeModal('upgradeModal')"> <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="modal-body">
 <div class="plan-grid"> <div class="plan-option">
 <div class="plan-name">Pro</div> <div class="plan-price">$49<span>/mo</span></div>
-<div class="plan-current">Current Plan</div> </div>
-<div class="plan-option recommended"> <div class="recommended-badge">Recommended</div>
-<div class="plan-name">Business</div> <div class="plan-price">$99<span>/mo</span></div>
+<div class="plan-current" data-i18n="settings-current-plan">Current Plan</div> </div>
+<div class="plan-option recommended"> <div class="recommended-badge" data-i18n="auto-recommended">Recommended</div>
+<div class="plan-name" data-i18n="category-business">Business</div> <div class="plan-price">$99<span>/mo</span></div>
 <ul class="plan-highlights"> <li>200 team members</li>
 <li>100 bots</li> <li>200 GB storage</li>
-<li>Priority support</li> </ul>
-<button class="btn-primary" hx-post="/api/billing/upgrade" hx-vals='{"plan": "shared"}'> Upgrade to Business
+<li data-i18n="auto-priority-support">Priority support</li> </ul>
+<button class="btn-primary" hx-post="/api/billing/upgrade" hx-vals='{"plan": "shared"}' data-i18n="auto-upgrade-to-business"> Upgrade to Business
 </button> </div>
-<div class="plan-option"> <div class="plan-name">Enterprise</div>
-<div class="plan-price">Custom</div> <ul class="plan-highlights">
-<li>Unlimited everything</li> <li>Dedicated support</li>
-<li>Custom integrations</li> <li>SLA guarantee</li>
-</ul> <button class="btn-secondary" onclick="contactSales()">Contact Sales</button>
+<div class="plan-option"> <div class="plan-name" data-i18n="auto-enterprise">Enterprise</div>
+<div class="plan-price" data-i18n="label-custom">Custom</div> <ul class="plan-highlights">
+<li data-i18n="auto-unlimited-everything">Unlimited everything</li> <li data-i18n="auto-dedicated-support">Dedicated support</li>
+<li data-i18n="auto-custom-integrations">Custom integrations</li> <li data-i18n="auto-sla-guarantee">SLA guarantee</li>
+</ul> <button class="btn-secondary" onclick="contactSales()" data-i18n="auto-contact-sales">Contact Sales</button>
 </div> </div>
 <div class="proration-notice"> <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
 <circle cx="12" cy="12" r="10"></circle> <line x1="12" y1="16" x2="12" y2="12"></line>
 <line x1="12" y1="8" x2="12.01" y2="8"></line> </svg>
-<span>Your next invoice will be prorated based on your remaining billing period.</span> </div>
+<span data-i18n="auto-your-next-invoice-will-be-prorated-based-on-your-remaining-b">Your next invoice will be prorated based on your remaining billing period.</span> </div>
 </div> </div>
 </dialog> 
 <dialog id="cancelModal" class="billing-modal"> <div class="modal-content">
-<div class="modal-header"> <h2>Cancel Subscription</h2>
+<div class="modal-header"> <h2 data-i18n="auto-cancel-subscription">Cancel Subscription</h2>
 <button class="btn-close" onclick="closeModal('cancelModal')"> <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
@@ -161,34 +161,34 @@ Export All </button>
 <div class="cancel-warning"> <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path> <line x1="12" y1="9" x2="12" y2="13"></line>
 <line x1="12" y1="17" x2="12.01" y2="17"></line> </svg>
-<h3>We're sorry to see you go!</h3> <p>Before you cancel, would you like to consider any of these options?</p>
+<h3 data-i18n="auto-we-re-sorry-to-see-you-go">We're sorry to see you go!</h3> <p data-i18n="auto-before-you-cancel-would-you-like-to-consider-any-of-these-op">Before you cancel, would you like to consider any of these options?</p>
 </div> <div class="retention-offers" hx-get="/api/billing/retention-offers" hx-trigger="load" hx-swap="innerHTML">
 <div class="retention-offer"> <div class="offer-icon">💰</div>
 <div class="offer-details"> <h4>Get 25% off for 3 months</h4>
-<p>Stay with us at a reduced rate</p> </div>
-<button class="btn-secondary" hx-post="/api/billing/accept-offer" hx-vals='{"offer": "discount_25"}'> Accept Offer
+<p data-i18n="auto-stay-with-us-at-a-reduced-rate">Stay with us at a reduced rate</p> </div>
+<button class="btn-secondary" hx-post="/api/billing/accept-offer" hx-vals='{"offer": "discount_25"}' data-i18n="auto-accept-offer"> Accept Offer
 </button> </div>
 <div class="retention-offer"> <div class="offer-icon">⏸️</div>
-<div class="offer-details"> <h4>Pause your subscription</h4>
-<p>Take a break for up to 3 months</p> </div>
-<button class="btn-secondary" hx-post="/api/billing/pause"> Pause Instead
+<div class="offer-details"> <h4 data-i18n="auto-pause-your-subscription">Pause your subscription</h4>
+<p data-i18n="auto-take-a-break-for-up-to-3-months">Take a break for up to 3 months</p> </div>
+<button class="btn-secondary" hx-post="/api/billing/pause" data-i18n="auto-pause-instead"> Pause Instead
 </button> </div>
 <div class="retention-offer"> <div class="offer-icon">📉</div>
-<div class="offer-details"> <h4>Downgrade to a smaller plan</h4>
-<p>Keep essential features at a lower cost</p> </div>
-<button class="btn-secondary" onclick="showDowngradeOptions()"> View Plans
+<div class="offer-details"> <h4 data-i18n="auto-downgrade-to-a-smaller-plan">Downgrade to a smaller plan</h4>
+<p data-i18n="auto-keep-essential-features-at-a-lower-cost">Keep essential features at a lower cost</p> </div>
+<button class="btn-secondary" onclick="showDowngradeOptions()" data-i18n="auto-view-plans"> View Plans
 </button> </div>
 </div> <form class="cancel-form" hx-post="/api/billing/cancel" hx-confirm="Are you sure you want to cancel your subscription?">
-<div class="form-group"> <label>Why are you cancelling?</label>
-<select name="reason" required> <option value="">Select a reason...</option>
-<option value="too_expensive">Too expensive</option> <option value="missing_features">Missing features I need</option>
-<option value="not_using">Not using it enough</option> <option value="switching">Switching to another product</option>
-<option value="temporary">Temporary - will be back</option> <option value="other">Other</option>
+<div class="form-group"> <label data-i18n="auto-why-are-you-cancelling">Why are you cancelling?</label>
+<select name="reason" required> <option value="" data-i18n="auto-select-a-reason">Select a reason...</option>
+<option value="too_expensive" data-i18n="auto-too-expensive">Too expensive</option> <option value="missing_features" data-i18n="auto-missing-features-i-need">Missing features I need</option>
+<option value="not_using" data-i18n="auto-not-using-it-enough">Not using it enough</option> <option value="switching" data-i18n="auto-switching-to-another-product">Switching to another product</option>
+<option value="temporary" data-i18n="auto-temporary-will-be-back">Temporary - will be back</option> <option value="other" data-i18n="label-other">Other</option>
 </select> </div>
-<div class="form-group"> <label>Additional feedback (optional)</label>
+<div class="form-group"> <label data-i18n="auto-additional-feedback-optional">Additional feedback (optional)</label>
 <textarea name="feedback" rows="3" placeholder="Help us improve..."></textarea> </div>
-<div class="cancel-actions"> <button type="button" class="btn-secondary" onclick="closeModal('cancelModal')">Keep Subscription</button>
-<button type="submit" class="btn-danger">Cancel Subscription</button> </div>
+<div class="cancel-actions"> <button type="button" class="btn-secondary" onclick="closeModal('cancelModal')" data-i18n="auto-keep-subscription">Keep Subscription</button>
+<button type="submit" class="btn-danger" data-i18n="auto-cancel-subscription">Cancel Subscription</button> </div>
 </form> </div>
 </div> </dialog>
  <link rel="stylesheet" href="/suite/admin/billing-inline.css">

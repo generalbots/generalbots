@@ -267,3 +267,7 @@ impl Default for GamificationService {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "gamification_tests.rs"]
+mod gamification_tests;

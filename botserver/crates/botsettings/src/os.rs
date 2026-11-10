@@ -85,10 +85,15 @@ fn deny(message: &str) -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+/// Whether the request was addressed to the local host.
+///
+/// Only the real `Host` header is consulted: `X-Forwarded-Host` is
+/// caller-supplied, so `X-Forwarded-Host: localhost` used to satisfy the gate
+/// from any peer (#2122). A reverse proxy forwards the external host in `Host`,
+/// which correctly keeps the panel unreachable through it.
 fn request_is_loopback(headers: &HeaderMap) -> bool {
     let raw = headers
-        .get("x-forwarded-host")
-        .or_else(|| headers.get("host"))
+        .get("host")
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default()
         .trim();

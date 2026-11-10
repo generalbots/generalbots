@@ -2,15 +2,15 @@
 <div class="handoff-container gb-app" data-gb-app="handoff">
     <header class="handoff-header">
         <div class="handoff-header-left">
-            <h1>Chatbot Handoff & Analytics</h1>
+            <h1 data-i18n="auto-chatbot-handoff-analytics">Chatbot Handoff & Analytics</h1>
             <nav class="handoff-tabs">
-                <button class="handoff-tab active" data-view="queue">Handoff Queue</button>
-                <button class="handoff-tab" data-view="agents">Agents</button>
-                <button class="handoff-tab" data-view="analytics">Analytics</button>
-                <button class="handoff-tab" data-view="channels">Channels</button>
-                <button class="handoff-tab" data-view="csat">CSAT</button>
-                <button class="handoff-tab" data-view="transcripts">Transcripts</button>
-                <button class="handoff-tab" data-view="sla">SLA Monitor</button>
+                <button class="handoff-tab active" data-view="queue" data-i18n="auto-handoff-queue">Handoff Queue</button>
+                <button class="handoff-tab" data-view="agents" data-i18n="auto-agents">Agents</button>
+                <button class="handoff-tab" data-view="analytics" data-i18n="settings-analytics">Analytics</button>
+                <button class="handoff-tab" data-view="channels" data-i18n="auto-channels">Channels</button>
+                <button class="handoff-tab" data-view="csat" data-i18n="auto-csat">CSAT</button>
+                <button class="handoff-tab" data-view="transcripts" data-i18n="auto-transcripts">Transcripts</button>
+                <button class="handoff-tab" data-view="sla" data-i18n="auto-sla-monitor">SLA Monitor</button>
             </nav>
         </div>
         <div class="handoff-header-right">
@@ -151,7 +151,7 @@
 <div id="handoffTransferModal" class="handoff-modal" style="display:none">
     <div class="handoff-modal-dialog">
         <header class="handoff-modal-header">
-            <h2>Transfer conversation</h2>
+            <h2 data-i18n="auto-transfer-conversation">Transfer conversation</h2>
             <button onclick="HandoffApp.closeTransferModal()">&times;</button>
         </header>
         <div class="handoff-modal-body">
@@ -160,10 +160,10 @@
             </label>
             <label>Transfer reason
                 <select id="transferReasonSelect">
-                    <option value="skill">Skill mismatch</option>
-                    <option value="workload">Workload balancing</option>
-                    <option value="escalation">Customer escalation</option>
-                    <option value="vip">VIP handling</option>
+                    <option value="skill" data-i18n="auto-skill-mismatch">Skill mismatch</option>
+                    <option value="workload" data-i18n="auto-workload-balancing">Workload balancing</option>
+                    <option value="escalation" data-i18n="auto-customer-escalation">Customer escalation</option>
+                    <option value="vip" data-i18n="auto-vip-handling">VIP handling</option>
                 </select>
             </label>
             <label>Internal note
@@ -171,13 +171,13 @@
             </label>
         </div>
         <footer class="handoff-modal-footer">
-            <button class="btn-secondary" onclick="HandoffApp.closeTransferModal()">Cancel</button>
-            <button class="btn-primary" onclick="HandoffApp.confirmTransfer()">Transfer</button>
+            <button class="btn-secondary" onclick="HandoffApp.closeTransferModal()" data-i18n="action-cancel">Cancel</button>
+            <button class="btn-primary" onclick="HandoffApp.confirmTransfer()" data-i18n="attendant-transfer">Transfer</button>
         </footer>
     </div>
 </div>
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/handoff/modules/01_core.js"></script>
 <script src="/suite/handoff/modules/02_queue_agents.js"></script>
 <script src="/suite/handoff/modules/03_sla_transcripts.js"></script>

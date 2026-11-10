@@ -54,12 +54,7 @@ pub fn render_html(app: &WebApp, content: &str) -> String {
         .styles
         .iter()
         .filter_map(|style| safe_resource_url(style))
-        .map(|style| {
-            format!(
-                r#"<link rel="stylesheet" href="{}">"#,
-                escape_html(&style)
-            )
-        })
+        .map(|style| format!(r#"<link rel="stylesheet" href="{}">"#, escape_html(&style)))
         .collect::<Vec<_>>()
         .join("\n    ");
 

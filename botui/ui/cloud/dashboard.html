@@ -376,7 +376,7 @@
       const container = document.getElementById('catalog-products');
       if (!container) return;
       if (!products || products.length === 0) {
-        container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>No products in catalog yet.</p></div>';
+        container.innerHTML = '<div class="mgmt-empty" style="grid-column:1/-1"><p>' + gbT('cloud-dashboard-no-products', 'No products in catalog yet.') + '</p></div>';
         return;
       }
       container.innerHTML = products.map(p => {

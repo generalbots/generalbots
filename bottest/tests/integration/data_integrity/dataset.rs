@@ -170,6 +170,16 @@ pub fn total_rows(conn: &mut PgConnection, table: &str) -> Result<i64, String> {
         .map_err(|e| format!("count {table}: {e}"))
 }
 
+/// `true` when a query bound to `id` returns at least one row — used to prove the
+/// dataset really is a nested org -> branch -> bot tree in the database.
+pub fn exists_with(conn: &mut PgConnection, sql: &str, id: Uuid) -> Result<bool, String> {
+    diesel::sql_query(sql.to_string())
+        .bind::<SqlUuid, _>(id)
+        .get_result::<RowCount>(conn)
+        .map(|row| row.row_count > 0)
+        .map_err(|e| format!("existence probe failed: {e}"))
+}
+
 /// Every scope id in the manifest for one table, in deterministic order.
 pub fn scope_ids(expectation: &TableExpectation) -> Vec<(Uuid, &ScopeExpectation)> {
     expectation
@@ -235,6 +245,12 @@ pub fn verify(conn: &mut PgConnection, manifest: &Manifest) -> Vec<String> {
             )),
             Ok(_) => {}
             Err(e) => failures.push(e),
+        }
+        let expected_total = expectation.rows + expectation.null_rows;
+        if expected_total != scoped_total {
+            failures.push(format!(
+                "{table}: manifest expects {expected_total} rows, the probes account for {scoped_total}"
+            ));
         }
     }
     failures

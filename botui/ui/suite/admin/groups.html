@@ -1,6 +1,6 @@
 <div class="gb-app groups-view" data-gb-app="adminpanel">
 <div class="page-header"> <div class="header-left">
-<h1>Group Management</h1> <p class="subtitle">Manage groups, members, and permissions</p>
+<h1 data-i18n="auto-group-management">Group Management</h1> <p class="subtitle" data-i18n="auto-manage-groups-members-and-permissions">Manage groups, members, and permissions</p>
 </div> <div class="header-actions">
 <button class="btn-primary" onclick="document.getElementById('create-group-modal').showModal()"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path> <circle cx="9" cy="7" r="4"></circle>
@@ -18,9 +18,9 @@ hx-target="#groups-grid" hx-swap="innerHTML">
 </div> <div class="filters">
 <select name="visibility" hx-get="/api/directory/groups/list"
 hx-trigger="change" hx-target="#groups-grid"
-hx-swap="innerHTML"> <option value="">All Visibility</option>
-<option value="public">Public</option> <option value="private">Private</option>
-<option value="hidden">Hidden</option> </select>
+hx-swap="innerHTML"> <option value="" data-i18n="auto-all-visibility">All Visibility</option>
+<option value="public" data-i18n="label-public">Public</option> <option value="private" data-i18n="label-private">Private</option>
+<option value="hidden" data-i18n="auto-hidden">Hidden</option> </select>
 <div class="view-toggle"> <button class="view-btn active" onclick="setView('grid', this)" title="Grid view">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <rect x="3" y="3" width="7" height="7"></rect>
 <rect x="14" y="3" width="7" height="7"></rect> <rect x="14" y="14" width="7" height="7"></rect>
@@ -36,27 +36,27 @@ hx-swap="innerHTML"> <option value="">All Visibility</option>
 <div class="groups-grid" id="groups-grid" hx-get="/api/directory/groups/list"
 hx-trigger="load" hx-swap="innerHTML">
 <div class="loading-state"> <div class="spinner"></div>
-<p>Loading groups...</p> </div>
+<p data-i18n="auto-loading-groups">Loading groups...</p> </div>
 </div> 
 <!-- Pagination --> <div class="pagination" id="groups-pagination"
 hx-get="/api/directory/groups/list/pagination" hx-trigger="load"
 hx-swap="innerHTML"> </div>
 </div> 
 <!-- Group Detail Panel --> <div class="detail-panel" id="group-detail-panel">
-<div class="panel-header"> <h2 id="panel-group-name">Group Details</h2>
+<div class="panel-header"> <h2 id="panel-group-name" data-i18n="auto-group-details">Group Details</h2>
 <button class="close-btn" onclick="closeDetailPanel()"> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="18" y1="6" x2="6" y2="18"></line> <line x1="6" y1="6" x2="18" y2="18"></line>
 </svg> </button>
 </div> <div class="panel-tabs">
-<button class="tab-btn active" data-tab="overview" onclick="switchTab(this, 'overview')">Overview</button> <button class="tab-btn" data-tab="members" onclick="switchTab(this, 'members')">Members</button>
-<button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')">Permissions</button> <button class="tab-btn" data-tab="kbs" onclick="switchTab(this, 'kbs')">Knowledge Bases</button>
-<button class="tab-btn" data-tab="settings" onclick="switchTab(this, 'settings')">Settings</button> <button class="tab-btn" data-tab="analytics" onclick="switchTab(this, 'analytics')">Analytics</button>
+<button class="tab-btn active" data-tab="overview" onclick="switchTab(this, 'overview')" data-i18n="auto-overview">Overview</button> <button class="tab-btn" data-tab="members" onclick="switchTab(this, 'members')" data-i18n="auto-members">Members</button>
+<button class="tab-btn" data-tab="permissions" onclick="switchTab(this, 'permissions')" data-i18n="auto-permissions">Permissions</button> <button class="tab-btn" data-tab="kbs" onclick="switchTab(this, 'kbs')" data-i18n="auto-knowledge-bases">Knowledge Bases</button>
+<button class="tab-btn" data-tab="settings" onclick="switchTab(this, 'settings')" data-i18n="workspace-settings">Settings</button> <button class="tab-btn" data-tab="analytics" onclick="switchTab(this, 'analytics')" data-i18n="settings-analytics">Analytics</button>
 </div> <div class="panel-content" id="group-detail-content">
 <!-- Content loaded via HTMX --> </div>
 </div> 
 <!-- Create Group Modal --> <dialog id="create-group-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2>Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
+<h2 data-i18n="auto-create-new-group">Create New Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('create-group-modal').close()">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -64,73 +64,73 @@ hx-swap="innerHTML"> </div>
 hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) { document.getElementById('create-group-modal').close(); showToast('Group created successfully'); }">
 <div class="form-group"> <label></label>Group Name <span class="required">*</span></label>
 <input type="text" name="name" required placeholder="Engineering Team"> </div>
-<div class="form-group"> <label>Description</label>
+<div class="form-group"> <label data-i18n="label-description">Description</label>
 <textarea name="description" rows="3" placeholder="Describe the purpose of this group..."></textarea> </div>
 <div class="form-row"> <div class="form-group">
-<label>Visibility</label> <select name="visibility">
-<option value="private">Private</option> <option value="public">Public</option>
-<option value="hidden">Hidden</option> </select>
+<label data-i18n="auto-visibility">Visibility</label> <select name="visibility">
+<option value="private" data-i18n="label-private">Private</option> <option value="public" data-i18n="label-public">Public</option>
+<option value="hidden" data-i18n="auto-hidden">Hidden</option> </select>
 </div> <div class="form-group">
-<label>Join Policy</label> <select name="join_policy">
-<option value="invite_only">Invite Only</option> <option value="request">Request to Join</option>
-<option value="open">Open</option> </select>
+<label data-i18n="auto-join-policy">Join Policy</label> <select name="join_policy">
+<option value="invite_only" data-i18n="auto-invite-only">Invite Only</option> <option value="request" data-i18n="auto-request-to-join">Request to Join</option>
+<option value="open" data-i18n="tickets-open">Open</option> </select>
 </div> </div>
 <div class="form-group"> <label class="checkbox-label">
-<input type="checkbox" name="allow_member_invite" checked> <span>Allow members to invite others</span>
+<input type="checkbox" name="allow_member_invite" checked> <span data-i18n="auto-allow-members-to-invite-others">Allow members to invite others</span>
 </label> </div>
 <div class="form-group"> <label class="checkbox-label">
-<input type="checkbox" name="enable_chat" checked> <span>Enable group chat</span>
+<input type="checkbox" name="enable_chat" checked> <span data-i18n="auto-enable-group-chat">Enable group chat</span>
 </label> </div>
-<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('create-group-modal').close()">Cancel</button>
-<button type="submit" class="btn-primary">Create Group</button> </div>
+<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('create-group-modal').close()" data-i18n="action-cancel">Cancel</button>
+<button type="submit" class="btn-primary" data-i18n="auto-create-group">Create Group</button> </div>
 </form> </div>
 </dialog> 
 <!-- Add Member Modal --> <dialog id="add-member-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2>Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()">
+<h2 data-i18n="auto-add-members">Add Members</h2> <button type="button" class="close-btn" onclick="document.getElementById('add-member-modal').close()">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <form id="add-member-form" hx-post="/api/directory/groups/{group_id}/members/add"
 hx-target="#group-members-list" hx-swap="innerHTML"
 hx-on::after-request="if(event.detail.successful) { document.getElementById('add-member-modal').close(); showToast('Members added'); }"> <input type="hidden" name="group_id" id="add-member-group-id">
-<div class="form-group"> <label>Search Users</label>
+<div class="form-group"> <label data-i18n="auto-search-users">Search Users</label>
 <div class="user-search"> <input type="text"
 placeholder="Search by name or email..." hx-get="/api/directory/users/search"
 hx-trigger="keyup changed delay:300ms" hx-target="#user-search-results"
 hx-swap="innerHTML"> </div>
 <div id="user-search-results" class="search-results"></div> </div>
-<div class="form-group"> <label>Selected Users</label>
-<div id="selected-users" class="selected-users"> <p class="empty-text">No users selected</p>
+<div class="form-group"> <label data-i18n="auto-selected-users">Selected Users</label>
+<div id="selected-users" class="selected-users"> <p class="empty-text" data-i18n="auto-no-users-selected">No users selected</p>
 </div> </div>
-<div class="form-group"> <label>Role</label>
-<select name="role"> <option value="member">Member</option>
-<option value="moderator">Moderator</option> <option value="admin">Admin</option>
+<div class="form-group"> <label data-i18n="label-role">Role</label>
+<select name="role"> <option value="member" data-i18n="auto-member">Member</option>
+<option value="moderator" data-i18n="auto-moderator">Moderator</option> <option value="admin" data-i18n="nav-admin">Admin</option>
 </select> </div>
-<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('add-member-modal').close()">Cancel</button>
-<button type="submit" class="btn-primary">Add Members</button> </div>
+<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('add-member-modal').close()" data-i18n="action-cancel">Cancel</button>
+<button type="submit" class="btn-primary" data-i18n="auto-add-members">Add Members</button> </div>
 </form> </div>
 </dialog> 
 <!-- Send Invite Modal --> <dialog id="send-invite-modal" class="modal">
 <div class="modal-content"> <div class="modal-header">
-<h2>Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()">
+<h2 data-i18n="auto-send-invites">Send Invites</h2> <button type="button" class="close-btn" onclick="document.getElementById('send-invite-modal').close()">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
 <form id="send-invite-form" hx-post="/api/directory/groups/{group_id}/invites/send"
 hx-swap="none" hx-on::after-request="if(event.detail.successful) { document.getElementById('send-invite-modal').close(); showToast('Invites sent'); }">
 <input type="hidden" name="group_id" id="invite-group-id"> <div class="form-group">
-<label>Email Addresses</label> <textarea name="emails" rows="4" placeholder="Enter email addresses, one per line..."></textarea>
-<p class="help-text">Enter one email address per line</p> </div>
-<div class="form-group"> <label>Personal Message (optional)</label>
+<label data-i18n="auto-email-addresses">Email Addresses</label> <textarea name="emails" rows="4" placeholder="Enter email addresses, one per line..."></textarea>
+<p class="help-text" data-i18n="auto-enter-one-email-address-per-line">Enter one email address per line</p> </div>
+<div class="form-group"> <label data-i18n="auto-personal-message-optional">Personal Message (optional)</label>
 <textarea name="message" rows="3" placeholder="Add a personal message to the invite..."></textarea> </div>
-<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('send-invite-modal').close()">Cancel</button>
-<button type="submit" class="btn-primary">Send Invites</button> </div>
+<div class="modal-footer"> <button type="button" class="btn-secondary" onclick="document.getElementById('send-invite-modal').close()" data-i18n="action-cancel">Cancel</button>
+<button type="submit" class="btn-primary" data-i18n="auto-send-invites">Send Invites</button> </div>
 </form> </div>
 </dialog> 
 <!-- Delete Group Modal --> <dialog id="delete-group-modal" class="modal modal-small">
 <div class="modal-content"> <div class="modal-header">
-<h2>Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()">
+<h2 data-i18n="auto-delete-group">Delete Group</h2> <button type="button" class="close-btn" onclick="document.getElementById('delete-group-modal').close()">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <line x1="18" y1="6" x2="6" y2="18"></line>
 <line x1="6" y1="6" x2="18" y2="18"></line> </svg>
 </button> </div>
@@ -138,17 +138,17 @@ hx-swap="none" hx-on::after-request="if(event.detail.successful) { document.getE
 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
 <line x1="12" y1="9" x2="12" y2="13"></line> <line x1="12" y1="17" x2="12.01" y2="17"></line>
 </svg> </div>
-<p>Are you sure you want to delete <strong id="delete-group-name"></strong>?</p> <p class="warning-text">This will remove all members and delete all group data. This action cannot be undone.</p>
+<p>Are you sure you want to delete <strong id="delete-group-name"></strong>?</p> <p class="warning-text" data-i18n="auto-this-will-remove-all-members-and-delete-all-group-data-this">This will remove all members and delete all group data. This action cannot be undone.</p>
 </div> <div class="modal-footer">
-<button type="button" class="btn-secondary" onclick="document.getElementById('delete-group-modal').close()">Cancel</button> <button type="button" class="btn-danger" id="confirm-delete-group-btn"
+<button type="button" class="btn-secondary" onclick="document.getElementById('delete-group-modal').close()" data-i18n="action-cancel">Cancel</button> <button type="button" class="btn-danger" id="confirm-delete-group-btn"
 hx-delete="/api/directory/groups/{group_id}/delete" hx-target="#groups-grid"
-hx-swap="innerHTML" hx-on::after-request="document.getElementById('delete-group-modal').close(); closeDetailPanel(); showToast('Group deleted');">
+hx-swap="innerHTML" hx-on::after-request="document.getElementById('delete-group-modal').close(); closeDetailPanel(); showToast('Group deleted');" data-i18n="auto-delete-group">
 Delete Group </button>
 </div> </div>
 </dialog> 
 <link rel="stylesheet" href="/suite/admin/groups-inline/01_groups_layout.css"> <link rel="stylesheet" href="/suite/admin/groups-inline/02_groups_panel.css">
 <link rel="stylesheet" href="/suite/admin/groups-inline/03_groups_controls.css"> 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div> <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div> <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script></script> function setView(view, btn) {
 const grid = document.getElementById('groups-grid'); document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
 btn.classList.add('active'); 

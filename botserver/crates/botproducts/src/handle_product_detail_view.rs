@@ -2,11 +2,17 @@ use super::*;
 
 pub(super) async fn handle_product_detail_view(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
     let mut conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => { log::error!("botproducts DB error: {e}"); return Html(r#"<div class="error">Internal server error</div>"#.to_string()); }
+        Err(e) => {
+            log::error!("botproducts DB error: {e}");
+            let message = botlib::i18n::get(&locale, "error-db-unavailable");
+            return Html(format!("<div class=\"error\">{message}</div>"));
+        }
     };
 
     let product: Product = match products::table
@@ -14,7 +20,10 @@ pub(super) async fn handle_product_detail_view(
         .first(&mut conn)
     {
         Ok(p) => p,
-        Err(_) => return Html("<div class=\"error\">Product not found</div>".to_string()),
+        Err(_) => {
+            let message = botlib::i18n::get(&locale, "error-product-not-found");
+            return Html(format!("<div class=\"error\">{message}</div>"));
+        }
     };
 
     let price_str = format_currency(bd_to_f64(&product.price), &product.currency);
@@ -74,11 +83,17 @@ pub(super) async fn handle_product_detail_view(
 }
 pub(super) async fn handle_product_edit_form(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
     let mut conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => { log::error!("botproducts DB error: {e}"); return Html(r#"<div class="error">Internal server error</div>"#.to_string()); }
+        Err(e) => {
+            log::error!("botproducts DB error: {e}");
+            let message = botlib::i18n::get(&locale, "error-db-unavailable");
+            return Html(format!("<div class=\"error\">{message}</div>"));
+        }
     };
 
     let product: Product = match products::table
@@ -86,7 +101,10 @@ pub(super) async fn handle_product_edit_form(
         .first(&mut conn)
     {
         Ok(p) => p,
-        Err(_) => return Html("<div class=\"error\">Product not found</div>".to_string()),
+        Err(_) => {
+            let message = botlib::i18n::get(&locale, "error-product-not-found");
+            return Html(format!("<div class=\"error\">{message}</div>"));
+        }
     };
 
     let price_str = product.price.to_string();

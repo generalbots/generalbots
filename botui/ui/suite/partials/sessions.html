@@ -15,10 +15,10 @@
 {% endfor %}
 {% if sessions.is_empty() %}
 <div class="empty-state">
-    <p>No conversations yet</p>
+    <p data-i18n="auto-no-conversations-yet">No conversations yet</p>
     <button hx-post="/api/chat/sessions/new"
             hx-target="#session-list"
-            hx-swap="afterbegin">
+            hx-swap="afterbegin" data-i18n="auto-start-a-conversation">
         Start a conversation
     </button>
 </div>

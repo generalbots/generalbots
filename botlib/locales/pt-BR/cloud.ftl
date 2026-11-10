@@ -343,3 +343,25 @@ cloud-offers-connection-error = ❌ Erro de conexão:
 cloud-offers-code-copied = 📋 Código "{code}" copiado para a área de transferência!
 cloud-offers-copied = Copiado!
 cloud-offers-code-saved = ✅ Código "{code}" salvo para o checkout!
+
+# Textos de cloud montados em JS (gbT) — #2096
+cloud-auth-signing-in = Entrando…
+cloud-auth-sign-in = Entrar
+cloud-auth-creating = Criando conta…
+cloud-cards-load-failed = Falha ao carregar os cartões
+cloud-cards-portal-failed = Falha ao abrir o portal de cobrança
+cloud-cards-empty = Nenhum cartão salvo.
+cloud-cards-add-stripe = Adicionar no Stripe
+cloud-invoices-load-failed = Falha ao carregar as faturas
+cloud-invoices-empty = Nenhuma fatura ainda.
+cloud-plans-load-failed = Falha ao carregar os planos
+cloud-profile-saved = Perfil salvo!
+cloud-store-load-failed = Falha ao carregar a loja
+cloud-store-purchase = Compra:
+cloud-store-purchase-initiated = Compra iniciada! Acompanhe em Meus Serviços.
+cloud-store-empty-category = Nenhum item nesta categoria.
+cloud-store-profile-prefix = Perfil:
+cloud-store-profile-select = Selecione um perfil para recomendações personalizadas
+cloud-store-server-size-first = Selecione primeiro um tamanho de servidor.
+cloud-store-redirecting = Redirecionando para o checkout…
+cloud-dashboard-no-products = Ainda não há produtos no catálogo.

@@ -138,3 +138,28 @@ pub use resolve_branch::*;
 pub use into_summary::*;
 pub use update_playlist::*;
 pub use remove_item::*;
+
+/// Trims a playlist title and enforces the stored length limit. Returns `None`
+/// when the title is empty or longer than `MAX_TITLE_LEN` characters, so the
+/// caller can answer 400 (create) or treat the field as absent (patch).
+fn normalize_playlist_name(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() || trimmed.chars().count() > MAX_TITLE_LEN {
+        return None;
+    }
+    Some(trimmed.to_string())
+}
+
+/// Visibility is a closed set: anything else is rejected instead of being
+/// stored, so a typo cannot produce a playlist nobody (or everybody) can see.
+fn normalize_visibility(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    match trimmed {
+        "private" | "org" | "public" => Some(trimmed.to_string()),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+#[path = "validation_tests.rs"]
+mod validation_tests;

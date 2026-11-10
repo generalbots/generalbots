@@ -6,8 +6,8 @@
     <title>Contacts - General Bots Suite</title>
     <link rel="stylesheet" href="/suite/admin/admin-layout.css?v=1" />
 <link rel="stylesheet" href="/suite/admin/admin-states-responsive.css?v=1" />
-    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
     <link rel="stylesheet" href="/suite/admin/contacts-inline/01_contacts_layout.css">
     <link rel="stylesheet" href="/suite/admin/contacts-inline/02_contacts_detail.css">
@@ -19,7 +19,7 @@
         <!-- Sidebar -->
         <aside class="contacts-sidebar">
             <div class="sidebar-header">
-                <h2>Contacts</h2>
+                <h2 data-i18n="crm-contacts">Contacts</h2>
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
                         <circle cx="11" cy="11" r="8"></circle>
@@ -34,7 +34,7 @@
 
             <nav class="sidebar-nav">
                 <div class="nav-section">
-                    <div class="nav-section-title">Views</div>
+                    <div class="nav-section-title" data-i18n="auto-views">Views</div>
                     <div class="nav-item active" data-filter="all">
                         <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>

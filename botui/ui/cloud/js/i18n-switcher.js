@@ -51,7 +51,7 @@
     var select = document.createElement("select");
     select.className = "gb-locale-switcher";
     select.setAttribute("style", SELECT_STYLE);
-    select.setAttribute("aria-label", "Language");
+    select.setAttribute("aria-label", window.gbT ? window.gbT("language-switcher-label", "Language") : "Language");
     select.setAttribute("data-i18n-aria-label", "language-switcher-label");
 
     locales.forEach(function (locale) {

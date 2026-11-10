@@ -192,3 +192,7 @@ pub fn db_data_source_to_data_source(db: DbDataSource) -> DataSource {
         updated_at: db.updated_at,
     }
 }
+
+#[cfg(test)]
+#[path = "storage_tests.rs"]
+mod storage_tests;

@@ -29,6 +29,10 @@ pub const WEBA_IFRAME_SANDBOX: &str = "allow-scripts allow-forms";
 /// * `connect-src 'none'` — the document cannot call back into the suite API.
 /// * `frame-ancestors` is omitted: `'self'` matches nothing for an opaque
 ///   origin, and the app is public content that the suite frames on purpose.
+///
+/// Consequence for app authors: assets must be referenced by absolute `https:`
+/// URL. A relative path resolves against the suite origin, which `'self'` can
+/// never match once the document is sandboxed into an opaque origin.
 pub const WEBA_CSP: &str = concat!(
     "sandbox allow-scripts allow-forms; ",
     "default-src 'none'; ",

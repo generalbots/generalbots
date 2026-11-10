@@ -297,3 +297,23 @@ error-ai-account-not-connected-chat = Conecta la cuenta antes de seleccionarla p
 error-computer-use-action-id-mismatch = El id de la acción no coincide con la ruta.
 error-http-no-route = Ninguna ruta coincide con esta ruta.
 error-goal-run-advance-refused = La ejecución no puede avanzar en su estado actual.
+
+# =============================================================================
+# People, attendance and products routes (#2094)
+# =============================================================================
+
+error-person-not-found = Persona no encontrada.
+error-team-not-found = Equipo no encontrado.
+error-time-off-not-found = Solicitud de ausencia no encontrada.
+error-people-invalid-start-date = La fecha inicial no es válida. Usa el formato AAAA-MM-DD.
+error-people-invalid-end-date = La fecha final no es válida. Usa el formato AAAA-MM-DD.
+error-attendance-webhook-not-found = Webhook no encontrado.
+error-attendance-session-id-invalid = El id de la sesión no es válido.
+error-attendance-session-not-found = Sesión no encontrada.
+error-attendance-attendant-id-required = El id del agente es obligatorio.
+attendance-no-attendant-matching-skills = No se encontró ningún agente con las habilidades requeridas.
+attendance-response-sent = Respuesta enviada.
+error-product-not-found = Producto no encontrado.
+error-service-not-found = Servicio no encontrado.
+error-service-invalid-value = El valor del servicio no es válido.
+error-service-price-required = Este servicio no tiene precio; informa un valor.

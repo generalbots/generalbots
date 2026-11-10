@@ -3,12 +3,12 @@
 <div class="botcoder-editor-container">
     <div class="botcoder-sidebar">
         <div class="botcoder-sidebar-header">
-            <h3>Files</h3>
+            <h3 data-i18n="player-files">Files</h3>
             <button class="botcoder-btn-icon" onclick="botCoderEditor.refreshFiles()" title="Refresh">↻</button>
         </div>
         <div id="botcoderFileTree" class="botcoder-file-tree">
             <!-- Files injected here -->
-            <div class="botcoder-loading">Loading workspace...</div>
+            <div class="botcoder-loading" data-i18n="auto-loading-workspace">Loading workspace...</div>
         </div>
     </div>
     
@@ -19,12 +19,12 @@
         
         <div class="botcoder-toolbar">
             <div class="botcoder-toolbar-left">
-                <span id="botcoderCurrentFile" class="botcoder-current-file">No file open</span>
+                <span id="botcoderCurrentFile" class="botcoder-current-file" data-i18n="auto-no-file-open">No file open</span>
                 <span id="botcoderFileStatus" class="botcoder-file-status"></span>
             </div>
             <div class="botcoder-toolbar-right">
-                <button class="botcoder-btn" onclick="botCoderEditor.saveCurrentFile()" title="Save (Ctrl+S)">Save</button>
-                <button class="botcoder-btn botcoder-btn-primary" onclick="botCoderEditor.publishFile()" title="Publish">Publish</button>
+                <button class="botcoder-btn" onclick="botCoderEditor.saveCurrentFile()" title="Save (Ctrl+S)" data-i18n="action-save">Save</button>
+                <button class="botcoder-btn botcoder-btn-primary" onclick="botCoderEditor.publishFile()" title="Publish" data-i18n="auto-publish-2">Publish</button>
             </div>
         </div>
         

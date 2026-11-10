@@ -120,12 +120,12 @@ function calcUpdate() {
     if (recPanel) {
       const pn = PROFILE_RECS[currentProfile]?.label || currentProfile;
       const s = PROFILE_RECS[currentProfile]?.summary || '';
-      recPanel.textContent = 'Profile: ' + pn + ' — ' + s;
+      recPanel.textContent = gbT('cloud-store-profile-prefix', 'Profile:') + ' ' + pn + ' — ' + s;
     }
   } else {
     if (vpsTip) vpsTip.style.display = 'none';
     if (gpuTip) gpuTip.style.display = 'none';
-    if (recPanel) recPanel.textContent = 'Select a profile for personalized recommendations';
+    if (recPanel) recPanel.textContent = gbT('cloud-store-profile-select', 'Select a profile for personalized recommendations');
   }
 }
 
@@ -143,7 +143,7 @@ function submitCalculator() {
   const total   = vps.price + gpu.price + storage.price + phone.price + domain.price + selectedLLMPrice;
 
   if (!vps.val) {
-    showToast('Please select a server size first.', 'error');
+    showToast(gbT('cloud-store-server-size-first', 'Please select a server size first.'), 'error');
     return;
   }
 
@@ -171,7 +171,7 @@ function submitCalculator() {
 
   const payload = encodeURIComponent(JSON.stringify(payloadObj));
 
-  showToast('Redirecting to checkout…', 'info');
+  showToast(gbT('cloud-store-redirecting', 'Redirecting to checkout…'), 'info');
   setTimeout(() => {
     window.location.href = '/checkout?payload=' + payload;
   }, 800);

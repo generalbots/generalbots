@@ -5,10 +5,12 @@ pub async fn adjust_stock(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<AdjustStockRequest>,
-) -> Result<Json<Product>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Product>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -18,7 +20,7 @@ pub async fn adjust_stock(
         .filter(products::id.eq(id))
         .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-product-not-found"))?;
 
     let current_stock = product.stock_quantity;
     let new_quantity = match req.movement_type.as_str() {
@@ -34,7 +36,7 @@ pub async fn adjust_stock(
             products::updated_at.eq(now),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let movement = InventoryMovement {
         id: Uuid::new_v4(),
@@ -54,13 +56,13 @@ pub async fn adjust_stock(
     diesel::insert_into(inventory_movements::table)
         .values(&movement)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let updated: Product = products::table
         .filter(products::id.eq(id))
         .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-product-not-found"))?;
 
     Ok(Json(updated))
 }
@@ -68,10 +70,12 @@ pub async fn create_service(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Json(req): Json<CreateServiceRequest>,
-) -> Result<Json<Service>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Service>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -103,7 +107,7 @@ pub async fn create_service(
     diesel::insert_into(services::table)
         .values(&service)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(service))
 }
@@ -111,10 +115,12 @@ pub async fn list_services(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<Service>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<Service>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -148,97 +154,108 @@ pub async fn list_services(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(svcs))
 }
 pub async fn get_service(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<Service>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Service>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let service: Service = services::table
         .filter(services::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Service not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-service-not-found"))?;
 
     Ok(Json(service))
 }
 pub async fn update_service(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateServiceRequest>,
-) -> Result<Json<Service>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Service>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let now = Utc::now();
 
     diesel::update(services::table.filter(services::id.eq(id)))
         .set(services::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if let Some(name) = req.name {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::name.eq(name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(description) = req.description {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::description.eq(description))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(hourly_rate) = req.hourly_rate {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::hourly_rate.eq(Some(bd(hourly_rate))))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(is_active) = req.is_active {
         diesel::update(services::table.filter(services::id.eq(id)))
             .set(services::is_active.eq(is_active))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     let service: Service = services::table
         .filter(services::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Service not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-service-not-found"))?;
 
     Ok(Json(service))
 }
 pub async fn delete_service(
     State(state): State<Arc<ProductsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<StatusCode, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     diesel::delete(services::table.filter(services::id.eq(id)))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Delete error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
 pub async fn list_categories(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
-) -> Result<Json<Vec<ProductCategory>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<ProductCategory>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -249,7 +266,7 @@ pub async fn list_categories(
         .filter(product_categories::is_active.eq(true))
         .order(product_categories::sort_order.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(cats))
 }
@@ -257,10 +274,12 @@ pub async fn create_category(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Json(req): Json<CreateCategoryRequest>,
-) -> Result<Json<ProductCategory>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<ProductCategory>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -295,7 +314,7 @@ pub async fn create_category(
     diesel::insert_into(product_categories::table)
         .values(&category)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(category))
 }

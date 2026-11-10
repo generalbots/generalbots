@@ -4,11 +4,11 @@
             <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
         </button>
         <div class="panel-content">
-            <h3>Properties</h3>
+            <h3 data-i18n="drive-properties">Properties</h3>
 
             <div id="element-properties" class="properties-group hidden">
                 <div class="property-row">
-                    <label>Position</label>
+                    <label data-i18n="auto-position">Position</label>
                     <div class="input-group">
                         <input
                             type="number"
@@ -25,7 +25,7 @@
                     </div>
                 </div>
                 <div class="property-row">
-                    <label>Size</label>
+                    <label data-i18n="label-size">Size</label>
                     <div class="input-group">
                         <input
                             type="number"
@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <div class="property-row">
-                    <label>Rotation</label>
+                    <label data-i18n="auto-rotation">Rotation</label>
                     <input
                         type="number"
                         id="prop-rotation"
@@ -51,7 +51,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label>Opacity</label>
+                    <label data-i18n="auto-opacity">Opacity</label>
                     <input
                         type="range"
                         id="prop-opacity"
@@ -62,7 +62,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label>Stroke</label>
+                    <label data-i18n="auto-stroke">Stroke</label>
                     <input
                         type="color"
                         id="prop-stroke"
@@ -70,7 +70,7 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label>Fill</label>
+                    <label data-i18n="auto-fill">Fill</label>
                     <input
                         type="color"
                         id="prop-fill"
@@ -80,9 +80,9 @@
             </div>
 
             <div id="canvas-properties" class="properties-group">
-                <h4>Canvas</h4>
+                <h4 data-i18n="nav-canvas">Canvas</h4>
                 <div class="property-row">
-                    <label>Background</label>
+                    <label data-i18n="auto-background">Background</label>
                     <input
                         type="color"
                         id="canvas-bg"
@@ -91,16 +91,16 @@
                     />
                 </div>
                 <div class="property-row">
-                    <label>Grid</label>
+                    <label data-i18n="auto-grid">Grid</label>
                     <select id="grid-type" onchange="setGridType(this.value)">
-                        <option value="none">None</option>
-                        <option value="dots" selected>Dots</option>
-                        <option value="lines">Lines</option>
-                        <option value="squares">Squares</option>
+                        <option value="none" data-i18n="label-none">None</option>
+                        <option value="dots" selected data-i18n="auto-dots">Dots</option>
+                        <option value="lines" data-i18n="auto-lines">Lines</option>
+                        <option value="squares" data-i18n="auto-squares">Squares</option>
                     </select>
                 </div>
                 <div class="property-row">
-                    <label>Snap to Grid</label>
+                    <label data-i18n="auto-snap-to-grid">Snap to Grid</label>
                     <input
                         type="checkbox"
                         id="snap-grid"
@@ -110,7 +110,7 @@
             </div>
 
             <div class="properties-group">
-                <h4>Layers</h4>
+                <h4 data-i18n="auto-layers">Layers</h4>
                 <div id="layers-list" class="layers-list">
                     <div class="layer-item active">
                         <span class="layer-visibility"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
@@ -132,14 +132,14 @@
 
     <!-- Context Menu -->
     <div id="context-menu" class="context-menu hidden">
-        <button onclick="duplicateSelected()">Duplicate</button>
-        <button onclick="copySelected()">Copy</button>
-        <button onclick="pasteClipboard()">Paste</button>
+        <button onclick="duplicateSelected()" data-i18n="action-duplicate">Duplicate</button>
+        <button onclick="copySelected()" data-i18n="action-copy">Copy</button>
+        <button onclick="pasteClipboard()" data-i18n="action-paste">Paste</button>
         <div class="menu-divider"></div>
-        <button onclick="bringToFront()">Bring to Front</button>
-        <button onclick="sendToBack()">Send to Back</button>
+        <button onclick="bringToFront()" data-i18n="auto-bring-to-front">Bring to Front</button>
+        <button onclick="sendToBack()" data-i18n="auto-send-to-back">Send to Back</button>
         <div class="menu-divider"></div>
-        <button onclick="deleteSelected()">Delete</button>
+        <button onclick="deleteSelected()" data-i18n="action-delete">Delete</button>
     </div>
 
     

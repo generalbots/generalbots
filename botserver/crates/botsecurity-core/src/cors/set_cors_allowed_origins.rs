@@ -86,7 +86,6 @@ pub fn create_cors_layer() -> CorsLayer {
                 header::ACCEPT,
                 header::ORIGIN,
                 header::HeaderName::from_static("x-request-id"),
-                header::HeaderName::from_static("x-user-id"),
             ])
             .expose_headers([
                 header::HeaderName::from_static("x-request-id"),

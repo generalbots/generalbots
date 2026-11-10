@@ -4,16 +4,16 @@
             <h2 data-i18n="canvas-export-title">Export Canvas</h2>
             <div class="export-options">
                 <div class="export-format">
-                    <label>Format</label>
+                    <label data-i18n="chat-format">Format</label>
                     <select id="export-format">
-                        <option value="png">PNG Image</option>
-                        <option value="svg">SVG Vector</option>
-                        <option value="pdf">PDF Document</option>
-                        <option value="json">JSON Data</option>
+                        <option value="png" data-i18n="auto-png-image">PNG Image</option>
+                        <option value="svg" data-i18n="auto-svg-vector">SVG Vector</option>
+                        <option value="pdf" data-i18n="auto-pdf-document">PDF Document</option>
+                        <option value="json" data-i18n="auto-json-data">JSON Data</option>
                     </select>
                 </div>
                 <div class="export-scale">
-                    <label>Scale</label>
+                    <label data-i18n="auto-scale">Scale</label>
                     <select id="export-scale">
                         <option value="1">1x</option>
                         <option value="2" selected>2x</option>
@@ -21,17 +21,17 @@
                     </select>
                 </div>
                 <div class="export-bg">
-                    <label>
+                    <label data-i18n="auto-include-background">
                         <input type="checkbox" id="export-bg" checked />
                         Include Background
                     </label>
                 </div>
             </div>
             <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeExportModal()">
+                <button class="btn-secondary" onclick="closeExportModal()" data-i18n="action-cancel">
                     Cancel
                 </button>
-                <button class="btn-primary" onclick="doExport()">Export</button>
+                <button class="btn-primary" onclick="doExport()" data-i18n="action-export">Export</button>
             </div>
         </div>
     </div>

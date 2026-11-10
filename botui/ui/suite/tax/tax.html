@@ -20,7 +20,7 @@
       <span class="value warning" id="statNfsePendentes">0</span>
     </div>
     <div class="stat-card">
-      <span class="label">Erros</span>
+      <span class="label" data-i18n="auto-erros">Erros</span>
       <span class="value danger" id="statErros">0</span>
     </div>
   </div>
@@ -60,7 +60,7 @@
     <div class="tab-panel" id="panel-cte">
       <div class="table-container">
         <div class="table-header">
-          <h3>Conhecimentos de Transporte</h3>
+          <h3 data-i18n="auto-conhecimentos-de-transporte">Conhecimentos de Transporte</h3>
           <button class="btn btn-primary" id="btnEmitirCte">Emitir CT-e</button>
         </div>
         <div id="cteTableContainer">
@@ -76,7 +76,7 @@
           <span class="status" id="spedContribStatus">Aguardando geração</span>
           <div class="actions">
             <button class="btn btn-primary btn-sm" id="btnGerarSpedContrib">Gerar</button>
-            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedContrib" disabled>Baixar</button>
+            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedContrib" disabled data-i18n="auto-baixar">Baixar</button>
           </div>
         </div>
         <div class="sped-card">
@@ -84,7 +84,7 @@
           <span class="status" id="spedFiscalStatus">Aguardando geração</span>
           <div class="actions">
             <button class="btn btn-primary btn-sm" id="btnGerarSpedFiscal">Gerar</button>
-            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedFiscal" disabled>Baixar</button>
+            <button class="btn btn-secondary btn-sm" id="btnDownloadSpedFiscal" disabled data-i18n="auto-baixar">Baixar</button>
           </div>
         </div>
       </div>
@@ -103,11 +103,11 @@
           <input type="text" id="nfeDestinatario" placeholder="Razão social ou CNPJ">
         </div>
         <div class="form-group">
-          <label>CFOP</label>
+          <label data-i18n="auto-cfop">CFOP</label>
           <input type="text" id="nfeCfop" placeholder="Ex: 5102">
         </div>
         <div class="form-group">
-          <label>Produtos</label>
+          <label data-i18n="auto-produtos">Produtos</label>
           <div id="nfeProdutos">
             <div class="form-row" style="margin-bottom:8px;">
               <input type="text" placeholder="Descrição" class="produto-desc">
@@ -189,7 +189,7 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Remetente</label>
+          <label data-i18n="auto-remetente">Remetente</label>
           <input type="text" id="cteRemetente" placeholder="Razão social ou CNPJ">
         </div>
         <div class="form-group">
@@ -198,17 +198,17 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Cidade Origem</label>
+            <label data-i18n="auto-cidade-origem">Cidade Origem</label>
             <input type="text" id="cteOrigem" placeholder="Cidade - UF">
           </div>
           <div class="form-group">
-            <label>Cidade Destino</label>
+            <label data-i18n="auto-cidade-destino">Cidade Destino</label>
             <input type="text" id="cteDestino" placeholder="Cidade - UF">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Peso (kg)</label>
+            <label data-i18n="auto-peso-kg">Peso (kg)</label>
             <input type="number" id="ctePeso" placeholder="0" step="0.01">
           </div>
           <div class="form-group">
@@ -217,7 +217,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Modalidade</label>
+          <label data-i18n="auto-modalidade">Modalidade</label>
           <select id="cteModalidade">
             <option value="1">Rodoviário</option>
             <option value="2">Aéreo</option>
@@ -236,7 +236,7 @@
 
   <div class="toast" id="toast"></div>
 
-  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/tax/tax.js"></script>
 

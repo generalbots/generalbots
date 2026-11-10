@@ -21,5 +21,11 @@ pub(crate) use tower_http::trace::TraceLayer;
 mod run_axum_server;
 mod server_layers;
 
+#[cfg(feature = "analytics")]
+mod ops_metrics_layer;
+
 pub use run_axum_server::*;
 pub(crate) use server_layers::*;
+
+#[cfg(feature = "analytics")]
+pub(crate) use ops_metrics_layer::ops_metrics_middleware;

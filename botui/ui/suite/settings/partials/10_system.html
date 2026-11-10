@@ -2,21 +2,21 @@
      version information; Appearance keeps only visual preferences. -->
 <section id="system-section" class="settings-section">
     <div class="section-header">
-        <h1>System</h1>
-        <p class="subtitle">Preview mode and version information for this deployment</p>
+        <h1 data-i18n="admin-system">System</h1>
+        <p class="subtitle" data-i18n="auto-preview-mode-and-version-information-for-this-deployment">Preview mode and version information for this deployment</p>
     </div>
 
     <div class="setting-card">
         <div class="card-header">
             <div>
-                <h2>Preview mode</h2>
-                <p>Controls how much surface is revealed, not what is installed.</p>
+                <h2 data-i18n="sidebar-preview">Preview mode</h2>
+                <p data-i18n="auto-controls-how-much-surface-is-revealed-not-what-is-installed">Controls how much surface is revealed, not what is installed.</p>
             </div>
         </div>
         <div class="setting-row">
             <div class="setting-info">
-                <span class="setting-title">Preview</span>
-                <span class="setting-desc">Reveals apps in preview and the full settings tree. Off keeps only the essential settings for this edition.</span>
+                <span class="setting-title" data-i18n="sources-template-preview">Preview</span>
+                <span class="setting-desc" data-i18n="auto-reveals-apps-in-preview-and-the-full-settings-tree-off-keeps">Reveals apps in preview and the full settings tree. Off keeps only the essential settings for this edition.</span>
             </div>
             <label class="toggle">
                 <input type="checkbox" id="settings-preview-toggle" onchange="togglePreviewMode(this)">
@@ -25,11 +25,11 @@
         </div>
         <div class="setting-row">
             <div class="setting-info">
-                <span class="setting-title">Component versions</span>
-                <span class="setting-desc">BotServer, BotUI and service versions for this installation</span>
+                <span class="setting-title" data-i18n="auto-component-versions">Component versions</span>
+                <span class="setting-desc" data-i18n="auto-botserver-botui-and-service-versions-for-this-installation">BotServer, BotUI and service versions for this installation</span>
             </div>
             <button type="button" class="btn-secondary btn-sm"
-                onclick="showSection('versions', document.querySelector('.settings-nav a[href=\'#versions\']')); return false;">
+                onclick="showSection('versions', document.querySelector('.settings-nav a[href=\'#versions\']')); return false;" data-i18n="auto-open-versions">
                 Open Versions
             </button>
         </div>

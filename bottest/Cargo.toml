@@ -65,6 +65,12 @@ rhai = { workspace = true, features = ["sync"] }
 insta = { workspace = true }
 botschema = { workspace = true, features = ["full"] }
 botbasic_types = { workspace = true }
+# #2119 — the stable-CI property fallback for the cargo-fuzz targets drives the
+# real parsers (JWT, channel webhooks, BASIC transforms), so their crates must
+# be reachable from `tests/fuzz_regressions.rs`.
+botbasic_compiler = { workspace = true }
+botsecurity-auth = { workspace = true }
+botwhatsapp = { workspace = true }
 # The office editors, so the cross-format fidelity contract (#2044) can drive
 # their public import/patch/export APIs instead of re-implementing them.
 botdocs = { workspace = true }
@@ -107,6 +113,13 @@ path = "tests/media_filing_test.rs"
 [[test]]
 name = "office_fidelity"
 path = "tests/office_fidelity.rs"
+
+# #2119 — deterministic property fallback for the `fuzz/` targets: JWT/claims
+# decode, WhatsApp webhook bodies, BASIC source transforms and office import.
+# Runs on stable with no services, so every PR exercises malformed input.
+[[test]]
+name = "fuzz_regressions"
+path = "tests/fuzz_regressions.rs"
 
 [[bin]]
 name = "bottest"

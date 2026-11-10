@@ -11,18 +11,18 @@ async function loadCards(token) {
     const res = await fetch(`${API_BASE}/payment-cards`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { showError('Failed to load cards'); return; }
+    if (!res.ok) { showError(gbT('cloud-cards-load-failed', 'Failed to load cards')); return; }
     const data = await res.json();
     renderCards(data.cards || []);
   } catch (err) {
-    showError('Error: ' + err.message);
+    showError(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 
 function renderCards(cards) {
   const container = document.getElementById('cards-list');
   if (cards.length === 0) {
-    container.innerHTML = '<div class="saas-loading">No payment cards saved. <a href="#" onclick="openBillingPortal()">Add one in Stripe</a>.</div>';
+    container.innerHTML = '<div class="saas-loading">' + gbT('cloud-cards-empty', 'No payment cards saved.') + ' <a href="#" onclick="openBillingPortal()">' + gbT('cloud-cards-add-stripe', 'Add one in Stripe') + '</a>.</div>';
     return;
   }
   container.innerHTML = cards.map(card => `
@@ -44,11 +44,11 @@ async function openBillingPortal() {
     const res = await fetch(`${API_BASE}/billing-portal`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert('Failed to open billing portal'); return; }
+    if (!res.ok) { alert(gbT('cloud-cards-portal-failed', 'Failed to open billing portal')); return; }
     const data = await res.json();
     if (data.url) window.open(data.url, '_blank');
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

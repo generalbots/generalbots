@@ -20,7 +20,7 @@ async function loadPlans(token) {
       const data = await plansRes.json();
       allPlans = data.plans || {};
     } else {
-      showError('Failed to load plans');
+      showError(gbT('cloud-plans-load-failed', 'Failed to load plans'));
       return;
     }
 
@@ -32,7 +32,7 @@ async function loadPlans(token) {
     renderFeatureMatrix();
     injectCatalogJsonLd();
   } catch (err) {
-    showError('Error: ' + err.message);
+    showError(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

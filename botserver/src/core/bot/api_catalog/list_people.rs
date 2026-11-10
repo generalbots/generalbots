@@ -214,7 +214,9 @@ pub(super) async fn execute_tax(
     };
     match result {
         Ok(v) => Ok(v),
-        Err((_code, msg)) => Err(msg),
+        // The inner calculation returns a stable catalogue key (#2094); the
+        // chat path has no request locale, so the default one is used.
+        Err((_code, key)) => Err(botcore::i18n::t(&botcore::i18n::Locale::default(), key)),
     }
 }
 #[cfg(not(all(feature = "banking", feature = "products", feature = "tax")))]

@@ -103,5 +103,8 @@ pub(super) fn escape_field_key(s: &str) -> String {
         .replace(' ', "\\ ")
 }
 pub(super) fn escape_string_value(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
 }

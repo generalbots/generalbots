@@ -4,15 +4,15 @@
     <div class="gb-calc-main">
         <div class="gb-calc-toolbar">
             <div class="gb-calc-tabs" role="tablist">
-                <button type="button" class="gb-calc-tab active" data-tab="standard">Standard</button>
-                <button type="button" class="gb-calc-tab" data-tab="scientific">Scientific</button>
-                <button type="button" class="gb-calc-tab" data-tab="convert">Convert</button>
+                <button type="button" class="gb-calc-tab active" data-tab="standard" data-i18n="products-pricelist-type-standard">Standard</button>
+                <button type="button" class="gb-calc-tab" data-tab="scientific" data-i18n="auto-scientific">Scientific</button>
+                <button type="button" class="gb-calc-tab" data-tab="convert" data-i18n="crm-convert">Convert</button>
             </div>
             <div class="gb-calc-tools">
                 <button type="button" class="gb-calc-tool" id="gb-calc-angle" title="Toggle angle unit">DEG</button>
                 <button type="button" class="gb-calc-tool" id="gb-calc-memory-indicator" title="Calculator memory">M</button>
-                <button type="button" class="gb-calc-tool" id="gb-calc-copy" title="Copy result">Copy</button>
-                <button type="button" class="gb-calc-tool" id="gb-calc-history-btn" title="Toggle history">History</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-copy" title="Copy result" data-i18n="action-copy">Copy</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-history-btn" title="Toggle history" data-i18n="attendant-history">History</button>
             </div>
         </div>
 
@@ -42,8 +42,8 @@
 
     <aside id="gb-calc-history" class="gb-calc-history" hidden>
         <div class="gb-calc-history-head">
-            <span>History</span>
-            <button type="button" class="gb-calc-tool" id="gb-calc-history-clear">Clear</button>
+            <span data-i18n="attendant-history">History</span>
+            <button type="button" class="gb-calc-tool" id="gb-calc-history-clear" data-i18n="action-clear">Clear</button>
         </div>
         <ul id="gb-calc-history-list" class="gb-calc-history-list"></ul>
     </aside>

@@ -8,70 +8,25 @@ use super::*;
 /// first row of the `users` table.
 /// Resolves the SaaS JWT secret used to sign cloud-login tokens — the same
 /// chain the minter applies (`directory_setup::resolve_saas_jwt_secret` is
-/// `pub(crate)` to the botserver crate, so replicate it here): persisted
-/// `directory_config.json` → env `SAAS_JWT_SECRET` → env `JWT_SECRET` →
-/// development default.
+/// `pub(crate)` to the botserver crate). #2112 — the chain lives in
+/// `botsecurity_core::verified_jwt`, so the settings path and the tenant
+/// resolver cannot drift.
 pub(super) fn saas_jwt_secret() -> String {
-    let stack = std::env::var("BOTSERVER_STACK_PATH")
-        .ok()
-        .filter(|p| !p.trim().is_empty())
-        .or_else(|| {
-            std::env::var("GBO_STACK_PATH")
-                .ok()
-                .filter(|p| !p.trim().is_empty())
-        })
-        .unwrap_or_else(|| "/opt/gbo".to_string());
-    let config_path = format!("{stack}/conf/system/directory_config.json");
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(secret) = json
-                .get("saas_jwt_secret")
-                .and_then(|v| v.as_str())
-                .filter(|s| !s.is_empty())
-            {
-                return secret.to_string();
-            }
-        }
-    }
-    std::env::var("SAAS_JWT_SECRET")
-        .ok()
-        .filter(|s| !s.trim().is_empty())
-        .or_else(|| {
-            std::env::var("JWT_SECRET")
-                .ok()
-                .filter(|s| !s.trim().is_empty())
-        })
-        .unwrap_or_else(|| "dev-secret-key-change-in-production-minimum-32-chars".to_string())
+    botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
 }
 /// #1457 — verifies a stateless SaaS cloud JWT and returns the caller's
 /// stable user id. Cloud login mints claim-light tokens (`sub`/`email`/
 /// `org_id`/`branch_id`, issue #736); the `sub` claim maps to a UUID the
 /// same way `SaasJwtAuthProvider` and `resolve_user_role` do.
+///
+/// #2112 — the signature, algorithm and expiry are checked by the shared
+/// verifier, not by a local `jsonwebtoken` setup.
 pub(super) fn user_id_from_saas_jwt(token: &str) -> Option<uuid::Uuid> {
-    if token.split('.').count() != 3 {
-        return None;
-    }
-    let mut validation = Validation::new(Algorithm::HS256);
-    validation.validate_exp = true;
-    validation.required_spec_claims = HashSet::from(["exp".to_string()]);
-    let data = decode::<serde_json::Value>(
-        token,
-        &DecodingKey::from_secret(saas_jwt_secret().as_bytes()),
-        &validation,
-    )
-    .ok()?;
-    let sub = data
-        .claims
-        .get("sub")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default();
-    if sub.is_empty() {
-        return None;
-    }
-    Some(uuid::Uuid::parse_str(sub).unwrap_or_else(|_| {
+    let claims = botsecurity::botsecurity_core::verified_jwt::verify_saas_jwt(token).ok()?;
+    Some(uuid::Uuid::parse_str(&claims.sub).unwrap_or_else(|_| {
         uuid::Uuid::new_v5(
             &uuid::Uuid::NAMESPACE_DNS,
-            format!("zitadel:{sub}").as_bytes(),
+            format!("zitadel:{}", claims.sub).as_bytes(),
         )
     }))
 }

@@ -1,7 +1,6 @@
 use super::*;
-use crate::csp::{document_response, embed_response, embed_shell};
+use crate::render_routes::{embed_app, embed_page, preview_app, render_app, render_page};
 use axum::http::StatusCode;
-use axum::response::Response;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 pub fn configure_routes(state: Arc<WebaState>) -> Router {

@@ -3,8 +3,8 @@
      active choice is stored in Vault. No provider API keys on this page. -->
 <section id="on-device-ai-section" class="settings-section" data-admin-only="true">
     <div class="section-header">
-        <h1>On-device AI</h1>
-        <p class="subtitle">
+        <h1 data-i18n="auto-on-device-ai">On-device AI</h1>
+        <p class="subtitle" data-i18n="auto-models-that-run-on-this-machine-download-a-model-that-fits-t">
             Models that run on this machine. Download a model that fits the hardware,
             activate it, and the local engine uses it on its next start. No API keys are
             used here.
@@ -13,16 +13,16 @@
 
     <div class="setting-card">
         <div class="card-header">
-            <h2>This device</h2>
-            <span class="subtitle" id="oda-hardware">Detecting hardware…</span>
+            <h2 data-i18n="settings-this-device">This device</h2>
+            <span class="subtitle" id="oda-hardware" data-i18n="auto-detecting-hardware">Detecting hardware…</span>
         </div>
         <div class="oda-recommended" id="oda-recommended" hidden>
             <div>
-                <span class="oda-recommended-label">Recommended for this machine</span>
+                <span class="oda-recommended-label" data-i18n="auto-recommended-for-this-machine">Recommended for this machine</span>
                 <strong id="oda-recommended-model">—</strong>
                 <span class="oda-muted" id="oda-recommended-meta"></span>
             </div>
-            <button type="button" class="btn-primary btn-sm" id="oda-recommended-action" hidden>
+            <button type="button" class="btn-primary btn-sm" id="oda-recommended-action" hidden data-i18n="auto-activate">
                 Activate
             </button>
         </div>
@@ -31,24 +31,24 @@
 
     <div class="setting-card">
         <div class="card-header">
-            <h2>Models</h2>
-            <button type="button" class="btn-secondary btn-sm" id="oda-refresh">Refresh</button>
+            <h2 data-i18n="auto-models">Models</h2>
+            <button type="button" class="btn-secondary btn-sm" id="oda-refresh" data-i18n="action-refresh">Refresh</button>
         </div>
         <div class="oda-table-wrap">
             <table class="oda-table">
                 <thead>
                     <tr>
-                        <th>Model</th>
-                        <th>Params</th>
-                        <th>Quant</th>
-                        <th>Size</th>
-                        <th>Min VRAM</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th data-i18n="auto-model">Model</th>
+                        <th data-i18n="auto-params">Params</th>
+                        <th data-i18n="auto-quant">Quant</th>
+                        <th data-i18n="label-size">Size</th>
+                        <th data-i18n="auto-min-vram">Min VRAM</th>
+                        <th data-i18n="label-status">Status</th>
+                        <th data-i18n="billing-col-actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="oda-models">
-                    <tr><td colspan="7" class="oda-empty">Loading models…</td></tr>
+                    <tr><td colspan="7" class="oda-empty" data-i18n="auto-loading-models">Loading models…</td></tr>
                 </tbody>
             </table>
         </div>

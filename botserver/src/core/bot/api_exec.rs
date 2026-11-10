@@ -216,16 +216,17 @@ pub async fn exec_endpoint(
         .build()
         .map_err(|e| format!("http client: {e}"))?;
 
-    // Authenticate the loopback hop as the session user. The auth middleware
-    // accepts the `X-User-ID` header (see extract_user_from_request) and resolves
-    // it into the AuthenticatedUser — more reliable than minting a fresh JWT which
-    // must match a private claim contract. CSRF is also Bearer/known-header exempt.
+    // Authenticate the loopback hop as the session user with a short-lived
+    // signed assertion (#2122). The auth middleware verifies the signature and
+    // expiry before any handler runs, so this hop can no longer be spoofed by
+    // setting a header. Bearer requests are CSRF-exempt by design.
+    let assertion = super::api_exec_assertion::mint(state, user_id, bot_uuid)?;
     let mut req = client
         .request(
             reqwest::Method::from_bytes(method_upper.as_bytes()).map_err(|e| e.to_string())?,
             &url,
         )
-        .header("X-User-ID", user_id.to_string())
+        .header("Authorization", format!("Bearer {assertion}"))
         .header("Accept", "application/json");
     if let Some(bot) = bot_uuid {
         req = req.header("X-Bot-ID", bot.to_string());

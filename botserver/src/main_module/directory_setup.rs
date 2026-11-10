@@ -9,28 +9,16 @@ use tokio::sync::Mutex;
 /// Priority: `directory_config.json` → env `SAAS_JWT_SECRET` → env `JWT_SECRET` →
 /// development default. The resolved value is persisted into
 /// `directory_config.json` so cloud tokens survive botserver restarts.
+///
+/// #2112 — the read chain itself lives in
+/// `botsecurity_core::verified_jwt::resolve_saas_jwt_secret`, the same
+/// function the token verifier calls, so the minting side and the verifying
+/// side cannot drift apart.
 pub(crate) fn resolve_saas_jwt_secret() -> String {
     let stack_path = get_stack_path();
     let config_path = format!("{}/conf/system/directory_config.json", stack_path);
 
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(secret) = json
-                .get("saas_jwt_secret")
-                .and_then(|v| v.as_str())
-                .filter(|s| !s.is_empty())
-            {
-                return secret.to_string();
-            }
-        }
-    }
-
-    let secret = std::env::var("SAAS_JWT_SECRET")
-        .or_else(|_| std::env::var("JWT_SECRET"))
-        .unwrap_or_else(|_| {
-            info!("SAAS_JWT_SECRET not set, using development default secret");
-            "dev-secret-key-change-in-production-minimum-32-chars".to_string()
-        });
+    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret();
 
     // The embedded/SBC sample config ships a placeholder JWT secret
     // (#1347). Serving with it means every token is forgeable by anyone who

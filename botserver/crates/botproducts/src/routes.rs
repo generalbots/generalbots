@@ -1,12 +1,12 @@
 use axum::{
     extract::Path,
-    http::StatusCode,
     routing::{post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::errors::ApiError;
 use super::inventory::{Product, StockLevel};
 use super::pos::{Payment, PaymentMethod, PointOfSale, Sale, SaleItem};
 use super::pricing::{PriceQuote, PricingEngine};
@@ -79,14 +79,14 @@ pub struct ValidateStockRequest {
     pub levels: Vec<StockLevel>,
 }
 
-async fn price_quote(Path(id): Path<Uuid>) -> Result<Json<PriceQuote>, (StatusCode, String)> {
+async fn price_quote(Path(id): Path<Uuid>) -> Result<Json<PriceQuote>, ApiError> {
     let product = sample_product(id);
     let engine = PricingEngine::new();
     let quote = engine.quote(&product, &[], &[], 1, chrono::Utc::now());
     Ok(Json(quote))
 }
 
-async fn create_sale(Json(req): Json<CreateSaleRequest>) -> Result<Json<Sale>, (StatusCode, String)> {
+async fn create_sale(Json(req): Json<CreateSaleRequest>) -> Result<Json<Sale>, ApiError> {
     let pos = PointOfSale::new();
     let items: Vec<SaleItem> = req
         .items
@@ -113,7 +113,7 @@ async fn create_sale(Json(req): Json<CreateSaleRequest>) -> Result<Json<Sale>, (
     Ok(Json(sale))
 }
 
-async fn validate_stock(Json(req): Json<ValidateStockRequest>) -> Result<Json<ValidationResult>, (StatusCode, String)> {
+async fn validate_stock(Json(req): Json<ValidateStockRequest>) -> Result<Json<ValidationResult>, ApiError> {
     let pos = PointOfSale::new();
     match pos.validate_stock(&req.sale, &req.levels) {
         Ok(()) => Ok(Json(ValidationResult {
@@ -133,7 +133,7 @@ pub struct ValidationResult {
     pub errors: Vec<String>,
 }
 
-async fn build_product(Json(req): Json<ProductRequest>) -> Result<Json<Product>, (StatusCode, String)> {
+async fn build_product(Json(req): Json<ProductRequest>) -> Result<Json<Product>, ApiError> {
     let now = chrono::Utc::now();
     let product = Product {
         id: Uuid::new_v4(),
@@ -156,7 +156,7 @@ async fn build_product(Json(req): Json<ProductRequest>) -> Result<Json<Product>,
 
 async fn adjust_inventory(
     Json(req): Json<AdjustInventoryRequest>,
-) -> Result<Json<AdjustInventoryResponse>, (StatusCode, String)> {
+) -> Result<Json<AdjustInventoryResponse>, ApiError> {
     let resp = AdjustInventoryResponse {
         product_id: req.product_id,
         warehouse_id: req.warehouse_id,

@@ -128,11 +128,12 @@ pub struct ListQuery {
 #[cfg(test)]
 mod tests;
 
-mod weba_state;
 mod configure_routes;
-mod render_html;
-mod escape;
 mod csp;
+mod escape;
+mod render_html;
+mod render_routes;
+mod weba_state;
 
 pub use configure_routes::*;
 pub use csp::*;

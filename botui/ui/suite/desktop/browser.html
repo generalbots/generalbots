@@ -13,19 +13,19 @@
     <div class="browser-container">
         <header class="browser-header">
             <div class="browser-header-left">
-                <h1>Headless Browser</h1>
+                <h1 data-i18n="auto-headless-browser">Headless Browser</h1>
             </div>
             <div class="browser-header-right">
-                <span class="session-id" id="session-label">No session</span>
-                <button class="btn btn-primary" id="btn-new-session">+ New Session</button>
-                <button class="btn btn-danger" id="btn-close-session" style="display:none">Close</button>
+                <span class="session-id" id="session-label" data-i18n="auto-no-session">No session</span>
+                <button class="btn btn-primary" id="btn-new-session" data-i18n="auto-new-session">+ New Session</button>
+                <button class="btn btn-danger" id="btn-close-session" style="display:none" data-i18n="action-close">Close</button>
             </div>
         </header>
 
         <div class="vm-tabstrip" id="vm-tabstrip" style="display:none">
-            <span class="vm-tabstrip-label">VM tabs</span>
+            <span class="vm-tabstrip-label" data-i18n="auto-vm-tabs">VM tabs</span>
             <div class="vm-tabstrip-list" id="vm-tabstrip-list"></div>
-            <span class="vm-tabstrip-hint" id="vm-tabstrip-hint">Shared across conversations</span>
+            <span class="vm-tabstrip-hint" id="vm-tabstrip-hint" data-i18n="auto-shared-across-conversations">Shared across conversations</span>
         </div>
 
         <div class="browser-toolbar" id="toolbar" style="display:none">
@@ -34,13 +34,13 @@
                 <button class="btn btn-primary" id="btn-navigate">Go</button>
             </div>
             <div class="toolbar-row">
-                <button class="btn btn-sm" id="btn-screenshot">Screenshot</button>
-                <button class="btn btn-sm" id="btn-extract">Extract Text</button>
-                <button class="btn btn-sm" id="btn-back">Back</button>
-                <button class="btn btn-sm" id="btn-forward">Forward</button>
+                <button class="btn btn-sm" id="btn-screenshot" data-i18n="auto-screenshot">Screenshot</button>
+                <button class="btn btn-sm" id="btn-extract" data-i18n="auto-extract-text">Extract Text</button>
+                <button class="btn btn-sm" id="btn-back" data-i18n="action-back">Back</button>
+                <button class="btn btn-sm" id="btn-forward" data-i18n="action-forward">Forward</button>
                 <label class="agent-toggle">
                     <input type="checkbox" id="chk-agent-mode">
-                    <span class="toggle-label">Agent Mode</span>
+                    <span class="toggle-label" data-i18n="auto-agent-mode">Agent Mode</span>
                 </label>
             </div>
         </div>
@@ -48,25 +48,25 @@
         <div class="browser-body">
             <div class="viewport-container" id="viewport-container">
                 <div class="viewport-status" id="viewport-status">
-                    <p>Create a browser session to begin.</p>
+                    <p data-i18n="auto-create-a-browser-session-to-begin">Create a browser session to begin.</p>
                 </div>
                 <canvas id="browser-canvas" style="display:none"></canvas>
                 <div class="viewport-overlay" id="viewport-overlay" style="display:none"></div>
             </div>
             <aside class="browser-sidebar" id="sidebar" style="display:none">
                 <div class="sidebar-section">
-                    <h3>Page State</h3>
+                    <h3 data-i18n="auto-page-state">Page State</h3>
                     <div id="page-state">
                         <div class="state-row"><strong>URL:</strong> <span id="state-url">-</span></div>
-                        <div class="state-row"><strong>Title:</strong> <span id="state-title">-</span></div>
-                        <div class="state-row"><strong>Links:</strong> <span id="state-links">0</span></div>
+                        <div class="state-row"><strong data-i18n="auto-title-2">Title:</strong> <span id="state-title">-</span></div>
+                        <div class="state-row"><strong data-i18n="auto-links">Links:</strong> <span id="state-links">0</span></div>
                         <div class="state-row"><strong>FPS:</strong> <span id="state-fps">0</span></div>
                     </div>
                 </div>
                 <div class="sidebar-section">
-                    <h3>Agent Log</h3>
+                    <h3 data-i18n="auto-agent-log">Agent Log</h3>
                     <div id="agent-log" class="agent-log">
-                        <div class="log-empty">Agent mode disabled</div>
+                        <div class="log-empty" data-i18n="auto-agent-mode-disabled">Agent mode disabled</div>
                     </div>
                 </div>
             </aside>

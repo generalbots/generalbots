@@ -38,6 +38,17 @@ pub async fn run_axum_server(
     }
     botdrive::external::engine::spawn_scheduler(app_state.conn.clone());
 
+    // Operational view (#2116): fold request counters into
+    // `ops_request_metrics` every 30 s and record this boot as a deploy
+    // marker when the running build differs from the last one.
+    #[cfg(feature = "analytics")]
+    {
+        botanalytics::ops_metrics::spawn_flusher(std::sync::Arc::new(app_state.conn.clone()));
+        botanalytics::ops_metrics::record_deploy_marker(std::sync::Arc::new(
+            app_state.conn.clone(),
+        ));
+    }
+
     let sub_router = sub_router::build_sub_router(&app_state, port, &mut api_router).await;
 
     #[cfg(feature = "deployment")]

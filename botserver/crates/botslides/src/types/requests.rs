@@ -328,3 +328,7 @@ pub struct PresenterNotesResponse {
     pub next_slide_notes: Option<String>,
     pub next_slide_thumbnail: Option<String>,
 }
+
+#[cfg(test)]
+#[path = "requests_tests.rs"]
+mod requests_tests;

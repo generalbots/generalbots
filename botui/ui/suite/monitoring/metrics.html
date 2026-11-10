@@ -15,15 +15,15 @@
             <span class="last-sync"
                   hx-get="/api/monitoring/metrics/last-sync"
                   hx-trigger="load, every 30s"
-                  hx-swap="innerHTML">Last sync: --</span>
+                  hx-swap="innerHTML" data-i18n="auto-last-sync">Last sync: --</span>
         </div>
         <div class="header-actions">
             <select id="metrics-time-range" onchange="updateMetricsRange(this.value)">
-                <option value="15m">Last 15 minutes</option>
-                <option value="1h" selected>Last 1 hour</option>
-                <option value="6h">Last 6 hours</option>
-                <option value="24h">Last 24 hours</option>
-                <option value="7d">Last 7 days</option>
+                <option value="15m" data-i18n="auto-last-15-minutes">Last 15 minutes</option>
+                <option value="1h" selected data-i18n="auto-last-1-hour">Last 1 hour</option>
+                <option value="6h" data-i18n="auto-last-6-hours">Last 6 hours</option>
+                <option value="24h" data-i18n="auto-last-24-hours">Last 24 hours</option>
+                <option value="7d" data-i18n="auto-last-7-days">Last 7 days</option>
             </select>
             <button class="action-btn secondary" onclick="refreshMetrics()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -56,7 +56,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">--</span>
-                <span class="metric-label">Requests/sec</span>
+                <span class="metric-label" data-i18n="monitoring-requests-per-sec">Requests/sec</span>
             </div>
             <div class="metric-trend up">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,7 +74,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">-- ms</span>
-                <span class="metric-label">Avg Latency</span>
+                <span class="metric-label" data-i18n="auto-avg-latency">Avg Latency</span>
             </div>
             <div class="metric-trend down">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,7 +93,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">--%</span>
-                <span class="metric-label">Error Rate</span>
+                <span class="metric-label" data-i18n="monitoring-metrics-error-rate">Error Rate</span>
             </div>
             <div class="metric-trend neutral">
                 <span>--</span>
@@ -110,7 +110,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">--</span>
-                <span class="metric-label">Active Users</span>
+                <span class="metric-label" data-i18n="auto-active-users">Active Users</span>
             </div>
             <div class="metric-trend up">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,7 +127,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">--</span>
-                <span class="metric-label">Conversations</span>
+                <span class="metric-label" data-i18n="tab-strip">Conversations</span>
             </div>
             <div class="metric-trend up">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -145,7 +145,7 @@
             </div>
             <div class="metric-info">
                 <span class="metric-value">--%</span>
-                <span class="metric-label">Uptime</span>
+                <span class="metric-label" data-i18n="monitoring-uptime">Uptime</span>
             </div>
             <div class="metric-trend neutral">
                 <span>--</span>
@@ -158,11 +158,11 @@
         <!-- Request Rate Chart -->
         <div class="chart-panel">
             <div class="chart-header">
-                <h3>Request Rate</h3>
+                <h3 data-i18n="auto-request-rate">Request Rate</h3>
                 <div class="chart-controls">
                     <select onchange="updateChartType('requests', this.value)">
-                        <option value="line">Line</option>
-                        <option value="area">Area</option>
+                        <option value="line" data-i18n="auto-line">Line</option>
+                        <option value="area" data-i18n="auto-area">Area</option>
                         <option value="bar">Bar</option>
                     </select>
                 </div>

@@ -328,3 +328,7 @@ impl CodeScanner {
         Ok(has_vault)
     }
 }
+
+#[cfg(test)]
+#[path = "patterns_tests.rs"]
+mod patterns_tests;

@@ -4,19 +4,19 @@
      published by /api/product (#1969). -->
 <section id="network-section" class="settings-section" data-shell-only="true" hidden>
     <div class="section-header">
-        <h1>Network</h1>
-        <p class="subtitle">Control whether this installation participates in the peer network</p>
+        <h1 data-i18n="monitoring-network">Network</h1>
+        <p class="subtitle" data-i18n="auto-control-whether-this-installation-participates-in-the-peer-n">Control whether this installation participates in the peer network</p>
     </div>
 
     <article class="setting-card">
         <div class="card-header">
-            <h2>P2P Network</h2>
+            <h2 data-i18n="auto-p2p-network">P2P Network</h2>
             <span id="network-mode-badge" class="shared-status shared-status-off">
                 <span class="shared-status-dot"></span>Offline
             </span>
         </div>
-        <p>
-            <strong>Offline</strong> — every connection stays on <code>127.0.0.1</code>.
+        <p data-i18n="auto-shared-links-work-on-your-local-network-only" data-i18n="auto-every-connection-stays-on">
+            <strong data-i18n="status-offline">Offline</strong> — every connection stays on <code>127.0.0.1</code>.
             Shared links work on your local network only.<br />
             <strong>P2P</strong> — enables future features such as free shared-link relaying
             and peer discovery. No data leaves this machine until you explicitly share
@@ -24,14 +24,14 @@
         </p>
 
         <div class="inline-row" style="margin-top:12px">
-            <label for="network-mode-select">Network mode</label>
+            <label for="network-mode-select" data-i18n="auto-network-mode">Network mode</label>
             <select id="network-mode-select">
-                <option value="p2p">P2P (recommended)</option>
-                <option value="offline">Offline</option>
+                <option value="p2p" data-i18n="auto-p2p-recommended">P2P (recommended)</option>
+                <option value="offline" data-i18n="status-offline">Offline</option>
             </select>
-            <button type="button" class="btn-secondary btn-sm" id="network-mode-apply">Apply</button>
+            <button type="button" class="btn-secondary btn-sm" id="network-mode-apply" data-i18n="action-apply">Apply</button>
         </div>
-        <p class="shared-hint" style="margin-top:8px">
+        <p class="shared-hint" style="margin-top:8px" data-i18n="auto-this-preference-is-saved-locally-and-takes-effect-after-the">
             This preference is saved locally and takes effect after the app restarts.
             The relay endpoint is fixed (<code id="network-relay-host">peer.generalbots.org</code>);
             peer and home-site resolution always uses it, so no manual configuration

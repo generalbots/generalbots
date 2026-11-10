@@ -30,16 +30,16 @@ td { padding: 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
 </head>
 <body>
 <div class="app">
-<header><h1>Anti-Fraud Engine</h1></header>
+<header><h1 data-i18n="auto-anti-fraud-engine">Anti-Fraud Engine</h1></header>
 <div class="stats" id="stats"></div>
 <nav class="tabs">
-<button class="tab active" data-tab="events">Events</button>
-<button class="tab" data-tab="rules">Rules</button>
-<button class="tab" data-tab="blocklist">Blocklist</button>
+<button class="tab active" data-tab="events" data-i18n="auto-events">Events</button>
+<button class="tab" data-tab="rules" data-i18n="auto-rules">Rules</button>
+<button class="tab" data-tab="blocklist" data-i18n="auto-blocklist">Blocklist</button>
 </nav>
-<div class="panel active" id="panel-events"><table><thead><tr><th>Type</th><th>Entity</th><th>Score</th><th>Level</th><th>Action</th><th>Date</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
-<div class="panel" id="panel-rules"><table><thead><tr><th>Name</th><th>Type</th><th>Severity</th><th>Action</th><th>Active</th></tr></thead><tbody id="rulesBody"></tbody></table></div>
-<div class="panel" id="panel-blocklist"><table><thead><tr><th>Type</th><th>Value</th><th>Reason</th><th>Expires</th></tr></thead><tbody id="blocklistBody"></tbody></table></div>
+<div class="panel active" id="panel-events"><table><thead><tr><th data-i18n="label-type">Type</th><th data-i18n="auto-entity">Entity</th><th data-i18n="auto-score">Score</th><th data-i18n="auto-level">Level</th><th data-i18n="security-col-action">Action</th><th data-i18n="label-date">Date</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+<div class="panel" id="panel-rules"><table><thead><tr><th data-i18n="label-name">Name</th><th data-i18n="label-type">Type</th><th data-i18n="monitoring-alert-severity">Severity</th><th data-i18n="security-col-action">Action</th><th data-i18n="label-active">Active</th></tr></thead><tbody id="rulesBody"></tbody></table></div>
+<div class="panel" id="panel-blocklist"><table><thead><tr><th data-i18n="label-type">Type</th><th data-i18n="crm-value">Value</th><th data-i18n="auto-reason">Reason</th><th data-i18n="cards-expires">Expires</th></tr></thead><tbody id="blocklistBody"></tbody></table></div>
 </div>
 <script>
 const API = '/api/fraud';

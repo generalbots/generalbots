@@ -4,10 +4,12 @@ pub async fn create_product(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Json(req): Json<CreateProductRequest>,
-) -> Result<Json<Product>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Product>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
         .unwrap_or_else(|| get_bot_context(&state.pool, &state.get_default_bot));
@@ -43,7 +45,7 @@ pub async fn create_product(
     diesel::insert_into(products::table)
         .values(&product)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Insert error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(product))
 }
@@ -51,10 +53,12 @@ pub async fn list_products(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Vec<Product>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let has_token = headers
         .get("authorization")
@@ -109,7 +113,7 @@ pub async fn list_products(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Query error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(prods))
 }
@@ -117,21 +121,23 @@ pub async fn get_product(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<ProductWithVariants>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<ProductWithVariants>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Object-level authorization (issue #734): a product may only be read by
     // a caller whose workspace branch owns it.
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
 
     let product: Product = products::table
         .filter(products::id.eq(id))
         .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-product-not-found"))?;
 
     let variants: Vec<ProductVariant> = product_variants::table
         .filter(product_variants::product_id.eq(id))
@@ -146,68 +152,70 @@ pub async fn update_product(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateProductRequest>,
-) -> Result<Json<Product>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<Json<Product>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Object-level authorization: only the owning branch may modify a product.
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
     let now = Utc::now();
 
     diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
         .set(products::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if let Some(name) = req.name {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::name.eq(name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(description) = req.description {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::description.eq(description))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(price) = req.price {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::price.eq(bd(price)))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(stock_quantity) = req.stock_quantity {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::stock_quantity.eq(stock_quantity))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(is_active) = req.is_active {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::is_active.eq(is_active))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(category) = req.category {
         diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
             .set(products::category.eq(category))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Update error: {e}"); "Internal server error".to_string() }))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     let product: Product = products::table
         .filter(products::id.eq(id))
         .filter(products::branch_id.eq(branch_id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Product not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-product-not-found"))?;
 
     Ok(Json(product))
 }
@@ -215,23 +223,25 @@ pub async fn delete_product(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts DB error: {e}"); "Internal server error".to_string() })
-    })?;
+) -> Result<StatusCode, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Object-level authorization: only the owning branch may delete a product.
     let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))?;
+        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
 
     let deleted = diesel::delete(
         products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))),
     )
     .execute(&mut conn)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, { log::error!("botproducts Delete error: {e}"); "Internal server error".to_string() }))?;
+    .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if deleted == 0 {
-        return Err((StatusCode::NOT_FOUND, "Product not found".to_string()));
+        return Err(api_error(&locale, StatusCode::NOT_FOUND, "error-product-not-found"));
     }
 
     Ok(StatusCode::NO_CONTENT)

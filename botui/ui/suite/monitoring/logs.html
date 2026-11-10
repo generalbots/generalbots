@@ -220,7 +220,7 @@
     <!-- Log Detail Panel (slides up) -->
     <div class="log-detail-panel" id="log-detail-panel">
         <div class="panel-header">
-            <h4>Log Details</h4>
+            <h4 data-i18n="auto-log-details">Log Details</h4>
             <button class="close-btn" onclick="closeLogDetail()">
                 <svg
                     width="18"
@@ -245,9 +245,9 @@
 <template id="log-entry-template">
     <div class="log-entry" data-level="info" data-service="service">
         <span class="log-timestamp">2024-01-15 12:34:56.789</span>
-        <span class="log-level">INFO</span>
-        <span class="log-service">service-name</span>
-        <span class="log-message">Log message content goes here</span>
+        <span class="log-level" data-i18n="auto-info">INFO</span>
+        <span class="log-service" data-i18n="auto-service-name">service-name</span>
+        <span class="log-message" data-i18n="auto-log-message-content-goes-here">Log message content goes here</span>
         <button
             class="log-expand"
             onclick="expandLog(this)"
@@ -267,6 +267,6 @@
     </div>
 </template>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/logs.js"></script>

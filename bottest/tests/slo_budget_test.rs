@@ -70,9 +70,7 @@ fn measure(mut op: impl FnMut()) -> Stats {
         samples.push(micros / OPS_PER_ROUND as f64);
     }
 
-    samples.sort_by(|left, right| {
-        left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    samples.sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
 
     Stats {
         p50: percentile(&samples, 50.0),
@@ -84,8 +82,8 @@ fn measure(mut op: impl FnMut()) -> Stats {
 fn budget(id: &str) -> f64 {
     BUDGETS
         .iter()
-        .find(|(name, _)| *name == id)
-        .map(|(_, value)| *value)
+        .find(|entry| entry.0 == id)
+        .map(|entry| entry.1)
         .unwrap_or(0.0)
 }
 
@@ -117,7 +115,8 @@ fn snapshot_path() -> PathBuf {
 /// in which case the i18n budget is skipped instead of failing the run.
 fn load_bundle() -> Option<I18nBundle> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../botlib/locales");
-    match I18nBundle::load(path.to_string_lossy().as_ref()) {
+    let locales = path.to_string_lossy().into_owned();
+    match I18nBundle::load(&locales) {
         Ok(bundle) => Some(bundle),
         Err(error) => {
             println!("slo_budget: catalogue unavailable ({error}); skipping the i18n budget");
@@ -230,7 +229,10 @@ fn message_lookup_stays_within_budget() {
 #[test]
 fn regex_cache_lookup_stays_within_budget() {
     let pattern = "^slo-budget-[0-9]+$";
-    assert!(re_cache::dynamic(pattern).is_some(), "the pattern must compile");
+    assert!(
+        re_cache::dynamic(pattern).is_some(),
+        "the pattern must compile"
+    );
 
     let stats = measure(|| {
         let compiled = re_cache::dynamic(pattern);
@@ -279,5 +281,8 @@ fn emits_the_hotpath_snapshot() {
     measured.sort_by(|left, right| left.0.cmp(right.0));
 
     let path = write_snapshot(&measured);
-    assert!(path.is_some(), "the snapshot must be written for the CI checker");
+    assert!(
+        path.is_some(),
+        "the snapshot must be written for the CI checker"
+    );
 }

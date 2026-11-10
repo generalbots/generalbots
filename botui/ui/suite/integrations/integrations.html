@@ -10,9 +10,9 @@
     <div class="integrations-shell">
         <header class="integrations-header" data-tour="integrations.header">
             <div class="integrations-heading">
-                <p class="integrations-eyebrow">Connection catalog</p>
-                <h1>Integrations</h1>
-                <p class="integrations-intro">
+                <p class="integrations-eyebrow" data-i18n="auto-connection-catalog">Connection catalog</p>
+                <h1 data-i18n="settings-integrations">Integrations</h1>
+                <p class="integrations-intro" data-i18n="auto-review-trusted-connections-that-can-power-chat-and-other-app">
                     Review trusted connections that can power chat and other apps. Inspect every
                     capability and permission before an adapter is configured.
                 </p>
@@ -20,9 +20,9 @@
             <div class="integrations-header-actions">
                 <span class="integrations-catalog-health" data-catalog-health role="status" aria-live="polite">
                     <span class="integrations-health-dot" aria-hidden="true"></span>
-                    <span data-catalog-health-text>Loading catalog</span>
+                    <span data-catalog-health-text data-i18n="auto-loading-catalog">Loading catalog</span>
                 </span>
-                <button class="integrations-button integrations-button-subtle" type="button" data-action="refresh">
+                <button class="integrations-button integrations-button-subtle" type="button" data-action="refresh" data-i18n="action-refresh">
                     Refresh
                 </button>
             </div>
@@ -31,13 +31,13 @@
         <nav class="integrations-navigation" data-tour="integrations.tabs" aria-label="Integration views">
             <div class="integrations-tabs" role="tablist" aria-label="Integration views">
                 <button class="integrations-tab" type="button" role="tab" data-tab="explore"
-                    aria-selected="true" tabindex="0">Explore</button>
+                    aria-selected="true" tabindex="0" data-i18n="auto-explore">Explore</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="connected"
-                    aria-selected="false" tabindex="-1">Connected</button>
+                    aria-selected="false" tabindex="-1" data-i18n="status-connected">Connected</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="automations"
-                    aria-selected="false" tabindex="-1">Automations</button>
+                    aria-selected="false" tabindex="-1" data-i18n="auto-automations">Automations</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="sources"
-                    aria-selected="false" tabindex="-1">Data Sources</button>
+                    aria-selected="false" tabindex="-1" data-i18n="dashboards-data-sources">Data Sources</button>
             </div>
         </nav>
 
@@ -45,7 +45,7 @@
             <section class="integrations-panel" role="tabpanel" data-panel="explore">
                 <div class="integrations-toolbar">
                     <label class="integrations-search">
-                        <span class="integrations-control-label">Search providers and actions</span>
+                        <span class="integrations-control-label" data-i18n="auto-search-providers-and-actions">Search providers and actions</span>
                         <span class="integrations-search-control">
                             <span class="integrations-search-mark" aria-hidden="true"></span>
                             <input type="search" data-search data-tour="integrations.search" autocomplete="off"
@@ -55,11 +55,11 @@
                     </label>
 
                     <fieldset class="integrations-filter-group">
-                        <legend>Availability</legend>
+                        <legend data-i18n="auto-availability">Availability</legend>
                         <div class="integrations-segments" aria-label="Filter by availability">
                             <button type="button" data-status="all" aria-pressed="true">All</button>
-                            <button type="button" data-status="must" aria-pressed="false">Must</button>
-                            <button type="button" data-status="available" aria-pressed="false">Available</button>
+                            <button type="button" data-status="must" aria-pressed="false" data-i18n="auto-must">Must</button>
+                            <button type="button" data-status="available" aria-pressed="false" data-i18n="status-available">Available</button>
                         </div>
                     </fieldset>
                 </div>
@@ -69,12 +69,12 @@
 
                 <div data-category-panel role="tabpanel">
                     <div class="integrations-results-bar">
-                        <p class="integrations-result-status" data-result-status role="status" aria-live="polite">
+                        <p class="integrations-result-status" data-result-status role="status" aria-live="polite" data-i18n="auto-loading-providers">
                             Loading providers
                         </p>
                         <div class="integrations-view-toggle" role="group" aria-label="Catalog layout">
-                            <button type="button" data-view="grid" aria-pressed="true">Cards</button>
-                            <button type="button" data-view="list" aria-pressed="false">List</button>
+                            <button type="button" data-view="grid" aria-pressed="true" data-i18n="auto-cards">Cards</button>
+                            <button type="button" data-view="list" aria-pressed="false" data-i18n="auto-list">List</button>
                         </div>
                     </div>
 
@@ -86,14 +86,14 @@
             <section class="integrations-panel" role="tabpanel" data-panel="connected" hidden>
                 <div class="integrations-section-heading">
                     <div>
-                        <p class="integrations-eyebrow">Runtime inventory</p>
-                        <h2>Connected services</h2>
-                        <p>Health and recent activity reported by the connector service.</p>
+                        <p class="integrations-eyebrow" data-i18n="auto-runtime-inventory">Runtime inventory</p>
+                        <h2 data-i18n="auto-connected-services">Connected services</h2>
+                        <p data-i18n="auto-health-and-recent-activity-reported-by-the-connector-service">Health and recent activity reported by the connector service.</p>
                     </div>
                     <button class="integrations-button integrations-button-subtle" type="button"
-                        data-action="refresh-connected">Refresh connected</button>
+                        data-action="refresh-connected" data-i18n="auto-refresh-connected">Refresh connected</button>
                 </div>
-                <p class="integrations-result-status" data-connected-status role="status" aria-live="polite">
+                <p class="integrations-result-status" data-connected-status role="status" aria-live="polite" data-i18n="auto-loading-connected-services">
                     Loading connected services
                 </p>
                 <div class="integrations-connected" data-connected-view aria-busy="true"></div>
@@ -101,51 +101,51 @@
             <section class="integrations-panel" role="tabpanel" data-panel="automations" hidden>
                 <div class="integrations-section-heading">
                     <div>
-                        <p class="integrations-eyebrow">Scheduled execution</p>
-                        <h2>Automations</h2>
-                        <p>Run an integration action on a repeating schedule using the vault-backed connection.</p>
+                        <p class="integrations-eyebrow" data-i18n="auto-scheduled-execution">Scheduled execution</p>
+                        <h2 data-i18n="auto-automations">Automations</h2>
+                        <p data-i18n="auto-run-an-integration-action-on-a-repeating-schedule-using-the">Run an integration action on a repeating schedule using the vault-backed connection.</p>
                     </div>
-                    <button class="integrations-button" type="button" data-action="new-automation">New automation</button>
+                    <button class="integrations-button" type="button" data-action="new-automation" data-i18n="auto-new-automation">New automation</button>
                 </div>
                 <form class="integrations-automation-form" data-automation-form hidden novalidate>
                     <div class="integrations-run-grid">
-                        <label class="integrations-run-field"><span>Provider *</span>
+                        <label class="integrations-run-field"><span data-i18n="auto-provider">Provider *</span>
                             <select name="provider" data-automation-provider required></select></label>
-                        <label class="integrations-run-field"><span>Action *</span>
+                        <label class="integrations-run-field"><span data-i18n="auto-action">Action *</span>
                             <select name="action" data-automation-action required></select></label>
-                        <label class="integrations-run-field"><span>Schedule *</span>
+                        <label class="integrations-run-field"><span data-i18n="auto-schedule-2">Schedule *</span>
                             <select name="schedule" data-automation-schedule required>
-                                <option value="@every_5m">Every 5 minutes</option>
-                                <option value="@every_15m">Every 15 minutes</option>
-                                <option value="@hourly">Hourly</option>
-                                <option value="@daily" selected>Daily</option>
-                                <option value="@weekly">Weekly</option>
+                                <option value="@every_5m" data-i18n="auto-every-5-minutes">Every 5 minutes</option>
+                                <option value="@every_15m" data-i18n="auto-every-15-minutes">Every 15 minutes</option>
+                                <option value="@hourly" data-i18n="auto-hourly">Hourly</option>
+                                <option value="@daily" selected data-i18n="auto-daily">Daily</option>
+                                <option value="@weekly" data-i18n="auto-weekly">Weekly</option>
                             </select></label>
                     </div>
-                    <label class="integrations-run-field"><span>Parameters (JSON object)</span>
+                    <label class="integrations-run-field"><span data-i18n="auto-parameters-json-object">Parameters (JSON object)</span>
                         <textarea name="params" rows="4" placeholder='{ "limit": 10 }'></textarea></label>
                     <p class="integrations-inline-error" data-automation-error hidden role="alert"></p>
                     <div class="integrations-run-actions">
-                        <button class="integrations-button" type="submit">Create automation</button>
-                        <button class="integrations-button integrations-button-subtle" type="button" data-action="cancel-automation">Cancel</button>
+                        <button class="integrations-button" type="submit" data-i18n="auto-create-automation">Create automation</button>
+                        <button class="integrations-button integrations-button-subtle" type="button" data-action="cancel-automation" data-i18n="action-cancel">Cancel</button>
                     </div>
                 </form>
-                <p class="integrations-result-status" data-automation-status role="status" aria-live="polite">Loading automations</p>
+                <p class="integrations-result-status" data-automation-status role="status" aria-live="polite" data-i18n="auto-loading-automations">Loading automations</p>
                 <div data-automations-view aria-busy="true"></div>
             </section>
 
             <section class="integrations-panel" role="tabpanel" data-panel="sources" hidden>
                 <div class="integrations-section-heading">
                     <div>
-                        <p class="integrations-eyebrow">Inbound ingestion</p>
-                        <h2>Data Sources</h2>
-                        <p>MCP servers, repositories, models, mail accounts and BYOK keys that feed the agent with external context.</p>
+                        <p class="integrations-eyebrow" data-i18n="auto-inbound-ingestion">Inbound ingestion</p>
+                        <h2 data-i18n="dashboards-data-sources">Data Sources</h2>
+                        <p data-i18n="auto-mcp-servers-repositories-models-mail-accounts-and-byok-keys">MCP servers, repositories, models, mail accounts and BYOK keys that feed the agent with external context.</p>
                     </div>
                     <button class="integrations-button integrations-button-subtle" type="button"
-                        data-action="refresh-sources">Refresh sources</button>
+                        data-action="refresh-sources" data-i18n="auto-refresh-sources">Refresh sources</button>
                 </div>
                 <div class="integrations-sources-toolbar" data-source-filters role="group" aria-label="Data source categories"></div>
-                <p class="integrations-result-status" data-sources-status role="status" aria-live="polite">Loading data sources</p>
+                <p class="integrations-result-status" data-sources-status role="status" aria-live="polite" data-i18n="auto-loading-data-sources">Loading data sources</p>
                 <div data-sources-view aria-busy="true"></div>
             </section>
 
@@ -159,11 +159,11 @@
         <aside class="integrations-detail-panel" data-detail-panel role="dialog" aria-modal="true" tabindex="-1">
             <header class="integrations-detail-header">
                 <div>
-                    <p class="integrations-eyebrow">Provider detail</p>
-                    <h2 data-detail-title>Integration details</h2>
+                    <p class="integrations-eyebrow" data-i18n="auto-provider-detail">Provider detail</p>
+                    <h2 data-detail-title data-i18n="auto-integration-details">Integration details</h2>
                 </div>
                 <button class="integrations-close-button" type="button" data-action="close-details"
-                    aria-label="Close integration details">Close</button>
+                    aria-label="Close integration details" data-i18n="action-close">Close</button>
             </header>
             <div class="integrations-detail-body" data-detail-body></div>
         </aside>
@@ -172,8 +172,8 @@
     <div class="integrations-visually-hidden" data-global-live aria-live="polite" aria-atomic="true"></div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="crm-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="auto-service-unavailable">Service unavailable</span></div>
 <script src="/suite/integrations/modules/01_state.js?v=2"></script>
 <script src="/suite/integrations/modules/02_render.js"></script>
 <script src="/suite/integrations/modules/03_details_fields.js?v=2"></script>

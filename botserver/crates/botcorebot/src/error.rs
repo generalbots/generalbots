@@ -53,3 +53,7 @@ impl From<r2d2::Error> for BotCoreBotError {
 }
 
 pub type BotResult<T> = Result<T, BotCoreBotError>;
+
+#[cfg(test)]
+#[path = "error_tests.rs"]
+mod error_tests;

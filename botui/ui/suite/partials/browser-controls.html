@@ -3,17 +3,17 @@
 <div class="botcoder-browser-container">
     <div class="botcoder-browser-sidebar">
         <div class="botcoder-browser-header">
-            <h3>🌐 Browser Tests</h3>
-            <button class="botcoder-btn" onclick="initBrowser()">New Session</button>
+            <h3 data-i18n="auto-browser-tests">🌐 Browser Tests</h3>
+            <button class="botcoder-btn" onclick="initBrowser()" data-i18n="auto-new-session-2">New Session</button>
         </div>
         
         <div class="botcoder-browser-actions">
-            <button id="recordBtn" class="botcoder-btn" onclick="toggleRecording()">⏺ Record</button>
-            <button class="botcoder-btn botcoder-btn-primary" onclick="exportTest()">Download Test</button>
+            <button id="recordBtn" class="botcoder-btn" onclick="toggleRecording()" data-i18n="auto-record">⏺ Record</button>
+            <button class="botcoder-btn botcoder-btn-primary" onclick="exportTest()" data-i18n="auto-download-test">Download Test</button>
         </div>
         
         <div class="botcoder-browser-timeline" id="browserTimeline">
-            <div class="botcoder-empty">No actions recorded</div>
+            <div class="botcoder-empty" data-i18n="auto-no-actions-recorded">No actions recorded</div>
         </div>
         
         <div class="botcoder-browser-gallery" id="browserGallery">
@@ -35,7 +35,7 @@
         <div class="botcoder-browser-preview">
             <!-- Simulated iframe or vnc depending on implementation -->
             <div id="browserCanvas" class="botcoder-browser-canvas">
-                <div class="botcoder-empty">Browser not initialized.<br>Click "New Session" to begin.</div>
+                <div class="botcoder-empty" data-i18n="auto-browser-not-initialized">Browser not initialized.<br>Click "New Session" to begin.</div>
             </div>
         </div>
     </div>

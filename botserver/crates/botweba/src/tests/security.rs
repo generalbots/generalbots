@@ -30,9 +30,10 @@ pub(super) fn test_app_name_is_escaped() {
 #[test]
 pub(super) fn test_description_and_meta_values_are_escaped() {
     let mut config = WebAppConfig::default();
-    config
-        .meta_tags
-        .insert("author".to_string(), "\"><script>alert(1)</script>".to_string());
+    config.meta_tags.insert(
+        "author".to_string(),
+        "\"><script>alert(1)</script>".to_string(),
+    );
 
     let mut app = published_app("Meta", config);
     app.description = Some("\" onload=\"alert(1)".to_string());
@@ -159,8 +160,7 @@ pub(super) fn test_publish_requires_admin() {
     let user = AuthenticatedUser::new(Uuid::new_v4(), "someone".to_string());
     assert!(authorize_publisher(&user).is_err());
 
-    let admin =
-        AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin".to_string()).with_role(Role::Admin);
     assert!(authorize_publisher(&admin).is_ok());
 
     let desktop = AuthenticatedUser::desktop_local();

@@ -17,6 +17,8 @@ Violation kinds:
 * ``PLURAL_NO_OTHER``      plural block without ``*[other]``
 * ``MISSING``              a key used by the UI that ``en`` does not define
 * ``PLACEHOLDER_MISMATCH`` same key uses different placeholders across locales
+* ``HARDCODED``            an English user-facing literal in the suite/cloud/
+                           login HTML or JS instead of a catalogue key (#2096)
 
 ``--check`` compares against the baseline: the baseline may only shrink. A
 violation already recorded passes; a new one (or a new instance of a recorded
@@ -27,6 +29,12 @@ except ``vendor/`` (third-party bundles with their own ``localize()`` keys) and
 ``wizard/`` (the setup wizard ships its own dictionaries under
 ``botui/ui/wizard/i18n/`` and never uses ``data-i18n``). Both subtrees are not
 consumers of ``botlib/locales``; scanning them only produced phantom gaps.
+
+Scope of the ``HARDCODED`` check: ``botui/ui/{suite,cloud,login}``, scanned by
+``scripts/i18n_scan.py`` — one implementation shared with the migration tooling,
+so the gate and the localizer can never disagree. Text inside an element that
+already carries a ``data-i18n*`` attribute is covered by that key and is not
+reported; proper nouns and technical identifiers are allowlisted there.
 """
 
 from __future__ import annotations
@@ -37,6 +45,10 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import i18n_scan  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCALES = ROOT / "botlib" / "locales"
@@ -158,6 +170,18 @@ def lint():
                 add("UNBALANCED", key, f"{path}:{line}", locale)
             if not plural_has_other(value):
                 add("PLURAL_NO_OTHER", key, f"{path}:{line}", locale)
+
+    # #2096 — a literal that still reaches the DOM without a catalogue key.
+    # Deduplicated by (text, file): the same label twice in one file is one
+    # debt entry, so the fingerprint survives unrelated edits in that file.
+    seen = set()
+    for app in i18n_scan.APPS:
+        for literal in i18n_scan.scan_app(app):
+            fingerprint_key = (literal.text, literal.path)
+            if fingerprint_key in seen:
+                continue
+            seen.add(fingerprint_key)
+            add("HARDCODED", literal.text, literal.path, f"{app} {literal.tag}")
 
     english = catalog.get("en", {})
     for key, paths in used_keys().items():
