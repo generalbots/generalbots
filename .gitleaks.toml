@@ -69,6 +69,14 @@ paths = [
   # #2119 — deterministic fuzz corpus: unsigned/garbage JWT seeds that the
   # properties assert are *rejected*; they carry no signature and no secret.
   '''^bottest/tests/fuzz_regressions\.rs$''',
+  # #2075/#2125 - the coverage wave added test-only fixtures that mint HMAC
+  # keys and embed throwaway PEMs so the verifier has something to reject:
+  # no value here authenticates anything outside `cargo test`.
+  '''^botserver/crates/botsecurity-crypto/src/(mutual_tls_tests\.rs|ca/mod\.rs)$''',
+  '''^botserver/crates/botevents/src/redact_tests\.rs$''',
+  '''^botserver/crates/botcoreoauth/src/(state|redirect|cookies|pkce|oauth_identity|providers)_tests\.rs$''',
+  '''^botserver/crates/botbasic_data/src/keywords/db_api/verified_caller_tests\.rs$''',
+  '''^bottest/tests/unit/security/''',
   # #2075 — the compliance scanner is fed documented fake samples so each
   # pattern has a positive; `patterns_tests.rs` is the test half of the pair
   # already allowlisted above.
