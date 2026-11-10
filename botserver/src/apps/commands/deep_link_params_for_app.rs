@@ -155,8 +155,6 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("research", "web.search", "Search the web", "Search the web (DuckDuckGo) for current facts, news or prices.", &[("query", "the search terms"), ("max_results", "optional 1-25")], None, false),
     cmd("", "apps.find", "Find an app", "Find a suite application by a description of what the user wants to do.", &[("query", "what the user wants to accomplish")], None, false),
     // #2063 — the 100-skill pack: names in the prompt, bodies on demand.
-    cmd("", "skills.list", "List installed skills", "List every installed skill with its description and whether it is enabled.", &[], None, false),
-    cmd("", "skills.find", "Read a skill package", "Read the package body of the skills that match a request (e.g. 'branded deck'), before applying one.", &[("query", "what the user wants to produce, or a skill name")], None, false),
     cmd("", "api.find", "Find an API command", "Discover which backend command or endpoint matches a described need.", &[("query", "the described need")], None, false),
     cmd("", "api.exec", "Run any API endpoint", "Execute any registered backend endpoint on demand (create, update, search or delete data in any app).", &[("method", "HTTP method: GET, POST, PUT, PATCH or DELETE"), ("path", "registered endpoint path, e.g. /api/crm/contacts"), ("params", "JSON object of path params and body/query fields")], None, false),
     cmd("settings", "skills.list", "List installed skills", "List every skill installed for this bot: name and one-line description (all of them, enabled by default).", &[], None, false),

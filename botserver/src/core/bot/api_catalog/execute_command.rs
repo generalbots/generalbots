@@ -379,7 +379,7 @@ pub async fn execute_command(
             crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, obj).await
         }
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
-        "products.items.list" => {
+        "products.items.list" | "store.catalog.list" => {
             list_products(state, &bot_uuid, str_of("category").as_deref()).await
         }
         "tickets.list" => list_tickets(state, &bot_uuid).await,
@@ -539,7 +539,7 @@ pub async fn execute_command(
                 "message": format!("{inserted} row(s) imported into {table}"),
             }))
         }
-        "tasks.autotask.create" | "tasks.autotask.run" => {
+        "tasks.autotask.create" | "tasks.autotask.run" | "automations.create" | "automations.run" => {
             let intent = str_of("intent").unwrap_or_default();
             if intent.trim().is_empty() {
                 return Err(
@@ -554,7 +554,40 @@ pub async fn execute_command(
             }
             Ok(serde_json::to_value(&response).unwrap_or_else(|_| json!({})))
         }
+        // #2037 — Docs publishes one route per template and per export format,
+        // so the verb's `template`/`format` selects the registered path instead
+        // of inventing a query parameter the handler does not read.
+        "docs.new" => {
+            let template = str_of("template").unwrap_or_else(|| "blank".to_string());
+            let path = crate::apps::commands::docs_template_path(&template.to_lowercase())?;
+            exec_docs_path(state, user_id, bot_uuid, path, serde_json::Map::new()).await
+        }
+        "docs.export" => {
+            let file_id =
+                str_of("file_id").ok_or_else(|| "params.file_id is required".to_string())?;
+            let format = str_of("format").unwrap_or_else(|| "pdf".to_string());
+            let path = crate::apps::commands::docs_export_path(&format.to_lowercase())?;
+            let mut params = serde_json::Map::new();
+            params.insert("id".to_string(), Value::String(file_id));
+            exec_docs_path(state, user_id, bot_uuid, path, params).await
+        }
         _ => {
+            // #2037/#2038/#2039/#2040 — a verb whose endpoint already exists is
+            // executed through the same loopback path as api.exec. Without this
+            // it fell through to the navigation catch-all and answered with a
+            // deep link while performing nothing.
+            if let Some(binding) = crate::apps::commands::verb_endpoint(name) {
+                let mapped = binding.map_params(obj);
+                return crate::core::bot::api_exec::exec_endpoint(
+                    state,
+                    user_id,
+                    Some(bot_uuid),
+                    binding.method,
+                    binding.path,
+                    &mapped,
+                )
+                .await;
+            }
             // Unknown/mostly-navigation commands resolve to an in-app deep link
             // when the command declares one, otherwise a clear error.
             if let Some(cmd) = command_by_name(name) {
@@ -573,6 +606,26 @@ pub async fn execute_command(
             }
         }
     }
+}
+
+/// Docs templates and exporters are one route each; both verbs reach them the
+/// same way, so the loopback call lives in one place.
+async fn exec_docs_path(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    bot_uuid: Uuid,
+    path: &str,
+    params: serde_json::Map<String, Value>,
+) -> Result<Value, String> {
+    crate::core::bot::api_exec::exec_endpoint(
+        state,
+        user_id,
+        Some(bot_uuid),
+        "GET",
+        path,
+        &params,
+    )
+    .await
 }
 
 /// #2034 — the database handlers authorize on the `X-Bot-Id` header. The chat
@@ -666,8 +719,9 @@ fn split_csv_line(line: &str) -> Vec<String> {
     fields
 }
 
-#[cfg(all(test, feature = "database"))]
+#[cfg(test)]
 mod database_import_tests {
+    #![cfg(feature = "database")]
     use super::{import_rows, split_csv_line};
     use serde_json::json;
 

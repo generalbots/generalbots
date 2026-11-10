@@ -21,11 +21,13 @@ mod app_commands_extra;
 mod app_deep_links;
 mod app_deep_links_extra;
 mod deep_link_params_for_app;
+mod verb_endpoints;
 
 pub use app_command::*;
 pub use app_deep_links::*;
 pub use app_deep_links_extra::*;
 pub use deep_link_params_for_app::*;
+pub use verb_endpoints::*;
 
 #[cfg(test)]
 mod surface_guard_tests {
