@@ -159,6 +159,8 @@ pub static ALL_COMMANDS_CORE: &[AppCommand] = &[
     cmd("", "skills.find", "Read a skill package", "Read the package body of the skills that match a request (e.g. 'branded deck'), before applying one.", &[("query", "what the user wants to produce, or a skill name")], None, false),
     cmd("", "api.find", "Find an API command", "Discover which backend command or endpoint matches a described need.", &[("query", "the described need")], None, false),
     cmd("", "api.exec", "Run any API endpoint", "Execute any registered backend endpoint on demand (create, update, search or delete data in any app).", &[("method", "HTTP method: GET, POST, PUT, PATCH or DELETE"), ("path", "registered endpoint path, e.g. /api/crm/contacts"), ("params", "JSON object of path params and body/query fields")], None, false),
+    cmd("settings", "skills.list", "List installed skills", "List every skill installed for this bot: name and one-line description (all of them, enabled by default).", &[], None, false),
+    cmd("settings", "skills.find", "Load a skill package", "Load the full SKILL.md of the installed skills that match a task description, so the agent follows that skill.", &[("query", "what the task is about, e.g. 'branded slide deck'")], None, false),
 ];
 /// #2035/#2039/#2040 — the newer verb blocks live in their own file so this
 /// table stays under the size limit. The two slices are joined once, lazily,

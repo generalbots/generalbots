@@ -1,6 +1,6 @@
 name: Desktop macOS
 
-# Builds the macOS desktop bundle (.app + .dmg) on a GitHub-hosted arm64
+# Builds the macOS desktop bundle (.app + .dmg) on a GitHub-hosted macOS
 # runner. Tauri cannot cross-compile macOS bundles, and macOS runners are free
 # for public repositories, so this is the only practical build path.
 #
@@ -80,9 +80,9 @@ env:
 
 jobs:
   macos:
-    name: macOS app and dmg (arm64)
+    name: macOS app and dmg
     if: ${{ github.server_url == 'https://github.com' }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 120
     # Best effort on purpose: macOS is an additive artifact and must not hide
     # the Linux installer from a release.
@@ -97,25 +97,26 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Rust
+      - name: Install Rust for the runner's architecture
+        id: rust
         run: |
+          set -euo pipefail
           rustup set profile minimal
           rustup toolchain install stable
           rustup default stable
-          rustup target add aarch64-apple-darwin
-
-      - name: Confirm the arm64 darwin target
-        run: |
-          set -euo pipefail
-          # The artifact is named -macos-arm64, so fail loudly if GitHub ever
-          # points macos-14 at an Intel image instead of silently shipping x64.
-          arch="$(uname -m)"
-          if [ "$arch" != "arm64" ]; then
-            echo "::error::expected an arm64 runner, got $arch"
-            exit 1
-          fi
-          rustc -vV | grep -q '^host: aarch64-apple-darwin$'
-          echo "host target: aarch64-apple-darwin"
+          # GitHub-hosted macOS has been handing this repository x86_64 images
+          # (the macos-14 arm64 label is rejected outright), so the bundle is
+          # built for whatever the runner actually is and named accordingly
+          # instead of failing an arm64 assertion.
+          case "$(uname -m)" in
+            arm64)  TARGET=aarch64-apple-darwin; ARCH=arm64 ;;
+            x86_64) TARGET=x86_64-apple-darwin; ARCH=x86_64 ;;
+            *) echo "::error::unsupported macOS runner architecture: $(uname -m)"; exit 1 ;;
+          esac
+          rustup target add "$TARGET"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
+          echo "host: $(rustc -vV | grep '^host:') — bundling for $ARCH"
 
       - name: Install libpq and OpenSSL
         run: |
@@ -154,8 +155,8 @@ jobs:
           # helper verifies the Mach-O architecture and keeps Linux stack
           # archives out of the .dmg.
           chmod +x desktop/macos/stage-sidecar.sh
-          desktop/macos/stage-sidecar.sh aarch64-apple-darwin
-          ls -lh botapp/binaries/botserver-aarch64-apple-darwin
+          desktop/macos/stage-sidecar.sh ${{ steps.rust.outputs.target }}
+          ls -lh "botapp/binaries/botserver-${{ steps.rust.outputs.target }}"
 
       - name: Install Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
@@ -195,8 +196,8 @@ jobs:
             find "${apps[0]}/Contents" -maxdepth 2 -type f -print || true
             exit 1
           fi
-          file "$sidecar" | grep -q 'Mach-O 64-bit executable arm64' || {
-            echo "::error::the sidecar is not an arm64 Mach-O binary"
+          file "$sidecar" | grep -q "Mach-O 64-bit executable ${{ steps.rust.outputs.arch }}" || {
+            echo "::error::the sidecar is not a ${{ steps.rust.outputs.arch }} Mach-O binary"
             file "$sidecar"
             exit 1
           }
@@ -231,10 +232,10 @@ jobs:
             echo "::error::the bundler produced no .app"
             exit 1
           fi
-          cp "${dmgs[0]}" "dist/generalbots-${VERSION}-macos-arm64.dmg"
+          cp "${dmgs[0]}" "dist/generalbots-${VERSION}-macos-${{ steps.rust.outputs.arch }}.dmg"
           # GitHub release assets are files, so the raw .app is zipped.
           ditto -c -k --sequesterRsrc --keepParent "${apps[0]}" \
-            "dist/generalbots-${VERSION}-macos-arm64.app.zip"
+            "dist/generalbots-${VERSION}-macos-${{ steps.rust.outputs.arch }}.app.zip"
           (cd dist && shasum -a 256 ./* > SHA256SUMS-macos)
           ls -lh dist
 
@@ -281,7 +282,7 @@ jobs:
             # Fall back to an upload when create loses that race.
             gh release create "$TAG" dist/* \
               --title "${BASE_TAG} (macOS)" \
-              --notes "macOS arm64 desktop bundle (unsigned; signing/notarization is future work), pre-release for ${BASE_TAG}: it never takes latest." \
+              --notes "macOS desktop bundle (unsigned; signing/notarization is future work), pre-release for ${BASE_TAG}: it never takes latest." \
               --prerelease --latest=false ||
               gh release upload "$TAG" dist/* --clobber
           fi

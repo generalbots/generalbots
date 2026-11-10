@@ -117,7 +117,7 @@ jobs:
             -v "$PWD/dist:/out" \
             -w /work \
             debian:sid bash -c '
-              set -uxo pipefail
+              set -euxo pipefail
               export DEBIAN_FRONTEND=noninteractive
               # mkosi sandbox uses unprivileged user namespaces; the Ubuntu
               # host restricts them via AppArmor. A privileged container is
