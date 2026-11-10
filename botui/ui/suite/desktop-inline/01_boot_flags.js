@@ -9,9 +9,13 @@
                 // sidecar origin instead.
                 var __gbAssetOrigin =
                     window.location.protocol === "tauri:" ||
+                    window.location.protocol === "asset:" ||
                     window.location.hostname === "tauri.localhost";
+                // #2107 — one origin for every desktop request (login, API and
+                // sandbox resources): the sidecar, never the asset protocol.
+                window.__GB_SERVER_ORIGIN__ = __gbAssetOrigin ? "http://127.0.0.1:8080" : "";
                 window.GB_LOGIN_URL = __gbAssetOrigin
-                    ? "http://127.0.0.1:8080/suite/login.html"
+                    ? window.__GB_SERVER_ORIGIN__ + "/suite/login.html"
                     : "/suite/login.html";
             }
             // Consume a suite session token BEFORE any other script loads.

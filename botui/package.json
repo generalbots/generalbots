@@ -4,7 +4,7 @@
   "description": "Web UI server for General Bots (Axum + HTMX + CSS). The product version lives in Cargo.toml and is served by /api/product.",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/sheet_modules.test.js && node tests/chat_file_list_cleanup.test.js && node tests/chat_turn_state.test.js && node tests/drive_preview_parse.test.js && node tests/drive_preview_render.test.js && node tests/window_fullscreen.test.js"
+    "test": "node tests/app_frame_source.test.js && node tests/sheet_modules.test.js && node tests/chat_file_list_cleanup.test.js && node tests/chat_turn_state.test.js && node tests/drive_preview_parse.test.js && node tests/drive_preview_render.test.js && node tests/window_fullscreen.test.js"
   },
   "keywords": [],
   "author": "",

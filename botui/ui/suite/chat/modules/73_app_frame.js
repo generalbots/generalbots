@@ -79,19 +79,74 @@
     // that host: the frame stayed blank and the probe showed "App could not be
     // reached". Treat that combination as "no URL" and use the inline document
     // the server now always ships.
-    function loopbackHost(value) {
+    function parseUrl(value) {
         try {
-            var host = new URL(value, window.location.href).hostname;
-            return host === "127.0.0.1" || host === "localhost" || host === "::1" || host === "0.0.0.0";
+            return new URL(value, window.location.href);
         } catch (e) {
-            return false;
+            return null;
         }
+    }
+
+    // #2107 — the desktop webview's page origin is a *custom scheme*
+    // (`tauri://localhost`), not a loopback HTTP page. Its hostname happens to
+    // read `localhost`, so a hostname-only test called the page itself loopback
+    // and refused the inline document, leaving the card on an unreachable
+    // `http://127.0.0.1:8081` URL. An asset page is never a loopback page.
+    function desktopAssetOrigin(value) {
+        var url = parseUrl(value);
+        if (!url) return false;
+        var scheme = url.protocol;
+        if (scheme === "tauri:" || scheme === "asset:" || scheme === "file:" || scheme === "about:") {
+            return true;
+        }
+        return url.hostname === "tauri.localhost" || url.hostname === "asset.localhost";
+    }
+
+    // Only an http(s) URL with a loopback hostname is a loopback URL: the
+    // scheme matters as much as the host (#2107).
+    function loopbackHost(value) {
+        var url = parseUrl(value);
+        if (!url) return false;
+        if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+        var host = url.hostname;
+        return host === "127.0.0.1" || host === "localhost" || host === "::1" ||
+            host === "[::1]" || host === "0.0.0.0";
+    }
+
+    // The origin the desktop shell already uses for its own /api/* calls
+    // (#2085): the sidecar, never the page's asset origin.
+    function serverOrigin() {
+        var configured = typeof window.__GB_SERVER_ORIGIN__ === "string" ? window.__GB_SERVER_ORIGIN__ : "";
+        return (configured || "http://127.0.0.1:8080").replace(/\/+$/, "");
+    }
+
+    function rewriteToServerOrigin(value) {
+        var url = parseUrl(value);
+        if (!url) return value;
+        return serverOrigin() + url.pathname + url.search + url.hash;
     }
 
     function preferInline(payload, pageHref) {
         if (!payload || !payload.url) return false;
         if (!loopbackHost(payload.url)) return false;
-        return !loopbackHost(pageHref || window.location.href);
+        var page = pageHref || window.location.href;
+        // #2107 — on the desktop asset origin the inline document is the only
+        // source that needs no loopback fetch.
+        if (desktopAssetOrigin(page)) return !!payload.html_base64;
+        return !loopbackHost(page);
+    }
+
+    // Resource the frame must load; null means "use the inline document".
+    function frameSource(payload, pageHref) {
+        if (!payload || !payload.url) return null;
+        var page = pageHref || window.location.href;
+        if (preferInline(payload, page)) return null;
+        // #2107 — a loopback sandbox URL is served by the same botserver the
+        // shell talks to, so point it at that origin instead of port 8081.
+        if (desktopAssetOrigin(page) && loopbackHost(payload.url)) {
+            return rewriteToServerOrigin(payload.url);
+        }
+        return payload.url;
     }
 
     function mountFrame(host) {
@@ -99,7 +154,7 @@
         host.poster.hidden = true;
         host.mountedAt = Date.now();
         var payload = host.payload;
-        var source = preferInline(payload) ? null : payload.url;
+        var source = frameSource(payload);
         if (!source && payload.html_base64) {
             try {
                 var binary = window.atob(payload.html_base64);
@@ -127,7 +182,7 @@
         // loads blank without firing an error event, which is exactly the
         // silent empty window the issue reports. Probe the resource and turn a
         // network failure into an explicit status and toast.
-        if (payload.url && source === payload.url) {
+        if (payload.url && !host.blobUrl) {
             fetch(source, { mode: "no-cors", credentials: "omit" }).catch(function () {
                 var text = "App could not be reached";
                 var current = host.status.textContent;
@@ -359,11 +414,16 @@
 
     window.AppFrame = {
         render: render,
-        // Exposed for the #2028 regression test: given a frame payload and the
-      // page URL, say whether the inline document must be used instead of the
-      // server's loopback sandbox URL.
-      prefersInline: preferInline,
-      renderFromFrame: function (frame, rootEl) {
+        // Exposed for the #2028 / #2107 regression tests: given a frame payload
+        // and the page URL, say whether the inline document must be used
+        // instead of the server's loopback sandbox URL, and which URL the frame
+        // ends up loading.
+        prefersInline: preferInline,
+        frameSource: frameSource,
+        loopbackHost: loopbackHost,
+        desktopAssetOrigin: desktopAssetOrigin,
+        serverOrigin: serverOrigin,
+        renderFromFrame: function (frame, rootEl) {
             var payload = frame && frame.data ? frame.data.payload || {} : {};
             return render(payload, rootEl);
         },

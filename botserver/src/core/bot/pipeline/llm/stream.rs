@@ -238,7 +238,16 @@ async fn stream_llm_response_inner(
                 }
 
                 if !has_tool_call && !content_buffer.is_empty() {
-                    let converted = convert_markdown(&content_buffer);
+                    // #2108 — the drawing contract is enforced here, not only
+                    // asked for in the prompt: a reply that carries an inline,
+                    // HTML-escaped or unfenced SVG leaves as exactly one ```svg
+                    // block, so the renderer previews it instead of the
+                    // sanitizer escaping the markup into the bubble.
+                    let drawing_turn =
+                        super::super::system_prompt::wants_drawing(user_text);
+                    let content =
+                        super::svg_contract::enforce(&content_buffer, drawing_turn);
+                    let converted = convert_markdown(&content);
                     let final_resp = botlib::models::BotResponse {
                         bot_id: bot_uuid_s.clone(),
                         user_id: user_id.to_string(),

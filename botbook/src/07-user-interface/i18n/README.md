@@ -299,24 +299,33 @@ an `RTL_LANGUAGES` list (`ar`, `he`, `fa`, `ur`) and set `<html dir="rtl">`.
 
 ---
 
+## Language-aware bot content
+
+Bot *content* is not translated file by file; the runtime carries the language
+contract instead.
+
+- **Answer language.** `load_system_prompt_for_channel`
+  (`botserver/src/core/bot/ws/prompt.rs`, re-exported by `ws/message.rs`) reads
+  `PROMPT-{CHANNEL}.md`, then `PROMPT.md`/`prompt.md`/`PROMPT.txt`, and appends
+  `RESPONSE_LANGUAGE_INSTRUCTION` ("Always answer in the user's language …",
+  skipped when the authored prompt already states it). A custom bot with no
+  language instruction of its own therefore still answers in the language the
+  user wrote. Prompt *file names* have no locale dimension: a
+  `PROMPT-pt-BR.md` is never read.
+- **Suggestion and switcher labels.** `ADD SUGGESTION … AS "<key>"` and
+  `ADD SWITCHER … AS "<key>"` accept a catalogue key. The runtime resolves it
+  for the session locale (session `context_data.locale` → bot `locale`
+  configuration → `en`) and keeps a string the catalogue does not define exactly
+  as authored, so custom bots keep their own wording. The shipped templates
+  under `bottemplates/**/start.bas` use `bot-suggest-*` keys from
+  `botlib/locales/<locale>/bot-templates.ftl` (en source, pt-BR and es
+  translated; other locales fall back to en). `TALK` bodies stay authored in the
+  template's language.
+
+---
+
 ## What is deliberately not localized (yet)
 
-- **Bot prompt files.** `load_system_prompt_for_channel`
-  (`botserver/src/core/bot/ws/message.rs`) reads `PROMPT-{CHANNEL}.md`, then
-  `PROMPT.md`/`prompt.md`/`PROMPT.txt`. There is **no locale dimension** in the
-  file names: a `PROMPT-pt-BR.md` is never read. The *language of the answer* is
-  not left to the authored text either — the loader appends the
-  response-language contract
-  (`RESPONSE_LANGUAGE_INSTRUCTION`: "Always answer in the user's language …",
-  skipped when the authored prompt already states it), so a custom bot without
-  any language instruction still answers in the language the user wrote.
-- **Suggestion and switcher labels.** `ADD SUGGESTION … AS "<key>"` and
-  `ADD SWITCHER … AS "<key>"` accept a catalogue key: the runtime resolves it
-  for the session locale (session `context_data.locale` → bot `locale`
-  configuration → `en`) and keeps an unknown string exactly as authored, so
-  custom bots keep their own wording. The shipped templates under
-  `bottemplates/**/start.bas` use `bot-suggest-*` keys from
-  `botlib/locales/<locale>/bot-templates.ftl`.
 - **Log lines.** Only human-facing CLI and UI text is translated; log output
   stays English so it remains greppable (`botcore/src/i18n/cli.rs`).
 - **Machine-readable payloads.** JSON keys, provider codes and

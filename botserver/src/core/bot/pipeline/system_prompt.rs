@@ -192,7 +192,9 @@ pub fn canvas_drawing_block(user_text: &str) -> &'static str {
     }
 }
 
-fn wants_drawing(text: &str) -> bool {
+/// #2108 — also read by `llm::svg_contract` so the drawing contract is
+/// enforced on the reply, not only requested in the prompt.
+pub(crate) fn wants_drawing(text: &str) -> bool {
     let lowered = text.to_lowercase();
     const NEEDLES: &[&str] = &[
         "svg", "draw", "drawing", "illustration", "illustrate", "logo", "diagram",

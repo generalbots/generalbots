@@ -10,6 +10,7 @@ use super::sink::ChannelSink;
 mod attempt;
 mod markdown;
 mod stream;
+mod svg_contract;
 
 pub use stream::stream_llm_response;
 
