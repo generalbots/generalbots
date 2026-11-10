@@ -444,3 +444,7 @@ fn guess_content_type(path: &Path) -> &'static str {
         _ => "application/octet-stream",
     }
 }
+
+#[cfg(test)]
+#[path = "system_tests.rs"]
+mod system_tests;

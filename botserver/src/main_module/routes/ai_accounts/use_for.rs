@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use super::shared::{ensure_user, err, first_bot_id, provider_or_error, ApiError};
+use super::shared::{ensure_user, err, err_db, first_bot_id, provider_or_error, ApiError};
 use crate::core::ai_accounts;
 use crate::security::auth_api::types::AuthenticatedUser;
 
@@ -33,21 +33,25 @@ const VIBE_AGENTS: [&str; 3] = ["reasoning", "agentic", "fast"];
 pub async fn use_for_vibe(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
     Json(body): Json<UseForVibeBody>,
 ) -> Result<Json<Value>, ApiError> {
-    let provider = provider_or_error(&provider)?;
-    ensure_user(&state, &user)?;
+    let locale = request_locale.locale();
+    let provider = provider_or_error(locale, &provider)?;
+    ensure_user(locale, &state, &user)?;
     if !VIBE_AGENTS.contains(&body.agent.as_str()) {
         return Err(err(
+            locale,
             StatusCode::BAD_REQUEST,
-            "agent must be reasoning, agentic or fast",
+            "error-ai-account-agent-invalid",
         ));
     }
     let Some(linked) = ai_accounts::linked_account(&state.conn, user.user_id, provider) else {
         return Err(err(
+            locale,
             StatusCode::CONFLICT,
-            "Connect the account before assigning it to Vibe.",
+            "error-ai-account-not-connected-vibe",
         ));
     };
     let model = ai_accounts::default_model(provider).to_string();
@@ -59,13 +63,7 @@ pub async fn use_for_vibe(
     ] {
         config
             .set_config(&body.bot_id, &key, &value)
-            .map_err(|error| {
-                log::warn!("ai accounts: cannot persist {key}: {error}");
-                err(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Could not save the Vibe assignment",
-                )
-            })?;
+            .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     }
     // Remove any credential/url from a previous provider in this slot.
     for key in [format!("{prefix}url"), format!("{prefix}key")] {
@@ -91,30 +89,29 @@ pub async fn use_for_vibe(
 pub async fn use_for_chat(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let provider = provider_or_error(&provider)?;
-    ensure_user(&state, &user)?;
+    let locale = request_locale.locale();
+    let provider = provider_or_error(locale, &provider)?;
+    ensure_user(locale, &state, &user)?;
     let Some(_linked) = ai_accounts::linked_account(&state.conn, user.user_id, provider) else {
         return Err(err(
+            locale,
             StatusCode::CONFLICT,
-            "Connect the account before selecting it for chat.",
+            "error-ai-account-not-connected-chat",
         ));
     };
-    let bot_id = first_bot_id(&state)?;
+    let bot_id = first_bot_id(locale, &state)?;
     let model = ai_accounts::default_model(provider).to_string();
     let config = botcore::config::ConfigManager::new(state.conn.clone());
     for (key, value) in [
         ("llm-provider".to_string(), provider.to_string()),
         ("llm-model".to_string(), model.clone()),
     ] {
-        config.set_config(&bot_id, &key, &value).map_err(|error| {
-            log::warn!("ai accounts: cannot persist {key}: {error}");
-            err(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Could not select the chat provider",
-            )
-        })?;
+        config
+            .set_config(&bot_id, &key, &value)
+            .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     }
     for key in [
         "llm-url",

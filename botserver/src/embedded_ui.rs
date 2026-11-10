@@ -133,11 +133,12 @@ async fn serve_embedded_file(req: Request<Body>) -> Response<Body> {
         .iter()
         .any(|prefix| requested.starts_with(prefix));
     if machine_facing {
+        let locale = botcore::i18n::locale_from_headers(req.headers());
         return (
             StatusCode::NOT_FOUND,
             axum::Json(serde_json::json!({
                 "error": "not_found",
-                "message": "No route matches this path",
+                "message": botcore::i18n::t(&locale, "error-http-no-route"),
                 "path": format!("/{requested}"),
             })),
         )

@@ -286,3 +286,7 @@ impl SafeCommand {
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
 }
+
+#[cfg(test)]
+#[path = "safe_command_tests.rs"]
+mod safe_command_tests;

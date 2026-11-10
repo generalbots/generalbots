@@ -7,6 +7,7 @@
 use botcore::shared::utils::current_org_id;
 
 use crate::core::bot::ws::handler::verify_path_within_workdir;
+use log::{debug, info, warn};
 
 /// #2095 — the response-language contract every chat prompt carries.
 ///

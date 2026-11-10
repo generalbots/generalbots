@@ -73,6 +73,27 @@ for required in generalbots-linux-x86_64.tar.gz SHA256SUMS-linux; do
   echo "asset present: ${required}"
 done
 
+# #2110 — one release must carry every platform. A Linux-only release (the
+# v7.0.34 shape) is a regression, not a valid "latest": the assets below are
+# what `release.yml` refuses to publish without.
+require_pattern() {
+  local label="$1" pattern="$2"
+  if ! grep -Eq "$pattern" <<<"$assets"; then
+    fail "latest release ${tag} has no ${label} asset (${pattern}); the release is incomplete"
+  fi
+  echo "asset present: ${label}"
+}
+
+require_pattern "Windows executable" '^generalbots-x64\.exe$'
+require_pattern "Windows MSI" '^generalbots-x64\.msi$'
+require_pattern "Windows NSIS setup" '^generalbots-x64-setup\.exe$'
+require_pattern "macOS dmg" '^generalbots-[0-9.]+-macos-(arm64|x86_64)\.dmg$'
+require_pattern "macOS app archive" '^generalbots-[0-9.]+-macos-(arm64|x86_64)\.app\.zip$'
+require_pattern "bootable ISO" '^generalbots-os\.iso$'
+require_pattern "ISO checksums" '^SHA256SUMS-os$'
+require_pattern "release manifest" '^MANIFEST\.json$'
+require_pattern "combined checksums" '^SHA256SUMS$'
+
 # Every documented latest/download URL must be an asset of the latest release.
 mapfile -t urls < <(
   {

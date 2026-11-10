@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::advance::{advance, load_run};
 use super::runner::spawn_goal_runner;
 use super::types::{
-    api_error, api_error_key, run_json, user_from_headers, ApiError, CreateBody, KrValues,
+    api_error, api_error_db, run_json, user_from_headers, ApiError, CreateBody, KrValues,
     ResumeRow, RunRow, RUN_COLUMNS, RUN_FROM,
 };
 use crate::core::bot::runs::goal_runner::{clamp_interval, MAX_CHECKPOINTS};
@@ -23,6 +23,7 @@ pub(super) async fn create(
     Json(body): Json<CreateBody>,
 ) -> Result<Json<Value>, ApiError> {
     let user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let interval = clamp_interval(body.interval_seconds.unwrap_or(60));
     let agent_instruction = body
         .instruction
@@ -31,7 +32,7 @@ pub(super) async fn create(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Step defaults to a tenth of the distance so a 2h goal reaches its target
     // without an explicit tuning value.
@@ -73,10 +74,7 @@ pub(super) async fn create(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(agent_instruction.clone())
     .get_result::<RunRow>(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("goal run insert failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
 
     spawn_goal_runner(
@@ -102,7 +100,7 @@ pub(super) async fn pause(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let run = diesel::sql_query(
         "UPDATE goal_runs SET status = 'paused', updated_at = NOW() \
          WHERE id = $1::uuid AND status = 'running' \
@@ -113,7 +111,7 @@ pub(super) async fn pause(
     .bind::<diesel::sql_types::Text, _>(&id)
     .get_result::<RunRow>(&mut conn)
     .map_err(|_| {
-        api_error_key(
+        api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-goal-run-not-running",
@@ -134,7 +132,7 @@ pub(super) async fn resume(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let resumed = diesel::sql_query(
         "UPDATE goal_runs \
          SET status = 'running', updated_at = NOW(), \
@@ -145,7 +143,7 @@ pub(super) async fn resume(
     .bind::<diesel::sql_types::Text, _>(&id)
     .get_result::<ResumeRow>(&mut conn)
     .map_err(|_| {
-        api_error_key(
+        api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-goal-run-not-paused",
@@ -158,10 +156,7 @@ pub(super) async fn resume(
         spawn_goal_runner(&state, id.clone(), interval, resumed.instruction, budget);
     }
     let run = load_run(&mut conn, &id).map_err(|e| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("goal run load failed: {e}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
     Ok(Json(json!({ "run": run_json(&run) })))
 }
@@ -172,11 +167,19 @@ pub(super) async fn tick_now(
     Path(id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let pool = state.conn.clone();
     let run = tokio::task::spawn_blocking(move || advance(&pool, &id))
         .await
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .map_err(|error| api_error(StatusCode::BAD_REQUEST, &error))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?
+        .map_err(|error| {
+            log::warn!("goal run advance refused: {error}");
+            api_error(
+                locale,
+                StatusCode::BAD_REQUEST,
+                "error-goal-run-advance-refused",
+            )
+        })?;
     Ok(Json(json!({ "run": run_json(&run) })))
 }
 
@@ -186,17 +189,18 @@ pub(super) async fn stop(
     Path(id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     diesel::sql_query(
         "UPDATE goal_runs SET status = 'stopped', updated_at = NOW() \
          WHERE id = $1::uuid AND status = 'running'",
     )
     .bind::<diesel::sql_types::Text, _>(id)
     .execute(&mut conn)
-    .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+    .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     Ok(Json(json!({ "stopped": true })))
 }
 
@@ -211,16 +215,17 @@ pub(super) async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let rows = diesel::sql_query(format!(
         "{RUN_COLUMNS}{RUN_FROM} WHERE r.objective_id = $1::uuid ORDER BY r.created_at DESC LIMIT 50"
     ))
     .bind::<diesel::sql_types::Text, _>(&query.objective_id)
     .load::<RunRow>(&mut conn)
-    .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+    .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     Ok(Json(json!({
         "runs": rows.iter().map(run_json).collect::<Vec<_>>(),
     })))

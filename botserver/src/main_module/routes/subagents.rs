@@ -23,13 +23,27 @@ use crate::core::bot::runs::subagents::{summarize, validate_tasks};
 
 type ApiError = (StatusCode, Json<Value>);
 
-fn api_error(status: StatusCode, message: &str) -> ApiError {
-    (status, Json(json!({ "error": message })))
+/// Localized API error (#2094) — `code` stays machine-readable.
+fn api_error(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    key: &str,
+) -> ApiError {
+    (status, Json(botcore::i18n::error_body(locale, key)))
 }
 
-/// Localized API error (#2094) — `code` stays machine-readable.
-fn api_error_key(locale: &botcore::i18n::Locale, status: StatusCode, key: &str) -> ApiError {
-    (status, Json(botcore::i18n::error_body(locale, key)))
+/// Internal failure: the cause is logged, the client gets a generic localized
+/// message — no internal error strings leak to the caller.
+fn api_error_db<E: std::fmt::Display>(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    error: E,
+) -> ApiError {
+    log::warn!("api error ({}) at {}: {error}", status.as_u16(), module_path!());
+    (
+        status,
+        Json(botcore::i18n::error_body(locale, "error-db-unavailable")),
+    )
 }
 
 fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
@@ -39,7 +53,7 @@ fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-missing",
@@ -47,7 +61,7 @@ fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         })?;
     let (claims_user, _roles) =
         crate::main_module::routes::anonymous_auth::resolve_token_user(token).ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-invalid",
@@ -115,12 +129,19 @@ async fn create(
         .iter()
         .map(|task| (task.title.clone(), task.prompt.clone()))
         .collect();
-    validate_tasks(&tasks).map_err(|error| api_error(StatusCode::BAD_REQUEST, &error))?;
+    validate_tasks(&tasks).map_err(|error| {
+        log::warn!("subagent validation failed: {error}");
+        api_error(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-subagent-invalid-tasks",
+        )
+    })?;
 
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let mut ids = Vec::with_capacity(tasks.len());
     for (title, prompt) in &tasks {
         let row = diesel::sql_query(
@@ -133,10 +154,7 @@ async fn create(
         .bind::<diesel::sql_types::Text, _>(prompt)
         .get_result::<IdRow>(&mut conn)
         .map_err(|error| {
-            api_error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("sub-agent insert failed: {error}"),
-            )
+            api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
         })?;
         ids.push(row.id);
     }
@@ -167,7 +185,7 @@ async fn create(
     // last two in the other order sent the API key as the model name, so every
     // sub-agent failed with `404 model_not_found` (#1709).
     let Some((llm, key, model)) = provider else {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::SERVICE_UNAVAILABLE,
             "error-subagent-no-llm",
@@ -230,10 +248,11 @@ async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let rows = diesel::sql_query(
         "SELECT id::text, title, status, result, error, created_at::text AS created_at \
          FROM subagent_runs WHERE parent_run_id = $1 ORDER BY created_at",
@@ -241,10 +260,7 @@ async fn list(
     .bind::<diesel::sql_types::Text, _>(&query.parent_run_id)
     .load::<Row>(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("sub-agent load failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     let statuses: Vec<&str> = rows.iter().map(|row| row.status.as_str()).collect();
     let progress = summarize(&statuses);

@@ -37,18 +37,32 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use botcore::shared::state::AppState;
-use serde_json::{json, Value};
+use serde_json::Value;
 use uuid::Uuid;
 
 type ApiError = (StatusCode, Json<Value>);
 
-fn api_error(status: StatusCode, message: &str) -> ApiError {
-    (status, Json(json!({ "error": message })))
+/// Localized API error (#2094) — `code` stays machine-readable.
+fn api_error(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    key: &str,
+) -> ApiError {
+    (status, Json(botcore::i18n::error_body(locale, key)))
 }
 
-/// Localized API error (#2094) — `code` stays machine-readable.
-fn api_error_key(locale: &botcore::i18n::Locale, status: StatusCode, key: &str) -> ApiError {
-    (status, Json(botcore::i18n::error_body(locale, key)))
+/// Internal failure: the cause is logged, the client gets a generic localized
+/// message — no internal error strings leak to the caller.
+fn api_error_db<E: std::fmt::Display>(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    error: E,
+) -> ApiError {
+    log::warn!("api error ({}) at {}: {error}", status.as_u16(), module_path!());
+    (
+        status,
+        Json(botcore::i18n::error_body(locale, "error-db-unavailable")),
+    )
 }
 
 fn resolve_user(headers: &HeaderMap) -> Result<Uuid, ApiError> {
@@ -58,7 +72,7 @@ fn resolve_user(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-missing",
@@ -66,7 +80,7 @@ fn resolve_user(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         })?;
     let (claims_user, _roles) =
         crate::main_module::routes::anonymous_auth::resolve_token_user(token).ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-invalid",

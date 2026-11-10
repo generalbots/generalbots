@@ -69,7 +69,7 @@ fn ai_response_and_error_blocks_escape_their_payload() {
     let err = format_error("boom & <bang>");
     assert!(err.contains("error-message"));
     assert!(err.contains("boom &amp; &lt;bang&gt;"));
-    assert!(err.contains("role=\"alert\"") || err.contains("error-icon"));
+    assert!(err.contains("error-icon"));
 }
 
 #[test]

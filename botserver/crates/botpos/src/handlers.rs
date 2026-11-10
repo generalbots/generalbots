@@ -233,3 +233,6 @@ pub async fn get_order(headers: HeaderMap, Path(id): Path<String>) -> Result<Jso
         created_at: r.created_at,
     }))
 }
+#[cfg(test)]
+#[path = "parse_decimal_tests.rs"]
+mod parse_decimal_tests;

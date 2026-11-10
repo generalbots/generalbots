@@ -14,6 +14,10 @@ fn uri(path: &str) -> Uri {
     Uri::try_from(path).expect("test path is a valid URI")
 }
 
+fn headers() -> axum::http::HeaderMap {
+    axum::http::HeaderMap::new()
+}
+
 async fn json_body(response: axum::response::Response) -> Value {
     let bytes = to_bytes(response.into_body(), usize::MAX)
         .await
@@ -54,7 +58,7 @@ fn the_api_prefix_requires_the_trailing_slash() {
 #[tokio::test]
 async fn a_machine_facing_path_reports_404_naming_the_path() {
     for path in ["/api/unknown", "/caldav/x", "/webhook/x", "/.well-known/x"] {
-        let response = fallback_response(&uri(path), "/nonexistent/desktop.html").await;
+        let response = fallback_response(&uri(path), &headers(), "/nonexistent/desktop.html").await;
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
         let body = json_body(response).await;
@@ -70,7 +74,7 @@ async fn an_application_path_serves_the_desktop_shell() {
     std::fs::write(&shell, b"<html>shell</html>").expect("shell is writable");
     let shell_path = shell.to_str().expect("tempdir path is UTF-8");
 
-    let response = fallback_response(&uri("/drive"), shell_path).await;
+    let response = fallback_response(&uri("/drive"), &headers(), shell_path).await;
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
@@ -87,7 +91,7 @@ async fn an_application_path_serves_the_desktop_shell() {
 
 #[tokio::test]
 async fn a_missing_shell_reports_500_instead_of_panicking() {
-    let response = fallback_response(&uri("/drive"), "/nonexistent/desktop.html").await;
+    let response = fallback_response(&uri("/drive"), &headers(), "/nonexistent/desktop.html").await;
 
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }

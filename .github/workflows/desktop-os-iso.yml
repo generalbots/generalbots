@@ -21,9 +21,12 @@ name: General Bots OS (kiosk appliance image)
 # needs systemd-repart ≥ 261 (trixie ships 257). The produced system is still
 # pure Debian 13 (trixie).
 #
-# Release attachment is deliberately OFF until the ISO path and the boot
-# smoke are validated on the first set of builds; the artifact above is the
-# staging ground.
+# The kiosk appliance is a separate track from the product release: since
+# #2110 the release publishes `generalbots-os.iso` built by
+# `scripts/build_iso.sh` from the same Linux tarball (`release.yml` -> `iso`).
+# This workflow keeps producing the full Debian appliance (with its own boot
+# smoke) and uploads it as `generalbots-os-appliance`; it is not attached to a
+# release automatically.
 
 on:
   # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
@@ -161,7 +164,7 @@ jobs:
       - name: Upload image artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: generalbots-os-image
+          name: generalbots-os-appliance
           path: |
             dist/generalbots-os.iso
             dist/SHA256SUMS-os

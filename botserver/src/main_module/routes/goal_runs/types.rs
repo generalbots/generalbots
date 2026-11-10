@@ -8,17 +8,27 @@ use crate::core::bot::runs::goal_runner::progress_percent;
 
 pub(super) type ApiError = (StatusCode, Json<Value>);
 
-pub(super) fn api_error(status: StatusCode, message: &str) -> ApiError {
-    (status, Json(json!({ "error": message })))
-}
-
 /// Localized API error (#2094) — `code` stays machine-readable.
-pub(super) fn api_error_key(
+pub(super) fn api_error(
     locale: &botcore::i18n::Locale,
     status: StatusCode,
     key: &str,
 ) -> ApiError {
     (status, Json(botcore::i18n::error_body(locale, key)))
+}
+
+/// Internal failure: the cause is logged, the client gets a generic localized
+/// message — no internal error strings leak to the caller.
+pub(super) fn api_error_db<E: std::fmt::Display>(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    error: E,
+) -> ApiError {
+    log::warn!("api error ({}) at {}: {error}", status.as_u16(), module_path!());
+    (
+        status,
+        Json(botcore::i18n::error_body(locale, "error-db-unavailable")),
+    )
 }
 
 pub(super) fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
@@ -28,7 +38,7 @@ pub(super) fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-missing",
@@ -36,7 +46,7 @@ pub(super) fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         })?;
     let (claims_user, _roles) =
         crate::main_module::routes::anonymous_auth::resolve_token_user(token).ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::UNAUTHORIZED,
                 "error-auth-token-invalid",

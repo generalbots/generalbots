@@ -63,3 +63,7 @@ pub fn sanitize_utf16_surrogates(text: &str) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+#[path = "utils_tests.rs"]
+mod utils_tests;

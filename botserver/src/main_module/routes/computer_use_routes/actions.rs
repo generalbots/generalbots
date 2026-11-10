@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::page::fetch_page;
-use super::{api_error, api_error_key, resolve_user, ApiError};
+use super::{api_error, api_error_db, resolve_user, ApiError};
 use crate::core::computer_use;
 
 #[derive(Debug, Deserialize)]
@@ -24,14 +24,14 @@ pub async fn create_action(
     let user_id = resolve_user(&headers)?;
     let locale = botcore::i18n::locale_from_headers(&headers);
     if body.session_id.trim().is_empty() {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-computer-use-session-required",
         ));
     }
     if body.kind != "browser" && body.kind != "terminal" {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-computer-use-kind-invalid",
@@ -55,6 +55,7 @@ pub async fn pending(
     Query(query): Query<PendingQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let kind = query.kind.as_deref().unwrap_or("browser");
     let actions = computer_use::pending_for(query.session_id.trim(), user_id, kind).await;
     Ok(Json(json!({
@@ -68,7 +69,7 @@ pub async fn get_action(headers: HeaderMap, Path(id): Path<Uuid>) -> Result<Json
     let locale = botcore::i18n::locale_from_headers(&headers);
     match computer_use::get(id, user_id).await {
         Some(action) => Ok(Json(action.to_json())),
-        None => Err(api_error_key(
+        None => Err(api_error(
             &locale,
             StatusCode::NOT_FOUND,
             "error-computer-use-action-not-found",
@@ -92,20 +93,15 @@ pub async fn approve_action(
     Json(body): Json<ApproveActionRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Some(body_id) = body.action_id {
         if body_id != id {
-            return Err(api_error(
-                StatusCode::BAD_REQUEST,
-                "action_id does not match the path",
-            ));
+            return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-computer-use-action-id-mismatch"));
         }
     }
     match computer_use::approve(id, user_id).await {
         Some(action) => Ok(Json(action.to_json())),
-        None => Err(api_error(
-            StatusCode::NOT_FOUND,
-            "action not found or already denied",
-        )),
+        None => Err(api_error(&locale, StatusCode::NOT_FOUND, "error-computer-use-action-not-found")),
     }
 }
 
@@ -128,14 +124,14 @@ pub async fn execute_action(
     let user_id = resolve_user(&headers)?;
     let locale = botcore::i18n::locale_from_headers(&headers);
     let action = computer_use::get(id, user_id).await.ok_or_else(|| {
-        api_error_key(
+        api_error(
             &locale,
             StatusCode::NOT_FOUND,
             "error-computer-use-action-not-found",
         )
     })?;
     if !body.approved || !computer_use::is_approved(id, user_id).await {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::FORBIDDEN,
             "error-computer-use-no-consent",
@@ -147,7 +143,7 @@ pub async fn execute_action(
         .and_then(Value::as_str)
         .unwrap_or("");
     if name != "open_url" && name != "extract_text" {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-computer-use-browser-only",
@@ -158,7 +154,7 @@ pub async fn execute_action(
         .get("url")
         .and_then(Value::as_str)
         .ok_or_else(|| {
-            api_error_key(
+            api_error(
                 &locale,
                 StatusCode::BAD_REQUEST,
                 "error-computer-use-url-missing",
@@ -166,7 +162,7 @@ pub async fn execute_action(
         })?;
     let page = fetch_page(url)
         .await
-        .map_err(|e| api_error(StatusCode::BAD_GATEWAY, &e))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::BAD_GATEWAY, e))?;
     let result = json!({
         "status": "ok",
         "url": page.url,

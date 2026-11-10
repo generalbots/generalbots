@@ -271,3 +271,7 @@ pub fn configure_player_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/player/playbacks", post(playlists::record_playback))
 }
+
+#[cfg(test)]
+#[path = "media_tests.rs"]
+mod media_tests;

@@ -152,7 +152,12 @@ pub async fn get_version(
     )
     .bind::<SqlUuid, _>(id)
     .get_result::<VersionDetailRow>(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| match e {
+        diesel::result::Error::NotFound => {
+            err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+        }
+        other => err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, other),
+    })?;
 
     Ok(Json(VersionDetail {
         id: row.id,
@@ -188,7 +193,12 @@ pub async fn restore_version(
     )
     .bind::<SqlUuid, _>(id)
     .get_result::<RestoreRow>(&mut conn)
-    .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?;
+    .map_err(|e| match e {
+        diesel::result::Error::NotFound => {
+            err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found")
+        }
+        other => err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, other),
+    })?;
 
     #[derive(QueryableByName)]
     struct CreatedVersion {

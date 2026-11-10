@@ -27,15 +27,7 @@ fn pkce_s256_matches_the_rfc7636_vector() {
         pkce_s256_challenge(verifier),
         "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
     );
-    // The challenge is a function of the verifier only.
-    assert_eq!(
-        pkce_s256_challenge(verifier),
-        pkce_s256_challenge(verifier)
-    );
-    assert_ne!(
-        pkce_s256_challenge("a"),
-        pkce_s256_challenge("b")
-    );
+    assert_ne!(pkce_s256_challenge("a"), pkce_s256_challenge("b"));
 }
 
 #[test]
@@ -44,7 +36,7 @@ fn generated_verifier_is_base64url_and_has_no_padding() {
     // 48 random bytes encode to 64 base64url characters, inside RFC 7636's
     // 43..=128 window.
     assert_eq!(verifier.len(), 64);
-    assert!(verifier.len() >= 43 && verifier.len() <= 128);
+    assert!((43..=128).contains(&verifier.len()));
     assert!(
         verifier
             .chars()

@@ -30,3 +30,7 @@ pub fn generate_chart_of_accounts() -> Vec<(&'static str, &'static str, &'static
         ("5.3", "Despesas Tributarias", "expense"),
     ]
 }
+
+#[cfg(test)]
+#[path = "reports_tests.rs"]
+mod reports_tests;

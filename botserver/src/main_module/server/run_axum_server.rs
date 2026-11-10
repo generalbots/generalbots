@@ -305,10 +305,12 @@ pub(super) fn build_base_router(
             .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
             .nest_service("/suite", ServeDir::new(&ui_path))
             .nest_service("/themes", ServeDir::new(format!("{}/../themes", ui_path)))
-            .fallback(move |uri: axum::http::Uri| {
-                let shell_path = shell_path.clone();
-                async move { fallback_response(&uri, &shell_path).await }
-            })
+            .fallback(
+                move |uri: axum::http::Uri, headers: axum::http::HeaderMap| {
+                    let shell_path = shell_path.clone();
+                    async move { fallback_response(&uri, &headers, &shell_path).await }
+                },
+            )
     } else if use_embedded_ui {
         base_router.merge(crate::embedded_ui::embedded_ui_router())
     } else {
@@ -333,17 +335,19 @@ fn is_machine_facing(path: &str) -> bool {
 /// reported instead of being masked by a successful HTML response.
 pub(super) async fn fallback_response(
     uri: &axum::http::Uri,
+    headers: &axum::http::HeaderMap,
     shell_path: &str,
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
     let path = uri.path();
     if is_machine_facing(path) {
+        let locale = botcore::i18n::locale_from_headers(headers);
         return (
             axum::http::StatusCode::NOT_FOUND,
             axum::Json(serde_json::json!({
                 "error": "not_found",
-                "message": "No route matches this path",
+                "message": botcore::i18n::t(&locale, "error-http-no-route"),
                 "path": path,
             })),
         )

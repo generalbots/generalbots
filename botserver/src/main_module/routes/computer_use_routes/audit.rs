@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
-use super::{api_error, resolve_user, ApiError};
+use super::{api_error_db, resolve_user, ApiError};
 
 pub(super) struct TerminalAuditRow<'a> {
     pub(super) user_id: Uuid,
@@ -68,11 +68,12 @@ pub async fn terminal_audit(
     Query(query): Query<AuditQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let limit = query.limit.unwrap_or(50).clamp(1, 200);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = Text)]
@@ -158,11 +159,12 @@ pub async fn browser_audit(
     Query(query): Query<AuditQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let limit = query.limit.unwrap_or(50).clamp(1, 200);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = Text)]

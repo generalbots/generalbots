@@ -7,7 +7,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use super::audit::{audit_browser, audit_terminal, BrowserAuditRow, TerminalAuditRow};
-use super::{api_error_key, resolve_user, ApiError};
+use super::{api_error, resolve_user, ApiError};
 use crate::core::computer_use;
 
 /// POST /api/computer/actions/:id/result
@@ -115,7 +115,7 @@ pub async fn submit_result(
             }
             Ok(Json(action.to_json()))
         }
-        None => Err(api_error_key(
+        None => Err(api_error(
             &botcore::i18n::locale_from_headers(&headers),
             StatusCode::NOT_FOUND,
             "error-computer-use-action-not-found",

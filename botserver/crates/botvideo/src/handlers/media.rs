@@ -169,3 +169,7 @@ pub async fn get_preview_frame(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "media_tests.rs"]
+mod media_tests;

@@ -237,6 +237,11 @@ pub(crate) fn row_status(active: bool, downloaded: bool, downloading: bool) -> &
     STATUS_AVAILABLE
 }
 
+/// Every catalogue entry, in declaration order.
+pub(crate) fn catalog() -> &'static [ModelSpec] {
+    CATALOG
+}
+
 /// One VRAM tier. `tier_gb` is `None` for the server profile group. The HTTP
 /// layer builds the JSON, so this stays a plain in-crate view.
 #[derive(Debug, Clone)]

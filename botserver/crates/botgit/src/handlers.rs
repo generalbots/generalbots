@@ -423,3 +423,6 @@ pub async fn git_pull(
         Err(e) => Ok(Json(serde_json::json!({ "status": "failure", "error": e }))),
     }
 }
+#[cfg(test)]
+#[path = "resolve_repo_tests.rs"]
+mod resolve_repo_tests;

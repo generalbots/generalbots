@@ -231,3 +231,7 @@ pub async fn record_attendance(
     .map_err(db::map_diesel_err)?;
     Ok(Json(serde_json::json!({ "ok": true, "id": att_id })))
 }
+
+#[cfg(test)]
+#[path = "parse_dt_tests.rs"]
+mod parse_dt_tests;

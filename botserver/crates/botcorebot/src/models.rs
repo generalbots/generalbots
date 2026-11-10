@@ -48,6 +48,10 @@ impl TriggerKind {
     }
 }
 
+#[cfg(test)]
+#[path = "trigger_kind_tests.rs"]
+mod trigger_kind_tests;
+
 #[derive(Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = system_automations)]
 pub struct Automation {

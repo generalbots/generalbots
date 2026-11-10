@@ -9,19 +9,22 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use super::shared::{agent_service, ensure_user, ensure_vm, err, map_claude_state, ApiError};
+use super::shared::{
+    agent_service, ensure_user, ensure_vm, err_db, err_upstream, map_claude_state, ApiError,
+};
 use crate::core::ai_accounts;
 use crate::security::auth_api::types::AuthenticatedUser;
 
 pub(super) async fn connect_claude(
+    locale: &botcore::i18n::Locale,
     state: &Arc<AppState>,
     user_id: Uuid,
 ) -> Result<Json<Value>, ApiError> {
-    let service = agent_service()?;
-    let row = ensure_vm(state, user_id).await?;
+    let service = agent_service(locale)?;
+    let row = ensure_vm(locale, state, user_id).await?;
     let status = botagent::claude::start_login(service, &row.vm_name)
         .await
-        .map_err(|(code, message)| err(code, &message))?;
+        .map_err(|(code, message)| err_upstream(code, &message))?;
     if status.state == "linked" {
         ai_accounts::mark_linked(
             &state.conn,
@@ -32,7 +35,7 @@ pub(super) async fn connect_claude(
             Some(&row.vm_name),
             None,
         )
-        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
+        .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     } else {
         ai_accounts::update_status(
             &state.conn,
@@ -43,7 +46,7 @@ pub(super) async fn connect_claude(
             None,
             Some(&row.vm_name),
         )
-        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
+        .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     }
     Ok(Json(json!({
         "provider": ai_accounts::CLAUDE_CODE,
@@ -64,14 +67,16 @@ pub struct ClaudeCodeBody {
 pub async fn claude_code(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(body): Json<ClaudeCodeBody>,
 ) -> Result<Json<Value>, ApiError> {
-    let service = agent_service()?;
-    ensure_user(&state, &user)?;
-    let row = ensure_vm(&state, user.user_id).await?;
+    let locale = request_locale.locale();
+    let service = agent_service(locale)?;
+    ensure_user(locale, &state, &user)?;
+    let row = ensure_vm(locale, &state, user.user_id).await?;
     let status = botagent::claude::submit_code(service, &row.vm_name, &body.code)
         .await
-        .map_err(|(code, message)| err(code, &message))?;
+        .map_err(|(code, message)| err_upstream(code, &message))?;
     if status.state == "linked" {
         ai_accounts::mark_linked(
             &state.conn,
@@ -82,7 +87,7 @@ pub async fn claude_code(
             Some(&row.vm_name),
             None,
         )
-        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
+        .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     } else {
         ai_accounts::update_status(
             &state.conn,
@@ -93,7 +98,7 @@ pub async fn claude_code(
             None,
             Some(&row.vm_name),
         )
-        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
+        .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     }
     Ok(Json(json!({
         "provider": ai_accounts::CLAUDE_CODE,

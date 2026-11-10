@@ -28,8 +28,27 @@ use crate::core::bot::runs::group_budget::{aggregate, BudgetSummary, SpendEntry}
 
 type ApiError = (StatusCode, Json<Value>);
 
-fn api_error(status: StatusCode, message: &str) -> ApiError {
-    (status, Json(json!({ "error": message })))
+/// Localized API error (#2094) — `code` stays machine-readable.
+ fn api_error(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    key: &str,
+) -> ApiError {
+    (status, Json(botcore::i18n::error_body(locale, key)))
+}
+
+/// Internal failure: the cause is logged, the client gets a generic localized
+/// message — no internal error strings leak to the caller.
+ fn api_error_db<E: std::fmt::Display>(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    error: E,
+) -> ApiError {
+    log::warn!("api error ({}) at {}: {error}", status.as_u16(), module_path!());
+    (
+        status,
+        Json(botcore::i18n::error_body(locale, "error-db-unavailable")),
+    )
 }
 
 fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
@@ -38,10 +57,10 @@ fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
-        .ok_or_else(|| api_error(StatusCode::UNAUTHORIZED, "missing token"))?;
+        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
     let (claims_user, _roles) =
         crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-            .ok_or_else(|| api_error(StatusCode::UNAUTHORIZED, "invalid token"))?;
+            .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-invalid"))?;
     Ok(crate::security::user_role::derive_stable_user_uuid(
         &claims_user,
     ))
@@ -101,10 +120,11 @@ async fn get_budget(
     Path(group): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let row = diesel::sql_query(
         "SELECT budget_milli, spent_milli FROM group_budgets WHERE group_name = $1",
     )
@@ -121,10 +141,7 @@ async fn get_budget(
             "exists": false,
             "budget": summary_json(0, 0),
         }))),
-        Err(error) => Err(api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("budget lookup failed: {error}"),
-        )),
+        Err(error) => Err(api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)),
     }
 }
 
@@ -140,16 +157,14 @@ async fn put_budget(
     Json(body): Json<BudgetBody>,
 ) -> Result<Json<Value>, ApiError> {
     let user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if body.budget_milli < 0 {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "budget_milli must be zero or positive",
-        ));
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-group-budget-amount-invalid"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let row = diesel::sql_query(
         "INSERT INTO group_budgets (owner_id, group_name, budget_milli) \
          VALUES ($1, $2, $3) \
@@ -162,10 +177,7 @@ async fn put_budget(
     .bind::<diesel::sql_types::BigInt, _>(body.budget_milli)
     .get_result::<BudgetRow>(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("budget upsert failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     Ok(Json(json!({
         "group": group,
@@ -195,10 +207,11 @@ async fn get_caps(
     Path(group): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let row = diesel::sql_query(
         "SELECT max_tokens, max_seconds FROM group_cap_policies WHERE group_name = $1",
     )
@@ -215,10 +228,7 @@ async fn get_caps(
             "exists": false,
             "caps": caps_json(None, None),
         }))),
-        Err(error) => Err(api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("caps lookup failed: {error}"),
-        )),
+        Err(error) => Err(api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)),
     }
 }
 
@@ -235,16 +245,14 @@ async fn put_caps(
     Json(body): Json<CapsBody>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if body.max_tokens < 0 || body.max_seconds < 0 {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "caps must be zero or positive (zero means no limit)",
-        ));
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-group-budget-caps-invalid"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let row = diesel::sql_query(
         "INSERT INTO group_cap_policies (group_name, max_tokens, max_seconds) \
          VALUES ($1, $2, $3) \
@@ -258,10 +266,7 @@ async fn put_caps(
     .bind::<diesel::sql_types::BigInt, _>(body.max_seconds)
     .get_result::<CapsRow>(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("caps upsert failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     Ok(Json(json!({
         "group": group,
@@ -290,18 +295,16 @@ async fn add_spend(
     Json(body): Json<SpendBody>,
 ) -> Result<Json<Value>, ApiError> {
     let caller = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if body.amount_milli < 0 {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "amount_milli must be zero or positive",
-        ));
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-group-budget-amount-invalid"));
     }
     let member = body.user_id.unwrap_or(caller);
     let kind = body.kind.unwrap_or_else(|| "run".to_string());
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let updated = diesel::sql_query(
         "UPDATE group_budgets \
@@ -314,16 +317,13 @@ async fn add_spend(
     .get_result::<BudgetIdRow>(&mut conn)
     .optional()
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("budget update failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     let Some(budget) = updated else {
-        return Err(api_error(StatusCode::NOT_FOUND, "group budget not found"));
+        return Err(api_error(&locale, StatusCode::NOT_FOUND, "error-group-budget-not-found"));
     };
     let budget_id = Uuid::parse_str(&budget.id)
-        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "invalid budget id"))?;
+        .map_err(|_| api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-group-budget-invalid-id"))?;
     diesel::sql_query(
         "INSERT INTO group_spend (budget_id, user_id, run_id, kind, amount_milli, note) \
          VALUES ($1, $2, $3, $4, $5, $6)",
@@ -336,10 +336,7 @@ async fn add_spend(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(body.note)
     .execute(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("spend insert failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     Ok(Json(json!({
         "group": group,
@@ -360,6 +357,7 @@ async fn usage(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let limit = params
         .get("limit")
         .and_then(|value| value.parse::<i64>().ok())
@@ -368,7 +366,7 @@ async fn usage(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let budget = diesel::sql_query(
         "SELECT id::text AS id, budget_milli, spent_milli \
          FROM group_budgets WHERE group_name = $1",
@@ -377,16 +375,13 @@ async fn usage(
     .get_result::<BudgetIdRow>(&mut conn)
     .optional()
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("budget lookup failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     let Some(budget) = budget else {
-        return Err(api_error(StatusCode::NOT_FOUND, "group budget not found"));
+        return Err(api_error(&locale, StatusCode::NOT_FOUND, "error-group-budget-not-found"));
     };
     let budget_id = Uuid::parse_str(&budget.id)
-        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "invalid budget id"))?;
+        .map_err(|_| api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-group-budget-invalid-id"))?;
     let rows = diesel::sql_query(
         "SELECT user_id::text AS user_id, amount_milli \
          FROM group_spend WHERE budget_id = $1 \
@@ -396,10 +391,7 @@ async fn usage(
     .bind::<diesel::sql_types::BigInt, _>(limit)
     .load::<SpendRow>(&mut conn)
     .map_err(|error| {
-        api_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("spend load failed: {error}"),
-        )
+        api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error)
     })?;
     let entries: Vec<SpendEntry<'_>> = rows
         .iter()

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use super::audit::{audit_terminal, TerminalAuditRow};
 use super::terminal_rules::blocked_pattern;
-use super::{api_error_key, resolve_user, ApiError};
+use super::{api_error, resolve_user, ApiError};
 use crate::core::computer_use;
 
 #[derive(Debug, Deserialize)]
@@ -41,7 +41,7 @@ pub async fn terminal_exec(
     let user_id = resolve_user(&headers)?;
     let locale = botcore::i18n::locale_from_headers(&headers);
     if !body.approved {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::FORBIDDEN,
             "error-terminal-approval-required",
@@ -50,7 +50,7 @@ pub async fn terminal_exec(
     // #1645 — `approved=true` alone is forgeable. Execution requires the
     // action id whose consent record /approve created.
     let action_id = body.action_id.ok_or_else(|| {
-        api_error_key(
+        api_error(
             &locale,
             StatusCode::FORBIDDEN,
             "error-terminal-action-id-required",
@@ -71,7 +71,7 @@ pub async fn terminal_exec(
                 output: "no consent record",
             },
         );
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::FORBIDDEN,
             "error-computer-use-no-consent",
@@ -79,14 +79,14 @@ pub async fn terminal_exec(
     }
     let command = body.command.trim();
     if command.is_empty() {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-terminal-command-required",
         ));
     }
     if command.len() > 16_000 {
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::BAD_REQUEST,
             "error-terminal-command-too-long",
@@ -108,7 +108,7 @@ pub async fn terminal_exec(
                 output: "blocked destructive pattern",
             },
         );
-        return Err(api_error_key(
+        return Err(api_error(
             &locale,
             StatusCode::FORBIDDEN,
             "error-terminal-blocked-pattern",
@@ -133,7 +133,7 @@ pub async fn terminal_exec(
                 output: "workspace container is not running",
             },
         );
-        api_error_key(
+        api_error(
             &locale,
             StatusCode::CONFLICT,
             "error-terminal-workspace-stopped",

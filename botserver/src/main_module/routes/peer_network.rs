@@ -124,7 +124,7 @@ pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload
         return error_response(&locale, error);
     }
     if !network.enabled() {
-        return error_response(PeerError::Disabled);
+        return error_response(&locale, PeerError::Disabled);
     }
     match peer_payloads::global_store().enqueue(request.clone()) {
         Ok(payload) => (
@@ -155,7 +155,7 @@ pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQu
         return error_response(&locale, error);
     }
     if !network.enabled() {
-        return error_response(PeerError::Disabled);
+        return error_response(&locale, PeerError::Disabled);
     }
     let Some(recipient) = query.recipient else {
         return (
@@ -183,7 +183,7 @@ pub async fn home_site(headers: HeaderMap) -> Response {
         return error_response(&locale, error);
     }
     if !network.enabled() {
-        return error_response(PeerError::Disabled);
+        return error_response(&locale, PeerError::Disabled);
     }
     // #1968 — `GB_PEER_SIGNING_KEY` → Vault `secret/gbo/peer` `signing-key`
     // → the node id, resolved once in `PeerConfig::load`.
@@ -200,7 +200,7 @@ pub async fn home_site(headers: HeaderMap) -> Response {
             );
             (StatusCode::OK, Json(json!({ "ok": true, "site": site }))).into_response()
         }
-        None => error_response(PeerError::Disabled),
+        None => error_response(&locale, PeerError::Disabled),
     }
 }
 

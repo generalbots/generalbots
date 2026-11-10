@@ -371,7 +371,7 @@ pub async fn revoke_link(
         diesel::sql_query("SELECT resource_type, resource_id FROM resource_links WHERE token = $1")
             .bind::<Text, _>(&token)
             .load::<LinkResource>(&mut conn)
-            .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?
+            .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?
             .into_iter()
             .next()
             .ok_or_else(|| err(locale, StatusCode::NOT_FOUND, "error-collab-link-not-found"))?;

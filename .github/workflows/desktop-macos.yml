@@ -4,10 +4,11 @@ name: Desktop macOS
 # runner. Tauri cannot cross-compile macOS bundles, and macOS runners are free
 # for public repositories, so this is the only practical build path.
 #
-# Trigger: manual dispatch, every v* tag alongside `desktop-binaries.yml`, or a
-# call from `release-all.yml` (#1851). The job is best effort: the Linux
-# installer is the supported artifact, so a macOS toolchain gap, a missing
-# darwin component or an immutable release must never fail the whole release.
+# Trigger: manual dispatch, or a call from `release.yml` (#1851/#2110). The
+# workflow no longer listens to `v*` tags itself: that trigger built the bundle
+# twice per tag and its `release-macos` job opened a side `-macos` pre-release,
+# which #2110 forbids. The .dmg now lands on the product release only, through
+# `release.yml` -> `publish`.
 #
 # Bundler: `botapp/tauri.macos.conf.json` overrides the desktop-local config
 # with `bundle.targets = ["dmg", "app"]` and macOS 11+ metadata. The workflow
@@ -48,7 +49,8 @@ name: Desktop macOS
 #     natively on macOS.
 
 on:
-  # Reusable from `.github/workflows/release-all.yml`; existing triggers stay.
+  # Called by `.github/workflows/release.yml` (#1851/#2110). A tag push does not
+  # trigger this workflow: the release job builds the .dmg inside the same run.
   workflow_call:
     inputs:
       tag:
@@ -56,7 +58,7 @@ on:
         required: false
         type: string
       publish:
-        description: "Publish the -macos pre-release (release-all.yml sets false)"
+        description: "Publish a standalone -macos pre-release (release.yml sets false)"
         required: false
         default: true
         type: boolean
@@ -66,9 +68,6 @@ on:
         description: "Existing release tag (for example v7.0.0)."
         required: true
         type: string
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -84,9 +83,9 @@ jobs:
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: macos-15
     timeout-minutes: 120
-    # Best effort on purpose: macOS is an additive artifact and must not hide
-    # the Linux installer from a release.
-    continue-on-error: true
+    # #2110 — macOS is part of the release contract. This job used to carry
+    # continue-on-error, so a broken macOS build silently produced a Linux-only
+    # release. A red build now fails `release.yml` before anything is published.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -266,11 +265,13 @@ jobs:
           if-no-files-found: error
 
   release-macos:
-    name: Attach macOS artifacts to the release
+    name: Attach macOS artifacts to a standalone pre-release
     needs: [macos]
     runs-on: ubuntu-latest
-    # Best effort: a failed/absent macOS build, or an immutable release, must
-    # not turn a green release red.
+    # Manual opt-in only: `release.yml` calls this workflow with publish=false,
+    # so the .dmg goes to the product release and never opens a `-macos`
+    # pre-release as a side effect (#2110 acceptance 2). A dispatch of this
+    # workflow by hand keeps the old behaviour.
     continue-on-error: true
     if: ${{ always() && github.server_url == 'https://github.com' && (inputs.publish == null || inputs.publish) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || inputs.tag != '') }}
     steps:

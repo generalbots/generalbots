@@ -9,7 +9,16 @@ name: Release
 #   linux       tarball, self-extracting `generalbots`, deb/rpm/AppImage, raw
 #               `generalbots`/`botserver`/`botui` binaries
 #   windows     generalbots.exe, MSI, NSIS setup, raw exes (including botui)
-#   pythonbox   BotModels Linux/Windows self-contained bundles
+#   macos       .dmg + .app.zip (reusable desktop-macos.yml, no `-macos`
+#               pre-release)
+#   iso         generalbots-os.iso + SHA256SUMS-os, bootable from the Linux
+#               tarball of the same run (scripts/build_iso.sh)
+#   pythonbox   BotModels Linux/Windows self-contained bundles (internal)
+#
+# #2110 — every platform is part of the contract: the `publish` job lists any
+# failed platform job and exits 1 before uploading anything, and a missing
+# asset (Linux format, Windows installer, macOS dmg, ISO) fails the release.
+# Nothing is downloaded with continue-on-error.
 #
 # Everything lands on one release with one `MANIFEST.json` and one combined
 # `SHA256SUMS`. The Linux tarball keeps its tag-free alias, so
@@ -229,13 +238,13 @@ jobs:
           ./dist/generalbots --verify
 
       # Distro installers: .deb, .rpm and .AppImage from the same binaries.
-      # Best effort on purpose — a bundler regression must never hide the
-      # tarball and the single-file executable from the release.
+      # #2110 — mandatory: the release carries all three or nothing. The gate
+      # below ("Verify every Linux asset exists") turns a bundler that produces
+      # nothing into a hard failure.
       - name: Install Tauri bundler
         run: cargo install tauri-cli --version "^2" --locked
 
       - name: Package deb, rpm and AppImage
-        continue-on-error: true
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
@@ -304,6 +313,38 @@ jobs:
           # dist/dist and aborts the job, which is why the Linux installer was
           # never attached to a release (.35–.38 shipped Windows-only).
           ls -lh
+
+      # #2110 — the release contract is every Linux format in one release. The
+      # bundler step above is mandatory now; this gate is the belt-and-braces
+      # check that a bundler which "succeeds" without producing files cannot
+      # ship a partial download (v7.0.34 published Linux-only, and even that
+      # was incomplete).
+      - name: Verify every Linux asset exists
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          missing=()
+          for f in \
+            "generalbots-${VERSION}-linux-x86_64.tar.gz" \
+            generalbots \
+            generalbots-linux-x86_64 \
+            botserver-linux-x86_64 \
+            botui-linux-x86_64 \
+            "generalbots-${VERSION}-linux-x86_64.deb" \
+            "generalbots-${VERSION}-linux-x86_64.rpm" \
+            "generalbots-${VERSION}-linux-x86_64.AppImage"; do
+            if [ ! -s "dist/$f" ]; then
+              missing+=("$f")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::the Linux job did not produce: ${missing[*]}"
+            exit 1
+          fi
+          test -x dist/generalbots
+          ls -lh dist
 
       # A published installer is only as good as its first run. This unpacks the
       # tarball built above on a clean runner, installs it, provisions the stack
@@ -406,9 +447,10 @@ jobs:
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: windows-latest
     timeout-minutes: 150
-    # Kept non-blocking while the Windows toolchain image is validated: a
-    # Windows runner failure must not hide the Linux binaries from the release.
-    continue-on-error: true
+    # #2110 — a Windows runner failure used to be swallowed here, so the tag
+    # published a Linux-only release. The platform assets are part of the
+    # release contract now: a red Windows job fails the release instead of
+    # disappearing from it.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         # Build the exact tag commit resolved above.
@@ -604,15 +646,15 @@ jobs:
           }
           Write-Host 'download once on first run: vault, tables (PostgreSQL), llm (llama.cpp), models'
 
-      # MSI/NSIS from the same binaries. Best effort, same reasoning as Linux:
-      # a bundler problem must not hide the exe binaries from the release.
+      # MSI/NSIS from the same binaries. #2110 — mandatory: the release carries
+      # both installers, and "Verify the MSI and NSIS installers exist" fails the
+      # job when the bundler produces neither.
       - name: Install Tauri bundler
         shell: pwsh
         run: cargo install tauri-cli --version "^2" --locked
 
       - name: Package MSI and NSIS installers
         shell: pwsh
-        continue-on-error: true
         run: |
           $triple = "x86_64-pc-windows-msvc"
           New-Item -ItemType Directory -Force botapp\binaries | Out-Null
@@ -781,6 +823,31 @@ jobs:
           Get-FileHash dist/generalbots.exe -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash)  generalbots.exe" } |
             Out-File dist/SHA256SUMS-windows.txt -Encoding ascii -Append
+
+      # #2110 — every published Windows executable must really be a PE image.
+      # A truncated download or an HTML error page renamed to `.exe` would
+      # otherwise pass the "file exists" checks in the publish job.
+      - name: Verify the Windows binaries are PE images
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = 'generalbots-x64.exe', 'botserver-x64.exe', 'botui-x64.exe', 'generalbots.exe'
+          foreach ($name in $expected) {
+            $path = Join-Path 'dist' $name
+            if (-not (Test-Path $path)) { throw "missing Windows asset: $name" }
+            $stream = [System.IO.File]::OpenRead($path)
+            $read = 0
+            $magic = New-Object byte[] 2
+            try {
+              $read = $stream.Read($magic, 0, 2)
+            } finally {
+              $stream.Dispose()
+            }
+            if ($read -ne 2 -or $magic[0] -ne 0x4D -or $magic[1] -ne 0x5A) {
+              throw "$name is not a PE image (missing MZ header)"
+            }
+            Write-Host ("PE ok: {0} ({1:N1} MB)" -f $name, ((Get-Item $path).Length / 1MB))
+          }
 
       - name: Drop build-only payloads before upload
         # Same trim as the Linux job: the self-extractor payload and the
@@ -1442,33 +1509,139 @@ jobs:
   macos:
     name: macOS dmg
     needs: [release]
-    # macOS is a native-runner extra, not a gate: a red macOS job must not cost
-    # the Linux/Windows assets. It contributes `macos-installer` to `dist`, and
-    # `publish` downloads it with continue-on-error.
+    # #2110 — macOS is part of the release contract: the reusable workflow's
+    # `macos` job no longer carries continue-on-error, so a red macOS build
+    # fails this job and the release. `publish: false` keeps the .dmg on THIS
+    # release (next to Linux/Windows/the ISO) instead of opening a separate
+    # `-macos` pre-release.
     if: ${{ github.server_url == 'https://github.com' }}
     uses: ./.github/workflows/desktop-macos.yml
     with:
       tag: ${{ needs.release.outputs.version }}
-      # false = do not open a separate `-macos` pre-release; the .dmg belongs to
-      # this release, next to the Linux and Windows assets.
       publish: false
 
   iso:
     name: Bootable ISO image
     needs: [release, linux]
-    # Built from the same tarball that ships in this release.
-    if: ${{ github.server_url == 'https://github.com' && needs.linux.result == 'success' }}
-    uses: ./.github/workflows/desktop-os-iso.yml
-    with:
-      artifact: linux-installer
+    # #2110 — one release, one ISO. Built by `scripts/build_iso.sh` from the
+    # tarball THIS run produced (the `linux-installer` artifact), so the image
+    # never waits for a published release and can never fall back to an older
+    # payload. The kiosk appliance (`desktop-os-iso.yml`, mkosi) is a separate
+    # track: it needs a Debian rootfs toolchain and is not part of the release.
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release.outputs.sha }}
+
+      - name: Install the ISO toolchain
+        run: |
+          set -euo pipefail
+          # El Torito (BIOS + UEFI) needs both GRUB platforms, xorriso and
+          # mtools for the EFI image. A missing tool fails this step, and with
+          # it the release.
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools
+          grub-mkrescue --version
+          xorriso --version
+
+      - name: Download the Linux installer from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: linux-installer
+          path: ${{ runner.temp }}/linux-installer
+          merge-multiple: true
+
+      - name: Build the bootable ISO from the Linux payload
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          PAYLOAD="$RUNNER_TEMP/linux-installer/generalbots-${VERSION}-linux-x86_64.tar.gz"
+          if [ ! -s "$PAYLOAD" ]; then
+            echo "::error::linux-installer carries no $(basename "$PAYLOAD"); cannot build the ISO"
+            exit 1
+          fi
+          chmod +x scripts/build_iso.sh
+          scripts/build_iso.sh \
+            --payload "$PAYLOAD" \
+            --out dist/generalbots-os.iso \
+            --version "$VERSION" \
+            --label "GENERALBOTS_${VERSION}"
+
+      - name: Smoke-test the ISO (payload + El Torito)
+        # Lists the image through xorriso: the payload must be there and the
+        # hybrid El Torito record must expose both BIOS and UEFI entries. No
+        # continue-on-error: an unbootable ISO must fail the release.
+        run: |
+          set -euo pipefail
+          scripts/build_iso.sh --verify dist/generalbots-os.iso \
+            --expect SHA256SUMS-linux \
+            --expect README.txt
+
+      - name: Record ISO checksums
+        run: |
+          set -euo pipefail
+          test -s dist/generalbots-os.iso
+          (cd dist && sha256sum generalbots-os.iso > SHA256SUMS-os && cat SHA256SUMS-os)
+
+      - name: Upload the ISO
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: generalbots-os-image
+          path: |
+            dist/generalbots-os.iso
+            dist/SHA256SUMS-os
+          if-no-files-found: error
+          retention-days: 7
 
   publish:
     name: Publish the all-inclusive release
     needs: [release, linux, windows, bundle, bundle-windows, macos, iso]
-    if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' && needs.linux.result == 'success' }}
+    # #2110 — `always()` keeps this job visible when a platform fails, but it
+    # now refuses to publish: the first step lists the failed platforms and
+    # exits 1. A tag either carries Linux + Windows + macOS + ISO, or it
+    # carries no release at all.
+    if: ${{ always() && !cancelled() && github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
+      - name: Require every platform build
+        env:
+          RELEASE_RESULT: ${{ needs.release.result }}
+          LINUX_RESULT: ${{ needs.linux.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          BUNDLE_RESULT: ${{ needs.bundle.result }}
+          BUNDLE_WINDOWS_RESULT: ${{ needs.bundle-windows.result }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          ISO_RESULT: ${{ needs.iso.result }}
+        run: |
+          set -euo pipefail
+          failed=()
+          for pair in \
+            "release:${RELEASE_RESULT:-}" \
+            "linux:${LINUX_RESULT:-}" \
+            "windows:${WINDOWS_RESULT:-}" \
+            "bundle:${BUNDLE_RESULT:-}" \
+            "bundle-windows:${BUNDLE_WINDOWS_RESULT:-}" \
+            "macos:${MACOS_RESULT:-}" \
+            "iso:${ISO_RESULT:-}"; do
+            name="${pair%%:*}"
+            result="${pair#*:}"
+            if [ "$result" != "success" ]; then
+              failed+=("${name} (${result:-skipped})")
+            fi
+          done
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo "::error::refusing to publish a partial release; failed jobs: ${failed[*]}"
+            exit 1
+          fi
+          echo "every platform build is green"
+
       - name: Check out the release tag
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -1483,17 +1656,13 @@ jobs:
           merge-multiple: true
 
       - name: Download Windows binaries
-        continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: windows-binaries
           path: dist
           merge-multiple: true
 
-
-
       - name: Download macOS dmg
-        continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-installer
@@ -1501,7 +1670,6 @@ jobs:
           merge-multiple: true
 
       - name: Download the bootable ISO
-        continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: generalbots-os-image
@@ -1590,6 +1758,73 @@ jobs:
           )
           ls -lh dist
 
+      # #2110 — the last line of defence. Publishing is only allowed when the
+      # file list matches the release contract; v7.0.34 shipped 12 Linux-only
+      # assets because every download was continue-on-error and nothing checked
+      # the result.
+      - name: Require every expected asset
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          missing=()
+          require() {
+            if [ ! -s "dist/$1" ]; then
+              missing+=("$1")
+            fi
+          }
+          # Linux
+          require "generalbots-${VERSION}-linux-x86_64.tar.gz"
+          require generalbots-linux-x86_64.tar.gz
+          require generalbots
+          require generalbots-linux-x86_64
+          require botserver-linux-x86_64
+          require botui-linux-x86_64
+          require "generalbots-${VERSION}-linux-x86_64.deb"
+          require "generalbots-${VERSION}-linux-x86_64.rpm"
+          require "generalbots-${VERSION}-linux-x86_64.AppImage"
+          # Windows
+          require generalbots-x64.exe
+          require botserver-x64.exe
+          require botui-x64.exe
+          require generalbots.exe
+          require generalbots-x64.msi
+          require generalbots-x64-setup.exe
+          # macOS (the arch in the name depends on the runner GitHub assigns)
+          if ! compgen -G "dist/generalbots-*-macos-*.dmg" >/dev/null; then
+            missing+=("generalbots-*-macos-*.dmg")
+          fi
+          if ! compgen -G "dist/generalbots-*-macos-*.app.zip" >/dev/null; then
+            missing+=("generalbots-*-macos-*.app.zip")
+          fi
+          # ISO
+          require generalbots-os.iso
+          require SHA256SUMS-os
+          # Metadata
+          require MANIFEST.json
+          require SHA256SUMS
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::refusing to publish ${RELEASE_TAG}: missing ${missing[*]}"
+            ls -lh dist
+            exit 1
+          fi
+          # The manifest must cover every platform asset, not only Linux.
+          python3 - <<'PY'
+          import json
+          import sys
+
+          with open("dist/MANIFEST.json", encoding="utf-8") as handle:
+              assets = json.load(handle)["assets"]
+          required = ["generalbots-os.iso", "generalbots-x64.msi", "generalbots-x64-setup.exe"]
+          absent = [name for name in required if name not in assets]
+          if absent:
+              sys.exit(f"MANIFEST.json does not cover {absent}")
+          if not any("-macos-" in name for name in assets):
+              sys.exit("MANIFEST.json carries no macOS asset")
+          print(f"manifest covers {len(assets)} assets")
+          PY
+
       # #1634: /releases/latest/download/<name> only resolves an asset whose
       # name matches exactly. Fail before publishing rather than after.
       - name: Verify the stable download aliases
@@ -1617,20 +1852,29 @@ jobs:
           body: |
             All-inclusive desktop release for ${{ needs.release.outputs.version }}.
 
-            One download holds the whole product line:
+            One tag, every platform. This release is only published when all of
+            them built; a missing platform fails the release instead of shipping
+            a partial download.
 
             - Linux x86_64 desktop: `generalbots-linux-x86_64.tar.gz` (stable
               alias), the versioned tarball, the self-extracting `generalbots`
-              executable, deb/rpm/AppImage when the bundler produced them,
-              and the raw `generalbots`/`botserver`/`botui` binaries.
+              executable, `.deb`, `.rpm`, `.AppImage`, and the raw
+              `generalbots`/`botserver`/`botui` binaries.
               `botui` is embedded in the desktop payload and also shipped as a
               standalone binary for frontend/server use.
-            - Windows x86_64: `generalbots.exe` (self-extracting), MSI, NSIS
-              setup, and the raw `generalbots`/`botserver`/`botui` exes.
-            - macOS: `generalbots-*.dmg` and `*.app.zip` (unsigned; arm64 or
-              x86_64 depending on the runner GitHub assigns).
-            - Bootable ISO: `generalbots-*.iso` (x86_64 live image built from the
-              same tarball).
+            - Windows x86_64: `generalbots.exe` (self-extracting), `.msi`, the
+              NSIS `-setup.exe`, and the raw `generalbots`/`botserver`/`botui`
+              exes (all verified as PE images).
+            - macOS: `generalbots-<version>-macos-<arch>.dmg` and
+              `.app.zip` (unsigned; arm64 or x86_64 depending on the runner
+              GitHub assigns, the name says which).
+            - Bootable ISO: `generalbots-os.iso` + `SHA256SUMS-os` — a hybrid
+              El Torito image (BIOS + UEFI) built from the same Linux tarball,
+              carrying the whole installer payload under `/general-bots/` for
+              machines without network access. It boots GRUB and the payload,
+              it is not the Debian kiosk appliance: that image
+              (`desktop/os/`, mkosi, `desktop-os-iso.yml`) remains a separate
+              track, so the kiosk session is not part of this ISO.
 
             `MANIFEST.json` lists every asset with its SHA-256 and size;
             `SHA256SUMS` verifies the whole release in one command. The
@@ -1644,4 +1888,4 @@ jobs:
             drive binaries and the BotModels pythonbox when a release exists.
           files: |
             dist/*
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true

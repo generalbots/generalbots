@@ -9,7 +9,8 @@ use uuid::Uuid;
 
 use super::claude::connect_claude;
 use super::shared::{
-    agent_service, ensure_user, err, map_claude_state, provider_or_error, ApiError,
+    agent_service, ensure_user, err, err_db, err_upstream, map_claude_state, provider_or_error,
+    ApiError,
 };
 use crate::core::{ai_accounts, ai_accounts_chatgpt};
 use crate::security::auth_api::types::AuthenticatedUser;
@@ -35,50 +36,59 @@ pub async fn list(
 pub async fn connect(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let provider = provider_or_error(&provider)?;
-    ensure_user(&state, &user)?;
+    let locale = request_locale.locale();
+    let provider = provider_or_error(locale, &provider)?;
+    ensure_user(locale, &state, &user)?;
     match provider {
-        ai_accounts::CLAUDE_CODE => connect_claude(&state, user.user_id).await,
+        ai_accounts::CLAUDE_CODE => connect_claude(locale, &state, user.user_id).await,
         ai_accounts::CHATGPT_PLAN => connect_chatgpt(&state, user.user_id).await,
-        _ => Err(err(StatusCode::BAD_REQUEST, "Unknown AI account provider")),
+        _ => Err(err(
+            locale,
+            StatusCode::BAD_REQUEST,
+            "error-ai-account-unknown-provider",
+        )),
     }
 }
 
 async fn connect_chatgpt(state: &Arc<AppState>, user_id: Uuid) -> Result<Json<Value>, ApiError> {
     ai_accounts_chatgpt::start_connect(&state.conn, user_id)
         .await
-        .map_err(|(code, message)| err(code, &message))
+        .map_err(|(code, message)| err_upstream(code, &message))
 }
 
 /// POST /api/ai-accounts/:provider/reconnect
 pub async fn reconnect(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     // Reconnect is the same flow; the provider decides whether an existing
     // session is still usable and returns it unchanged.
-    connect(State(state), Extension(user), Path(provider)).await
+    connect(State(state), Extension(user), request_locale, Path(provider)).await
 }
 
 /// POST /api/ai-accounts/:provider/status
 pub async fn status(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let provider = provider_or_error(&provider)?;
-    ensure_user(&state, &user)?;
+    let locale = request_locale.locale();
+    let provider = provider_or_error(locale, &provider)?;
+    ensure_user(locale, &state, &user)?;
     let account = if provider == ai_accounts::CLAUDE_CODE {
-        let vm = botagent::vm::get_user_vm(agent_service()?, &user.user_id)
-            .map_err(|(code, message)| err(code, &message))?;
+        let vm = botagent::vm::get_user_vm(agent_service(locale)?, &user.user_id)
+            .map_err(|(code, message)| err_upstream(code, &message))?;
         match vm {
             Some(row) => {
-                let status = botagent::claude::status(agent_service()?, &row.vm_name)
+                let status = botagent::claude::status(agent_service(locale)?, &row.vm_name)
                     .await
-                    .map_err(|(code, message)| err(code, &message))?;
+                    .map_err(|(code, message)| err_upstream(code, &message))?;
                 if status.state == "linked" {
                     let _ = ai_accounts::mark_linked(
                         &state.conn,
@@ -160,10 +170,12 @@ pub async fn status(
 pub async fn disconnect(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let provider = provider_or_error(&provider)?;
-    ensure_user(&state, &user)?;
+    let locale = request_locale.locale();
+    let provider = provider_or_error(locale, &provider)?;
+    ensure_user(locale, &state, &user)?;
     match provider {
         ai_accounts::CLAUDE_CODE => {
             if let Some(service) = crate::core::bot::agent_vm_hook::service() {
@@ -180,26 +192,20 @@ pub async fn disconnect(
                 None,
                 None,
             )
-            .map_err(|error| {
-                log::warn!("ai accounts: disconnect failed: {error}");
-                err(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Could not disconnect the account",
-                )
-            })?;
+            .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
         }
         ai_accounts::CHATGPT_PLAN => {
             ai_accounts_chatgpt::disconnect(&state.conn, user.user_id)
                 .await
-                .map_err(|error| {
-                    log::warn!("ai accounts: chatgpt disconnect failed: {error}");
-                    err(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Could not disconnect the account",
-                    )
-                })?;
+                .map_err(|error| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
         }
-        _ => return Err(err(StatusCode::BAD_REQUEST, "Unknown AI account provider")),
+        _ => {
+            return Err(err(
+                locale,
+                StatusCode::BAD_REQUEST,
+                "error-ai-account-unknown-provider",
+            ))
+        }
     }
     Ok(Json(json!({ "provider": provider, "status": "unlinked" })))
 }

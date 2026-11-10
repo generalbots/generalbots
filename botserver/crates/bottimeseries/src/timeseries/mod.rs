@@ -70,3 +70,7 @@ mod tag;
 mod write_point;
 mod message;
 mod time_series_error;
+
+#[cfg(test)]
+#[path = "line_protocol_tests.rs"]
+mod line_protocol_tests;

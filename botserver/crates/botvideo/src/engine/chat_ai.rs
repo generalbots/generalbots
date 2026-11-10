@@ -417,3 +417,7 @@ fn extract_quoted_text(message: &str) -> Option<String> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "chat_ai_tests.rs"]
+mod chat_ai_tests;

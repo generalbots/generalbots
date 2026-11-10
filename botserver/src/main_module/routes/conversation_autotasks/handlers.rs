@@ -11,7 +11,8 @@ use uuid::Uuid;
 use super::store::{conversation_bot, load_all_rows, load_rows};
 use super::types::{next_run_for, respond, AutotaskRow, CreateAutotaskRequest, NewAutotask};
 use super::{
-    api_error, api_error_key, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED,
+    api_error, api_error_db, resolve_user, workspace, ApiError, STATUS_FAILED,
+    STATUS_ORPHANED,
     STATUS_PENDING, STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
 };
 use botschema::conversation_autotasks as table;
@@ -23,7 +24,8 @@ pub async fn list(
     Path(conversation_id): Path<Uuid>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
-    let rows = load_rows(&state, conversation_id, user_id)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let rows = load_rows(&locale, &state, conversation_id, user_id)?;
     // Reconcile lazily: the workspace is usually warm when the conversation is
     // open, and this keeps the indicator honest without a boot-time VM sweep.
     for row in &rows {
@@ -37,7 +39,7 @@ pub async fn list(
             workspace::refresh(&state, row).await;
         }
     }
-    let rows = load_rows(&state, conversation_id, user_id)?;
+    let rows = load_rows(&locale, &state, conversation_id, user_id)?;
     Ok(Json(respond(&rows)))
 }
 
@@ -48,7 +50,8 @@ pub async fn list_all(
     headers: HeaderMap,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
-    let rows = load_all_rows(&state, user_id)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let rows = load_all_rows(&locale, &state, user_id)?;
     // Lazy reconciliation keeps the displayed status honest.
     for row in &rows {
         if row.status == STATUS_RUNNING
@@ -58,7 +61,7 @@ pub async fn list_all(
             workspace::refresh(&state, row).await;
         }
     }
-    let rows = load_all_rows(&state, user_id)?;
+    let rows = load_all_rows(&locale, &state, user_id)?;
     Ok(Json(json!({ "autotasks": rows })))
 }
 
@@ -70,27 +73,22 @@ pub async fn create(
     Json(body): Json<CreateAutotaskRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let title = body.title.trim();
     let schedule = body.schedule.trim();
     let command = body.command.trim();
     if title.is_empty() || schedule.is_empty() || command.is_empty() {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "title, schedule and command are required",
-        ));
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-autotask-fields-required"));
     }
     let kind = body.kind.as_deref().unwrap_or("cron").to_ascii_lowercase();
     if kind != "cron" && kind != "systemd" {
-        return Err(api_error(
-            StatusCode::BAD_REQUEST,
-            "kind must be 'cron' or 'systemd'",
-        ));
+        return Err(api_error(&locale, StatusCode::BAD_REQUEST, "error-autotask-kind-invalid"));
     }
-    let bot_id = conversation_bot(&state, conversation_id, user_id)?;
+    let bot_id = conversation_bot(&locale, &state, conversation_id, user_id)?;
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     let new_row = NewAutotask {
         conversation_id,
         bot_id,
@@ -107,7 +105,7 @@ pub async fn create(
     let row = diesel::insert_into(table::table)
         .values(&new_row)
         .get_result::<AutotaskRow>(&mut conn)
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     // Never hold a pooled connection across the workspace call: installing a
     // job can take seconds and would starve the pool.
     drop(conn);
@@ -131,7 +129,7 @@ pub async fn create(
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     let updated = diesel::update(table::table.find(row.id))
         .set((
             table::status.eq(&status),
@@ -140,7 +138,7 @@ pub async fn create(
             table::updated_at.eq(Utc::now()),
         ))
         .get_result::<AutotaskRow>(&mut conn)
-        .map_err(|db_error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &db_error.to_string()))?;
+        .map_err(|db_error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, db_error))?;
     log::info!(
         "conversation autotask {} created ({} / {}) status={}",
         updated.id,
@@ -162,21 +160,21 @@ pub async fn cancel(
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     let row = table::table
         .filter(table::id.eq(id))
         .filter(table::user_id.eq(user_id))
         .first::<AutotaskRow>(&mut conn)
         .optional()
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?
+        .ok_or_else(|| api_error(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
     drop(conn);
 
     let removal_error = workspace::remove(&row).await;
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     let updated = diesel::update(table::table.find(row.id))
         .set((
             table::status.eq(STATUS_STOPPED),
@@ -184,7 +182,7 @@ pub async fn cancel(
             table::updated_at.eq(Utc::now()),
         ))
         .get_result::<AutotaskRow>(&mut conn)
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     Ok(Json(json!({ "autotask": updated })))
 }
 
@@ -200,23 +198,23 @@ pub async fn delete(
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     let row = table::table
         .filter(table::id.eq(id))
         .filter(table::user_id.eq(user_id))
         .first::<AutotaskRow>(&mut conn)
         .optional()
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?
+        .ok_or_else(|| api_error(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
     drop(conn);
 
     let _ = workspace::remove(&row).await;
     let mut conn = state
         .conn
         .get()
-        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::SERVICE_UNAVAILABLE, error))?;
     diesel::delete(table::table.filter(table::id.eq(id)))
         .execute(&mut conn)
-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+        .map_err(|error| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, error))?;
     Ok(Json(json!({ "deleted": true })))
 }
