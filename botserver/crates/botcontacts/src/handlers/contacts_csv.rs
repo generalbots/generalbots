@@ -15,6 +15,7 @@ use crate::audit;
 use crate::models::CrmContact;
 use crate::requests::CsvImportReport;
 use crate::schema::crm_contacts;
+use super::csv_parse::{csv_opt, normalise_email};
 use crate::scope::{branch_from_jwt, email_from_jwt};
 use crate::CrateState;
 
@@ -24,15 +25,6 @@ fn get_bot_context(state: &CrateState) -> Uuid {
 
 fn db_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-}
-
-fn csv_opt(value: &Option<String>) -> String {
-    let raw = value.as_deref().unwrap_or("");
-    if raw.contains(',') || raw.contains('"') || raw.contains('\n') {
-        format!("\"{}\"", raw.replace('"', "\"\""))
-    } else {
-        raw.to_string()
-    }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -124,15 +116,23 @@ pub async fn import_contacts_csv(
     };
     let now = chrono::Utc::now();
     let dry_run = query.dry_run.unwrap_or(false);
+    // E-mails already seen in *this* file: without it a spreadsheet that lists
+    // the same contact twice imports two rows, because the duplicate check
+    // below only looks at what is already in the database.
+    let mut seen_emails: std::collections::HashSet<String> = std::collections::HashSet::new();
     for (idx, row) in rows.iter().enumerate() {
-        let email = row.email.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        let email = normalise_email(row.email.as_deref());
         let has_name = row.first_name.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some()
             || row.last_name.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some();
         if email.is_none() && !has_name {
             report.errors.push((idx + 1, "row has neither email nor name".to_string()));
             continue;
         }
-        if let Some(mail) = email {
+        if let Some(mail) = email.as_deref() {
+            if !seen_emails.insert(mail.to_string()) {
+                report.skipped_duplicates += 1;
+                continue;
+            }
             let exists: i64 = crm_contacts::table
                 .filter(crm_contacts::branch_id.eq(branch_id))
                 .filter(crm_contacts::email.ilike(mail))
@@ -280,3 +280,7 @@ fn parse_contacts_csv(body: &str) -> Result<Vec<CsvContactRow>, (StatusCode, Str
     }
     Ok(rows)
 }
+
+#[cfg(test)]
+#[path = "contacts_csv_tests.rs"]
+mod contacts_csv_tests;

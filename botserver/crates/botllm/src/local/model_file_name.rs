@@ -11,3 +11,7 @@ pub(super) fn model_file_name(model: &str) -> &str {
     }
     model.rsplit(['/', '\\']).next().unwrap_or(model)
 }
+
+#[cfg(test)]
+#[path = "model_file_name_tests.rs"]
+mod model_file_name_tests;

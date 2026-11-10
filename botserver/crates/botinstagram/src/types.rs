@@ -116,3 +116,7 @@ pub fn create_media_template(media_type: &str, attachment_id: &str) -> serde_jso
         }
     })
 }
+
+#[cfg(test)]
+#[path = "types_tests.rs"]
+mod tests;

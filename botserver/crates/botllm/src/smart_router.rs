@@ -34,6 +34,70 @@ impl OptimizationGoal {
     }
 }
 
+/// Model returned when no candidate satisfies the requested constraints.
+pub const DEFAULT_MODEL: &str = "gpt-5.6-sol";
+
+/// Score used by [`OptimizationGoal::Balanced`]: 40 % success rate, 30 % speed
+/// and 30 % cost.
+///
+/// A zero latency is treated as the 1 ms floor: `track_performance` records
+/// `elapsed().as_millis()`, which is legitimately `0` for an instant response,
+/// and `1000.0 / 0.0` is `+inf` — one such sample would pin that model as the
+/// permanent winner of every balanced comparison.
+fn balanced_score(p: &ModelPerformance) -> f64 {
+    let latency_ms = p.avg_latency_ms.max(1) as f64;
+    (p.success_rate * 0.4)
+        + ((1000.0 / latency_ms) * 0.3)
+        + ((1.0 / (p.avg_cost_per_token + 0.001)) * 0.3)
+}
+
+/// Pure model-selection decision: apply the cost and latency ceilings, then
+/// pick the best candidate for `goal`.
+///
+/// Returns [`DEFAULT_MODEL`] when the candidate set is empty, before or after
+/// filtering, so a caller never has to handle a missing model.
+pub fn select_model(
+    candidates: &[ModelPerformance],
+    goal: OptimizationGoal,
+    max_cost: Option<f64>,
+    max_latency: Option<u64>,
+) -> Option<String> {
+    let filtered: Vec<&ModelPerformance> = candidates
+        .iter()
+        .filter(|p| max_cost.is_none_or(|ceiling| p.avg_cost_per_token <= ceiling))
+        .filter(|p| max_latency.is_none_or(|ceiling| p.avg_latency_ms <= ceiling))
+        .collect();
+
+    if filtered.is_empty() {
+        return Some(DEFAULT_MODEL.to_string());
+    }
+
+    let selected = match goal {
+        OptimizationGoal::Speed => filtered.iter().min_by_key(|p| p.avg_latency_ms),
+        OptimizationGoal::Cost => filtered.iter().min_by(|a, b| {
+            a.avg_cost_per_token
+                .partial_cmp(&b.avg_cost_per_token)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
+        OptimizationGoal::Quality => filtered.iter().max_by(|a, b| {
+            a.success_rate
+                .partial_cmp(&b.success_rate)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
+        OptimizationGoal::Balanced => filtered.iter().max_by(|a, b| {
+            balanced_score(a)
+                .partial_cmp(&balanced_score(b))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
+    };
+
+    Some(
+        selected
+            .map(|p| p.model_name.clone())
+            .unwrap_or_else(|| DEFAULT_MODEL.to_string()),
+    )
+}
+
 pub struct SmartLLMRouter {
     performance_cache: Arc<tokio::sync::RwLock<HashMap<String, ModelPerformance>>>,
     _app_state: Arc<AppState>,
@@ -55,50 +119,15 @@ impl SmartLLMRouter {
         max_latency: Option<u64>,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let performance_data = self.performance_cache.read().await;
+        let candidates: Vec<ModelPerformance> = performance_data.values().cloned().collect();
 
-        let mut candidates: Vec<&ModelPerformance> = performance_data.values().collect();
-
-        // Filter by constraints
-        if let Some(max_cost) = max_cost {
-            candidates.retain(|p| p.avg_cost_per_token <= max_cost);
-        }
-
-        if let Some(max_latency) = max_latency {
-            candidates.retain(|p| p.avg_latency_ms <= max_latency);
-        }
-
-        if candidates.is_empty() {
-            return Ok("gpt-5.6-sol".to_string()); // Fallback model
-        }
-
-        // Select based on optimization goal
-        let selected = match optimization_goal {
-            OptimizationGoal::Speed => candidates.iter().min_by_key(|p| p.avg_latency_ms),
-            OptimizationGoal::Cost => candidates.iter().min_by(|a, b| {
-                a.avg_cost_per_token
-                    .partial_cmp(&b.avg_cost_per_token)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            }),
-            OptimizationGoal::Quality => candidates
-                .iter()
-                .max_by(|a, b| a.success_rate.partial_cmp(&b.success_rate).unwrap_or(std::cmp::Ordering::Equal)),
-            OptimizationGoal::Balanced => {
-                // Weighted score: 40% success rate, 30% speed, 30% cost
-                candidates.iter().max_by(|a, b| {
-                    let score_a = (a.success_rate * 0.4)
-                        + ((1000.0 / a.avg_latency_ms as f64) * 0.3)
-                        + ((1.0 / (a.avg_cost_per_token + 0.001)) * 0.3);
-                    let score_b = (b.success_rate * 0.4)
-                        + ((1000.0 / b.avg_latency_ms as f64) * 0.3)
-                        + ((1.0 / (b.avg_cost_per_token + 0.001)) * 0.3);
-                    score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
-                })
-            }
-        };
-
-        Ok(selected
-            .map(|p| p.model_name.clone())
-            .unwrap_or_else(|| "gpt-5.6-sol".to_string()))
+        Ok(select_model(
+            &candidates,
+            optimization_goal,
+            max_cost,
+            max_latency,
+        )
+        .unwrap_or_else(|| DEFAULT_MODEL.to_string()))
     }
 
     pub async fn track_performance(
@@ -192,3 +221,7 @@ pub async fn enhanced_llm_call(
 
     Ok(response)
 }
+
+#[cfg(test)]
+#[path = "smart_router_tests.rs"]
+mod smart_router_tests;

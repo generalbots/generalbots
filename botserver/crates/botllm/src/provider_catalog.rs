@@ -328,3 +328,7 @@ pub fn profile_for_type(provider_type: LLMProviderType) -> Option<&'static Provi
         .iter()
         .find(|p| p.provider_type == provider_type)
 }
+
+#[cfg(test)]
+#[path = "provider_catalog_tests.rs"]
+mod provider_catalog_tests;

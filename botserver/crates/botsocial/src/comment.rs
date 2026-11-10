@@ -259,3 +259,7 @@ impl IntoResponse for SocialError {
         (status, Json(serde_json::json!({ "error": message }))).into_response()
     }
 }
+
+#[cfg(test)]
+#[path = "comment_tests.rs"]
+mod tests;

@@ -14,12 +14,19 @@ pub(super) fn extract_base_url(url: &str) -> String {
 }
 
 /// True for the loopback endpoints the managed llama.cpp servers bind to.
+///
+/// `Url::host_str` keeps the brackets of an IPv6 literal (`[::1]`), so they are
+/// stripped before the comparison: an IPv6 loopback URL must be recognised as
+/// local, otherwise a dead `http://[::1]:8082` embedding endpoint is left
+/// configured and RAG waits on it (#1799).
 pub fn is_loopback_url(url: &str) -> bool {
     match url::Url::parse(url) {
-        Ok(parsed) => matches!(
-            parsed.host_str(),
-            Some("localhost") | Some("127.0.0.1") | Some("::1")
-        ),
+        Ok(parsed) => parsed.host_str().is_some_and(|host| {
+            matches!(
+                host.trim_matches(['[', ']']),
+                "localhost" | "127.0.0.1" | "::1"
+            )
+        }),
         Err(_) => false,
     }
 }
@@ -346,11 +353,28 @@ pub async fn start_embedding_server(
 
     Ok(())
 }
+/// Default port used when the configured URL carries no usable port.
+///
+/// `--port` is handed to llama-server verbatim, so an empty or non-numeric
+/// segment (a bare host, an IPv6 literal without a port, a garbage value) must
+/// resolve to the documented default instead of starting the server with an
+/// empty argument.
+const DEFAULT_LLM_PORT: &str = "8081";
+
 pub(super) fn extract_port(url: &str) -> &str {
-    url.rsplit(':')
+    let candidate = url
+        .rsplit(':')
         .next()
-        .unwrap_or("8081")
+        .unwrap_or(DEFAULT_LLM_PORT)
         .split('/')
         .next()
-        .unwrap_or("8081")
+        .unwrap_or(DEFAULT_LLM_PORT);
+    if candidate.is_empty() || !candidate.chars().all(|c| c.is_ascii_digit()) {
+        return DEFAULT_LLM_PORT;
+    }
+    candidate
 }
+
+#[cfg(test)]
+#[path = "extract_base_url_tests.rs"]
+mod extract_base_url_tests;

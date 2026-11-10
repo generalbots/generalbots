@@ -5,6 +5,7 @@ pub mod contacts;
 pub mod contacts_csv;
 pub mod crm;
 pub mod csv_io;
+pub mod csv_parse;
 pub mod deals;
 pub mod deals_mutate;
 pub mod lifecycle;

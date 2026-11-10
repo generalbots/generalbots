@@ -208,7 +208,7 @@ fn duplicate_creates_an_independent_copy_at_the_requested_position() {
     // The copy's child must be addressable on its own (#2069): a shared id
     // makes `remove_block` delete the original child instead of the copy's.
     assert_ne!(copy.children[0].id, child_id);
-    assert_eq!(blocks[1].children[0].id, child_id);
+    assert_eq!(blocks[2].children[0].id, child_id);
 }
 
 #[test]

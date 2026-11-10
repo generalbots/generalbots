@@ -325,9 +325,13 @@ impl botlib::traits::ChannelAdapter for InstagramAdapter {
                 if let Some(messaging) = first_entry["messaging"].as_array() {
                     if let Some(first_message) = messaging.first() {
                         if let Some(message) = first_message["message"].as_object() {
-                            if let Some(text) = message["text"].as_str() {
+                            // `Map` indexing panics on a missing key, so read
+                            // attachment-only messages through `get`.
+                            if let Some(text) = message.get("text").and_then(|v| v.as_str()) {
                                 return Ok(Some(text.to_string()));
-                            } else if let Some(attachments) = message["attachments"].as_array() {
+                            } else if let Some(attachments) =
+                                message.get("attachments").and_then(|v| v.as_array())
+                            {
                                 if let Some(first_attachment) = attachments.first() {
                                     let attachment_type =
                                         first_attachment["type"].as_str().unwrap_or("unknown");
@@ -338,7 +342,9 @@ impl botlib::traits::ChannelAdapter for InstagramAdapter {
                                 }
                             }
                         } else if let Some(postback) = first_message["postback"].as_object() {
-                            if let Some(payload_str) = postback["payload"].as_str() {
+                            if let Some(payload_str) =
+                                postback.get("payload").and_then(|v| v.as_str())
+                            {
                                 return Ok(Some(format!("Postback: {}", payload_str)));
                             }
                         }
@@ -387,3 +393,7 @@ impl botlib::traits::ChannelAdapter for InstagramAdapter {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "adapter_tests.rs"]
+mod tests;

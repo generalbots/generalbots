@@ -22,6 +22,42 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// Upper bound on the images one campaign request may produce: the endpoint
+/// fans out to an image backend, so an unbounded `num_images` would turn a
+/// single HTTP call into an unbounded generation bill.
+pub(super) const MAX_CAMPAIGN_IMAGES: u32 = 10;
+
+/// How many images a campaign produces: `num_images`, defaulting to one and
+/// clamped to `1..=MAX_CAMPAIGN_IMAGES`. A request that asks for zero images
+/// still gets the documented default of one, never an empty gallery.
+pub(super) fn campaign_image_count(num_images: Option<u32>) -> u32 {
+    num_images.unwrap_or(1).clamp(1, MAX_CAMPAIGN_IMAGES)
+}
+
+/// Placeholder image URL for one image of a campaign. The prompt head is
+/// byte-truncated at a char boundary so multibyte text stays valid UTF-8, then
+/// URL-encoded because it travels as a query parameter.
+pub(super) fn campaign_image_url(prompt: &str, index: u32) -> String {
+    let short = botlib::text::truncate_at_char_boundary(prompt.trim(), 30);
+    format!(
+        "https://via.placeholder.com/1080x1080.png?text={}&n={}",
+        urlencoding::encode(short),
+        index + 1
+    )
+}
+
+/// Caption published with the campaign: the prompt head plus the campaign tags.
+pub(super) fn campaign_caption(prompt: &str) -> String {
+    format!(
+        "{} #generalbots #instagram #campaign",
+        prompt.chars().take(120).collect::<String>()
+    )
+}
+
+#[cfg(test)]
+#[path = "campaign_tests.rs"]
+mod campaign_tests;
+
 /// Request body for creating a new Instagram campaign.
 #[derive(Debug, Deserialize)]
 pub struct CreateCampaignRequest {
@@ -76,27 +112,29 @@ pub async fn create_campaign(
  let _get_config = state.get_config.clone();
  let _adapter = InstagramAdapter::with_config(&_get_config, &bot_id);
 
- // Generate image URL (placeholder - in production this would call Stable Diffusion)
- let image_url = format!("https://via.placeholder.com/1080x1080.png?text={}", urlencoding::encode(botlib::text::truncate_at_char_boundary(&req.prompt, 30)));
- 
- let images = vec![CampaignImage {
- url: image_url.clone(),
+ // Placeholder images (in production this would call Stable Diffusion):
+ // `num_images` drives how many are produced, one per requested image.
+ let image_count = campaign_image_count(req.num_images);
+ let images: Vec<CampaignImage> = (0..image_count)
+ .map(|index| CampaignImage {
+ url: campaign_image_url(&req.prompt, index),
  description: format!(
             "Generated image for: {}",
-            botlib::text::truncate_at_char_boundary(&req.prompt, 60)
+            botlib::text::truncate_at_char_boundary(req.prompt.trim(), 60)
         ),
- }];
+ })
+ .collect();
 
  // Generate caption with LLM (placeholder)
- let caption = format!("{} #generalbots #instagram #campaign", req.prompt.chars().take(120).collect::<String>());
+ let caption = campaign_caption(&req.prompt);
 
- // If schedule is provided, store for later publishing
- // Otherwise, publish immediately if num_images > 0
- if req.num_images.unwrap_or(0) > 0 {
- // In production: call Stable Diffusion API via botmodels
- // For now, just log the intent
- log::info!("Campaign {} created with prompt: {}", campaign_id, req.prompt);
- }
+ // The schedule is stored by the caller; nothing is published here.
+ log::info!(
+ "Campaign {} created with {} image(s) for prompt: {}",
+ campaign_id,
+ image_count,
+ req.prompt
+ );
 
  (
  StatusCode::OK,

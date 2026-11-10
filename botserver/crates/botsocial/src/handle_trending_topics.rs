@@ -1,5 +1,46 @@
 use super::*;
 
+/// How many hashtags the trending endpoint returns.
+const TRENDING_TOPIC_LIMIT: usize = 10;
+/// How many characters of a post the activity feed shows before eliding.
+const ACTIVITY_SUMMARY_LIMIT: usize = 80;
+
+/// Ranks the hashtags of the loaded posts: most used first, alphabetically for
+/// ties so the endpoint is deterministic (a `HashMap` iteration order is not),
+/// capped at `limit`. Blank tags are ignored.
+pub(super) fn rank_hashtags<'a>(
+    tags: impl IntoIterator<Item = &'a str>,
+    limit: usize,
+) -> Vec<TrendingTopic> {
+    let mut counts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    for tag in tags {
+        // Tags arrive from user content: a padded ` rust ` and `rust` are the
+        // same topic, and a blank tag is not a topic at all.
+        let tag = tag.trim();
+        if !tag.is_empty() {
+            *counts.entry(tag.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    let mut ranked: Vec<TrendingTopic> = counts
+        .into_iter()
+        .map(|(tag, count)| TrendingTopic { tag, count })
+        .collect();
+    ranked.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.tag.cmp(&b.tag)));
+    ranked.truncate(limit);
+    ranked
+}
+
+/// First `limit` characters of a post, with a trailing ellipsis when it was
+/// cut. Counting characters (not bytes) keeps multibyte text intact.
+pub(super) fn summarise_content(content: &str, limit: usize) -> String {
+    if content.chars().count() > limit {
+        format!("{}…", content.chars().take(limit).collect::<String>())
+    } else {
+        content.to_string()
+    }
+}
+
 pub async fn handle_trending_topics(
     State(state): State<Arc<SocialState>>,
 ) -> Result<Json<Vec<TrendingTopic>>, SocialError> {
@@ -18,21 +59,12 @@ pub async fn handle_trending_topics(
             .load(&mut conn)
             .map_err(|e| SocialError::Database(e.to_string()))?;
 
-        let mut counts: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-        for p in &db_posts {
-            for tag in p.hashtags.iter().flatten() {
-                if !tag.is_empty() {
-                    *counts.entry(tag.clone()).or_insert(0) += 1;
-                }
-            }
-        }
-
-        let mut ranked: Vec<TrendingTopic> = counts
-            .into_iter()
-            .map(|(tag, count)| TrendingTopic { tag, count })
-            .collect();
-        ranked.sort_by_key(|a| std::cmp::Reverse(a.count));
-        ranked.truncate(10);
+        let ranked = rank_hashtags(
+            db_posts
+                .iter()
+                .flat_map(|p| p.hashtags.iter().flatten().map(String::as_str)),
+            TRENDING_TOPIC_LIMIT,
+        );
         Ok::<_, SocialError>(ranked)
     })
     .await
@@ -61,11 +93,7 @@ pub async fn handle_recent_activity(
         let activity: Vec<ActivityItem> = db_posts
             .into_iter()
             .map(|p| {
-                let summary = if p.content.chars().count() > 80 {
-                    format!("{}…", p.content.chars().take(80).collect::<String>())
-                } else {
-                    p.content.clone()
-                };
+                let summary = summarise_content(&p.content, ACTIVITY_SUMMARY_LIMIT);
                 ActivityItem {
                     id: p.id,
                     author_id: p.author_id,
@@ -192,3 +220,7 @@ pub fn configure_social_ui_routes() -> Router<Arc<SocialState>> {
         .route("/suite/social/compose", get(handle_social_compose_page))
         .route("/suite/social/:id", get(handle_social_post_page))
 }
+
+#[cfg(test)]
+#[path = "handle_trending_topics_tests.rs"]
+mod handle_trending_topics_tests;

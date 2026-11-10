@@ -16,6 +16,7 @@ use crate::audit;
 use crate::models::CrmDeal;
 use crate::requests::{CsvImportReport, CsvLeadRow};
 use crate::schema::{crm_accounts, crm_contacts, crm_deals};
+use crate::handlers::csv_parse::{csv_cell, csv_number, csv_opt, normalise_email, parse_leads_csv};
 use crate::scope::{branch_from_jwt, email_from_jwt};
 use crate::CrateState;
 
@@ -36,22 +37,6 @@ fn db_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
 // ────────────────────────────────────────────────────────────────────────────
 // CSV export / import
 // ────────────────────────────────────────────────────────────────────────────
-
-fn csv_cell(value: &str) -> String {
-    if value.contains(',') || value.contains('"') || value.contains('\n') {
-        format!("\"{}\"", value.replace('"', "\"\""))
-    } else {
-        value.to_string()
-    }
-}
-
-fn csv_opt(value: &Option<String>) -> String {
-    csv_cell(value.as_deref().unwrap_or(""))
-}
-
-fn csv_number(value: Option<f64>) -> String {
-    value.map(|v| format!("{v}")).unwrap_or_default()
-}
 
 /// `GET /api/crm/leads/export` — the branch's leads as `text/csv`, honoring
 /// the same `stage`/`search` filters as the list endpoint.
@@ -195,8 +180,12 @@ pub async fn import_leads_csv(
     };
     let dry_run = query.dry_run.unwrap_or(false);
     let now = chrono::Utc::now();
+    // E-mails already seen in *this* file: the query below only detects rows
+    // that already exist in the branch, so a repeated row inside one
+    // spreadsheet used to import twice.
+    let mut seen_emails: std::collections::HashSet<String> = std::collections::HashSet::new();
     for (idx, row) in rows.iter().enumerate() {
-        let email = row.email.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        let email = normalise_email(row.email.as_deref());
         let has_name = row.first_name.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some()
             || row.last_name.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some()
             || row.title.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some();
@@ -206,7 +195,11 @@ pub async fn import_leads_csv(
         }
 
         // Branch-wide dedupe on email — the same key the lead form uses.
-        if let Some(mail) = email {
+        if let Some(mail) = email.as_deref() {
+            if !seen_emails.insert(mail.to_string()) {
+                report.skipped_duplicates += 1;
+                continue;
+            }
             let match_ids: Vec<Uuid> = crm_contacts::table
                 .filter(crm_contacts::branch_id.eq(branch_id))
                 .filter(crm_contacts::email.ilike(mail))
@@ -239,7 +232,7 @@ pub async fn import_leads_csv(
         let contact_id = email.and_then(|mail| {
             crm_contacts::table
                 .filter(crm_contacts::branch_id.eq(branch_id))
-                .filter(crm_contacts::email.ilike(mail))
+                .filter(crm_contacts::email.ilike(mail.as_str()))
                 .select(crm_contacts::id)
                 .first::<Uuid>(&mut conn)
                 .ok()
@@ -363,40 +356,6 @@ pub async fn import_leads_csv(
         },
     );
     Ok(Json(report))
-}
-
-fn parse_leads_csv(body: &str) -> Result<Vec<CsvLeadRow>, (StatusCode, String)> {
-    let mut rows = Vec::new();
-    let mut reader = csv::ReaderBuilder::new()
-        .has_headers(true)
-        .flexible(true)
-        .from_reader(body.as_bytes());
-    let headers = reader
-        .headers()
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid CSV headers: {e}")))?
-        .clone();
-    let idx_of = |name: &str| headers.iter().position(|h| h.eq_ignore_ascii_case(name));
-    for rec in reader.records() {
-        let rec = rec.map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid CSV: {e}")))?;
-        let get = |name: &str| -> Option<String> {
-            let idx = idx_of(name)?;
-            rec.get(idx).map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
-        };
-        rows.push(CsvLeadRow {
-            title: get("title"),
-            first_name: get("first_name"),
-            last_name: get("last_name"),
-            email: get("email"),
-            phone: get("phone"),
-            company: get("company"),
-            job_title: get("job_title"),
-            source: get("source"),
-            value: get("value").and_then(|v| v.replace(',', ".").parse::<f64>().ok()),
-            currency: get("currency"),
-            stage: get("stage"),
-        });
-    }
-    Ok(rows)
 }
 
 // ────────────────────────────────────────────────────────────────────────────

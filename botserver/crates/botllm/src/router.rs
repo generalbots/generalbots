@@ -229,3 +229,7 @@ pub async fn chat_with_fallback(
         "all LLM profiles failed after {attempted} attempt(s): {last_error}"
     ))
 }
+
+#[cfg(test)]
+#[path = "router_tests.rs"]
+mod router_tests;

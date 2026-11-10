@@ -95,15 +95,40 @@ pub async fn handle_send_praise(
 
     Ok(Json(result))
 }
+/// Escapes the HTML-significant characters of user-authored text so a post
+/// cannot inject markup into the feed fragment (stored XSS).
+fn escape_html(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for character in input.chars() {
+        match character {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#39;"),
+            _ => out.push(character),
+        }
+    }
+    out
+}
+
 pub(super) fn render_post_card_html(post: &PostWithAuthor) -> String {
     let reactions_html: String = post
         .post
         .reaction_counts
         .iter()
-        .map(|(emoji, count)| format!(r#"<span class="reaction">{emoji} {count}</span>"#))
+        .map(|(emoji, count)| {
+            format!(
+                r#"<span class="reaction">{} {count}</span>"#,
+                escape_html(emoji)
+            )
+        })
         .collect();
 
     let avatar_url = post.author.avatar_url.as_deref().unwrap_or("/assets/default-avatar.svg");
+    let avatar_safe = escape_html(avatar_url);
+    let author_safe = escape_html(&post.author.name);
+    let content_safe = escape_html(&post.post.content);
     let post_time = post.post.created_at.format("%b %d, %Y");
     let post_id_str = post.post.id.to_string();
     let comments_id = format!("comments-{post_id_str}");
@@ -126,10 +151,10 @@ pub(super) fn render_post_card_html(post: &PostWithAuthor) -> String {
 <div id="{comments_id}" class="comments-section"></div>
 </article>"#,
         id = post.post.id,
-        avatar = avatar_url,
-        name = post.author.name,
+        avatar = avatar_safe,
+        name = author_safe,
         time = post_time,
-        content = post.post.content,
+        content = content_safe,
         reactions = reactions_html,
         comment_count = post.post.comment_count,
     )
@@ -269,3 +294,7 @@ pub async fn handle_list_announcements(
 
     Ok(Json(result))
 }
+
+#[cfg(test)]
+#[path = "handle_add_comment_tests.rs"]
+mod tests;

@@ -64,15 +64,32 @@ pub fn apply_block_operations(blocks: &mut Vec<Block>, operations: Vec<BlockOper
                 if let Some(block_id) = op.block_id {
                     if let Some(block) = find_block(blocks, block_id) {
                         let mut new_block = block.clone();
+                        let now = Utc::now();
                         new_block.id = Uuid::new_v4();
-                        new_block.created_at = Utc::now();
-                        new_block.updated_at = Utc::now();
+                        new_block.created_at = now;
+                        new_block.updated_at = now;
+                        // A copied subtree must not share ids with the original:
+                        // `find_block`/`remove_block` are first-match, so a
+                        // shared child id would address the original block
+                        // instead of the copy (#2069).
+                        reid_subtree(&mut new_block.children, now);
                         let position = op.position.unwrap_or(blocks.len());
                         blocks.insert(position.min(blocks.len()), new_block);
                     }
                 }
             }
         }
+    }
+}
+
+/// Gives every block of a copied subtree a fresh identity, preserving the
+/// author and content. `created_at`/`updated_at` move to the copy's time.
+fn reid_subtree(blocks: &mut [Block], now: DateTime<Utc>) {
+    for block in blocks {
+        block.id = Uuid::new_v4();
+        block.created_at = now;
+        block.updated_at = now;
+        reid_subtree(&mut block.children, now);
     }
 }
 

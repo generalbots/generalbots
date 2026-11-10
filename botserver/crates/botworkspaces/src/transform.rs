@@ -47,11 +47,22 @@ pub fn transform_operations(
 
     match (&op1.op_type, &op2.op_type) {
         (TransformOpType::Insert, TransformOpType::Insert) => {
+            // Both insert into the same container: the index to shift is the
+            // first element where the paths differ. When the paths are
+            // identical there is no differing element, so the second insert
+            // must land after the first and the *last* element is the index
+            // (#2069 — identical inserts used to leave both paths untouched,
+            // so the second insert silently landed before the first).
+            let bump = if op1.path == op2.path {
+                common_prefix_len.saturating_sub(1)
+            } else {
+                common_prefix_len
+            };
             if op1.path <= op2.path {
-                if let Some(idx) = transformed_op2.path.get_mut(common_prefix_len) {
+                if let Some(idx) = transformed_op2.path.get_mut(bump) {
                     *idx += 1;
                 }
-            } else if let Some(idx) = transformed_op1.path.get_mut(common_prefix_len) {
+            } else if let Some(idx) = transformed_op1.path.get_mut(bump) {
                 *idx += 1;
             }
         }

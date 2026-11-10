@@ -217,3 +217,7 @@ impl EmbeddingService for LocalEmbeddingService {
         dot_product / (norm1 * norm2)
     }
 }
+
+#[cfg(test)]
+#[path = "hash_embedding_tests.rs"]
+mod hash_embedding_tests;

@@ -116,7 +116,7 @@ impl ForecastService {
             predicted_close_rate: confidence,
             estimated_total: avg_value * total_deals as f64 * confidence,
             confidence_score: confidence * 100.0,
-            suggested_focus: if close_soon < total_deals / 2 {
+            suggested_focus: if close_soon * 2 < total_deals {
                 "Nurture high-probability deals to improve close rate".to_string()
             } else {
                 "Pipeline health appears strong; focus on accelerating existing deals".to_string()
@@ -156,3 +156,7 @@ impl Default for ForecastService {
         Self
     }
 }
+
+#[cfg(test)]
+#[path = "forecast_tests.rs"]
+mod forecast_tests;

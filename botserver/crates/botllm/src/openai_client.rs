@@ -364,3 +364,6 @@ impl OpenAIClient {
     }
 }
 
+#[cfg(test)]
+#[path = "openai_client_tests.rs"]
+mod openai_client_tests;

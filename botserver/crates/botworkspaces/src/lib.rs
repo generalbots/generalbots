@@ -55,16 +55,24 @@ fn get_bot_context(state: &WorkspacesState) -> Uuid {
 // ui* (HTMX fragments). The public surface is unchanged: the glob re-exports
 // below expose exactly the items that were public before the split.
 mod block_ops;
+#[cfg(test)]
+mod block_ops_tests;
 mod blocks;
 mod collaboration;
 mod domain;
+#[cfg(test)]
+mod domain_tests;
 mod dto;
 mod handlers;
 mod handlers_pages;
 mod models;
 mod page_ops;
+#[cfg(test)]
+mod page_ops_tests;
 mod pages;
 mod transform;
+#[cfg(test)]
+mod transform_tests;
 mod ui;
 mod ui_current;
 mod ui_forms;

@@ -95,9 +95,11 @@ fn every_error_has_a_message_and_the_documented_status() {
             "Invalid operation: bad block",
         ),
         (
+            // `Display` keeps the driver detail for logs; the HTTP body is
+            // sanitized (see the test below).
             WorkspacesError::DbError("connection reset".to_string()),
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Database error",
+            "Database error: connection reset",
         ),
     ];
 
@@ -107,15 +109,22 @@ fn every_error_has_a_message_and_the_documented_status() {
     }
 }
 
-#[test]
-fn database_errors_never_leak_the_driver_message() {
+#[tokio::test]
+async fn database_errors_never_leak_the_driver_message_in_the_http_body() {
     use axum::response::IntoResponse;
 
     let error = WorkspacesError::DbError("password authentication failed for user gb".to_string());
-    assert!(!error.to_string().contains("password authentication"));
+    // `Display` is the log line: it keeps the detail on purpose.
+    assert!(error.to_string().contains("password authentication"));
 
     let response = error.into_response();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let bytes = axum::body::to_bytes(response.into_body(), 4096)
+        .await
+        .expect("body");
+    let body = String::from_utf8_lossy(&bytes);
+    assert!(!body.contains("password authentication"), "{body}");
+    assert!(body.contains("Database error"), "{body}");
 }
 
 #[test]
