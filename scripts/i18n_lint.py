@@ -101,7 +101,8 @@ def used_keys():
     for base in UI_DIRS:
         if not base.exists():
             continue
-        for path in list(base.rglob("*.html")) + list(base.rglob("*.js")):
+        files = sorted(list(base.rglob("*.html")) + list(base.rglob("*.js")))
+        for path in files:
             try:
                 text = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
@@ -142,7 +143,7 @@ def lint():
     english = catalog.get("en", {})
     for key, paths in used_keys().items():
         if key not in english:
-            add("MISSING", key, paths[0], f"used in {len(set(paths))} file(s)")
+            add("MISSING", key, sorted(paths)[0], f"used in {len(set(paths))} file(s)")
 
     for key, definitions in english.items():
         reference = placeholders(definitions[0][0])

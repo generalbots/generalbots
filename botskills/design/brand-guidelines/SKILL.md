@@ -11,7 +11,7 @@ source: in-repo
 
 ## Workflow
 
-1. Extract tokens: primary/secondary colours, type scale, spacing unit, logo clear space.
+1. Extract the design values: primary/secondary colours, type scale, spacing unit, logo clear space.
 2. Map each token to the target tool (CSS variables, docx styles, pptx theme colours).
 3. Logo: minimum size, clear space, never stretch, never recolour outside the allowed variants.
 4. Document the tokens used at the end of the artefact or in a companion file.
