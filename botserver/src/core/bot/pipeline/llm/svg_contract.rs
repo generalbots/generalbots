@@ -201,7 +201,11 @@ fn locate(
         return None;
     }
     let close_at = after_open + after.find(close)?;
-    let end = close_at + lower[close_at..].find('>')? + 1;
+    // The escaped form has no literal `>`: its terminator is `&gt;`.
+    let terminator = if escaped { "&gt;" } else { ">" };
+    let end = close_at + lower[close_at..].find(terminator)? + terminator.len();
+    // The prolog, when present, travels inside the fence with the root element.
+    let start = include_prolog(original, start);
     let raw = &original[start..end];
     let body = if escaped {
         unescape_markup(raw)
@@ -211,7 +215,6 @@ fn locate(
     if body.chars().count() < MIN_DRAWING_BYTES {
         return None;
     }
-    let start = include_prolog(original, start);
     Some((start, end, body))
 }
 
