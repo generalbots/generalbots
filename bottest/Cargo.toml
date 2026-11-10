@@ -60,6 +60,8 @@ rhai = { workspace = true, features = ["sync"] }
 
 [dev-dependencies]
 insta = { workspace = true }
+botschema = { workspace = true, features = ["full"] }
+botbasic_types = { workspace = true }
 
 [features]
 default = ["full"]
