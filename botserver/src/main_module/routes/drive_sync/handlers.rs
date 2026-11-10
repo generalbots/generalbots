@@ -1,36 +1,81 @@
 //! #1955 — REST surface of the local sync manager.
 
-use axum::{extract::Path as AxumPath, http::StatusCode, Json};
+use axum::{
+    extract::Path as AxumPath,
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use serde_json::{json, Value};
 
 use super::*;
+
+/// Localized error for the sync surface (#2094). `success` and the absence of a
+/// machine `code` are unchanged; only the human text is translated.
+fn failed(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    key: &str,
+    args: &[(&str, &str)],
+) -> (StatusCode, Json<Value>) {
+    let message = if args.is_empty() {
+        botcore::i18n::t(locale, key)
+    } else {
+        botcore::i18n::t_args(locale, key, args)
+    };
+    (status, Json(json!({ "success": false, "error": message })))
+}
 
 pub async fn list_jobs() -> Json<Value> {
     let jobs = tokio::task::spawn_blocking(load).await.unwrap_or_default();
     Json(json!({ "success": true, "jobs": jobs }))
 }
 
-pub async fn status() -> Json<Value> {
+pub async fn status(headers: HeaderMap) -> Json<Value> {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     match tokio::task::spawn_blocking(status_snapshot).await {
         Ok(value) => Json(value),
-        Err(error) => Json(json!({ "success": false, "error": format!("status task: {error}") })),
+        Err(error) => {
+            let message = botcore::i18n::t_args(
+                &locale,
+                "error-drive-sync-task-failed",
+                &[("task", "status"), ("error", error.to_string().as_str())],
+            );
+            Json(json!({ "success": false, "error": message }))
+        }
     }
 }
 
-pub async fn create_job(Json(input): Json<JobInput>) -> (StatusCode, Json<Value>) {
-    let local = clean_dir(&input.local_path, "local folder");
-    let drive = clean_dir(&input.drive_path, "Drive folder");
+pub async fn create_job(
+    headers: HeaderMap,
+    Json(input): Json<JobInput>,
+) -> (StatusCode, Json<Value>) {
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let local = clean_dir(
+        &locale,
+        &input.local_path,
+        "error-drive-sync-field-local-folder",
+    );
+    let drive = clean_dir(
+        &locale,
+        &input.drive_path,
+        "error-drive-sync-field-drive-folder",
+    );
     let (local, drive) = match (local, drive) {
         (Ok(local), Ok(drive)) => (local, drive),
         (Err(error), _) | (_, Err(error)) => {
-            return (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error })))
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": error })),
+            )
         }
     };
     let name = input.name.trim();
     if name.is_empty() {
-        return (
+        return failed(
+            &locale,
             StatusCode::BAD_REQUEST,
-            Json(json!({ "success": false, "error": "a job name is required" })),
+            "error-drive-sync-job-name-required",
+            &[],
         );
     }
     let job = SyncJob {
@@ -53,9 +98,11 @@ pub async fn create_job(Json(input): Json<JobInput>) -> (StatusCode, Json<Value>
     };
     let mut jobs = load();
     if jobs.iter().any(|existing| existing.name == job.name) {
-        return (
+        return failed(
+            &locale,
             StatusCode::CONFLICT,
-            Json(json!({ "success": false, "error": format!("a sync job named '{}' already exists", job.name) })),
+            "error-drive-sync-job-exists",
+            &[("name", job.name.as_str())],
         );
     }
     let mut next = jobs.clone();
@@ -72,22 +119,44 @@ pub async fn create_job(Json(input): Json<JobInput>) -> (StatusCode, Json<Value>
 
 pub async fn update_job(
     AxumPath(id): AxumPath<String>,
+    headers: HeaderMap,
     Json(input): Json<JobInput>,
 ) -> (StatusCode, Json<Value>) {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut jobs = load();
     let Some(index) = jobs.iter().position(|job| job.id == id) else {
-        return (
+        return failed(
+            &locale,
             StatusCode::NOT_FOUND,
-            Json(json!({ "success": false, "error": format!("sync job {id} not found") })),
+            "error-drive-sync-job-not-found",
+            &[("id", id.as_str())],
         );
     };
-    let local = match clean_dir(&input.local_path, "local folder") {
+    let local = match clean_dir(
+        &locale,
+        &input.local_path,
+        "error-drive-sync-field-local-folder",
+    ) {
         Ok(path) => path,
-        Err(error) => return (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error }))),
+        Err(error) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": error })),
+            )
+        }
     };
-    let drive = match clean_dir(&input.drive_path, "Drive folder") {
+    let drive = match clean_dir(
+        &locale,
+        &input.drive_path,
+        "error-drive-sync-field-drive-folder",
+    ) {
         Ok(path) => path,
-        Err(error) => return (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error }))),
+        Err(error) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": error })),
+            )
+        }
     };
     let mut job = jobs[index].clone();
     job.name = input.name.trim().to_string();
@@ -112,14 +181,20 @@ pub async fn update_job(
     }
 }
 
-pub async fn delete_job(AxumPath(id): AxumPath<String>) -> (StatusCode, Json<Value>) {
+pub async fn delete_job(
+    AxumPath(id): AxumPath<String>,
+    headers: HeaderMap,
+) -> (StatusCode, Json<Value>) {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut jobs = load();
     let before = jobs.len();
     jobs.retain(|job| job.id != id);
     if jobs.len() == before {
-        return (
+        return failed(
+            &locale,
             StatusCode::NOT_FOUND,
-            Json(json!({ "success": false, "error": format!("sync job {id} not found") })),
+            "error-drive-sync-job-not-found",
+            &[("id", id.as_str())],
         );
     }
     match save(&jobs) {
@@ -131,17 +206,27 @@ pub async fn delete_job(AxumPath(id): AxumPath<String>) -> (StatusCode, Json<Val
     }
 }
 
-pub async fn run_job(AxumPath(id): AxumPath<String>) -> (StatusCode, Json<Value>) {
-    let joined = tokio::task::spawn_blocking(move || run_job_blocking(&id)).await;
+pub async fn run_job(
+    AxumPath(id): AxumPath<String>,
+    headers: HeaderMap,
+) -> (StatusCode, Json<Value>) {
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let for_run = locale.clone();
+    let joined = tokio::task::spawn_blocking(move || run_job_blocking(&for_run, &id)).await;
     match joined {
         Ok(Ok(job)) => (
             StatusCode::OK,
             Json(json!({ "success": true, "job": job, "state": job_last_status(&job) })),
         ),
-        Ok(Err(error)) => (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error }))),
-        Err(error) => (
+        Ok(Err(error)) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": error })),
+        ),
+        Err(error) => failed(
+            &locale,
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": format!("run task: {error}") })),
+            "error-drive-sync-task-failed",
+            &[("task", "run"), ("error", error.to_string().as_str())],
         ),
     }
 }
@@ -154,16 +239,32 @@ fn job_last_status(job: &SyncJob) -> &str {
     }
 }
 
-pub async fn list_conflicts(AxumPath(id): AxumPath<String>) -> (StatusCode, Json<Value>) {
+pub async fn list_conflicts(
+    AxumPath(id): AxumPath<String>,
+    headers: HeaderMap,
+) -> (StatusCode, Json<Value>) {
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let for_scan = locale.clone();
     let joined = tokio::task::spawn_blocking(move || -> Result<Vec<SyncConflict>, String> {
         let jobs = load();
-        let job = jobs
-            .iter()
-            .find(|job| job.id == id)
-            .ok_or_else(|| format!("sync job {id} not found"))?;
-        let local = clean_dir(&job.local_path, "local folder")?;
-        let drive = clean_dir(&job.drive_path, "Drive folder")?;
-        rsync_engine::scan_conflicts(&local, &drive)
+        let job = jobs.iter().find(|job| job.id == id).ok_or_else(|| {
+            botcore::i18n::t_args(
+                &for_scan,
+                "error-drive-sync-job-not-found",
+                &[("id", id.as_str())],
+            )
+        })?;
+        let local = clean_dir(
+            &for_scan,
+            &job.local_path,
+            "error-drive-sync-field-local-folder",
+        )?;
+        let drive = clean_dir(
+            &for_scan,
+            &job.drive_path,
+            "error-drive-sync-field-drive-folder",
+        )?;
+        rsync_engine::scan_conflicts(&for_scan, &local, &drive)
     })
     .await;
     match joined {
@@ -171,27 +272,41 @@ pub async fn list_conflicts(AxumPath(id): AxumPath<String>) -> (StatusCode, Json
             StatusCode::OK,
             Json(json!({ "success": true, "conflicts": conflicts })),
         ),
-        Ok(Err(error)) => (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error }))),
-        Err(error) => (
+        Ok(Err(error)) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": error })),
+        ),
+        Err(error) => failed(
+            &locale,
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": format!("conflict task: {error}") })),
+            "error-drive-sync-task-failed",
+            &[("task", "conflict"), ("error", error.to_string().as_str())],
         ),
     }
 }
 
 pub async fn resolve_conflict(
     AxumPath(id): AxumPath<String>,
+    headers: HeaderMap,
     Json(input): Json<ResolveInput>,
 ) -> (StatusCode, Json<Value>) {
-    let joined =
-        tokio::task::spawn_blocking(move || resolve_blocking(&id, &input.path, &input.resolution))
-            .await;
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let for_resolve = locale.clone();
+    let joined = tokio::task::spawn_blocking(move || {
+        resolve_blocking(&for_resolve, &id, &input.path, &input.resolution)
+    })
+    .await;
     match joined {
         Ok(Ok(job)) => (StatusCode::OK, Json(json!({ "success": true, "job": job }))),
-        Ok(Err(error)) => (StatusCode::BAD_REQUEST, Json(json!({ "success": false, "error": error }))),
-        Err(error) => (
+        Ok(Err(error)) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": error })),
+        ),
+        Err(error) => failed(
+            &locale,
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": format!("resolve task: {error}") })),
+            "error-drive-sync-task-failed",
+            &[("task", "resolve"), ("error", error.to_string().as_str())],
         ),
     }
 }

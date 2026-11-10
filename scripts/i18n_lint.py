@@ -35,6 +35,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LOCALES = ROOT / "botlib" / "locales"
 UI_DIRS = [ROOT / "botui" / "ui"]
+# Subtrees whose strings are not resolved from the FTL catalogue, so a key the
+# linter cannot find there is not a missing translation:
+# * `vendor/` — third-party bundles (Monaco/VS Code) call their own
+#   `localize()`/`t()` with their own keys (`badge.background`, …).
+# * `wizard/` — the setup wizard ships its own dictionaries
+#   (`botui/ui/wizard/i18n/<locale>.js`) and never uses `data-i18n`; it is a
+#   separate runtime, not a consumer of `botlib/locales`.
+# Scanning them produced 239 phantom MISSING violations (195 wizard, 44 vendor)
+# that could never be fixed in the catalogue.
+SKIP_DIRS = frozenset({"vendor", "wizard"})
 FTL_KEY_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*=\s*(.*)$")
 KEY_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 PLACEHOLDER_RE = re.compile(r"\{\s*\$([A-Za-z0-9_]+)\s*\}")
@@ -103,6 +113,9 @@ def used_keys():
             continue
         files = sorted(list(base.rglob("*.html")) + list(base.rglob("*.js")))
         for path in files:
+            relative = path.relative_to(base)
+            if SKIP_DIRS.intersection(relative.parts[:-1]):
+                continue
             try:
                 text = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:

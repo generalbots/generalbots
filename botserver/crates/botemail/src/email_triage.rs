@@ -234,6 +234,10 @@ pub fn should_skip_triage(headers: &EmailHeaders) -> bool {
 }
 
 #[cfg(test)]
+#[path = "email_triage_tests.rs"]
+mod email_triage_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

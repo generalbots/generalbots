@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use super::audit::{audit_terminal, TerminalAuditRow};
 use super::terminal_rules::blocked_pattern;
-use super::{api_error, resolve_user, ApiError};
+use super::{api_error_key, resolve_user, ApiError};
 use crate::core::computer_use;
 
 #[derive(Debug, Deserialize)]
@@ -39,18 +39,21 @@ pub async fn terminal_exec(
     Json(body): Json<TerminalExecRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if !body.approved {
-        return Err(api_error(
+        return Err(api_error_key(
+            &locale,
             StatusCode::FORBIDDEN,
-            "terminal execution requires explicit user approval",
+            "error-terminal-approval-required",
         ));
     }
     // #1645 — `approved=true` alone is forgeable. Execution requires the
     // action id whose consent record /approve created.
     let action_id = body.action_id.ok_or_else(|| {
-        api_error(
+        api_error_key(
+            &locale,
             StatusCode::FORBIDDEN,
-            "terminal execution requires an approved action_id",
+            "error-terminal-action-id-required",
         )
     })?;
     if !computer_use::is_approved(action_id, user_id).await {
@@ -68,19 +71,25 @@ pub async fn terminal_exec(
                 output: "no consent record",
             },
         );
-        return Err(api_error(
+        return Err(api_error_key(
+            &locale,
             StatusCode::FORBIDDEN,
-            "no consent record for this action; approve it first",
+            "error-computer-use-no-consent",
         ));
     }
     let command = body.command.trim();
     if command.is_empty() {
-        return Err(api_error(StatusCode::BAD_REQUEST, "command is required"));
+        return Err(api_error_key(
+            &locale,
+            StatusCode::BAD_REQUEST,
+            "error-terminal-command-required",
+        ));
     }
     if command.len() > 16_000 {
-        return Err(api_error(
+        return Err(api_error_key(
+            &locale,
             StatusCode::BAD_REQUEST,
-            "command is limited to 16000 characters",
+            "error-terminal-command-too-long",
         ));
     }
     if blocked_pattern(command).is_some() {
@@ -99,9 +108,10 @@ pub async fn terminal_exec(
                 output: "blocked destructive pattern",
             },
         );
-        return Err(api_error(
+        return Err(api_error_key(
+            &locale,
             StatusCode::FORBIDDEN,
-            "command matches a blocked destructive pattern",
+            "error-terminal-blocked-pattern",
         ));
     }
     #[cfg(feature = "agent-vm")]
@@ -123,9 +133,10 @@ pub async fn terminal_exec(
                 output: "workspace container is not running",
             },
         );
-        api_error(
+        api_error_key(
+            &locale,
             StatusCode::CONFLICT,
-            "The agent workspace is not running. Finish provisioning (or restart the desktop app), then retry.",
+            "error-terminal-workspace-stopped",
         )
     })?;
 
@@ -167,7 +178,10 @@ pub async fn terminal_exec(
         }
         Ok(Ok(Err(error))) => json!({ "status": "failed", "error": error.to_string() }),
         Ok(Err(error)) => json!({ "status": "failed", "error": error.to_string() }),
-        Err(_) => json!({ "status": "failed", "error": "command timed out" }),
+        Err(_) => json!({
+            "status": "failed",
+            "error": botcore::i18n::t(&locale, "error-terminal-timeout"),
+        }),
     };
     botlog::safe_info!(
         "terminal exec for {user_id} in {container} ({} chars) -> {}",

@@ -94,7 +94,14 @@
                 return r.json();
             })
             .then(function (data) {
-                var people = (data && (data.collaborators || data.users || [])) || [];
+                // GET /api/canvas/collaborators answers a bare JSON array
+                // (botcanvas::list_workspace_collaborators). Reading only
+                // `data.collaborators`/`data.users` reported "No collaborators"
+                // for every workspace that had them, so the Share panel never
+                // reflected the real audience (UAT CANVAS-05).
+                var people = Array.isArray(data)
+                    ? data
+                    : (data && (data.collaborators || data.users)) || [];
                 if (!people.length) {
                     list.innerHTML = '<div class="collaborator-empty">No collaborators</div>';
                     return;

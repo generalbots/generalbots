@@ -44,10 +44,11 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   if (sender === "bot") {
     // #2098 — an empty bot frame (thinking/status, tool boundary) must not
     // hide the progress element. Only visible content advances the turn; the
-    // turn itself is closed by the completion frame in processMessage.
+    // turn itself is closed by the completion frame in processMessage. History
+    // replay renders bubbles too, so it never steers the live turn.
     var hasVisibleAnswer = (content && content.trim() !== "") ||
       (reasoning && reasoning.trim() !== "");
-    if (hasVisibleAnswer) {
+    if (hasVisibleAnswer && !ChatState.suppressPersist) {
       if (typeof window.clearChatPending === "function") window.clearChatPending();
       if (window.GBTurn) GBTurn.visible();
       else if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();

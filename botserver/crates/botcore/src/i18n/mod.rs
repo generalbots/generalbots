@@ -16,14 +16,16 @@ use botlib::i18n::{self, MessageArgs as BotlibMessageArgs};
 
 pub mod cli;
 mod error;
+mod locale_meta;
 mod routes;
 mod translations;
 #[cfg(test)]
 mod tests;
 
-pub use botlib::i18n::{translate, Locale};
+pub use botlib::i18n::{has_message, translate, Locale};
 pub use cli as cli_locale;
 pub use error::{error_body, error_body_with_args, LocalizedError};
+pub use locale_meta::{is_rtl, metadata_all, metadata_for, LocaleMetadata};
 pub use routes::configure_i18n_routes;
 pub use routes::locale_for_user;
 pub use translations::get_translations_json;

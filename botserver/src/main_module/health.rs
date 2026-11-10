@@ -26,15 +26,16 @@ pub async fn health_check(
         StatusCode::SERVICE_UNAVAILABLE
     };
 
-    let build_date = option_env!("BOTSERVER_BUILD_DATE").unwrap_or("unknown");
-    let commit = option_env!("BOTSERVER_COMMIT").unwrap_or("unknown");
+    // #2103 — one build metadata source for every endpoint.
+    let build_date = botcore::product::build_info::build_date();
+    let commit = botcore::product::build_info::commit();
 
     (
         code,
         Json(serde_json::json!({
             "status": status,
             "service": "botserver",
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": botcore::product::build_info::version(),
             "build_date": build_date,
             "commit": commit,
             "database": db_ok
@@ -43,13 +44,13 @@ pub async fn health_check(
 }
 
 pub async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
-    let commit = option_env!("BOTSERVER_COMMIT").unwrap_or("unknown");
+    let commit = botcore::product::build_info::commit();
     (
         StatusCode::OK,
         Json(serde_json::json!({
             "status": "ok",
             "service": "botserver",
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": botcore::product::build_info::version(),
             "commit": commit
         })),
     )

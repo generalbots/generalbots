@@ -130,6 +130,10 @@ impl KycRequest {
 }
 
 #[cfg(test)]
+#[path = "intent_tests.rs"]
+mod intent_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

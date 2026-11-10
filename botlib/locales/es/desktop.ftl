@@ -106,6 +106,12 @@ sidebar-history-unavailable = Historial no disponible
 sidebar-back-to-conversations = ← Volver a las conversaciones
 sidebar-no-locked-conversations = No hay conversaciones bloqueadas
 sidebar-locked-conversation = Conversación bloqueada
+# #2095 — conversation-history time buckets.
+sidebar-bucket-today = Hoy
+sidebar-bucket-yesterday = Ayer
+sidebar-bucket-previous-7-days = Últimos 7 días
+sidebar-bucket-older = Más antiguas
+
 sidebar-sign-in = Iniciar sesión
 sidebar-add-pin = Añadir fijado
 
@@ -288,6 +294,12 @@ dataexport-unknown-date = fecha desconocida
 dataexport-restore-confirm = Esto restaurará { $count } ajuste(s) de la copia del { $date }. Las credenciales y los tokens de sesión nunca se importan. ¿Continuar?
 dataexport-restored = Copia restaurada ({ $count } elementos).
 dataexport-rejected = { $count } entrada(s) rechazada(s) por la lista de permitidos.
+# #2095 — backup-import validation details shown inside
+# `dataexport-invalid`.
+dataexport-error-not-object = el archivo no es una copia de seguridad válida
+dataexport-error-version = versión de copia de seguridad no admitida
+dataexport-error-date = la copia de seguridad no tiene una fecha de exportación válida
+dataexport-error-section = sección inesperada: { $section }
 dataexport-reloading = Recargando...
 
 comments-title = Comentarios

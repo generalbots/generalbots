@@ -118,6 +118,26 @@ mod tests {
         assert!(config.is_app_enabled("drive"));
     }
 
+    /// #2103 — `/api/product` must report the build version, not a literal.
+    /// The fallback is the Cargo package version, so a local test compares
+    /// against exactly that unless the build injected a release tag.
+    #[test]
+    fn product_json_reports_the_build_version() {
+        let json = get_product_config_json();
+        assert_eq!(
+            json.get("version").and_then(|value| value.as_str()),
+            Some(build_info::version().as_str())
+        );
+        assert!(json
+            .get("commit")
+            .and_then(|value| value.as_str())
+            .is_some());
+        assert!(json
+            .get("build_date")
+            .and_then(|value| value.as_str())
+            .is_some());
+    }
+
     #[test]
     fn test_parse_config() {
         let content = r#"

@@ -28,13 +28,20 @@ pub(super) fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing")
+            api_error_key(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-missing",
+            )
         })?;
     let (claims_user, _roles) =
-        crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-            .ok_or_else(|| {
-                api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-invalid")
-            })?;
+        crate::main_module::routes::anonymous_auth::resolve_token_user(token).ok_or_else(|| {
+            api_error_key(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-invalid",
+            )
+        })?;
     Ok(crate::security::user_role::derive_stable_user_uuid(
         &claims_user,
     ))

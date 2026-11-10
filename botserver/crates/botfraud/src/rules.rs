@@ -62,14 +62,15 @@ pub fn evaluate_rule(rule: &FraudRule, request: &FraudAssessmentRequest) -> bool
                 .map(|v| v < threshold)
                 .unwrap_or(false)
         }
-        "==" => {
-            let expected = cond.get("value");
-            actual.is_some_and(|v| v == expected.unwrap_or(&serde_json::Value::Null))
-        }
-        "!=" => {
-            let expected = cond.get("value");
-            actual.is_some_and(|v| v != expected.unwrap_or(&serde_json::Value::Null))
-        }
+        "==" => match (actual, cond.get("value")) {
+            (Some(actual), Some(expected)) => actual == expected,
+            // A condition without a value is malformed, not a wildcard.
+            _ => false,
+        },
+        "!=" => match (actual, cond.get("value")) {
+            (Some(actual), Some(expected)) => actual != expected,
+            _ => false,
+        },
         "in" => {
             let list = cond.get("value").and_then(|v| v.as_array());
             match (actual, list) {
@@ -78,11 +79,13 @@ pub fn evaluate_rule(rule: &FraudRule, request: &FraudAssessmentRequest) -> bool
             }
         }
         "contains" => {
-            let substr = cond.get("value").and_then(|v| v.as_str()).unwrap_or("");
-            actual
-                .and_then(|v| v.as_str())
-                .map(|s| s.contains(substr))
-                .unwrap_or(false)
+            let substr = cond.get("value").and_then(|v| v.as_str());
+            match (actual.and_then(|v| v.as_str()), substr) {
+                // A non-string value must not degrade to the empty needle,
+                // which every haystack contains.
+                (Some(text), Some(substr)) => text.contains(substr),
+                _ => false,
+            }
         }
         _ => false,
     }
@@ -112,6 +115,10 @@ struct RuleDbRow {
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     created_at: chrono::DateTime<chrono::Utc>,
 }
+
+#[cfg(test)]
+#[path = "rules_condition_tests.rs"]
+mod rules_condition_tests;
 
 #[cfg(test)]
 mod rule_evaluation_tests {

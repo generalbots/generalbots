@@ -105,19 +105,19 @@
 
   function sanitizeBackup(bundle) {
     if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) {
-      throw new Error("the file is not a backup object");
+      throw new Error(T("dataexport-error-not-object", "the file is not a backup object"));
     }
     var version = Number(bundle.export_version);
     if (!Number.isInteger(version) || version < 1 || version > BUNDLE_VERSION) {
-      throw new Error("unsupported backup version");
+      throw new Error(T("dataexport-error-version", "unsupported backup version"));
     }
     var exportedAt = Date.parse(bundle.exported_at);
     if (!Number.isFinite(exportedAt)) {
-      throw new Error("the backup has no valid export date");
+      throw new Error(T("dataexport-error-date", "the backup has no valid export date"));
     }
     Object.keys(bundle).forEach(function (key) {
       if (TOP_LEVEL_KEYS.indexOf(key) === -1) {
-        throw new Error("unexpected section: " + key);
+        throw new Error(T("dataexport-error-section", "unexpected section: " + key, { section: key }));
       }
     });
 

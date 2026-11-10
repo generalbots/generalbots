@@ -1,14 +1,23 @@
-use botlib::models::Switcher;
-use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use botbasic_types::UserSession;
+use botlib::models::Switcher;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::add_suggestion::{resolve_label, session_locale};
+
 const STANDARD_SWITCHER_IDS: &[&str] = &[
-    "tables", "infographic", "cards", "list", "comparison", "timeline", "markdown", "chart",
+    "tables",
+    "infographic",
+    "cards",
+    "list",
+    "comparison",
+    "timeline",
+    "markdown",
+    "chart",
 ];
 
 fn get_switcher_prompt_map() -> &'static [(&'static str, &'static str)] {
@@ -51,10 +60,17 @@ pub fn clear_switchers_keyword(
     let cache2 = state.cache_client().clone();
     let user_session2 = user_session.clone();
 
-    if let Err(e) = engine
-        .register_custom_syntax(["CLEAR", "SWITCHERS"], true, move |_context, _inputs| {
+    if let Err(e) =
+        engine.register_custom_syntax(["CLEAR", "SWITCHERS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
-                let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
+                let redis_key = botlib::key_utils::build_key(
+                    "",
+                    &[
+                        "switchers",
+                        &user_session.bot_id.to_string(),
+                        &user_session.id.to_string(),
+                    ],
+                );
                 let mut conn = match get_redis_connection(cache_client) {
                     Some(conn) => conn,
                     None => {
@@ -86,16 +102,22 @@ pub fn clear_switchers_keyword(
         log::error!("Failed to register the custom syntax: {e}");
     }
 
-    engine
-        .register_fn("CLEAR_SWITCHERS", move || {
-            if let Some(cache_client) = &cache2 {
-                let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session2.bot_id.to_string(), &user_session2.id.to_string()]);
-                if let Some(mut conn) = get_redis_connection(cache_client) {
-                    let _: Result<i64, redis::RedisError> =
-                        redis::cmd("DEL").arg(&redis_key).query(&mut conn);
-                }
+    engine.register_fn("CLEAR_SWITCHERS", move || {
+        if let Some(cache_client) = &cache2 {
+            let redis_key = botlib::key_utils::build_key(
+                "",
+                &[
+                    "switchers",
+                    &user_session2.bot_id.to_string(),
+                    &user_session2.id.to_string(),
+                ],
+            );
+            if let Some(mut conn) = get_redis_connection(cache_client) {
+                let _: Result<i64, redis::RedisError> =
+                    redis::cmd("DEL").arg(&redis_key).query(&mut conn);
             }
-        });
+        }
+    });
 }
 
 pub fn add_switcher_keyword(
@@ -104,27 +126,31 @@ pub fn add_switcher_keyword(
     engine: &mut Engine,
 ) {
     let cache = state.cache_client().clone();
+    // #2095 — the runtime carries the bot `locale` used to resolve keyed labels.
+    let runtime = Arc::clone(&state);
     let user_session_clone = user_session.clone();
 
-    if let Err(e) = engine
-        .register_custom_syntax(
-            ["ADD_SWITCHER", "$expr$", "as", "$expr$"],
-            true,
-            move |context, inputs| {
-                let switcher_id = context.eval_expression_tree(&inputs[0])?.to_string();
-                let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
+    if let Err(e) = engine.register_custom_syntax(
+        ["ADD_SWITCHER", "$expr$", "as", "$expr$"],
+        true,
+        move |context, inputs| {
+            let switcher_id = context.eval_expression_tree(&inputs[0])?.to_string();
+            let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
+            let button_text = resolve_label(
+                &button_text,
+                &session_locale(&user_session_clone, runtime.config_value("locale")),
+            );
 
-                add_switcher(
-                    cache.as_ref(),
-                    &user_session_clone,
-                    &switcher_id,
-                    &button_text,
-                )?;
+            add_switcher(
+                cache.as_ref(),
+                &user_session_clone,
+                &switcher_id,
+                &button_text,
+            )?;
 
-                Ok(Dynamic::UNIT)
-            },
-        )
-    {
+            Ok(Dynamic::UNIT)
+        },
+    ) {
         log::error!("Failed to register the custom syntax: {e}");
     }
 }
@@ -136,7 +162,10 @@ fn add_switcher(
     button_text: &str,
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     let (switcher_id, switcher_prompt) = if is_standard_switcher(first_param) {
-        (first_param.to_string(), resolve_switcher_prompt(first_param))
+        (
+            first_param.to_string(),
+            resolve_switcher_prompt(first_param),
+        )
     } else {
         let custom_id = format!("custom:{}", simple_hash(first_param));
         (custom_id, Some(first_param.to_string()))
@@ -150,7 +179,14 @@ fn add_switcher(
     );
 
     if let Some(cache_client) = cache {
-        let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
+        let redis_key = botlib::key_utils::build_key(
+            "",
+            &[
+                "switchers",
+                &user_session.bot_id.to_string(),
+                &user_session.id.to_string(),
+            ],
+        );
 
         let switcher_data = json!({
             "id": switcher_id,
@@ -174,11 +210,17 @@ fn add_switcher(
             .arg(switcher_data.to_string())
             .query(&mut conn);
 
-        debug!("ADD_SWITCHER: Stored '{}' ({}) to Redis key '{}' for session {}", 
-              switcher_id, 
-              if is_standard_switcher(first_param) { "standard" } else { "custom" },
-              redis_key,
-              user_session.id);
+        debug!(
+            "ADD_SWITCHER: Stored '{}' ({}) to Redis key '{}' for session {}",
+            switcher_id,
+            if is_standard_switcher(first_param) {
+                "standard"
+            } else {
+                "custom"
+            },
+            redis_key,
+            user_session.id
+        );
     } else {
         trace!("No cache configured, switcher not added");
     }
@@ -227,8 +269,12 @@ pub fn get_switchers(
                         switchers.push(switcher);
                     }
                 }
-                debug!("get_switchers: Retrieved {} switchers from Redis key '{}' for session {}", 
-                    switchers.len(), redis_key, session_id);
+                debug!(
+                    "get_switchers: Retrieved {} switchers from Redis key '{}' for session {}",
+                    switchers.len(),
+                    redis_key,
+                    session_id
+                );
                 for sw in &switchers {
                     debug!("  - Switcher: id={}, label={:?}", sw.id, sw.label);
                 }

@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use axum::extract::{Json, Query, State};
+use axum::extract::{Json, Query};
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 use diesel::prelude::*;
 use serde::Deserialize;
@@ -8,7 +6,6 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::error::IntegrationError;
-use crate::state::IntegrationState;
 
 #[derive(Deserialize)]
 pub struct MentionsQuery {
@@ -50,12 +47,15 @@ fn mention_prefix_pattern(q: Option<String>) -> String {
 /// hard limit of 10 rows. The response carries connection ids plus
 /// non-sensitive labels only; credentials and Vault paths are never read.
 pub async fn mentions(
-    State(state): State<Arc<IntegrationState>>,
     user: AuthenticatedUser,
     Query(query): Query<MentionsQuery>,
 ) -> Result<Json<Value>, IntegrationError> {
     let pattern = mention_prefix_pattern(query.q);
-    let mut conn = state.pool.get()?;
+    let pool = crate::db::pool().map_err(|(status, message)| {
+        log::error!("integration mentions: database pool unavailable ({status}): {message}");
+        IntegrationError::Storage("database pool unavailable".to_string())
+    })?;
+    let mut conn = pool.get()?;
     let default_bot = diesel::sql_query(
         "SELECT id FROM bots WHERE is_active = TRUE ORDER BY created_at ASC LIMIT 1",
     )

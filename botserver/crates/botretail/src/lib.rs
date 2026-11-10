@@ -44,3 +44,7 @@ pub fn configure() -> Router {
             get(mutations::list_suppliers).post(mutations::create_supplier),
         )
 }
+
+#[cfg(test)]
+#[path = "catalog_tests.rs"]
+mod catalog_tests;

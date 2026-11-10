@@ -23,5 +23,5 @@ pub mod state;
 pub mod storage;
 pub mod token_refresh;
 
-pub use routes::configure_connection_routes;
+pub use routes::{configure_connection_routes, configure_context_routes};
 pub use state::IntegrationState;

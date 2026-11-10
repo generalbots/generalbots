@@ -337,6 +337,10 @@ fn revenue_by_platform(deliveries_json: &str) -> RevenueByPlatformReport {
 }
 
 #[cfg(test)]
+#[path = "../intent_tests.rs"]
+mod intent_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

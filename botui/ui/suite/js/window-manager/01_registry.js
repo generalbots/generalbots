@@ -1,4 +1,4 @@
-/* WindowManager — app registry, preview gating and catalog (1/7). */
+/* WindowManager — app registry, preview gating and catalog (1/9). */
 (function (window) {
   "use strict";
   if (typeof window.WindowManager !== "undefined" || window.__GBWindowManager) return;

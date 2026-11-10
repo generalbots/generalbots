@@ -1,4 +1,4 @@
-/* WindowManager — public export and boot (7/7, last). */
+/* WindowManager — public export and boot (9/9, last). */
 (function (window) {
   "use strict";
   var WM = window.__GBWindowManager;

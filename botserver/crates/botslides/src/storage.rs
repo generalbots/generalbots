@@ -252,10 +252,17 @@ pub fn create_new_presentation() -> Presentation {
     }
 }
 
+/// Builds a new slide for the layout name the insert dialog sends. Every
+/// layout the dialog offers is built by name (`crate::layouts::LAYOUTS`);
+/// `two_column` used to fall through to a single-column content slide, so the
+/// new slide looked unchanged (UAT SLIDE-02).
 pub fn create_slide_with_layout(layout: &str, theme: &crate::types::PresentationTheme) -> Slide {
     match layout {
         "title" => create_title_slide(theme),
         "content" => create_content_slide(theme),
+        "two_column" | "two-column" | "twocolumn" => crate::layouts::create_two_column_slide(theme),
+        "section" => crate::layouts::create_section_slide(theme),
+        "image" => crate::layouts::create_image_slide(theme),
         "blank" => create_blank_slide(theme),
         _ => create_content_slide(theme),
     }

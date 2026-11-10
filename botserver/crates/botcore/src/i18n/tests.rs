@@ -95,6 +95,40 @@
     }
 
     #[test]
+    fn test_locale_catalogue_reports_full_metadata() {
+        // #2087/#2096 — every locale the endpoint lists must carry the five
+        // fields a picker and a formatter need, in the catalogue's own order.
+        let locales = available_locales();
+        let details = metadata_all(&locales);
+
+        assert_eq!(details.len(), locales.len());
+        for (code, meta) in locales.iter().zip(details.iter()) {
+            assert_eq!(&meta.code, code, "same order as the catalogue");
+            assert!(!meta.native_name.is_empty(), "native name for {code}");
+            assert!(meta.dir == "ltr" || meta.dir == "rtl", "direction for {code}");
+            assert!(!meta.date_format.is_empty(), "date format for {code}");
+            assert!(!meta.number_format.is_empty(), "number format for {code}");
+        }
+
+        // The eight shipped locales are all present and named in their script.
+        for expected in ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"] {
+            let meta = metadata_for(expected);
+            assert_eq!(meta.code, expected);
+            assert_ne!(meta.native_name, expected, "native name for {expected}");
+        }
+
+        // Serialization keeps the documented snake_case field names.
+        let payload = serde_json::to_value(metadata_all(&locales)).expect("serializable");
+        let first = payload
+            .as_array()
+            .and_then(|items| items.first())
+            .expect("at least one locale");
+        for field in ["code", "native_name", "dir", "date_format", "number_format"] {
+            assert!(first.get(field).is_some(), "missing {field}");
+        }
+    }
+
+    #[test]
     fn test_parse_accept_language_drops_zero_quality() {
         // `q=0` means "not acceptable": the language must not be negotiated.
         let result = parse_accept_language("pt-BR;q=0, en;q=0.5");

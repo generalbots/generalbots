@@ -179,4 +179,3 @@ fn pos_errors_render_their_wire_message() {
         format!("variation {id} out of stock")
     );
 }
-}

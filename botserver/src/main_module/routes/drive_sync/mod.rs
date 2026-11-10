@@ -18,7 +18,6 @@ use std::{
     time::Duration,
 };
 
-
 mod handlers;
 mod rsync_engine;
 
@@ -104,13 +103,13 @@ fn due(job: &SyncJob) -> bool {
     };
     match chrono::DateTime::parse_from_rfc3339(last) {
         Ok(parsed) => {
-            let elapsed = chrono::Utc::now().signed_duration_since(parsed.with_timezone(&chrono::Utc));
+            let elapsed =
+                chrono::Utc::now().signed_duration_since(parsed.with_timezone(&chrono::Utc));
             elapsed.num_minutes() as u64 >= job.interval_minutes
         }
         Err(_) => true,
     }
 }
-
 
 fn load() -> Vec<SyncJob> {
     let path = store_file();
@@ -118,7 +117,10 @@ fn load() -> Vec<SyncJob> {
         Ok(raw) => match serde_json::from_str(&raw) {
             Ok(jobs) => jobs,
             Err(error) => {
-                log::warn!("drive sync: {} is unreadable ({error}); starting empty", path.display());
+                log::warn!(
+                    "drive sync: {} is unreadable ({error}); starting empty",
+                    path.display()
+                );
                 Vec::new()
             }
         },
@@ -191,7 +193,7 @@ fn run_job_blocking(locale: &botcore::i18n::Locale, id: &str) -> Result<SyncJob,
         botcore::i18n::t_args(locale, "error-drive-sync-job-not-found", &[("id", id)])
     })?;
     let mut job = jobs[index].clone();
-    let outcome = rsync_engine::perform(&mut job);
+    let outcome = rsync_engine::perform(locale, &mut job);
     if let Err(error) = &outcome {
         job.last_status = "error".to_string();
         job.last_error = Some(error.clone());
@@ -213,8 +215,16 @@ fn resolve_blocking(
         botcore::i18n::t_args(locale, "error-drive-sync-job-not-found", &[("id", id)])
     })?;
     let mut job = jobs[index].clone();
-    let local = clean_dir(locale, &job.local_path, "error-drive-sync-field-local-folder")?;
-    let drive = clean_dir(locale, &job.drive_path, "error-drive-sync-field-drive-folder")?;
+    let local = clean_dir(
+        locale,
+        &job.local_path,
+        "error-drive-sync-field-local-folder",
+    )?;
+    let drive = clean_dir(
+        locale,
+        &job.drive_path,
+        "error-drive-sync-field-drive-folder",
+    )?;
     let relative = path.trim_start_matches("./").trim_start_matches('/');
     if relative.is_empty() {
         return Err(botcore::i18n::t(
@@ -233,28 +243,33 @@ fn resolve_blocking(
     match resolution {
         "local" => {
             let parent = drive_target.parent().ok_or("conflict path has no parent")?;
-            std::fs::create_dir_all(parent).map_err(|e| format!("prepare {}: {e}", parent.display()))?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("prepare {}: {e}", parent.display()))?;
             std::fs::copy(&local_target, &drive_target)
                 .map_err(|e| format!("copy local copy into Drive: {e}"))?;
         }
         "remote" => {
             let parent = local_target.parent().ok_or("conflict path has no parent")?;
-            std::fs::create_dir_all(parent).map_err(|e| format!("prepare {}: {e}", parent.display()))?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("prepare {}: {e}", parent.display()))?;
             std::fs::copy(&drive_target, &local_target)
                 .map_err(|e| format!("copy Drive copy into the local folder: {e}"))?;
         }
         "both" => {
             let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
             let keep = local.join(format!("{relative}.local-{stamp}"));
-            std::fs::copy(&local_target, &keep)
-                .map_err(|e| format!("keep the local copy: {e}"))?;
+            std::fs::copy(&local_target, &keep).map_err(|e| format!("keep the local copy: {e}"))?;
             std::fs::copy(&drive_target, &local_target)
                 .map_err(|e| format!("copy Drive copy into the local folder: {e}"))?;
         }
         other => return Err(format!("unknown resolution '{other}'")),
     }
     job.conflicts.retain(|conflict| conflict.path != path);
-    job.last_status = if job.conflicts.is_empty() { "ok".to_string() } else { "conflict".to_string() };
+    job.last_status = if job.conflicts.is_empty() {
+        "ok".to_string()
+    } else {
+        "conflict".to_string()
+    };
     job.last_summary = Some(match resolution {
         "local" => "kept the local copy".to_string(),
         "remote" => "kept the Drive copy".to_string(),
@@ -267,7 +282,10 @@ fn resolve_blocking(
 
 fn status_snapshot() -> Value {
     let jobs = load();
-    let syncing = jobs.iter().filter(|job| job.last_status == "syncing").count();
+    let syncing = jobs
+        .iter()
+        .filter(|job| job.last_status == "syncing")
+        .count();
     let errors = jobs.iter().filter(|job| job.last_status == "error").count();
     let conflicts: usize = jobs.iter().map(|job| job.conflicts.len()).sum();
     let state = if errors > 0 {
@@ -320,7 +338,9 @@ pub fn start_scheduler() {
                         Ok(Err(error)) => {
                             log::warn!("drive sync: scheduled run of '{name}' failed: {error}")
                         }
-                        Err(error) => log::warn!("drive sync: scheduled run of '{name}' panicked: {error}"),
+                        Err(error) => {
+                            log::warn!("drive sync: scheduled run of '{name}' panicked: {error}")
+                        }
                     }
                 }
             }

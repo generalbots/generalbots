@@ -2,11 +2,16 @@ use super::*;
 
 pub async fn handle_autotask_create(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Form(payload): Form<AutotaskRequest>,
 ) -> impl IntoResponse {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let intent = payload.intent.unwrap_or_default().trim().to_string();
     if intent.is_empty() {
-        return Json(serde_json::json!({ "ok": false, "error": "intent is required" }));
+        return Json(serde_json::json!({
+            "ok": false,
+            "error": botcore::i18n::t(&locale, "error-autotask-intent-required"),
+        }));
     }
 
     let response = if let Some(llm) = state.llm_provider.clone() {

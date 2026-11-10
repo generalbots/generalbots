@@ -169,9 +169,7 @@ pub async fn cancel(
         .first::<AutotaskRow>(&mut conn)
         .optional()
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| {
-            api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found")
-        })?;
+        .ok_or_else(|| api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
     drop(conn);
 
     let removal_error = workspace::remove(&row).await;
@@ -209,9 +207,7 @@ pub async fn delete(
         .first::<AutotaskRow>(&mut conn)
         .optional()
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| {
-            api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found")
-        })?;
+        .ok_or_else(|| api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found"))?;
     drop(conn);
 
     let _ = workspace::remove(&row).await;

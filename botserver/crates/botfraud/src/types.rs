@@ -105,3 +105,7 @@ pub struct VelocityResult {
     pub threshold: i32,
     pub exceeded: bool,
 }
+
+#[cfg(test)]
+#[path = "types_tests.rs"]
+mod types_tests;

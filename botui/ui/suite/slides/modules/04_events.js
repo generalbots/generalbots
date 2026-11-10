@@ -31,6 +31,21 @@ document.addEventListener("htmx:configRequest", function (event) {
 // A successful insert saves and refreshes the slide; close its modal too.
 // AI answers are JSON ({response}); render the text in the modal's result box
 // instead of swapping the object into the DOM.
+document.addEventListener("htmx:afterSwap", function (event) {
+  // The insert dialog ships `position` defaulting to 0, so "+ → Adicionar
+  // Slide" put the new slide before slide 1: the canvas kept showing the
+  // slide on screen and the deck looked unchanged (UAT SLIDE-02). Default to
+  // "right after the slide being viewed".
+  var target = event.detail && event.detail.target;
+  if (!target || target.id !== "slides-modal-container") return;
+  var position = target.querySelector('input[name="position"]');
+  if (!position) return;
+  var canvas = document.getElementById("slide-canvas");
+  var current = canvas && canvas.dataset.slideId ? parseInt(canvas.dataset.slideId, 10) : 0;
+  if (isNaN(current)) current = 0;
+  position.value = String(current + 1);
+});
+
 document.addEventListener("htmx:afterRequest", function (event) {
   var detail = event.detail || {};
   var path = (detail.pathInfo && detail.pathInfo.requestPath) || "";

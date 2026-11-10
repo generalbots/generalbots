@@ -151,9 +151,13 @@ pub async fn handle_bots_list(
     req: axum::extract::Request,
 ) -> axum::response::Response {
     let Some(user_id) = requesting_user(&req) else {
+        let locale = botcore::i18n::locale_from_headers(req.headers());
         return (
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "unauthorized" })),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-auth-token-missing",
+            )),
         )
             .into_response();
     };

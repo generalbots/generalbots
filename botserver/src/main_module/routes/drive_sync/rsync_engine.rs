@@ -75,7 +75,11 @@ fn pending_paths(from: &FsPath, to: &FsPath) -> Result<Vec<String>, String> {
 
 /// A path that both directions would change is a conflict: syncing either way
 /// silently would drop the other side's work.
-pub(super) fn scan_conflicts(local: &FsPath, drive: &FsPath) -> Result<Vec<SyncConflict>, String> {
+pub(super) fn scan_conflicts(
+    locale: &botcore::i18n::Locale,
+    local: &FsPath,
+    drive: &FsPath,
+) -> Result<Vec<SyncConflict>, String> {
     let pushed = pending_paths(local, drive)?;
     let pulled = pending_paths(drive, local)?;
     let mut conflicts: Vec<SyncConflict> = Vec::new();
@@ -103,19 +107,30 @@ fn summarize(outcome: &RunOutcome) -> String {
     }
 }
 
-pub(super) fn perform(job: &mut SyncJob) -> Result<(), String> {
-    let local = clean_dir(&job.local_path, "local folder")?;
-    let drive = clean_dir(&job.drive_path, "Drive folder")?;
+pub(super) fn perform(locale: &botcore::i18n::Locale, job: &mut SyncJob) -> Result<(), String> {
+    let local = clean_dir(
+        locale,
+        &job.local_path,
+        "error-drive-sync-field-local-folder",
+    )?;
+    let drive = clean_dir(
+        locale,
+        &job.drive_path,
+        "error-drive-sync-field-drive-folder",
+    )?;
     let started = Instant::now();
     job.last_status = "syncing".to_string();
     job.last_error = None;
 
-    job.conflicts = scan_conflicts(&local, &drive)?;
+    job.conflicts = scan_conflicts(locale, &local, &drive)?;
     if !job.conflicts.is_empty() {
         job.last_status = "conflict".to_string();
         job.last_run = Some(now());
         job.last_duration_ms = Some(started.elapsed().as_millis() as u64);
-        job.last_summary = Some(format!("{} conflict(s) need a decision", job.conflicts.len()));
+        job.last_summary = Some(format!(
+            "{} conflict(s) need a decision",
+            job.conflicts.len()
+        ));
         return Ok(());
     }
 
@@ -123,8 +138,14 @@ pub(super) fn perform(job: &mut SyncJob) -> Result<(), String> {
     match job.direction.as_str() {
         "pull" => summaries.push(summarize(&transfer(&drive, &local, false)?)),
         "two-way" => {
-            summaries.push(format!("upload: {}", summarize(&transfer(&local, &drive, false)?)));
-            summaries.push(format!("download: {}", summarize(&transfer(&drive, &local, false)?)));
+            summaries.push(format!(
+                "upload: {}",
+                summarize(&transfer(&local, &drive, false)?)
+            ));
+            summaries.push(format!(
+                "download: {}",
+                summarize(&transfer(&drive, &local, false)?)
+            ));
         }
         _ => summaries.push(summarize(&transfer(&local, &drive, false)?)),
     }
@@ -134,4 +155,3 @@ pub(super) fn perform(job: &mut SyncJob) -> Result<(), String> {
     job.last_duration_ms = Some(started.elapsed().as_millis() as u64);
     Ok(())
 }
-

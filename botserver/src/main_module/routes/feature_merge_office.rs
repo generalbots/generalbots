@@ -83,6 +83,16 @@ pub(super) async fn merge_office_routers(
     // Mounted only when the secrets manager initializes; a Vault outage skips
     // the mount (fail closed) while the rest of the API keeps serving.
     #[cfg(feature = "integrations")]
+    {
+        // #2100 — the workspace context and the @mention lookup read only the
+        // database, so they must survive a missing credential store: the
+        // desktop edition ships without Vault and every suite app built its
+        // connection URLs from `/api/apps/integrations/context`.
+        *api_router = api_router
+            .clone()
+            .merge(botintegrations::configure_context_routes());
+    }
+    #[cfg(feature = "integrations")]
     match botcoresecrets::SecretsManager::get_clone() {
         Ok(secrets_manager) => {
             let connections_state = std::sync::Arc::new(botintegrations::IntegrationState::new(

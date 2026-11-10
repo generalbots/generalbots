@@ -90,6 +90,10 @@ pub fn build_dashboard(
 pub type BillingDashboard = DashboardSummary;
 
 #[cfg(test)]
+#[path = "dashboard_tests.rs"]
+mod dashboard_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use chrono::NaiveDate;

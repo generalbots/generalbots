@@ -3,7 +3,7 @@
 (function (namespace) {
     namespace.catalogUrl = "/api/apps/integrations/catalog";
     namespace.contextUrl = "/api/apps/integrations/context";
-    namespace.context = namespace.context || { botId: "", botName: "", loaded: false, error: "" };
+    namespace.context = namespace.context || { botId: "", botName: "", loaded: false, error: "", reason: "" };
     namespace.allowedAuthKinds = ["api_key", "basic", "token", "access_key", "oauth2", "protocol"];
     namespace.states = namespace.states || new WeakMap();
     namespace.instanceCount = namespace.instanceCount || 0;
@@ -198,6 +198,24 @@
         });
     }
 
+    /* #2100 — Preview OFF keeps Explore focused on production-ready
+       connectors (#1542), but the filter must never be able to hide the whole
+       catalog: a payload without `priority` (an older catalog, a slimmed
+       build, a proxy that rewrote the body) defaults every provider to
+       "standard", the "must" filter then matches nothing and the pane reads as
+       empty even though the backend answered. Resolve the default from the
+       payload instead of assuming the field is there. */
+    namespace.hasMustProviders = function (providers) {
+        return Array.isArray(providers) && providers.some(function (provider) {
+            return String(provider && provider.priority).toLowerCase() === "must";
+        });
+    };
+
+    namespace.preferredStatusFilter = function (providers) {
+        var previewOff = !!(window.GBPreviewMode && !window.GBPreviewMode.isOn());
+        return previewOff && namespace.hasMustProviders(providers) ? "must" : "all";
+    };
+
     namespace.normalizeCatalog = function (payload) {
         if (!Array.isArray(payload.providers)) {
             throw new Error("Catalog providers are unavailable");
@@ -261,7 +279,11 @@
             contextStatus: "idle",
             search: "",
             category: "all",
-            statusFilter: (window.GBPreviewMode && !window.GBPreviewMode.isOn()) ? "must" : "all",
+            // Resolved from the catalog payload once it arrives
+            // (`preferredStatusFilter`): starting on "all" keeps the first
+            // paint honest, and #2100 makes the "must" default conditional on
+            // the payload actually carrying priorities.
+            statusFilter: "all",
             view: "grid",
             exploreTouched: false,
             selectedProviderId: "",
@@ -295,12 +317,17 @@
             namespace.context.botId = namespace.text(payload.bot_id, "");
             namespace.context.botName = namespace.text(payload.bot_name, "");
             namespace.context.loaded = !!namespace.context.botId;
+            // #2100 — the context endpoint documents a no-workspace answer
+            // (`bot_id: null` + `reason`) so the app can say "no bot yet"
+            // instead of presenting a status failure.
+            namespace.context.reason = namespace.text(payload.reason, "");
             namespace.context.error = "";
             state.contextStatus = "ready";
         } catch (error) {
             namespace.context.botId = "";
             namespace.context.botName = "";
             namespace.context.loaded = false;
+            namespace.context.reason = "";
             namespace.context.error = error && error.message ? error.message : "context unavailable";
             state.contextStatus = "error";
         }

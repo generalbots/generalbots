@@ -2,15 +2,18 @@ use super::*;
 
 pub async fn handle_create_organization(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     axum::extract::Form(form): axum::extract::Form<CreateOrgRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let name = form.name.unwrap_or_default().trim().to_string();
     if name.is_empty() {
         return Err((
             axum::http::StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "Organization name is required"
-            })),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-org-name-required",
+            )),
         ));
     }
 
@@ -57,7 +60,7 @@ pub async fn handle_create_organization(
             .ok_or((
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({
-                    "error": "No tenant exists — run migrations/bootstrap first"
+                    "error": botcore::i18n::t(&locale, "error-org-tenant-missing")
                 })),
             ))?;
 

@@ -28,11 +28,7 @@ fn api_error(status: StatusCode, message: &str) -> ApiError {
 }
 
 /// Localized API error (#2094) — `code` stays machine-readable.
-fn api_error_key(
-    locale: &botcore::i18n::Locale,
-    status: StatusCode,
-    key: &str,
-) -> ApiError {
+fn api_error_key(locale: &botcore::i18n::Locale, status: StatusCode, key: &str) -> ApiError {
     (status, Json(botcore::i18n::error_body(locale, key)))
 }
 
@@ -43,13 +39,20 @@ fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing")
+            api_error_key(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-missing",
+            )
         })?;
     let (claims_user, _roles) =
-        crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-            .ok_or_else(|| {
-                api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-invalid")
-            })?;
+        crate::main_module::routes::anonymous_auth::resolve_token_user(token).ok_or_else(|| {
+            api_error_key(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-invalid",
+            )
+        })?;
     Ok(crate::security::user_role::derive_stable_user_uuid(
         &claims_user,
     ))

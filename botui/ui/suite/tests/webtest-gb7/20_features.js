@@ -130,9 +130,14 @@ test("GB7-18: Connector consent modal", function () {
 });
 
 test("GB7-11: Drive preview (markdown/CSV/JSON)", function () {
-  var src = readFile("drive/modules/08_modals.js");
-  assert(src.indexOf("csv") !== -1, "CSV preview not found");
-  assert(src.indexOf("json") !== -1, "JSON preview not found");
+  // #2105 — the preview moved out of 08_modals.js into a parser, a renderer
+  // set and the shared shell; the assertions follow the code.
+  var src = readFile("drive/modules/08_preview.js") +
+    readFile("drive/modules/08_preview_render.js") +
+    readFile("drive/modules/08_preview_parse.js");
+  assert(src.indexOf("parseCsv") !== -1, "CSV parser not found");
+  assert(src.indexOf("gb-preview-table") !== -1, "CSV table renderer not found");
+  assert(src.indexOf("highlightJson") !== -1, "JSON preview not found");
   assert(src.indexOf("marked") !== -1, "markdown preview not found");
 });
 

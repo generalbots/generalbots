@@ -227,7 +227,10 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
 /// Redis is the live store, but a restart flushes it; a reopened
 /// conversation then had no chips at all because start.bas is skipped for
 /// sessions that already have history.
-fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
+fn suggestions_from_start_bas(
+    source: &str,
+    locale: &botcore::i18n::Locale,
+) -> Vec<botlib::models::Suggestion> {
     let mut suggestions = Vec::new();
     for line in source.lines() {
         let trimmed = line.trim();
@@ -265,6 +268,7 @@ fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
         let text = label
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| rest[..close].trim().to_string());
+        let text = resolve_suggestion_label(&text, locale);
         if !text.is_empty() && suggestions.len() < 12 {
             suggestions.push(botlib::models::Suggestion::new(text));
         }
@@ -272,11 +276,39 @@ fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
     suggestions
 }
 
-async fn fallback_suggestions(bot_name: &str) -> Vec<botlib::models::Suggestion> {
+/// #2095 — a template authors its chips as catalogue keys
+/// (`ADD SUGGESTION "scan" AS "bot-suggest-scan-qr"`); replaying the raw
+/// `start.bas` after a cache flush must resolve them, otherwise a reopened
+/// conversation would show identifiers instead of labels.
+fn resolve_suggestion_label(raw: &str, locale: &botcore::i18n::Locale) -> String {
+    let key = raw.trim();
+    if !key.is_empty() && botcore::i18n::has_message(key) {
+        return botcore::i18n::translate(locale, key, &[]);
+    }
+    raw.to_string()
+}
+
+/// Locale of the person reopening the conversation: the preference they saved
+/// in the UI, else the catalogue default (`en`).
+fn user_locale(state: &Arc<AppState>, user_id: Uuid) -> botcore::i18n::Locale {
+    match state.conn.get() {
+        Ok(mut conn) => botcore::i18n::locale_for_user(&mut conn, user_id),
+        Err(error) => {
+            log::debug!("suggestion locale: pool unavailable ({error}); using the default");
+            botcore::i18n::Locale::default()
+        }
+    }
+}
+
+async fn fallback_suggestions(
+    state: &Arc<AppState>,
+    bot_name: &str,
+    user_id: Uuid,
+) -> Vec<botlib::models::Suggestion> {
     let work_path = botcore::shared::utils::get_work_path();
     let rel = format!("{bot_name}.gbdialog/start.bas");
     match botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
-        Some(source) => suggestions_from_start_bas(&source),
+        Some(source) => suggestions_from_start_bas(&source, &user_locale(state, user_id)),
         None => {
             log::debug!("start.bas suggestions unavailable for {bot_name}");
             Vec::new()
@@ -311,7 +343,7 @@ pub async fn send_start_suggestions(
         Vec::new()
     };
     if suggestions.is_empty() {
-        suggestions = fallback_suggestions(bot_name).await;
+        suggestions = fallback_suggestions(state, bot_name, user_id).await;
     }
     let switchers = {
         #[cfg(feature = "chat")]
@@ -547,5 +579,55 @@ mod response_language_tests {
         let prompt = with_response_language_contract("You are a bot.".to_string());
         assert!(prompt.starts_with("You are a bot.\n\n## Language\n\n"));
         assert_eq!(prompt.matches(RESPONSE_LANGUAGE_INSTRUCTION).count(), 1);
+    }
+}
+
+#[cfg(test)]
+mod suggestion_label_tests {
+    use super::{resolve_suggestion_label, suggestions_from_start_bas};
+
+    fn pt_br() -> botcore::i18n::Locale {
+        botcore::i18n::Locale::new("pt-BR").unwrap_or_else(botcore::i18n::Locale::default)
+    }
+
+    /// #2095 — a template authors its chips as catalogue keys; the replay path
+    /// (Redis flushed, conversation reopened) must resolve them too.
+    #[test]
+    fn keyed_labels_resolve_through_the_catalogue() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../botlib/locales");
+        let _ = botcore::i18n::init_i18n(path);
+        assert!(
+            botcore::i18n::has_message("bot-suggest-check-my-balance"),
+            "the shipped catalogue must define the template keys"
+        );
+        assert_eq!(
+            resolve_suggestion_label("bot-suggest-check-my-balance", &pt_br()),
+            "Consultar saldo"
+        );
+    }
+
+    /// A custom bot's own wording is never replaced by an identifier.
+    #[test]
+    fn authored_labels_are_kept() {
+        assert_eq!(
+            resolve_suggestion_label("Marcar consulta", &pt_br()),
+            "Marcar consulta"
+        );
+    }
+
+    #[test]
+    fn replay_prefers_the_as_label_and_resolves_it() {
+        let source = "ADD SUGGESTION \"scan\" AS \"bot-suggest-scan-a-qr-code\"\n";
+        let suggestions = suggestions_from_start_bas(source, &pt_br());
+        assert_eq!(suggestions.len(), 1);
+        assert_eq!(suggestions[0].text, "Escanear um QR Code");
+    }
+
+    #[test]
+    fn replay_keeps_a_literal_label() {
+        let source = "ADD SUGGESTION \"help\" AS \"How to use\"\n";
+        let suggestions = suggestions_from_start_bas(source, &pt_br());
+        assert_eq!(suggestions.len(), 1);
+        assert_eq!(suggestions[0].text, "How to use");
     }
 }

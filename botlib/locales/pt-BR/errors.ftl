@@ -188,3 +188,64 @@ error-llm-prompt-missing = Não há prompt na requisição.
 error-llm-account-unlinked = Conecte sua conta Claude ou ChatGPT em Configurações → Contas de IA primeiro.
 
 error-timeout = A solicitação expirou. Tente novamente.
+
+# =============================================================================
+# Erros de API localizados — rotas, sincronização, pares, uso do computador (#2094)
+# =============================================================================
+
+error-agent-drive-database-unavailable = O armazenamento de arquivos está temporariamente indisponível.
+error-agent-drive-lookup-failed = Não foi possível ler a conversa. Tente novamente.
+error-agent-drive-conversation-not-found = Conversa não encontrada.
+error-agent-drive-bad-owner = O registro do dono da conversa não é válido.
+error-agent-drive-forbidden = Esta conversa pertence a outro usuário.
+error-agent-drive-bad-bot = O registro do bot desta conversa não é válido.
+error-agent-drive-workspace-stopped = O workspace do agente não está em execução.
+error-agent-drive-no-files = Não há arquivos na pasta de saída do workspace.
+error-agent-drive-named-files-missing = Os arquivos solicitados não estão na pasta de saída do workspace.
+error-agent-drive-save-failed = Não foi possível salvar nenhum arquivo no Drive.
+error-agent-drive-file-missing = O arquivo não está na pasta de saída do workspace.
+error-agent-drive-save-one-failed = Não foi possível salvar o arquivo no Drive.
+error-agent-drive-bad-path = O caminho do Drive retornado pelo armazenamento não é válido.
+error-agent-drive-link-failed = Não foi possível criar o link de compartilhamento.
+error-subagent-no-llm = Nenhum provedor de LLM está configurado para subagentes.
+error-goal-run-not-running = Esta execução de meta não está em andamento.
+error-goal-run-not-paused = Esta execução de meta não está pausada.
+error-autotask-not-found = Tarefa automática não encontrada.
+error-autotask-intent-required = Descreva o que a tarefa deve fazer.
+error-peer-network-disabled = A rede de pares está desativada neste nó.
+error-peer-network-unauthorized = É necessário um token de par válido.
+error-peer-network-invalid = A requisição de par não é válida: { $message }
+error-peer-network-unknown-node = Nó de par desconhecido: { $message }
+error-peer-network-registry-full = O registro de pares está cheio.
+error-peer-network-payload-store-full = O armazenamento de payloads de par está cheio: { $message }
+error-peer-network-recipient-required = O parâmetro de consulta recipient é obrigatório.
+error-drive-sync-field-required = { $field } é obrigatório.
+error-drive-sync-field-absolute = { $field } deve ser um caminho absoluto.
+error-drive-sync-field-parent = { $field } não pode conter '..'.
+error-drive-sync-field-not-folder = { $field } não é uma pasta nesta máquina: { $path }
+error-drive-sync-field-local-folder = A pasta local
+error-drive-sync-field-drive-folder = A pasta do Drive
+error-drive-sync-job-not-found = A tarefa de sincronização { $id } não foi encontrada.
+error-drive-sync-job-name-required = O nome da tarefa de sincronização é obrigatório.
+error-drive-sync-job-exists = Já existe uma tarefa de sincronização chamada { $name }.
+error-drive-sync-conflict-path-required = O caminho do conflito é obrigatório.
+error-drive-sync-conflict-path-escape = O caminho do conflito escapa da pasta de sincronização.
+error-drive-sync-task-failed = A tarefa { $task } falhou: { $error }
+error-org-auth-service-unavailable = O serviço de diretório não está disponível.
+error-org-default-delete = A organização padrão não pode ser excluída.
+error-org-settings-save-failed = Não foi possível salvar as configurações da organização.
+error-org-name-required = O nome da organização é obrigatório.
+error-org-tenant-missing = Ainda não existe tenant — execute as migrações ou o bootstrap primeiro.
+error-computer-use-session-required = O id da sessão é obrigatório.
+error-computer-use-kind-invalid = O tipo deve ser 'browser' ou 'terminal'.
+error-computer-use-action-not-found = Ação não encontrada.
+error-computer-use-no-consent = Não há registro de consentimento para esta ação; aprove primeiro.
+error-computer-use-browser-only = Esta ação deve ser executada no painel do navegador.
+error-computer-use-url-missing = A ação não tem URL.
+error-terminal-approval-required = A execução no terminal requer aprovação explícita do usuário.
+error-terminal-action-id-required = A execução no terminal requer um id de ação aprovado.
+error-terminal-command-required = O comando é obrigatório.
+error-terminal-command-too-long = O comando está limitado a 16000 caracteres.
+error-terminal-blocked-pattern = O comando corresponde a um padrão destrutivo bloqueado.
+error-terminal-workspace-stopped = O workspace do agente não está em execução. Conclua o provisionamento (ou reinicie o aplicativo) e tente novamente.
+error-terminal-timeout = O comando expirou.

@@ -1,15 +1,81 @@
 "use strict";
 /* slides init — bootstrap on DOMContentLoaded */
 
+// Deck reference carried by a chat/command deep link. `app://slides?deck_id=…`
+// (and the `file_id` variant the curated verbs emit) names a stored deck, but
+// this boot only understood bucket+path: every id link fell through and the
+// shell stayed on the blank deck addressed as "current", so inserting a slide
+// changed a deck nobody was looking at (UAT SLIDE-02). Same class of bug the
+// sheet boot had (UAT SHEET-01).
+function deckRefFromParams(params, gp) {
+  return params.get('deck_id') || params.get('file_id') || params.get('id') ||
+    gp.deck_id || gp.file_id || gp.id || '';
+}
+
+function slidesScope() {
+  return document.querySelector('[id^="window-body-slides"]') || document;
+}
+
+// Bind the app to a stored deck: title, rename target and every toolbar form
+// that sends the literal "current".
+function pointDeckAt(id) {
+  window.__SLIDES_PRESENTATION_ID = id;
+  var titleEl = slidesScope().querySelector('#presTitle');
+  if (titleEl) {
+    titleEl.setAttribute('hx-vals', JSON.stringify({ id: id, action: 'rename' }));
+    if (window.htmx) htmx.process(titleEl);
+  }
+}
+
+function loadDeckById(id) {
+  pointDeckAt(id);
+  var scope = slidesScope();
+  var headers = (window.GBSidebarConvos && window.GBSidebarConvos.authHeaders)
+    ? window.GBSidebarConvos.authHeaders()
+    : {};
+  var setStatus = function (text) {
+    var el = scope.querySelector('#saveStatus');
+    if (el) el.textContent = text;
+  };
+  setStatus('Opening deck…');
+  fetch('/api/slides/' + encodeURIComponent(id), { headers: headers })
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (presentation) {
+      var titleEl = scope.querySelector('#presTitle');
+      if (titleEl && presentation && presentation.name) titleEl.value = presentation.name;
+      setStatus('Opened deck');
+    })
+    .catch(function (err) {
+      // Keep the id: new slides and edits must still target the requested deck.
+      setStatus('Deck not loaded: ' + err.message);
+    });
+  if (window.htmx) {
+    htmx.ajax('GET', '/suite/slides/fragments/presentation-view?id=' + encodeURIComponent(id),
+      { target: '#slides-content', swap: 'innerHTML' });
+    htmx.ajax('GET', '/suite/slides/fragments/slide-thumbnails?id=' + encodeURIComponent(id),
+      { target: '#sidebar-thumbs', swap: 'innerHTML' });
+  }
+}
+
 // Issue #720 parity: when opened from Drive (or a deep link) the app imports
 // the presentation file through the existing /api/slides/import endpoint and
 // switches the canvas to the imported deck. The shell URL carries no query
 // string, so the args come from window.__gbAppParams__ as well.
-function loadDrivePresentationIntoApp() {
+function loadDrivePresentationIntoApp(linkParams) {
   var params = new URLSearchParams(window.location.search);
-  var gp = window.__gbAppParams__ || {};
+  // A re-target of an already-open window carries the link's own params;
+  // `__gbAppParams__` accumulates every app's keys, so prefer the event's.
+  var gp = linkParams || window.__gbAppParams__ || {};
   var file = params.get('file') || gp.file;
   var bucket = params.get('bucket') || gp.bucket;
+  var deckRef = deckRefFromParams(params, gp);
+  if (!file && deckRef) {
+    loadDeckById(deckRef);
+    return;
+  }
   if (!file) return;
 
   // Several office windows (docs/sheet/slides) can be open at once and each
@@ -88,15 +154,22 @@ function slidesInit() {
   var initialView = document.querySelector(".sl-view[data-presentation-id]");
   if (initialView && initialView.dataset.presentationId &&
       initialView.dataset.presentationId !== "current") {
-    window.__SLIDES_PRESENTATION_ID = initialView.dataset.presentationId;
-    var initialTitle = document.querySelector("#presTitle");
-    if (initialTitle) {
-      initialTitle.setAttribute(
-        "hx-vals",
-        JSON.stringify({ id: initialView.dataset.presentationId, action: "rename" })
-      );
-      if (window.htmx) htmx.process(initialTitle);
-    }
+    pointDeckAt(initialView.dataset.presentationId);
+  }
+  // The two hx-trigger="load" fragments still ask for id="new" (the blank
+  // deck). This script runs while the window body is being injected, before
+  // htmx processes it, so retargeting here makes the very first load fetch
+  // the deck the deep link asked for.
+  var bootRef = deckRefFromParams(
+    new URLSearchParams(window.location.search),
+    window.__gbAppParams__ || {}
+  );
+  if (bootRef) {
+    pointDeckAt(bootRef);
+    ["#slides-content", "#sidebar-thumbs"].forEach(function (selector) {
+      var container = document.querySelector(selector);
+      if (container) container.setAttribute("hx-vals", JSON.stringify({ id: bootRef }));
+    });
   }
   loadDrivePresentationIntoApp();
   if (!window.__gbSlidesDeepLinkBound) {
@@ -104,7 +177,7 @@ function slidesInit() {
     document.addEventListener('gb:deep-link', function (event) {
       var appId = (event.detail || {}).appId || '';
       if (appId === 'slides' || appId.indexOf('slides-') === 0) {
-        loadDrivePresentationIntoApp();
+        loadDrivePresentationIntoApp((event.detail || {}).params || null);
       }
     });
   }

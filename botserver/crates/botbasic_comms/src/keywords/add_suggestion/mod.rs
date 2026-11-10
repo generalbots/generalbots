@@ -1,7 +1,7 @@
 //! ADD_SUGGESTION / CLEAR_SUGGESTIONS keyword registration and read-back.
 
-pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
+pub(crate) use botbasic_types::UserSession;
 pub(crate) use log::{info, trace};
 pub(crate) use rhai::{Dynamic, Engine};
 pub(crate) use serde_json::json;
@@ -23,12 +23,14 @@ pub enum SuggestionType {
     },
 }
 
+mod labels;
+mod read;
 mod registration;
 mod suggestions;
-mod read;
 #[cfg(test)]
 mod tests;
 
+pub use labels::*;
+pub use read::*;
 pub use registration::*;
 use suggestions::*;
-pub use read::*;

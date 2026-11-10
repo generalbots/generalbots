@@ -155,30 +155,86 @@
         C.doExport();
     }
 
+    // The drawing a teammate has to open. Sharing used to copy
+    // `?tool=canvas`, which the canvas app ignores, so the second browser got
+    // an empty board — "Share" reported a link but never the same drawing
+    // (UAT CANVAS-05). The identity the app already understands is the Drive
+    // path (or the project it was opened from); without one there is nothing
+    // to share yet.
+    function canvasShareLink() {
+        var gp = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        var path = window.__CANVAS_FILE_PATH || gp.file || qs.get("path") || "";
+        var bucket = window.__CANVAS_FILE_BUCKET || gp.bucket || qs.get("bucket") || "";
+        var project = gp.project || qs.get("project") || "";
+        if (!path && !project) return "";
+        var params = new URLSearchParams({ app: "canvas" });
+        if (path) params.set("path", path);
+        if (bucket) params.set("bucket", bucket);
+        if (project) params.set("project", project);
+        return window.location.origin + window.location.pathname + "?" + params.toString();
+    }
+
+    // People who already have access to a canvas in this workspace. The route
+    // answers a bare JSON array; reading `data.collaborators` always reported
+    // zero, which made every share look like a fresh, empty canvas.
+    function shareAudience(callback) {
+        var headers = { Accept: "application/json" };
+        var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
+            window.localStorage.getItem("gb-access-token") || "";
+        if (token) headers.Authorization = "Bearer " + token;
+        fetch("/api/canvas/collaborators", { headers: headers })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (data) {
+                var people = Array.isArray(data) ? data
+                    : (data && (data.collaborators || data.users)) || [];
+                callback(people.length);
+            })
+            .catch(function () { callback(0); });
+    }
+
+    function reportShare(url, people) {
+        var audience = people > 0
+            ? people + " collaborator(s) have access to this canvas"
+            : "No collaborators yet — anyone with the link can open the drawing";
+        (window.GBModal || { alert: alert }).alert(
+            (window.gbT ? window.gbT("canvas-share-copied", "Share link copied to clipboard") : "Share link copied to clipboard") +
+            "\n" + url + "\n" + audience
+        );
+    }
+
     C.shareCanvas = function shareCanvas() {
-        const url = window.location.href.split("?")[0] + "?tool=canvas";
+        var url = canvasShareLink();
+        if (!url) {
+            (window.GBModal || { alert: alert }).alert(
+                "Save the canvas first (Save → .draw): an unsaved drawing has no file to share."
+            );
+            return;
+        }
+        var copy = function () {
+            shareAudience(function (people) { reportShare(url, people); });
+        };
         try {
-            navigator.clipboard
-                .writeText(url)
-                .then(function () {
-                    (window.GBModal||{alert:alert}).alert((window.gbT ? window.gbT("canvas-share-copied", "Share link copied to clipboard") : "Share link copied to clipboard"));
-                })
-                .catch(function () {
-                    (window.GBModal||{alert:alert}).alert(window.gbT
-            ? window.gbT("canvas-share-link", "Share link: {url}", { url: url })
-            : "Share link: " + url);
-                });
+            navigator.clipboard.writeText(url).then(copy).catch(copy);
         } catch (ignore) {
-            (window.GBModal||{alert:alert}).alert(window.gbT
-            ? window.gbT("canvas-share-link", "Share link: {url}", { url: url })
-            : "Share link: " + url);
+            copy();
         }
     }
 
     C.toggleCollaborate = function toggleCollaborate() {
-        (window.GBModal||{alert:alert}).alert(
-            "Real-time collaboration needs a canvas session; open the Vibe or Docs app to collaborate live."
-        );
+        // Report the real state of this canvas instead of a static hint: who
+        // can reach it, and whether the drawing is stored somewhere another
+        // browser can load it from.
+        var url = canvasShareLink();
+        shareAudience(function (people) {
+            var lines = [];
+            lines.push(url ? "Share link ready for this canvas." : "This canvas is not saved yet — save it to share.");
+            lines.push(people > 0
+                ? people + " collaborator(s) have access."
+                : "No collaborators have access yet.");
+            lines.push("Live co-editing streams through chat and refreshes on reload.");
+            (window.GBModal || { alert: alert }).alert(lines.join("\n"));
+        });
     }
 
     // Expose the API to the toolbar/properties/export partials, which the

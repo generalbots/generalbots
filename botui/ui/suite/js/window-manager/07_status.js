@@ -1,4 +1,4 @@
-/* WindowManager — shared live status bar contract (7/8). Issue #1849.
+/* WindowManager — shared live status bar contract (7/9). Issue #1849.
  *
  * Every app window owns one footer status bar (added in #725). This module
  * turns that footer into the single, event-driven status contract:

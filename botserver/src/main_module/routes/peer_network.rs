@@ -13,8 +13,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde::Deserialize;
 use botcore::shared::state::AppState;
+use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -80,7 +80,11 @@ pub async fn enable(headers: HeaderMap) -> Response {
     }
     network.enable();
     persist_mode("p2p");
-    (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({ "ok": true, "enabled": network.enabled() })),
+    )
+        .into_response()
 }
 
 /// #1865 — the toggle is a hard gate, so it must outlive the process. The
@@ -100,7 +104,11 @@ pub async fn disable(headers: HeaderMap) -> Response {
     }
     network.disable();
     persist_mode("offline");
-    (StatusCode::OK, Json(json!({ "ok": true, "enabled": network.enabled() }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({ "ok": true, "enabled": network.enabled() })),
+    )
+        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -119,7 +127,11 @@ pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload
         return error_response(PeerError::Disabled);
     }
     match peer_payloads::global_store().enqueue(request.clone()) {
-        Ok(payload) => (StatusCode::OK, Json(json!({ "ok": true, "payload": payload }))).into_response(),
+        Ok(payload) => (
+            StatusCode::OK,
+            Json(json!({ "ok": true, "payload": payload })),
+        )
+            .into_response(),
         Err(message) => (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(json!({
@@ -156,7 +168,11 @@ pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQu
             .into_response();
     };
     let payloads = peer_payloads::global_store().pending_for(recipient);
-    (StatusCode::OK, Json(json!({ "ok": true, "payloads": payloads }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({ "ok": true, "payloads": payloads })),
+    )
+        .into_response()
 }
 
 /// `GET /api/peer/home-site` — the signed home site for this node (if P2P).

@@ -105,10 +105,60 @@ pub(super) fn build(
     } else {
         String::new()
     };
-    format!(
-        "{channel_prompt}\n\n{}\n\n{delivery}",
-        capability_block(channel, client_caps)
-    )
+    // #2096 — the response-language rule is a platform property: it is appended
+    // here, after every channel-specific block, so a bot whose own `PROMPT.md`
+    // omits it still answers in the user's language.
+    let language = response_language_block(&client_locale(client_caps));
+    let blocks = [capability_block(channel, client_caps), language, delivery];
+    let appended = blocks
+        .iter()
+        .map(String::as_str)
+        .filter(|block| !block.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    format!("{channel_prompt}\n\n{appended}")
+}
+
+/// The locale the client announced in its capability handshake, or `en`.
+///
+/// One resolver for every prompt block that needs it, so the capability block
+/// and the response-language rule can never disagree about the locale.
+#[must_use]
+pub fn client_locale(client_caps: Option<&serde_json::Value>) -> String {
+    client_caps
+        .unwrap_or(&serde_json::Value::Null)
+        .get("locale")
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|locale| !locale.is_empty())
+        .unwrap_or("en")
+        .to_string()
+}
+
+/// #2096 — “answer in the user's language”, in the shared builder.
+///
+/// Before this block existed the rule lived only in individual bot templates:
+/// a bot shipped without that paragraph answered in the language its prompt was
+/// authored in (English), whatever the user typed, and nothing in the platform
+/// caught it. The block is language-agnostic on purpose — it names no locale —
+/// so it works for all eight shipped locales and for a bot that serves users in
+/// several of them at once.
+#[must_use]
+pub fn response_language_block(locale: &str) -> String {
+    let hint = if locale.trim().is_empty() {
+        "the user's language".to_string()
+    } else {
+        format!("the user's language (client locale hint: {locale})")
+    };
+    [
+        "RESPONSE LANGUAGE".to_string(),
+        format!("- Always answer in {hint}: reply in the language of the user's message, not the language this prompt is written in."),
+        "- When the user's message is too short to tell (a number, a link, a single command), use the client locale hint above.".to_string(),
+        "- Never translate code, identifiers, file paths, shell commands, SQL, API field names or URLs.".to_string(),
+        "- Follow the user's explicit request to switch language for the rest of the conversation, and keep it until they switch again.".to_string(),
+        "- Format dates, numbers and currency for that locale instead of assuming MM/DD/YYYY or `1,234.56`.".to_string(),
+    ]
+    .join("\n")
 }
 
 /// #1939 — “ask, done” delivery policy: produce the artifact the user asked
@@ -186,10 +236,7 @@ pub fn capability_block(channel: &str, client_caps: Option<&serde_json::Value>) 
         .get("motion")
         .and_then(serde_json::Value::as_str)
         .unwrap_or("full");
-    let locale = caps
-        .get("locale")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or("en");
+    let locale = client_locale(client_caps);
     let input = caps
         .get("input")
         .and_then(serde_json::Value::as_str)
@@ -226,7 +273,10 @@ fn api_catalog_enabled(value: Option<&str>) -> bool {
 
 #[cfg(test)]
 mod prompt_assembly_tests {
-    use super::{canvas_drawing_block, capability_block, delivery_policy_block, with_structured_tools};
+    use super::{
+        canvas_drawing_block, capability_block, client_locale, delivery_policy_block,
+        response_language_block, with_structured_tools,
+    };
 
     #[test]
     fn capability_block_uses_the_client_defaults() {
@@ -271,6 +321,63 @@ mod prompt_assembly_tests {
         assert!(block.starts_with("DELIVERY POLICY (ask, done)"));
         assert!(block.contains("Never substitute a different format silently."));
         assert!(block.contains("Deliver quietly"));
+    }
+
+    #[test]
+    fn client_locale_falls_back_to_english() {
+        assert_eq!(client_locale(None), "en");
+        assert_eq!(client_locale(Some(&serde_json::Value::Null)), "en");
+        assert_eq!(client_locale(Some(&serde_json::json!({}))), "en");
+        assert_eq!(
+            client_locale(Some(&serde_json::json!({ "locale": "  " }))),
+            "en"
+        );
+        assert_eq!(
+            client_locale(Some(&serde_json::json!({ "locale": 7 }))),
+            "en"
+        );
+    }
+
+    #[test]
+    fn client_locale_reads_the_announced_locale() {
+        let caps = serde_json::json!({ "locale": " pt-BR " });
+        assert_eq!(client_locale(Some(&caps)), "pt-BR");
+        // The capability block and the language rule must never disagree.
+        assert!(capability_block("web", Some(&caps)).contains("locale=pt-BR;"));
+        assert!(response_language_block(&client_locale(Some(&caps)))
+            .contains("client locale hint: pt-BR"));
+    }
+
+    #[test]
+    fn response_language_block_states_the_rule_for_every_locale() {
+        // #2096 — the rule is a platform property: it must name no locale of its
+        // own, so all eight shipped locales get the same instruction.
+        for locale in ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"] {
+            let block = response_language_block(locale);
+            assert!(block.starts_with("RESPONSE LANGUAGE"), "locale {locale}");
+            assert!(
+                block.contains("reply in the language of the user's message"),
+                "locale {locale}"
+            );
+            assert!(
+                block.contains(&format!("client locale hint: {locale}")),
+                "locale {locale}"
+            );
+        }
+        // An unknown/empty hint still produces a usable rule.
+        let block = response_language_block("");
+        assert!(block.contains("answer in the user's language"));
+        assert!(!block.contains("client locale hint"));
+    }
+
+    #[test]
+    fn response_language_block_protects_non_translatable_payloads() {
+        let block = response_language_block("en");
+        for kept in ["code", "file paths", "shell commands", "SQL", "URLs"] {
+            assert!(block.contains(kept), "missing {kept}");
+        }
+        assert!(block.contains("MM/DD/YYYY"));
+        assert!(block.contains("switch language"));
     }
 
     #[test]

@@ -25,7 +25,8 @@ test("SEC-01: XSS fix — sanitizeHtml function exists in 08_modals.js", functio
 });
 
 test("SEC-02: XSS fix — marked.parse output is sanitized", function () {
-  var src = readFile("drive/modules/08_modals.js");
+  // #2105 — the preview renderers moved out of 08_modals.js.
+  var src = readFile("drive/modules/08_preview_render.js");
   assert(src.indexOf("sanitizeHtml(marked.parse(") !== -1, "marked.parse not wrapped in sanitizeHtml");
   assert(src.indexOf("previewEl.innerHTML = marked.parse(t.substring") === -1, "unsanitized innerHTML still present");
 });

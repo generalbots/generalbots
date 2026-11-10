@@ -1,4 +1,4 @@
-/* WindowManager — start menu, filtering and launcher (5/7). */
+/* WindowManager — start menu, filtering and launcher (5/9). */
 (function (window) {
   "use strict";
   var WM = window.__GBWindowManager;

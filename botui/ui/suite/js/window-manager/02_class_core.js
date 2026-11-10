@@ -1,4 +1,4 @@
-/* WindowManager — class core: window creation and chrome entry points (2/7). */
+/* WindowManager — class core: window creation and chrome entry points (2/9). */
 (function (window) {
   "use strict";
   var WM = window.__GBWindowManager;
@@ -81,6 +81,7 @@ class WindowManager {
       noMaximize: opts.noMaximize === true,
       isMinimized: false,
       isMaximized: false,
+      isFullscreen: false,
       previousState: null,
     };
     this.openWindows.push(windowData);

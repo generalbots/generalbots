@@ -110,8 +110,9 @@ function processMessage(data) {
       (finalReasoning && finalReasoning.trim() !== "");
     if (!hasAnswer && !ChatState.isStreaming) {
       // An empty completion (tool boundary, retry in flight) is not the end of
-      // the turn: keep the progress element instead of going blank.
-      if (window.GBTurn) GBTurn.thinking();
+      // the turn: keep the progress element — and its current step label —
+      // instead of going blank.
+      if (window.GBTurn) GBTurn.touch();
       return;
     }
     if (ChatState.isStreaming) {

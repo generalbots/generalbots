@@ -2,16 +2,19 @@ use super::*;
 
 pub async fn handle_get_organization(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let auth_service = state
         .auth_service
         .as_ref()
         .ok_or_else(|| {
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "No auth service"
-                })),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-org-auth-service-unavailable",
+                )),
             )
         })?
         .lock()
@@ -107,15 +110,18 @@ pub async fn handle_get_org_stats(
 }
 pub async fn handle_delete_organization(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization deletion requested");
+    let locale = botcore::i18n::locale_from_headers(&headers);
 
     let auth = state.auth_service.as_ref().ok_or_else(|| {
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({
-                "error": "No auth service"
-            })),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-org-auth-service-unavailable",
+            )),
         )
     })?;
 
@@ -136,9 +142,10 @@ pub async fn handle_delete_organization(
     if org_id == "default" {
         return Err((
             axum::http::StatusCode::FORBIDDEN,
-            Json(serde_json::json!({
-                "error": "Cannot delete the default organization"
-            })),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-org-default-delete",
+            )),
         ));
     }
 
@@ -236,9 +243,11 @@ pub async fn handle_export_org_data(
 }
 pub async fn handle_update_organization(
     State(_state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization settings update: {:?}", body);
+    let locale = botcore::i18n::locale_from_headers(&headers);
 
     let stack = botcore::shared::utils::get_stack_path();
     let config_path = format!("{}/conf/directory/org-settings.json", stack);
@@ -268,9 +277,10 @@ pub async fn handle_update_organization(
         log::error!("Failed to save organization settings: {}", e);
         return Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({
-                "error": "Failed to save settings"
-            })),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-org-settings-save-failed",
+            )),
         ));
     }
 
@@ -315,10 +325,11 @@ pub(super) fn append_audit_log(action: &str, detail: &str) {
 }
 pub async fn handle_update_organization_contact(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization contact update: {:?}", body);
-    let result = handle_update_organization(State(state), Json(body.clone())).await?;
+    let result = handle_update_organization(State(state), headers, Json(body.clone())).await?;
     append_audit_log(
         "contact_updated",
         &body
@@ -330,10 +341,11 @@ pub async fn handle_update_organization_contact(
 }
 pub async fn handle_update_organization_branding(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!("Organization branding update: {:?}", body);
-    let result = handle_update_organization(State(state), Json(body.clone())).await?;
+    let result = handle_update_organization(State(state), headers, Json(body.clone())).await?;
     append_audit_log(
         "branding_updated",
         &body

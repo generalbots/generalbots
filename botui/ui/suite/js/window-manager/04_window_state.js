@@ -1,4 +1,4 @@
-/* WindowManager — focus, close, sizing and drag/resize (4/7). */
+/* WindowManager — focus, close, sizing and drag/resize (4/9). */
 (function (window) {
   "use strict";
   var WM = window.__GBWindowManager;
@@ -57,6 +57,11 @@
     children.forEach((childId) => this.close(childId));
 
     const el = document.getElementById(`window-${id}`);
+    // #2104 — a closed window must not leave the desktop (or the OS window,
+    // in the desktop shell) stuck in fullscreen.
+    if (el && typeof this.exitFullscreen === "function" && this.isFullscreen(id)) {
+      this.exitFullscreen(id);
+    }
     if (el) {
       if (this.useGlassWindows) {
         el.classList.add("closing");
@@ -86,6 +91,11 @@
     if (!obj) return;
     const el = document.getElementById(`window-${id}`);
     if (!el) return;
+    // #2104 — minimizing leaves fullscreen first: a hidden window that still
+    // owns the screen would be unreachable.
+    if (typeof this.isFullscreen === "function" && this.isFullscreen(id)) {
+      this.exitFullscreen(id);
+    }
     if (obj.isMinimized) {
       el.style.display = "flex";
       obj.isMinimized = false;
@@ -177,6 +187,8 @@
       // so restore it to its previous size/position first — standard
       // desktop behavior.
       const id = el.id.replace("window-", "");
+      // #2104 — a fullscreen window owns the screen: no drag, no restore.
+      if (this.isFullscreen && this.isFullscreen(id)) return;
       const wd = this.openWindows.find((w) => w.id === id);
       if (wd && wd.isMaximized && !wd.noMaximize) this.toggleMaximize(id);
       isDragging = true;
@@ -203,6 +215,9 @@
     header.addEventListener("dblclick", (e) => {
       if (e.target.closest(".window-dot") || e.target.closest("button")) return;
       const id = el.id.replace("window-", "");
+      // #2104 — double-click must not maximize (and so shrink) a fullscreen
+      // window; Escape/F11 leave fullscreen instead.
+      if (this.isFullscreen && this.isFullscreen(id)) return;
       const wd = this.openWindows.find((w) => w.id === id);
       if (wd && !wd.noMaximize) this.toggleMaximize(id);
     });

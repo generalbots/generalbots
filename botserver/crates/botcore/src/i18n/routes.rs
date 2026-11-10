@@ -15,6 +15,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use super::error::error_body;
+use super::locale_meta::metadata_all;
 use super::translations::get_translations_json;
 use super::{available_locales, locale_from_headers, Locale};
 use crate::shared::state::AppState;
@@ -29,10 +30,19 @@ pub fn configure_i18n_routes() -> Router<Arc<AppState>> {
         .route("/api/i18n/:locale", get(handle_get_translations))
 }
 
+/// `GET /api/i18n/locales` — the locales the catalogue ships.
+///
+/// `locales` stays a flat list of codes for the two clients that already read
+/// it (`suite/js/i18n.js`, `cloud/js/i18n-lite.js`). `details` carries the
+/// presentation metadata a picker needs (#2087/#2096): the native name, the
+/// text direction and the CLDR date/number patterns. Both arrays describe the
+/// same locales in the same order.
 async fn handle_get_locales(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let locales = available_locales();
+    let details = metadata_all(&locales);
     Json(serde_json::json!({
         "locales": locales,
+        "details": details,
         "default": "en"
     }))
 }

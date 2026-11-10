@@ -1,5 +1,6 @@
 pub mod collaboration;
 pub mod handlers;
+pub mod layouts;
 pub mod ooxml;
 pub mod pptx;
 pub mod routes;

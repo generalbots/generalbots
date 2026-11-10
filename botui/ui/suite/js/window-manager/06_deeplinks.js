@@ -1,4 +1,4 @@
-/* WindowManager — deep links, tool windows, dialogs and queries (6/7). */
+/* WindowManager — deep links, tool windows, dialogs and queries (6/9). */
 (function (window) {
   "use strict";
   var WM = window.__GBWindowManager;

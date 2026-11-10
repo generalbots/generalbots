@@ -3,12 +3,14 @@ use super::*;
 #[cfg(feature = "directory")]
 pub async fn handle_office365_migration(
     State(_state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<Office365MigrationRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
     info!(
         "Office 365 migration requested for tenant: {}",
         req.tenant_id
     );
+    let locale = botcore::i18n::locale_from_headers(&headers);
 
     let mode = match req.sync_mode.as_deref() {
         Some("delta") => crate::directory::scim::sync::SyncMode::Delta,
@@ -30,9 +32,10 @@ pub async fn handle_office365_migration(
         .ok_or_else(|| {
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": "No auth service available"
-                })),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-org-auth-service-unavailable",
+                )),
             )
         })?
         .lock()

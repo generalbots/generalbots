@@ -253,10 +253,11 @@
   /// arrived before the play watchdog — the caller then hands the user to the
   /// system picker instead of leaving a black modal on "Waiting…".
   function startPreview(video, token) {
+    var ready = false;
     var diagnostic = setTimeout(function () {
-      if (token !== requestSeq || !overlay) return;
+      if (ready || token !== requestSeq || !overlay) return;
       describeDevices().then(function (detail) {
-        if (token !== requestSeq || !overlay) return;
+        if (ready || token !== requestSeq || !overlay) return;
         var message = tr(
           "chat-camera-waiting-frames",
           "Permission granted; waiting for video frames",
@@ -279,11 +280,12 @@
       return Promise.resolve(videoReady(video));
     }
     cancelFrameWatch = watcher.cancel;
-    return watcher.promise.then(function (ready) {
+    return watcher.promise.then(function (framesReady) {
+      ready = true;
       clearTimeout(diagnostic);
       cancelFrameWatch = null;
       if (token !== requestSeq || !overlay) return false;
-      if (!ready) return false;
+      if (!framesReady) return false;
       setShutterEnabled(true);
       setStatus(
         video.paused

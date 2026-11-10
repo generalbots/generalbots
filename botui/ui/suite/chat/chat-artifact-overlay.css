@@ -1,0 +1,131 @@
+/* #2099 — modal layer for an expanded inline chat preview.
+ *
+ * The preview node is portaled here (see chat-artifact-overlay.js). It leaves
+ * `.message`, so the 80% bubble cap (chat-layout.css) stops applying, while the
+ * node itself — and therefore the artifact renderer — is unchanged.
+ */
+
+.gb-artifact-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 96000;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.55);
+    overflow: hidden;
+}
+
+.gb-artifact-overlay-frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 14px;
+    background: var(--gb-surface, #fff);
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.35);
+    overflow: hidden;
+}
+
+/* The portaled preview keeps its own chrome and becomes the frame's only
+   child: static position (no sticky inside a modal), full width, column flow.
+   !important only where an `#chat-app …` rule or a leftover inline style would
+   otherwise re-clamp it. */
+.gb-artifact-overlay-frame > * {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    float: none !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 !important;
+    border: 0;
+    border-radius: 0 !important;
+    background: var(--gb-surface, #fff);
+    overflow: hidden;
+}
+
+/* Header (filename, Collapse, open/download) stays outside the scroll area. */
+.gb-artifact-overlay-frame .gb-live-artifact-head,
+.gb-artifact-overlay-frame .gb-inline-artifact-head,
+.gb-artifact-overlay-frame .gb-attachment-inline-head,
+.gb-artifact-overlay-frame .gb-app-head {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+/* The body owns the scrolling. */
+.gb-artifact-overlay-frame .gb-live-artifact-body,
+.gb-artifact-overlay-frame .gb-attachment-inline-body,
+.gb-artifact-overlay-frame .gb-app-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.gb-artifact-overlay-frame .gb-live-artifact-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The SVG surface is not an iframe: let it fill the body instead of the
+   70vh inline-preview height. */
+.gb-artifact-overlay-frame .gb-live-artifact-svg {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0;
+}
+
+.gb-artifact-overlay-frame .gb-live-artifact-body iframe,
+.gb-artifact-overlay-frame .gb-attachment-inline-body iframe,
+.gb-artifact-overlay-frame .gb-inline-artifact-frame,
+.gb-artifact-overlay-frame .gb-app-frame {
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    max-height: none !important;
+    border: 0;
+    background: #fff;
+}
+
+.gb-artifact-overlay-frame .gb-attachment-inline-body img {
+    width: 100%;
+    height: auto;
+    max-height: 100% !important;
+    object-fit: contain;
+}
+
+.gb-artifact-overlay-frame .gb-attachment-inline-text {
+    max-height: none !important;
+    overflow: visible;
+}
+
+/* Phones: the overlay is the viewport, no gutter to waste. */
+@media (max-width: 640px) {
+    .gb-artifact-overlay {
+        padding: 0;
+    }
+    .gb-artifact-overlay-frame {
+        border-radius: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-artifact-overlay,
+    .gb-artifact-overlay-frame {
+        animation: none;
+        transition: none;
+    }
+}

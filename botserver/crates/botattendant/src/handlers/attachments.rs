@@ -46,14 +46,20 @@ const ALLOWED_CONTENT_TYPES: &[&str] = &[
     "video/webm",
 ];
 
+/// Media types are case-insensitive (RFC 9110 §8.3), so the comparison
+/// normalizes instead of trusting the client's casing.
 fn content_type_allowed(content_type: &str) -> bool {
-    ALLOWED_CONTENT_TYPES.contains(&content_type)
+    let normalized = content_type.trim().to_ascii_lowercase();
+    ALLOWED_CONTENT_TYPES.contains(&normalized.as_str())
 }
 
 /// Returns true when the content type is an image (rendered inline with a
 /// preview in the message thread).
 fn is_image(content_type: &str) -> bool {
-    content_type.starts_with("image/")
+    content_type
+        .trim()
+        .to_ascii_lowercase()
+        .starts_with("image/")
 }
 
 /// `POST /api/attendant/sessions/:id/attachments`
@@ -176,11 +182,12 @@ pub async fn download_attachment(
     Ok(response)
 }
 
-/// Strips path separators and control characters from a filename so the
-/// Content-Disposition header cannot be abused.
+/// Strips path separators, quote and control characters from a filename so the
+/// Content-Disposition header cannot be abused. A `"` would close the quoted
+/// string early and produce a malformed header.
 fn sanitize_filename(name: &str) -> String {
     name.chars()
-        .filter(|c| !matches!(c, '/' | '\\' | '\0' | '\r'))
+        .filter(|c| !matches!(c, '/' | '\\' | '\0' | '\r' | '\n' | '"'))
         .collect()
 }
 
@@ -215,6 +222,10 @@ fn detect_from_extension(name: &str) -> Option<String> {
     };
     Some(ct.to_string())
 }
+
+#[cfg(test)]
+#[path = "attachments_tests.rs"]
+mod attachments_tests;
 
 #[cfg(test)]
 mod tests {

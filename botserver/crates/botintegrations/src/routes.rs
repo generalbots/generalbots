@@ -53,10 +53,6 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
             post(handlers_actions::invoke_action),
         )
         .route(
-            "/api/apps/integrations/context",
-            get(handlers_context::context),
-        )
-        .route(
             "/api/bots/:bot_id/integrations/oauth/:provider/start",
             get(crate::oauth::start),
         )
@@ -80,6 +76,22 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
             "/api/bots/:bot_id/integration-automations/:automation_id",
             axum::routing::delete(handlers_automations::remove)
                 .patch(handlers_automations::toggle),
+        )
+}
+
+/// Read-only routes that never touch the secrets manager.
+///
+/// `context` and `mentions` answer from the database alone, so they are
+/// mounted independently of the connection control plane above: that router is
+/// skipped when the secrets manager cannot initialise (fail closed), and a
+/// missing `/api/apps/integrations/context` made every suite app report "Status
+/// unavailable" in builds without a credential store — the desktop edition has
+/// no Vault at all (#2100).
+pub fn configure_context_routes<S: Clone + Send + Sync + 'static>() -> Router<S> {
+    Router::new()
+        .route(
+            "/api/apps/integrations/context",
+            get(handlers_context::context),
         )
         .route(
             "/api/apps/integrations/mentions",

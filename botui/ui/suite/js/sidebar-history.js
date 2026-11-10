@@ -16,9 +16,24 @@
     return window.GBSidebarBase.byId(id);
   }
 
+  // #2095 — user-visible labels come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
+  // One entry per time bucket: `id` is internal (grouping/signature), `key`
+  // and `label` are the catalogue key and its English fallback.
+  var BUCKETS = [
+    { id: "today", key: "sidebar-bucket-today", label: "Today" },
+    { id: "yesterday", key: "sidebar-bucket-yesterday", label: "Yesterday" },
+    { id: "last7", key: "sidebar-bucket-previous-7-days", label: "Previous 7 Days" },
+    { id: "older", key: "sidebar-bucket-older", label: "Older" },
+  ];
+
   function timeBucket(ts) {
     var then = new Date(ts).getTime();
-    if (!then) return "Older";
+    if (!then) return "older";
     var now = new Date();
     var startToday = new Date(
       now.getFullYear(),
@@ -26,10 +41,10 @@
       now.getDate()
     ).getTime();
     var msDay = 86400000;
-    if (then >= startToday) return "Today";
-    if (then >= startToday - msDay) return "Yesterday";
-    if (then >= startToday - 7 * msDay) return "Previous 7 Days";
-    return "Older";
+    if (then >= startToday) return "today";
+    if (then >= startToday - msDay) return "yesterday";
+    if (then >= startToday - 7 * msDay) return "last7";
+    return "older";
   }
 
   // Regrouping rewrites the host DOM (innerHTML wipe + re-append), which
@@ -112,14 +127,12 @@
         item._gbTs = isNaN(ts) ? 0 : ts;
       }
     });
-    var groups = {
-      Today: [],
-      Yesterday: [],
-      "Previous 7 Days": [],
-      Older: [],
-    };
+    var groups = {};
+    BUCKETS.forEach(function (bucket) {
+      groups[bucket.id] = [];
+    });
     source.forEach(function (item) {
-      var bucket = item._gbTs ? timeBucket(item._gbTs) : "Older";
+      var bucket = item._gbTs ? timeBucket(item._gbTs) : "older";
       groups[bucket].push(item);
     });
     // Commit only when the grouping actually changed. Rebuilding the same
@@ -138,13 +151,13 @@
              !el.classList.contains("gb-conv-group-title");
     });
     host.innerHTML = "";
-    ["Today", "Yesterday", "Previous 7 Days", "Older"].forEach(function (name) {
-      if (!groups[name].length) return;
+    BUCKETS.forEach(function (bucket) {
+      if (!groups[bucket.id].length) return;
       var label = document.createElement("div");
       label.className = "chat-sidebar-section-label gb-conv-group-title";
-      label.textContent = name;
+      label.textContent = t(bucket.key, bucket.label);
       host.appendChild(label);
-      groups[name].forEach(function (item) {
+      groups[bucket.id].forEach(function (item) {
         host.appendChild(item);
       });
     });
@@ -158,12 +171,12 @@
   // to skip pointless DOM rebuilds that would feed the MutationObserver.
   function signature(groups) {
     var parts = [];
-    ["Today", "Yesterday", "Previous 7 Days", "Older"].forEach(function (name) {
-      if (!groups[name].length) return;
+    BUCKETS.forEach(function (bucket) {
+      if (!groups[bucket.id].length) return;
       parts.push(
-        name +
+        bucket.id +
           ":" +
-          groups[name].map(function (item) {
+          groups[bucket.id].map(function (item) {
             return (
               (item.getAttribute && item.getAttribute("data-session-id")) ||
               item._gbTs
@@ -203,6 +216,14 @@
       scheduleGroup();
     }
   }
+
+  // A language switch relabels the buckets without touching the items, so the
+  // grouping signature is dropped to force one regroup.
+  window.addEventListener("localeChanged", function () {
+    var host = byId("chatConversations");
+    if (host) host._gbLastSig = undefined;
+    scheduleGroup();
+  });
 
   window.GBSidebarHistory = {
     install: install,
