@@ -36,6 +36,7 @@ Exit codes: 0 clean, 1 violations found.
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -135,6 +136,14 @@ def check_codeql_concurrency(path: Path, lines: list[str], errors: list[str]) ->
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Reject mutable GitHub Actions references (#1726)")
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
+    args = parser.parse_args()
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("workflow-pinning")
+
     if not WORKFLOWS_DIR.is_dir():
         print(f"no {WORKFLOWS_DIR} directory; nothing to check")
         return 0

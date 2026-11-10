@@ -49,13 +49,13 @@ fn extracts_chart_from_workbook_package() {
     )
     .expect("parse");
     let mut worksheets = Vec::new();
-    for sheet in workbook.get_sheet_collection() {
+    for sheet in workbook.sheet_collection() {
         let mut data = HashMap::new();
         let (max_col, max_row) = sheet.get_highest_column_and_row();
         for row in 1..=max_row {
             for col in 1..=max_col {
                 if let Some(cell) = sheet.get_cell((col, row)) {
-                    let value = cell.get_value().to_string();
+                    let value = cell.value().to_string();
                     if !value.is_empty() {
                         data.insert(
                             format!("{},{}", row - 1, col - 1),
@@ -76,7 +76,7 @@ fn extracts_chart_from_workbook_package() {
             }
         }
         worksheets.push(Worksheet {
-            name: sheet.get_name().to_string(),
+            name: sheet.name().to_string(),
             data,
             ..Worksheet::default()
         });

@@ -75,6 +75,51 @@ sudo incus exec drive -- mc mirror --overwrite /opt/gbo/data/backup/drive/<bucke
 #    the affected bots first (see runbook-disable-tenant.md).
 ```
 
+## Restore drill (rehearse the restore)
+
+`scripts/restore_drill.sh` is the rehearsed version of the scratch-restore above:
+it takes a real dump, restores it into a throwaway database and asserts the copy
+before anyone is asked to trust it. Run it monthly, before a release, and after
+any migration that touches a tenant-scoped table.
+
+```bash
+# 1. Offline proof that the assertions themselves work — no server needed.
+scripts/restore_drill.sh --self-test
+
+# 2. Dump the source, restore into gb_restore_drill_<pid>, assert, drop it.
+scripts/restore_drill.sh --dsn "$DATABASE_URL" --report /tmp/gb-restore-drill.md
+
+# 3. Rehearse a dump you already have (no dump is taken; <dump>.manifest.json
+#    is used for the row-count comparison when it sits next to the file).
+scripts/restore_drill.sh --dsn "$DATABASE_URL" --dump /opt/gbo/data/backup/botserver.dump
+
+# 4. Assert on a database that was restored by hand, without another restore.
+scripts/restore_drill.sh --dsn "$RESTORED_URL" --verify-only
+
+# 5. Keep the throwaway database and the dump for forensics.
+scripts/restore_drill.sh --dsn "$DATABASE_URL" --keep
+```
+
+The drill asserts, on the restored copy:
+
+- the core tables (`organizations`, `branches`, `bots`, `users`) exist and
+  `__diesel_schema_migrations` is non-empty — a restore that lost the schema or
+  the migration history fails;
+- every table has exactly the row count recorded in the source manifest — a
+  short or missing table names itself in the failure;
+- every generated tenant probe returns zero rows: for each table carrying
+  `org_id`, `branch_id`, `bot_id` or `tenant_id`, rows that point at another
+  organization, branch or bot are counted, and one non-zero probe fails the
+  drill.
+
+Exit codes: `0` pass, `1` mismatch (the restored copy is not trustworthy), `2`
+a tool or input is missing. The Markdown report written by `--report` is the
+evidence to attach to the incident or the release.
+
+The same drill runs unattended in CI: the `data-integrity` job in
+`.github/workflows/ci.yml` loads a deterministic dataset, runs the Rust
+integrity suite, then runs `scripts/restore_drill.sh` against that database.
+
 ## Verification
 
 ```bash

@@ -2,12 +2,16 @@ use super::*;
 
 pub async fn search_records_handler(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
     Path(table): Path<String>,
     Json(payload): Json<SearchRequest>,
 ) -> impl IntoResponse {
+    let caller = match caller_from(user, &headers) {
+        Ok(caller) => caller,
+        Err(rejection) => return rejection.into_response(),
+    };
     let table_name = sanitize_identifier(&table);
-    let user_roles = user_roles_from_headers(&headers);
     let limit = payload.limit.unwrap_or(20).min(100);
     // The search term is bound via $1 (not inlined), so no SQL-string escaping
     // is needed; only LIKE wildcards are escaped below. The previous `''`
@@ -21,6 +25,7 @@ pub async fn search_records_handler(
             return (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     };
+    let user_roles = caller.user_roles(&mut conn);
 
     // Check table-level read access
     let access_info =

@@ -25,6 +25,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 
@@ -57,6 +58,14 @@ def registry_ids() -> set[str]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="#1811 / #2120 product-profile guard")
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
+    args = parser.parse_args()
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("product-profile")
+
     errors: list[str] = []
 
     features = load_features()

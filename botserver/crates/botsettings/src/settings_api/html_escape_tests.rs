@@ -84,7 +84,9 @@ fn an_unchecked_checkbox_is_absent_from_the_form_payload() {
 
 #[test]
 fn a_malformed_form_body_is_reported() {
-    let error = parse_notification_body("application/x-www-form-urlencoded", b"%zz=1")
+    // `%FF` is not valid UTF-8, so the decoder must refuse the body instead of
+    // silently dropping the cell.
+    let error = parse_notification_body("application/x-www-form-urlencoded", b"email_digest=%FF")
         .expect_err("must fail");
     assert!(error.starts_with("Invalid form:"));
 }

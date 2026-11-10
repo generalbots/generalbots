@@ -1,5 +1,44 @@
 use super::*;
 
+/// Escapes text for HTML text and quoted attribute positions.
+///
+/// Mirrors `botweba::escape_html` (#2124). It stays local because `botweba` is
+/// an optional crate behind botserver's `weba` feature: making it mandatory
+/// just for this pure function would pull the whole WebA stack into every
+/// build.
+fn escape_html(raw: &str) -> String {
+    let mut escaped = String::with_capacity(raw.len());
+    for character in raw.chars() {
+        match character {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&#x27;"),
+            other => escaped.push(other),
+        }
+    }
+    escaped
+}
+
+/// Wraps the rendered SVG in the standalone HTML export document.
+///
+/// `canvas.name` is user data: unescaped, a canvas named `</title><script>…`
+/// closed the head and ran as the suite user — the stored-XSS class fixed in
+/// WebA (#2124). `svg` stays markup because `generate_svg` produced it, not
+/// the user.
+fn html_document(canvas_name: &str, svg: &str) -> String {
+    format!(
+        r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{}</title>
+<style>body{{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0}}
+.canvas-container{{background:white;box-shadow:0 4px 20px rgba(0,0,0,0.1)}}</style></head>
+<body><div class="canvas-container">{}</div></body></html>"#,
+        escape_html(canvas_name),
+        svg
+    )
+}
+
 impl CanvasService {
     pub(super) fn generate_html(
         &self,
@@ -8,16 +47,7 @@ impl CanvasService {
     ) -> Result<String, CanvasError> {
         let svg = self.generate_svg(canvas, request)?;
 
-        let html = format!(
-            r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0"><title>{}</title>
-<style>body{{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0}}
-.canvas-container{{background:white;box-shadow:0 4px 20px rgba(0,0,0,0.1)}}</style></head>
-<body><div class="canvas-container">{}</div></body></html>"#,
-            canvas.name, svg
-        );
-
-        Ok(html)
+        Ok(html_document(&canvas.name, &svg))
     }
 
     pub(crate) async fn save_canvas_elements(
@@ -150,5 +180,37 @@ impl CanvasService {
         };
 
         Ok(filtered)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The payload from #2124: closing `<title>` is enough to run script.
+    const TITLE_BREAKOUT: &str = "</title><script>alert(1)</script>";
+
+    #[test]
+    fn canvas_name_is_escaped_in_the_title() {
+        let html = html_document(TITLE_BREAKOUT, "<svg></svg>");
+
+        assert!(html.contains("&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;"));
+        assert!(!html.contains("<script>alert(1)</script>"));
+        // Exactly one real `</title>`: the escaped one cannot close the head.
+        assert_eq!(html.matches("</title>").count(), 1);
+    }
+
+    #[test]
+    fn plain_canvas_name_keeps_its_text_and_escapes_entities() {
+        let html = html_document("Q3 & Q4 \"roadmap\"", "<svg></svg>");
+
+        assert!(html.contains("<title>Q3 &amp; Q4 &quot;roadmap&quot;</title>"));
+        assert!(html.contains(r#"<div class="canvas-container"><svg></svg></div>"#));
+    }
+
+    #[test]
+    fn escape_html_covers_the_five_markup_characters() {
+        assert_eq!(escape_html("<&>\"'"), "&lt;&amp;&gt;&quot;&#x27;");
+        assert_eq!(escape_html("plain"), "plain");
     }
 }

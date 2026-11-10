@@ -56,11 +56,22 @@ pub async fn run_axum_server(
         tokio::spawn(async {
             let gateway_state = std::sync::Arc::new(crate::deployment::GatewayState::default());
             let gateway_router = crate::deployment::configure_gateway_routes(gateway_state);
+            // IMP-09: this listener is a separate `axum::serve`, so it needs
+            // the layer explicitly — the main router's layer never reaches it.
+            let gateway_router = with_security_headers(
+                gateway_router,
+                SecurityHeadersConfig::from_env(),
+            );
             let gateway_addr = SocketAddr::from(([0, 0, 0, 0], 5860));
             match tokio::net::TcpListener::bind(gateway_addr).await {
                 Ok(listener) => {
                     log::info!("Deploy Gateway Server listening on http://0.0.0.0:5860");
-                    if let Err(e) = axum::serve(listener, gateway_router.into_make_service()).await
+                    // IMP-07 — the gateway's rate limiter keys its per-client
+                    // budget on `ConnectInfo<SocketAddr>`, which axum only
+                    // inserts for this make-service flavour.
+                    let service = gateway_router
+                        .into_make_service_with_connect_info::<SocketAddr>();
+                    if let Err(e) = axum::serve(listener, service).await
                     {
                         log::error!("Deploy Gateway Server execution failed: {}", e);
                     }
@@ -88,8 +99,10 @@ pub async fn run_axum_server(
     let (rate_limit_extension, _rate_limiter) =
         create_rate_limit_layer(http_rate_config, system_limits);
 
-    let security_headers_config = SecurityHeadersConfig::default();
-    let security_headers_extension = create_security_headers_layer(security_headers_config.clone());
+    // IMP-09 header set, shared with botui: HSTS is on unless
+    // `GB_SECURITY_HSTS=off` (plain-HTTP local dev only — see
+    // `botsecurity_core::headers::HSTS_ENV`).
+    let security_headers_config = SecurityHeadersConfig::from_env();
 
     let is_production = std::env::var("BOTSERVER_ENV")
         .map(|v| v == "production" || v == "prod")
@@ -238,7 +251,7 @@ pub async fn run_axum_server(
             cors: sec.cors,
             csrf_manager,
             panic_config,
-            security_headers: security_headers_extension,
+            security_headers: security_headers_config,
             rate_limit: rate_limit_extension,
             rbac_manager: sec.rbac_manager,
             auth_middleware_state: sec.auth_middleware_state,

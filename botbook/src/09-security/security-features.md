@@ -32,7 +32,19 @@ Password hashing uses the Argon2id algorithm, which is memory-hard and GPU-resis
 
 ### Token Management
 
-Access tokens use JWT format with RS256 signing for verifiable authentication. Refresh tokens consist of secure random 256-bit values for session renewal. Session tokens use UUID v4 format with cache storage for fast validation. Token rotation happens automatically when tokens approach expiry, ensuring continuous secure access without user interruption.
+Server-minted access tokens are JWT format with **HS256** signing: the suite
+`JwtConfig::default()` selects HS256, and cloud login
+(`botcloud::api::handle_login`) mints HS256 tokens with the persisted
+`saas_jwt_secret`. Exactly one module turns either token into claims —
+`botsecurity_core::verified_jwt` — which pins the algorithm to HS256, compares
+the HMAC in constant time, requires an `exp` and honours `nbf` with a 60-second
+leeway. Zitadel `id_token`s are RS256 and are a different credential: the
+server's request authenticator does not verify them through a JWKS yet (see the
+allowlist in [Multi-Tenant Data Isolation](./multi-tenant-isolation.md#one-verifier-for-the-whole-tree)).
+Refresh tokens consist of secure random 256-bit values for session renewal.
+Session tokens use UUID v4 format with cache storage for fast validation. Token
+rotation happens automatically when tokens approach expiry, ensuring continuous
+secure access without user interruption.
 
 
 ## Encryption and Cryptography
@@ -129,6 +141,46 @@ Dependency management requires regular security updates. Run cargo audit to chec
 Code quality is enforced through Cargo.toml lints. Unsafe code is prohibited in application code. Unwrap calls are forbidden in production code paths. Panic macros are not allowed. Complete error handling is required for all fallible operations.
 
 Security testing validates protection mechanisms. Run the security test suite with cargo test --features security_tests. Fuzzing for input validation uses cargo fuzz run api_fuzzer to find edge cases.
+
+### Mechanical gates in CI
+
+Structural rules that a reviewer would otherwise have to remember are enforced
+by scripts. Each one fails the build with `file:line`, and each allowlist is
+**shrink-only**: an entry that no longer suppresses a violation is itself
+reported.
+
+| Gate | Command | Fails on |
+|---|---|---|
+| JWT hardening (#2125) | `python3 scripts/check_jwt_hardening.py --check` | `jsonwebtoken::dangerous` / `insecure_decode`; a file that base64url-decodes a JWT payload and reads `sub`/`user_id`/`email` without calling the shared verifier |
+| Container runtime (#2126) | `python3 scripts/check_container_runtime.py --check` | spawning `lxc`/`lxd`/`lxc-execute` (even through `SafeCommand`), or `incus` through a raw `Command::new` instead of `SafeCommand` |
+| Security directives | not present in the tree today | — |
+| Security headers | not present in the tree today | — |
+
+Both existing gates also carry a `--self-test` that proves each rule fires, so a
+regex that silently stops matching fails instead of passing everything. CI runs
+them in the `guard` job of `.github/workflows/ci.yml`; the JWT allowlist is
+`scripts/jwt_hardening_allowlist.txt`, the container allowlist is
+`scripts/container_runtime_allowlist.txt`.
+
+`scripts/prod_readiness.py` is the aggregator: it runs every readiness check the
+repository owns and prints one row per check with the issue that owns it. It
+distinguishes three states, and `SKIP` is never a pass:
+
+| Status | Meaning |
+|---|---|
+| `PASS` | the check ran and passed |
+| `FAIL` | the check ran and failed — a regression; the gate exits 1 |
+| `SKIP` | the check (or its baseline) has not landed yet; the row names the owning issue |
+
+```bash
+python3 scripts/prod_readiness.py                  # table, exit 1 on FAIL
+python3 scripts/prod_readiness.py --json           # machine output
+python3 scripts/prod_readiness.py --check-markdown # fail when the scoreboard drifted
+```
+
+The scoreboard is generated into
+[Production Readiness Gate](../10-configuration-deployment/production-readiness.md);
+regenerate it with `--markdown` instead of editing it.
 
 ### Deployment Practices
 

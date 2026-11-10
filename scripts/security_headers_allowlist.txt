@@ -1,0 +1,12 @@
+# IMP-09 security-header allowlist — shrink only.
+#
+# Format: <repo-relative path> # <why this file may call `axum::serve` without
+# naming `with_security_headers` itself>.
+#
+# Adding a line is not a way to silence a new server: the entry documents why
+# the router is already hardened when it arrives here.
+
+# Serves the router built by `run_axum_server::run_axum_server`, which applies
+# `with_security_headers` as the outermost layer of `apply_middleware`. This
+# file only binds the listener, so there is no router to wrap.
+botserver/src/main_module/listen_impl.rs # router arrives already layered from run_axum_server

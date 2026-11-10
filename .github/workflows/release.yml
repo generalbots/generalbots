@@ -147,9 +147,11 @@ jobs:
           elif [ "${TAG#v}" != "$CARGO_VERSION" ]; then
             echo "::warning::Cargo.toml says ${CARGO_VERSION} but the tag is ${TAG}; the build syncs the tag into every artifact (#2103)"
           fi
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "bumped=${BUMPED}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "sha=$(git rev-parse HEAD)"
+            echo "bumped=${BUMPED}"
+          } >> "$GITHUB_OUTPUT"
           {
             echo "### Version ${TAG}"
             echo

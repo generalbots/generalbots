@@ -39,7 +39,9 @@ mod gateway_state;
 mod container_registry;
 mod configure_gateway_routes;
 mod deploy_to_caddy;
+mod rate_limit;
 
 pub(crate) use published_domain::*;
 pub use configure_gateway_routes::*;
 use deploy_to_caddy::*;
+use rate_limit::*;

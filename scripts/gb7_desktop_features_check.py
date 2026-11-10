@@ -58,7 +58,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--record", type=Path, default=RECORD)
     parser.add_argument("--page", type=Path, default=PAGE)
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     args = parser.parse_args()
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("gb7-desktop-features")
 
     errors: list[str] = []
     try:

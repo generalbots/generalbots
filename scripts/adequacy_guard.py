@@ -43,7 +43,11 @@ import re
 import sys
 import time
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# `GB_ADEQUACY_ROOT` lets the self-test scan a fixture tree (and lets a reviewer
+# point the guard at a worktree) without touching the checked-out sources.
+ROOT = os.path.abspath(
+    os.environ.get("GB_ADEQUACY_ROOT") or os.path.join(os.path.dirname(__file__), "..")
+)
 DEFAULT_BASELINE = os.path.join(ROOT, "issues", "adequacy", "baseline.json")
 
 # Generated/vendored trees are not first-party.
@@ -376,10 +380,19 @@ def main() -> int:
     parser.add_argument("--baseline", default=DEFAULT_BASELINE, help="baseline JSON path")
     parser.add_argument("--update", action="store_true", help="recompute the baseline from the tree")
     parser.add_argument(
+        "--self-test", action="store_true",
+        help="plant a violation in a fixture tree and prove the guard fails closed",
+    )
+    parser.add_argument(
         "--strict", action="append", default=[], metavar="DIR",
         help="fail on part-suffix/over-limit violations under DIR (repeatable)",
     )
     args = parser.parse_args()
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("adequacy")
 
     started = time.monotonic()
     try:

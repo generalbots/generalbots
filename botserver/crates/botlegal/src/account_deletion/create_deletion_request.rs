@@ -295,3 +295,7 @@ pub(super) fn generate_confirmation_token() -> String {
     Utc::now().timestamp_nanos_opt().hash(&mut hasher);
     format!("{:016x}", hasher.finish())
 }
+
+#[cfg(test)]
+#[path = "create_deletion_request_tests.rs"]
+mod create_deletion_request_tests;

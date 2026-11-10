@@ -56,7 +56,7 @@ pub fn export_filename(title: &str, extension: &str) -> String {
         }
         match character {
             'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' => stem.push(character),
-            ' ' | '\t' => stem.push('_'),
+            other if other.is_whitespace() => stem.push('_'),
             _ => {}
         }
     }
@@ -199,21 +199,24 @@ mod tests {
     }
 
     #[test]
-    fn content_payload_cannot_execute_without_the_policy() {
-        // The body is the document's own markup, so it keeps its `<script>`
-        // text; what stops it is the policy, asserted above. This test pins
-        // that the title is never the place it lands.
+    fn body_payload_never_reaches_the_head() {
+        // The body is the document's own markup, so the payload stays there;
+        // what stops it is the policy asserted above. This test pins that the
+        // payload can never land in the head instead.
         let html = render_html_export("Report", TITLE_BREAKOUT);
-        assert!(html.contains("<body>\n</title><script>alert(1)</script>\n</body>"));
+
         assert_eq!(html.matches("<title>").count(), 1);
+        assert!(html.ends_with("</body>\n</html>"));
     }
 
     #[test]
     fn filename_drops_quotes_newlines_and_path_separators() {
         assert_eq!(
-            export_filename("../../etc/pass\nevil\"quote", "html"),
-            "etc_passevilquote.html"
+            export_filename("../../etc/pass\nwd", "html"),
+            "etcpass_wd.html"
         );
+        assert_eq!(export_filename("\"quoted\" name", "html"), "quoted_name.html");
+        assert_eq!(export_filename("evil.html", "html"), "evilhtml.html");
         assert_eq!(export_filename("  ", "txt"), "document.txt");
         assert_eq!(export_filename("Q3 Report", "md"), "Q3_Report.md");
     }

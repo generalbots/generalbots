@@ -76,14 +76,24 @@ def parse_osv(report: dict) -> dict[str, set[str]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--report", required=True, type=Path, help="osv-scanner JSON report")
+    parser.add_argument("--report", type=Path, help="osv-scanner JSON report (required unless --self-test)")
     parser.add_argument(
         "--allowlist",
         type=Path,
         default=DEFAULT_ALLOWLIST,
         help=f"allowlist file (default: {DEFAULT_ALLOWLIST})",
     )
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     args = parser.parse_args()
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("osv-allowlist")
+
+    if args.report is None:
+        print("error: --report is required", file=sys.stderr)
+        return 2
 
     try:
         allowed = load_allowlist(args.allowlist)

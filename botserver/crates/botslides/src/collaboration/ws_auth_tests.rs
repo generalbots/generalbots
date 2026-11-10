@@ -24,14 +24,9 @@ fn sign_with(claims: serde_json::Value, secret: &str) -> String {
     let header = b64url(br#"{"alg":"HS256","typ":"JWT"}"#);
     let payload = b64url(claims.to_string().as_bytes());
     let signing_input = format!("{header}.{payload}");
-    let Ok(mut mac) = Hmac::<Sha256>::new_from_slice(secret.as_bytes()) else {
-        return String::new();
-    };
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac key");
     mac.update(signing_input.as_bytes());
-    format!(
-        "{signing_input}.{}",
-        b64url(&mac.finalize().into_bytes())
-    )
+    format!("{signing_input}.{}", b64url(&mac.finalize().into_bytes()))
 }
 
 fn token(claims: serde_json::Value) -> String {

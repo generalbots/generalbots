@@ -284,24 +284,7 @@ pub async fn handle_export_md(
     State(state): State<Arc<DocState>>,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-
-    let doc = match load_document_from_drive(&state, &user_id, &query.id).await {
-        Ok(Some(d)) => d,
-        Ok(None) => {
-            return Err((
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "Document not found" })),
-            ))
-        }
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
-            ))
-        }
-    };
-
+    let doc = load_export_document(&state, &query).await?;
     let markdown = html_to_markdown(&doc.content);
 
     // A download, not a page: `attachment` keeps the browser from rendering it

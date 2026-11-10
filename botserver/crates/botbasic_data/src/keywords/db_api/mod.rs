@@ -1,6 +1,7 @@
 pub(crate) use super::table_access::{ check_field_write_access, check_table_access, filter_fields_by_role, AccessType, UserRoles, };
 pub(crate) use botsecurity::sql_guard::{ build_safe_count_query_for_dynamic_table, build_safe_select_by_id_query_for_dynamic_table, build_safe_select_query_for_dynamic_table, is_table_allowed_with_conn };
-pub(crate) use axum::{ extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{get, post}, Json, Router, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{get, post}, Extension, Json, Router, };
+pub(crate) use botsecurity::auth::AuthenticatedUser;
 pub(crate) use log::{info, warn};
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use serde_json::{json, Value};
@@ -63,13 +64,13 @@ use diesel::sql_query;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod user_roles_from_headers;
+mod verified_caller;
 mod configure_db_routes;
 mod create_record_handler;
 mod delete_record_handler;
 mod search_records_handler;
 
-use user_roles_from_headers::*;
+use verified_caller::*;
 pub use configure_db_routes::*;
 pub use create_record_handler::*;
 pub use delete_record_handler::*;

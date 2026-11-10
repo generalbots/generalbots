@@ -106,7 +106,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", default=str(DEFAULT_DIR))
     parser.add_argument("--allowlist", default=str(DEFAULT_ALLOWLIST))
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     args = parser.parse_args()
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("workflow-downloads")
 
     workflows = sorted(Path(args.dir).glob("*.yml"))
     if not workflows:

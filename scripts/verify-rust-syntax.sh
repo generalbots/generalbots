@@ -8,9 +8,14 @@
 #
 # Usage:
 #   scripts/verify-rust-syntax.sh [base-ref]
+#   scripts/verify-rust-syntax.sh --self-test   # prove the gate fails closed
 #
 # Exit codes: 0 all parsed; 1 at least one file failed to parse or git failed.
 set -uo pipefail
+
+if [ "${1:-}" = "--self-test" ]; then
+    exec python3 "$(dirname "$0")/gate_selftests.py" --gate rust-syntax
+fi
 
 base="${1:-origin/main}"
 

@@ -175,7 +175,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Per-app complexity budget (#2120)")
     parser.add_argument("--budget", default=str(BUDGET), help="budget TOML path")
     parser.add_argument("--update", action="store_true", help="re-baseline the budget from the tree")
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     args = parser.parse_args()
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("app-budget")
     path = Path(args.budget)
 
     measured = measure()

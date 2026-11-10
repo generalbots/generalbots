@@ -15,6 +15,7 @@ offline: no cargo, no services, no network.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -28,7 +29,9 @@ except ModuleNotFoundError:  # Python < 3.11
         print("product_matrix: Python 3.11+ (tomllib) is required", file=sys.stderr)
         raise SystemExit(2)
 
-ROOT = Path(__file__).resolve().parents[1]
+# `GB_PRODUCT_ROOT` lets the gate self-test (scripts/gate_selftests.py) run the
+# real CLI against a fixture copy of the matrix, the profiles and the registry.
+ROOT = Path(os.environ.get("GB_PRODUCT_ROOT") or Path(__file__).resolve().parents[1])
 CARGO = ROOT / "botserver" / "Cargo.toml"
 REGISTRY = ROOT / "botserver" / "src" / "apps" / "registry"
 MATRIX = ROOT / "botserver" / ".product.matrix"

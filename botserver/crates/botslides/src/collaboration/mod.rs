@@ -1,5 +1,5 @@
 pub mod ws;
-mod ws_auth;
+pub mod ws_auth;
 
 pub use ws::handle_slides_websocket;
 

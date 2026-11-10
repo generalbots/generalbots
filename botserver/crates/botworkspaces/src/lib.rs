@@ -70,6 +70,9 @@ mod page_ops;
 #[cfg(test)]
 mod page_ops_tests;
 mod pages;
+#[cfg(test)]
+#[path = "pages_tests.rs"]
+mod pages_tests;
 mod transform;
 #[cfg(test)]
 mod transform_tests;

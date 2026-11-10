@@ -1,0 +1,39 @@
+# Security-directive exemptions (IMP-08 CSRF / IMP-07 rate limiting).
+#
+# Enforced by `scripts/check_security_directives.py`, which fails when a
+# state-changing handler is reachable without the CSRF middleware layer and
+# without an entry here.
+#
+# THIS LIST IS SHRINK-ONLY.
+#   * `max_entries` may only go DOWN. Raising it is a deliberate, reviewable
+#     edit -- never a way to silence the gate for a new router.
+#   * Every entry must name a route that is still mounted, and the compensating
+#     control it relies on (`evidence`), so an exemption cannot outlive the
+#     reason it was granted: a stale entry fails the gate.
+#   * The preferred fix is always to install the layer. An exemption is only
+#     for a listener whose callers cannot hold a CSRF cookie at all, i.e. a
+#     machine-to-machine surface authenticated by a header secret.
+#
+# Allowed `directive` values: "csrf" (the CSRF layer is not applicable) and
+# "rate-limit" (the limiter is installed elsewhere and documented).
+
+max_entries = 1
+
+[[exemption]]
+file = "botserver/crates/botdeployment/src/gateway_server/configure_gateway_routes.rs"
+directive = "csrf"
+reason = """
+The deploy gateway listens on its own port (5860) and is called by alm-ci, not
+by a browser. There is no cookie session to forge: every request carries
+`X-Deploy-Key`, which `validate_deploy_key` matches against the configured key
+list before any Incus/Caddy action. A double-submit cookie would reject the
+only legitimate caller. The rate limit (IMP-07) is installed in the same
+router, because a static header secret without a quota is a guessing oracle.
+"""
+evidence = "fn validate_deploy_key"
+routes = [
+    "/deploy",
+    "/deploy/stop",
+    "/deploy/start",
+    "/deploy/keys",
+]

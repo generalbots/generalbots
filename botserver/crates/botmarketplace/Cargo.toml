@@ -17,7 +17,7 @@ r2d2 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
-uuid = { workspace = true, features = ["serde", "v4"] }
+uuid = { workspace = true, features = ["serde", "v4", "v5"] }
 botsecurity = { workspace = true }
 
 [dev-dependencies]

@@ -441,6 +441,19 @@ jobs:
         run: |
           cargo test -p bottest --features integration --test integration data_integrity \
             -- --nocapture --test-threads=1
+      # #2117 — the suite above proves the properties from Rust; this step proves
+      # the operator-facing drill works on the same loaded dataset: `pg_dump -Fc`
+      # of the source, `pg_restore` into a throwaway `gb_restore_drill_<pid>`,
+      # then per-table row counts against the source manifest and one generated
+      # cross-tenant probe per scoped column (each must return zero rows). The
+      # throwaway database is dropped afterwards; --self-test first proves the
+      # assertions fail on a short table and on a cross-tenant row, offline.
+      - name: Restore drill (#2117) — dump, restore, counts, tenancy
+        run: |
+          set -euo pipefail
+          python3 scripts/restore_drill_checks.py --self-test
+          scripts/restore_drill.sh --dsn "$DATABASE_URL" --report /tmp/gb-restore-drill.md
+          cat /tmp/gb-restore-drill.md
 
   check:
     name: Verify product profiles
@@ -1202,6 +1215,6 @@ jobs:
             --jq '.[].databaseId' | while read -r id; do
             gh run view "$id" --log > "/tmp/flakes/$id.log" || echo "::warning::no log for $id"
           done
-          ls -1 /tmp/flakes | wc -l
+          find /tmp/flakes -maxdepth 1 -type f -name '*.log' | wc -l
       - name: Detect flaky tests and enforce the policy
         run: python3 scripts/flake_report.py --logs /tmp/flakes --window 20

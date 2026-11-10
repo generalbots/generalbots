@@ -2,12 +2,16 @@ use super::*;
 
 pub async fn create_record_handler(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
     Path(table): Path<String>,
     Json(payload): Json<Value>,
 ) -> impl IntoResponse {
+    let caller = match caller_from(user, &headers) {
+        Ok(caller) => caller,
+        Err(rejection) => return rejection.into_response(),
+    };
     let table_name = sanitize_identifier(&table);
-    let user_roles = user_roles_from_headers(&headers);
 
     let Some(obj) = payload.as_object() else {
         return (
@@ -44,6 +48,7 @@ pub async fn create_record_handler(
         )
             .into_response();
     };
+    let user_roles = caller.user_roles(&mut conn);
 
     // Check if table actually exists in database (supports dynamic tables from app_generator)
     if !is_table_allowed_with_conn(&mut conn, &table_name) {
@@ -124,12 +129,16 @@ pub async fn create_record_handler(
 }
 pub async fn update_record_handler(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
     Path((table, id)): Path<(String, String)>,
     Json(payload): Json<Value>,
 ) -> impl IntoResponse {
+    let caller = match caller_from(user, &headers) {
+        Ok(caller) => caller,
+        Err(rejection) => return rejection.into_response(),
+    };
     let table_name = sanitize_identifier(&table);
-    let user_roles = user_roles_from_headers(&headers);
 
     let Ok(record_id) = Uuid::parse_str(&id) else {
         return (
@@ -193,6 +202,7 @@ pub async fn update_record_handler(
                 .into_response()
         }
     };
+    let user_roles = caller.user_roles(&mut conn);
 
     // Check if table actually exists in database (supports dynamic tables from app_generator)
     if !is_table_allowed_with_conn(&mut conn, &table_name) {

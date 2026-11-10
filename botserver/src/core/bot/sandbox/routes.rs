@@ -163,7 +163,13 @@ pub fn spawn_listener(state: Arc<AppState>) {
         };
         SANDBOX_LISTENER_READY.store(true, Ordering::Relaxed);
         log::info!("sandbox listener on {bind}");
-        let app = router().with_state(state);
+        // IMP-09: separate listener, so it carries the header layer itself.
+        // The layer uses `or_insert` for CSP and frame options, so the
+        // per-resource sandbox policy stays in charge of those two.
+        let app = crate::security::headers::with_security_headers(
+            router().with_state(state),
+            crate::security::headers::SecurityHeadersConfig::from_env(),
+        );
         if let Err(error) = axum::serve(listener, app).await {
             log::warn!("sandbox listener stopped: {error}");
         }

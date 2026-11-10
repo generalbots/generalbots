@@ -231,3 +231,7 @@ pub fn export_json(project: &Project, tasks: &[ProjectTask]) -> String {
 
     serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
 }
+
+#[cfg(test)]
+#[path = "export_tests.rs"]
+mod export_tests;

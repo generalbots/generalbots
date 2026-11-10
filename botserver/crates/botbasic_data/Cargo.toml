@@ -26,7 +26,7 @@ diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_js
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 chrono = { workspace = true, features = ["clock", "std"] }
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true, features = ["v4", "v5"] }
 regex = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
@@ -44,6 +44,12 @@ mailparse = { workspace = true, optional = true }
 calamine = { workspace = true, optional = true }
 rust_xlsxwriter = { workspace = true, optional = true }
 pdf-extract = { workspace = true, optional = true }
+
+[dev-dependencies]
+# Minting HS256 assertions for the `verified_caller` accept/reject tests.
+base64 = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 
 [lints]
 workspace = true

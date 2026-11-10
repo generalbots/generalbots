@@ -217,3 +217,7 @@ mod parse_date_flexible;
 
 use parse_ms_date::*;
 use parse_date_flexible::*;
+
+#[cfg(test)]
+#[path = "import_parsers_tests.rs"]
+mod import_parsers_tests;

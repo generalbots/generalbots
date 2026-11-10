@@ -3,7 +3,7 @@
 pub(crate) use super::routes::{api_setup, security_setup, sub_router};
 pub(crate) use crate::security::csrf::{csrf_middleware, CsrfConfig, CsrfManager};
 pub(crate) use crate::security::headers::{
-    create_security_headers_layer, security_headers_middleware, SecurityHeadersConfig,
+    with_security_headers, SecurityHeadersConfig,
 };
 pub(crate) use crate::security::panic_handler::PanicHandlerConfig;
 pub(crate) use crate::security::rate_limiter::{

@@ -1,15 +1,21 @@
+//! The three SSO/login handlers and their payload types.
+
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderValue, StatusCode},
-    response::{Html, IntoResponse, Response},
+    http::StatusCode,
+    response::{Html, Response},
     Json,
 };
 use botcore::shared::state::AppState;
-use botcoredirectory::auth_routes::{
-    persist_session, session_from_persisted, SessionUserData, SESSION_CACHE,
-};
+use botcoredirectory::auth_routes::{session_from_persisted, SESSION_CACHE};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+use super::jwt::{
+    base64_url_decode, base64_url_encode, claims_org, get_saas_jwt_secret, jwt_sign_inner,
+};
+use super::pages::{redirect_to_login, sanitize_redirect, session_cookie, sso_html};
+use super::session::{create_suite_session, resolve_session_roles};
 
 #[derive(Debug, Deserialize)]
 pub struct SsoRequest {
@@ -199,148 +205,6 @@ pub async fn handle_suite_sso(
     Ok(session_cookie(suite_token, html))
 }
 
-/// Token handoff page shared by the JWT and opaque-session paths.
-fn sso_html(token: &str, redirect: &str) -> String {
-    let redirect_js = js_string_literal(redirect);
-    let token_js = js_string_literal(token);
-    format!(
-        r##"<!DOCTYPE html>
-<html>
-<head>
-<meta name="referrer" content="no-referrer">
-<script>
-try {{
-  localStorage.setItem('gb-access-token',{token_js});
-  window.history.replaceState({{}},'',{redirect_js});
-  window.location.replace({redirect_js});
-}} catch(e) {{
-  console.error('suite-sso:',e);
-}}
-</script>
-</head>
-<body></body>
-</html>"##
-    )
-}
-
-/// Invalid or expired SSO hops show a readable page and hand off to sign-in
-/// client-side. A 3xx here would be followed by the botui proxy into a plain
-/// 401 JSON, which is what produced the blank error screen (#1660).
-fn redirect_to_login(reason: &str) -> Response {
-    let login = std::env::var("GB_LOGIN_URL")
-        .ok()
-        .filter(|value| value.starts_with("http"))
-        .unwrap_or_else(|| "/login".to_string());
-    let target = format!("{}/login?error={}", login.trim_end_matches('/'), reason);
-    let target_js = js_string_literal(&target);
-    Html(format!(
-        r##"<!DOCTYPE html>
-<html><head><meta name="referrer" content="no-referrer"><title>Sign in again</title></head>
-<body style="font:15px system-ui;padding:40px;color:#334155">
-<p>Your session expired or is invalid.</p>
-<p><a href="{target}">Continue to sign in</a></p>
-<script>setTimeout(function(){{ window.location.replace({target_js}); }}, 800);</script>
-</body></html>"##,
-        target = target
-    ))
-    .into_response()
-}
-
-fn session_cookie(token: String, html: Html<String>) -> Response {
-    match HeaderValue::from_str(&format!(
-        "gb-access-token={token}; Path=/; Max-Age=86400; SameSite=Lax; HttpOnly; Secure"
-    )) {
-        Ok(value) => ([(header::SET_COOKIE, value)], html).into_response(),
-        Err(e) => {
-            log::warn!("suite-sso: refusing to set an unusable session cookie: {e}");
-            html.into_response()
-        }
-    }
-}
-
-fn sanitize_redirect(url: &str) -> String {
-    // Only allow relative paths or same-origin absolute URLs
-    let forbidden = |s: &str| {
-        s.contains('"')
-            || s.contains('\'')
-            || s.contains('\\')
-            || s.contains('<')
-            || s.contains('>')
-            || s.contains('\n')
-            || s.contains('\r')
-    };
-    let is_relative = url.starts_with('/');
-    let is_absolute_with_host = (url.starts_with("http://") || url.starts_with("https://"))
-        && url::Url::parse(url)
-            .map(|u| u.host_str().is_some())
-            .unwrap_or(false);
-    if (is_relative || is_absolute_with_host) && !forbidden(url) {
-        url.to_string()
-    } else {
-        "/".to_string()
-    }
-}
-
-/// Extract the `org_id` claim from a decoded cloud JWT so suite sessions
-/// carry the caller's organization scope (fix #1268). Returns `None` for
-/// tokens minted without an org claim.
-fn claims_org(claims: &serde_json::Value) -> Option<String> {
-    claims
-        .get("org_id")
-        .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-}
-
-/// Cria uma sessão no SESSION_CACHE do Suite e retorna o token `gb_{uuid}_{timestamp}`.
-/// O papel da sessão é resolvido por grupo RBAC (fix #843) — nunca hardcoded.
-pub(crate) async fn create_suite_session(
-    email: &str,
-    user_id: &str,
-    bucket: Option<String>,
-    roles: Vec<String>,
-    organization_id: Option<String>,
-) -> String {
-    let api_token = format!(
-        "gb_{}_{}",
-        uuid::Uuid::new_v4(),
-        chrono::Utc::now().timestamp()
-    );
-    let session_user = SessionUserData {
-        user_id: user_id.to_string(),
-        email: email.to_string(),
-        username: email.split('@').next().unwrap_or("user").to_string(),
-        first_name: None,
-        last_name: None,
-        display_name: Some(email.split('@').next().unwrap_or("User").to_string()),
-        organization_id,
-        roles,
-        bucket,
-        created_at: chrono::Utc::now().timestamp(),
-    };
-
-    {
-        let mut cache = SESSION_CACHE.write().await;
-        cache.insert(api_token.clone(), session_user.clone());
-        persist_session(&api_token, &session_user);
-    }
-
-    log::info!(
-        "Created Suite session for {} (token: {}...)",
-        email,
-        &api_token[..6.min(api_token.len())]
-    );
-    api_token
-}
-
-/// Resolves the effective role vector for a user id from RBAC group membership.
-/// Falls back to the plain "user" role when the user has no admin group.
-fn resolve_session_roles(state: &Arc<AppState>, user_id: &str) -> Vec<String> {
-    let stable_uuid = crate::security::user_role::derive_stable_user_uuid(user_id);
-    let role = crate::security::user_role::resolve_user_role(&state.conn, stable_uuid);
-    vec![role]
-}
-
 /// POST /api/auth/unified-login
 ///
 /// Login unificado que retorna AMBOS os tokens: Suite (SESSION_CACHE) e Cloud (JWT).
@@ -448,106 +312,4 @@ pub async fn handle_unified_login(
         "user_id": user_id,
         "success": true,
     })))
-}
-
-/// Load SAAS_JWT_SECRET from directory_config.json (written from Vault),
-/// falling back to env vars; same resolution as the SaaS config so all
-/// consumers share one stable secret.
-fn get_saas_jwt_secret() -> String {
-    crate::main_module::directory_setup::resolve_saas_jwt_secret()
-}
-
-/// HMAC-SHA256 sign a message and return the base64url-encoded signature.
-/// Duplicado de botcloud::api::jwt_sign_inner para evitar dependência entre crates.
-fn jwt_sign_inner(message: &str, secret: &[u8]) -> Result<String, String> {
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    let mut mac =
-        Hmac::<Sha256>::new_from_slice(secret).map_err(|e| format!("HMAC key error: {}", e))?;
-    mac.update(message.as_bytes());
-    Ok(base64_url_encode(&mac.finalize().into_bytes()))
-}
-
-fn base64_url_encode(input: &[u8]) -> String {
-    use base64::{engine::general_purpose, Engine as _};
-    general_purpose::STANDARD
-        .encode(input)
-        .replace('+', "-")
-        .replace('/', "_")
-        .trim_end_matches('=')
-        .to_string()
-}
-
-/// A JavaScript string literal that cannot terminate the enclosing
-/// `<script>` element (#1533).
-///
-/// `serde_json` quotes and escapes the value, but leaves `<`, `>` and `&`
-/// intact, so a value containing `</script>` would still close the element in
-/// an HTML parser. The line separators U+2028/U+2029 also end a JS string
-/// literal. Escaping all five as `\uXXXX` keeps the value identical while
-/// making it inert in both contexts.
-fn js_string_literal(value: &str) -> String {
-    let json = serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string());
-    let mut out = String::with_capacity(json.len() + 8);
-    for ch in json.chars() {
-        match ch {
-            '<' => out.push_str("\\u003c"),
-            '>' => out.push_str("\\u003e"),
-            '&' => out.push_str("\\u0026"),
-            '\u{2028}' => out.push_str("\\u2028"),
-            '\u{2029}' => out.push_str("\\u2029"),
-            other => out.push(other),
-        }
-    }
-    out
-}
-
-#[cfg(test)]
-mod script_literal_tests {
-    use super::js_string_literal;
-
-    #[test]
-    fn closes_no_script_element() {
-        let literal = js_string_literal("/?next=</script><script>alert(1)</script>");
-        assert!(
-            !literal.contains('<'),
-            "raw '<' must not survive: {literal}"
-        );
-        assert!(
-            !literal.contains('>'),
-            "raw '>' must not survive: {literal}"
-        );
-        assert!(literal.starts_with('"') && literal.ends_with('"'));
-    }
-
-    #[test]
-    fn escapes_line_separators_and_ampersand() {
-        let literal = js_string_literal("a\u{2028}b\u{2029}c&d");
-        assert!(literal.contains("\\u2028"));
-        assert!(literal.contains("\\u2029"));
-        assert!(literal.contains("\\u0026"));
-    }
-
-    #[test]
-    fn round_trips_through_json() {
-        // The escaping must not change the value the browser evaluates.
-        let original = "https://example.test/path?q=1&r=<2>";
-        let literal = js_string_literal(original);
-        let decoded: String = serde_json::from_str(&literal).expect("valid JSON string");
-        assert_eq!(decoded, original);
-    }
-}
-
-fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
-    let raw = input.replace('-', "+").replace('_', "/");
-    let raw = match raw.len() % 4 {
-        2 => raw + "==",
-        3 => raw + "=",
-        0 => raw,
-        _ => return Err("invalid base64 input length"),
-    };
-    use base64::{engine::general_purpose, Engine as _};
-    general_purpose::STANDARD
-        .decode(&raw)
-        .map_err(|_| "base64 decode failed")
 }

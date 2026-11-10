@@ -276,3 +276,7 @@ pub async fn handle_record_consent(
 
     Ok(Json(result))
 }
+
+#[cfg(test)]
+#[path = "cookie_info_tests.rs"]
+mod cookie_info_tests;

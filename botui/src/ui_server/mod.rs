@@ -42,6 +42,16 @@ use crate::shared::AppState;
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::SUITE_DIRS;
 use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
+use botsecurity_core::headers::{with_security_headers, SecurityHeadersConfig};
+
+/// Applies the shared IMP-09 header layer (botserver uses the same one).
+///
+/// Must be the last thing done to a router: axum only layers routes that
+/// already exist, and wrapping the finished router is what puts the headers on
+/// fallbacks, static files and error responses as well as on 200s.
+fn harden(router: Router) -> Router {
+    with_security_headers(router, SecurityHeadersConfig::from_env())
+}
 
 fn create_api_router() -> Router<AppState> {
     Router::new()
@@ -197,46 +207,54 @@ pub fn configure_router() -> Router {
 
     router = add_static_routes(router, &suite_path);
 
-    router.fallback(get(index)).with_state(state)
+    harden(router.fallback(get(index)).with_state(state))
 }
 
 pub fn configure_cloud_router() -> Router {
     let state = AppState::new();
 
-    Router::new()
-        .route("/health", get(health))
-        // Root → store (no landing page)
-        .route("/", get(redirect_to_store))
-        // Legacy /cloud/* paths for static assets
-        .route("/cloud", get(redirect_to_store))
-        .route("/cloud/", get(redirect_to_store))
-        .route("/cloud/login", get(redirect_to_login))
-        .route("/cloud/login/", get(redirect_to_login))
-        .route("/cloud/signup", get(redirect_to_signup))
-        .route("/cloud/signup/", get(redirect_to_signup))
-        .route("/cloud/*path", get(serve_cloud))
-        // API, UI, WS nests
-        .nest("/api", create_api_router())
-        .nest("/ui", create_ui_router())
-        .nest("/ws", create_ws_router())
-        // All root-level paths resolve to cloud pages
-        // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
-        .fallback(get(serve_cloud_fallback))
-        .with_state(state)
+    harden(
+        Router::new()
+            .route("/health", get(health))
+            // Root → store (no landing page)
+            .route("/", get(redirect_to_store))
+            // Legacy /cloud/* paths for static assets
+            .route("/cloud", get(redirect_to_store))
+            .route("/cloud/", get(redirect_to_store))
+            .route("/cloud/login", get(redirect_to_login))
+            .route("/cloud/login/", get(redirect_to_login))
+            .route("/cloud/signup", get(redirect_to_signup))
+            .route("/cloud/signup/", get(redirect_to_signup))
+            .route("/cloud/*path", get(serve_cloud))
+            // API, UI, WS nests
+            .nest("/api", create_api_router())
+            .nest("/ui", create_ui_router())
+            .nest("/ws", create_ws_router())
+            // All root-level paths resolve to cloud pages
+            // e.g. /store → store.html, /plans → plans.html, /js/cloud.js → cloud/js/cloud.js
+            .fallback(get(serve_cloud_fallback))
+            .with_state(state),
+    )
 }
 
 pub fn configure_login_router() -> Router {
     let state = AppState::new();
 
-    Router::new()
-        .route("/health", get(health))
-        .route("/", get(serve_login_index))
-        .route("/signup", get(serve_login_signup))
-        .route("/js/*path", get(serve_login_js))
-        .route("/images/*path", get(serve_login_images))
-        .route("/cloud/*path", get(serve_login_cloud))
-        .nest("/api", create_api_router())
-        .nest("/ws", create_ws_router())
-        .fallback(get(serve_login_index))
-        .with_state(state)
+    harden(
+        Router::new()
+            .route("/health", get(health))
+            .route("/", get(serve_login_index))
+            .route("/signup", get(serve_login_signup))
+            .route("/js/*path", get(serve_login_js))
+            .route("/images/*path", get(serve_login_images))
+            .route("/cloud/*path", get(serve_login_cloud))
+            .nest("/api", create_api_router())
+            .nest("/ws", create_ws_router())
+            .fallback(get(serve_login_index))
+            .with_state(state),
+    )
 }
+
+#[cfg(test)]
+#[path = "security_headers_tests.rs"]
+mod security_headers_tests;

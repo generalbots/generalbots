@@ -182,6 +182,12 @@ async fn spawn_listener(pool: DbPool, state: String) -> Result<(), (StatusCode, 
     let router = Router::new()
         .route("/auth/callback", get(callback))
         .with_state((pool, state));
+    // IMP-09: the OAuth callback listener is a loopback `axum::serve` of its
+    // own; without the layer it answers the browser with a bare error page.
+    let router = crate::security::headers::with_security_headers(
+        router,
+        crate::security::headers::SecurityHeadersConfig::from_env(),
+    );
     tokio::spawn(async move {
         let server = axum::serve(listener, router);
         // An abandoned sign-in used to hold the fixed loopback port forever,

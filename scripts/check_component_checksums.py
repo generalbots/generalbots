@@ -65,7 +65,13 @@ def main() -> int:
         action="store_true",
         help="print the gaps and exit 0 (used to refresh the allowlist)",
     )
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     args = parser.parse_args()
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("component-checksums")
 
     if not args.toml.is_file():
         print(f"error: {args.toml} not found")

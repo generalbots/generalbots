@@ -10,7 +10,7 @@ The production-readiness program ([#2121](https://github.com/generalbots/general
 | **FAIL** | the check ran and failed — a regression; CI fails |
 | **SKIP** | the gate does not exist yet — the row names the issue and what must land |
 
-Current run: **15 PASS · 1 FAIL · 0 SKIP** of 16 checks.
+Current run: **16 PASS · 0 FAIL · 0 SKIP** of 16 checks.
 
 ## Workstreams
 
@@ -24,7 +24,7 @@ Current run: **15 PASS · 1 FAIL · 0 SKIP** of 16 checks.
 | [#2117](https://github.com/generalbots/generalbots/issues/2117) | data(integrity): migrations, restore, tenancy | `data-restore` | **PASS** |
 | [#2118](https://github.com/generalbots/generalbots/issues/2118) | release(auto-bump): one version | `release-version` | **PASS** |
 | [#2119](https://github.com/generalbots/generalbots/issues/2119) | test(quality): ratchet, contracts, fuzzing | `test-guards`, `app-contracts`, `coverage-ratchet`, `flake-policy` | **PASS** |
-| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **FAIL** |
+| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **PASS** |
 
 ## Checks
 
@@ -35,13 +35,13 @@ Current run: **15 PASS · 1 FAIL · 0 SKIP** of 16 checks.
 | `security-mfa` | TOTP enrollment and verification share one secret encoding | [#2114](https://github.com/generalbots/generalbots/issues/2114) | **PASS** | regression test present (executed by the unit-tests job) |
 | `slo-check` | SLOs are defined, instrumented and gated | [#2115](https://github.com/generalbots/generalbots/issues/2115) | **PASS** | RESULT: ok |
 | `ops-runbooks` | Operational runbooks exist for the on-call surface | [#2116](https://github.com/generalbots/generalbots/issues/2116) | **PASS** | six runbooks published |
-| `data-restore` | Restore drill proves migrations, tenancy and recovery together | [#2117](https://github.com/generalbots/generalbots/issues/2117) | **PASS** | restore + tenant-isolation drill present (data-integrity job) |
+| `data-restore` | Restore drill proves migrations, tenancy and recovery together | [#2117](https://github.com/generalbots/generalbots/issues/2117) | **PASS** | pg_dump/pg_restore drill: row counts + tenant probes (data-integrity job) |
 | `release-version` | One version everywhere, and the tag is applied to the build | [#2118](https://github.com/generalbots/generalbots/issues/2118) | **PASS** | selftest: ok (v9.8.7 -> 9.8.7, drift detected) |
 | `test-guards` | Unit-suite policy: registered modules, reasons for skips, offline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | self-test: ok |
 | `app-contracts` | Every registry app declares its classification, smoke and API surface | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | every registry app classified, smoked and documented |
 | `flake-policy` | Flaky tests are registered, owned and inside the quarantine SLA | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | no flake outside its SLA |
 | `coverage-ratchet` | Coverage ratchet against a committed baseline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | baseline committed; the ratchet self-test fails on a decrease |
-| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **FAIL** | `python3 scripts/app_complexity_budget.py` exited 1: app complexity budget exceeded: |
+| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **PASS** | every app classified, owned and within the complexity budget |
 | `security-scan` | Supply-chain and secret scans are wired in CI | [#2121](https://github.com/generalbots/generalbots/issues/2121) | **PASS** | security.yml wires 6 scans (gitleaks not installed here) |
 | `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **PASS** | adequacy_guard: OK — 17 rules at or below baseline |
 | `i18n-lint` | Fluent catalogs and the keys the UI asks for are consistent | [#2090](https://github.com/generalbots/generalbots/issues/2090) | **PASS** | no new catalog violation |

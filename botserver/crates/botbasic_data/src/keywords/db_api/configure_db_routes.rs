@@ -9,12 +9,18 @@ pub fn configure_db_routes() -> Router<Arc<AppState>> {
 }
 pub async fn list_records_handler(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
     Path(table): Path<String>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
+    // Identity comes from verified credentials only (#2122): an unauthenticated
+    // caller is answered with 401 before any table is touched.
+    let caller = match caller_from(user, &headers) {
+        Ok(caller) => caller,
+        Err(rejection) => return rejection.into_response(),
+    };
     let table_name = sanitize_identifier(&table);
-    let user_roles = user_roles_from_headers(&headers);
     let limit = params.limit.unwrap_or(20).min(100);
     let offset = params.offset.unwrap_or(0);
 
@@ -31,6 +37,7 @@ pub async fn list_records_handler(
                 .into_response()
         }
     };
+    let user_roles = caller.user_roles(&mut conn);
 
     // Check if table actually exists in database (supports dynamic tables from app_generator)
     if !is_table_allowed_with_conn(&mut conn, &table_name) {
@@ -116,11 +123,15 @@ pub async fn list_records_handler(
 }
 pub async fn get_record_handler(
     State(state): State<Arc<AppState>>,
+    user: Option<Extension<AuthenticatedUser>>,
     headers: HeaderMap,
     Path((table, id)): Path<(String, String)>,
 ) -> impl IntoResponse {
+    let caller = match caller_from(user, &headers) {
+        Ok(caller) => caller,
+        Err(rejection) => return rejection.into_response(),
+    };
     let table_name = sanitize_identifier(&table);
-    let user_roles = user_roles_from_headers(&headers);
 
     let Ok(record_id) = Uuid::parse_str(&id) else {
         return (
@@ -145,6 +156,7 @@ pub async fn get_record_handler(
         )
             .into_response();
     };
+    let user_roles = caller.user_roles(&mut conn);
 
     // Check if table actually exists in database (supports dynamic tables from app_generator)
     if !is_table_allowed_with_conn(&mut conn, &table_name) {

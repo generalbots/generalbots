@@ -115,8 +115,10 @@ GATES: tuple[Gate, ...] = (
         evidence=(
             ("bottest/tests/integration/data_integrity/restore.rs", ""),
             ("bottest/tests/integration/data_integrity/isolation.rs", ""),
+            ("scripts/restore_drill.sh", "gb_restore_drill_"),
+            ("scripts/restore_drill_checks.py", "cross-tenant"),
         ),
-        ok_detail="restore + tenant-isolation drill present (data-integrity job)",
+        ok_detail="pg_dump/pg_restore drill: row counts + tenant probes (data-integrity job)",
     ),
     Gate(
         id="release-version",

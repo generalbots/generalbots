@@ -42,3 +42,7 @@ pub fn scan_for_empty_files(work_dir: &Path) -> Vec<String> {
     }
     needs_sync
 }
+
+#[cfg(test)]
+#[path = "zero_byte_handler_tests.rs"]
+mod zero_byte_handler_tests;

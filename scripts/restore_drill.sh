@@ -1,114 +1,180 @@
 #!/usr/bin/env bash
-# Restore drill for #2117 — migrations, tenant isolation and recovery on one
-# production-like dataset, scripted so it can run monthly or per release.
+# Restore drill (#2117) — take a real dump, restore it into a throwaway
+# database, and prove the copy is complete and still tenant-isolated.
 #
 # Usage:
-#   DATABASE_URL=postgres://user:pass@host:5432/db scripts/restore_drill.sh
-#   scripts/restore_drill.sh --database-url URL --scale 10 --report /tmp/drill.md
+#   scripts/restore_drill.sh --dsn postgres://user:pass@host:5432/botserver
+#   scripts/restore_drill.sh --dump /opt/gbo/data/backup/botserver.dump --dsn "$URL"
+#   scripts/restore_drill.sh --dsn "$URL" --verify-only      # assert, no restore
+#   scripts/restore_drill.sh --self-test                     # no server needed
 #
-# The target MUST be a throwaway database: the drill migrates it from scratch,
-# loads ~25k deterministic rows (seed 2117) and creates/drops a scratch database
-# for the pg_dump/pg_restore round-trip. Never point it at production.
+# What it does, in order:
+#   1. takes `pg_dump -Fc` of the source (unless --dump names an existing dump)
+#      and records the source row counts as a manifest;
+#   2. creates the throwaway database `gb_restore_drill_<pid>` on the same
+#      server, restores the dump into it with `pg_restore --exit-on-error`;
+#   3. asserts, on the restored copy, that the core tables exist, that the
+#      migration history survived, that every table has exactly the source row
+#      count, and that every cross-tenant probe returns zero rows;
+#   4. drops the throwaway database (unless --keep).
 #
-# Exit codes: 0 the drill passed, 1 a step failed, 2 a required tool is missing.
+# NEVER point --dsn at production: the drill creates and drops databases and
+# needs a role allowed to do so. Restore into a copy, never into the live DB.
+#
+# Exit codes: 0 the drill passed, 1 a mismatch, 2 a missing tool or bad input.
 set -euo pipefail
 
-DATABASE_URL_ARG="${DATABASE_URL:-}"
-DATASET_DIR="${INTEGRITY_DATASET:-/tmp/gb-integrity}"
-SCALE="1.0"
-REPORT=""
-SKIP_MIGRATE="0"
-ALLOW_SKIPS="0"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+checks="$here/restore_drill_checks.py"
+
+dsn="${DATABASE_URL:-}"
+dump=""
+expected=""
+report=""
+min_migrations="1"
+keep="0"
+verify_only="0"
+self_test="0"
+
+usage() {
+  sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --database-url) DATABASE_URL_ARG="$2"; shift 2 ;;
-    --dataset) DATASET_DIR="$2"; shift 2 ;;
-    --scale) SCALE="$2"; shift 2 ;;
-    --report) REPORT="$2"; shift 2 ;;
-    --skip-migrate) SKIP_MIGRATE="1"; shift ;;
-    --allow-skips) ALLOW_SKIPS="1"; shift ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
-    *) echo "unknown argument: $1" >&2; exit 2 ;;
+    --dump) dump="${2:?--dump needs a file}"; shift 2 ;;
+    --dsn|--database-url) dsn="${2:?--dsn needs a connection URL}"; shift 2 ;;
+    --expected) expected="${2:?--expected needs a file}"; shift 2 ;;
+    --report) report="${2:?--report needs a file}"; shift 2 ;;
+    --min-migrations) min_migrations="${2:?--min-migrations needs a number}"; shift 2 ;;
+    --keep) keep="1"; shift ;;
+    --verify-only) verify_only="1"; shift ;;
+    --self-test) self_test="1"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "error: unknown argument: $1 (try --help)" >&2; exit 2 ;;
   esac
 done
 
-if [ -z "$DATABASE_URL_ARG" ]; then
-  echo "error: pass --database-url or set DATABASE_URL (throwaway instance only)" >&2
-  exit 2
+if [ "$self_test" = "1" ]; then
+  exec python3 "$checks" --self-test
 fi
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$repo_root"
-
-missing=()
-for tool in psql pg_dump pg_restore python3 cargo; do
-  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
-done
-if [ "$SKIP_MIGRATE" = "0" ]; then
-  command -v diesel >/dev/null 2>&1 || missing+=("diesel")
-fi
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "error: missing required tool(s): ${missing[*]}" >&2
+if [ -z "$dsn" ]; then
+  echo "error: pass --dsn (or set DATABASE_URL) — a throwaway database only" >&2
   exit 2
 fi
 
 # Never print credentials: keep scheme/host/port/database, drop the userinfo.
-masked="$(printf '%s' "$DATABASE_URL_ARG" | sed -E 's#^([a-z]+)://[^@]*@#\1://***@#')"
-[ -n "$REPORT" ] || REPORT="/tmp/gb-restore-drill-$(date +%Y%m%dT%H%M%S).md"
-log="$(mktemp /tmp/gb-restore-drill-log.XXXXXX)"
+masked="$(printf '%s' "$dsn" | sed -E 's#^([a-zA-Z][a-zA-Z0-9+.-]*)://[^@/]*@#\1://***@#')"
+scratch="gb_restore_drill_$$"
+workdir="$(mktemp -d "${TMPDIR:-/tmp}/gb-restore-drill.XXXXXX")"
+created_dump=""
+scratch_created="0"
+report="${report:-/tmp/gb-restore-drill-$(date -u +%Y%m%dT%H%M%SZ).md}"
 
-echo "== restore drill: $masked (scale $SCALE)"
-if [ "$SKIP_MIGRATE" = "0" ]; then
-  echo "-- migrations"
-  ( cd botserver && DATABASE_URL="$DATABASE_URL_ARG" diesel migration run )
+needed=(psql python3)
+if [ "$verify_only" = "0" ]; then
+  needed+=(pg_dump pg_restore)
+fi
+missing=()
+for tool in "${needed[@]}"; do
+  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+done
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "error: missing required tool(s): ${missing[*]} — install the PostgreSQL client" >&2
+  exit 2
 fi
 
-echo "-- dataset"
-python3 scripts/gen_integrity_dataset.py --out "$DATASET_DIR" --scale "$SCALE" --report
+drop_scratch() {
+  if [ "$scratch_created" = "1" ]; then
+    if psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\" with (force)" >/dev/null 2>&1; then
+      echo "-- dropped throwaway database: $scratch"
+    else
+      echo "warning: could not drop $scratch — drop it by hand: dropdb $scratch" >&2
+    fi
+    scratch_created="0"
+  fi
+}
 
-echo "-- load"
-psql "$DATABASE_URL_ARG" -v ON_ERROR_STOP=1 -q -f "$DATASET_DIR/integrity_dataset.sql"
+cleanup() {
+  status=$?
+  if [ "$keep" = "0" ]; then
+    drop_scratch
+    if [ -n "$created_dump" ]; then
+      rm -f "$created_dump" "$created_dump.manifest.json"
+    fi
+  fi
+  rm -rf "$workdir"
+  exit "$status"
+}
+trap cleanup EXIT
 
-echo "-- suite (migrations, schema, tenancy, restore)"
-export DATABASE_URL="$DATABASE_URL_ARG"
-export INTEGRITY_DATASET="$DATASET_DIR"
-if [ "$ALLOW_SKIPS" = "0" ]; then
-  export INTEGRITY_STRICT=1
+echo "== restore drill: $masked"
+
+if [ "$verify_only" = "1" ]; then
+  echo "-- mode: verify-only (no dump, no restore)"
+  args=(--dsn "$dsn" --label "verify-only (no restore)" --report "$report" --min-migrations "$min_migrations")
+  if [ -n "$expected" ]; then
+    args+=(--expected "$expected")
+  fi
+  set +e
+  python3 "$checks" "${args[@]}"
+  status=$?
+  set -e
+  echo "report: $report"
+  exit "$status"
 fi
-set +e
-cargo test -p bottest --features integration --test integration data_integrity \
-  -- --nocapture --test-threads=1 2>&1 | tee "$log"
-status=${PIPESTATUS[0]}
-set -e
 
-rows="$(python3 - "$DATASET_DIR/integrity_manifest.json" <<'PY'
-import json, sys
-manifest = json.load(open(sys.argv[1], encoding="utf-8"))
-print(f"{manifest['total_rows']} rows, seed {manifest['seed']}, scale {manifest['scale']}")
-PY
-)"
-rto="$(grep -o 'RTO [0-9.]*s[^·]*' "$log" | tail -1 || true)"
-rpo="$(grep -o 'RPO .*' "$log" | tail -1 || true)"
+if [ -n "$dump" ] && [ ! -f "$dump" ]; then
+  echo "error: dump not found: $dump" >&2
+  exit 2
+fi
 
-{
-  echo "# Restore drill — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  echo
-  echo "- target: \`$masked\` (throwaway)"
-  echo "- dataset: $rows"
-  echo "- suite: \`cargo test -p bottest --features integration --test integration data_integrity\`"
-  echo "- result: $([ "$status" -eq 0 ] && echo PASS || echo FAIL)"
-  echo "- ${rto:-RTO not reported}"
-  echo "- ${rpo:-RPO not reported}"
-  echo
-  echo '```'
-  grep -E '^(ok:|SKIP|test result)' "$log" | tail -20 || true
-  echo '```'
-} > "$REPORT"
+if [ -z "$dump" ]; then
+  dump="$workdir/drill.dump"
+  created_dump="$dump"
+  echo "-- dump: $masked -> $dump"
+  pg_dump -Fc -d "$dsn" -f "$dump"
+  expected="${expected:-$workdir/source-manifest.json}"
+  python3 "$checks" --dsn "$dsn" --manifest "$expected"
+elif [ -z "$expected" ] && [ -f "${dump}.manifest.json" ]; then
+  expected="${dump}.manifest.json"
+fi
 
-echo "report: $REPORT"
-if [ "$status" -ne 0 ]; then
-  echo "drill FAILED — see $log" >&2
+note="\`$(basename "$dump")\` restored with pg_restore --exit-on-error"
+
+echo "-- throwaway database: $scratch"
+psql "$dsn" -v ON_ERROR_STOP=1 -q -c "create database \"$scratch\""
+scratch_created="1"
+scratch_url="$(python3 "$checks" --scratch-url "$dsn" --name "$scratch")"
+
+echo "-- restore: $(basename "$dump") -> $scratch"
+if ! pg_restore --no-owner --no-privileges --exit-on-error -d "$scratch_url" "$dump"; then
+  echo "error: pg_restore failed — the dump is not restorable into an empty database" >&2
   exit 1
 fi
-echo "drill PASSED"
+
+args=(--dsn "$scratch_url" --label "pg_dump -Fc → pg_restore (throwaway \`$scratch\`)"
+      --report "$report" --note "$note" --min-migrations "$min_migrations"
+      --out "$workdir/restored.json")
+if [ -n "$expected" ]; then
+  args+=(--expected "$expected")
+fi
+
+set +e
+python3 "$checks" "${args[@]}"
+status=$?
+set -e
+
+if [ "$keep" = "1" ]; then
+  echo "-- kept: database \"$scratch\" and dump $dump"
+else
+  drop_scratch
+fi
+echo "report: $report"
+
+if [ "$status" -ne 0 ]; then
+  echo "error: restore drill FAILED — the restored copy does not match the source" >&2
+  exit 1
+fi
+echo "restore drill PASSED"

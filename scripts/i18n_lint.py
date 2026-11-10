@@ -215,9 +215,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail on violations beyond the baseline")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
+    parser.add_argument("--self-test", action="store_true", help="prove the gate fails closed")
     parser.add_argument("--baseline", default=str(ROOT / ".github" / "i18n-baseline.json"))
     parser.add_argument("--write-baseline", metavar="PATH", help="record the current violations")
     args = parser.parse_args(argv)
+
+    if args.self_test:
+        from gate_selftests import run_self_test
+
+        return run_self_test("i18n-lint")
 
     violations = lint()
 

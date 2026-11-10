@@ -660,6 +660,15 @@ Exports the document as a standalone HTML file.
 |-----------|------|----------|-------------|
 | `id` | string | Yes | Document ID |
 
+> **Download, not a page.** The export is served as
+> `Content-Disposition: attachment` with `application/octet-stream`, so no
+> browser renders user-authored document markup on the suite origin. It also
+> carries `Content-Security-Policy: sandbox allow-scripts; default-src 'none'`,
+> `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`, and the
+> document title is HTML-escaped before it reaches `<title>` — a stored title or
+> body can never execute as the suite user (#2124). The `md` and `txt` exports
+> are attachments too.
+
 **Response:**
 ```json
 {
