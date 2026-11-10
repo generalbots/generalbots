@@ -51,6 +51,12 @@ fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
     }
     let daemon_missing = lower.contains("no such file or directory")
         || lower.contains("os error 2")
+        // #2086 — Windows reports a missing binary differently. Without these
+        // phrases the chat pipeline retried `incus list` five times (≈30 s)
+        // before every LLM call on a host that has no Incus at all.
+        || lower.contains("cannot find the file specified")
+        || lower.contains("not recognized as an internal or external command")
+        || lower.contains("os error 3")
         || lower.contains("failed to connect to local daemon")
         || lower.contains("daemon is not running")
         || lower.contains("cannot connect to the incus daemon");
@@ -65,6 +71,15 @@ fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
 }
 
 fn incus_command(state: &AgentService) -> Result<SafeCommand, (StatusCode, String)> {
+    // #2086 — there is no Incus daemon on Windows: the agent-VM path must fail
+    // fast as a capability error instead of retrying `incus list` five times
+    // (≈30 s) before every LLM call.
+    if cfg!(windows) {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            INCUS_MISSING_MESSAGE.to_string(),
+        ));
+    }
     SafeCommand::new(state.incus_bin()).map_err(|e| {
         tracing::error!("incus command rejected by guard: {e}");
         (
@@ -424,5 +439,20 @@ mod incus_error_tests {
     fn unrelated_failures_keep_the_generic_error() {
         assert!(incus_setup_error("Error: Instance ag-u1234 is not running").is_none());
         assert!(incus_setup_error("Error: Image not found").is_none());
+    }
+
+    #[test]
+    fn windows_missing_binary_is_a_capability_error() {
+        // #2086 — Windows phrases that used to fall through and be retried five
+        // times per chat message.
+        for detail in [
+            "Command execution failed: The system cannot find the file specified. (os error 3)",
+            "'incus' is not recognized as an internal or external command, operable program or batch file.",
+        ] {
+            let (code, message) =
+                incus_setup_error(detail).expect("windows missing binary must map to setup error");
+            assert_eq!(code, StatusCode::SERVICE_UNAVAILABLE);
+            assert_eq!(message, INCUS_MISSING_MESSAGE);
+        }
     }
 }
