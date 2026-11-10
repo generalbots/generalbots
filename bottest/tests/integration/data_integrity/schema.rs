@@ -46,8 +46,9 @@ fn map_type(rust_type: &str) -> &'static str {
     }
     match rust_type {
         "Uuid" => "uuid",
-        "Text" | "Citext" => "text",
-        "Varchar" | "Bpchar" => "character varying",
+        "Text" => "text",
+        "Varchar" => "character varying",
+        "Bpchar" => "character",
         "Bool" => "boolean",
         "Timestamptz" => "timestamp with time zone",
         "Timestamp" => "timestamp without time zone",
@@ -300,18 +301,26 @@ pub fn compare(expected: &Tables, live: &Tables) -> Drift {
                     declared.sql_type, found.sql_type
                 ));
             }
-            if declared.nullable != found.nullable {
+            // Only one direction breaks Diesel: a column declared NOT NULL that
+            // the database lets be NULL fails to decode into `T`. The reverse
+            // (`Nullable<T>` over a NOT NULL column) decodes fine, so it is
+            // reported as additive instead of failing the suite.
+            if !declared.nullable && found.nullable {
                 drift.fatal.push(format!(
-                    "column `{table}.{column}` is {} in botschema but {} in the database",
-                    if declared.nullable { "nullable" } else { "NOT NULL" },
-                    if found.nullable { "nullable" } else { "NOT NULL" },
+                    "column `{table}.{column}` is NOT NULL in botschema but nullable in the database"
+                ));
+            } else if declared.nullable && !found.nullable {
+                drift.additive.push(format!(
+                    "column `{table}.{column}` is nullable in botschema but NOT NULL in the database"
                 ));
             }
-            if declared.pk != found.pk {
+            if declared.pk && !found.pk {
                 drift.fatal.push(format!(
-                    "column `{table}.{column}` is {} a primary key in botschema but {} in the database",
-                    if declared.pk { "" } else { "not" },
-                    if found.pk { "is" } else { "is not" },
+                    "column `{table}.{column}` is a primary key in botschema but not in the database"
+                ));
+            } else if !declared.pk && found.pk {
+                drift.additive.push(format!(
+                    "column `{table}.{column}` is a primary key in the database but not declared as one in botschema"
                 ));
             }
         }

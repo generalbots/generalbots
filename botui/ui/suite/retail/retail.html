@@ -120,10 +120,10 @@
     <div class="retail-modal-dialog">
         <header class="retail-modal-header"><h2 data-i18n="auto-branch">Branch</h2><button onclick="window._retail.closeModal('retailBranchModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitBranch(event)">
-            <label data-i18n="research-code">Code<input type="text" id="branchCode" placeholder="e.g. BR-01"></label>
-            <label data-i18n="label-name">Name<input type="text" id="branchName" required placeholder="Downtown"></label>
-            <label data-i18n="auto-address">Address<input type="text" id="branchAddress"></label>
-            <label data-i18n="auto-manager">Manager<input type="text" id="branchManager"></label>
+            <label><span data-i18n="research-code">Code</span><input type="text" id="branchCode" placeholder="e.g. BR-01"></label>
+            <label><span data-i18n="label-name">Name</span><input type="text" id="branchName" required placeholder="Downtown"></label>
+            <label><span data-i18n="auto-address">Address</span><input type="text" id="branchAddress"></label>
+            <label><span data-i18n="auto-manager">Manager</span><input type="text" id="branchManager"></label>
             <label>Stock value (R$)<input type="number" id="branchStock" step="0.01" min="0" value="0"></label>
             <label>Status<select id="branchStatus"><option value="active" data-i18n="label-active">Active</option><option value="inactive" data-i18n="label-inactive">Inactive</option></select></label>
             <div style="display:flex;gap:8px;margin-top:12px">
@@ -138,11 +138,11 @@
     <div class="retail-modal-dialog">
         <header class="retail-modal-header"><h2 data-i18n="auto-promotion">Promotion</h2><button onclick="window._retail.closeModal('retailPromoModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitPromo(event)">
-            <label data-i18n="label-name">Name<input type="text" id="promoName" required></label>
+            <label><span data-i18n="label-name">Name</span><input type="text" id="promoName" required></label>
             <label>Type<select id="promoType"><option value="percent" data-i18n="auto-percent">Percent</option><option value="fixed" data-i18n="auto-fixed">Fixed</option><option value="bogo" data-i18n="auto-bogo">BOGO</option></select></label>
-            <label data-i18n="billing-discount">Discount<input type="text" id="promoDiscount" placeholder="e.g. 10% or R$20"></label>
-            <label data-i18n="auto-valid-from">Valid from<input type="date" id="promoFrom"></label>
-            <label data-i18n="auto-valid-to">Valid to<input type="date" id="promoTo"></label>
+            <label><span data-i18n="billing-discount">Discount</span><input type="text" id="promoDiscount" placeholder="e.g. 10% or R$20"></label>
+            <label><span data-i18n="auto-valid-from">Valid from</span><input type="date" id="promoFrom"></label>
+            <label><span data-i18n="auto-valid-to">Valid to</span><input type="date" id="promoTo"></label>
             <label>Status<select id="promoStatus"><option value="active" data-i18n="label-active">Active</option><option value="paused" data-i18n="tasks-status-paused">Paused</option></select></label>
             <div style="display:flex;gap:8px;margin-top:12px">
                 <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailPromoModal')" data-i18n="action-cancel">Cancel</button>
@@ -157,11 +157,11 @@
         <header class="retail-modal-header"><h2 data-i18n="auto-supplier">Supplier</h2><button onclick="window._retail.closeModal('retailSupplierModal')">&times;</button></header>
         <form class="retail-modal-body" onsubmit="window._retail.submitSupplier(event)">
             <label>CNPJ<input type="text" id="supplierCnpj"></label>
-            <label data-i18n="label-name">Name<input type="text" id="supplierName" required></label>
-            <label data-i18n="billing-contact">Contact<input type="text" id="supplierContact"></label>
-            <label data-i18n="attendant-channel-email">Email<input type="email" id="supplierEmail"></label>
-            <label data-i18n="auto-lead-time-days">Lead time (days)<input type="number" id="supplierLead" min="0" value="0"></label>
-            <label data-i18n="auto-rating-0-5">Rating (0-5)<input type="number" id="supplierRating" step="0.1" min="0" max="5" value="0"></label>
+            <label><span data-i18n="label-name">Name</span><input type="text" id="supplierName" required></label>
+            <label><span data-i18n="billing-contact">Contact</span><input type="text" id="supplierContact"></label>
+            <label><span data-i18n="attendant-channel-email">Email</span><input type="email" id="supplierEmail"></label>
+            <label><span data-i18n="auto-lead-time-days">Lead time (days)</span><input type="number" id="supplierLead" min="0" value="0"></label>
+            <label><span data-i18n="auto-rating-0-5">Rating (0-5)</span><input type="number" id="supplierRating" step="0.1" min="0" max="5" value="0"></label>
             <div style="display:flex;gap:8px;margin-top:12px">
                 <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailSupplierModal')" data-i18n="action-cancel">Cancel</button>
                 <button type="submit" class="retail-btn retail-btn-primary" data-i18n="action-save">Save</button>

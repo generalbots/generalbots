@@ -198,17 +198,17 @@
                     <option value="random" data-i18n="auto-random-key">Random key</option>
                 </select>
             </label>
-            <label data-i18n="auto-recipient-key">Recipient key
-                <input type="text" id="transferKey" placeholder="000.000.000-00 or email">
+            <label><span data-i18n="auto-recipient-key">Recipient key
+                </span><input type="text" id="transferKey" placeholder="000.000.000-00 or email">
             </label>
             <label>Amount (R$)
                 <input type="number" id="transferAmount" step="0.01" min="0.01">
             </label>
-            <label data-i18n="label-description">Description
-                <input type="text" id="transferDescription" placeholder="Optional">
+            <label><span data-i18n="label-description">Description
+                </span><input type="text" id="transferDescription" placeholder="Optional">
             </label>
-            <label data-i18n="auto-schedule">Schedule
-                <input type="datetime-local" id="transferSchedule">
+            <label><span data-i18n="auto-schedule">Schedule
+                </span><input type="datetime-local" id="transferSchedule">
             </label>
         </div>
         <footer class="banking-modal-footer">
@@ -225,14 +225,14 @@
             <button onclick="BankingApp.closeModal('bankingAccountModal')">&times;</button>
         </header>
         <form class="banking-modal-body" onsubmit="BankingApp.submitAccount(event)">
-            <label data-i18n="auto-bank">Bank
-                <input type="text" id="accountBank" placeholder="e.g. Banco do Brasil" required>
+            <label><span data-i18n="auto-bank">Bank
+                </span><input type="text" id="accountBank" placeholder="e.g. Banco do Brasil" required>
             </label>
-            <label data-i18n="auto-agency">Agency
-                <input type="text" id="accountAgency" placeholder="0001">
+            <label><span data-i18n="auto-agency">Agency
+                </span><input type="text" id="accountAgency" placeholder="0001">
             </label>
-            <label data-i18n="auto-account-number">Account number
-                <input type="text" id="accountNumber" placeholder="12345-6">
+            <label><span data-i18n="auto-account-number">Account number
+                </span><input type="text" id="accountNumber" placeholder="12345-6">
             </label>
             <label>Type
                 <select id="accountType">
@@ -244,8 +244,8 @@
             <label>Balance (R$)
                 <input type="number" id="accountBalance" step="0.01" min="0" value="0">
             </label>
-            <label data-i18n="billing-currency">Currency
-                <input type="text" id="accountCurrency" value="BRL">
+            <label><span data-i18n="billing-currency">Currency
+                </span><input type="text" id="accountCurrency" value="BRL">
             </label>
             <div style="display:flex;gap:8px;margin-top:16px">
                 <button type="button" class="btn-secondary" onclick="BankingApp.closeModal('bankingAccountModal')" data-i18n="action-cancel">Cancel</button>

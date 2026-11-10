@@ -117,7 +117,7 @@
                         <input type="text" placeholder="id" class="db-input" value="id" disabled>
                         <select class="db-select"><option>UUID</option></select>
                         <label class="db-checkbox"><input type="checkbox" checked disabled> PK</label>
-                        <label class="db-checkbox" data-i18n="auto-not-null"><input type="checkbox" checked disabled> NOT NULL</label>
+                        <label class="db-checkbox"><input type="checkbox" checked disabled><span data-i18n="auto-not-null"> NOT NULL</span></label>
                     </div>
                     <div class="db-column-row">
                         <input type="text" placeholder="column_name" data-gb-field="Column Name" class="db-input">
@@ -127,7 +127,7 @@
                             <option data-i18n="auto-date">DATE</option><option data-i18n="auto-timestamptz">TIMESTAMPTZ</option><option data-i18n="auto-jsonb">JSONB</option>
                         </select>
                         <label class="db-checkbox"><input type="checkbox"> PK</label>
-                        <label class="db-checkbox" data-i18n="auto-not-null"><input type="checkbox" checked> NOT NULL</label>
+                        <label class="db-checkbox"><input type="checkbox" checked><span data-i18n="auto-not-null"> NOT NULL</span></label>
                         <button class="db-btn-icon" onclick="this.closest('.db-column-row').remove()">&#10005;</button>
                     </div>
                 </div>

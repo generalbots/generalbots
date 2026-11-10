@@ -36,6 +36,23 @@ struct CountRow {
     count: i64,
 }
 
+/// 5xx responses recorded by the ops middleware in the last 24 h (#2116).
+/// Returns 0 when the table does not exist yet, so an un-migrated deployment
+/// still renders the summary.
+fn request_errors_24h(conn: &mut diesel::PgConnection) -> i64 {
+    diesel::sql_query(
+        "SELECT COALESCE(SUM(CASE WHEN status_class = '5xx' THEN request_count ELSE 0 END), 0)::bigint AS count
+           FROM ops_request_metrics
+          WHERE bucket > NOW() - INTERVAL '24 hours'",
+    )
+    .get_result::<CountRow>(conn)
+    .map(|row| row.count)
+    .unwrap_or_else(|error| {
+        log::error!("ops metrics error count unavailable: {error}");
+        0
+    })
+}
+
 pub async fn ops_status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let db_ok = get_conn(&state).is_some();
     let cache_ok = state.cache.as_ref().is_some();
@@ -140,11 +157,60 @@ pub async fn ops_metrics_requests(State(state): State<Arc<AppState>>) -> impl In
     Html(format!("{count}/hr"))
 }
 
-pub async fn ops_errors_recent(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    Html(
-        r#"<div class="errors-empty"><p>No errors recorded in the last 24 hours.</p></div>"#
-            .to_string(),
+pub async fn ops_errors_recent(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let Ok(mut conn) = get_conn(&state).ok_or(()) else {
+        return Html(
+            r#"<div class="errors-empty"><p>Database unreachable, no error counters.</p></div>"#
+                .to_string(),
+        );
+    };
+
+    #[derive(Debug, diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct ErrorRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        endpoint_class: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        errors: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        requests: i64,
+    }
+
+    let rows: Vec<ErrorRow> = diesel::sql_query(
+        "SELECT endpoint_class,
+                SUM(CASE WHEN status_class = '5xx' THEN request_count ELSE 0 END)::bigint AS errors,
+                SUM(request_count)::bigint AS requests
+           FROM ops_request_metrics
+          WHERE bucket > NOW() - INTERVAL '24 hours'
+          GROUP BY endpoint_class
+         HAVING SUM(CASE WHEN status_class = '5xx' THEN request_count ELSE 0 END) > 0
+          ORDER BY errors DESC",
     )
+    .load(&mut conn)
+    .unwrap_or_default();
+
+    if rows.is_empty() {
+        return Html(
+            r#"<div class="errors-empty"><p>No 5xx responses recorded in the last 24 hours.</p></div>"#
+                .to_string(),
+        );
+    }
+
+    let mut html = String::new();
+    for row in rows {
+        let pct = if row.requests == 0 {
+            0.0
+        } else {
+            row.errors as f64 / row.requests as f64 * 100.0
+        };
+        html.push_str(&format!(
+            r#"<div class="error-row"><span class="error-class">{class}</span><span class="error-count">{errors}</span><span class="error-rate">{pct:.2}%</span></div>"#,
+            class = row.endpoint_class,
+            errors = row.errors,
+            pct = pct,
+        ));
+    }
+    Html(html)
 }
 
 pub async fn ops_endpoints_performance(State(state): State<Arc<AppState>>) -> impl IntoResponse {

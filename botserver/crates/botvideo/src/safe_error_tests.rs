@@ -31,7 +31,7 @@ fn the_error_code_selects_the_http_status() {
     ];
 
     for (body, expected) in cases {
-        assert_eq!(body.into_response().status(), expected, "{expected}");
+        assert_eq!(body.into_response().status(), expected, "{expected:?}");
     }
 }
 

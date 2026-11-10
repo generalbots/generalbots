@@ -15,13 +15,13 @@
                 <span class="shared-status-dot"></span>Offline
             </span>
         </div>
-        <p data-i18n="auto-shared-links-work-on-your-local-network-only" data-i18n="auto-every-connection-stays-on">
+        <p data-i18n="auto-every-connection-stays-on">
             <strong data-i18n="status-offline">Offline</strong> — every connection stays on <code>127.0.0.1</code>.
             Shared links work on your local network only.<br />
-            <strong>P2P</strong> — enables future features such as free shared-link relaying
+            <strong>P2P</strong><span data-i18n="auto-shared-links-work-on-your-local-network-only"> — enables future features such as free shared-link relaying
             and peer discovery. No data leaves this machine until you explicitly share
             something.
-        </p>
+        </span></p>
 
         <div class="inline-row" style="margin-top:12px">
             <label for="network-mode-select" data-i18n="auto-network-mode">Network mode</label>
@@ -31,9 +31,9 @@
             </select>
             <button type="button" class="btn-secondary btn-sm" id="network-mode-apply" data-i18n="action-apply">Apply</button>
         </div>
-        <p class="shared-hint" style="margin-top:8px" data-i18n="auto-this-preference-is-saved-locally-and-takes-effect-after-the">
+        <p class="shared-hint" style="margin-top:8px"><span data-i18n="auto-this-preference-is-saved-locally-and-takes-effect-after-the">
             This preference is saved locally and takes effect after the app restarts.
-            The relay endpoint is fixed (<code id="network-relay-host">peer.generalbots.org</code>);
+            The relay endpoint is fixed (</span><code id="network-relay-host">peer.generalbots.org</code>);
             peer and home-site resolution always uses it, so no manual configuration
             is required.
         </p>

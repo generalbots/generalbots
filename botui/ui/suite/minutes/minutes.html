@@ -37,10 +37,10 @@
         <h3>Agendar reunião</h3>
         <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/meeting')">
             <label>Título <input name="title" required></label>
-            <label data-i18n="auto-data">Data <input type="date" name="date" required></label>
+            <label><span data-i18n="auto-data">Data </span><input type="date" name="date" required></label>
             <label>Hora <input type="time" name="time" required></label>
             <label>Duração (min) <input type="number" name="duration" value="30" min="5" required></label>
-            <label data-i18n="auto-local">Local <input name="location" placeholder="Sala ou link"></label>
+            <label><span data-i18n="auto-local">Local </span><input name="location" placeholder="Sala ou link"></label>
             <div class="min-modal-actions">
                 <button type="button" class="min-btn" onclick="closeMinModal('min-meeting-modal')">Cancelar</button>
                 <button type="submit" class="min-btn min-btn-primary">Agendar</button>
@@ -56,7 +56,7 @@
             <label>ID da reunião (opcional) <input name="meeting_id" placeholder="UUID da reunião"></label>
             <label>Título <input name="title" required></label>
             <label>Responsável <input name="owner" required></label>
-            <label data-i18n="auto-prazo">Prazo <input type="date" name="due"></label>
+            <label><span data-i18n="auto-prazo">Prazo </span><input type="date" name="due"></label>
             <label>Prioridade
                 <select name="priority">
                     <option value="low">Baixa</option>
@@ -79,7 +79,7 @@
         <h3>Confirmação de presença</h3>
         <form onsubmit="return submitMinuteFormWithId(event, 'min-attendance-meeting', '/api/minutes/forms/attendance/')">
             <label>ID da reunião <input id="min-attendance-meeting" name="meeting_id" required placeholder="UUID da reunião"></label>
-            <label data-i18n="auto-participante">Participante <input name="attendee" required placeholder="Nome ou e-mail"></label>
+            <label><span data-i18n="auto-participante">Participante </span><input name="attendee" required placeholder="Nome ou e-mail"></label>
             <label>Status
                 <select name="status">
                     <option value="confirmed" selected data-i18n="auto-confirmado">Confirmado</option>
@@ -121,8 +121,8 @@
     <div class="min-modal-content">
         <h3 data-i18n="auto-assinatura-digital">Assinatura digital</h3>
         <form onsubmit="return submitMinuteFormWithId(event, 'min-sign-doc', '/api/minutes/forms/sign/')">
-            <label data-i18n="auto-id-do-documento">ID do documento <input id="min-sign-doc" name="document_id" required placeholder="UUID do documento"></label>
-            <label data-i18n="auto-assinante">Assinante <input name="signer" required placeholder="Nome ou e-mail"></label>
+            <label><span data-i18n="auto-id-do-documento">ID do documento </span><input id="min-sign-doc" name="document_id" required placeholder="UUID do documento"></label>
+            <label><span data-i18n="auto-assinante">Assinante </span><input name="signer" required placeholder="Nome ou e-mail"></label>
             <div class="min-modal-actions">
                 <button type="button" class="min-btn" onclick="closeMinModal('min-sign-modal')">Cancelar</button>
                 <button type="submit" class="min-btn min-btn-primary" data-i18n="auto-assinar">Assinar</button>

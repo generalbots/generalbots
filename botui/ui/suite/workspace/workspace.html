@@ -76,34 +76,31 @@
         <div class="sidebar-footer">
             <button
                 class="sidebar-btn"
-                data-i18n="workspace-templates"
                 hx-get="/api/ui/workspaces/current/templates"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
             >
-                <span class="btn-icon">📄</span>
+                <span class="btn-icon">📄</span><span data-i18n="workspace-templates">
                 Templates
-            </button>
+            </span></button>
             <button
                 class="sidebar-btn"
-                data-i18n="workspace-trash"
                 hx-get="/api/ui/workspaces/current/trash"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
             >
-                <span class="btn-icon">🗑️</span>
+                <span class="btn-icon">🗑️</span><span data-i18n="workspace-trash">
                 Trash
-            </button>
+            </span></button>
             <button
                 class="sidebar-btn"
                 hx-get="/api/ui/workspaces/current/settings"
                 hx-target="#workspace-modal"
                 hx-swap="innerHTML"
-                data-i18n="workspace-settings"
             >
-                <span class="btn-icon">⚙️</span>
+                <span class="btn-icon">⚙️</span><span data-i18n="workspace-settings">
                 Settings
-            </button>
+            </span></button>
         </div>
     </aside>
 
@@ -139,8 +136,8 @@
                 >
                     <!-- Empty state -->
                     <div class="empty-page">
-                        <p data-i18n="auto-press">
-                            Press <kbd>/</kbd> for commands or start typing...
+                        <p><span data-i18n="auto-press">
+                            Press </span><kbd>/</kbd> for commands or start typing...
                         </p>
                     </div>
                 </div>
