@@ -108,16 +108,31 @@ impl std::error::Error for SqlGuardError {}
 /// Rejects a table name that is not a usable SQL identifier. Shared by every
 /// validation path: safelist check, dynamic-table check, and the query builders.
 fn check_table_syntax(table: &str) -> Result<String, SqlGuardError> {
+    // Inspect the RAW input first. Sanitising before the pattern check let
+    // `users--` collapse to `users`, pass the safelist, and then be
+    // interpolated as the original string — a comment-injection hole.
+    if table.contains(';')
+        || table.contains("--")
+        || table.contains("/*")
+        || table.contains("*/")
+        || table.contains('\'')
+        || table.contains('"')
+        || table.contains('\\')
+    {
+        return Err(SqlGuardError::PotentialInjection(table.to_string()));
+    }
+
     let sanitized = sanitize_identifier(table);
 
-    // Check basic identifier validity (no SQL injection)
     if sanitized.is_empty() || sanitized.len() > 63 {
         return Err(SqlGuardError::InvalidTableName(table.to_string()));
     }
 
-    // Check for dangerous patterns
-    if sanitized.contains(';') || sanitized.contains("--") || sanitized.contains("/*") {
-        return Err(SqlGuardError::PotentialInjection(table.to_string()));
+    // A name that changes when sanitised contains characters an identifier can
+    // never have. Refuse it instead of silently rewriting it, so the caller
+    // never interpolates a name the guard did not actually approve.
+    if sanitized != table {
+        return Err(SqlGuardError::InvalidTableName(table.to_string()));
     }
 
     Ok(sanitized)
@@ -134,7 +149,7 @@ pub fn validate_table_name(table: &str) -> Result<&str, SqlGuardError> {
     // would let an unvalidated table name reach a query.
     let sanitized = check_table_syntax(table)?;
 
-    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+    if SYSTEM_TABLES.contains(sanitized.to_ascii_lowercase().as_str()) {
         return Ok(table);
     }
 
@@ -155,19 +170,28 @@ pub fn validate_table_name_with_conn<'a>(
     conn: &mut diesel::PgConnection,
     table: &'a str,
 ) -> Result<&'a str, SqlGuardError> {
-    let sanitized = sanitize_identifier(table);
-
-    // First do basic validation
-    if sanitized.is_empty() || sanitized.len() > 63 {
-        return Err(SqlGuardError::InvalidTableName(table.to_string()));
-    }
-
-    if sanitized.contains(';') || sanitized.contains("--") || sanitized.contains("/*") {
+    // Same raw-input rule as `check_table_syntax`: sanitising first would hide
+    // `--`/`;` and let the original string through.
+    if table.contains(';')
+        || table.contains("--")
+        || table.contains("/*")
+        || table.contains("*/")
+        || table.contains('\'')
+        || table.contains('"')
+        || table.contains('\\')
+    {
         return Err(SqlGuardError::PotentialInjection(table.to_string()));
     }
 
-    // System tables are always allowed
-    if SYSTEM_TABLES.contains(sanitized.as_str()) {
+    let sanitized = sanitize_identifier(table);
+
+    // First do basic validation
+    if sanitized.is_empty() || sanitized.len() > 63 || sanitized != table {
+        return Err(SqlGuardError::InvalidTableName(table.to_string()));
+    }
+
+    // System tables are always allowed (PostgreSQL folds unquoted names).
+    if SYSTEM_TABLES.contains(sanitized.to_ascii_lowercase().as_str()) {
         return Ok(table);
     }
 
@@ -373,7 +397,7 @@ pub fn register_dynamic_table(table_name: &'static str) {
 /// Check if table is in the system tables safelist
 pub fn is_system_table(table: &str) -> bool {
     let sanitized = sanitize_identifier(table);
-    SYSTEM_TABLES.contains(sanitized.as_str())
+    SYSTEM_TABLES.contains(sanitized.to_ascii_lowercase().as_str())
 }
 
 /// Check if table is allowed (system table or valid identifier)
@@ -386,7 +410,7 @@ pub fn is_table_allowed(table: &str) -> bool {
     if sanitized.is_empty() || sanitized.len() > 63 {
         return false;
     }
-    SYSTEM_TABLES.contains(sanitized.as_str())
+    SYSTEM_TABLES.contains(sanitized.to_ascii_lowercase().as_str())
 }
 
 /// Check if table is allowed with database connection

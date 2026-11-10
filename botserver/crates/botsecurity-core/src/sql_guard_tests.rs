@@ -110,3 +110,89 @@ fn test_is_table_allowed() {
     assert!(is_table_allowed("bots"));
     assert!(!is_table_allowed("hacked_table"));
 }
+
+#[test]
+fn injection_payloads_never_survive_the_identifier_guard() {
+    let hostile = [
+        "users; DROP TABLE users",
+        "users--",
+        "users/*x*/",
+        "users' OR '1'='1",
+        "users\" OR 1=1",
+        "users UNION SELECT password FROM users",
+        "1users",
+        "",
+    ];
+    for payload in hostile {
+        assert!(
+            validate_table_name(payload).is_err(),
+            "{payload} must not pass validate_table_name"
+        );
+        assert!(
+            validate_identifier(payload).is_err() || sanitize_identifier(payload) != payload,
+            "{payload} must not pass validate_identifier unchanged"
+        );
+    }
+}
+
+#[test]
+fn validate_table_name_is_deny_by_default() {
+    // Only the system safelist passes without a database connection.
+    assert!(validate_table_name("users").is_ok());
+    assert!(validate_table_name("some_app_table").is_err());
+    // The dynamic variant is syntax-only and must still reject injection.
+    assert!(validate_dynamic_table_name("some_app_table").is_ok());
+    assert!(validate_dynamic_table_name("users; DROP TABLE users").is_err());
+}
+
+#[test]
+fn validate_identifier_rejects_leading_digits_and_overlong_names() {
+    assert!(validate_identifier("9lives").is_err());
+    assert!(validate_identifier("_ok").is_ok());
+    assert!(validate_identifier(&"a".repeat(65)).is_err());
+    assert!(validate_identifier(&"a".repeat(64)).is_ok());
+}
+
+#[test]
+fn order_column_is_safelisted() {
+    assert!(validate_order_column("created_at").is_ok());
+    assert!(validate_order_column("created_at; DROP TABLE users").is_err());
+    assert!(validate_order_column("password_hash").is_err());
+}
+
+#[test]
+fn escape_string_literal_doubles_quotes() {
+    assert_eq!(escape_string_literal("O'Brien"), "O''Brien");
+    assert_eq!(escape_string_literal("plain"), "plain");
+    assert_eq!(escape_string_literal("''"), "''''");
+}
+
+#[test]
+fn select_builders_refuse_an_invalid_table() {
+    assert!(
+        build_safe_select_query("users; DROP TABLE users", None, None, 10, 0).is_err()
+    );
+    assert!(build_safe_count_query("users; DROP TABLE users").is_err());
+    assert!(build_safe_delete_query("users; DROP TABLE users").is_err());
+    assert!(build_safe_select_by_id_query("users; DROP TABLE users").is_err());
+}
+
+#[test]
+fn system_tables_are_recognised() {
+    assert!(is_system_table("users"));
+    assert!(is_system_table("USERS"));
+    assert!(!is_system_table("some_app_table"));
+    assert!(is_table_allowed("bots"));
+    assert!(!is_table_allowed("some_app_table"));
+}
+
+#[test]
+fn injection_scanner_flags_every_documented_pattern() {
+    for pattern in ["--", "/*", "*/", "xp_cmdshell", "waitfor delay", "union select"] {
+        assert!(
+            check_for_injection_patterns(pattern).is_err(),
+            "{pattern} must be flagged"
+        );
+    }
+    assert!(check_for_injection_patterns("plain text").is_ok());
+}
