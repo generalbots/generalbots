@@ -290,3 +290,62 @@ mod tests {
         assert!(!name.is_empty());
     }
 }
+
+#[cfg(test)]
+mod file_tests {
+    use super::*;
+    use std::io::Write;
+
+    fn temp_product(name: &str, content: &str) -> String {
+        let path = std::env::temp_dir().join(format!(
+            "gb-branding-{}-{name}.product",
+            std::process::id()
+        ));
+        let mut file = std::fs::File::create(&path).expect("create temp product file");
+        file.write_all(content.as_bytes()).expect("write product file");
+        path.to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn default_branding_is_general_bots() {
+        let config = BrandingConfig::default();
+        assert_eq!(config.name, "General Bots");
+        assert_eq!(config.short_name, "GB");
+        assert_eq!(config.domain.as_deref(), Some("generalbots.com"));
+        assert!(!config.is_white_label);
+        let copyright = config.copyright.expect("copyright");
+        assert!(copyright.contains("pragmatismo.com.br"), "{copyright}");
+    }
+
+    #[test]
+    fn key_value_product_file_overrides_the_defaults() {
+        let path = temp_product(
+            "kv",
+            "name = Acme Bots\nshort_name = AC\nprimary_color = #123456\n",
+        );
+        let config = BrandingConfig::load_from_file(&path).expect("parse key/value");
+        assert_eq!(config.name, "Acme Bots");
+        assert_eq!(config.short_name, "AC");
+        assert_eq!(config.primary_color.as_deref(), Some("#123456"));
+        assert!(config.is_white_label, "a product file is a white-label config");
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn toml_product_file_is_supported() {
+        let path = temp_product(
+            "toml",
+            "name = \"Acme Bots\"\nshort_name = \"AC\"\ndomain = \"acme.example\"\n",
+        );
+        let config = BrandingConfig::load_from_file(&path).expect("parse toml");
+        assert_eq!(config.name, "Acme Bots");
+        assert_eq!(config.short_name, "AC");
+        assert_eq!(config.domain.as_deref(), Some("acme.example"));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn a_missing_product_file_is_an_error() {
+        assert!(BrandingConfig::load_from_file("/nonexistent/gb-branding.product").is_err());
+    }
+}
