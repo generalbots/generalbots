@@ -65,7 +65,7 @@ Every chat message, in both directions, is this JSON object
 
 | `type` | Sent by |
 |---|---|
-| `run_cancel` | `botserver/src/core/bot/ws/session/inbound.rs`, `botui/ui/suite/chat/modules/71_run_timeline.js` |
+| `run_cancel` | `botserver/src/core/bot/ws/session/inbound.rs`, `botui/ui/suite/chat/chat-turn-state.js`, `botui/ui/suite/chat/modules/71_run_timeline.js` |
 | `run_resume` | `botserver/src/core/bot/ws/session/inbound.rs`, `botui/ui/suite/chat/modules/71_run_timeline_frames.js` |
 | `run_takeover` | `botserver/src/core/bot/ws/session/inbound.rs`, `botui/ui/suite/chat/modules/71_run_timeline.js` |
 
@@ -78,6 +78,7 @@ Every chat message, in both directions, is this JSON object
 | `gb.steer` | `botserver/src/core/bot/ws/stream/turn.rs` |
 | `gb.steering_queued` | `botserver/src/core/bot/ws/session/inbound.rs` |
 | `message_received` | `botserver/src/core/bot/ws/session/inbound.rs` |
+| `rate_limited` | `botserver/src/core/bot/ws/session.rs` |
 | `run_cancelled` | `botserver/src/core/bot/ws/session/inbound.rs` |
 | `run_resume_done` | `botserver/src/core/bot/ws/session/resume.rs` |
 | `run_takeover_ack` | `botserver/src/core/bot/ws/session/takeover.rs` |

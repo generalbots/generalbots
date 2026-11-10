@@ -25,31 +25,22 @@
 //! translate a stable catalogue code for the request locale and never echo
 //! internal detail.
 
-use std::io::Cursor;
-
-use axum::http::{header, HeaderMap, StatusCode};
-use axum::Json;
-use botlib::i18n::{self, Locale};
-use serde_json::{json, Value};
+use axum::http::{header, HeaderMap};
 
 use crate::file_validation::{blocked_extensions, detect_mime_type};
+pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
 
-/// Maximum entries a zip container may hold (zip-bomb guard).
-pub const MAX_ARCHIVE_ENTRIES: usize = 4096;
-/// Maximum total *uncompressed* size a zip container may declare.
-pub const MAX_ARCHIVE_UNCOMPRESSED_BYTES: u64 = 1024 * 1024 * 1024;
+pub use crate::upload_error::{
+    locale_from_headers, rejection_json, rejection_message, UploadError,
+};
+pub use crate::upload_tables::{extension_for_mime, is_text_mime, is_zip_container, mime_for_extension};
 
-const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"];
-const ARCHIVE_EXTENSIONS: &[&str] = &["zip", "gz", "rar", "7z", "xz", "bz2"];
-const OFFICE_EXTENSIONS: &[&str] = &[
-    "docx", "xlsx", "pptx", "odt", "ods", "odp", "doc", "xls", "ppt",
-];
-const MEDIA_EXTENSIONS: &[&str] = &[
-    "mp4", "m4v", "mov", "webm", "mkv", "avi", "mp3", "wav", "ogg", "oga", "m4a", "flac",
-];
-const TEXT_EXTENSIONS: &[&str] = &[
-    "csv", "txt", "md", "markdown", "json", "xml", "rtf", "log", "yaml", "yml", "toml", "ini",
-    "sql", "rs", "ts", "css", "py", "bas", "ast",
+const DRIVE_EXTENSIONS: &[&str] = &[
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "pdf", "zip", "gz", "rar", "7z",
+    "xz", "bz2", "docx", "xlsx", "pptx", "odt", "ods", "odp", "doc", "xls", "ppt", "csv", "txt",
+    "md", "markdown", "json", "xml", "rtf", "mp4", "m4v", "mov", "webm", "mkv", "avi", "mp3",
+    "wav", "ogg", "oga", "m4a", "flac", "log", "yaml", "yml", "toml", "ini", "sql", "rs", "ts",
+    "css", "py", "bas", "ast", "bin", "dat", "html", "htm", "svg",
 ];
 
 /// Endpoint class: decides the size cap, filename length and extension
@@ -59,6 +50,8 @@ const TEXT_EXTENSIONS: &[&str] = &[
 pub enum UploadClass {
     /// Suite Drive (`/api/files/write`, `/api/files/upload-binary`) — a general
     /// file store, so the allowlist is broad but still excludes executables.
+    /// HTML/SVG are accepted here because the designers save them, and they are
+    /// only ever served back as an opaque attachment (see the Drive handlers).
     Drive,
     /// Conversation attachment (composer upload).
     ChatAttachment,
@@ -100,13 +93,7 @@ impl UploadLimits {
 static DRIVE_LIMITS: UploadLimits = UploadLimits {
     max_bytes: 100 * 1024 * 1024,
     max_filename_len: 180,
-    extensions: &[
-        "png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "pdf", "zip", "gz", "rar",
-        "7z", "xz", "bz2", "docx", "xlsx", "pptx", "odt", "ods", "odp", "doc", "xls", "ppt",
-        "csv", "txt", "md", "markdown", "json", "xml", "rtf", "mp4", "m4v", "mov", "webm",
-        "mkv", "avi", "mp3", "wav", "ogg", "oga", "m4a", "flac", "log", "yaml", "yml", "toml",
-        "ini", "sql", "rs", "ts", "css", "py", "bas", "ast", "bin", "dat", "html", "htm",
-    ],
+    extensions: DRIVE_EXTENSIONS,
 };
 
 static CHAT_LIMITS: UploadLimits = UploadLimits {
@@ -216,144 +203,6 @@ pub struct ValidatedUpload {
     pub size: usize,
 }
 
-/// Why an upload was refused. The `code` is a catalogue message id, stable
-/// across locales, so clients can branch on it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UploadError {
-    Empty,
-    TooLarge { max: usize },
-    FilenameInvalid,
-    FilenameTooLong { max: usize },
-    ExtensionBlocked { extension: String },
-    ExtensionNotAllowed { extension: String, allowed: &'static [&'static str] },
-    UnknownExtension { extension: String },
-    TypeMismatch { expected: String, detected: String },
-    ArchiveUnsafe { reason: &'static str },
-}
-
-impl UploadError {
-    #[must_use]
-    pub fn status(&self) -> StatusCode {
-        match self {
-            Self::TooLarge { .. } => StatusCode::PAYLOAD_TOO_LARGE,
-            _ => StatusCode::BAD_REQUEST,
-        }
-    }
-
-    #[must_use]
-    pub fn code(&self) -> &'static str {
-        match self {
-            Self::Empty => "error-file-empty",
-            Self::TooLarge { .. } => "error-file-too-large",
-            Self::FilenameInvalid | Self::FilenameTooLong { .. } => "error-file-name-invalid",
-            Self::ExtensionBlocked { .. } => "error-file-extension-blocked",
-            Self::ExtensionNotAllowed { .. } => "error-file-type-not-allowed",
-            Self::UnknownExtension { .. } => "error-file-extension-unknown",
-            Self::TypeMismatch { .. } => "error-file-content-mismatch",
-            Self::ArchiveUnsafe { .. } => "error-file-archive-unsafe",
-        }
-    }
-
-    /// Localized, client-safe message. Internal detail (paths, driver errors)
-    /// never reaches this string.
-    #[must_use]
-    pub fn message(&self, locale: &Locale) -> String {
-        let code = self.code();
-        match self {
-            Self::TooLarge { max } => {
-                i18n::translate(locale, code, &[("maxSize", &human_size(*max))])
-            }
-            Self::FilenameTooLong { max } => {
-                i18n::translate(locale, code, &[("max", &max.to_string())])
-            }
-            Self::ExtensionBlocked { extension }
-            | Self::UnknownExtension { extension } => {
-                i18n::translate(locale, code, &[("extension", extension)])
-            }
-            Self::ExtensionNotAllowed { extension, allowed } => {
-                let allowed_types = allowed
-                    .iter()
-                    .map(|ext| format!(".{ext}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                i18n::translate(
-                    locale,
-                    code,
-                    &[("extension", extension), ("allowedTypes", &allowed_types)],
-                )
-            }
-            Self::TypeMismatch { expected, detected } => i18n::translate(
-                locale,
-                code,
-                &[("expected", expected), ("detected", detected)],
-            ),
-            Self::ArchiveUnsafe { reason } => {
-                i18n::translate(locale, code, &[("reason", reason)])
-            }
-            Self::Empty | Self::FilenameInvalid => i18n::get(locale, code),
-        }
-    }
-
-    /// Server-side detail for the log line; never sent to the client.
-    #[must_use]
-    pub fn log_detail(&self) -> String {
-        format!("{self:?}")
-    }
-}
-
-/// MIME type implied by an extension, or `None` when the extension is unknown.
-#[must_use]
-pub fn mime_for_extension(extension: &str) -> Option<&'static str> {
-    Some(match extension {
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        "bmp" => "image/bmp",
-        "tif" | "tiff" => "image/tiff",
-        "pdf" => "application/pdf",
-        "zip" => "application/zip",
-        "gz" => "application/gzip",
-        "rar" => "application/vnd.rar",
-        "7z" => "application/x-7z-compressed",
-        "xz" => "application/x-xz",
-        "bz2" => "application/x-bzip2",
-        "docx" => {
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        }
-        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "odt" => "application/vnd.oasis.opendocument.text",
-        "ods" => "application/vnd.oasis.opendocument.spreadsheet",
-        "odp" => "application/vnd.oasis.opendocument.presentation",
-        "doc" => "application/msword",
-        "xls" => "application/vnd.ms-excel",
-        "ppt" => "application/vnd.ms-powerpoint",
-        "csv" => "text/csv",
-        "txt" | "log" | "bas" | "ast" => "text/plain",
-        "md" | "markdown" => "text/markdown",
-        "json" => "application/json",
-        "xml" | "mpp" => "application/xml",
-        "rtf" => "application/rtf",
-        "html" | "htm" => "text/html",
-        "svg" => "image/svg+xml",
-        "ics" | "ical" => "text/calendar",
-        "yaml" | "yml" | "toml" | "ini" | "sql" | "rs" | "ts" | "css" | "py" => "text/plain",
-        "mp4" | "m4v" => "video/mp4",
-        "mov" => "video/quicktime",
-        "webm" => "video/webm",
-        "mkv" => "video/x-matroska",
-        "avi" => "video/x-msvideo",
-        "mp3" => "audio/mpeg",
-        "wav" => "audio/wav",
-        "ogg" | "oga" => "audio/ogg",
-        "m4a" => "audio/mp4",
-        "flac" => "audio/flac",
-        "tsv" => "text/tab-separated-values",
-        _ => return None,
-    })
-}
-
 /// Reduces `raw` to a safe stored filename: last path component, no control
 /// characters, no quotes or path separators, no leading dot, length-capped.
 pub fn sanitize_upload_filename(raw: &str, max_len: usize) -> Result<String, UploadError> {
@@ -458,6 +307,22 @@ pub fn validate_upload(
     })
 }
 
+/// Refuses the request from `Content-Length` alone, before the body is
+/// buffered. Handlers call this first; [`validate_upload`] re-checks the real
+/// length for chunked requests that carry no header.
+pub fn check_declared_length(class: UploadClass, headers: &HeaderMap) -> Result<(), UploadError> {
+    let max = max_bytes(class);
+    let declared = headers
+        .get(header::CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok());
+
+    match declared {
+        Some(length) if length > max as u64 => Err(UploadError::TooLarge { max }),
+        _ => Ok(()),
+    }
+}
+
 /// Formats without a reliable leading signature; their extension is the only
 /// type signal available.
 const UNVERIFIABLE_EXTENSIONS: &[&str] = &["bin", "dat", "mpp"];
@@ -467,21 +332,11 @@ fn final_extension(filename: &str) -> &str {
 }
 
 fn normalize_mime(raw: &str) -> String {
-    raw.split(';').next().unwrap_or_default().trim().to_ascii_lowercase()
-}
-
-fn is_text_mime(mime: &str) -> bool {
-    mime.starts_with("text/")
-        || matches!(
-            mime,
-            "application/json" | "application/xml" | "application/rtf"
-        )
-}
-
-fn is_zip_container(mime: &str) -> bool {
-    mime == "application/zip"
-        || mime.starts_with("application/vnd.openxmlformats-officedocument.")
-        || mime.starts_with("application/vnd.oasis.opendocument.")
+    raw.split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase()
 }
 
 fn declared_matches(declared: &str, expected: &str) -> bool {
@@ -513,8 +368,10 @@ fn magic_matches(extension: &str, expected: &str, detected: &str, data: &[u8]) -
     if is_zip_container(expected) && detected == "application/zip" {
         return true;
     }
-    if matches!(expected, "application/msword" | "application/vnd.ms-excel" | "application/vnd.ms-powerpoint")
-        && detected == "application/x-ole-storage"
+    if matches!(
+        expected,
+        "application/msword" | "application/vnd.ms-excel" | "application/vnd.ms-powerpoint"
+    ) && detected == "application/x-ole-storage"
     {
         return true;
     }
@@ -549,152 +406,8 @@ fn contains_svg(data: &[u8]) -> bool {
     head.contains("<svg")
 }
 
-/// Extension a detected MIME type is stored under. Used by handlers that
-/// receive raw bytes with no filename (the legacy `/api/files/upload-binary`).
-#[must_use]
-pub fn extension_for_mime(mime: &str) -> Option<&'static str> {
-    Some(match mime {
-        "image/png" => "png",
-        "image/jpeg" => "jpg",
-        "image/gif" => "gif",
-        "image/webp" => "webp",
-        "image/bmp" => "bmp",
-        "image/tiff" => "tiff",
-        "image/svg+xml" => "svg",
-        "application/pdf" => "pdf",
-        "application/zip" => "zip",
-        "application/gzip" => "gz",
-        "application/vnd.rar" => "rar",
-        "application/x-7z-compressed" => "7z",
-        "application/x-xz" => "xz",
-        "application/x-bzip2" => "bz2",
-        "application/x-ole-storage" => "doc",
-        "text/plain" => "txt",
-        "text/csv" => "csv",
-        "text/markdown" => "md",
-        "text/html" => "html",
-        "text/xml" | "application/xml" => "xml",
-        "application/json" => "json",
-        "application/rtf" => "rtf",
-        "text/calendar" => "ics",
-        "video/mp4" => "mp4",
-        "video/webm" => "webm",
-        "video/x-matroska" => "mkv",
-        "video/x-msvideo" => "avi",
-        "video/quicktime" => "mov",
-        "audio/mpeg" => "mp3",
-        "audio/wav" => "wav",
-        "audio/ogg" => "ogg",
-        "audio/mp4" => "m4a",
-        "audio/flac" => "flac",
-        _ => return None,
-    })
-}
-
 fn is_riff_avi(data: &[u8]) -> bool {
     data.len() >= 12 && data.starts_with(b"RIFF") && &data[8..12] == b"AVI "
-}
-
-/// Opens a zip container and refuses bombs: too many entries, a declared
-/// uncompressed size over the cap, or an entry name that escapes the archive.
-fn inspect_archive(data: &[u8]) -> Result<(), UploadError> {
-    let mut archive = zip::ZipArchive::new(Cursor::new(data)).map_err(|_| {
-        UploadError::TypeMismatch {
-            expected: "application/zip".to_string(),
-            detected: "not a zip container".to_string(),
-        }
-    })?;
-
-    if archive.len() > MAX_ARCHIVE_ENTRIES {
-        return Err(UploadError::ArchiveUnsafe {
-            reason: "too many entries",
-        });
-    }
-
-    let mut total: u64 = 0;
-    for index in 0..archive.len() {
-        let entry = archive
-            .by_index(index)
-            .map_err(|_| UploadError::ArchiveUnsafe {
-                reason: "unreadable entry",
-            })?;
-        total = total.saturating_add(entry.size());
-        if total > MAX_ARCHIVE_UNCOMPRESSED_BYTES {
-            return Err(UploadError::ArchiveUnsafe {
-                reason: "decompressed size",
-            });
-        }
-        if entry.enclosed_name().is_none() {
-            return Err(UploadError::ArchiveUnsafe {
-                reason: "unsafe entry name",
-            });
-        }
-    }
-
-    Ok(())
-}
-
-/// Refuses the request from `Content-Length` alone, before the body is
-/// buffered. Handlers call this first; [`validate_upload`] re-checks the real
-/// length for chunked requests that carry no header.
-pub fn check_declared_length(
-    class: UploadClass,
-    headers: &HeaderMap,
-) -> Result<(), UploadError> {
-    let max = max_bytes(class);
-    let declared = headers
-        .get(header::CONTENT_LENGTH)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.trim().parse::<u64>().ok());
-
-    match declared {
-        Some(length) if length > max as u64 => Err(UploadError::TooLarge { max }),
-        _ => Ok(()),
-    }
-}
-
-/// Request locale from `X-Locale` / `Accept-Language` (#2094).
-#[must_use]
-pub fn locale_from_headers(headers: &HeaderMap) -> Locale {
-    i18n::locale_from_request(
-        headers.get(i18n::LOCALE_HEADER).and_then(|v| v.to_str().ok()),
-        headers
-            .get(header::ACCEPT_LANGUAGE)
-            .and_then(|v| v.to_str().ok()),
-    )
-}
-
-/// Localized `400`/`413` body: `{ code, message, error }`.
-#[must_use]
-pub fn rejection_json(error: &UploadError, headers: &HeaderMap) -> (StatusCode, Json<Value>) {
-    let message = error.message(&locale_from_headers(headers));
-    (
-        error.status(),
-        Json(json!({
-            "code": error.code(),
-            "message": &message,
-            "error": message,
-        })),
-    )
-}
-
-/// Localized `(status, message)` pair for handlers whose error type is a plain
-/// string tuple.
-#[must_use]
-pub fn rejection_message(error: &UploadError, headers: &HeaderMap) -> (StatusCode, String) {
-    (
-        error.status(),
-        error.message(&locale_from_headers(headers)),
-    )
-}
-
-fn human_size(bytes: usize) -> String {
-    const MIB: usize = 1024 * 1024;
-    if bytes >= MIB {
-        format!("{} MiB", bytes / MIB)
-    } else {
-        format!("{} KiB", bytes / 1024)
-    }
 }
 
 #[cfg(test)]

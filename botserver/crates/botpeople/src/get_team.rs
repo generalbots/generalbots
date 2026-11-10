@@ -59,12 +59,26 @@ pub async fn add_team_member(
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     // Both ends of the membership must belong to the caller's branch.
-    let _team: Team = scoped_team(team_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-team-not-found"))?;
-    let _person: Person = scoped_person(req.person_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+    if scoped_team(team_id, branch_id)
+        .first::<Team>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-team-not-found",
+        ));
+    }
+    if scoped_person(req.person_id, branch_id)
+        .first::<Person>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -98,9 +112,16 @@ pub async fn remove_team_member(
 
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
-    let _team: Team = scoped_team(team_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-team-not-found"))?;
+    if scoped_team(team_id, branch_id)
+        .first::<Team>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-team-not-found",
+        ));
+    }
 
     diesel::delete(
         people_team_members::table
@@ -270,9 +291,16 @@ pub async fn add_person_skill(
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     // A skill may only be attached to a person of the caller's branch.
-    let _person: Person = scoped_person(person_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+    if scoped_person(person_id, branch_id)
+        .first::<Person>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -311,9 +339,16 @@ pub async fn create_time_off(
     let now = Utc::now();
 
     // A request may only be filed for a person of the caller's branch.
-    let _person: Person = scoped_person(req.person_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+    if scoped_person(req.person_id, branch_id)
+        .first::<Person>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     let start_date = NaiveDate::parse_from_str(&req.start_date, "%Y-%m-%d")
         .map_err(|_| api_error(&locale, StatusCode::BAD_REQUEST, "error-people-invalid-start-date"))?;

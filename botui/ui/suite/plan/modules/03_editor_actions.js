@@ -3,8 +3,8 @@
 (function (app) {
   "use strict";
   const {
-    APP, DEFAULT_PLAN_ID, STATUSES, PRIORITIES, $, $$, uid, today, clamp,
-    Store, View, renderKanban, renderGantt, renderList,
+    APP, DEFAULT_PLAN_ID, STATUSES, PRIORITIES, isServerPlanId, authHeaders,
+    $, $$, uid, today, clamp, Store, View, renderKanban, renderGantt, renderList,
   } = app;
 
   function openTaskEditor(task) {
@@ -86,7 +86,7 @@
     const connStatus = $("#gb-conn-status");
     window.GBCollab.connect({
       app: APP,
-      docId: DEFAULT_PLAN_ID,
+      docId: String(Store.data.id),
       collaboratorsEl: $("#collaborators"),
       onConnect: function () {
         if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
@@ -109,7 +109,45 @@
     if (window.GBAuthGuard) GBAuthGuard.injectLoginButton($("#gb-auth-button"));
   }
 
+  /* The server mints plan ids (#2136), so a fresh browser has only a local
+     draft. Create the server plan once and keep its id in the local store. */
+  let planCreation = null;
+  async function createServerPlan() {
+    try {
+      const res = await fetch("/api/plan", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ title: Store.data.title || "Meu Plano" })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.ok || !data.plan || !data.plan.id) return null;
+      Store.data.id = data.plan.id;
+      Store.notify();
+      return data.plan.id;
+    } catch (e) {
+      console.error("plan create failed", e);
+      return null;
+    }
+  }
+
+  function ensureServerPlan() {
+    if (isServerPlanId(Store.data.id)) return Promise.resolve(Store.data.id);
+    // A burst of syncs (import, bulk add) must not mint several plans.
+    if (!planCreation) {
+      planCreation = createServerPlan().then(function (id) {
+        planCreation = null;
+        return id;
+      });
+    }
+    return planCreation;
+  }
+
   function syncTaskToBackend(task, mode) {
+    if (!isServerPlanId(Store.data.id)) {
+      ensureServerPlan().then(function (id) { if (id) syncTaskToBackend(task, mode); });
+      return;
+    }
     const payload = {
       plan_id: Store.data.id,
       task_id: task.id,
@@ -123,7 +161,7 @@
     };
     fetch(mode === "create" ? "/api/plan/task" : "/api/plan/task/update", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(payload)
     }).catch(function (e) { console.error("plan task sync failed", e); });
   }
@@ -137,7 +175,7 @@
     try {
       const res = await fetch("/api/plan/ai/assist", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ instruction: instruction, context: context })
       });
       const data = await res.json();
@@ -190,8 +228,10 @@
       const text = await file.text();
       const parsed = JSON.parse(text);
       if (parsed && parsed.tasks) {
+        // An exported file may carry somebody else's plan id: never reuse it,
+        // the import starts a fresh plan owned by the current user (#2136).
         Store.data = parsed;
-        Store.data.id = Store.data.id || DEFAULT_PLAN_ID;
+        Store.data.id = DEFAULT_PLAN_ID;
         Store.notify();
         Store.data.tasks.forEach(function (t) { syncTaskToBackend(t, "create"); });
         (window.GBModal||{alert:alert}).alert("Plano importado com " + Store.data.tasks.length + " tarefa(s).");
@@ -249,6 +289,7 @@
     initViewTabs,
     initCollab,
     initAuth,
+    ensureServerPlan,
     syncTaskToBackend,
     onAiAssist,
     onExport,

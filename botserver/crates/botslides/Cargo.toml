@@ -28,5 +28,6 @@ diesel = { workspace = true, features = ["r2d2", "postgres"] }
 zip = { workspace = true }
 
 [dev-dependencies]
+tower = { workspace = true, features = ["util"] }
 hmac = { workspace = true }
 sha2 = { workspace = true }

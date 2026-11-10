@@ -8,14 +8,22 @@
 //!
 //! Ownership now comes from the verified identity
 //! (`users/{verified-user}/docs`, see [`crate::auth::DocUser`]), so nothing in
-//! this crate writes to or reads from the legacy prefix any more. The objects
-//! that are already there are **not** migrated automatically: the prefix records
-//! no owner, so assigning them to any account would hand one user's documents
-//! to another. They stay orphaned, and [`audit_legacy_namespace`] reports them
-//! once at boot so an operator can move them by hand into
-//! `users/{user-id}/docs`.
+//! this crate writes to or reads from the legacy prefix any more.
+//!
+//! What happens to the objects already there depends on whether an owner can be
+//! derived:
+//!
+//! * **Multi-user deployment** — the prefix records no owner, so assigning it to
+//!   any account would hand one user's documents to another. The objects stay
+//!   orphaned and [`audit_legacy_namespace`] reports them at boot.
+//! * **Single-user install** (`no_security`, desktop edition) — the install
+//!   owner is provably the only account that could have written them, so
+//!   [`adopt_legacy_namespace`] copies them into that owner's namespace. The
+//!   legacy objects are copied, never deleted, so nothing is lost if the guess
+//!   is wrong.
 
 use crate::state::DocState;
+use crate::storage_core::get_user_docs_path;
 
 /// The shared owner id every document used before #2135.
 ///
@@ -69,6 +77,76 @@ pub async fn audit_legacy_namespace(state: &DocState) -> usize {
             0
         }
     }
+}
+
+/// Copies the legacy objects into `owner`'s namespace.
+///
+/// Only safe for a single-user install, where `owner` is the install owner and
+/// therefore the only account that could have written the legacy objects. The
+/// source objects are left in place: an adoption that guessed wrong must be
+/// recoverable, and Drive copies server-side, so the cost is one copy per object
+/// once.
+///
+/// Returns the number of objects copied; objects already present in the
+/// destination are skipped, so repeated boots converge instead of duplicating.
+pub async fn adopt_legacy_namespace(state: &DocState, owner: &str) -> usize {
+    let prefix = legacy_docs_prefix();
+    let objects = match state
+        .drive
+        .list_objects(&state.bucket_name, Some(&prefix))
+        .await
+    {
+        Ok(objects) => objects,
+        Err(error) => {
+            log::warn!("docs: legacy namespace adoption could not list {prefix}: {error}");
+            return 0;
+        }
+    };
+
+    let mut adopted = 0;
+    for object in objects {
+        let Some(destination) = adopt_destination(owner, &object) else {
+            continue;
+        };
+        if matches!(
+            state
+                .drive
+                .object_exists(&state.bucket_name, &destination)
+                .await,
+            Ok(true)
+        ) {
+            continue;
+        }
+        match state
+            .drive
+            .copy_object(&state.bucket_name, &object, &destination)
+            .await
+        {
+            Ok(()) => adopted += 1,
+            Err(error) => log::warn!("docs: legacy object {object} could not be adopted: {error}"),
+        }
+    }
+
+    if adopted > 0 {
+        log::info!(
+            "docs: adopted {adopted} legacy object(s) into {}/ in bucket {}",
+            get_user_docs_path(owner),
+            state.bucket_name
+        );
+    }
+    adopted
+}
+
+/// Destination of a legacy object inside `owner`'s namespace.
+///
+/// `None` for an object outside the legacy prefix or for the prefix itself, so
+/// the caller never writes outside the owner's folder.
+pub fn adopt_destination(owner: &str, object: &str) -> Option<String> {
+    let name = object.strip_prefix(&legacy_docs_prefix())?;
+    if name.trim().is_empty() || name.ends_with('/') {
+        return None;
+    }
+    Some(format!("{}/{name}", get_user_docs_path(owner)))
 }
 
 #[cfg(test)]

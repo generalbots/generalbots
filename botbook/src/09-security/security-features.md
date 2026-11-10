@@ -41,10 +41,71 @@ the HMAC in constant time, requires an `exp` and honours `nbf` with a 60-second
 leeway. Zitadel `id_token`s are RS256 and are a different credential: the
 server's request authenticator does not verify them through a JWKS yet (see the
 allowlist in [Multi-Tenant Data Isolation](./multi-tenant-isolation.md#one-verifier-for-the-whole-tree)).
+
+The signing secret itself also has exactly one resolver (#2140):
+`botsecurity_core::verified_jwt::resolve_saas_jwt_secret`, implemented in
+`botsecurity_core/src/jwt_secret.rs`. It reads the persisted `saas_jwt_secret`
+from `directory_config.json`, then `SAAS_JWT_SECRET`, then `JWT_SECRET`; a
+sample-config placeholder counts as "not configured". When nothing usable is
+configured the resolver generates a 48-character random secret and persists it
+atomically, so the minter and every verifier (login, SSO, settings/2FA, Vibe
+domain auth, API catalog, docs/slides, email, browser policy) resolve the same
+value. The public constant
+`dev-secret-key-change-in-production-minimum-32-chars` is returned only by a
+debug build with `GB_ALLOW_DEV_JWT_SECRET=1`; a release build never returns it,
+and when a production deployment (`BOTSERVER_ENV=production`) cannot persist the
+generated secret the resolver fails closed and the server refuses to start.
+`scripts/check_jwt_secret.py` fails CI when a second resolver, a local
+`*saas_jwt_secret` helper, a direct env/config read or a placeholder literal
+reappears in production code.
+
 Refresh tokens consist of secure random 256-bit values for session renewal.
 Session tokens use UUID v4 format with cache storage for fast validation. Token
 rotation happens automatically when tokens approach expiry, ensuring continuous
 secure access without user interruption.
+
+
+### OAuth Login Flow (#2130)
+
+The OAuth authorization-code flow (`botcoreoauth`) treats everything that
+travels through the user agent as untrusted:
+
+- **Signed `state`.** The parameter is
+  `v1.<base64url(payload)>.<base64url(HMAC-SHA256)>`, keyed by a server secret
+  (`OAUTH_STATE_SECRET`, else the Vault entries `gbo/oauth-state` → `gbo/jwt`,
+  else an ephemeral per-process key that is logged as a warning). The MAC is
+  compared in constant time (`botsecurity_core::constant_time`) **before** any
+  field is read, so a forged or tampered state is rejected — a valid payload
+  with an attacker's `user_id`/`redirect_after` never reaches the identity code.
+  Tokens live 10 minutes and a token dated in the future (beyond 60 s of skew)
+  is refused rather than trusted.
+- **Browser binding.** Starting a flow sets `gb_oauth_nonce` (HttpOnly,
+  Secure, `SameSite=Lax`, 10 minutes, `Path=/auth/oauth` for login and
+  `/api/oauth` for Settings linking) and registers the same nonce in
+  `botcoreoauth::nonce_store`. The callback must present the cookie *and* the
+  nonce must still be pending; it is removed on first use, so a replayed
+  callback URL fails. This closes login CSRF: a callback URL that was not
+  issued to the browser opening it is refused with 403. `SameSite=Lax` (not
+  `Strict`) is deliberate — the provider returns with a cross-site top-level
+  `GET`, and `Strict` would withhold the cookie on exactly that request.
+  `SameSite=None` is never needed because nothing here is an embedded
+  cross-site request.
+- **Redirect allowlist.** `redirect_after` accepts only relative paths
+  (`/settings`) or an absolute `http(s)` URL whose `host[:port]` is in the
+  allowlist (the deployment's `base_url` plus `OAUTH_REDIRECT_ALLOWED_HOSTS`).
+  `//host`, `/\host`, `javascript:`, `data:`, credentials in the authority,
+  control characters and over-long values collapse to `/`. It is validated at
+  issuance and again before the `Location` header is written.
+- **Cookies.** The session cookie minted on success is
+  `session=…; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`; the Vibe
+  domain-auth cookie carries the same `Secure` flag. Because the start request
+  and the provider's `redirect_uri` must share a host for the nonce cookie to
+  come back, keep both on the same origin — the default `redirect_uri` derives
+  from the same base URL, so only a hand-edited Vault override can break this.
+
+Tests: `botcoreoauth/src/{state,redirect,cookies}_tests.rs` cover forged and
+tampered state, another browser's nonce, replay, expiry, the redirect bypass
+matrix and the cookie flags.
 
 
 ### Multi-Factor Authentication
@@ -77,9 +138,56 @@ Encryption in transit protects data during transmission. All external communicat
 
 Rate limiting through Caddy protects against abuse. Per-IP limits default to 100 requests per minute. Per-user limits default to 1000 requests per hour. These limits are configured in the Caddyfile and can be adjusted for specific deployment requirements.
 
-CORS is fail-closed (#2129). The API reads its allowlist from the `cors-allowed-origins` configuration value (comma-separated exact origins) and every builder in `botsecurity-core` shares one rule: with no origin configured the response carries **no** `Access-Control-Allow-Origin`, so browsers treat the API as same-origin only. A configured origin is echoed exactly, and `Access-Control-Allow-Credentials: true` is announced only for an origin on that list — never for a caller-supplied origin that merely looks like one. A `*` entry in the configuration is ignored (it can never widen a credentialed allowlist); deployments must list their origins. The only escape hatch is `CORS_ALLOW_ANY_ORIGIN=1`, a development switch that is off unless explicitly set, accepts only format-valid `http(s)` origins and always refuses credentials. HTTP methods are explicitly allowed rather than using wildcards.
+CORS is fail-closed (#2129). The API reads its allowlist from the `cors-allowed-origins` configuration value (comma-separated exact origins) and every builder in `botsecurity-core` shares one rule: with no origin configured the response carries **no** `Access-Control-Allow-Origin`, so browsers treat the API as same-origin only. A configured origin is echoed exactly, and `Access-Control-Allow-Credentials: true` is announced only for an origin on that list — never for a caller-supplied origin that merely looks like one. A `*` entry in the configuration is ignored (it can never widen a credentialed allowlist); deployments must list their origins. The only escape hatch is `CORS_ALLOW_ANY_ORIGIN=1`, a development switch that is off unless explicitly set, is ignored when `BOTSERVER_ENV=production`, accepts only format-valid `http(s)` origins and always refuses credentials. HTTP methods are explicitly allowed rather than using wildcards.
 
 Input validation protects against injection attacks. Schema validation applies to all inputs before processing. SQL injection prevention uses PostgreSQL prepared statements exclusively. XSS protection applies output encoding to all user-generated content. Path traversal prevention validates all file paths against allowed directories.
+
+### SSRF guard for caller-supplied URLs (#2131)
+
+Any URL that arrives from a bot script, an LLM tool call or an API request is
+fetched through one function — `botsecurity_core::validation::fetch_user_url`.
+It is the only path allowed to make such a request, and it enforces, in order:
+
+* **URL shape** — `http`/`https` only, no userinfo (`user:pass@`), no
+  control-plane ports (SSH, PostgreSQL, Valkey, Vault, MinIO, Docker, kubelet,
+  …), no single-label host, and no obfuscated IPv4 (`2130706433`,
+  `0x7f000001`, `127.1`, `0177.0.0.1`). The `url` crate normalises those forms
+  to dotted-decimal, so the address classifier sees them.
+* **Address class** — loopback, RFC1918, link-local (including the
+  `169.254.169.254` metadata endpoint), CGNAT `100.64.0.0/10`, multicast,
+  reserved `240.0.0.0/4`, IPv6 ULA/link-local and IPv4-mapped IPv6 are all
+  refused. `is_blocked_address` is the single classifier.
+* **Resolution** — the host is resolved and **every** answer must be global; a
+  resolver that returns one public and one private address is refused.
+* **Redirects** — the HTTP client has redirects disabled, so each `Location`
+  hop is fetched by the guard and re-validated (`validate_redirect_target`).
+  A public URL that 302s to `127.0.0.1` is stopped before the second request.
+* **Post-connect pinning** — after connecting, the peer address
+  (`Response::remote_addr`) is checked again, which closes the DNS-rebinding
+  window between resolution and connection.
+* **Limits** — one wall-clock budget and a body cap per policy; the body is
+  read in chunks and truncated (or refused, for media) at the cap.
+
+Rejections return a generic message (`the requested URL cannot be fetched
+(blocked-address)`); the host/address detail goes to `log::warn!` only, so a
+caller never learns what internal service exists.
+
+Server-built URLs for the platform's own services go through
+`fetch_internal_service_url`, which accepts only the hosts in
+`ssrf_allowlist::INTERNAL_SERVICES` (Vault, MinIO, Valkey, Zitadel, BotModels,
+the local LLM, …). The list is a *host* allowlist, not a bypass: scheme,
+credentials and redirects are still validated on every hop, and a
+caller-supplied URL must never use that path.
+
+Wired sites include computer-use page fetch, `RSS`/`SCRAPE*`, `GET <url>`,
+`DOWNLOAD <url>`, `SYNCHRONIZE`, document import (`source_url`), speech/barcode
+/OCR/vision media downloads, multimedia `download_media`, the KB web crawler
+(every discovered link), hearing attachments and the in-app browser proxy.
+
+`scripts/check_ssrf.py` lists every outbound fetch site under `botserver/` and
+fails when a variable URL is fetched without the guard. Sites whose host comes
+from a constant or from server-side configuration are recorded in
+`scripts/ssrf_allowlist.txt` with the reason; the list is shrink-only.
 
 ### WebSocket Security
 
@@ -109,6 +217,35 @@ PostgreSQL security features provide comprehensive database protection. Row-leve
 Drive configuration provides secure object storage. Bucket encryption uses AES-256 for all stored objects. Policy-based access control restricts file access. Versioning enables recovery from accidental changes. Immutable objects support prevents tampering. TLS encryption protects data in transit.
 
 Local storage follows security best practices. Directory permissions are set to 700 for restricted access. File permissions are set to 600 for owner-only access. Temporary files undergo secure deletion to prevent data leakage.
+
+#### Upload validation (#2132)
+
+Every upload entry point — Drive (`/api/files/write`, `/api/files/upload-binary`), the
+conversation attachments, knowledge-base ingestion, the document/spreadsheet/slides/
+project importers, compliance evidence, video media and calendar import — calls the
+same policy in `botsecurity_core::upload_policy::validate_upload` before it persists
+anything. The policy applies, in order:
+
+1. a per-endpoint size cap (`UploadClass`), with `Content-Length` refused before the
+   body is buffered and raw bodies read through a capped `to_bytes`;
+2. filename sanitization — last path component only, control characters and quotes
+   stripped, leading dot and over-long names refused;
+3. a per-endpoint extension allowlist, so the *last* extension decides and
+   `a.png.html` is refused;
+4. agreement between the declared `Content-Type`, the extension and the magic bytes
+   (OOXML/ODF are zip containers, legacy Office is OLE2, text families interchange);
+5. executable and script extensions (`.exe`, `.dll`, `.so`, `.sh`, `.php`, `.jsp`, …)
+   are blocked on every surface; `.html`/`.svg` are accepted only where the endpoint
+   asks for them (the document importer, and Drive, which serves them back as an
+   opaque attachment with `X-Content-Type-Options: nosniff`);
+6. zip containers are opened and refused when they exceed 4096 entries, declare more
+   than 1 GiB decompressed, or carry an entry name that escapes the archive.
+
+Rejections answer `400`/`413` with a stable `code` (`error-file-*`) and a message
+translated for the request locale; the internal reason is only logged. The gate
+`scripts/check_upload_validation.py` fails CI when an upload handler does not call the
+validator, with a shrink-only allowlist for handlers that parse text bodies instead of
+storing files.
 
 ### Memory Protection
 
@@ -177,9 +314,11 @@ reported.
 | Gate | Command | Fails on |
 |---|---|---|
 | JWT hardening (#2125) | `python3 scripts/check_jwt_hardening.py --check` | `jsonwebtoken::dangerous` / `insecure_decode`; a file that base64url-decodes a JWT payload and reads `sub`/`user_id`/`email` without calling the shared verifier |
+| Single JWT secret (#2140) | `python3 scripts/check_jwt_secret.py --check` | a second `resolve_saas_jwt_secret` or local `*saas_jwt_secret` helper; a direct `SAAS_JWT_SECRET`/`JWT_SECRET`/config-key read outside the canonical module; a placeholder secret literal in production code; a consumer crate that stopped calling the shared resolver |
 | Container runtime (#2126) | `python3 scripts/check_container_runtime.py --check` | spawning `lxc`/`lxd`/`lxc-execute` (even through `SafeCommand`), or `incus` through a raw `Command::new` instead of `SafeCommand` |
 | Security directives (IMP-07/IMP-08) | `python3 scripts/check_security_directives.py` | a state-changing handler reachable without the CSRF layer and without an entry in `scripts/security_directives_exemptions.toml`; a missing general/auth/API rate limiter or the WebSocket message limiter |
 | Security headers (IMP-09) | `python3 scripts/check_security_headers.py --check` | an `axum::serve` without the header layer, a `configure_*_router` factory that stopped applying it, an API stack no longer layered outermost, a missing header, or a profile that drops a required header (rules R1–R5) |
+| SSRF fetch sites (#2131) | `python3 scripts/check_ssrf.py --check` | a `client.get(variable_url)` / `reqwest::get(variable_url)` whose enclosing function does not call `fetch_user_url`/`fetch_internal_service_url` and is not in `scripts/ssrf_allowlist.txt`; a stale allowlist entry |
 
 Each gate carries a `--self-test` that proves its rules fire, so a regex that
 silently stops matching fails instead of passing everything. The ones wired into
@@ -188,7 +327,7 @@ standalone with the command above. Every allowlist and exemption list is
 shrink-only: `scripts/jwt_hardening_allowlist.txt`,
 `scripts/container_runtime_allowlist.txt`,
 `scripts/security_directives_exemptions.toml`,
-`scripts/security_headers_allowlist.txt`.
+`scripts/security_headers_allowlist.txt`, `scripts/ssrf_allowlist.txt`.
 
 `scripts/prod_readiness.py` is the aggregator: it runs the checks registered in
 `scripts/prod_readiness_gates.py` and prints one row per check with the issue

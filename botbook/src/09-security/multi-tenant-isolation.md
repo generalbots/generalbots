@@ -211,6 +211,119 @@ parameter, and the whole `/api/products/*` namespace is absent from the
 anonymous allowlist. The public storefront catalogue is the exact-path,
 GET-only `/api/catalog/products` route.
 
+### Object storage namespaces carry the verified owner (#2135)
+
+Apps that store files instead of rows scope the object key, not a SQL column.
+The Docs app (`botdocs`) used to build every key from the constant
+`default-user`, so all accounts of a bot shared `users/default-user/docs` and
+any signed-in user could list, read, edit, export and delete every other user's
+documents.
+
+Ownership now comes from the `DocUser` request extension that the host
+middleware (`botserver/src/docs/user_middleware.rs`) derives from the verified
+`AuthenticatedUser`:
+
+| Profile | Owner segment |
+|---------|---------------|
+| directory / cloud user | the verified user id (UUID) |
+| desktop-local (`no_security`) | a UUID derived from the installation (`botdocs::local_owner::install_owner_id`, same seed as the Sheet middleware; `GB_DESKTOP_LOCAL_USER_ID` overrides) |
+| anonymous, service, bot | none — the handler answers `401` |
+
+Key layout: `users/{owner}/docs/{doc-id}.html` (plus `.meta.json`, `.docx`,
+`.docx.source.json`) inside the bot bucket, so the bucket is the tenant boundary
+and the owner segment is the per-user boundary. There is no default and no
+fallback: a Docs handler takes `user: DocUser` or it does not compile.
+
+Pre-#2135 objects under `users/default-user/docs` depend on whether an owner can
+be derived. A **single-user** install (`no_security`, desktop edition) has
+exactly one possible author, so `botdocs::legacy::adopt_legacy_namespace` copies
+those objects into the install owner's folder at boot and keeps the originals as
+a backup. A **multi-user** deployment has no derivable owner — assigning the
+prefix to any account would hand one user's documents to another — so the
+objects stay orphaned and `botdocs::legacy::audit_legacy_namespace` logs their
+count at boot for an operator to move into `users/{user-id}/docs`.
+
+### Slides and Paper persist the verified owner (#2137)
+
+The office apps had the same shared-namespace defect in two shapes. Slides
+built every deck key from the constant `default-user`
+(`botslides::storage::get_current_user_id`), so all callers listed, opened,
+overwrote and deleted one collection. Paper resolved a caller from a
+client-supplied `x-session-id` header or cookie and, when there was none,
+**found or created** a shared `anonymous@local` account — every
+unauthenticated caller wrote into that one store.
+
+Both crates now take a verified owner extension from the host, exactly like
+Docs:
+
+| App | Extension | Host bridge | Key layout |
+|-----|-----------|-------------|------------|
+| Slides | `botslides::auth::SlidesUser` | `botserver/src/slides/user_middleware.rs` | `users/{owner}/presentations/{id}.json` (+ `.pptx`) |
+| Paper | `botpaper::auth::PaperUser` | `botserver/src/paper/user_middleware.rs` | `users/{owner}/papers/{current,named}/…` |
+
+Owner resolution is shared (`botserver/src/security/office_owner.rs`):
+
+| Profile | Owner segment |
+|---------|---------------|
+| directory / cloud user | the verified user id (UUID) |
+| desktop-local (`no_security`) | `local-{install-uuid}` generated once per install and persisted as `office_local_owner` in `conf/system/directory_config.json` |
+| anonymous, service, bot | none — the handler answers `401` |
+
+The extractor is the only way a handler reads the owner: a Slides or Paper
+handler takes `user: SlidesUser` / `user: PaperUser`, so a request without a
+verified identity never reaches storage. `SlidesUser::verified` /
+`PaperUser::verified` additionally refuse the legacy shared ids, so the old
+prefix can never be re-created.
+
+Behavior changes that come with it:
+
+- Paper no longer reads `x-session-id` at all; the platform middleware resolves
+  the cookie or `Authorization` credential. A forged `x-session-id` header
+  authenticates nothing.
+- `delete` verifies the object exists in the caller's own prefix and answers
+  `404` otherwise (it used to report success for any id). `get` answers `404`
+  for a document/deck that is not under the caller's prefix.
+- The stored `owner_id` is checked on every load: a deck copied into the wrong
+  prefix is not served.
+- Pre-#2137 objects (`users/default-user/presentations`,
+  `users/anonymous@local/papers`, and Paper's old per-email prefixes) are
+  **quarantined in place**: still on Drive, no longer reachable by any caller.
+  Move them into the install owner's prefix (or `legacy/`) with `mc` before
+  deleting them.
+
+Tests: `botslides/tests/owner_isolation.rs` and
+`botpaper/tests/owner_isolation.rs` cover list/load/delete isolation, the
+mismatched-owner read, the `401` on create without identity, and the verified
+owner persisted on create.
+
+### Plans are owned and the collaboration socket is authenticated (#2136)
+
+`botplan` kept every plan in one process-wide map keyed by a **client-supplied**
+id, and `GET /api/plan/:plan_id` created the plan when the id was unknown — with
+`owner_id: "anonymous"`. The REST routes sat behind the global auth middleware
+but no handler read the caller, so any signed-in user who learned an id could
+read, edit and delete that plan; `/ws/plan/:plan_id` matched the anonymous `/ws`
+allowlist and invented a guest identity when no token was present.
+
+The crate now has a single authorization module,
+`botserver/crates/botplan/src/auth.rs`:
+
+| Concern | Rule |
+|---------|------|
+| Identity | `botsecurity_core::verified_jwt::verify_saas_jwt` (HS256 pinned, constant-time HMAC, `exp`/`nbf`); opaque `gb_*` suite tokens resolve through the session cache, a malformed JWT never falls back to it |
+| Plan ids | minted by `POST /api/plan` (`Uuid::new_v4`); `GET` never creates |
+| Read / write | owner **or** member (`Plan::members`), otherwise `404` |
+| Membership | owner only, otherwise `403` |
+| Tenant | `Plan::branch_id` must equal the verified `branch_id` claim; a plan with no branch is reachable only by a branchless (suite session) caller |
+| Legacy `owner_id: "anonymous"` | owns nothing — no caller inherits it |
+| WebSocket | the upgrade is refused with `401` (`x-auth-reason`) for a missing/invalid token and `404` for a plan the caller cannot see; a revocation between handshake and subscription closes the socket with `4403` |
+
+`owner_id`, `org_id` and `branch_id` are persisted with each snapshot
+(`migrations/6.8.18-plan-ownership` projects them out of the JSONB payload into
+columns). `POST /api/plan` is the only creation path, so the client no longer
+chooses a plan id; the Plan app (`botui/ui/suite/plan/modules/`) creates the
+server plan on boot and sends the suite token on every call.
+
 ## Covered Apps
 
 The following crates are branch-scoped (all queries carry `branch_id`):

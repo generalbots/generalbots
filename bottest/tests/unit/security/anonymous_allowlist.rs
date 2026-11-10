@@ -6,7 +6,7 @@
 //! declaration list and the webhook signature gate, so a route that widens
 //! back into a prefix fails here instead of in production.
 
-use botsecurity_auth::auth_api::platform_public_routes;
+use botsecurity_auth::auth_api::{platform_private_routes, platform_public_routes, AuthConfig};
 use botwhatsapp::utils::verify_webhook_signature;
 use hmac::{Hmac, Mac};
 use http::Method;
@@ -16,9 +16,10 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Whether the production allowlist admits this exact request.
 fn is_public(method: Method, path: &str) -> bool {
-    platform_public_routes()
-        .iter()
-        .any(|route| route.matches(&method, path))
+    AuthConfig::default()
+        .with_public_routes(platform_public_routes())
+        .with_private_routes(platform_private_routes())
+        .is_public_route(&method, path)
 }
 
 #[test]
@@ -77,9 +78,9 @@ fn the_real_public_endpoints_still_work() {
     assert!(is_public(Method::POST, "/api/auth/bootstrap"));
     assert!(is_public(Method::POST, "/api/cloud/auth/login"));
     assert!(is_public(Method::POST, "/api/cloud/auth/signup"));
-    // Public catalog reads remain public; the writes above do not.
-    assert!(is_public(Method::GET, "/api/products/items"));
+    // Public catalog reads remain public; the products API does not (#2128).
     assert!(is_public(Method::GET, "/api/catalog/products"));
+    assert!(!is_public(Method::GET, "/api/products/items"));
     // Provider webhooks must be admitted so the handler can verify them.
     assert!(is_public(Method::POST, "/api/whatsapp/webhook"));
     assert!(is_public(Method::POST, "/api/msteams/messages"));
@@ -89,6 +90,16 @@ fn the_real_public_endpoints_still_work() {
     assert!(is_public(Method::GET, "/suite/desktop.html"));
     assert!(is_public(Method::GET, "/suite/sheet/sheet.js"));
     assert!(!is_public(Method::GET, "/suite/dashboards"));
+    // Chat and progress sockets are public; a sibling socket that shares the
+    // `/ws/:bot_name` shape is denied explicitly.
+    assert!(is_public(Method::GET, "/ws"));
+    assert!(is_public(Method::GET, "/ws/acme"));
+    assert!(is_public(Method::GET, "/ws/task-progress/abc"));
+    assert!(!is_public(Method::GET, "/ws/logs"));
+    assert!(!is_public(Method::GET, "/ws/sheet/abc"));
+    // Translation catalogues are public; the caller preference is not.
+    assert!(is_public(Method::GET, "/api/i18n/pt-BR"));
+    assert!(!is_public(Method::GET, "/api/i18n/preference"));
 }
 
 /// `X-Hub-Signature-256: sha256=<lowercase hex>` over the raw bytes.

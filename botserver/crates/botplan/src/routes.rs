@@ -7,7 +7,7 @@
 //! REST route below resolves the caller from the verified Bearer token.
 
 use super::*;
-use collaboration::{
+use crate::collaboration::{
     handle_get_plan_collaborators, handle_get_plan_presence, handle_get_plan_typing,
     handle_plan_websocket,
 };

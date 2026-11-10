@@ -31,7 +31,8 @@ use crate::Plan;
 pub const LEGACY_ANONYMOUS_OWNER: &str = "anonymous";
 
 /// Close codes used when a socket is refused after the upgrade (the plan
-/// disappeared or the membership was revoked between check and upgrade).
+/// disappeared, or the membership was revoked, between the handshake and the
+/// subscription). A refusal *before* the upgrade is an HTTP `401`/`404`.
 pub const PLAN_WS_CLOSE_UNAUTHORIZED: u16 = 4401;
 pub const PLAN_WS_CLOSE_FORBIDDEN: u16 = 4403;
 
@@ -227,20 +228,28 @@ fn branch_compatible(plan: &Plan, caller: &Caller) -> bool {
     }
 }
 
-/// Resolves and authorizes the collaborator of `/ws/plan/:plan_id`.
+/// Resolves the collaborator credential of `/ws/plan/:plan_id`.
 ///
 /// The query token is the only credential a browser WebSocket can send; the
 /// bearer header is accepted as well so non-browser clients can use the same
 /// session they use for REST. Both are verified exactly like REST tokens.
+pub fn caller_from_ws(
+    query_token: Option<&str>,
+    headers: &HeaderMap,
+) -> Result<Caller, PlanError> {
+    match query_token.map(str::trim).filter(|token| !token.is_empty()) {
+        Some(token) => Caller::from_token(token),
+        None => Caller::from_headers(headers),
+    }
+}
+
+/// Resolves and authorizes the collaborator of `/ws/plan/:plan_id`.
 pub fn authorize_ws(
     plan: &Plan,
     query_token: Option<&str>,
     headers: &HeaderMap,
 ) -> Result<Caller, PlanError> {
-    let caller = match query_token.map(str::trim).filter(|t| !t.is_empty()) {
-        Some(token) => Caller::from_token(token)?,
-        None => Caller::from_headers(headers)?,
-    };
+    let caller = caller_from_ws(query_token, headers)?;
     authorize(plan, &caller, Access::Read)?;
     Ok(caller)
 }

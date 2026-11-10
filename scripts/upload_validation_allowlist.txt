@@ -1,0 +1,22 @@
+# Upload-validation gate allowlist (#2132) — SHRINK-ONLY.
+#
+# Every entry is a handler the scanner sees as an upload surface (it reads a
+# whole body: `body: String`, `body: Bytes` or `body: axum::body::Body`) but
+# which does not store a file. Removing the entry is required as soon as the
+# handler validates or disappears — the gate fails on a stale entry.
+#
+# Format:  <repo-relative path>::<function> | <why it is not a file upload>
+#
+# Adding a line here is a security decision: only bodies that are parsed into
+# rows/messages (never written as a file, never served back) belong here.
+
+botserver/crates/botanalytics/src/goals/list_objectives.rs::create_objective | JSON objective payload parsed into a struct
+botserver/crates/botconsent/src/api.rs::resolve_consent | JSON consent decision parsed into a struct
+botserver/crates/botsettings/src/settings_api/html_escape.rs::notif_prefs_put | form-encoded notification preferences
+botserver/crates/bottemplates/src/handlers.rs::deploy_template | JSON deploy options (template source comes from the repo)
+botserver/crates/bottickets/src/get_bot_context.rs::create_ticket | JSON ticket payload parsed into a struct
+botserver/crates/botinstagram/src/webhook.rs::handle_webhook | provider webhook envelope (signature-verified)
+botserver/crates/botmsteams/src/webhook.rs::handle_incoming | provider webhook envelope (signature-verified)
+botserver/crates/bottelegram/src/webhook.rs::handle_webhook | provider webhook envelope (secret-token verified)
+botserver/crates/bottelegram/src/webhook.rs::handle_webhook_for_bot | provider webhook envelope (secret-token verified)
+botserver/crates/botwhatsapp/src/webhooks.rs::handle_webhook | provider webhook envelope (signature-verified)

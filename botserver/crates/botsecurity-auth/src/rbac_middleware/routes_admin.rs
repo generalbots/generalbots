@@ -191,6 +191,15 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ops/**", "GET", ""),
         RoutePermission::new("/api/ops/**", "POST", ""),
 
+        // Peer-network control surface (#2141). `enable`/`disable` used to be
+        // anonymous, so they were never in the registry; now that they require
+        // a normal session, default-deny would answer 403 for everyone. Only an
+        // administrator may flip the node (the handler re-checks the same rule).
+        RoutePermission::new("/api/peer/enable", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        RoutePermission::new("/api/peer/disable", "POST", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
         // AI / Speech / Services / Activity
         RoutePermission::new("/api/ai/**", "GET", ""),
         RoutePermission::new("/api/ai/**", "POST", ""),

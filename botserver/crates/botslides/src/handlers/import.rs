@@ -31,10 +31,19 @@ fn stable_source_id(bucket: &str, path: &str) -> String {
 pub async fn handle_import_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
     user: SlidesUser,
+    headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) =
+        upload_policy::check_declared_length(UploadClass::PresentationImport, &headers)
+    {
+        return Err(upload_policy::rejection_json(&error, &headers));
+    }
+
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut filename = "import.pptx".to_string();
+    let mut content_type = String::new();
     let mut source_bucket = String::new();
     let mut source_path = String::new();
 
@@ -42,6 +51,7 @@ pub async fn handle_import_presentation<D: DriveOps>(
         match field.name() {
             Some("file") => {
                 filename = field.file_name().unwrap_or("import.pptx").to_string();
+                content_type = field.content_type().map(str::to_string).unwrap_or_default();
                 if let Ok(bytes) = field.bytes().await {
                     file_bytes = Some(bytes.to_vec());
                 }

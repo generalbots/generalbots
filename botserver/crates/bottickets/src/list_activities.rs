@@ -77,9 +77,12 @@ pub async fn add_activity(
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     // 404 before any write: a ticket from another branch is not addressable.
-    let _ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(ticket_id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     let now = Utc::now();
     let id = Uuid::new_v4();

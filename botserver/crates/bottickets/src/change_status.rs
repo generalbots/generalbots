@@ -14,9 +14,12 @@ pub async fn change_status(
     let now = Utc::now();
 
     // 404 before any write: a ticket from another branch is not addressable.
-    let _existing: SupportTicket = scoped_ticket(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     diesel::update(scoped_ticket(id, branch_id))
         .set((
@@ -87,9 +90,12 @@ pub async fn reopen_ticket(
     let now = Utc::now();
 
     // 404 before any write: a ticket from another branch is not addressable.
-    let _existing: SupportTicket = scoped_ticket(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     diesel::update(scoped_ticket(id, branch_id))
         .set((
@@ -187,9 +193,12 @@ pub async fn list_comments(
 
     let branch_id = tenant_branch(&state, &headers, &mut conn);
 
-    let _ticket: SupportTicket = scoped_ticket(ticket_id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(ticket_id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     let comments: Vec<TicketComment> = ticket_comments::table
         .filter(ticket_comments::ticket_id.eq(ticket_id))

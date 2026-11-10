@@ -5,7 +5,7 @@
 //! ones the issue calls out — forged state, tampered state, another browser,
 //! replay and expiry.
 
-use crate::binding::{consume_bound_nonce, BindingError};
+use crate::binding::{consume_bound_nonce, consume_bound_user_nonce, BindingError};
 use crate::nonce_store;
 use crate::state::{generate_nonce, now_secs, OAuthState, StateError, StateSigner, STATE_TTL_SECS};
 use crate::OAuthProvider;
@@ -224,16 +224,16 @@ fn an_expired_nonce_is_refused() {
     let nonce = generate_nonce();
     let now = now_secs();
     nonce_store::issue(&nonce, now - STATE_TTL_SECS - 1);
-    assert!(!nonce_store::consume(&nonce, now));
+    assert!(nonce_store::consume(&nonce, now).is_none());
     assert!(!nonce_store::is_pending(&nonce, now));
 }
 
 #[test]
 fn an_empty_nonce_never_matches() {
-    assert!(!nonce_store::consume("", now_secs()));
+    assert!(nonce_store::consume("", now_secs()).is_none());
     assert!(!nonce_store::is_pending("", now_secs()));
     nonce_store::issue("", now_secs());
-    assert!(!nonce_store::consume("", now_secs()));
+    assert!(nonce_store::consume("", now_secs()).is_none());
 }
 
 #[test]
@@ -247,4 +247,30 @@ fn issuing_prunes_expired_entries() {
     // reaches its own expiry.
     assert!(!nonce_store::is_pending(&stale, now));
     assert!(nonce_store::is_pending(&fresh, now));
+}
+
+#[test]
+fn a_link_nonce_remembers_the_authenticated_user() {
+    let state = state();
+    let user_id = "7f3d9d1c-0000-4000-8000-000000000001";
+    nonce_store::issue_for_user(&state.nonce, Some(user_id), now_secs());
+
+    let bound = consume_bound_user_nonce(&headers_with_nonce(&state.nonce), &state.nonce)
+        .expect("bound nonce must be accepted");
+    assert_eq!(bound.as_deref(), Some(user_id));
+
+    // Single use applies to the user-bound variant as well.
+    assert_eq!(
+        consume_bound_user_nonce(&headers_with_nonce(&state.nonce), &state.nonce),
+        Err(BindingError::Replay)
+    );
+}
+
+#[test]
+fn a_login_nonce_carries_no_user() {
+    let state = state();
+    nonce_store::issue(&state.nonce, now_secs());
+    let bound = consume_bound_user_nonce(&headers_with_nonce(&state.nonce), &state.nonce)
+        .expect("login nonce must be accepted");
+    assert_eq!(bound, None);
 }

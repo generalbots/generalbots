@@ -133,10 +133,9 @@ pub(super) async fn merge_office_sub_routes(
         // #2135 — every Docs handler derives its namespace from the verified
         // owner, so the router gets the middleware that turns the platform
         // principal into a `DocUser`. The per-install id used by the
-        // single-user desktop profile is resolved once here (it is persisted,
-        // never per request).
+        // single-user desktop profile is derived once here, not per request.
         let docs_local_owner: Arc<str> =
-            Arc::from(crate::docs::install_owner::docs_local_owner_id());
+            Arc::from(botdocs::local_owner::install_owner_id());
         let docs_state = Arc::new(botdocs::state::DocState {
             pool: Arc::new(app_state.conn.clone()),
             drive: app_state
@@ -147,12 +146,26 @@ pub(super) async fn merge_office_sub_routes(
             history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         });
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace
-        // every account shared. No owner can be derived from that prefix, so
-        // they stay orphaned and are reported once instead of being handed to a
-        // guess.
-        let audit_state = docs_state.clone();
+        // every account shared. On a single-user install the install owner is
+        // provably the only account that wrote them, so they are copied into its
+        // namespace (sources kept). A multi-user deployment has no derivable
+        // owner, so the objects stay orphaned and are reported once.
+        let no_security = botcore::product::ProductConfig::load()
+            .map(|product| product.no_security)
+            .unwrap_or_else(|_| {
+                botcore::product::PRODUCT_CONFIG
+                    .read()
+                    .map(|product| product.no_security)
+                    .unwrap_or(false)
+            });
+        let install_owner = docs_local_owner.to_string();
+        let legacy_state = docs_state.clone();
         tokio::spawn(async move {
-            botdocs::legacy::audit_legacy_namespace(&audit_state).await;
+            if no_security {
+                botdocs::legacy::adopt_legacy_namespace(&legacy_state, &install_owner).await;
+            } else {
+                botdocs::legacy::audit_legacy_namespace(&legacy_state).await;
+            }
         });
         *sub_router = sub_router.clone().merge(
             crate::docs::configure_docs_routes()

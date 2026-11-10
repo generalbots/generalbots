@@ -230,6 +230,26 @@ jobs:
           python3 scripts/check_jwt_hardening.py --check
           python3 scripts/check_jwt_hardening.py --self-test
 
+      # #2131 — every server-side fetch of a caller-supplied URL must go
+      # through botsecurity_core::validation::fetch_user_url. The gate lists
+      # each fetch site, fails on an unguarded variable URL and treats the
+      # allowlist as shrink-only.
+      - name: SSRF fetch-site guard (#2131)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_ssrf.py --check
+          python3 scripts/check_ssrf.py --self-test
+
+      # #2140 — exactly one SaaS JWT secret resolver, no public fallback in
+      # production code, and every consumer (routes, settings, Vibe) calls the
+      # shared one. A second copy is how a forgeable token got accepted.
+      - name: Single JWT secret resolver (#2140)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_jwt_secret.py --check
+          python3 scripts/check_jwt_secret.py --self-test
+          python3 scripts/gate_selftests.py --gate jwt-secret
+
       # IMP-09 — the six security headers must reach every response of every
       # server, including error and static-file responses. The gate fails when
       # an `axum::serve` is mounted without the shared layer, when a
@@ -277,6 +297,15 @@ jobs:
           set -euo pipefail
           python3 scripts/check_container_runtime.py --self-test
           python3 scripts/check_container_runtime.py --check
+
+      # #2132 — every upload entry point (Multipart or raw body) must call the
+      # shared magic-byte/extension/size validator before persisting anything.
+      # The allowlist is shrink-only: a stale entry fails the gate.
+      - name: "Guard: upload validation on every upload handler (#2132)"
+        run: |
+          set -euo pipefail
+          python3 scripts/check_upload_validation.py --self-test
+          python3 scripts/check_upload_validation.py --check
 
   reindex:
     name: Verify the committed BotBook
@@ -986,11 +1015,18 @@ jobs:
           - botlog
           - botbasic_types
           - botproducts
+          - botsecurity-auth
           - botdocs
           - botslides
           - botsheet
           - botdrive
           - botchannels
+          # Inbound channel webhooks: each crate owns the unit tests for its
+          # authenticity gate (#2113, #2142), so the gate must actually run them.
+          - botwhatsapp
+          - botmsteams
+          - bottelegram
+          - botinstagram
           - botagent
           - botsources
           - botintegrations

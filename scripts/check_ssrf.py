@@ -180,6 +180,11 @@ def scan_text(relative: str, text: str) -> list[Site]:
     lines = text.splitlines()
     for match in FETCH_CALL.finditer(text):
         line_no = text.count("\n", 0, match.start()) + 1
+        line_start = text.rfind("\n", 0, match.start()) + 1
+        line_prefix = text[line_start : match.start()].lstrip()
+        if line_prefix.startswith("//") or line_prefix.startswith("*"):
+            # Doc comments that mention `client.get()` are not fetch sites.
+            continue
         open_paren = text.index("(", match.start())
         argument = call_argument(text, open_paren)
         name, start, end = enclosing_function(lines, line_no - 1)

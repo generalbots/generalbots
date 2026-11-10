@@ -127,7 +127,7 @@ pub async fn upload_file(
     // #2132 — the declared type and the bytes must agree with the name before
     // anything leaves for the provider.
     let declared = body.mime_type.as_deref().unwrap_or_default();
-    let upload = upload_policy::validate_upload(UploadClass::Drive, &body.name, declared, &content)
+    let validated = upload_policy::validate_upload(UploadClass::Drive, &body.name, declared, &content)
         .map_err(|error| {
             log::warn!("external drive upload refused: {}", error.log_detail());
             upload_policy::rejection_json(&error, &headers)
@@ -157,8 +157,8 @@ pub async fn upload_file(
     let request = UploadRequest {
         provider,
         path: body.path.unwrap_or_default(),
-        name: upload.filename,
-        mime_type: upload.mime,
+        name: validated.filename,
+        mime_type: validated.mime,
         content,
         replace_remote_id: body.replace_remote_id,
         parent_id: body.folder_id,

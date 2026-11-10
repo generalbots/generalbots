@@ -203,22 +203,24 @@ fn normalise_host(host: &str) -> String {
 
 /// Rejects hosts written as a number the URL parser might normalise to a
 /// loopback address (`2130706433`, `0x7f000001`, `127.1`, `017700000001`).
+///
+/// Only bare numeric and `0x`-prefixed hosts are treated as encoded addresses;
+/// a normal domain that happens to use only hex letters and digits
+/// (`face2face.com`) is left to DNS.
 fn looks_like_obfuscated_ipv4(host: &str) -> bool {
     let host = host.trim_matches(|c| c == '[' || c == ']');
     if host.is_empty() {
         return false;
     }
-    let mut has_digit = false;
-    for ch in host.chars() {
-        match ch {
-            '0'..='9' => has_digit = true,
-            'x' | 'X' | 'a'..='f' | 'A'..='F' | '.' => {}
-            _ => return false,
-        }
+    if let Some(rest) = host.strip_prefix("0x").or_else(|| host.strip_prefix("0X")) {
+        return !rest.is_empty()
+            && rest
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() || c == '.');
     }
-    // A plain dotted-decimal literal is handled by `IpAddr::parse`; anything
-    // numeric that does not parse is an encoded address and is refused.
-    has_digit && host.parse::<IpAddr>().is_err()
+    host.chars().all(|c| c.is_ascii_digit() || c == '.')
+        && host.chars().any(|c| c.is_ascii_digit())
+        && host.parse::<IpAddr>().is_err()
 }
 
 /// Full synchronous policy check. Returns the parsed URL so callers do not

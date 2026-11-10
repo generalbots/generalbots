@@ -100,6 +100,7 @@ fn private_and_special_ranges_are_refused() {
 fn encoded_and_short_ipv4_forms_are_refused() {
     // The `url` crate normalises decimal/hex/short forms into dotted-decimal,
     // so these must be refused by the address check or the obfuscation check.
+    // Whatever the parser decides, the guard must not let them through.
     for target in [
         "http://0x7f000001/",
         "http://2130706433/",
@@ -107,15 +108,19 @@ fn encoded_and_short_ipv4_forms_are_refused() {
         "http://127.1/",
         "http://0177.0.0.1/",
     ] {
-        let kind = reject(target);
+        let err = validate_url_ssrf_strict(target)
+            .err()
+            .unwrap_or_else(|| panic!("{target} must be refused"));
         assert!(
             matches!(
-                kind,
+                err.kind(),
                 SsrfErrorKind::BlockedAddress
                     | SsrfErrorKind::ObfuscatedAddress
                     | SsrfErrorKind::BlockedHost
+                    | SsrfErrorKind::MissingHost
             ),
-            "{target} refused as {kind:?}"
+            "{target} refused as {:?}",
+            err.kind()
         );
     }
 }
@@ -170,6 +175,9 @@ fn a_public_url_is_allowed() {
         "https://sub.example.co.uk/a/b",
         "https://8.8.8.8/",
         "https://[2606:4700:4700::1111]/",
+        // Hex-letter domains must not be mistaken for encoded addresses.
+        "https://face2face.com/",
+        "https://abc123.com/",
     ] {
         let parsed = validate_url_ssrf_strict(target).unwrap_or_else(|err| {
             panic!("{target} must be allowed: {}", err.detail());

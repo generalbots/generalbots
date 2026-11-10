@@ -346,6 +346,40 @@ header happens to be non-empty.
 loopback from the real `Host` header only, so a forwarded-host override cannot
 open it.
 
+### CSRF Signing Secret (#2141)
+
+The double-submit CSRF cookie is only as strong as the HMAC secret behind it.
+There is **no built-in default**: a public constant would let anyone who has
+read the repository mint a valid `csrf_token`/`X-CSRF-Token` pair.
+
+Resolution order, evaluated once at boot (`botsecurity-auth/src/csrf/secret.rs`):
+
+| Source | When | Result |
+|--------|------|--------|
+| `CSRF_SECRET` environment variable | first choice | used if ≥ 32 bytes |
+| Vault `secret/gbo/system/security` → `csrf_secret` | when the env var is absent | used if ≥ 32 bytes |
+| ephemeral random (32 bytes) | development only (`BOTSERVER_ENV` not `production`/`prod`) | tokens die on restart |
+| — | production without env/Vault | **botserver refuses to start** |
+
+A configured secret shorter than 32 bytes is also fatal: silently degrading to a
+weaker key would be a downgrade attack.
+
+```bash
+# Vault (canonical for a deployed node)
+vault kv put secret/gbo/system/security csrf_secret="$(openssl rand -base64 48)"
+
+# or the service environment
+CSRF_SECRET="$(openssl rand -base64 48)"
+sudo systemctl restart botserver
+```
+
+**Rotation:** the secret is read once at boot, so a restart is the rotation
+boundary — every token minted before it stops validating. In a multi-instance
+deployment every instance must run the same new secret before the old ones are
+drained, otherwise a token minted by one node fails on another. Never reuse a
+retired value. The boot log reports the origin (`env`, `vault`, `ephemeral`)
+and never the value.
+
 ## Directory Service Configuration
 
 ### Auto-Configuration

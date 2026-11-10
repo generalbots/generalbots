@@ -26,11 +26,19 @@
         errorQueue = [];
 
         try {
+            // #2133 — error reports are no longer anonymous. Send the suite
+            // token when one exists; a logged-out page simply gets a 401 and
+            // keeps its errors client-side instead of writing them server-side.
+            const headers = { 'Content-Type': 'application/json' };
+            try {
+                const token = localStorage.getItem('gb-access-token') ||
+                    sessionStorage.getItem('gb-access-token') ||
+                    localStorage.getItem('management_token') || '';
+                if (token) headers.Authorization = 'Bearer ' + token;
+            } catch (e) { /* storage unavailable: report without a token */ }
             const response = await fetch(REPORT_ENDPOINT, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({ errors: errorsToReport })
             });
 

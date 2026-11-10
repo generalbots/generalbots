@@ -11,7 +11,7 @@
 //! existence.
 
 use super::*;
-use auth::{authorize, Access, Caller, PlanError};
+use crate::auth::{authorize, Access, Caller, PlanError};
 use axum::extract::Path;
 use axum::http::HeaderMap;
 

@@ -1,11 +1,14 @@
 use super::*;
 
-pub(super) async fn handle_stats_by_status(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_by_status(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("<p>Unable to load stats</p>".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let open: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -59,12 +62,15 @@ pub(super) async fn handle_stats_by_status(State(state): State<Arc<TicketsState>
 
     Html(html)
 }
-pub(super) async fn handle_stats_by_priority(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_by_priority(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("<p>Unable to load stats</p>".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let urgent: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -119,12 +125,15 @@ pub(super) async fn handle_stats_by_priority(State(state): State<Arc<TicketsStat
 
     Html(html)
 }
-pub(super) async fn handle_avg_resolution(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_avg_resolution(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("-".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let resolved_tickets: Vec<SupportTicket> = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -142,11 +151,14 @@ pub(super) async fn handle_avg_resolution(State(state): State<Arc<TicketsState>>
         None => Html("-".to_string()),
     }
 }
-pub(super) async fn handle_stats_open(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_open(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let count: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -158,11 +170,14 @@ pub(super) async fn handle_stats_open(State(state): State<Arc<TicketsState>>) ->
 
     Html(count.to_string())
 }
-pub(super) async fn handle_stats_urgent(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_urgent(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let count: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -180,11 +195,14 @@ pub(super) async fn handle_stats_urgent(State(state): State<Arc<TicketsState>>) 
 
     Html(count.to_string())
 }
-pub(super) async fn handle_stats_resolved_today(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_resolved_today(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let today = ChronoUtc::now().date_naive();
     let start_of_day = today.and_time(chrono::NaiveTime::MIN);
 
@@ -198,11 +216,14 @@ pub(super) async fn handle_stats_resolved_today(State(state): State<Arc<TicketsS
 
     Html(count.to_string())
 }
-pub(super) async fn handle_stats_ai_resolved(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_stats_ai_resolved(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let count: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))

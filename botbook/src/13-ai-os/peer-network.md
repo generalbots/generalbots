@@ -105,13 +105,14 @@ first:
 | `advertise-addr` | `GB_PEER_ADVERTISE_ADDR` | address relayed to peers (default `peer.generalbots.org`) |
 | `data-dir` | `GB_PEER_DATA_DIR` | where `node.json` and `mode.json` live |
 | `heartbeat-ttl-secs` | `GB_PEER_HEARTBEAT_TTL_SECS` | peer expiry, default 90 |
-| `token` | `GB_PEER_TOKEN` | shared bearer token for machine callers; empty disables the check |
+| `token` | `GB_PEER_TOKEN` | shared node token; **required** — with no token every `/api/peer/*` route answers 503 |
 | `signing-key` | `GB_PEER_SIGNING_KEY` | home-site signing key; empty falls back to the node id |
 
 `GET /api/peer/status` returns `config_sources`, the origin of each key
 (`env`, `vault`, `prod-file`, `mode-file`, `default`), so an operator can prove
-a node really reads Vault. Token and signing key are never printed — the boot
-log reports them as `configured` or `absent`.
+a node really reads Vault. It is not anonymous (#2141): call it with the shared
+token (`X-Peer-Token`) or an admin session. Token and signing key are never
+printed — the boot log reports them as `configured` or `absent`.
 
 ### Desktop client (#1969)
 
@@ -137,13 +138,35 @@ vault kv put secret/gbo/peer \
   signing-key="$(openssl rand -hex 32)"
 sudo systemctl restart botserver
 
-curl -s http://127.0.0.1:8080/api/peer/status | jq .config_sources
+curl -s -H "X-Peer-Token: $GB_PEER_TOKEN" \
+  http://127.0.0.1:8080/api/peer/status | jq .config_sources
 # { "enabled": "vault", "node-name": "vault", "token": "vault", ... }
 ```
 
 Nothing peer-specific belongs in the systemd unit: only `VAULT_ADDR`,
 `VAULT_TOKEN` and the CA path live there, and the values above are read from
 Vault at boot.
+
+### Authentication (required, #2141)
+
+There is no anonymous peer call. `GB_PEER_TOKEN` (or Vault `token`) is required
+for every route under `/api/peer/`:
+
+| Route | Credential |
+|-------|------------|
+| `POST /api/peer/register`, `POST /api/peer/heartbeat` | shared token |
+| `POST /api/peer/payloads`, `GET /api/peer/payloads` | shared token |
+| `GET /api/peer/home-site`, `GET /api/peer/status` | shared token or an admin session |
+| `POST /api/peer/enable`, `POST /api/peer/disable` | admin session (normal auth; not in the anonymous list) |
+
+- The token is compared in constant time and accepted as
+  `X-Peer-Token: <token>` or `Authorization: Bearer <token>`.
+- When no token is configured the machine routes fail closed with
+  `503 peer_network_unconfigured`; they never fall back to "local calls are
+  allowed". Configure a token before enabling the network.
+- `enable`/`disable` are no longer anonymous: they are ordinary admin endpoints
+  reached by the authenticated suite, so a stolen token-less request cannot stop
+  the network.
 
 ### Token rotation
 
@@ -154,7 +177,9 @@ sudo systemctl restart botserver   # configuration is resolved once, at boot
 
 Rotate `signing-key` the same way; home sites regenerated after the restart carry
 the new signature. The token is only checked on peer endpoints, so a restart is
-the entire rollout — peers never need the previous value.
+the entire rollout — peers never need the previous value. Rotate the token on
+every node that should keep talking: a peer still holding the old value gets
+`401 unauthorized` until it is updated.
 
 ## Status
 

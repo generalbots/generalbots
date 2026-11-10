@@ -9,6 +9,7 @@
     initViewTabs,
     initAuth,
     initCollab,
+    ensureServerPlan,
     wireToolbar,
     bindPlanCommentsBadge,
   } = app;
@@ -18,11 +19,16 @@
     Store.subscribe(render);
     initViewTabs();
     initAuth();
-    initCollab();
     wireToolbar();
     render();
     window.PlanStore = Store;
     window.PlanView = View;
-    bindPlanCommentsBadge();
+    // #2136: the collaboration socket only joins a plan that exists on the
+    // server and belongs to the caller, so the plan is created first.
+    ensureServerPlan().then(function (id) {
+      bindPlanCommentsBadge();
+      // Without a server plan the socket has nothing to join.
+      if (id) initCollab();
+    });
   });
 })(window.__gbPlan);

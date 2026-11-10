@@ -138,9 +138,16 @@ pub async fn update_person(
     let now = Utc::now();
 
     // 404 before any write: a person from another branch is not addressable.
-    let _existing: Person = scoped_person(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+    if scoped_person(id, branch_id)
+        .first::<Person>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     diesel::update(scoped_person(id, branch_id))
         .set(people::updated_at.eq(now))
@@ -251,9 +258,16 @@ pub async fn get_direct_reports(
 
     // The manager must exist in the caller's branch; a foreign id is 404 and
     // never reveals whether it has reports.
-    let _manager: Person = scoped_person(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+    if scoped_person(id, branch_id)
+        .first::<Person>(&mut conn)
+        .is_err()
+    {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     let reports: Vec<Person> = people::table
         .filter(people::branch_id.eq(branch_id))

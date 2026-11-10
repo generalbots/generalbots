@@ -9,6 +9,23 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
   const APP = "plan";
   const DEFAULT_PLAN_ID = "default";
   const STORAGE_KEY = "gb-plan-data";
+  /* Plan ids are minted by the server (#2136); `DEFAULT_PLAN_ID` only marks a
+     local draft that has no server plan yet. */
+  const SERVER_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isServerPlanId(id) { return SERVER_ID_RE.test(String(id || "")); }
+  function authToken() {
+    try {
+      return localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    } catch (_) { return ""; }
+  }
+  /* Every plan route requires a verified credential: the same token the rest
+     of the suite sends. */
+  function authHeaders(extra) {
+    const headers = Object.assign({ "Content-Type": "application/json" }, extra || {});
+    const token = authToken();
+    if (token) headers.Authorization = "Bearer " + token;
+    return headers;
+  }
   const STATUSES = [
     { id: "todo", label: "A Fazer", color: "#64748b" },
     { id: "inprogress", label: "Em Andamento", color: "#3b82f6" },
@@ -86,5 +103,5 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
 
   const View = { current: "kanban" };
 
-  Object.assign(app, { APP, DEFAULT_PLAN_ID, STATUSES, PRIORITIES, $, $$, el, uid, today, fmtDate, daysBetween, clamp, Store, View });
+  Object.assign(app, { APP, DEFAULT_PLAN_ID, isServerPlanId, authToken, authHeaders, STATUSES, PRIORITIES, $, $$, el, uid, today, fmtDate, daysBetween, clamp, Store, View });
 })(window.__gbPlan = window.__gbPlan || {});

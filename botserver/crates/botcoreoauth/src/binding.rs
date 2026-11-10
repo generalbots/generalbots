@@ -42,13 +42,23 @@ impl std::error::Error for BindingError {}
 /// Order matters: the cookie is compared (constant time) before the nonce is
 /// consumed, so a request without the cookie cannot burn a pending flow.
 pub fn consume_bound_nonce(headers: &HeaderMap, nonce: &str) -> Result<(), BindingError> {
+    consume_bound_user_nonce(headers, nonce).map(|_| ())
+}
+
+/// [`consume_bound_nonce`] for account linking: also returns the user id the
+/// flow was started for, so the caller can compare it with the signed state
+/// instead of trusting the state payload alone.
+pub fn consume_bound_user_nonce(
+    headers: &HeaderMap,
+    nonce: &str,
+) -> Result<Option<String>, BindingError> {
     let provided =
         cookies::cookie_value(headers, cookies::NONCE_COOKIE).ok_or(BindingError::MissingCookie)?;
     if !botsecurity_core::constant_time::eq_str(&provided, nonce) {
         return Err(BindingError::CookieMismatch);
     }
-    if !nonce_store::consume(nonce, now_secs()) {
-        return Err(BindingError::Replay);
+    match nonce_store::consume(nonce, now_secs()) {
+        Some(pending) => Ok(pending.user_id().map(|id| id.to_string())),
+        None => Err(BindingError::Replay),
     }
-    Ok(())
 }

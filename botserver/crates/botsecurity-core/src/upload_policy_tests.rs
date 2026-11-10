@@ -2,7 +2,9 @@
 //! sanitization, size caps and archive inspection.
 
 use super::*;
-use axum::http::HeaderValue;
+use axum::http::{HeaderValue, StatusCode};
+use axum::Json;
+use std::io::Cursor;
 
 const PNG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
 const PDF: &[u8] = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\n";

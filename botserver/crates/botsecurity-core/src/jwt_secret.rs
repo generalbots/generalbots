@@ -76,15 +76,6 @@ impl JwtSecretSource {
             Self::Generated => "generated",
         }
     }
-
-    /// True when the value did not come from configuration and therefore has
-    /// to be persisted before the next process can verify these tokens.
-    fn must_persist(self) -> bool {
-        matches!(
-            self,
-            Self::EnvSaasJwtSecret | Self::EnvJwtSecret | Self::Generated
-        )
-    }
 }
 
 /// A resolved secret plus its provenance.
@@ -250,22 +241,35 @@ where
     F: FnOnce(&str) -> Result<(), String>,
 {
     let resolved = resolve_secret(inputs, policy);
-    if !resolved.source.must_persist() {
-        return Ok(resolved);
-    }
-    match persist(&resolved.secret) {
-        Ok(()) => Ok(resolved),
-        Err(reason) => {
-            if policy.production {
-                log::error!("SaaS JWT secret could not be persisted: {reason}");
-                return Err(JwtSecretError::NotPersisted { reason });
+    match resolved.source {
+        // Already durable, or deliberately not written to disk.
+        JwtSecretSource::ConfigFile | JwtSecretSource::DevFallback => Ok(resolved),
+        // A generated secret only exists in this process' memory: without the
+        // file the next boot would generate a different one, so the minter and
+        // the verifier would disagree. Fail closed in production.
+        JwtSecretSource::Generated => match persist(&resolved.secret) {
+            Ok(()) => Ok(resolved),
+            Err(reason) => {
+                if policy.production {
+                    log::error!("SaaS JWT secret could not be persisted: {reason}");
+                    return Err(JwtSecretError::NotPersisted { reason });
+                }
+                // Development: the secret stays in memory for this process
+                // only, so tokens minted here are unverifiable after a restart.
+                log::error!(
+                    "SaaS JWT secret could not be persisted ({reason}); this process uses an \
+                     ephemeral secret and tokens will not survive a restart"
+                );
+                Ok(resolved)
             }
-            // Development: the secret stays in memory for this process only,
-            // so tokens minted here are unverifiable after a restart.
-            log::error!(
-                "SaaS JWT secret could not be persisted ({reason}); this process uses an \
-                 ephemeral secret and tokens will not survive a restart"
-            );
+        },
+        // An env-provided secret is present in every process, so parity does
+        // not depend on the file; persist best effort so a later boot without
+        // the variable keeps verifying the same tokens.
+        JwtSecretSource::EnvSaasJwtSecret | JwtSecretSource::EnvJwtSecret => {
+            if let Err(reason) = persist(&resolved.secret) {
+                log::warn!("SaaS JWT secret from the environment was not persisted: {reason}");
+            }
             Ok(resolved)
         }
     }
@@ -289,11 +293,17 @@ pub fn persisted_secret() -> Option<String> {
 /// Writes the secret into the config file atomically: a temporary file in the
 /// same directory is renamed over the target, so a crash never leaves a
 /// half-written config behind.
+///
+/// The directory is never created here: a missing `conf/system` means the stack
+/// is not provisioned, and inventing one would shadow the real config later.
+/// That case is a persist failure, which fails closed in production.
 fn persist_secret(secret: &str) -> Result<(), String> {
     let path = config_file_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("create {}: {e}", parent.display()))?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("{} has no parent directory", path.display()))?;
+    if !parent.is_dir() {
+        return Err(format!("directory {} does not exist", parent.display()));
     }
     let mut json = match std::fs::read_to_string(&path) {
         Ok(content) => serde_json::from_str::<serde_json::Value>(&content)

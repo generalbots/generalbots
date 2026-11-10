@@ -27,6 +27,23 @@ pub struct SlidesUser {
 }
 
 impl SlidesUser {
+    /// Builds an identity from a server-verified principal.
+    ///
+    /// Returns `None` for an id that must never own a namespace — empty or one
+    /// of the legacy shared owners (`default-user`) — so the caller answers
+    /// `401` instead of re-creating the shared prefix (#2137).
+    pub fn verified(id: impl Into<String>, name: impl Into<String>) -> Option<Self> {
+        let id = id.into().trim().to_string();
+        if id.is_empty() || id == "default-user" {
+            return None;
+        }
+        let name = name.into().trim().to_string();
+        Some(Self {
+            id: id.clone(),
+            name: if name.is_empty() { id } else { name },
+        })
+    }
+
     pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -103,5 +120,12 @@ mod tests {
             .await
             .expect("verified identity");
         assert_eq!(user.owner_id(), "user-a");
+    }
+
+    #[test]
+    fn legacy_shared_owner_is_never_verified() {
+        assert!(SlidesUser::verified("", "Alice").is_none());
+        assert!(SlidesUser::verified("default-user", "Anonymous").is_none());
+        assert!(SlidesUser::verified("user-a", "").is_some());
     }
 }

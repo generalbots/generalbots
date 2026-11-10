@@ -1,0 +1,90 @@
+# SSRF fetch-site allowlist (issue #2131) — pre-existing debt, shrink only.
+#
+# scripts/check_ssrf.py flags every `client.get(url)` / `reqwest::get(url)`
+# whose URL is a variable and whose enclosing function does not call
+# botsecurity_core::validation::fetch_user_url. An entry here says the site
+# is NOT caller-supplied: the host comes from a constant in the module or
+# from server-side configuration (Vault/env), so a request cannot redirect
+# it at the metadata endpoint or an internal service.
+#
+# Format: <repo-relative path> # <why this fetch cannot reach an
+# attacker-chosen host>. Entries that no longer suppress a violation are a
+# gate failure, so fixing a file forces its line to be deleted.
+
+botserver/crates/botbasic_ai/src/keywords/mcp_client/validate_stdio_command.rs # MCP server endpoint configured per bot; may legitimately be a local process
+botserver/crates/botbasic_ai/src/keywords/mcp_client/with_config.rs # MCP server endpoint configured per bot; may legitimately be a local process
+botserver/crates/botbasic_data/src/keywords/kb_statistics.rs # Qdrant URL from the KB configuration
+botserver/crates/botbasic_data/src/keywords/think_kb/get_accessible_kb_collections.rs # Qdrant URL from the KB configuration
+botserver/crates/botbasic_system/src/keywords/plugin_call.rs # plugin manifest endpoint from the installed plugin registry
+botserver/crates/botbilling/src/stripe_integration/attach_payment_method.rs # Stripe API endpoint (constant host); the secret key comes from Vault
+botserver/crates/botbilling/src/stripe_integration/create_customer.rs # Stripe API endpoint (constant host); the secret key comes from Vault
+botserver/crates/botchannels/src/discord/send_dm.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/discord/send_message.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/pinterest/delete_board.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/pinterest/get_user.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/pinterest/list_campaigns.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/reddit/get_authorization_url.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/reddit/submit_comment.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/snapchat/create_audience.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/snapchat/create_creative.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/snapchat/get_me.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/threads.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/tiktok/init_video_upload.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/tiktok/query_videos.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/twilio_sms/parse_incoming_webhook.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/twilio_sms/send_sms.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/wechat/client.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/wechat/menu.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/wechat/user.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/youtube/youtube_api/provider/get_comments.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botchannels/src/youtube/youtube_api/provider/upload_video.rs # channel provider API: host is a constant in the module; ids/tokens come from the stored channel config, never from the request URL
+botserver/crates/botconnectors/src/knowledge.rs # connector endpoint built from the stored credential config
+botserver/crates/botcontacts/src/google_client.rs # Google/Microsoft API endpoint (constant host)
+botserver/crates/botcoredirectory/src/api.rs # Zitadel directory API base URL from the service config (Vault)
+botserver/crates/botcoredirectory/src/auth_routes/resend_2fa.rs # Zitadel directory API base URL from the service config (Vault)
+botserver/crates/botcoredirectory/src/client/create_user_with_phone.rs # Zitadel directory API base URL from the service config (Vault)
+botserver/crates/botcoredirectory/src/client/sanitize_api_base.rs # Zitadel directory API base URL from the service config (Vault)
+botserver/crates/botcoredirectory/src/client/search_users_by_metadata.rs # Zitadel directory API base URL from the service config (Vault)
+botserver/crates/botcoreoauth/src/github_email.rs # OAuth provider endpoint (constant host); client credentials from Vault
+botserver/crates/botcoreoauth/src/providers.rs # OAuth provider endpoint (constant host); client credentials from Vault
+botserver/crates/botcorepkg/src/cli_secrets.rs # installer/ALM endpoint from configuration
+botserver/crates/botcorepkg/src/facade_download/download.rs # installer/ALM endpoint from configuration
+botserver/crates/botcorepkg/src/setup.rs # installer/ALM endpoint from configuration
+botserver/crates/botcore/src/kb/embedding_generator/config_read.rs # Qdrant URL from the KB configuration
+botserver/crates/botcore/src/kb/kb_indexer/delete_file_points.rs # Qdrant URL from the KB configuration
+botserver/crates/botcore/src/kb/kb_indexer/ensure_collection_exists.rs # Qdrant URL from the KB configuration
+botserver/crates/botcore/src/kb/kb_indexer/get_collection_info.rs # Qdrant URL from the KB configuration
+botserver/crates/botcore/src/kb/kb_indexer/new_with_pool.rs # Qdrant URL from the KB configuration
+botserver/crates/botcore/src/package_manager/alm_setup.rs # installer/ALM endpoint from configuration
+botserver/crates/botcore/src/package_manager/cli/rotate_all_secrets.rs # installer/ALM endpoint from configuration
+botserver/crates/botcore/src/package_manager/setup.rs # installer/ALM endpoint from configuration
+botserver/crates/botdeployment/src/forgejo/create_repository.rs # Forgejo/ALM or deploy gateway endpoint from configuration
+botserver/crates/botdeployment/src/gateway.rs # Forgejo/ALM or deploy gateway endpoint from configuration
+botserver/crates/botdomains/src/namecheap.rs # Namecheap API endpoint (constant host)
+botserver/crates/botdrive/src/s3_operations.rs # presigned S3 URL generated by the drive client itself
+botserver/crates/botllm/src/local/extract_base_url.rs # local LLM base URL from configuration
+botserver/crates/botmarketing/src/campaign/instagram.rs # Meta Graph API endpoint (constant host); token from the channel config
+botserver/crates/botmsteams/src/adapter.rs # Microsoft Graph / OpenID endpoint (constant host)
+botserver/crates/botmsteams/src/auth/jwks.rs # Microsoft Graph / OpenID endpoint (constant host)
+botserver/crates/botmultimodal/src/multimodal/speech_to_text.rs # internal BotModels health probe; base URL from server configuration
+botserver/crates/botproviders/src/digitalocean.rs # cloud provider API: base URL is a constant in the provider module
+botserver/crates/botproviders/src/oracle.rs # cloud provider API: base URL is a constant in the provider module
+botserver/crates/botqdrant/src/qdrant_native/from_url.rs # Qdrant URL from configuration
+botserver/crates/botresearch/src/web_search/handle_search_history/tinyfish.rs # search provider URL pinned to a constant host, with the query URL-encoded
+botserver/crates/botresearch/src/web_search/handle_search_history/wikipedia.rs # search provider URL pinned to a constant host, with the query URL-encoded
+botserver/crates/botsecurity-auth/src/zitadel_auth/get_service_token.rs # Zitadel token endpoint from the service config (Vault)
+botserver/crates/botsecurity-crypto/src/ca/verify_certificate.rs # certificate status endpoint built from the configured CA URL
+botserver/crates/botsources/src/connectors/engine/create_connector.rs # M365/Graph or connector endpoint built from the stored credential config
+botserver/crates/botsources/src/connectors/engine/sync_connector.rs # M365/Graph or connector endpoint built from the stored credential config
+botserver/crates/botsources/src/outlook_handlers.rs # M365/Graph or connector endpoint built from the stored credential config
+botserver/crates/botsources/src/routes_m365.rs # M365/Graph or connector endpoint built from the stored credential config
+botserver/crates/bottimeseries/src/timeseries/write_point.rs # Timeseries datastore URL from configuration
+botserver/crates/botvibe/src/browser.rs # Vibe VM/Caddy endpoint derived from the container name or the configured template
+botserver/crates/botvibe/src/caddy.rs # Vibe VM/Caddy endpoint derived from the container name or the configured template
+botserver/crates/botvibe/src/ops.rs # Vibe VM/Caddy endpoint derived from the container name or the configured template
+botserver/crates/botvibe/src/publish/publish_entry.rs # Vibe VM/Caddy endpoint derived from the container name or the configured template
+botserver/crates/botwhatsapp/src/media.rs # Meta Graph API endpoint / media URL returned by the Graph API for the media object
+botserver/src/basic/keywords/vibe_agent.rs # internal Vibe API base URL from configuration
+botserver/src/botmodels_gateway/mod.rs # BotModels gateway upstream URL from configuration
+botserver/src/core/bot/kb_context/kb_context_search.rs # Qdrant health URL from the KB configuration
+botserver/src/jukebox/mod.rs # BotModels endpoint from configuration

@@ -76,11 +76,10 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.read("/api/catalog/products/:sku");
     routes.read("/api/catalog/plans");
     routes.read("/api/catalog/prices.json");
-    // Store catalog only: GET on the exact item routes. `POST /api/products/items`,
-    // `PUT /api/products/items/:id/stock` and `DELETE /api/products/items/:id`
-    // are writes and stay authenticated (#2128).
-    routes.read("/api/products/items");
-    routes.read("/api/products/items/:id");
+    // #2128 — `/api/products/*` is authenticated in full. The public storefront
+    // reads `/api/catalog/products` (above); the products API is the tenant
+    // catalogue and returns cost/stock, so no route under it is anonymous. A
+    // write can therefore never be reached through a former prefix.
 
     // ── Authentication entry points ─────────────────────────────────────────
     // The request carries the credential being verified; there is no session
@@ -289,6 +288,13 @@ mod tests {
         assert!(!is_public(Method::GET, "/api/auth/directory-config"));
         assert!(!is_public(Method::GET, "/api/auth/me/extra"));
         assert!(!is_public(Method::GET, "/api/products/items/x/stock"));
+        // The products namespace is authenticated in full (#2128); the public
+        // storefront reads `/api/catalog/products`.
+        assert!(!is_public(Method::GET, "/api/products/items"));
+        assert!(!is_public(
+            Method::GET,
+            "/api/products/items/00000000-0000-0000-0000-000000000000"
+        ));
         assert!(!is_public(Method::GET, "/api/sheet/list"));
         assert!(!is_public(Method::GET, "/api/ui/sheet/fragments/sheet-list"));
         assert!(!is_public(Method::GET, "/api/cloud/auth/anything"));
@@ -340,10 +346,9 @@ mod tests {
         assert!(is_public(Method::GET, "/api/whatsapp/webhook"));
         assert!(is_public(Method::POST, "/api/msteams/messages"));
         assert!(is_public(Method::POST, "/webhook/telegram/acme"));
-        // Public catalog reads stay public, writes do not.
-        assert!(is_public(Method::GET, "/api/products/items"));
-        assert!(is_public(Method::GET, "/api/products/items/abc"));
-        assert!(is_public(Method::GET, "/api/catalog/products/widget"));
+        // Public catalog reads remain public; the products API does not.
+        assert!(is_public(Method::GET, "/api/catalog/products"));
+        assert!(!is_public(Method::GET, "/api/products/items"));
         // Static UI files are public; server fragments are not.
         assert!(is_public(Method::GET, "/suite/desktop.html"));
         assert!(is_public(Method::GET, "/suite/sheet/sheet.js"));

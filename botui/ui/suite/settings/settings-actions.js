@@ -34,7 +34,18 @@
     // falls back to the local directory API so the button never dead-ends.
     window.__gbDirectoryIssuer = null;
     (function () {
-        fetch('/api/auth/directory-config')
+        // #2133 — `/api/auth/directory-config` is no longer anonymous: it
+        // exposes the identity-provider URL, so the request must carry the
+        // suite token like every other authenticated read.
+        var token = "";
+        try {
+            token = localStorage.getItem("gb-access-token") ||
+                sessionStorage.getItem("gb-access-token") ||
+                localStorage.getItem("management_token") ||
+                "";
+        } catch (e) { token = ""; }
+        var headers = token ? { Authorization: "Bearer " + token } : {};
+        fetch('/api/auth/directory-config', { headers: headers, cache: 'no-store' })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (cfg) {
                 if (cfg && cfg.issuer_url) {

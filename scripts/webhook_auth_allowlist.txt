@@ -1,0 +1,9 @@
+# Inbound webhooks that do not verify a provider signature (#2142).
+#
+# Shrink-only: an entry that no longer suppresses a violation fails the gate, so
+# this file can only get shorter. Every anonymous webhook must verify; an entry
+# here means the route is NOT anonymous and the session check is the gate.
+#
+# <route> # reason
+
+/api/sales/email/webhook # authenticated: /api/sales/** is admin-scoped in rbac routes_admin.rs (no anonymous delivery)

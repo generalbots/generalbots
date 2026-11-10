@@ -4,7 +4,7 @@ pub(crate) use diesel::prelude::*;
 pub(crate) use serde::Deserialize;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
-pub(crate) use crate::{get_bot_context, scoped_ticket, support_tickets, tenant_branch, ticket_comments, SupportTicket, TicketComment, TicketsState};
+pub(crate) use crate::{scoped_ticket, support_tickets, tenant_branch, ticket_comments, SupportTicket, TicketComment, TicketsState};
 
 #[derive(Debug, Deserialize)]
 pub struct StatusQuery {

@@ -252,6 +252,9 @@ fn authorize_control(
 
     match user {
         Some(user) if can_control(user) => Ok(()),
+        // Anonymous caller on a node with no token: report the misconfiguration
+        // (503) rather than a bare 403 — the node is closed, not just guarded.
+        Some(user) if !user.is_authenticated() && !token_configured => Err(PeerError::Unconfigured),
         Some(_) => Err(PeerError::Forbidden),
         None if token_configured => Err(PeerError::Unauthorized),
         None => Err(PeerError::Unconfigured),

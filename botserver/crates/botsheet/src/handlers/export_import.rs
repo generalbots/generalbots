@@ -180,15 +180,26 @@ pub async fn handle_print_preview(
 pub async fn handle_import_sheet(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Spreadsheet>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = resolve_user_id(user.as_deref())?;
+
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) =
+        upload_policy::check_declared_length(UploadClass::SpreadsheetImport, &headers)
+    {
+        return Err(upload_policy::rejection_json(&error, &headers));
+    }
+
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut filename = "import.xlsx".to_string();
+    let mut content_type = String::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         if field.name() == Some("file") {
             filename = field.file_name().unwrap_or("import.xlsx").to_string();
+            content_type = field.content_type().map(str::to_string).unwrap_or_default();
             if let Ok(bytes) = field.bytes().await {
                 file_bytes = Some(bytes.to_vec());
             }

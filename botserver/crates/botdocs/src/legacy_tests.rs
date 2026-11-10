@@ -29,6 +29,28 @@ fn a_verified_owner_never_resolves_into_the_legacy_prefix() {
     assert!(!path.starts_with(&legacy_docs_prefix()));
 }
 
+#[test]
+fn adopting_a_legacy_object_lands_in_the_install_namespace() {
+    let owner = "local-11111111-1111-1111-1111-111111111111";
+    assert_eq!(
+        adopt_destination(owner, "users/default-user/docs/doc-1.html").as_deref(),
+        Some("users/local-11111111-1111-1111-1111-111111111111/docs/doc-1.html")
+    );
+    assert_eq!(
+        adopt_destination(owner, "users/default-user/docs/doc-1.meta.json").as_deref(),
+        Some("users/local-11111111-1111-1111-1111-111111111111/docs/doc-1.meta.json")
+    );
+}
+
+#[test]
+fn adoption_never_escapes_the_legacy_prefix() {
+    let owner = "local-11111111-1111-1111-1111-111111111111";
+    assert!(adopt_destination(owner, "users/default-user/other/doc-1.html").is_none());
+    assert!(adopt_destination(owner, "users/22222222-2222-2222-2222-222222222222/docs/a.html").is_none());
+    assert!(adopt_destination(owner, "users/default-user/docs/").is_none());
+    assert!(adopt_destination(owner, "users/default-user/docs").is_none());
+}
+
 /// Regression guard for the actual defect: the constant owner must not come
 /// back into the crate. `legacy.rs` is the only place allowed to name it, and
 /// test modules are excluded because they assert on the literal.

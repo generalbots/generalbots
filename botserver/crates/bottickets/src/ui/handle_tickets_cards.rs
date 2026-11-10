@@ -2,13 +2,14 @@ use super::*;
 
 pub(super) async fn handle_tickets_cards(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html(render_empty_state("🎫", "No tickets", "Unable to load tickets"));
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let mut q = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -44,13 +45,14 @@ pub(super) async fn handle_tickets_cards(
 }
 pub(super) async fn handle_tickets_search(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Query(query): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html(render_empty_state("🔍", "Search error", "Unable to search tickets"));
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let search_term = query.q.unwrap_or_default();
     if search_term.is_empty() {

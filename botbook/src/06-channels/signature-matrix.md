@@ -12,25 +12,35 @@ mounted in `botserver/src/main_module/routes/feature_routers/make_saas_router.rs
 | Channel | Inbound route | Verification | Behaviour when unconfigured |
 |---|---|---|---|
 | WhatsApp Cloud API | `GET/POST /api/whatsapp/webhook` | `X-Hub-Signature-256` HMAC-SHA256 over the **raw** body | Rejects every POST (`403`) |
-| Telegram | `POST /webhook/telegram`, `POST /webhook/telegram/:bot_name` | `X-Telegram-Bot-Api-Secret-Token`, constant-time compare | Accepts unsigned deliveries |
+| Telegram | `POST /webhook/telegram`, `POST /webhook/telegram/:bot_name` | `X-Telegram-Bot-Api-Secret-Token`, constant-time compare | Rejects every POST (`503`) |
 | Microsoft Teams | `POST /api/msteams/messages` | `Authorization: Bearer` Bot Framework JWT, or `HMAC` outgoing-webhook signature | Rejects every POST (`401`) |
-| Instagram / Messenger | `GET/POST /api/instagram/webhook` | GET verify token equality only; POST has **no** HMAC | GET rejects on mismatch; POST always accepts |
+| Instagram / Messenger | `GET/POST /api/instagram/webhook` | `X-Hub-Signature-256` HMAC-SHA256 over the **raw** body (POST) + `hub.verify_token` (GET) | Rejects every POST and handshake (`503`) |
 | Stripe (billing) | `POST /api/billing/webhook` | `stripe-signature` HMAC-SHA256 with 300 s tolerance | Rejects when no webhook secret is configured |
 | Outbound settings webhooks | delivered by the server, not received | `X-Webhook-Signature` HMAC-SHA256 over the payload | — |
+
+Channels without an inbound HTTP handler: Slack and Discord are outbound only,
+Facebook declares an anonymous path but registers no handler, e-mail inbound is
+an IMAP poller, and the Twilio SMS module is a payload parser with no route.
+`scripts/check_webhook_auth.py --list` prints this enumeration from the code.
 
 ## The fails-closed rule
 
 An anonymous inbound route that answers is worse than one that does not, so the
-rule is: **an unconfigured credential rejects the delivery**. Three channels
-follow it; two predate it and are the documented exceptions.
+rule is: **an unconfigured credential rejects the delivery**. Every channel
+follows it since #2142.
 
 | Channel | Credential | Unconfigured | Status |
 |---|---|---|---|
 | WhatsApp | `whatsapp_app_secret` (Vault) / `whatsapp-app-secret` (config.csv) | every POST refused | `403` |
 | Microsoft Teams | `teams-app-id` (Bot Framework JWT) and/or `teams-security-token` (HMAC) | every POST refused when neither is set | `401` |
 | Stripe | webhook secret | every POST refused | `400` |
-| Telegram | `telegram-webhook-secret` | **accepted** — no secret is the documented default | — |
-| Instagram / Messenger | none for POST | **accepted** — POST authenticity is not verified | — |
+| Telegram | `telegram-webhook-secret` | every POST refused, one config error per bot | `503` |
+| Instagram / Messenger | `instagram-app-secret` (POST) and `instagram-verify-token` (GET) | every POST and handshake refused | `503` |
+
+The gate is executable: `scripts/check_webhook_auth.py` discovers every inbound
+route, requires its handler (or the function it delegates to) to call a verifier,
+and rejects an empty secret that returns accept. Its allowlist
+(`scripts/webhook_auth_allowlist.txt`) is shrink-only.
 
 Two details make the WhatsApp gate hard to bypass accidentally:
 
@@ -43,9 +53,11 @@ Two details make the WhatsApp gate hard to bypass accidentally:
 `Mismatch` as separate outcomes, so the log names the operator action
 (`set whatsapp_app_secret`) instead of reporting a generic signature failure.
 
-Both hardened paths are pinned by regression tests, which the readiness gate
-`security-webhooks` looks for before it reports `PASS`
-(`botwhatsapp/src/utils_tests.rs`, `botmsteams/src/auth/tests.rs` — see
+All four hardened paths are pinned by regression tests, which the readiness gates
+`security-webhooks` and `webhook-auth` look for before they report `PASS`
+(`botwhatsapp/src/utils_tests.rs`, `botmsteams/src/auth/tests.rs`,
+`bottelegram/src/webhook_gate_tests.rs`, `botinstagram/src/auth_tests.rs` — all
+four crates run in the `workspace-tests` CI matrix; see
 [Production Readiness Gate](../10-configuration-deployment/production-readiness.md)).
 
 ## WhatsApp
@@ -74,18 +86,21 @@ challenge.
 ## Telegram
 
 `verify_webhook_secret_for_bot` reads the per-bot `telegram-webhook-secret`
-configuration and compares it with the header using a constant-time comparison
-(plain `==` on strings leaks the first differing byte through timing).
+configuration and compares it with the `X-Telegram-Bot-Api-Secret-Token` header
+in constant time (`botsecurity_core::constant_time`, because `==` on strings
+leaks the first differing byte through timing).
 
 | Configured secret | Delivered header | Result |
 |---|---|---|
-| empty | anything | accepted |
+| empty (unset) | anything | `503 Service Unavailable` + one configuration error per bot |
 | set | exact match | accepted |
 | set | missing or different | `401 Unauthorized` |
 | unreadable (DB error) | — | `500` — fails closed |
 
-The comment in the source states the intent: a configuration read failure must
-not turn into an open door while the database is down.
+The gate runs before the JSON body is parsed, so an unsigned POST never reaches
+the update decoder. An unset secret is a deployment mistake, not a per-request
+event: the configuration error is logged once per bot
+(`webhook_gate::warn_unconfigured_once`) so a stranger cannot flood the log.
 
 ## Microsoft Teams
 
@@ -118,10 +133,16 @@ to the Bot Framework.
 
 - **GET** `/api/instagram/webhook` implements the Meta subscription handshake:
   `hub.mode` must be `subscribe` and `hub.verify_token` must equal the bot's
-  configured `instagram-verify-token` (default `webhook_verify`).
-- **POST** `/api/instagram/webhook` deserialises the payload and handles
-  `entry[].messaging[].message.text` only. It does **not** verify
-  `X-Hub-Signature-256`, so a forged POST is accepted.
+  configured `instagram-verify-token`. There is no default (#2142): the handler
+  used to fall back to the literal `webhook_verify`, a published secret.
+- **POST** `/api/instagram/webhook` verifies `X-Hub-Signature-256` —
+  `sha256=hex(HMAC-SHA256(instagram-app-secret, raw body))` — before parsing the
+  payload. The digest covers the raw bytes, the `sha256=` prefix is mandatory,
+  an uppercase digest is rejected, and the comparison is constant time.
+
+Both gates live in `botinstagram/src/auth.rs` and fail closed: an unconfigured
+app secret or verify token refuses the request (`503`) and logs the operator
+action once per process.
 
 Two additional limitations in the current handler:
 
@@ -161,9 +182,9 @@ are refused. That blocklist does not cover `172.16.0.0/12`, IPv4-mapped IPv6
 | Situation | Reasonable posture |
 |---|---|
 | WhatsApp in production | `whatsapp-app-secret` is mandatory: without it every POST is refused |
-| Telegram in production | Set `telegram-webhook-secret`; the default is unsigned |
+| Telegram in production | Set `telegram-webhook-secret` **and** register the same value as the Bot API `setWebhook` `secret_token`; without it every POST is refused |
 | Teams | Set `teams-app-id` (Bot Framework) or `teams-security-token` (outgoing webhook); without one every POST is refused |
-| Instagram | Keep the route behind the proxy; POST authenticity is not verified |
+| Instagram | Set `instagram-app-secret` (POST HMAC) and `instagram-verify-token` (handshake); without them every delivery and handshake is refused |
 | Any channel | The channel routes are public by design — they cannot require a user session |
 
 ## Related pages

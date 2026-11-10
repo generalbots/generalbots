@@ -153,6 +153,10 @@ mod origin_policy;
 mod set_cors_allowed_origins;
 
 #[cfg(test)]
+mod cors_policy_tests;
+#[cfg(test)]
+mod cors_test_support;
+#[cfg(test)]
 mod cors_tests;
 
 use from_config_value::*;

@@ -16,7 +16,7 @@ fn sign(claims: serde_json::Value) -> String {
     let header = b64(br#"{"alg":"HS256","typ":"JWT"}"#);
     let payload = b64(claims.to_string().as_bytes());
     let signing_input = format!("{header}.{payload}");
-    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret();
+    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret().expect("saas jwt secret");
     let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("hmac accepts any key");
     mac.update(signing_input.as_bytes());
     format!("{signing_input}.{}", b64(&mac.finalize().into_bytes()))

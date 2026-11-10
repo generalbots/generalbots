@@ -132,13 +132,14 @@ pub fn configure_tickets_ui_routes() -> Router<Arc<TicketsState>> {
 }
 pub(super) async fn handle_tickets_list(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html(render_empty_state("🎫", "No tickets", "Unable to load tickets"));
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let mut q = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -205,13 +206,14 @@ pub(super) async fn handle_tickets_list(
 }
 pub(super) async fn handle_tickets_count(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Query(query): Query<StatusQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let count: i64 = if let Some(status) = query.status {
         if status == "all" {
@@ -238,12 +240,15 @@ pub(super) async fn handle_tickets_count(
 
     Html(count.to_string())
 }
-pub(super) async fn handle_open_count(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_open_count(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let count: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -254,12 +259,15 @@ pub(super) async fn handle_open_count(State(state): State<Arc<TicketsState>>) ->
 
     Html(count.to_string())
 }
-pub(super) async fn handle_overdue_count(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
+pub(super) async fn handle_overdue_count(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
     let Ok(mut conn) = state.pool.get() else {
         return Html("0".to_string());
     };
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = ChronoUtc::now();
 
     let count: i64 = support_tickets::table

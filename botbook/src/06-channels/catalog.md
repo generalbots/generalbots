@@ -138,17 +138,17 @@ TALK weather
 | **Config Keys** | `teams-app-id`, `teams-app-password`, `teams-tenant-id` |
 | **Documentation** | [learn.microsoft.com/microsoftteams/platform](https://learn.microsoft.com/microsoftteams/platform) |
 | **BASIC Keywords** | `SEND TEAMS`, `SEND FILE` (Teams) |
-| **Webhook URL** | `/api/channels/teams/messages` |
+| **Webhook URL** | `/api/msteams/messages` (Bot Framework JWT or outgoing-webhook HMAC) |
 
 ### Instagram Messaging
 
 | Property | Value |
 |----------|-------|
 | **Service URL** | `https://graph.facebook.com/v17.0` |
-| **Config Keys** | `instagram-access-token`, `instagram-page-id`, `instagram-account-id` |
+| **Config Keys** | `instagram-access-token`, `instagram-page-id`, `instagram-account-id`, `instagram-app-secret` (POST HMAC), `instagram-verify-token` (handshake) — secrets in Vault |
 | **Documentation** | [developers.facebook.com/docs/instagram-api](https://developers.facebook.com/docs/instagram-api) |
 | **BASIC Keywords** | `SEND INSTAGRAM` |
-| **Webhook URL** | `/api/channels/instagram/webhook` |
+| **Webhook URL** | `/api/instagram/webhook` (POST requires `X-Hub-Signature-256`; unset `instagram-app-secret` refuses every delivery) |
 
 ### Telegram
 
@@ -158,7 +158,7 @@ TALK weather
 | **Config Keys** | `telegram-bot-token`, `telegram-webhook-secret` (secrets — store in Vault, never `config.csv`) |
 | **Documentation** | [core.telegram.org/bots/api](https://core.telegram.org/bots/api) |
 | **BASIC Keywords** | `SEND TELEGRAM` |
-| **Webhook URL** | `/api/channels/telegram/webhook` |
+| **Webhook URL** | `/webhook/telegram`, `/webhook/telegram/{bot_name}` (secret token mandatory; unset `telegram-webhook-secret` refuses every delivery) |
 
 ---
 

@@ -22,7 +22,7 @@ use std::time::Duration;
 use tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
 use uuid::Uuid;
 
-fn test_client() -> Client {
+pub(super) fn test_client() -> Client {
     Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
@@ -33,7 +33,7 @@ fn external_server_url() -> Option<String> {
     std::env::var("BOTSERVER_URL").ok()
 }
 
-async fn get_test_server() -> Option<(Option<TestContext>, String)> {
+pub(super) async fn get_test_server() -> Option<(Option<TestContext>, String)> {
     if let Some(url) = external_server_url() {
         let probe = Client::builder()
             .timeout(Duration::from_secs(2))
@@ -79,12 +79,12 @@ struct OrgIdRow {
 /// org via `user_organizations` and to the branch via `crm_contacts`, so the
 /// entitlement lookup finds it through either path.
 #[derive(Debug)]
-struct SeededTenant {
-    slug: String,
-    branch_id: Uuid,
+pub(super) struct SeededTenant {
+    pub(super) slug: String,
+    pub(super) branch_id: Uuid,
 }
 
-fn seed_tenant(name: &str) -> Option<SeededTenant> {
+pub(super) fn seed_tenant(name: &str) -> Option<SeededTenant> {
     let url = std::env::var("DATABASE_URL").ok()?;
     let mut conn = PgConnection::establish(&url).ok()?;
     let org_id = Uuid::new_v4();
@@ -194,7 +194,7 @@ fn grant_global_admin_group(slug: &str) -> Option<()> {
     Some(())
 }
 
-fn org_id_of(slug: &str) -> Option<String> {
+pub(super) fn org_id_of(slug: &str) -> Option<String> {
     let url = std::env::var("DATABASE_URL").ok()?;
     let mut conn = PgConnection::establish(&url).ok()?;
     diesel::sql_query("SELECT org_id FROM organizations WHERE slug = $1 LIMIT 1")

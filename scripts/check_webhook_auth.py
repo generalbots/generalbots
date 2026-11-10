@@ -2,30 +2,18 @@
 """Every inbound channel webhook proves its origin, or fails closed (#2142).
 
 An inbound webhook route is anonymous by necessity: the provider posts from its
-own infrastructure and holds no user session. The request itself is therefore the
-only evidence that the delivery is genuine, and a handler that accepts it
-without checking a secret lets a stranger create a bot turn under a victim
-identity.
+own infrastructure and holds no user session, so the request itself is the only
+evidence that the delivery is genuine. A handler that accepts it without
+checking a secret lets a stranger create a bot turn under a victim identity.
 
-This gate makes that rule executable. It discovers every inbound route under
-`botserver/`, maps each one to its handler, and requires the handler (or the
-function it delegates to) to call a known verifier. Four failure modes:
+This gate discovers every inbound route under `botserver/`, maps it to its
+handler, and requires the handler (or the function it delegates to) to call a
+known verifier. Failure modes: `unverified` (no verifier call, shrink-only
+allowlist), `unclassified` (route missing from `INVENTORY`), `stale-inventory`
+(listed route no longer registered), `empty-accept` (verifier accepts an empty
+secret) and `stale-allowlist` (entry no longer suppresses anything).
 
-1. `unverified`      a handler with no verifier call (shrink-only allowlist)
-2. `unclassified`    an inbound route missing from `INVENTORY` (new channel)
-3. `stale-inventory` an `INVENTORY` route that no longer exists in the code
-4. `empty-accept`    a verifier that returns accept for an empty secret
-
-The allowlist (`scripts/webhook_auth_allowlist.txt`) is *shrink-only*: an entry
-that no longer suppresses a violation is itself a violation, so the list can
-only get shorter.
-
-Usage::
-
-    python3 scripts/check_webhook_auth.py            # check the repository
-    python3 scripts/check_webhook_auth.py --list     # print the channel matrix
-    python3 scripts/check_webhook_auth.py --self-test
-
+Usage: `python3 scripts/check_webhook_auth.py [--list] [--self-test]`.
 Exit codes: 0 clean, 1 violations, 2 usage error.
 """
 
@@ -116,9 +104,6 @@ class Violation:
     line: int
     message: str
 
-    def key(self) -> str:
-        return f"{self.rule}:{self.path}"
-
     def render(self) -> str:
         return f"{self.path}:{self.line}: {self.rule}: {self.message}"
 
@@ -131,27 +116,12 @@ class Route:
     handlers: list[str] = field(default_factory=list)
 
 
+LITERALS = re.compile(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'')
+
+
 def _strip_literals(text: str) -> str:
     """Blank out string/char literals so paren counting is reliable."""
-    out = []
-    quote = ""
-    escaped = False
-    for char in text:
-        if quote:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == quote:
-                quote = ""
-            out.append(" ")
-            continue
-        if char in "\"'":
-            quote = char
-            out.append(" ")
-            continue
-        out.append(char)
-    return "".join(out)
+    return LITERALS.sub(" ", text)
 
 
 def _route_calls(text: str) -> list[tuple[int, str]]:
@@ -179,9 +149,8 @@ def _string_literals(text: str) -> list[str]:
 def _rust_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for scan in SCAN_DIRS:
-        base = root / scan
-        if base.is_dir():
-            files.extend(sorted(base.rglob("*.rs")))
+        if (root / scan).is_dir():
+            files.extend(sorted((root / scan).rglob("*.rs")))
     return files
 
 
@@ -280,15 +249,13 @@ def _has_verifier(body: str, bodies: dict[str, str], depth: int = 0) -> bool:
 
 
 def load_allowlist(path: Path) -> dict[str, str]:
-    entries: dict[str, str] = {}
     if not path.is_file():
-        return entries
+        return {}
+    entries: dict[str, str] = {}
     for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.split("#", 1)[0].strip()
-        if not line:
-            continue
-        reason = raw.split("#", 1)[1].strip() if "#" in raw else ""
-        entries[line] = reason
+        key = raw.split("#", 1)[0].strip()
+        if key:
+            entries[key] = raw.split("#", 1)[1].strip() if "#" in raw else ""
     return entries
 
 
@@ -308,14 +275,10 @@ def scan(
 
     for route in routes:
         if route.path not in known_routes:
-            violations.append(
-                Violation(
-                    "unclassified",
-                    route.file,
-                    getattr(route, "line", 1),
-                    f"inbound route {route.path} is not in INVENTORY — add it with its verifier",
-                )
-            )
+            violations.append(Violation(
+                "unclassified", route.file, route.line,
+                f"inbound route {route.path} is not in INVENTORY — add it with its verifier",
+            ))
 
         crate_dir = root / _crate_dir(route.file)
         for handler in route.handlers:
@@ -331,27 +294,18 @@ def scan(
             if route.path in allowlist:
                 used_allowlist.add(route.path)
                 continue
-            violations.append(
-                Violation(
-                    "unverified",
-                    route.file,
-                    getattr(route, "line", 1),
-                    f"{route.path} -> {handler}() never calls a verifier "
-                    f"({', '.join(VERIFIERS)})",
-                )
-            )
+            violations.append(Violation(
+                "unverified", route.file, route.line,
+                f"{route.path} -> {handler}() never calls a verifier ({', '.join(VERIFIERS)})",
+            ))
 
     for webhook in inventory:
         missing = [route for route in webhook.routes if route not in discovered]
         if missing:
-            violations.append(
-                Violation(
-                    "stale-inventory",
-                    "scripts/check_webhook_auth.py",
-                    1,
-                    f"{webhook.channel}: route(s) {missing} no longer registered",
-                )
-            )
+            violations.append(Violation(
+                "stale-inventory", "scripts/check_webhook_auth.py", 1,
+                f"{webhook.channel}: route(s) {missing} no longer registered",
+            ))
 
     for path in _rust_files(root):
         try:
@@ -365,25 +319,18 @@ def scan(
             if not VERIFIER_FN.match(name):
                 continue
             for match in EMPTY_ACCEPT.finditer(body):
-                violations.append(
-                    Violation(
-                        "empty-accept",
-                        rel,
-                        text[: text.find(body) + match.start()].count("\n") + 1,
-                        f"{name}() accepts the request when the secret is empty",
-                    )
-                )
+                violations.append(Violation(
+                    "empty-accept", rel,
+                    text[: text.find(body) + match.start()].count("\n") + 1,
+                    f"{name}() accepts the request when the secret is empty",
+                ))
 
     for key in allowlist:
         if key not in used_allowlist:
-            violations.append(
-                Violation(
-                    "stale-allowlist",
-                    str(allowlist_path),
-                    1,
-                    f"'{key}' no longer suppresses a violation — remove it (shrink-only)",
-                )
-            )
+            violations.append(Violation(
+                "stale-allowlist", str(allowlist_path), 1,
+                f"'{key}' no longer suppresses a violation — remove it (shrink-only)",
+            ))
 
     return violations, routes
 
@@ -392,8 +339,7 @@ def render_matrix() -> str:
     lines = ["| Channel | Inbound route | Gate |", "|---|---|---|"]
     for webhook in INVENTORY:
         lines.append(f"| {webhook.channel} | {', '.join(webhook.routes)} | `{webhook.crate}` |")
-    for channel, note in NO_HTTP_HANDLER:
-        lines.append(f"| {channel} | — ({note}) | n/a |")
+    lines.extend(f"| {channel} | — ({note}) | n/a |" for channel, note in NO_HTTP_HANDLER)
     return "\n".join(lines)
 
 

@@ -5,6 +5,7 @@
 //! the fail-closed default: no app secret or no verify token accepts nothing.
 
 use super::*;
+use axum::http::StatusCode;
 
 /// Raw bytes exactly as Meta would deliver them.
 const BODY: &[u8] = br#"{"object":"instagram","entry":[{"id":"1","time":1}]}"#;

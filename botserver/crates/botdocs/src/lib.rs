@@ -3,7 +3,6 @@ pub mod collaboration;
 pub mod export_isolation;
 pub mod handlers_api;
 pub mod legacy;
-pub mod local_owner;
 pub mod ooxml;
 pub mod preview;
 pub mod review;

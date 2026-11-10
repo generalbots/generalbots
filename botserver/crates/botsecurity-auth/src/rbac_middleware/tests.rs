@@ -326,3 +326,35 @@ async fn collaboration_and_gb7_routes_are_reachable_for_authenticated_users() {
         );
     }
 }
+
+/// #2141 — `POST /api/peer/{enable,disable}` left the anonymous allowlist, so
+/// the default-deny catalogue must know the routes; only an administrator may
+/// flip the node.
+#[tokio::test]
+async fn peer_control_routes_are_admin_only() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes).await;
+
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string())
+        .with_role(Role::User);
+    let admin = AuthenticatedUser::new(Uuid::new_v4(), "admin@example.com".to_string())
+        .with_role(Role::Admin);
+
+    for path in ["/api/peer/enable", "/api/peer/disable"] {
+        assert!(
+            !manager
+                .check_route_access(path, "POST", &user)
+                .await
+                .is_allowed(),
+            "POST {path} must be denied for a non-admin"
+        );
+        assert!(
+            manager
+                .check_route_access(path, "POST", &admin)
+                .await
+                .is_allowed(),
+            "POST {path} must be allowed for an admin"
+        );
+    }
+}

@@ -103,7 +103,7 @@ pub async fn upload_attachment(
             attendant_attachments::id.eq(id),
             attendant_attachments::session_id.eq(session_id),
             attendant_attachments::name.eq(&name),
-            attendant_attachments::content_type.eq(&content_type),
+            attendant_attachments::content_type.eq(&upload.mime),
             attendant_attachments::size_bytes.eq(size_bytes),
             attendant_attachments::data.eq(&data),
             attendant_attachments::created_at.eq(now),
@@ -114,10 +114,10 @@ pub async fn upload_attachment(
     Ok(Json(AttachmentMeta {
         id,
         name,
-        content_type: content_type.clone(),
+        content_type: upload.mime.clone(),
         size_bytes,
         url: format!("/api/attendant/attachments/{id}/download"),
-        thumb_url: is_image(&content_type).then(|| format!("/api/attendant/attachments/{id}/download")),
+        thumb_url: is_image(&upload.mime).then(|| format!("/api/attendant/attachments/{id}/download")),
     }))
 }
 

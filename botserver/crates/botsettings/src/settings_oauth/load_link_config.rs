@@ -141,7 +141,11 @@ pub async fn oauth_connect(
                 .into_response();
         }
     };
-    botcoreoauth::nonce_store::issue(&oauth_state.nonce, botcoreoauth::state::now_secs());
+    botcoreoauth::nonce_store::issue_for_user(
+        &oauth_state.nonce,
+        Some(&user_id.to_string()),
+        botcoreoauth::state::now_secs(),
+    );
     let auth_url = provider.build_auth_url(
         &config,
         &state_encoded,
@@ -224,15 +228,27 @@ pub async fn oauth_callback(
         return redirect_to_settings("error=provider_mismatch");
     }
     // #2130 — the callback must arrive in the browser that started the flow,
-    // and the state must not be reused.
-    if let Err(e) = botcoreoauth::consume_bound_nonce(&headers, &oauth_state.nonce) {
-        log::warn!("OAuth link callback refused for provider {provider}: {e}");
-        return redirect_to_settings("error=invalid_state");
-    }
+    // and the state must not be reused. For a link the registry also carries
+    // the authenticated user the flow was started for, so the signed `user_id`
+    // is never trusted on its own.
+    let session_user = match botcoreoauth::consume_bound_user_nonce(&headers, &oauth_state.nonce) {
+        Ok(user) => user,
+        Err(e) => {
+            log::warn!("OAuth link callback refused for provider {provider}: {e}");
+            return redirect_to_settings("error=invalid_state");
+        }
+    };
     let Some(bound_user) = &oauth_state.user_id else {
         log::warn!("OAuth callback without a bound user (login flow used linking callback)");
         return redirect_to_settings("error=not_linked");
     };
+    if session_user.as_deref() != Some(bound_user.as_str()) {
+        log::warn!(
+            "OAuth link callback refused: the flow was started for {session_user:?}, \
+             state claims {bound_user}"
+        );
+        return redirect_to_settings("error=invalid_state");
+    }
     let Ok(user_id) = uuid::Uuid::parse_str(bound_user) else {
         log::warn!("OAuth callback with invalid bound user id");
         return redirect_to_settings("error=invalid_user");

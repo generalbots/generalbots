@@ -207,9 +207,12 @@ pub async fn update_ticket(
     let now = Utc::now();
 
     // 404 before any write: a ticket from another branch is not addressable.
-    let _existing: SupportTicket = scoped_ticket(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     diesel::update(scoped_ticket(id, branch_id))
         .set(support_tickets::updated_at.eq(now))
@@ -274,9 +277,12 @@ pub async fn assign_ticket(
 
     // 404 before resolving the assignee: a foreign ticket id must not be
     // confirmed to exist, and must never be mutated.
-    let _existing: SupportTicket = scoped_ticket(id, branch_id)
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Ticket not found".to_string()))?;
+    if scoped_ticket(id, branch_id)
+        .first::<SupportTicket>(&mut conn)
+        .is_err()
+    {
+        return Err((StatusCode::NOT_FOUND, "Ticket not found".to_string()));
+    }
 
     let assignee_id = if let Some(assignee_id) = req.assignee_id {
         assignee_id

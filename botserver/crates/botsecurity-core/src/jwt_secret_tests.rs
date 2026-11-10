@@ -174,6 +174,25 @@ fn development_continues_with_an_ephemeral_secret_when_persistence_fails() {
 }
 
 #[test]
+fn an_env_provided_secret_does_not_fail_closed_when_the_file_is_read_only() {
+    // The variable is present in every process, so parity does not depend on
+    // the file: a read-only stack must not stop a production server that was
+    // configured through the environment.
+    let resolved = resolve_with(
+        JwtSecretInputs {
+            env_saas_jwt_secret: Some(FROM_ENV_SAAS),
+            ..Default::default()
+        },
+        RELEASE,
+        |_secret: &str| Err("read-only file system".to_string()),
+    )
+    .expect("env-provided secret");
+
+    assert_eq!(resolved.source, JwtSecretSource::EnvSaasJwtSecret);
+    assert_eq!(resolved.secret, FROM_ENV_SAAS);
+}
+
+#[test]
 fn a_token_signed_with_the_public_constant_is_rejected_after_a_random_secret() {
     let resolved = resolve_with(empty_inputs(), RELEASE, accepts_persist).expect("secret");
     let forged = crate::verified_jwt::test_support::mint_hs256(&claims(), DEV_FALLBACK_SECRET);

@@ -1,7 +1,7 @@
-pub mod oauth_identity;
 pub mod binding;
 pub mod cookies;
 pub mod nonce_store;
+pub mod oauth_identity;
 pub mod providers;
 pub mod redirect;
 pub mod routes;
@@ -11,15 +11,13 @@ pub mod state;
 // GitHub email ownership lookup (#2134).
 mod github_email;
 
-pub use binding::{consume_bound_nonce, BindingError};
+pub use binding::{consume_bound_nonce, consume_bound_user_nonce, BindingError};
 pub use providers::{ProviderEndpoints, get_enabled_providers, load_oauth_config};
 pub use redirect::{safe_redirect_target, RedirectPolicy, DEFAULT_REDIRECT};
 pub use routes::{
     configure, EnabledProvidersResponse, OAuthCallbackParams, OAuthStartParams, ProviderInfo,
 };
-pub use state::{
-    server_signer, OAuthState, StateError, StateSigner, STATE_TTL_SECS,
-};
+pub use state::{server_signer, OAuthState, StateError, StateSigner, STATE_TTL_SECS};
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

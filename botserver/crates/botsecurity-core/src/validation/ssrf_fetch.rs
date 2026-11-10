@@ -283,15 +283,14 @@ async fn follow(
 /// generic error on rejection; log [`SsrfError::detail`] server-side.
 pub async fn fetch_user_url(url: &str, policy: &FetchPolicy) -> Result<FetchedResponse, SsrfError> {
     let parsed = validate_url_ssrf_strict(url)?;
-    let result = tokio::time::timeout(policy.timeout, follow(parsed, policy, Target::Caller))
+    tokio::time::timeout(policy.timeout, follow(parsed, policy, Target::Caller))
         .await
         .map_err(|_| {
             SsrfError::new(
                 SsrfErrorKind::Transport,
                 format!("fetch exceeded {}s", policy.timeout.as_secs()),
             )
-        })?;
-    result
+        })?
 }
 
 /// Convenience wrapper over [`fetch_user_url`] with [`FetchPolicy::default`].

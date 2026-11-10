@@ -16,14 +16,22 @@ use crate::auth::DocUser;
 pub async fn handle_import_document(
     State(state): State<Arc<DocState>>,
     user: DocUser,
+    headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::DocumentImport, &headers) {
+        return Err(upload_policy::rejection_json(&error, &headers));
+    }
+
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut filename = "import.docx".to_string();
+    let mut content_type = String::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         if field.name() == Some("file") {
             filename = field.file_name().unwrap_or("import.docx").to_string();
+            content_type = field.content_type().map(str::to_string).unwrap_or_default();
             if let Ok(bytes) = field.bytes().await {
                 file_bytes = Some(bytes.to_vec());
             }

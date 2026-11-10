@@ -1,4 +1,6 @@
-use crate::auth::{authorize, authorize_ws, Access, Caller, PlanError, PLAN_WS_CLOSE_FORBIDDEN};
+use crate::auth::{
+    authorize, caller_from_ws, Access, Caller, PlanError, PLAN_WS_CLOSE_FORBIDDEN,
+};
 use crate::handlers::visible_plan;
 use axum::{
     extract::{
@@ -96,6 +98,15 @@ pub async fn handle_plan_websocket(
     Query(q): Query<WsAuthQuery>,
     headers: HeaderMap,
 ) -> Response {
+    // Identity first: an anonymous caller must not be able to tell a plan that
+    // exists from one that does not by comparing 401 against 404.
+    let caller = match caller_from_ws(Some(&q.token), &headers) {
+        Ok(caller) => caller,
+        Err(refusal) => {
+            log::warn!("plan ws refused for {plan_id}: {refusal:?}");
+            return refusal.into_response();
+        }
+    };
     let plan = match crate::load_plan(&plan_id).await {
         Some(plan) => plan,
         None => {
@@ -103,8 +114,8 @@ pub async fn handle_plan_websocket(
             return PlanError::NotFound.into_response();
         }
     };
-    match authorize_ws(&plan, Some(&q.token), &headers) {
-        Ok(caller) => ws
+    match authorize(&plan, &caller, Access::Read) {
+        Ok(()) => ws
             .on_upgrade(move |socket| handle_plan_connection(socket, plan_id, caller))
             .into_response(),
         Err(refusal) => {
@@ -117,21 +128,29 @@ pub async fn handle_plan_websocket(
 /// Re-checks access right after the upgrade: a membership revocation (or a
 /// deleted plan) between the handshake and the subscription closes the socket
 /// with an explicit code instead of silently subscribing it.
-async fn still_readable(plan_id: &str, caller: &Caller) -> bool {
+async fn post_upgrade_refusal(plan_id: &str, caller: &Caller) -> Option<u16> {
     match crate::load_plan(plan_id).await {
-        Some(plan) => authorize(&plan, caller, Access::Read).is_ok(),
-        None => false,
+        None => Some(PLAN_WS_CLOSE_UNAUTHORIZED),
+        Some(plan) => match authorize(&plan, caller, Access::Read) {
+            Ok(()) => None,
+            Err(_) => Some(PLAN_WS_CLOSE_FORBIDDEN),
+        },
     }
 }
 
 async fn handle_plan_connection(socket: WebSocket, plan_id: String, caller: Caller) {
     let (mut sender, mut receiver) = socket.split();
 
-    if !still_readable(&plan_id, &caller).await {
+    if let Some(code) = post_upgrade_refusal(&plan_id, &caller).await {
+        let reason = if code == PLAN_WS_CLOSE_UNAUTHORIZED {
+            "plan_unavailable"
+        } else {
+            "plan_access_denied"
+        };
         let _ = sender
             .send(Message::Close(Some(CloseFrame {
-                code: PLAN_WS_CLOSE_FORBIDDEN,
-                reason: "plan_access_denied".into(),
+                code,
+                reason: reason.into(),
             })))
             .await;
         return;

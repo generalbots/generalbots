@@ -1,118 +1,13 @@
-//! CORS fail-closed regression tests (#2129).
+//! CORS layer behaviour tests (#2129): what a browser actually receives.
 //!
-//! The contract under test: an empty origin configuration means "no
-//! cross-origin access". A foreign `Origin` must never receive
-//! `Access-Control-Allow-Origin`, credentials are only announced for an
-//! explicitly allowlisted origin, a `*` entry never widens the allowlist, and
-//! the `CORS_ALLOW_ANY_ORIGIN=1` development override stays off by default,
-//! is ignored in production and always refuses credentials.
+//! An empty origin configuration means "no cross-origin access": a foreign
+//! `Origin` gets no `Access-Control-Allow-Origin`, credentials are announced
+//! only for an explicitly allowlisted origin, a `*` config entry never widens
+//! the allowlist, and the `CORS_ALLOW_ANY_ORIGIN=1` development override always
+//! refuses credentials.
 
 use super::*;
-use axum::{body::Body, http::Request, routing::get, Router};
-use std::sync::{Mutex, MutexGuard};
-use tower::ServiceExt;
-
-type TestResult = Result<(), Box<dyn std::error::Error>>;
-
-/// Serialises the tests that touch the process-wide origin list and the
-/// `CORS_ALLOW_ANY_ORIGIN` switch (both are process globals).
-static CORS_STATE_LOCK: Mutex<()> = Mutex::new(());
-
-/// Owns the global CORS state for one test and restores the fail-closed default
-/// on drop.
-struct CorsState {
-    _guard: MutexGuard<'static, ()>,
-    prior_environment: Option<String>,
-    prior_override: Option<String>,
-}
-
-impl CorsState {
-    fn with_origins(origins: &[&str]) -> Self {
-        let guard = match CORS_STATE_LOCK.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-
-        let prior_environment = std::env::var(crate::jwt_secret::ENVIRONMENT_ENV).ok();
-        let prior_override = std::env::var(CORS_ALLOW_ANY_ORIGIN_ENV).ok();
-
-        std::env::remove_var(CORS_ALLOW_ANY_ORIGIN_ENV);
-        std::env::remove_var(crate::jwt_secret::ENVIRONMENT_ENV);
-        set_cors_allowed_origins(origins.iter().map(|origin| origin.to_string()).collect());
-
-        Self {
-            _guard: guard,
-            prior_environment,
-            prior_override,
-        }
-    }
-
-    fn enable_any_origin_override(&self) {
-        std::env::set_var(CORS_ALLOW_ANY_ORIGIN_ENV, "1");
-    }
-}
-
-impl Drop for CorsState {
-    fn drop(&mut self) {
-        restore_env(
-            crate::jwt_secret::ENVIRONMENT_ENV,
-            self.prior_environment.take(),
-        );
-        restore_env(CORS_ALLOW_ANY_ORIGIN_ENV, self.prior_override.take());
-        set_cors_allowed_origins(Vec::new());
-    }
-}
-
-fn restore_env(name: &str, value: Option<String>) {
-    match value {
-        Some(value) => std::env::set_var(name, value),
-        None => std::env::remove_var(name),
-    }
-}
-
-fn app_with(layer: CorsLayer) -> Router {
-    Router::new()
-        .route("/api/ping", get(|| async { "ok" }))
-        .layer(layer)
-}
-
-/// Sends one request through a fresh router carrying `layer`. An `OPTIONS`
-/// request is built as a real preflight asking for `POST` + `x-user-id`.
-async fn send(
-    layer: CorsLayer,
-    origin: Option<&str>,
-    method: Method,
-) -> Result<axum::response::Response, Box<dyn std::error::Error>> {
-    let is_preflight = method == Method::OPTIONS;
-    let mut builder = Request::builder().method(method).uri("/api/ping");
-
-    if let Some(origin) = origin {
-        builder = builder.header(header::ORIGIN, origin);
-    }
-
-    if is_preflight {
-        builder = builder
-            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "POST")
-            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "x-user-id");
-    }
-
-    let request = builder.body(Body::empty())?;
-
-    Ok(app_with(layer).oneshot(request).await?)
-}
-
-fn header_value<'a>(
-    response: &'a axum::response::Response,
-    name: header::HeaderName,
-) -> Option<&'a str> {
-    response
-        .headers()
-        .get(name)
-        .and_then(|value| value.to_str().ok())
-}
-
-const EVIL_ORIGIN: &str = "https://evil.example";
-const APP_ORIGIN: &str = "https://app.example";
+use crate::cors::cors_test_support::*;
 
 #[tokio::test]
 async fn empty_config_denies_arbitrary_origin() -> TestResult {
@@ -120,16 +15,7 @@ async fn empty_config_denies_arbitrary_origin() -> TestResult {
 
     let response = send(create_cors_layer(), Some(EVIL_ORIGIN), Method::GET).await?;
 
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-        None,
-        "an unconfigured deployment must not reflect the caller's origin"
-    );
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
-        None,
-        "no origin configured means no credentialed cross-origin access"
-    );
+    assert_denied(&response, "unconfigured GET");
     Ok(())
 }
 
@@ -139,20 +25,13 @@ async fn empty_config_denies_preflight() -> TestResult {
 
     let response = send(create_cors_layer(), Some(EVIL_ORIGIN), Method::OPTIONS).await?;
 
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-        None
-    );
+    assert_denied(&response, "unconfigured preflight");
     assert_eq!(
         header_value(&response, header::ACCESS_CONTROL_ALLOW_METHODS),
         None
     );
     assert_eq!(
         header_value(&response, header::ACCESS_CONTROL_ALLOW_HEADERS),
-        None
-    );
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
         None
     );
     Ok(())
@@ -164,14 +43,7 @@ async fn configured_origin_is_echoed_with_credentials() -> TestResult {
 
     let response = send(create_cors_layer(), Some(APP_ORIGIN), Method::GET).await?;
 
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-        Some(APP_ORIGIN)
-    );
-    assert_eq!(
-        header_value(&response, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
-        Some("true")
-    );
+    assert_allowed_with_credentials(&response, APP_ORIGIN);
     Ok(())
 }
 
@@ -179,23 +51,15 @@ async fn configured_origin_is_echoed_with_credentials() -> TestResult {
 async fn configured_list_rejects_unknown_and_lookalike_origin() -> TestResult {
     let _state = CorsState::with_origins(&[APP_ORIGIN]);
 
-    for origin in [
+    let rejected = [
         EVIL_ORIGIN,
         "https://app.example.evil.example",
         "http://app.example",
-    ] {
-        let response = send(create_cors_layer(), Some(origin), Method::GET).await?;
+    ];
 
-        assert_eq!(
-            header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-            None,
-            "{origin} must not be echoed"
-        );
-        assert_eq!(
-            header_value(&response, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
-            None,
-            "{origin} must not be offered credentials"
-        );
+    for origin in rejected {
+        let response = send(create_cors_layer(), Some(origin), Method::GET).await?;
+        assert_denied(&response, origin);
     }
     Ok(())
 }
@@ -206,16 +70,7 @@ async fn wildcard_entry_in_config_never_allows_any_origin() -> TestResult {
 
     for origin in [EVIL_ORIGIN, APP_ORIGIN] {
         let response = send(create_cors_layer(), Some(origin), Method::GET).await?;
-
-        assert_eq!(
-            header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-            None,
-            "a `*` config entry must not become a reflective origin"
-        );
-        assert_eq!(
-            header_value(&response, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
-            None
-        );
+        assert_denied(&response, origin);
     }
     Ok(())
 }
@@ -247,55 +102,6 @@ async fn dev_override_allows_origin_without_credentials() -> TestResult {
     Ok(())
 }
 
-#[test]
-fn dev_override_is_off_by_default() -> TestResult {
-    let _state = CorsState::with_origins(&[]);
-    let empty: Vec<String> = Vec::new();
-
-    assert_eq!(resolve_origin_policy(&empty), OriginPolicy::Deny);
-    assert!(!allow_any_origin_override());
-
-    std::env::set_var(CORS_ALLOW_ANY_ORIGIN_ENV, "1");
-    assert_eq!(
-        resolve_origin_policy(&empty),
-        OriginPolicy::AnyNoCredentials
-    );
-
-    std::env::remove_var(CORS_ALLOW_ANY_ORIGIN_ENV);
-    assert_eq!(resolve_origin_policy(&empty), OriginPolicy::Deny);
-    Ok(())
-}
-
-#[test]
-fn production_ignores_the_any_origin_override() -> TestResult {
-    let _state = CorsState::with_origins(&[]);
-    let empty: Vec<String> = Vec::new();
-
-    std::env::set_var(CORS_ALLOW_ANY_ORIGIN_ENV, "1");
-    std::env::set_var(crate::jwt_secret::ENVIRONMENT_ENV, "production");
-
-    assert!(any_origin_override_requested());
-    assert!(
-        !allow_any_origin_override(),
-        "production must fail closed even with the dev switch set"
-    );
-    assert_eq!(resolve_origin_policy(&empty), OriginPolicy::Deny);
-    Ok(())
-}
-
-#[test]
-fn explicit_allowlist_wins_over_dev_override() -> TestResult {
-    let state = CorsState::with_origins(&[]);
-    state.enable_any_origin_override();
-
-    assert_eq!(
-        resolve_origin_policy(&[APP_ORIGIN.to_string()]),
-        OriginPolicy::Allowlist(vec![APP_ORIGIN.to_string()]),
-        "an operator-configured allowlist is never widened by the dev switch"
-    );
-    Ok(())
-}
-
 #[tokio::test]
 async fn preflight_does_not_grant_x_user_id() -> TestResult {
     let _state = CorsState::with_origins(&[APP_ORIGIN]);
@@ -318,29 +124,11 @@ async fn preflight_does_not_grant_x_user_id() -> TestResult {
     Ok(())
 }
 
-#[test]
-fn x_user_id_is_not_a_default_allowed_header() {
-    for config in [
-        CorsConfig::default(),
-        CorsConfig::production(),
-        CorsConfig::development(),
-        CorsConfig::api(),
-    ] {
-        assert!(
-            config
-                .allowed_headers
-                .iter()
-                .all(|name| !name.eq_ignore_ascii_case("x-user-id")),
-            "x-user-id must stay out of the default CORS header list"
-        );
-    }
-}
-
 #[tokio::test]
 async fn every_builder_fails_closed() -> TestResult {
     let _state = CorsState::with_origins(&[]);
 
-    let layers = vec![
+    let layers = [
         create_cors_layer(),
         create_cors_layer_for_production(Vec::new()),
         create_cors_layer_with_origins(Vec::new()),
@@ -352,59 +140,7 @@ async fn every_builder_fails_closed() -> TestResult {
 
     for layer in layers {
         let response = send(layer, Some(EVIL_ORIGIN), Method::GET).await?;
-
-        assert_eq!(
-            header_value(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
-            None,
-            "every CORS builder must share the fail-closed rule"
-        );
+        assert_denied(&response, "empty origin list");
     }
     Ok(())
-}
-
-#[test]
-fn validate_origin_fails_closed_without_configuration() -> TestResult {
-    let _state = CorsState::with_origins(&[]);
-
-    let parts = Request::builder().uri("/").body(())?.into_parts().0;
-    let evil = HeaderValue::from_static(EVIL_ORIGIN);
-
-    assert!(!validate_origin(&evil, &parts));
-    Ok(())
-}
-
-#[test]
-fn validate_origin_matches_only_configured_origins() -> TestResult {
-    let _state = CorsState::with_origins(&[APP_ORIGIN]);
-
-    let parts = Request::builder().uri("/").body(())?.into_parts().0;
-
-    assert!(validate_origin(
-        &HeaderValue::from_static(APP_ORIGIN),
-        &parts
-    ));
-    assert!(!validate_origin(
-        &HeaderValue::from_static(EVIL_ORIGIN),
-        &parts
-    ));
-    Ok(())
-}
-
-#[test]
-fn normalize_origins_keeps_only_exact_unique_entries() {
-    let normalized = normalize_origins(&[
-        " https://app.example ".to_string(),
-        "https://app.example".to_string(),
-        String::new(),
-        "*".to_string(),
-        "https://second.example:8443".to_string(),
-    ]);
-
-    assert_eq!(
-        normalized,
-        vec![
-            APP_ORIGIN.to_string(),
-            "https://second.example:8443".to_string()
-        ]
-    );
 }

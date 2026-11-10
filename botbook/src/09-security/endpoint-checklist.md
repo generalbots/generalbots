@@ -8,7 +8,7 @@ enforces it, so a reviewer can verify instead of trusting the description.
 | # | Requirement | Enforced by |
 |---|---|---|
 | 1 | Route is registered in a router that sits behind the auth layer | `botserver/src/main_module/server/run_axum_server.rs` |
-| 2 | If it must be anonymous, the path is added explicitly | `add_anonymous_path` in `botserver/src/main_module/routes/security_setup.rs` (`/ws` is the only chat surface) |
+| 2 | If it must be anonymous, the exact method+path is declared explicitly | `platform_public_routes()` in `botserver/crates/botsecurity-auth/src/auth_api/public_routes.rs` — an exact `(method, path)`, a `:param` or a declared `/*`; never a bare prefix. `platform_private_routes()` removes a route that a broader public pattern would otherwise match (#2133) |
 | 3 | A rate-limit class is chosen (general 100 req/s, auth 10 req/s, API 50 req/s per token) | `governor` layers in the server module |
 | 4 | State-changing verbs (POST/PUT/PATCH/DELETE) require CSRF protection unless the route is Bearer-authenticated (stateless) | server middleware |
 | 5 | The route appears in the API command catalog if the LLM may call it | `botserver/src/core/bot/api_catalog/` |

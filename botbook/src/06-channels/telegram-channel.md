@@ -13,7 +13,7 @@ keys found there) and never in a script:
 | Key | Required | Purpose |
 |-----|----------|---------|
 | `telegram-bot-token` | yes | Bot token issued by [@BotFather](https://t.me/BotFather). Used for `getFile`, downloads and all outbound calls. |
-| `telegram-webhook-secret` | no | Secret token that Telegram echoes in the `X-Telegram-Bot-Api-Secret-Token` header. When set, unsigned deliveries are rejected with `401`. |
+| `telegram-webhook-secret` | yes | Secret token that Telegram echoes in the `X-Telegram-Bot-Api-Secret-Token` header. Without it every delivery is refused with `503` (#2142) — the endpoint never accepts unsigned updates. |
 
 Write them to the bot's Vault path `secret/gbo/{org_id}/{branch_id}/{bot_id}`:
 
@@ -33,8 +33,10 @@ Missing `telegram-bot-token` is reported as
 
 ## Registering the webhook
 
-Point Telegram at the bot server and include the secret token when one is
-configured. Two URL shapes are served:
+Point Telegram at the bot server and **always** include `secret_token`: a bot
+without `telegram-webhook-secret` refuses every delivery (`503`), so a webhook
+registered without the secret receives nothing (#2142). Two URL shapes are
+served:
 
 | URL | Bot used |
 |-----|----------|
@@ -66,8 +68,8 @@ delivery is accepted, so Telegram does not retry.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| `POST` | `/webhook/telegram` | anonymous + secret token (when configured) | Inbound updates for the default bot |
-| `POST` | `/webhook/telegram/{bot_name}` | anonymous + secret token (when configured) | Inbound updates for the named bot |
+| `POST` | `/webhook/telegram` | anonymous + mandatory secret token | Inbound updates for the default bot |
+| `POST` | `/webhook/telegram/{bot_name}` | anonymous + mandatory secret token | Inbound updates for the named bot |
 | `POST` | `/api/telegram/send` | authenticated (`/api/telegram/**` permission) | Send a message from a script or integration |
 
 The inbound paths are anonymous because Telegram holds no token — it is a
