@@ -1,5 +1,13 @@
 use super::*;
 
+/// Org slugs a Drive tenant may already own, in reuse order: the signup naming
+/// (`{slug}`) first, then the legacy `drive_monitor` naming (`{slug}-org`).
+/// Both must resolve to the SAME org/branch so a bucket → signup → workspace
+/// does not produce a duplicated `cloud_workspaces` row (issue #779).
+fn org_slug_candidates(tenant_slug: &str) -> [String; 2] {
+    [tenant_slug.to_string(), format!("{tenant_slug}-org")]
+}
+
 pub(super) fn ensure_tenant_and_org(
     pool: &botcore::shared::utils::DbPool,
     tenant_slug: &str,
@@ -45,14 +53,13 @@ pub(super) fn ensure_tenant_and_org(
     // with slug = {name}, drive_monitor's legacy naming appends "-org". Both
     // must resolve to the SAME org/branch so a bucket -> signup -> workspace
     // does not produce a duplicated cloud_workspaces row (issue #779).
-    let legacy_org_slug = format!("{}-org", tenant_slug);
-    let reuse_ids: [&str; 2] = [tenant_slug, &legacy_org_slug];
+    let reuse_ids = org_slug_candidates(tenant_slug);
     let mut reusable: Option<OrgRow> = None;
     for slug in &reuse_ids {
         match diesel::sql_query(
             "SELECT org_id, tenant_id FROM organizations WHERE slug = $1 LIMIT 1",
         )
-        .bind::<diesel::sql_types::Text, _>(slug)
+        .bind::<diesel::sql_types::Text, _>(slug.as_str())
         .get_result::<OrgRow>(&mut conn)
         {
             Ok(row) => {
@@ -292,3 +299,7 @@ pub(crate) async fn start_drive_compiler(app_state: Arc<AppState>) {
         trace!("DriveCompiler started - compiling .bas files from drive_files");
     }
 }
+
+#[cfg(test)]
+#[path = "ensure_tenant_and_org_tests.rs"]
+mod tests;

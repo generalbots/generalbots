@@ -1,4 +1,54 @@
 use super::*;
+use std::collections::BTreeSet;
+
+/// Directory suffixes that identify a bot inside a branch prefix.
+///
+/// Reform #1501 — a bot's sources move to its repository, so discovery must not
+/// require `.gbdialog` objects to be present in Drive: any `{bot}.gb*`
+/// directory of the branch identifies the bot.
+const BOT_MARKERS: [&str; 4] = [".gbdialog", ".gbot", ".gbkb", ".gbdrive"];
+
+/// Tenant slug of a `.gborg` bucket: `acme.gborg` → `acme`, `acme` → `acme`.
+fn tenant_slug_of(bucket_name: &str) -> String {
+    bucket_name
+        .strip_suffix(".gborg")
+        .unwrap_or(bucket_name)
+        .to_string()
+}
+
+/// Branch slug of a `.gbai/` common prefix, `None` for anything else.
+fn branch_slug_of(prefix: &str) -> Option<&str> {
+    prefix.strip_suffix(".gbai/")
+}
+
+/// Bot names named by the object keys under `branch_prefix`.
+///
+/// Key format: `{branch}.gbai/{bot}.gbdialog/file.bas`. Only a top-level
+/// `{bot}.gb*` directory counts: a nested key (`{branch}.gbai/nested/help.gbdialog/x`)
+/// names a path, not a bot, so it yields nothing and the caller falls back to
+/// the branch slug. The marker appearing *first* in the key names the bot
+/// directory — `help.gbkb/docs/x.gbdialog` belongs to `help`, and slicing at a
+/// later marker would return a path instead of a name.
+fn extract_bot_names<'a, I>(keys: I, branch_prefix: &str) -> BTreeSet<String>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut bot_names = BTreeSet::new();
+    for key in keys {
+        let relative = key.strip_prefix(branch_prefix).unwrap_or(key);
+        let first_marker = BOT_MARKERS
+            .iter()
+            .filter_map(|marker| relative.find(marker))
+            .min();
+        if let Some(dot_idx) = first_marker {
+            let bot_name = &relative[..dot_idx];
+            if !bot_name.is_empty() && !bot_name.contains('/') {
+                bot_names.insert(bot_name.to_string());
+            }
+        }
+    }
+    bot_names
+}
 
 /// Process a .gborg bucket (tenant) during initial discovery
 pub(super) async fn process_org_bucket(
@@ -6,10 +56,7 @@ pub(super) async fn process_org_bucket(
     pool: &botcore::shared::utils::DbPool,
     bucket_name: &str,
 ) {
-    let tenant_slug = bucket_name
-        .strip_suffix(".gborg")
-        .unwrap_or(bucket_name)
-        .to_string();
+    let tenant_slug = tenant_slug_of(bucket_name);
 
     // Get S3 client to list prefixes
     let (tenant_id, org_id) = if let Ok(result) = ensure_tenant_and_org(pool, &tenant_slug) {
@@ -23,10 +70,10 @@ pub(super) async fn process_org_bucket(
         match s3.list_common_prefixes(bucket_name, "/").await {
             Ok(prefixes) => {
                 for prefix in prefixes {
-                    if !prefix.ends_with(".gbai/") {
+                    let Some(branch_slug) = branch_slug_of(&prefix) else {
                         continue;
-                    }
-                    let branch_slug = prefix.strip_suffix(".gbai/").unwrap_or(&prefix).to_string();
+                    };
+                    let branch_slug = branch_slug.to_string();
 
                     // Ensure branch record + cloud workspace row (mirrors Drive in cloud UI)
                     match ensure_branch_exists(pool, &branch_slug, org_id, tenant_id) {
@@ -91,29 +138,8 @@ pub(super) async fn discover_and_create_bots(
     if let Some(s3) = &state.drive {
         match s3.list_objects(bucket_name, Some(branch_prefix)).await {
             Ok(objects) => {
-                // Extract unique bot names from object keys.
-                // Key format: {branch}.gbai/{bot}.gbdialog/file.bas
-                //
-                // Reform #1501 — a bot's sources move to its repository, so
-                // discovery must not require `.gbdialog` objects to be present
-                // in Drive: any `{bot}.gb*` directory of the branch identifies
-                // the bot. Only a top-level `{bot}.gb*` counts (a nested key
-                // would name a path, not a bot).
-                const BOT_MARKERS: [&str; 4] = [".gbdialog", ".gbot", ".gbkb", ".gbdrive"];
-                let mut bot_names: std::collections::BTreeSet<String> =
-                    std::collections::BTreeSet::new();
-                for key in &objects {
-                    let relative = key.strip_prefix(branch_prefix).unwrap_or(key);
-                    for marker in BOT_MARKERS {
-                        if let Some(dot_idx) = relative.find(marker) {
-                            let bot_name = &relative[..dot_idx];
-                            if !bot_name.is_empty() && !bot_name.contains('/') {
-                                bot_names.insert(bot_name.to_string());
-                            }
-                            break;
-                        }
-                    }
-                }
+                let mut bot_names =
+                    extract_bot_names(objects.iter().map(|key| key.as_str()), branch_prefix);
 
                 if bot_names.is_empty() {
                     // Create default bot (branch name == bot name)
@@ -188,10 +214,7 @@ pub(super) async fn scan_org_bucket(
     bucket_name: &str,
     monitored_bots: &mut std::collections::HashSet<String>,
 ) -> Result<(), String> {
-    let tenant_slug = bucket_name
-        .strip_suffix(".gborg")
-        .unwrap_or(bucket_name)
-        .to_string();
+    let tenant_slug = tenant_slug_of(bucket_name);
 
     let (tenant_id, org_id) = ensure_tenant_and_org(pool, &tenant_slug)?;
 
@@ -202,10 +225,10 @@ pub(super) async fn scan_org_bucket(
             .map_err(|e| format!("Failed to list prefixes: {}", e))?;
 
         for prefix in prefixes {
-            if !prefix.ends_with(".gbai/") {
+            let Some(branch_slug) = branch_slug_of(&prefix) else {
                 continue;
-            }
-            let branch_slug = prefix.strip_suffix(".gbai/").unwrap_or(&prefix).to_string();
+            };
+            let branch_slug = branch_slug.to_string();
             let branch_key = format!("{}/", branch_slug);
 
             if monitored_bots.contains(&branch_key) {
@@ -357,3 +380,7 @@ pub(super) async fn get_bot_names_in_branch(
     .await
     .unwrap_or_default()
 }
+
+#[cfg(test)]
+#[path = "process_org_bucket_tests.rs"]
+mod tests;

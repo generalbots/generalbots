@@ -315,6 +315,16 @@ pub(super) fn build_base_router(
         base_router
     }
 }
+/// A path that belongs to a machine-facing surface — the API, the DAV router,
+/// an inbound webhook or well-known discovery — rather than an application
+/// route. Such a caller expects JSON, DAV XML or an acknowledgement, never the
+/// desktop shell.
+fn is_machine_facing(path: &str) -> bool {
+    ["/api/", "/caldav", "/webhook", "/.well-known/"]
+        .iter()
+        .any(|prefix| path.starts_with(prefix))
+}
+
 /// Answers a request no route matched.
 ///
 /// An application route receives the desktop shell. A path that belongs to the
@@ -328,10 +338,7 @@ pub(super) async fn fallback_response(
     use axum::response::IntoResponse;
 
     let path = uri.path();
-    let machine_facing = ["/api/", "/caldav", "/webhook", "/.well-known/"]
-        .iter()
-        .any(|prefix| path.starts_with(prefix));
-    if machine_facing {
+    if is_machine_facing(path) {
         return (
             axum::http::StatusCode::NOT_FOUND,
             axum::Json(serde_json::json!({
@@ -355,3 +362,7 @@ pub(super) async fn fallback_response(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "run_axum_server_tests.rs"]
+mod tests;
