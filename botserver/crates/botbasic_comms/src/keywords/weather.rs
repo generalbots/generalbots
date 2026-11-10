@@ -395,3 +395,6 @@ fn get_weather_api_key(state: &Arc<dyn BasicRuntime>) -> Result<String, String> 
 
 use std::fmt::Write;
 use std::sync::Arc;
+#[cfg(test)]
+#[path = "weather_tests.rs"]
+mod weather_tests;
