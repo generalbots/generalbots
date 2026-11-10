@@ -238,15 +238,31 @@ pub(crate) fn send_mention_emails(
     }
 
     let preview: String = body.chars().take(400).collect();
-    let subject = format!("{author_name} mentioned you in a comment");
-    let text = format!(
-        "{author_name} mentioned you on {resource_type} ({resource_id}).\n\n\"{preview}\"\n\nOpen the app to view and reply."
-    );
 
     for recipient in recipients {
         if !notification_email_enabled(&mut conn, &recipient.id, "email_mentions") {
             continue;
         }
+
+        // #2094 — one message per recipient, in the language they picked.
+        let locale = uuid::Uuid::parse_str(&recipient.id)
+            .map(|user_id| botcore::i18n::locale_for_user(&mut conn, user_id))
+            .unwrap_or_default();
+        let subject = botlib::i18n::translate(
+            &locale,
+            "email-mention-subject",
+            &[("author", &author_name)],
+        );
+        let text = botlib::i18n::translate(
+            &locale,
+            "email-mention-body",
+            &[
+                ("author", &author_name),
+                ("resource_type", &resource_type),
+                ("resource_id", &resource_id),
+                ("preview", &preview),
+            ],
+        );
         // #1853 — deliver to the mailbox the user configured (primary Mail
         // account or linked account); fall back to the profile address.
         let to = super::notification_email::notification_recipient(&mut conn, &recipient.id)

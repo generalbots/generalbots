@@ -298,14 +298,14 @@ pub async fn send_share_email(
         .expires_at
         .map(|when| when.format("%Y-%m-%d %H:%M UTC").to_string());
     let expiry_line = match expires_text.as_deref() {
-        Some(when) => botcore::i18n::translate(
+        Some(when) => botlib::i18n::translate(
             &locale,
             "email-share-link-expires",
             &[("date", when)],
         ),
-        None => botcore::i18n::translate(&locale, "email-share-link-no-expiry", &[]),
+        None => botlib::i18n::translate(&locale, "email-share-link-no-expiry", &[]),
     };
-    let download = botcore::i18n::translate(
+    let download = botlib::i18n::translate(
         &locale,
         "email-share-download",
         &[("file", file_name)],
@@ -316,10 +316,10 @@ pub async fn send_share_email(
         url = html_escape(&url),
         download = html_escape(&download),
     );
-    let subject = botcore::i18n::translate(
+    let subject = botlib::i18n::translate(
         &locale,
         "email-share-subject",
-        &[("sender", &sender.label), ("file", file_name)],
+        &[("sender", sender.label.as_str()), ("file", file_name)],
     );
 
     let mut sent = 0usize;
