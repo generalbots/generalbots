@@ -119,8 +119,11 @@ pub async fn index(
                 && **part != "auth"
                 && **part != "suite"
                 && **part != "cloud"
-                && !part.ends_with(".js")
-                && !part.ends_with(".css")
+                // A static asset is never a bot name. `.html` matters most:
+                // `/suite/slides/slides.html` used to resolve bot=`slides.html`,
+                // which failed the suite-dir check and 303-redirected the whole
+                // app to the login page (#2151).
+                && !part.contains('.')
         })
         .map(|s| s.to_string());
 

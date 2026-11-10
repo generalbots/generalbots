@@ -251,12 +251,35 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
 
   function sendToCanvas(svg) {
     var detail = { svg: svg, title: "Chat drawing" };
+    // The canvas module binds its listener when `08_live_canvas.js` runs, which
+    // is *after* the window markup (and `#canvas-bg-svg`) is injected, so
+    // `isMounted()` can be true with nothing listening yet. Delivering once
+    // silently dropped the drawing. Deliver, then re-deliver until the
+    // background layer actually holds shapes (#2144).
     function deliver() {
-      try {
-        document.dispatchEvent(new CustomEvent("gb:canvas-set-background", {
-          detail: detail,
-        }));
-      } catch (e) { /* CustomEvent unavailable */ }
+      var tries = 0;
+      var timer = null;
+      var stop = function () {
+        if (timer) { clearInterval(timer); timer = null; }
+      };
+      var dispatch = function () {
+        try {
+          document.dispatchEvent(new CustomEvent("gb:canvas-set-background", {
+            detail: detail,
+          }));
+        } catch (e) { /* CustomEvent unavailable */ }
+      };
+      var landed = function () {
+        var layer = document.getElementById("canvas-bg-svg");
+        return !!(layer && layer.childElementCount > 0);
+      };
+      dispatch();
+      if (landed()) return;
+      timer = setInterval(function () {
+        tries += 1;
+        dispatch();
+        if (landed() || tries >= 12) stop();
+      }, 250);
     }
     if (canvasReady()) { deliver(); return; }
     if (window.wm && typeof window.wm.openDeepLink === "function") {
