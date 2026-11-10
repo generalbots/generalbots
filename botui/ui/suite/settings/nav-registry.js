@@ -31,6 +31,7 @@
     { id: "shared-links", group: "workspace", depth: "essential", editions: ["os"], scope: "personal", control: "shell", requires: "p2p" },
     { id: "integrations", group: "workspace", depth: "essential", editions: ALL, scope: "personal" },
     { id: "ai-accounts", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
+    { id: "on-device-ai", group: "workspace", depth: "essential", editions: ALL, scope: "admin" },
     { id: "vibe", group: "workspace", depth: "advanced", editions: ["cloud", "desktop", "os"], scope: "personal" },
     { id: "privacy", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },
     { id: "memory", group: "workspace", depth: "advanced", editions: ALL, scope: "personal" },

@@ -25,7 +25,7 @@ pub const AGENT_OFFLINE: &str = "offline";
 /// produces the first number instead of a negative one.
 pub fn format_session_number(count: i64) -> String {
     let next = count.saturating_add(1).max(1);
-    format!("SES-{next:06}")
+    format!("SES-{next:0width$}", width = SESSION_NUMBER_DIGITS)
 }
 
 /// Seconds a customer waited before assignment, floored at zero so a clock

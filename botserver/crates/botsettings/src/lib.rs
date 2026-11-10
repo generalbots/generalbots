@@ -1,6 +1,7 @@
 pub mod admin_dashboard;
 pub mod audit_log;
 pub mod menu_config;
+pub mod on_device_ai;
 pub mod ops;
 pub mod os;
 pub mod os_data;
@@ -105,6 +106,7 @@ pub fn configure_settings_routes() -> Router<Arc<AppState>> {
         .merge(settings_api::configure_settings_api_routes())
         .merge(ops::configure_ops_routes())
         .merge(os::configure_os_routes())
+        .merge(on_device_ai::configure_routes())
 }
 
 async fn get_ops_health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {

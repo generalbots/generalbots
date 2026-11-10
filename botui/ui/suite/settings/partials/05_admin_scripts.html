@@ -215,6 +215,7 @@
         <script src="/suite/settings/main/08_preview.js?v=5"></script>
         <script src="/suite/settings/main/99_init.js?v=4"></script>
         <script src="/suite/settings/settings-ai-accounts.js?v=1"></script>
+        <script src="/suite/settings/settings-on-device-ai.js?v=1"></script>
         <script src="/suite/settings/settings-ledger.js?v=3"></script>
         <script src="/suite/settings/settings-mcp.js?v=2"></script>
         <script src="/suite/settings/settings-skills.js"></script>
@@ -222,3 +223,6 @@
         <script src="/suite/settings/settings-preferences.js"></script>
         <script src="/suite/settings/settings-vibe-slots.js"></script>
         <script src="/suite/settings/settings-memory.js"></script>
+        <!-- #2109 — on-device AI section (local models). Chained here so it
+             arrives inside the settings content column like the other partials. -->
+        <div hx-get="/suite/settings/partials/11_on_device_ai.html" hx-trigger="load" hx-swap="outerHTML"></div>

@@ -1,0 +1,113 @@
+/* On-device AI settings table (#2109). */
+#on-device-ai-section .oda-table-wrap {
+    overflow-x: auto;
+    margin-top: 8px;
+}
+
+#on-device-ai-section .oda-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#on-device-ai-section .oda-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b93a7);
+    border-bottom: 1px solid var(--border, #262b36);
+}
+
+#on-device-ai-section .oda-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border, #262b36);
+    vertical-align: middle;
+}
+
+#on-device-ai-section .oda-tier td {
+    padding: 10px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b93a7);
+    background: rgba(127, 127, 127, 0.06);
+}
+
+#on-device-ai-section .oda-model {
+    font-weight: 600;
+}
+
+#on-device-ai-section .oda-model small {
+    display: block;
+    font-weight: 400;
+    color: var(--text-muted, #8b93a7);
+}
+
+#on-device-ai-section .oda-muted {
+    color: var(--text-muted, #8b93a7);
+    font-size: 12px;
+}
+
+#on-device-ai-section .oda-empty {
+    text-align: center;
+    padding: 18px;
+    color: var(--text-muted, #8b93a7);
+}
+
+#on-device-ai-section .oda-status-active {
+    color: var(--success, #4ade80);
+    font-weight: 600;
+}
+
+#on-device-ai-section .oda-warn {
+    color: var(--warning, #fbbf24);
+}
+
+#on-device-ai-section .oda-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(127, 127, 127, 0.25);
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+#on-device-ai-section .oda-progress span {
+    display: block;
+    height: 100%;
+    background: var(--primary, #5b8def);
+}
+
+#on-device-ai-section .oda-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+#on-device-ai-section .oda-recommended {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid var(--border, #262b36);
+    border-radius: 8px;
+}
+
+#on-device-ai-section .oda-recommended-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b93a7);
+    margin-bottom: 2px;
+}
+
+#on-device-ai-section .oda-profile-select {
+    font-size: 12px;
+    padding: 3px 6px;
+}

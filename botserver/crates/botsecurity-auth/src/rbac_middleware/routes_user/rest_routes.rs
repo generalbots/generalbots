@@ -114,6 +114,7 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         // LLM
         RoutePermission::new("/api/llm/**", "GET", ""),
         RoutePermission::new("/api/llm/**", "POST", ""),
+        RoutePermission::new("/api/llm/**", "DELETE", ""),
 
         // Email
         RoutePermission::new("/api/email/**", "GET", ""),

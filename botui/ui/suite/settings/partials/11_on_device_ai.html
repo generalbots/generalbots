@@ -1,0 +1,57 @@
+<!-- Settings → On-device AI (#2109). Local models only: the table is grouped
+     by VRAM tier, every row can be downloaded, activated or deleted, and the
+     active choice is stored in Vault. No provider API keys on this page. -->
+<section id="on-device-ai-section" class="settings-section" data-admin-only="true">
+    <div class="section-header">
+        <h1>On-device AI</h1>
+        <p class="subtitle">
+            Models that run on this machine. Download a model that fits the hardware,
+            activate it, and the local engine uses it on its next start. No API keys are
+            used here.
+        </p>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2>This device</h2>
+            <span class="subtitle" id="oda-hardware">Detecting hardware…</span>
+        </div>
+        <div class="oda-recommended" id="oda-recommended" hidden>
+            <div>
+                <span class="oda-recommended-label">Recommended for this machine</span>
+                <strong id="oda-recommended-model">—</strong>
+                <span class="oda-muted" id="oda-recommended-meta"></span>
+            </div>
+            <button type="button" class="btn-primary btn-sm" id="oda-recommended-action" hidden>
+                Activate
+            </button>
+        </div>
+        <div class="oda-muted" id="oda-disk"></div>
+    </div>
+
+    <div class="setting-card">
+        <div class="card-header">
+            <h2>Models</h2>
+            <button type="button" class="btn-secondary btn-sm" id="oda-refresh">Refresh</button>
+        </div>
+        <div class="oda-table-wrap">
+            <table class="oda-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Params</th>
+                        <th>Quant</th>
+                        <th>Size</th>
+                        <th>Min VRAM</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="oda-models">
+                    <tr><td colspan="7" class="oda-empty">Loading models…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="note" id="oda-status" role="status"></div>
+    </div>
+</section>

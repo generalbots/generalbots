@@ -3,10 +3,6 @@
 use super::*;
 use chrono::Duration;
 
-fn at(minutes_ago: i64) -> DateTime<Utc> {
-    Utc::now() - Duration::minutes(minutes_ago)
-}
-
 #[test]
 fn session_numbers_are_zero_padded_and_never_negative() {
     let cases = [

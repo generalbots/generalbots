@@ -2,7 +2,6 @@
 //! extension fallback.
 
 use super::{content_type_allowed, detect_from_extension, is_image, sanitize_filename};
-use std::str::FromStr;
 
 #[test]
 fn every_documented_type_is_accepted() {
