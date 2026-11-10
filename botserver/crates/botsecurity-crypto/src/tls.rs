@@ -364,3 +364,7 @@ impl TlsRegistry {
         &self.services
     }
 }
+
+#[cfg(test)]
+#[path = "tls_tests.rs"]
+mod tests;

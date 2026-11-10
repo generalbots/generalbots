@@ -335,3 +335,7 @@ impl MtlsManager {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "mutual_tls_tests.rs"]
+mod tests;
