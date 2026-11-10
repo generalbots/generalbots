@@ -1,3 +1,4 @@
+pub mod oauth_identity;
 pub mod providers;
 pub mod routes;
 pub mod schema;

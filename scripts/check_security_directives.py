@@ -42,6 +42,8 @@ Exit codes: 0 clean, 1 violations found.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import re
 import shutil
 import sys
@@ -84,6 +86,16 @@ COMBINATORS = {
     "into_make_service",
     "into_make_service_with_connect_info",
     "await",
+    # axum method routers: `get(handler)` is never a router builder.
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "head",
+    "options",
+    "any",
+    "on",
 }
 
 
@@ -94,6 +106,10 @@ class Exemption:
     reason: str
     evidence: str
     routes: tuple[str, ...]
+
+
+# `fn name` -> defining files, filled by `definition_index` once per run.
+_INDEX_CACHE: dict[str, dict[str, list[Path]]] = {}
 
 
 def route_surface(root: Path) -> list[Path]:
@@ -114,11 +130,21 @@ def rust_files(root: Path) -> list[Path]:
     base = root / "botserver"
     if not base.is_dir():
         return []
-    return [
-        path
-        for path in sorted(base.rglob("*.rs"))
-        if "target" not in path.parts and "tests" not in path.parts
-    ]
+    files: list[Path] = []
+    for path in sorted(base.rglob("*.rs")):
+        if "target" in path.parts:
+            continue
+        relative = path.relative_to(root).as_posix()
+        if "/tests/" in relative or path.name == "tests.rs" or path.name.endswith("_tests.rs"):
+            continue
+        files.append(path)
+    return files
+
+
+def code_before_tests(text: str) -> str:
+    """Drops `#[cfg(test)]` modules: test routers are not served."""
+    marker = text.find("#[cfg(test)]")
+    return text if marker == -1 else text[:marker]
 
 
 def line_of(text: str, index: int) -> int:
@@ -161,9 +187,25 @@ def state_changing_routes(text: str) -> list[tuple[str, int]]:
     return found
 
 
-def resolve_builder(root: Path, serving: Path, served: str) -> list[Path]:
+def definition_index(root: Path) -> dict[str, list[Path]]:
+    """`fn name` -> files defining it (built once per run)."""
+    cached = _INDEX_CACHE.get(str(root))
+    if cached is not None:
+        return cached
+    index: dict[str, list[Path]] = {}
+    for path in rust_files(root):
+        text = code_before_tests(path.read_text(encoding="utf-8", errors="replace"))
+        for name in re.findall(r"\bfn\s+([A-Za-z_][A-Za-z0-9_]*)", text):
+            index.setdefault(name, []).append(path)
+    _INDEX_CACHE[str(root)] = index
+    return index
+
+
+def resolve_builder(root: Path, serving: Path, served: str, depth: int = 0) -> list[Path]:
     """Files that build the router passed to `axum::serve` in `serving`."""
-    text = serving.read_text(encoding="utf-8", errors="replace")
+    if depth > 4:
+        return []
+    text = code_before_tests(serving.read_text(encoding="utf-8", errors="replace"))
     assign = re.compile(r"let\s+(?:mut\s+)?%s\s*=\s*(.+?);" % re.escape(served), re.S)
     match = assign.search(text)
     if not match:
@@ -175,18 +217,24 @@ def resolve_builder(root: Path, serving: Path, served: str) -> list[Path]:
         return []
     calls = [name for name in CALLED.findall(rhs) if name not in COMBINATORS]
     if not calls:
+        # `let service = gateway_router.into_make_service...()` -- follow the
+        # variable back to the `let` that built the router.
+        lead = IDENT.match(rhs.strip())
+        if lead and lead.group(0) != served:
+            return resolve_builder(root, serving, lead.group(0), depth + 1)
         return [serving]
-    builder = calls[0]
-    definitions = [
-        path
-        for path in rust_files(root)
-        if re.search(r"fn\s+%s\s*\(" % re.escape(builder), path.read_text(encoding="utf-8", errors="replace"))
-    ]
-    if not definitions:
+    index = definition_index(root)
+    candidates: list[Path] = []
+    for name in calls:
+        for path in index.get(name, []):
+            if path not in candidates:
+                candidates.append(path)
+    if serving in candidates:
+        # The router is built here and only wrapped by another call
+        # (`with_security_headers(router().with_state(state), ..)`).
         return [serving]
-    same_file = [path for path in definitions if path == serving]
-    if same_file:
-        return same_file
+    if not candidates:
+        return [serving]
     if "::" in rhs:
         segments = [
             segment
@@ -194,17 +242,17 @@ def resolve_builder(root: Path, serving: Path, served: str) -> list[Path]:
             if segment not in {"crate", "super", "self"}
         ]
         hint = segments[-2] if len(segments) >= 2 else ""
-        narrowed = [path for path in definitions if hint and hint in path.as_posix()]
+        narrowed = [path for path in candidates if hint and hint in path.as_posix()]
         if narrowed:
             return narrowed
-    return definitions
+    return candidates
 
 
 def standalone_router_files(root: Path) -> set[Path]:
     """Router-builder files served by a listener other than the main one."""
     standalone: set[Path] = set()
     for path in rust_files(root):
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = code_before_tests(path.read_text(encoding="utf-8", errors="replace"))
         if "axum::serve(" not in text:
             continue
         for call in SERVE_CALL.finditer(text):
@@ -258,8 +306,6 @@ def check_main_layers(root: Path, errors: list[str]) -> None:
         errors.append(f"{MAIN_BOOT}: the served router is not passed through apply_middleware")
     if "create_rate_limit_layer(" not in boot:
         errors.append(f"{MAIN_BOOT}: the rate limiter is never constructed (IMP-07)")
-    if "rate_limit_middleware" not in layers and "rate_limit" not in boot:
-        errors.append(f"{MAIN_BOOT}: no HTTP rate limit middleware is wired (IMP-07)")
 
 
 def check_ws_limit(root: Path, errors: list[str]) -> None:
@@ -295,7 +341,7 @@ def check_route_coverage(root: Path, errors: list[str]) -> int:
         if path.resolve() not in standalone:
             continue
         has_csrf = "csrf_middleware(" in text
-        has_limit = "rate_limit" in text
+        has_limit = "rate_limit" in text and ".layer(" in text
         if not has_csrf and relative not in exempted:
             where = ", ".join(f"{route} (line {line})" for route, line in routes)
             errors.append(
@@ -418,6 +464,27 @@ pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
 }
 
 
+PLANTED = "botserver/crates/fake/src/gateway_server/configure_gateway_routes.rs"
+
+PLANTED_ROUTER_FIXED = """
+pub fn configure_gateway_routes(state: Arc<GatewayState>) -> Router {
+    Router::new()
+        .route("/deploy", post(gateway_deploy))
+        .layer(axum::middleware::from_fn(rate_limit_middleware))
+}
+"""
+
+PLANTED_EXEMPTION = (
+    "max_entries = 1\n\n"
+    "[[exemption]]\n"
+    f'file = "{PLANTED}"\n'
+    'directive = "csrf"\n'
+    'reason = "machine-to-machine: X-Deploy-Key header, no cookie session"\n'
+    'evidence = "fn configure_gateway_routes"\n'
+    'routes = ["/deploy"]\n'
+)
+
+
 def write_fixture(root: Path) -> None:
     for relative, body in FIXTURE.items():
         path = root / relative
@@ -426,38 +493,54 @@ def write_fixture(root: Path) -> None:
 
 
 def self_test() -> int:
+    """Each scenario plants one violation and expects the gate to name it."""
+    problems: list[str] = []
     temp = Path(tempfile.mkdtemp(prefix="security-directives-"))
+    noise = io.StringIO()
+
+    def gate() -> int:
+        with contextlib.redirect_stdout(noise):
+            return run(temp)
+
     try:
         write_fixture(temp)
-        before = run(temp)
-        planted = "botserver/crates/fake/src/gateway_server/configure_gateway_routes.rs"
-        if before == 0:
-            print("self-test FAILED: a listener bypassing CSRF was not detected")
-            return 1
-        target = temp / planted
-        target.write_text(
-            target.read_text(encoding="utf-8")
-            + "\n// rate_limit: the fixture applies the canonical limiter\n",
-            encoding="utf-8",
-        )
-        (temp / EXEMPTIONS).write_text(
-            "max_entries = 1\n\n"
-            "[[exemption]]\n"
-            f'file = "{planted}"\n'
-            'directive = "csrf"\n'
-            'reason = "machine-to-machine: X-Deploy-Key header, no cookie session"\n'
-            'evidence = "fn configure_gateway_routes"\n'
-            'routes = ["/deploy"]\n',
-            encoding="utf-8",
-        )
-        after = run(temp)
-        if after != 0:
-            print("self-test FAILED: a documented exemption was not accepted")
-            return 1
-        print("self-test ok: planted violation failed, documented exemption passed")
-        return 0
+        if gate() == 0:
+            problems.append("a listener bypassing CSRF was not detected")
+
+        (temp / PLANTED).write_text(PLANTED_ROUTER_FIXED.lstrip(), encoding="utf-8")
+        (temp / EXEMPTIONS).write_text(PLANTED_EXEMPTION, encoding="utf-8")
+        if gate() != 0:
+            problems.append("a documented exemption was not accepted")
+
+        layers = temp / MAIN_LAYERS
+        original = layers.read_text(encoding="utf-8")
+        layers.write_text(original.replace("csrf_middleware(", "csrf_removed("), encoding="utf-8")
+        if gate() == 0:
+            problems.append("a removed CSRF layer was not detected")
+        layers.write_text(original, encoding="utf-8")
+
+        session = temp / WS_SESSION
+        original = session.read_text(encoding="utf-8")
+        session.write_text(original.replace("MessageLimiter::new()", "None"), encoding="utf-8")
+        if gate() == 0:
+            problems.append("an unwired WebSocket message limit was not detected")
+        session.write_text(original, encoding="utf-8")
+
+        (temp / EXEMPTIONS).write_text("max_entries = 0\n", encoding="utf-8")
+        if gate() == 0:
+            problems.append("a stale exemption (entry removed, route unlisted) was not detected")
     finally:
         shutil.rmtree(temp, ignore_errors=True)
+
+    if problems:
+        for problem in problems:
+            print(f"self-test FAILED: {problem}")
+        return 1
+    print(
+        "self-test ok: planted router/layer/WebSocket violations fail, "
+        "the documented exemption passes"
+    )
+    return 0
 
 
 def main() -> int:

@@ -385,3 +385,7 @@ pub fn format_currency(value: f64) -> String {
         format!("${:.0}", value)
     }
 }
+
+#[cfg(test)]
+#[path = "models_tests.rs"]
+mod models_tests;

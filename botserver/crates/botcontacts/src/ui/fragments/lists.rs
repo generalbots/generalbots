@@ -339,3 +339,7 @@ pub async fn handle_crm_accounts(
     html.push_str(&pager_bar("accounts", &filter_suffix(&query), total, offset));
     Html(html)
 }
+
+#[cfg(test)]
+#[path = "lists_tests.rs"]
+mod lists_tests;

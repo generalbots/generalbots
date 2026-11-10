@@ -14,8 +14,10 @@
  *   getUser()                                 — { id, name, color } for self
  *
  * Auth: pulls JWT from localStorage.gb-access-token; sends as ?token=... on
- * WebSocket upgrade. Server (Rust) validates with Zitadel provider; if absent,
- * server falls back to anonymous UUID so dev mode still works.
+ * WebSocket upgrade. Server (Rust) verifies the HS256 signature and expiry
+ * (botsecurity_core::verified_jwt). `/ws/slides/{id}` refuses an invalid token
+ * with 401 and never upgrades; `/ws/sheet/{id}` and `/ws/docs/{id}` still fall
+ * back to an anonymous UUID, so keep a token in storage there.
  */
 
 (function (window) {

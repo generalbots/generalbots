@@ -9,7 +9,13 @@ pub fn set_cors_allowed_origins(origins: Vec<String>) {
 pub fn get_cors_allowed_origins() -> Vec<String> {
     get_allowed_origins_from_config()
 }
-pub(super) fn validate_origin(origin: &HeaderValue, _request: &axum::http::request::Parts) -> bool {
+/// Predicate form of the origin check, kept for callers that build their own
+/// `CorsLayer`.
+///
+/// It fails closed: an empty configuration denies every cross-origin origin
+/// (#2129). Only an explicit allowlist entry, or the documented
+/// `CORS_ALLOW_ANY_ORIGIN=1` development override, can return `true`.
+pub fn validate_origin(origin: &HeaderValue, _request: &axum::http::request::Parts) -> bool {
     let origin_str = match origin.to_str() {
         Ok(s) => s,
         Err(_) => return false,
@@ -19,16 +25,11 @@ pub(super) fn validate_origin(origin: &HeaderValue, _request: &axum::http::reque
         return false;
     }
 
-    let config_origins = get_allowed_origins_from_config();
-    if !config_origins.is_empty() {
-        return config_origins.iter().any(|allowed| allowed == origin_str);
+    match resolve_origin_policy(&get_allowed_origins_from_config()) {
+        OriginPolicy::Deny => false,
+        OriginPolicy::Allowlist(origins) => origins.iter().any(|allowed| allowed == origin_str),
+        OriginPolicy::AnyNoCredentials => is_valid_origin_format(origin_str),
     }
-
-    if is_valid_origin_format(origin_str) {
-        return true;
-    }
-
-    false
 }
 pub(super) fn is_valid_origin_format(origin: &str) -> bool {
     // A request without an `Origin` header is same-origin by definition (a
@@ -66,36 +67,14 @@ pub(super) fn is_valid_origin_format(origin: &str) -> bool {
 
     true
 }
+/// Build the CORS layer for the process-wide configuration.
+///
+/// With no configured origin the result is same-origin only: no
+/// `Access-Control-Allow-Origin` is emitted for a foreign origin, so a browser
+/// blocks the cross-origin read (#2129).
 pub fn create_cors_layer() -> CorsLayer {
-    let config_origins = get_allowed_origins_from_config();
-
-    if !config_origins.is_empty() {
-        info!("Creating CORS layer with configured origins");
-        CorsConfig::production().with_origins(config_origins).build()
-    } else {
-        info!("Creating CORS layer with permissive defaults (no origins configured — allowing any valid HTTP/S origin)");
-        CorsLayer::new()
-            .allow_origin(AllowOrigin::predicate(validate_origin))
-            .allow_methods([
-                Method::GET, Method::POST, Method::PUT,
-                Method::DELETE, Method::PATCH, Method::OPTIONS, Method::HEAD,
-            ])
-            .allow_headers([
-                header::CONTENT_TYPE,
-                header::AUTHORIZATION,
-                header::ACCEPT,
-                header::ORIGIN,
-                header::HeaderName::from_static("x-request-id"),
-            ])
-            .expose_headers([
-                header::HeaderName::from_static("x-request-id"),
-                header::HeaderName::from_static("x-ratelimit-limit"),
-                header::HeaderName::from_static("x-ratelimit-remaining"),
-                header::HeaderName::from_static("retry-after"),
-            ])
-            .allow_credentials(true)
-            .max_age(std::time::Duration::from_secs(7200))
-    }
+    let configured = get_allowed_origins_from_config();
+    cors_layer_for_policy(resolve_origin_policy(&configured), "create_cors_layer")
 }
 /// Middleware that strips CORS headers from responses when the request
 /// came through a reverse proxy (detected via X-Forwarded-* headers).
@@ -123,13 +102,33 @@ pub async fn strip_proxy_cors_middleware(
 
     response
 }
+/// Production builder: an empty list means "no cross-origin access", exactly
+/// like the other builders (#2129).
 pub fn create_cors_layer_for_production(allowed_origins: Vec<String>) -> CorsLayer {
-    if allowed_origins.is_empty() {
-        CorsConfig::production().build()
-    } else {
-        CorsConfig::production().with_origins(allowed_origins).build()
-    }
+    cors_layer_for_policy(
+        resolve_origin_policy(&allowed_origins),
+        "create_cors_layer_for_production",
+    )
 }
+/// Explicit-allowlist builder. An empty list denies cross-origin access; it
+/// never falls back to reflecting the caller's origin (#2129).
 pub fn create_cors_layer_with_origins(origins: Vec<String>) -> CorsLayer {
-    CorsConfig::production().with_origins(origins).build()
+    cors_layer_for_policy(
+        resolve_origin_policy(&origins),
+        "create_cors_layer_with_origins",
+    )
+}
+fn cors_layer_for_policy(policy: OriginPolicy, context: &str) -> CorsLayer {
+    log_origin_policy(&policy, context);
+
+    let base = CorsConfig::production();
+
+    build_cors_layer(
+        &policy,
+        base.allowed_methods,
+        base.allowed_headers,
+        base.exposed_headers,
+        base.max_age_secs,
+        base.allow_credentials,
+    )
 }

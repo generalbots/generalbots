@@ -147,9 +147,14 @@ mod tests {
     }
 }
 
-mod from_config_value;
-mod set_cors_allowed_origins;
 mod allow_origin;
+mod from_config_value;
+mod origin_policy;
+mod set_cors_allowed_origins;
+
+#[cfg(test)]
+mod cors_tests;
 
 use from_config_value::*;
+pub use origin_policy::*;
 pub use set_cors_allowed_origins::*;

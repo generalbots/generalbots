@@ -39,11 +39,25 @@ pub fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<App
         pixel_url
     );
 
-    if html_body.to_lowercase().contains("</body>") {
-        html_body.replace("</body>", &format!("{}</body>", pixel_html))
-    } else {
-        format!("{}{}", html_body, pixel_html)
+    // The closing tag is matched case-insensitively: HTML mail commonly ships
+    // `</BODY>`, and a case-sensitive `replace` silently dropped the pixel, so
+    // reads of those messages were never counted.
+    match closing_body_offset(html_body) {
+        Some(index) => {
+            let mut out = String::with_capacity(html_body.len() + pixel_html.len());
+            out.push_str(&html_body[..index]);
+            out.push_str(&pixel_html);
+            out.push_str(&html_body[index..]);
+            out
+        }
+        None => format!("{html_body}{pixel_html}"),
     }
+}
+
+/// Byte offset of the first `</body>` tag, matched case-insensitively.
+fn closing_body_offset(html: &str) -> Option<usize> {
+    // `to_ascii_lowercase` only rewrites ASCII bytes, so offsets stay valid.
+    html.to_ascii_lowercase().find("</body>")
 }
 
 pub fn save_email_tracking_record(

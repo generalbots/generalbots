@@ -309,3 +309,7 @@ pub(super) fn resolve_user_id(conn: &mut diesel::PgConnection, value: &str) -> R
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}"))),
     }
 }
+
+#[cfg(test)]
+#[path = "get_bot_context_tests.rs"]
+mod get_bot_context_tests;

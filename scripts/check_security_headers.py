@@ -16,11 +16,14 @@ R1 serve-coverage   every `axum::serve(` site must serve a hardened router:
                     expression is a `configure_*_router()` factory (hardened
                     inside), or the file is listed in the allowlist with a
                     reason. Test files are skipped.
-R2 api-stack        `apply_middleware` (the botserver layer stack) must end in
+R2 router-factory   a `configure_*_router` factory must apply the layer (or
+                    delegate to a helper that does). R1 trusts a factory by
+                    name; R2 is what keeps that trust honest.
+R3 api-stack        `apply_middleware` (the botserver layer stack) must end in
                     `with_security_headers`, i.e. the header layer is the
                     outermost one and therefore covers 401/403/429/500.
-R3 header-set       the shared applier must still emit all six header names.
-R4 profile-intact   no `SecurityHeadersConfig` profile may set a required
+R4 header-set       the shared applier must still emit all six header names.
+R5 profile-intact   no `SecurityHeadersConfig` profile may set a required
                     header to `None` (a profile may widen a policy, never drop
                     the header).
 
@@ -242,10 +245,52 @@ def check_profiles(root: Path) -> list[Violation]:
     return violations
 
 
+def check_router_factories(root: Path) -> list[Violation]:
+    """R5 router-factory: a `configure_*_router` must harden its own router.
+
+    R1 trusts that a `configure_*_router()` factory is layered inside; this rule
+    is what keeps that trust honest — deleting the layer from the factory (or
+    from the helper it delegates to) fails here instead of silently unhardening
+    a server.
+    """
+    violations: list[Violation] = []
+    factory_name = re.compile(r"\bfn\s+(configure_[a-z_]*router)\b")
+    fn_name = re.compile(r"\bfn\s+([A-Za-z_]\w*)\b")
+    for path in rust_sources(root):
+        if is_test_file(path):
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        hardening_helpers: set[str] = set()
+        for index, line in enumerate(lines):
+            match = fn_name.search(line)
+            if match and LAYER_CALL in function_body(lines, index):
+                hardening_helpers.add(match.group(1))
+        for index, line in enumerate(lines):
+            match = factory_name.search(line)
+            if not match:
+                continue
+            body = function_body(lines, index)
+            if LAYER_CALL in body:
+                continue
+            if any(re.search(rf"\b{re.escape(helper)}\s*\(", body) for helper in hardening_helpers):
+                continue
+            violations.append(
+                Violation(
+                    path,
+                    index + 1,
+                    "router-factory",
+                    f"{match.group(1)} does not apply the IMP-09 header layer "
+                    f"({LAYER_CALL}...) nor delegate to a helper that does",
+                )
+            )
+    return violations
+
+
 def run_checks(root: Path) -> list[Violation]:
     allow = load_allowlist(root)
     violations: list[Violation] = []
     violations.extend(check_serve_coverage(root, allow))
+    violations.extend(check_router_factories(root))
     violations.extend(check_api_stack(root))
     violations.extend(check_header_set(root))
     violations.extend(check_profiles(root))
@@ -298,6 +343,14 @@ def self_test() -> int:
             failures.append("hardened factory reported as a violation")
 
         bad.write_text(
+            "pub fn configure_router() -> Router {\n    Router::new()\n}\n",
+            encoding="utf-8",
+        )
+        rules = {v.rule for v in run_checks(root)}
+        if "router-factory" not in rules:
+            failures.append("router-factory did not fire on an unhardened factory")
+
+        bad.write_text(
             "fn apply_middleware(app: Router) -> Router {\n    app\n}\n",
             encoding="utf-8",
         )
@@ -329,7 +382,10 @@ def self_test() -> int:
         print(f"self-test FAILED: {failure}", file=sys.stderr)
     if failures:
         return 1
-    print("self-test OK: serve-coverage, api-stack, header-set, profile-intact")
+    print(
+        "self-test OK: serve-coverage, router-factory, api-stack, header-set, "
+        "profile-intact"
+    )
     return 0
 
 

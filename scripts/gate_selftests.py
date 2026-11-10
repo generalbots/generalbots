@@ -150,7 +150,7 @@ def workflow_downloads(tmp: Path) -> Case:
     allowlist.write_text("# empty\n", encoding="utf-8")
     wf = workflows / "release.yml"
     verified = (
-        "jobs:\n  build:\n    steps:\n      - run: |\n"
+        "jobs:\n  build:\n    steps:\n      - name: fetch\n        run: |\n"
         "          curl -fsSL https://example.invalid/tool.tgz -o tool.tgz\n"
         f'          echo "{SHA}  tool.tgz" | sha256sum -c -\n'
     )
@@ -244,7 +244,7 @@ def app_budget(tmp: Path) -> Case:
     case.expect("within budget", CLEAN, _gate("app_complexity_budget.py", ["--budget", str(budget)]))
     text = budget.read_text(encoding="utf-8")
     marker = "loc = "
-    at = text.find(marker)
+    at = text.rfind(marker)
     if at < 0:
         case.failures.append("fixture budget has no loc ceiling")
         return case

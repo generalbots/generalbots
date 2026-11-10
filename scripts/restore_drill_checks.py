@@ -34,6 +34,10 @@ from pathlib import Path
 
 CORE_TABLES = ("organizations", "branches", "bots", "users")
 SCOPE_COLUMNS = ("org_id", "branch_id", "bot_id", "tenant_id")
+# `Uuid::nil()` is the documented global SaaS scope (`branch_id = nil`), not a
+# tenant: rows that carry it are excluded from the orphan/cross-tenant probes so
+# a legitimate global catalog row is not reported as an isolation failure.
+GLOBAL_SCOPE = "00000000-0000-0000-0000-000000000000"
 MIGRATIONS_TABLE = "__diesel_schema_migrations"
 MAX_DETAILS = 8
 TIMEOUT = 900
@@ -131,33 +135,34 @@ def migration_count(dsn: str, tables: list[str]) -> int:
 def probe_statements(inventory: dict[str, set[str]], tables: list[str]) -> dict[str, str]:
     """Cross-tenant probes: every one of them must return zero rows."""
     probes: dict[str, str] = {}
+    tenant = f"x.org_id is not null and x.org_id <> '{GLOBAL_SCOPE}'::uuid"
     for table in sorted(inventory):
         columns = inventory[table]
         target = f"public.{quote(table)} x"
         if "org_id" in columns and table != "organizations":
             probes[f"org_orphan:{table}"] = (
-                f"select count(*) from {target} where x.org_id is not null and not exists "
+                f"select count(*) from {target} where {tenant} and not exists "
                 "(select 1 from public.organizations o where o.org_id = x.org_id)"
             )
         if "branch_id" in columns and "org_id" in columns:
             probes[f"branch_cross_org:{table}"] = (
                 f"select count(*) from {target} join public.branches b on b.id = x.branch_id "
-                "where x.org_id is not null and b.org_id <> x.org_id"
+                f"where {tenant} and b.org_id <> x.org_id"
             )
         if "bot_id" in columns and "org_id" in columns:
             probes[f"bot_cross_org:{table}"] = (
                 f"select count(*) from {target} join public.bots b on b.id = x.bot_id "
-                "where x.org_id is not null and b.org_id <> x.org_id"
+                f"where {tenant} and b.org_id <> x.org_id"
             )
     if "bots" in tables and "branches" in tables:
         probes["bots_branch_cross_org"] = (
             "select count(*) from public.bots b join public.branches br on br.id = b.branch_id "
-            "where br.org_id <> b.org_id"
+            f"where b.org_id <> '{GLOBAL_SCOPE}'::uuid and br.org_id <> b.org_id"
         )
     if "branches" in tables and "organizations" in tables:
         probes["branches_org_orphan"] = (
-            "select count(*) from public.branches br where not exists "
-            "(select 1 from public.organizations o where o.org_id = br.org_id)"
+            f"select count(*) from public.branches br where br.org_id <> '{GLOBAL_SCOPE}'::uuid "
+            "and not exists (select 1 from public.organizations o where o.org_id = br.org_id)"
         )
     if "organizations" in tables and "tenants" in tables:
         probes["organizations_tenant_orphan"] = (
@@ -351,6 +356,9 @@ def fixture_self_test() -> int:
         failures.append(f"scratch URL rewrite is wrong: {swapped}")
     if mask("postgres://gb:secret@127.0.0.1:5432/botserver") != "postgres://***@127.0.0.1:5432/botserver":
         failures.append("mask() leaked credentials")
+    org_probe = probe_statements(inventory, ["bots", "branches", "messages", "organizations"])["org_orphan:messages"]
+    if GLOBAL_SCOPE not in org_probe:
+        failures.append("org probes must treat the nil UUID as the global scope, not as a tenant")
 
     if failures:
         for failure in failures:

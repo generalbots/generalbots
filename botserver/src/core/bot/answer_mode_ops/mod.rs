@@ -10,6 +10,7 @@ mod chart_answer;
 mod data_answer;
 mod html_render;
 mod llm_text;
+mod response_builder;
 mod session_state;
 mod sql_exec;
 

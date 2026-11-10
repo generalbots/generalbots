@@ -147,6 +147,14 @@ def load_budget(path: Path) -> tuple[dict[str, int], dict[str, dict[str, int]]]:
     return defaults, ceilings
 
 
+def _shown(path: Path) -> str:
+    """Path relative to the checkout when it is inside it, absolute otherwise."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def write_budget(path: Path, measured: dict[str, dict[str, int]], defaults: dict[str, int]) -> None:
     lines = [
         "# Per-app complexity budget (#2120).",
@@ -168,7 +176,7 @@ def write_budget(path: Path, measured: dict[str, dict[str, int]], defaults: dict
         lines.extend(f"{metric} = {measured[app][metric]}" for metric in METRICS)
         lines.append("")
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    print(f"app_complexity_budget: budget written to {path.relative_to(ROOT)}")
+    print(f"app_complexity_budget: budget written to {_shown(path)}")
 
 
 def main() -> int:
@@ -188,7 +196,7 @@ def main() -> int:
     if path.exists():
         defaults, ceilings = load_budget(path)
     elif not args.update:
-        print(f"app_complexity_budget: missing {path.relative_to(ROOT)} (run --update)", file=sys.stderr)
+        print(f"app_complexity_budget: missing {_shown(path)} (run --update)", file=sys.stderr)
         return 2
     else:
         ceilings = {}

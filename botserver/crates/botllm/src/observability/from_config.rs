@@ -224,3 +224,7 @@ impl ObservabilityManager {
         span.error = error;
     }
 }
+
+#[cfg(test)]
+#[path = "from_config_tests.rs"]
+mod from_config_tests;

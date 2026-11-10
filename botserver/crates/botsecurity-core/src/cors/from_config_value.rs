@@ -188,60 +188,31 @@ impl CorsConfig {
         self
     }
 
+    /// Build the layer through the shared fail-closed policy (#2129).
+    ///
+    /// An empty origin list — whether it comes from the struct or from the
+    /// process-wide configuration — means same-origin only: no
+    /// `Access-Control-Allow-Origin` is emitted. There is no reflective
+    /// fallback, and credentials are only announced for an explicitly listed
+    /// origin.
     pub fn build(self) -> CorsLayer {
-        let mut cors = CorsLayer::new();
-
-        if self.allowed_origins.is_empty() {
-            let allowed_env_origins = get_allowed_origins_from_config();
-            if allowed_env_origins.is_empty() {
-                cors = cors.allow_origin(AllowOrigin::predicate(validate_origin));
-            } else {
-                let origins: Vec<HeaderValue> = allowed_env_origins
-                    .iter()
-                    .filter_map(|o| o.parse().ok())
-                    .collect();
-                if origins.is_empty() {
-                    cors = cors.allow_origin(AllowOrigin::predicate(validate_origin));
-                } else {
-                    cors = cors.allow_origin(origins);
-                }
-            }
+        let configured = if self.allowed_origins.is_empty() {
+            get_allowed_origins_from_config()
         } else {
-            let origins: Vec<HeaderValue> = self
-                .allowed_origins
-                .iter()
-                .filter_map(|o| o.parse().ok())
-                .collect();
-            if origins.is_empty() {
-                cors = cors.allow_origin(AllowOrigin::predicate(validate_origin));
-            } else {
-                cors = cors.allow_origin(origins);
-            }
-        }
+            self.allowed_origins
+        };
 
-        cors = cors.allow_methods(self.allowed_methods);
+        let policy = resolve_origin_policy(&configured);
+        log_origin_policy(&policy, "CorsConfig::build");
 
-        let headers: Vec<header::HeaderName> = self
-            .allowed_headers
-            .iter()
-            .filter_map(|h| h.parse().ok())
-            .collect();
-        cors = cors.allow_headers(headers);
-
-        let exposed: Vec<header::HeaderName> = self
-            .exposed_headers
-            .iter()
-            .filter_map(|h| h.parse().ok())
-            .collect();
-        cors = cors.expose_headers(exposed);
-
-        if self.allow_credentials {
-            cors = cors.allow_credentials(true);
-        }
-
-        cors = cors.max_age(std::time::Duration::from_secs(self.max_age_secs));
-
-        cors
+        build_cors_layer(
+            &policy,
+            self.allowed_methods,
+            self.allowed_headers,
+            self.exposed_headers,
+            self.max_age_secs,
+            self.allow_credentials,
+        )
     }
 }
 pub(super) fn get_allowed_origins_from_config() -> Vec<String> {

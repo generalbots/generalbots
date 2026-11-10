@@ -171,6 +171,7 @@ GATES: tuple[Gate, ...] = (
         owner=2120,
         proves="The supported surface is bounded and owned",
         steps=(
+            ("python3", "scripts/product_profile_check.py", "--self-test"),
             ("python3", "scripts/product_profile_check.py"),
             ("python3", "scripts/app_complexity_budget.py"),
         ),
@@ -189,14 +190,20 @@ GATES: tuple[Gate, ...] = (
         title="AGENTS.md structural rules stay at or below the baseline",
         owner=1735,
         proves="No new `unwrap`, `table!` outside botschema, 450+ line file or CDN asset",
-        steps=(("python3", "scripts/adequacy_guard.py", "--baseline", "issues/adequacy/baseline.json"),),
+        steps=(
+            ("python3", "scripts/adequacy_guard.py", "--self-test"),
+            ("python3", "scripts/adequacy_guard.py", "--baseline", "issues/adequacy/baseline.json"),
+        ),
     ),
     Gate(
         id="i18n-lint",
         title="Fluent catalogs and the keys the UI asks for are consistent",
         owner=2090,
         proves="A new user-facing string cannot ship untranslated or unbalanced",
-        steps=(("python3", "scripts/i18n_lint.py", "--check"),),
+        steps=(
+            ("python3", "scripts/i18n_lint.py", "--self-test"),
+            ("python3", "scripts/i18n_lint.py", "--check"),
+        ),
         ok_detail="no new catalog violation",
         fixed_detail=True,
     ),
@@ -205,7 +212,10 @@ GATES: tuple[Gate, ...] = (
         title="Every `uses:` is a commit SHA and no workflow trusts a fork",
         owner=1726,
         proves="A retargeted action tag cannot execute with the repository token",
-        steps=(("python3", "scripts/check_workflow_pinning.py"),),
+        steps=(
+            ("python3", "scripts/check_workflow_pinning.py", "--self-test"),
+            ("python3", "scripts/check_workflow_pinning.py"),
+        ),
         ok_detail="every `uses:` is a commit SHA; no workflow trusts a fork",
         fixed_detail=True,
     ),

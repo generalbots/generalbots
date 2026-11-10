@@ -1,79 +1,286 @@
 use super::*;
 
+use crate::oauth_identity::{
+    normalize_email, resolve_oauth_identity, EmailOwner, LocalIdentityFacts, OAuthResolution,
+    OAUTH_NO_PASSWORD_HASH,
+};
+
+/// Result of the callback's identity step.
+///
+/// Only [`OAuthLoginOutcome::LoggedIn`] may mint a session; every other
+/// variant means "no local identity was proven for this caller" (#2134).
+pub(super) enum OAuthLoginOutcome {
+    LoggedIn(Uuid),
+    /// The provider email belongs to an existing local account. The caller
+    /// must sign in and link the provider from Settings → Accounts.
+    LinkRequired { provider: String },
+}
+
+/// Non-secret profile data copied into the `oauth_account_links` row.
+struct SubjectLink<'a> {
+    provider: &'a str,
+    provider_id: &'a str,
+    email: Option<&'a str>,
+    display_name: Option<&'a str>,
+    avatar_url: Option<&'a str>,
+}
+
+/// Resolves the provider identity to a local user.
+///
+/// The provider subject `(provider, provider_id)` is the only login identity.
+/// An email returned by the provider is used at most to *propose* adopting a
+/// password-less account that an earlier OAuth flow created, and only when the
+/// provider asserted it as verified (#2134).
 pub(super) async fn create_or_get_oauth_user(
     state: &OAuthState_,
     user_info: &OAuthUserInfo,
-) -> anyhow::Result<Uuid> {
+) -> anyhow::Result<OAuthLoginOutcome> {
     let conn = state.conn.clone();
-    let provider_id = user_info.provider_id.clone();
     let provider = user_info.provider.to_string().to_lowercase();
-    let user_email = user_info.email.clone();
-    let display_name = user_info.name.clone().unwrap_or_else(|| "OAuth User".to_string());
+    let provider_id = user_info.provider_id.trim().to_string();
+
+    if provider_id.is_empty() {
+        return Err(anyhow!(
+            "OAuth provider {provider} returned an empty subject"
+        ));
+    }
+
+    let email = normalize_email(user_info.email.as_deref());
+    let email_verified = user_info.email_verified.unwrap_or(false);
+    let display_name = user_info.name.clone();
+    let avatar_url = user_info.avatar_url.clone();
 
     tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| anyhow!("DB connection error: {}", e))?;
+        let mut db_conn = conn.get().map_err(|e| anyhow!("DB connection error: {e}"))?;
+        let db: &mut diesel::PgConnection = &mut db_conn;
 
-        use diesel::prelude::*;
-        use crate::schema::users;
-
-        let existing_user: Option<Uuid> = if let Some(ref email_addr) = user_email {
-            users::dsl::users
-                .filter(users::dsl::email.eq(email_addr))
-                .select(users::dsl::id)
-                .first(&mut db_conn)
-                .optional()
-                .map_err(|e| anyhow!("DB error: {}", e))?
-        } else {
-            let oauth_username = format!("{}_{}", provider, provider_id);
-            users::dsl::users
-                .filter(users::dsl::username.eq(&oauth_username))
-                .select(users::dsl::id)
-                .first(&mut db_conn)
-                .optional()
-                .map_err(|e| anyhow!("DB error: {}", e))?
+        let link = SubjectLink {
+            provider: &provider,
+            provider_id: &provider_id,
+            email: email.as_deref(),
+            display_name: display_name.as_deref(),
+            avatar_url: avatar_url.as_deref(),
         };
 
-        if let Some(user_id) = existing_user {
-            return Ok(user_id);
+        let facts = load_identity_facts(db, &provider, &provider_id, email.as_deref())?;
+
+        match resolve_oauth_identity(email.as_deref(), email_verified, &facts) {
+            OAuthResolution::Login(user_id) => {
+                botlog::safe_debug!(
+                    "OAuth login for bound subject {provider}:{provider_id} -> {user_id}"
+                );
+                Ok(OAuthLoginOutcome::LoggedIn(user_id))
+            }
+            OAuthResolution::Adopt(user_id) => {
+                if bind_subject(db, user_id, &link)? {
+                    botlog::safe_debug!(
+                        "OAuth adopted password-less account {user_id} for verified email"
+                    );
+                    Ok(OAuthLoginOutcome::LoggedIn(user_id))
+                } else {
+                    warn!(
+                        "OAuth link conflict: {provider}:{provider_id} is already bound elsewhere"
+                    );
+                    Ok(OAuthLoginOutcome::LinkRequired { provider })
+                }
+            }
+            OAuthResolution::Create {
+                email: account_email,
+            } => {
+                let user_id = db
+                    .transaction::<Uuid, anyhow::Error, _>(|tx| {
+                        let user_id = insert_oauth_user(
+                            tx,
+                            &provider,
+                            &provider_id,
+                            account_email.as_deref(),
+                            display_name.as_deref(),
+                        )?;
+                        if !bind_subject(tx, user_id, &link)? {
+                            return Err(anyhow!("oauth link conflict for new user"));
+                        }
+                        Ok(user_id)
+                    })?;
+                botlog::safe_debug!(
+                    "Created OAuth user {user_id} for subject {provider}:{provider_id}"
+                );
+                Ok(OAuthLoginOutcome::LoggedIn(user_id))
+            }
+            OAuthResolution::LinkRequired { .. } => {
+                warn!(
+                    "OAuth login refused for {provider}:{provider_id}: email already owns a local account"
+                );
+                Ok(OAuthLoginOutcome::LinkRequired { provider })
+            }
         }
-
-        let new_user_id = Uuid::new_v4();
-
-        let sanitized_name: String = display_name
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
-            .take(20)
-            .collect();
-
-        let oauth_username = if sanitized_name.is_empty() {
-            format!("{}_{}", provider, &provider_id[..8.min(provider_id.len())])
-        } else {
-            format!("{}_{}", sanitized_name, &provider_id[..6.min(provider_id.len())])
-        };
-
-        let user_email_value = user_email.unwrap_or_else(|| format!("{}@oauth.local", oauth_username));
-
-        diesel::insert_into(users::dsl::users)
-            .values((
-                users::dsl::id.eq(new_user_id),
-                users::dsl::username.eq(&oauth_username),
-                users::dsl::email.eq(&user_email_value),
-                users::dsl::password_hash.eq("OAUTH_USER_NO_PASSWORD"),
-                users::dsl::is_active.eq(true),
-                users::dsl::is_admin.eq(false),
-                users::dsl::created_at.eq(diesel::dsl::now),
-                users::dsl::updated_at.eq(diesel::dsl::now),
-            ))
-            .execute(&mut db_conn)
-            .map_err(|e| anyhow!("Failed to create user: {}", e))?;
-
-        botlog::safe_debug!("Created OAuth user: {} ({}) for provider {}", oauth_username, user_email_value, provider);
-
-        Ok(new_user_id)
     })
     .await
-    .map_err(|e| anyhow!("Task error: {}", e))?
+    .map_err(|e| anyhow!("Task error: {e}"))?
 }
+
+/// One row of `oauth_account_links` reduced to the identity we need.
+#[derive(diesel::QueryableByName)]
+struct LinkRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    user_id: Uuid,
+}
+
+/// The columns of `users` that decide whether an email may be adopted.
+#[derive(diesel::QueryableByName)]
+struct UserRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    is_admin: bool,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    password_hash: String,
+}
+
+/// Reads the bound subject and the owner of the (normalized) provider email.
+fn load_identity_facts(
+    db: &mut diesel::PgConnection,
+    provider: &str,
+    provider_id: &str,
+    email: Option<&str>,
+) -> anyhow::Result<LocalIdentityFacts> {
+    let linked_user_id = diesel::sql_query(
+        "SELECT user_id FROM oauth_account_links \
+         WHERE provider = $1 AND provider_user_id = $2 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(provider)
+    .bind::<diesel::sql_types::Text, _>(provider_id)
+    .load::<LinkRow>(db)
+    .map_err(|e| anyhow!("oauth link lookup failed: {e}"))?
+    .into_iter()
+    .next()
+    .map(|row| row.user_id);
+
+    let email_owner = match email {
+        Some(address) => diesel::sql_query(
+            "SELECT id, is_admin, password_hash FROM users \
+             WHERE lower(email) = $1 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(address)
+        .load::<UserRow>(db)
+        .map_err(|e| anyhow!("user lookup by email failed: {e}"))?
+        .into_iter()
+        .next()
+        .map(|row| EmailOwner {
+            user_id: row.id,
+            is_admin: row.is_admin,
+            has_password: !row.password_hash.is_empty()
+                && row.password_hash != OAUTH_NO_PASSWORD_HASH,
+        }),
+        None => None,
+    };
+
+    Ok(LocalIdentityFacts {
+        linked_user_id,
+        email_owner,
+    })
+}
+
+/// Binds `(provider, provider_id)` to `user_id`.
+///
+/// Returns `false` when the pair or the user's slot for that provider is
+/// already taken by a different identity — the caller must then refuse the
+/// login instead of rebinding.
+fn bind_subject(
+    db: &mut diesel::PgConnection,
+    user_id: Uuid,
+    link: &SubjectLink<'_>,
+) -> anyhow::Result<bool> {
+    diesel::sql_query(
+        "INSERT INTO oauth_account_links \
+         (id, user_id, provider, provider_user_id, email, display_name, avatar_url, linked_at, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .bind::<diesel::sql_types::Text, _>(link.provider)
+    .bind::<diesel::sql_types::Text, _>(link.provider_id)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.email)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.display_name)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(link.avatar_url)
+    .execute(db)
+    .map_err(|e| anyhow!("oauth link insert failed: {e}"))?;
+
+    let bound = diesel::sql_query(
+        "SELECT user_id FROM oauth_account_links \
+         WHERE provider = $1 AND provider_user_id = $2 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(link.provider)
+    .bind::<diesel::sql_types::Text, _>(link.provider_id)
+    .load::<LinkRow>(db)
+    .map_err(|e| anyhow!("oauth link re-read failed: {e}"))?
+    .into_iter()
+    .next()
+    .map(|row| row.user_id);
+
+    Ok(bound == Some(user_id))
+}
+
+/// Builds a unique, readable username for a freshly created OAuth account.
+///
+/// `users.username` is UNIQUE, and provider subjects can share long prefixes
+/// (Discord snowflakes carry a timestamp), so the subject is kept in full
+/// rather than truncated to a few characters.
+fn oauth_username(provider: &str, provider_id: &str, display_name: Option<&str>) -> String {
+    let sanitized: String = display_name
+        .unwrap_or_default()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .take(20)
+        .collect();
+    let subject: String = provider_id.chars().take(64).collect();
+
+    if sanitized.is_empty() {
+        format!("{provider}_{subject}")
+    } else {
+        format!("{sanitized}_{provider}_{subject}")
+    }
+}
+
+/// Creates the local row for a new OAuth identity.
+///
+/// The account is never an administrator, and only a provider-verified email
+/// becomes `users.email`; an unverified claim stays in the link row as
+/// metadata so it can never win an email-based lookup elsewhere.
+fn insert_oauth_user(
+    db: &mut diesel::PgConnection,
+    provider: &str,
+    provider_id: &str,
+    verified_email: Option<&str>,
+    display_name: Option<&str>,
+) -> anyhow::Result<Uuid> {
+    use crate::schema::users;
+    use diesel::prelude::*;
+
+    let user_id = Uuid::new_v4();
+    let username = oauth_username(provider, provider_id, display_name);
+    let email = match verified_email {
+        Some(address) => address.to_string(),
+        None => format!("{username}@oauth.local"),
+    };
+
+    diesel::insert_into(users::dsl::users)
+        .values((
+            users::dsl::id.eq(user_id),
+            users::dsl::username.eq(&username),
+            users::dsl::email.eq(&email),
+            users::dsl::password_hash.eq(OAUTH_NO_PASSWORD_HASH),
+            users::dsl::is_active.eq(true),
+            users::dsl::is_admin.eq(false),
+            users::dsl::created_at.eq(diesel::dsl::now),
+            users::dsl::updated_at.eq(diesel::dsl::now),
+        ))
+        .execute(db)
+        .map_err(|e| anyhow!("Failed to create user: {e}"))?;
+
+    Ok(user_id)
+}
+
 pub(super) async fn create_user_session(state: &OAuthState_, user_id: Uuid) -> anyhow::Result<String> {
     let conn = state.conn.clone();
     let (bot_id, branch_id) = tokio::task::spawn_blocking(move || {

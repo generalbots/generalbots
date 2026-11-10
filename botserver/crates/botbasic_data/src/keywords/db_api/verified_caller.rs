@@ -12,7 +12,7 @@
 //! * the [`AuthenticatedUser`] request extension the global auth middleware
 //!   inserts after it verified a bearer JWT, API key or session cookie, or
 //! * the `Authorization: Bearer` credential itself, verified against the SaaS
-//!   JWT secret by [`botsecurity_core::verified_jwt`] — the same verifier cloud
+//!   JWT secret by `botsecurity_core::verified_jwt` — the same verifier cloud
 //!   login uses and the same one that accepts the signed `api.exec` loopback
 //!   assertion (`gb_aud`/`scope`, HS256 with the SaaS secret), so an internal
 //!   call is authenticated by a signature instead of by headers.
@@ -27,6 +27,7 @@ use axum::Extension;
 use botsecurity::auth::{AuthenticatedUser, Role};
 use botsecurity::botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt};
 use diesel::sql_types::{Text, Uuid as SqlUuid};
+use diesel::QueryableByName;
 
 /// Why a caller could not be verified.
 ///
@@ -40,12 +41,13 @@ pub(crate) enum DbApiAuthError {
 impl DbApiAuthError {
     /// Renders the rejection. Every variant is a `401` — fail closed.
     pub(crate) fn into_response(self) -> axum::response::Response {
-        let DbApiAuthError::Unauthenticated = self;
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "authentication required" })),
-        )
-            .into_response()
+        match self {
+            DbApiAuthError::Unauthenticated => (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "error": "authentication required" })),
+            )
+                .into_response(),
+        }
     }
 }
 
@@ -136,15 +138,60 @@ impl VerifiedCaller {
     /// yields *fewer* roles (deny), never a default one.
     pub(crate) fn user_roles(&self, conn: &mut diesel::PgConnection) -> UserRoles {
         let mut roles = self.roles.clone();
-        for group in active_group_roles(conn, self.user_id) {
-            if !roles.contains(&group) {
-                roles.push(group);
+        merge_roles(&mut roles, active_group_roles(conn, self.user_id));
+
+        // Identity-id derivation drift (#808): older deployments stored the
+        // memberships under the canonical `users` row for the same email, so a
+        // derived id finds none. Mirrors `resolve_user_role_with_email` — the
+        // email comes from the verified credential, never from a header.
+        if roles.len() == self.roles.len() {
+            if let Some(canonical) = self.canonical_user_id(conn) {
+                if canonical != self.user_id {
+                    merge_roles(&mut roles, active_group_roles(conn, canonical));
+                }
             }
         }
+
         if self.user_id.is_nil() {
             UserRoles::new(roles)
         } else {
             UserRoles::with_user_id(roles, self.user_id)
+        }
+    }
+
+    /// The `users` row that owns the verified email, when it differs from the
+    /// derived id.
+    fn canonical_user_id(&self, conn: &mut diesel::PgConnection) -> Option<Uuid> {
+        let email = self.email.as_deref()?;
+
+        #[derive(QueryableByName)]
+        struct IdRow {
+            #[diesel(sql_type = SqlUuid)]
+            id: Uuid,
+        }
+
+        let row: Result<Option<IdRow>, _> = diesel::sql_query(
+            "SELECT id FROM users WHERE lower(email) = lower($1) AND is_active = true LIMIT 1",
+        )
+        .bind::<Text, _>(email)
+        .get_result(conn)
+        .optional();
+
+        match row {
+            Ok(row) => row.map(|row| row.id),
+            Err(error) => {
+                botlog::safe_warn!("db_api: canonical user lookup failed: {error}");
+                None
+            }
+        }
+    }
+}
+
+/// Adds role names that are not already present, preserving the verified order.
+fn merge_roles(target: &mut Vec<String>, names: Vec<String>) {
+    for name in names {
+        if !target.contains(&name) {
+            target.push(name);
         }
     }
 }

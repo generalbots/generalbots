@@ -5,11 +5,15 @@
 //! the same thing it means in production.
 
 use super::*;
+use axum::http::{HeaderMap, StatusCode};
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine as _;
+use botsecurity::auth::{AuthenticatedUser, Role};
 use botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret;
 use hmac::{Hmac, Mac};
+use serde_json::{json, Value};
 use sha2::Sha256;
+use uuid::Uuid;
 
 fn secret() -> String {
     resolve_saas_jwt_secret()

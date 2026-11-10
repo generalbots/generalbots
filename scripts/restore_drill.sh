@@ -37,7 +37,7 @@ verify_only="0"
 self_test="0"
 
 usage() {
-  sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 while [ $# -gt 0 ]; do
@@ -87,7 +87,8 @@ fi
 
 drop_scratch() {
   if [ "$scratch_created" = "1" ]; then
-    if psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\" with (force)" >/dev/null 2>&1; then
+    if psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\" with (force)" >/dev/null 2>&1 ||
+       psql "$dsn" -v ON_ERROR_STOP=1 -q -c "drop database if exists \"$scratch\"" >/dev/null 2>&1; then
       echo "-- dropped throwaway database: $scratch"
     else
       echo "warning: could not drop $scratch — drop it by hand: dropdb $scratch" >&2
@@ -139,6 +140,10 @@ if [ -z "$dump" ]; then
   python3 "$checks" --dsn "$dsn" --manifest "$expected"
 elif [ -z "$expected" ] && [ -f "${dump}.manifest.json" ]; then
   expected="${dump}.manifest.json"
+fi
+if [ -z "$expected" ]; then
+  echo "note: no manifest for $(basename "$dump") — asserting schema and tenancy only;" >&2
+  echo "      pass --expected <file> (or keep <dump>.manifest.json next to it) for row counts" >&2
 fi
 
 note="\`$(basename "$dump")\` restored with pg_restore --exit-on-error"
