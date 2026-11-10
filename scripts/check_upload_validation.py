@@ -70,9 +70,9 @@ class Handler:
 @dataclass
 class Report:
     handlers: list[Handler] = field(default_factory=list)
+    allowlisted: set[str] = field(default_factory=set)
     violations: list[str] = field(default_factory=list)
     stale_allowlist: list[str] = field(default_factory=list)
-    unused_allowlist: list[str] = field(default_factory=list)
 
 
 def iter_sources() -> list[Path]:
@@ -167,17 +167,14 @@ def scan() -> Report:
                 continue
             if handler.key in allow:
                 matched_allow.add(handler.key)
+                report.allowlisted.add(handler.key)
                 continue
             report.violations.append(
                 f"{rel}:{function}: {kind} handler does not call "
                 f"botsecurity_core::upload_policy::validate_upload"
             )
 
-    for key in allow:
-        if key not in matched_allow:
-            report.unused_allowlist.append(key)
-
-    report.stale_allowlist = list(report.unused_allowlist)
+    report.stale_allowlist = [key for key in allow if key not in matched_allow]
     return report
 
 
@@ -185,7 +182,12 @@ def render(report: Report) -> str:
     lines = ["Upload surfaces (#2132):", ""]
     width = max((len(h.path) for h in report.handlers), default=10)
     for handler in report.handlers:
-        state = "validated" if handler.validator else "NOT VALIDATED"
+        if handler.validator:
+            state = "validated"
+        elif handler.key in report.allowlisted:
+            state = "allowlisted"
+        else:
+            state = "NOT VALIDATED"
         size = "size-precheck" if handler.size_check else "-"
         lines.append(
             f"  {handler.path:<{width}}  {handler.function:<40} "
@@ -193,9 +195,11 @@ def render(report: Report) -> str:
         )
 
     lines.append("")
-    lines.append(f"handlers: {len(report.handlers)}  "
-                 f"validated: {sum(1 for h in report.handlers if h.validator)}  "
-                 f"allowlisted: {len(load_allowlist())}")
+    lines.append(
+        f"handlers: {len(report.handlers)}  "
+        f"validated: {sum(1 for h in report.handlers if h.validator)}  "
+        f"allowlisted: {len(report.allowlisted)}"
+    )
 
     if report.violations:
         lines.append("")

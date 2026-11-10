@@ -63,24 +63,48 @@ fn error_shapes() -> Router {
 }
 
 #[tokio::test]
-async fn the_suite_router_serves_health_with_every_header() {
+async fn the_suite_router_answers_a_200_with_every_header() {
+    let (status, headers) = send(configure_router(), "/favicon.ico").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_all_six(&headers, "suite 200");
+}
+
+#[tokio::test]
+async fn the_cloud_router_answers_a_200_with_every_header() {
+    let (status, headers) = send(configure_cloud_router(), "/store").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_all_six(&headers, "cloud 200");
+}
+
+#[tokio::test]
+async fn the_login_router_answers_a_200_with_every_header() {
+    let (status, headers) = send(configure_login_router(), "/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_all_six(&headers, "login 200");
+}
+
+// `/health` reports 503 when botserver is unreachable — the exact shape of an
+// error response a browser sees in production during a backend restart, so it
+// is the error case each real router is checked against.
+#[tokio::test]
+async fn the_suite_router_answers_a_503_with_every_header() {
     let (status, headers) = send(configure_router(), "/health").await;
-    assert_eq!(status, StatusCode::OK);
-    assert_all_six(&headers, "suite /health");
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_all_six(&headers, "suite 503");
 }
 
 #[tokio::test]
-async fn the_cloud_router_serves_health_with_every_header() {
+async fn the_cloud_router_answers_a_503_with_every_header() {
     let (status, headers) = send(configure_cloud_router(), "/health").await;
-    assert_eq!(status, StatusCode::OK);
-    assert_all_six(&headers, "cloud /health");
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_all_six(&headers, "cloud 503");
 }
 
 #[tokio::test]
-async fn the_login_router_serves_health_with_every_header() {
+async fn the_login_router_answers_a_503_with_every_header() {
     let (status, headers) = send(configure_login_router(), "/health").await;
-    assert_eq!(status, StatusCode::OK);
-    assert_all_six(&headers, "login /health");
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_all_six(&headers, "login 503");
 }
 
 #[tokio::test]

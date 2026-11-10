@@ -57,10 +57,21 @@ pub fn jwt_is_admin(headers: &HeaderMap, pool: &DbPool) -> bool {
 /// those the RBAC groups decide, exactly like `resolve_user_role` does for the
 /// rest of the API.
 pub fn claims_are_admin(claims: &VerifiedJwt, pool: &DbPool) -> bool {
-    if !claims.roles.is_empty() {
-        return claims.roles.iter().any(|role| role == ADMIN_ROLE);
+    match roles_decide_admin(&claims.roles) {
+        Some(admin) => admin,
+        None => rbac_says_admin(pool, claims),
     }
-    rbac_says_admin(pool, claims)
+}
+
+/// The decision the signed role claims alone can make.
+///
+/// `None` means the token states no role, so the answer has to come from the
+/// server-side RBAC resolver — it is never inferred from an unverified source.
+fn roles_decide_admin(roles: &[String]) -> Option<bool> {
+    if roles.is_empty() {
+        return None;
+    }
+    Some(roles.iter().any(|role| role == ADMIN_ROLE))
 }
 
 /// Resolves the role from the RBAC tables for a token without role claims.

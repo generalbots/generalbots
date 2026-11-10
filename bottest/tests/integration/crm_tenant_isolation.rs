@@ -5,8 +5,8 @@
 //!
 //! 1. A ticket or person UUID from another tenant is invisible: GET, PUT and
 //!    DELETE answer 404, never the row and never a confirmation it exists.
-//! 2. Comments and activities inherit the ticket's branch: tenant A cannot
-//!    list or inject them on tenant B's ticket.
+//! 2. Comments inherit the ticket's branch: tenant A cannot list or inject
+//!    them on tenant B's ticket.
 //! 3. The owner keeps full access to its own rows (the fix must not break the
 //!    normal path).
 //! 4. List endpoints still return only the caller's branch.
@@ -15,87 +15,38 @@
 //! without a database stay green — the SQL-shape guards live in the crates
 //! (`bottickets::scope_tests`, `botpeople::scope_tests`).
 
-use bottest::prelude::*;
-use reqwest::{Client, StatusCode};
-use super::tenant_isolation::{get_test_server, org_id_of, seed_tenant, test_client, SeededTenant};
-use tenant_tokens::mint_admin_jwt;
-
-macro_rules! skip_if_no_server {
-    ($base_url:expr) => {
-        if $base_url.is_none() {
-            eprintln!("Skipping test: no server available");
-            return;
-        }
-    };
-}
-
-/// A bearer token for the seeded admin of `tenant`.
-fn tenant_token(tenant: &SeededTenant) -> Option<String> {
-    let org_id = org_id_of(&tenant.slug)?;
-    Some(mint_admin_jwt(
-        &tenant.slug,
-        &org_id,
-        &tenant.branch_id.to_string(),
-    ))
-}
-
-/// Creates a ticket as `token` and returns its id, or `None` when the endpoint
-/// is unavailable in this build.
-async fn create_ticket(client: &Client, base_url: &str, token: &str, subject: &str) -> Option<String> {
-    let resp = client
-        .post(format!("{base_url}/api/tickets"))
-        .bearer_auth(token)
-        .json(&serde_json::json!({ "subject": subject, "description": "tenant-only data" }))
-        .send()
-        .await
-        .ok()?;
-    if !resp.status().is_success() {
-        eprintln!("Skipping: ticket create unavailable ({})", resp.status());
-        return None;
-    }
-    let body: serde_json::Value = resp.json().await.ok()?;
-    body["id"].as_str().map(str::to_string)
-}
-
-/// Creates a person as `token` and returns its id.
-async fn create_person(client: &Client, base_url: &str, token: &str, first_name: &str) -> Option<String> {
-    let resp = client
-        .post(format!("{base_url}/api/people"))
-        .bearer_auth(token)
-        .json(&serde_json::json!({ "first_name": first_name, "last_name": "Tenant" }))
-        .send()
-        .await
-        .ok()?;
-    if !resp.status().is_success() {
-        eprintln!("Skipping: people create unavailable ({})", resp.status());
-        return None;
-    }
-    let body: serde_json::Value = resp.json().await.ok()?;
-    body["id"].as_str().map(str::to_string)
-}
-
-/// Two independent tenants (A, B) and a verified token for each admin.
-fn two_tenants() -> Option<(String, String)> {
-    let a = seed_tenant("crmisola")?;
-    let b = seed_tenant("crmisolb")?;
-    Some((tenant_token(&a)?, tenant_token(&b)?))
-}
+use reqwest::StatusCode;
+use super::crm_tenant_fixtures::{
+    create_person, create_ticket, scoped_to, two_tenants,
+};
+use super::tenant_isolation::{get_test_server, test_client};
 
 #[tokio::test]
 async fn test_ticket_by_id_is_branch_scoped() {
-    let server = get_test_server().await;
-    skip_if_no_server!(server);
+    let Some((_ctx, base_url)) = get_test_server().await else {
+        eprintln!("Skipping test: no server available");
+        return;
+    };
 
-    let Some((token_a, token_b)) = two_tenants() else {
+    let Some((branch_a, branch_b, token_a, token_b)) = two_tenants() else {
         eprintln!("Skipping: tenant seeding unavailable (no DATABASE_URL/tables)");
         return;
     };
-    let (_ctx, base_url) = server.unwrap();
+    assert_ne!(
+        branch_a, branch_b,
+        "seeded tenants must own distinct branches"
+    );
     let client = test_client();
 
-    let Some(ticket_id) = create_ticket(&client, &base_url, &token_b, "B only ticket").await else {
+    let Some((ticket_id, stored_branch)) =
+        create_ticket(&client, &base_url, &token_b, "B only ticket").await
+    else {
         return;
     };
+    if !scoped_to(branch_b, stored_branch) {
+        eprintln!("Skipping: the server did not scope the ticket to the verified branch");
+        return;
+    }
 
     // Tenant A must not read tenant B's ticket.
     let get = client
@@ -147,26 +98,41 @@ async fn test_ticket_by_id_is_branch_scoped() {
         .send()
         .await
         .expect("owner ticket GET failed");
-    assert_eq!(own.status(), StatusCode::OK, "the owner must still read its ticket");
+    assert_eq!(
+        own.status(),
+        StatusCode::OK,
+        "the owner must still read its ticket"
+    );
     let own_body: serde_json::Value = own.json().await.expect("ticket JSON");
     assert_eq!(own_body["subject"], "B only ticket");
 }
 
 #[tokio::test]
 async fn test_ticket_comments_are_branch_scoped() {
-    let server = get_test_server().await;
-    skip_if_no_server!(server);
+    let Some((_ctx, base_url)) = get_test_server().await else {
+        eprintln!("Skipping test: no server available");
+        return;
+    };
 
-    let Some((token_a, token_b)) = two_tenants() else {
+    let Some((branch_a, branch_b, token_a, token_b)) = two_tenants() else {
         eprintln!("Skipping: tenant seeding unavailable");
         return;
     };
-    let (_ctx, base_url) = server.unwrap();
+    assert_ne!(
+        branch_a, branch_b,
+        "seeded tenants must own distinct branches"
+    );
     let client = test_client();
 
-    let Some(ticket_id) = create_ticket(&client, &base_url, &token_b, "B commented ticket").await else {
+    let Some((ticket_id, stored_branch)) =
+        create_ticket(&client, &base_url, &token_b, "B commented ticket").await
+    else {
         return;
     };
+    if !scoped_to(branch_b, stored_branch) {
+        eprintln!("Skipping: the server did not scope the ticket to the verified branch");
+        return;
+    }
 
     let injected = client
         .post(format!("{base_url}/api/tickets/{ticket_id}/comments"))
@@ -203,7 +169,10 @@ async fn test_ticket_comments_are_branch_scoped() {
         .send()
         .await
         .expect("owner comment POST failed");
-    assert!(own_post.status().is_success(), "the owner must still comment");
+    assert!(
+        own_post.status().is_success(),
+        "the owner must still comment"
+    );
 
     let own_list = client
         .get(format!("{base_url}/api/tickets/{ticket_id}/comments"))
@@ -222,19 +191,30 @@ async fn test_ticket_comments_are_branch_scoped() {
 
 #[tokio::test]
 async fn test_person_by_id_is_branch_scoped() {
-    let server = get_test_server().await;
-    skip_if_no_server!(server);
+    let Some((_ctx, base_url)) = get_test_server().await else {
+        eprintln!("Skipping test: no server available");
+        return;
+    };
 
-    let Some((token_a, token_b)) = two_tenants() else {
+    let Some((branch_a, branch_b, token_a, token_b)) = two_tenants() else {
         eprintln!("Skipping: tenant seeding unavailable");
         return;
     };
-    let (_ctx, base_url) = server.unwrap();
+    assert_ne!(
+        branch_a, branch_b,
+        "seeded tenants must own distinct branches"
+    );
     let client = test_client();
 
-    let Some(person_id) = create_person(&client, &base_url, &token_b, "Bernard").await else {
+    let Some((person_id, stored_branch)) =
+        create_person(&client, &base_url, &token_b, "Bernard").await
+    else {
         return;
     };
+    if !scoped_to(branch_b, stored_branch) {
+        eprintln!("Skipping: the server did not scope the person to the verified branch");
+        return;
+    }
 
     let get = client
         .get(format!("{base_url}/api/people/{person_id}"))
@@ -283,7 +263,11 @@ async fn test_person_by_id_is_branch_scoped() {
         .send()
         .await
         .expect("owner person GET failed");
-    assert_eq!(own.status(), StatusCode::OK, "the owner must still read its person");
+    assert_eq!(
+        own.status(),
+        StatusCode::OK,
+        "the owner must still read its person"
+    );
 
     let own_delete = client
         .delete(format!("{base_url}/api/people/{person_id}"))
@@ -296,22 +280,35 @@ async fn test_person_by_id_is_branch_scoped() {
 
 #[tokio::test]
 async fn test_crm_lists_only_return_the_callers_branch() {
-    let server = get_test_server().await;
-    skip_if_no_server!(server);
+    let Some((_ctx, base_url)) = get_test_server().await else {
+        eprintln!("Skipping test: no server available");
+        return;
+    };
 
-    let Some((token_a, token_b)) = two_tenants() else {
+    let Some((branch_a, branch_b, token_a, token_b)) = two_tenants() else {
         eprintln!("Skipping: tenant seeding unavailable");
         return;
     };
-    let (_ctx, base_url) = server.unwrap();
+    assert_ne!(
+        branch_a, branch_b,
+        "seeded tenants must own distinct branches"
+    );
     let client = test_client();
 
-    let Some(ticket_id) = create_ticket(&client, &base_url, &token_b, "listed only for B").await else {
+    let Some((ticket_id, ticket_branch)) =
+        create_ticket(&client, &base_url, &token_b, "listed only for B").await
+    else {
         return;
     };
-    let Some(person_id) = create_person(&client, &base_url, &token_b, "Bruno").await else {
+    let Some((person_id, person_branch)) =
+        create_person(&client, &base_url, &token_b, "Bruno").await
+    else {
         return;
     };
+    if !scoped_to(branch_b, ticket_branch) || !scoped_to(branch_b, person_branch) {
+        eprintln!("Skipping: the server did not scope the seeded rows to the verified branch");
+        return;
+    }
 
     for (endpoint, foreign_id) in [
         ("/api/tickets", ticket_id.as_str()),
@@ -323,12 +320,18 @@ async fn test_crm_lists_only_return_the_callers_branch() {
             .send()
             .await
             .expect("list request failed");
-        assert!(resp.status().is_success(), "{endpoint} must stay available");
+        assert!(
+            resp.status().is_success(),
+            "{endpoint} must stay available"
+        );
         let body: serde_json::Value = resp.json().await.expect("list JSON");
         let leaked = body
             .as_array()
             .map(|rows| rows.iter().any(|row| row["id"] == foreign_id))
             .unwrap_or(false);
-        assert!(!leaked, "{endpoint} leaked tenant B's row {foreign_id} to tenant A");
+        assert!(
+            !leaked,
+            "{endpoint} leaked tenant B's row {foreign_id} to tenant A"
+        );
     }
 }

@@ -263,13 +263,15 @@ Docs:
 | Slides | `botslides::auth::SlidesUser` | `botserver/src/slides/user_middleware.rs` | `users/{owner}/presentations/{id}.json` (+ `.pptx`) |
 | Paper | `botpaper::auth::PaperUser` | `botserver/src/paper/user_middleware.rs` | `users/{owner}/papers/{current,named}/…` |
 
-Owner resolution is shared (`botserver/src/security/office_owner.rs`):
+Owner resolution is shared by Docs, Slides and Paper
+(`botserver/src/security/office_owner.rs`):
 
 | Profile | Owner segment |
 |---------|---------------|
 | directory / cloud user | the verified user id (UUID) |
-| desktop-local (`no_security`) | `local-{install-uuid}` generated once per install and persisted as `office_local_owner` in `conf/system/directory_config.json` |
-| anonymous, service, bot | none — the handler answers `401` |
+| desktop-local (`no_security`) | `local-{install-uuid}`, generated once per install and persisted as `office_local_owner` in `conf/system/directory_config.json` |
+| bot principal | its own bot id (the bot's own decks/documents) |
+| anonymous, service | none — the handler answers `401` |
 
 The extractor is the only way a handler reads the owner: a Slides or Paper
 handler takes `user: SlidesUser` / `user: PaperUser`, so a request without a

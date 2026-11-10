@@ -10,7 +10,7 @@ The production-readiness program ([#2121](https://github.com/generalbots/general
 | **FAIL** | the check ran and failed — a regression; CI fails |
 | **SKIP** | the gate does not exist yet — the row names the issue and what must land |
 
-Current run: **16 PASS · 0 FAIL · 0 SKIP** of 16 checks.
+Current run: **17 PASS · 0 FAIL · 0 SKIP** of 17 checks.
 
 ## Workstreams
 
@@ -18,6 +18,7 @@ Current run: **16 PASS · 0 FAIL · 0 SKIP** of 16 checks.
 |---|---|---|---|
 | [#2112](https://github.com/generalbots/generalbots/issues/2112) | security(auth): JWT signature | `security-auth` | **PASS** |
 | [#2113](https://github.com/generalbots/generalbots/issues/2113) | security(webhooks): WhatsApp/Teams auth | `security-webhooks` | **PASS** |
+| [#2142](https://github.com/generalbots/generalbots/issues/2142) | security(webhooks): fail closed when the secret is unset | `webhook-auth` | **PASS** |
 | [#2114](https://github.com/generalbots/generalbots/issues/2114) | security(mfa): TOTP encoding | `security-mfa` | **PASS** |
 | [#2115](https://github.com/generalbots/generalbots/issues/2115) | perf(slo): SLOs and budgets | `slo-check` | **PASS** |
 | [#2116](https://github.com/generalbots/generalbots/issues/2116) | ops(analytics): console, budgets, runbooks | `ops-runbooks` | **PASS** |
@@ -32,6 +33,7 @@ Current run: **16 PASS · 0 FAIL · 0 SKIP** of 16 checks.
 |---|---|---|---|---|
 | `security-auth` | JWT claims are signature-verified before they pick a tenant | [#2112](https://github.com/generalbots/generalbots/issues/2112) | **PASS** | regression test present (executed by the unit-tests job) |
 | `security-webhooks` | WhatsApp/Teams inbound requests prove their origin | [#2113](https://github.com/generalbots/generalbots/issues/2113) | **PASS** | regression tests present (executed by the unit-tests job) |
+| `webhook-auth` | Every inbound channel webhook fails closed when its secret is unset | [#2142](https://github.com/generalbots/generalbots/issues/2142) | **PASS** | every inbound route verified (or allowlisted); unset secrets refuse deliveries |
 | `security-mfa` | TOTP enrollment and verification share one secret encoding | [#2114](https://github.com/generalbots/generalbots/issues/2114) | **PASS** | regression test present (executed by the unit-tests job) |
 | `slo-check` | SLOs are defined, instrumented and gated | [#2115](https://github.com/generalbots/generalbots/issues/2115) | **PASS** | RESULT: ok |
 | `ops-runbooks` | Operational runbooks exist for the on-call surface | [#2116](https://github.com/generalbots/generalbots/issues/2116) | **PASS** | six runbooks published |
