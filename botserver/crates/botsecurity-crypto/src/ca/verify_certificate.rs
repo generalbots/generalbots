@@ -1,4 +1,37 @@
 use super::*;
+use x509_parser::prelude::FromDer;
+
+/// Extracts the certificate serial number as an uppercase hex string.
+///
+/// Revocations are stored by serial (`serial|reason|date`), so verification
+/// has to compare the same representation instead of hashing the PEM (which
+/// nothing ever wrote to the revocation file).
+fn certificate_serial(cert_pem: &str) -> Option<String> {
+    let der = pem_to_der(cert_pem).ok()?;
+    let (_, cert) = x509_parser::certificate::X509Certificate::from_der(&der).ok()?;
+
+    Some(cert.raw_serial_as_string().to_uppercase())
+}
+
+fn pem_to_der(cert_pem: &str) -> Result<Vec<u8>> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+
+    let start = cert_pem
+        .find("-----BEGIN CERTIFICATE-----")
+        .ok_or_else(|| anyhow::anyhow!("missing BEGIN CERTIFICATE marker"))?;
+    let end = cert_pem
+        .find("-----END CERTIFICATE-----")
+        .ok_or_else(|| anyhow::anyhow!("missing END CERTIFICATE marker"))?;
+
+    let body: String = cert_pem[start + "-----BEGIN CERTIFICATE-----".len()..end]
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+
+    STANDARD
+        .decode(body)
+        .map_err(|e| anyhow::anyhow!("invalid base64 certificate: {e}"))
+}
 
 impl CaManager {
     pub fn verify_certificate(&self, cert_pem: &str) -> Result<bool> {
@@ -15,17 +48,19 @@ impl CaManager {
         let revoked_path = self.config.ca_cert_path.with_extension("revoked");
         if revoked_path.exists() {
             let revoked_content = fs::read_to_string(&revoked_path)?;
-            use std::collections::hash_map::DefaultHasher;
-            use std::hash::{Hash, Hasher};
-            let mut hasher = DefaultHasher::new();
-            cert_pem.hash(&mut hasher);
-            let cert_hash = format!("{:016x}", hasher.finish());
-            if revoked_content
-                .lines()
-                .any(|line| line.contains(&cert_hash))
-            {
-                debug!("Certificate is revoked");
-                return Ok(false);
+
+            if let Some(serial) = certificate_serial(cert_pem) {
+                let is_revoked = revoked_content.lines().any(|line| {
+                    line.split('|')
+                        .next()
+                        .map(|listed| listed.trim().eq_ignore_ascii_case(&serial))
+                        .unwrap_or(false)
+                });
+
+                if is_revoked {
+                    debug!("Certificate serial {} is revoked", serial);
+                    return Ok(false);
+                }
             }
         }
 

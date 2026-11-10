@@ -157,3 +157,7 @@ mod ca_config;
 mod ca_manager;
 mod init_ca;
 mod verify_certificate;
+
+#[cfg(test)]
+#[path = "ca_tests.rs"]
+mod ca_tests;
