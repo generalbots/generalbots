@@ -448,5 +448,3 @@ function updateTaskCardStatus(taskId, status) {
     if (progressPercent) progressPercent.textContent = "100%";
   }
 }
-
-// =============================================================================

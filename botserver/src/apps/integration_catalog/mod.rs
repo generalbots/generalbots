@@ -271,4 +271,4 @@ pub fn llm_actions(provider_id: &str) -> Option<Vec<LlmAction>> {
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-mod tests_status;
+mod status_tests;
