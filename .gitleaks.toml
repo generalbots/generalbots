@@ -99,3 +99,17 @@ id = "curl-auth-header"
 [[rules.allowlists]]
 description = "curl examples in the API documentation."
 paths = ['''^botbook/''', '''^docs/''']
+
+# ---------------------------------------------------------------------------
+# Prose false positives
+# ---------------------------------------------------------------------------
+# The generic-api-key rule treats "<word>:" followed by a slash-separated list
+# as a credential assignment. The brand-guidelines skill once said
+# "Extract tokens: primary/secondary colours" — design vocabulary, no
+# credential. HEAD rewords the sentence; this narrow entry covers the
+# historical commit (a rewrite of pushed history is not an option).
+[[allowlists]]
+description = "brand-guidelines skill: 'tokens: primary/secondary colours' is design prose, not a credential."
+paths = ['''^botskills/design/brand-guidelines/SKILL\.md$''']
+regexTarget = "match"
+regexes = ['''tokens:\s*primary/secondary''']
