@@ -41,179 +41,209 @@ one `name: description` line, so bodies never enter the system prompt.
 
 ## automation
 
+Files live at `botskills/automation/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [agent-browser](automation/agent-browser/SKILL.md) | Automates browser interactions for web testing, form filling, screenshots, and data extraction. | not declared | none declared |
+| `agent-browser` | Automates browser interactions for web testing, form filling, screenshots, and data extraction. | not declared | none declared |
 
 ## business
 
+Files live at `botskills/business/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [analytics-kpis](business/analytics-kpis/SKILL.md) | Define metrics and build dashboards that support decisions. | in-repo | none declared |
-| [compliance-iso27001](business/compliance-iso27001/SKILL.md) | Map ISO 27001 controls to evidence and gaps. | in-repo | none declared |
-| [contracts-review](business/contracts-review/SKILL.md) | Review contract clauses, risks and red flags with a plain-language summary. | in-repo | none declared |
-| [customer-support](business/customer-support/SKILL.md) | Triage, answer with macros and escalate with context. | in-repo | none declared |
-| [finance-reporting](business/finance-reporting/SKILL.md) | Produce P&L, cash-flow and KPI reports from the ledger. | in-repo | none declared |
-| [hr-onboarding](business/hr-onboarding/SKILL.md) | Run onboarding with checklists, access provisioning and a first-week plan. | in-repo | none declared |
-| [invoicing-brazil](business/invoicing-brazil/SKILL.md) | Explain and support the NF-e/NFS-e/CT-e flow and the taxes involved. | in-repo | none declared |
-| [kyc-verification](business/kyc-verification/SKILL.md) | Check identity documents with explicit human confirmation. | in-repo | none declared |
-| [procurement](business/procurement/SKILL.md) | Compare quotes and route approvals for purchases. | in-repo | none declared |
-| [tax-brazil](business/tax-brazil/SKILL.md) | Calculate IRPJ/CSLL/PIS/COFINS/ISS with the regime and bases shown. | in-repo | none declared |
+| `analytics-kpis` | Define metrics and build dashboards that support decisions. | in-repo | none declared |
+| `compliance-iso27001` | Map ISO 27001 controls to evidence and gaps. | in-repo | none declared |
+| `contracts-review` | Review contract clauses, risks and red flags with a plain-language summary. | in-repo | none declared |
+| `customer-support` | Triage, answer with macros and escalate with context. | in-repo | none declared |
+| `finance-reporting` | Produce P&L, cash-flow and KPI reports from the ledger. | in-repo | none declared |
+| `hr-onboarding` | Run onboarding with checklists, access provisioning and a first-week plan. | in-repo | none declared |
+| `invoicing-brazil` | Explain and support the NF-e/NFS-e/CT-e flow and the taxes involved. | in-repo | none declared |
+| `kyc-verification` | Check identity documents with explicit human confirmation. | in-repo | none declared |
+| `procurement` | Compare quotes and route approvals for purchases. | in-repo | none declared |
+| `tax-brazil` | Calculate IRPJ/CSLL/PIS/COFINS/ISS with the regime and bases shown. | in-repo | none declared |
 
 ## content
 
+Files live at `botskills/content/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [ad-copy](content/ad-copy/SKILL.md) | Write ad hooks and variants with clear angles to test. | in-repo | none declared |
-| [blog-outline](content/blog-outline/SKILL.md) | Turn a search intent into an outline that a writer can draft from. | in-repo | none declared |
-| [brand-tone](content/brand-tone/SKILL.md) | Define and apply a brand voice with do/don't examples per channel. | in-repo | none declared |
-| [copywriting](content/copywriting/SKILL.md) | Write benefit-first copy that converts, with a clear promise and one call to action. | in-repo | none declared |
-| [newsletter](content/newsletter/SKILL.md) | Write a newsletter with subject lines, scannable sections and one CTA. | in-repo | none declared |
-| [podcast-script](content/podcast-script/SKILL.md) | Structure an episode with intro, segments, questions and outro. | in-repo | none declared |
-| [seo-on-page](content/seo-on-page/SKILL.md) | Tune titles, headings, internal links and structured data for search intent. | in-repo | none declared |
-| [social-posts](content/social-posts/SKILL.md) | Write platform-native posts (LinkedIn, Instagram, X, Facebook) with correct length and hashtags. | in-repo | none declared |
-| [translation](content/translation/SKILL.md) | Localise meaning-first with a glossary and consistent terminology. | in-repo | none declared |
-| [video-script](content/video-script/SKILL.md) | Write short-video scripts with a hook, beats, b-roll cues and a CTA. | in-repo | none declared |
+| `ad-copy` | Write ad hooks and variants with clear angles to test. | in-repo | none declared |
+| `blog-outline` | Turn a search intent into an outline that a writer can draft from. | in-repo | none declared |
+| `brand-tone` | Define and apply a brand voice with do/don't examples per channel. | in-repo | none declared |
+| `copywriting` | Write benefit-first copy that converts, with a clear promise and one call to action. | in-repo | none declared |
+| `newsletter` | Write a newsletter with subject lines, scannable sections and one CTA. | in-repo | none declared |
+| `podcast-script` | Structure an episode with intro, segments, questions and outro. | in-repo | none declared |
+| `seo-on-page` | Tune titles, headings, internal links and structured data for search intent. | in-repo | none declared |
+| `social-posts` | Write platform-native posts (LinkedIn, Instagram, X, Facebook) with correct length and hashtags. | in-repo | none declared |
+| `translation` | Localise meaning-first with a glossary and consistent terminology. | in-repo | none declared |
+| `video-script` | Write short-video scripts with a hook, beats, b-roll cues and a CTA. | in-repo | none declared |
 
 ## data
 
+Files live at `botskills/data/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [api-design](data/api-design/SKILL.md) | Design REST/JSON contracts with stable versioning, pagination and honest errors. | in-repo | none declared |
-| [auth-sessions](data/auth-sessions/SKILL.md) | Implement tokens, sessions, RBAC and CSRF correctly. | in-repo | none declared |
-| [caching](data/caching/SKILL.md) | Choose cache keys, TTLs and invalidation that cannot serve stale data silently. | in-repo | none declared |
-| [etl-pipelines](data/etl-pipelines/SKILL.md) | Build extract/transform/load jobs with validation, checkpoints and idempotency. | in-repo | none declared |
-| [migrations](data/migrations/SKILL.md) | Write reversible, zero-downtime schema migrations. | in-repo | none declared |
-| [pandas-analysis](data/pandas-analysis/SKILL.md) | Answer data questions with pandas: joins, groupby, time series and honest plots. | in-repo | none declared |
-| [postgres](data/postgres/SKILL.md) | Design schemas, indexes and migrations for PostgreSQL, and read EXPLAIN. | in-repo | none declared |
-| [prisma](data/prisma/SKILL.md) | Model schemas and data access with Prisma. | in-repo | none declared |
-| [queues-jobs](data/queues-jobs/SKILL.md) | Run background jobs with retries, idempotency and dead letters. | in-repo | none declared |
-| [sqlalchemy](data/sqlalchemy/SKILL.md) | Use SQLAlchemy sessions, models and queries without N+1 or stale state. | in-repo | none declared |
+| `api-design` | Design REST/JSON contracts with stable versioning, pagination and honest errors. | in-repo | none declared |
+| `auth-sessions` | Implement tokens, sessions, RBAC and CSRF correctly. | in-repo | none declared |
+| `caching` | Choose cache keys, TTLs and invalidation that cannot serve stale data silently. | in-repo | none declared |
+| `etl-pipelines` | Build extract/transform/load jobs with validation, checkpoints and idempotency. | in-repo | none declared |
+| `migrations` | Write reversible, zero-downtime schema migrations. | in-repo | none declared |
+| `pandas-analysis` | Answer data questions with pandas: joins, groupby, time series and honest plots. | in-repo | none declared |
+| `postgres` | Design schemas, indexes and migrations for PostgreSQL, and read EXPLAIN. | in-repo | none declared |
+| `prisma` | Model schemas and data access with Prisma. | in-repo | none declared |
+| `queues-jobs` | Run background jobs with retries, idempotency and dead letters. | in-repo | none declared |
+| `sqlalchemy` | Use SQLAlchemy sessions, models and queries without N+1 or stale state. | in-repo | none declared |
 
 ## design
 
+Files live at `botskills/design/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [brand-guidelines](design/brand-guidelines/SKILL.md) | Apply brand colours, typography, spacing and logo rules consistently across outputs. | in-repo | none declared |
-| [canvas-design](design/canvas-design/SKILL.md) | Create posters and social art on the canvas with a clear grid, hierarchy and export sizes. | in-repo | none declared |
-| [color-systems](design/color-systems/SKILL.md) | Build palettes, design tokens and contrast-safe pairs for UI and documents. | in-repo | none declared |
-| [diagrams](design/diagrams/SKILL.md) | Draw flowcharts, sequence diagrams and ERDs with Mermaid or drawio, with consistent notation. | in-repo | none declared |
-| [figma-workflow](design/figma-workflow/SKILL.md) | Organise Figma frames, components and exports (.fig/png/svg). | in-repo | none declared |
-| [image-editing](design/image-editing/SKILL.md) | Crop, blur or remove backgrounds, correct exposure and upscale images without artefacts. | in-repo | none declared |
-| [logo-identity](design/logo-identity/SKILL.md) | Create marks, lockups and usage rules that survive small sizes and monochrome. | in-repo | none declared |
-| [presentation-design](design/presentation-design/SKILL.md) | Design slide layouts that read from the back row, with consistent margins and visual rhythm. | in-repo | none declared |
-| [svg-icons](design/svg-icons/SKILL.md) | Design clean SVG icon sets with consistent grid, stroke and optical weight. | in-repo | none declared |
-| [typography](design/typography/SKILL.md) | Choose and pair typefaces, set a scale and keep readable measure across deliverables. | in-repo | none declared |
+| `brand-guidelines` | Apply brand colours, typography, spacing and logo rules consistently across outputs. | in-repo | none declared |
+| `canvas-design` | Create posters and social art on the canvas with a clear grid, hierarchy and export sizes. | in-repo | none declared |
+| `color-systems` | Build palettes, design tokens and contrast-safe pairs for UI and documents. | in-repo | none declared |
+| `diagrams` | Draw flowcharts, sequence diagrams and ERDs with Mermaid or drawio, with consistent notation. | in-repo | none declared |
+| `figma-workflow` | Organise Figma frames, components and exports (.fig/png/svg). | in-repo | none declared |
+| `image-editing` | Crop, blur or remove backgrounds, correct exposure and upscale images without artefacts. | in-repo | none declared |
+| `logo-identity` | Create marks, lockups and usage rules that survive small sizes and monochrome. | in-repo | none declared |
+| `presentation-design` | Design slide layouts that read from the back row, with consistent margins and visual rhythm. | in-repo | none declared |
+| `svg-icons` | Design clean SVG icon sets with consistent grid, stroke and optical weight. | in-repo | none declared |
+| `typography` | Choose and pair typefaces, set a scale and keep readable measure across deliverables. | in-repo | none declared |
 
 ## documentation
 
+Files live at `botskills/documentation/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [documentation-writer](documentation/documentation-writer/SKILL.md) | 'Diátaxis Documentation Expert. | not declared | none declared |
+| `documentation-writer` | 'Diátaxis Documentation Expert. | not declared | none declared |
 
 ## engineering
 
+Files live at `botskills/engineering/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [systematic-debugging](engineering/systematic-debugging/SKILL.md) | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes. | not declared | none declared |
-| [verification-before-completion](engineering/verification-before-completion/SKILL.md) | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always. | not declared | none declared |
+| `systematic-debugging` | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes. | not declared | none declared |
+| `verification-before-completion` | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always. | not declared | none declared |
 
 ## frontend
 
+Files live at `botskills/frontend/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [forms-validation](frontend/forms-validation/SKILL.md) | Build forms with client validation that mirrors server rules and clear errors. | in-repo | none declared |
-| [next-best-practices](frontend/next-best-practices/SKILL.md) | Next.js best practices - file conventions, RSC boundaries, data patterns, async APIs, metadata, error handling, route handlers, image/font optimization, bundling. | not declared | none declared |
-| [react-best-practices](frontend/react-best-practices/SKILL.md) | Write React components with correct hooks, rendering and composition. | in-repo | none declared |
-| [shadcn](frontend/shadcn/SKILL.md) | Best practices for building UI components with shadcn/ui. | not declared | none declared |
-| [state-management](frontend/state-management/SKILL.md) | Choose between local, lifted and server state; cache server data without duplicating it. | in-repo | none declared |
-| [tailwind](frontend/tailwind/SKILL.md) | Style with Tailwind utilities and design tokens without ad-hoc overrides. | in-repo | none declared |
-| [web-accessibility](frontend/web-accessibility/SKILL.md) | Meet WCAG basics: semantics, focus order, labels, ARIA only when needed. | in-repo | none declared |
-| [web-performance](frontend/web-performance/SKILL.md) | Hit Core Web Vitals with budgets for JS, images and fonts. | in-repo | none declared |
-| [zod](frontend/zod/SKILL.md) | Zod schema validation best practices for type safety, parsing, and error handling. | not declared | none declared |
+| `forms-validation` | Build forms with client validation that mirrors server rules and clear errors. | in-repo | none declared |
+| `next-best-practices` | Next.js best practices - file conventions, RSC boundaries, data patterns, async APIs, metadata, error handling, route handlers, image/font optimization, bundling. | not declared | none declared |
+| `react-best-practices` | Write React components with correct hooks, rendering and composition. | in-repo | none declared |
+| `shadcn` | Best practices for building UI components with shadcn/ui. | not declared | none declared |
+| `state-management` | Choose between local, lifted and server state; cache server data without duplicating it. | in-repo | none declared |
+| `tailwind` | Style with Tailwind utilities and design tokens without ad-hoc overrides. | in-repo | none declared |
+| `web-accessibility` | Meet WCAG basics: semantics, focus order, labels, ARIA only when needed. | in-repo | none declared |
+| `web-performance` | Hit Core Web Vitals with budgets for JS, images and fonts. | in-repo | none declared |
+| `zod` | Zod schema validation best practices for type safety, parsing, and error handling. | not declared | none declared |
 
 ## integration
 
+Files live at `botskills/integration/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [calendar-scheduling](integration/calendar-scheduling/SKILL.md) | Find availability and create invites without double-booking. | in-repo | none declared |
-| [crm-actions](integration/crm-actions/SKILL.md) | Create and update contacts, deals and pipeline stages through the CRM API. | in-repo | none declared |
-| [gmail-workflows](integration/gmail-workflows/SKILL.md) | Search, label, draft and send Gmail with correct MIME and scopes. | in-repo | none declared |
-| [mcp-builder](integration/mcp-builder/SKILL.md) | Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. | not declared | none declared |
-| [skill-creator](integration/skill-creator/SKILL.md) | Guide for creating effective skills. | not declared | none declared |
-| [slack-workflows](integration/slack-workflows/SKILL.md) | Post, thread and triage Slack messages through the API. | in-repo | none declared |
-| [web-scraping](integration/web-scraping/SKILL.md) | Scrape respectfully with pagination, rate limits and robots awareness. | in-repo | none declared |
-| [webhooks](integration/webhooks/SKILL.md) | Receive webhooks safely: HMAC verification, idempotency, retries and dead letters. | in-repo | none declared |
+| `calendar-scheduling` | Find availability and create invites without double-booking. | in-repo | none declared |
+| `crm-actions` | Create and update contacts, deals and pipeline stages through the CRM API. | in-repo | none declared |
+| `gmail-workflows` | Search, label, draft and send Gmail with correct MIME and scopes. | in-repo | none declared |
+| `mcp-builder` | Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. | not declared | none declared |
+| `skill-creator` | Guide for creating effective skills. | not declared | none declared |
+| `slack-workflows` | Post, thread and triage Slack messages through the API. | in-repo | none declared |
+| `web-scraping` | Scrape respectfully with pagination, rate limits and robots awareness. | in-repo | none declared |
+| `webhooks` | Receive webhooks safely: HMAC verification, idempotency, retries and dead letters. | in-repo | none declared |
 
 ## media
 
+Files live at `botskills/media/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [audio-generation](media/audio-generation/SKILL.md) | Generate music and ambience through BotModels jukebox with duration and mood parameters. | in-repo | none declared |
-| [gif-creator](media/gif-creator/SKILL.md) | Make short loops from frames or a video segment with a small file size. | in-repo | none declared |
-| [image-generation](media/image-generation/SKILL.md) | Generate or edit images from a prompt with the right aspect ratio and style. | in-repo | none declared |
-| [memes](media/memes/SKILL.md) | Pick a template and write a caption that lands, with correct attribution. | in-repo | none declared |
-| [music-generation](media/music-generation/SKILL.md) | Generate music with explicit mood, tempo, key and length parameters. | in-repo | none declared |
-| [subtitles-captions](media/subtitles-captions/SKILL.md) | Produce SRT/VTT captions from audio with timing and speaker labels. | in-repo | none declared |
-| [thumbnails](media/thumbnails/SKILL.md) | Design thumbnails whose title survives a 320 px card. | in-repo | none declared |
-| [upscaling-restoration](media/upscaling-restoration/SKILL.md) | Enlarge or restore images without artefacts, within honest limits. | in-repo | none declared |
-| [video-generation](media/video-generation/SKILL.md) | Build slideshow/caption videos from images or slides, with timing and narration. | in-repo | none declared |
-| [voice-tts](media/voice-tts/SKILL.md) | Narrate document sections with TTS and natural pacing. | in-repo | none declared |
+| `audio-generation` | Generate music and ambience through BotModels jukebox with duration and mood parameters. | in-repo | none declared |
+| `gif-creator` | Make short loops from frames or a video segment with a small file size. | in-repo | none declared |
+| `image-generation` | Generate or edit images from a prompt with the right aspect ratio and style. | in-repo | none declared |
+| `memes` | Pick a template and write a caption that lands, with correct attribution. | in-repo | none declared |
+| `music-generation` | Generate music with explicit mood, tempo, key and length parameters. | in-repo | none declared |
+| `subtitles-captions` | Produce SRT/VTT captions from audio with timing and speaker labels. | in-repo | none declared |
+| `thumbnails` | Design thumbnails whose title survives a 320 px card. | in-repo | none declared |
+| `upscaling-restoration` | Enlarge or restore images without artefacts, within honest limits. | in-repo | none declared |
+| `video-generation` | Build slideshow/caption videos from images or slides, with timing and narration. | in-repo | none declared |
+| `voice-tts` | Narrate document sections with TTS and natural pacing. | in-repo | none declared |
 
 ## office
 
+Files live at `botskills/office/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [document-a11y](office/document-a11y/SKILL.md) | Make documents accessible: heading structure, alt text, table headers, contrast and reading order. | in-repo | none declared |
-| [docx](office/docx/SKILL.md) | Create and edit Word documents: styles, TOC, page setup, headers and footers, tracked changes. | in-repo | none declared |
-| [docx-track-changes](office/docx-track-changes/SKILL.md) | Review, accept or reject tracked changes in a Word document and produce a clean copy. | in-repo | none declared |
-| [html-to-pdf](office/html-to-pdf/SKILL.md) | Print HTML to PDF with headless Chromium, including headers, footers and page numbers. | in-repo | none declared |
-| [mail-merge](office/mail-merge/SKILL.md) | Generate one document per recipient from a template and a data source (CSV/JSON). | in-repo | none declared |
-| [office-convert](office/office-convert/SKILL.md) | Round-trip between CSV/JSON/Markdown and docx/xlsx/pptx while preserving structure. | in-repo | none declared |
-| [pdf](office/pdf/SKILL.md) | Read, merge, split, rotate, fill forms and extract tables or text from PDFs. | in-repo | none declared |
-| [pptx](office/pptx/SKILL.md) | Create presentations with layouts, speaker notes and a consistent theme. | in-repo | none declared |
-| [spreadsheet-modeling](office/spreadsheet-modeling/SKILL.md) | Build financial models with assumptions, scenario tables, pivots and checks. | in-repo | none declared |
-| [xlsx](office/xlsx/SKILL.md) | Create workbooks with formulas, charts, formatting, validation and freeze panes. | in-repo | none declared |
+| `document-a11y` | Make documents accessible: heading structure, alt text, table headers, contrast and reading order. | in-repo | none declared |
+| `docx` | Create and edit Word documents: styles, TOC, page setup, headers and footers, tracked changes. | in-repo | none declared |
+| `docx-track-changes` | Review, accept or reject tracked changes in a Word document and produce a clean copy. | in-repo | none declared |
+| `html-to-pdf` | Print HTML to PDF with headless Chromium, including headers, footers and page numbers. | in-repo | none declared |
+| `mail-merge` | Generate one document per recipient from a template and a data source (CSV/JSON). | in-repo | none declared |
+| `office-convert` | Round-trip between CSV/JSON/Markdown and docx/xlsx/pptx while preserving structure. | in-repo | none declared |
+| `pdf` | Read, merge, split, rotate, fill forms and extract tables or text from PDFs. | in-repo | none declared |
+| `pptx` | Create presentations with layouts, speaker notes and a consistent theme. | in-repo | none declared |
+| `spreadsheet-modeling` | Build financial models with assumptions, scenario tables, pivots and checks. | in-repo | none declared |
+| `xlsx` | Create workbooks with formulas, charts, formatting, validation and freeze panes. | in-repo | none declared |
 
 ## operations
 
+Files live at `botskills/operations/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [sentry-cli](operations/sentry-cli/SKILL.md) | Guide for using the Sentry CLI to interact with Sentry from the command line. | not declared | none declared |
+| `sentry-cli` | Guide for using the Sentry CLI to interact with Sentry from the command line. | not declared | none declared |
 
 ## quality
 
+Files live at `botskills/quality/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [code-review](quality/code-review/SKILL.md) | Review for correctness, security and readability, with actionable comments. | in-repo | none declared |
-| [logging-observability](quality/logging-observability/SKILL.md) | Structured logs, traces and metrics that answer what happened. | in-repo | none declared |
-| [performance-profiling](quality/performance-profiling/SKILL.md) | Measure, locate the bottleneck, fix, and re-measure. | in-repo | none declared |
-| [refactoring](quality/refactoring/SKILL.md) | Change structure in small, behaviour-preserving steps. | in-repo | none declared |
-| [release-management](quality/release-management/SKILL.md) | Version, changelog, deploy and roll back safely. | in-repo | none declared |
-| [security-review](quality/security-review/SKILL.md) | Check secrets, injection, authz, headers and dependency risk. | in-repo | none declared |
-| [tdd](quality/tdd/SKILL.md) | Drive changes with red-green-refactor tests. | in-repo | none declared |
+| `code-review` | Review for correctness, security and readability, with actionable comments. | in-repo | none declared |
+| `logging-observability` | Structured logs, traces and metrics that answer what happened. | in-repo | none declared |
+| `performance-profiling` | Measure, locate the bottleneck, fix, and re-measure. | in-repo | none declared |
+| `refactoring` | Change structure in small, behaviour-preserving steps. | in-repo | none declared |
+| `release-management` | Version, changelog, deploy and roll back safely. | in-repo | none declared |
+| `security-review` | Check secrets, injection, authz, headers and dependency risk. | in-repo | none declared |
+| `tdd` | Drive changes with red-green-refactor tests. | in-repo | none declared |
 
 ## research
 
+Files live at `botskills/research/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [citations](research/citations/SKILL.md) | Cite sources with author, date, title, link and the exact quoted span. | in-repo | none declared |
-| [competitive-analysis](research/competitive-analysis/SKILL.md) | Compare competitors on features, pricing and positioning with sources and dates. | in-repo | none declared |
-| [context7](research/context7/SKILL.md) |  | not declared | none declared |
-| [exa-web-search-free](research/exa-web-search-free/SKILL.md) | Free AI search via Exa MCP. | not declared | none declared |
-| [fact-checking](research/fact-checking/SKILL.md) | Turn a claim into evidence and a verdict (supported, contested, unsupported). | in-repo | none declared |
-| [firecrawl](research/firecrawl/SKILL.md) | Web scraping, search, crawling, and browser automation via the Firecrawl CLI. | not declared | `Bash(firecrawl *)`, `Bash(npx firecrawl *)` |
-| [last30days](research/last30days/SKILL.md) | "Research what people actually say about any topic in the last 30 days. | not declared | none declared |
-| [news-briefing](research/news-briefing/SKILL.md) | Produce a five-bullet briefing with sources and dates. | in-repo | none declared |
-| [pricing-research](research/pricing-research/SKILL.md) | Report observed prices with dates, tiers and caveats. | in-repo | none declared |
-| [research-synthesis](research/research-synthesis/SKILL.md) | Merge multiple sources into one decision with agreement, conflict and gaps called out. | in-repo | none declared |
+| `citations` | Cite sources with author, date, title, link and the exact quoted span. | in-repo | none declared |
+| `competitive-analysis` | Compare competitors on features, pricing and positioning with sources and dates. | in-repo | none declared |
+| `context7` |  | not declared | none declared |
+| `exa-web-search-free` | Free AI search via Exa MCP. | not declared | none declared |
+| `fact-checking` | Turn a claim into evidence and a verdict (supported, contested, unsupported). | in-repo | none declared |
+| `firecrawl` | Web scraping, search, crawling, and browser automation via the Firecrawl CLI. | not declared | `Bash(firecrawl *)`, `Bash(npx firecrawl *)` |
+| `last30days` | "Research what people actually say about any topic in the last 30 days. | not declared | none declared |
+| `news-briefing` | Produce a five-bullet briefing with sources and dates. | in-repo | none declared |
+| `pricing-research` | Report observed prices with dates, tiers and caveats. | in-repo | none declared |
+| `research-synthesis` | Merge multiple sources into one decision with agreement, conflict and gaps called out. | in-repo | none declared |
 
 ## testing
 
+Files live at `botskills/testing/<skill>/SKILL.md`.
+
 | Skill | Purpose | Source | Permissions |
 |---|---|---|---|
-| [vitest](testing/vitest/SKILL.md) | Vitest fast unit testing framework powered by Vite with Jest-compatible API. | not declared | none declared |
-| [webapp-testing](testing/webapp-testing/SKILL.md) | Toolkit for interacting with and testing local web applications using Playwright. | not declared | none declared |
+| `vitest` | Vitest fast unit testing framework powered by Vite with Jest-compatible API. | not declared | none declared |
+| `webapp-testing` | Toolkit for interacting with and testing local web applications using Playwright. | not declared | none declared |
 
 ## Linked only — not included in this repository
 

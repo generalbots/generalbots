@@ -35,6 +35,34 @@ used by crates that already depend on `botcore`. Crates that do not depend on
 `botcore` (e.g. `botinventory`, `botgl`, `botsearch`, `bottasks`) must depend on
 `botsecurity-core` directly and call `botsecurity_core::tenant::...`.
 
+### The resolver decodes, it does not verify
+
+`branch_from_claims` is a **claim reader**, not an authenticator. It base64url
+decodes the second JWT segment and reads `branch_id`; it never checks a
+signature, and it has no key. The only structural check is
+`jwt_header_is_secured`, which rejects a token whose header has `alg` equal to
+`none` (any casing), is empty, or is missing.
+
+```text
+Authorization: Bearer <token>
+        │
+        ├─ jwt_header_is_secured(header)   ← rejects alg:none / empty / missing
+        ├─ base64url_decode(payload)
+        └─ payload["branch_id"] → Option<Uuid>
+```
+
+The signature is verified earlier, on the authentication path, before a handler
+runs: the auth middleware validates the token (HMAC with the SaaS secret for
+cloud tokens, or the session/directory check for suite tokens) and only then
+builds the `AuthenticatedUser`. Scoping code may therefore trust the claim
+because it is downstream of verification — but the resolver on its own proves
+nothing about authenticity.
+
+The practical consequence: any handler that calls `branch_from_claims` without
+also being behind the authenticated middleware is reading an unverified,
+attacker-controlled claim. New routes must be mounted inside the authenticated
+scope; do not use the resolver as a substitute for authentication.
+
 ### Fallback rule
 
 When no JWT claim is present (anonymous/system callers), the resolver returns

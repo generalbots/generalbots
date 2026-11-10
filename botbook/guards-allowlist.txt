@@ -1,0 +1,26 @@
+# BotBook guard allowlist (#2082). Reviewed debt, not a mute button.
+# Format: kind|path|detail|reason — the file may only shrink.
+# Remove a row when the page is fixed; `--prune` drops satisfied rows.
+
+PORT_DRIFT|botbook/src/01-getting-started/local-domains.md|botserver:8443|heading renamed; the link needs the new slug (truth pass)
+PORT_DRIFT|botbook/src/02-architecture-packages/infrastructure.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+PORT_DRIFT|botbook/src/02-architecture-packages/infrastructure.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+PORT_DRIFT|botbook/src/02-architecture-packages/infrastructure.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+PORT_DRIFT|botbook/src/02-architecture-packages/infrastructure.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+PORT_DRIFT|botbook/src/02-architecture-packages/scaling.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+BAD_ANCHOR|botbook/src/03-knowledge-ai/vector-collections.md|./hybrid-search.md#limits--what-these-modes-are-not|heading renamed; the link needs the new slug (truth pass)
+BAD_ANCHOR|botbook/src/04-basic-scripting/keyword-print.md|./keyword-talk.md#talk-to|heading renamed; the link needs the new slug (truth pass)
+LINK_MISSING|botbook/src/04-basic-scripting/keyword-synchronize.md|../../../templates/bling.gbai/|links a template directory outside botbook/src; it is not an mdBook page
+BAD_ANCHOR|botbook/src/04-basic-scripting/keyword-use-model.md|../02-architecture-packages/observability.md#cost-tracking|heading renamed; the link needs the new slug (truth pass)
+BAD_ANCHOR|botbook/src/04-basic-scripting/keyword-webhook.md|./keyword-talk.md#talk-to|heading renamed; the link needs the new slug (truth pass)
+LINK_MISSING|botbook/src/04-basic-scripting/templates/talk-to-data.md|../apps/billing.md|target page was removed; the replacement belongs to the docs truth pass
+BAD_ANCHOR|botbook/src/04-basic-scripting/tools-data-sync.md|./keywords.md#database--data-operations|heading renamed; the link needs the new slug (truth pass)
+BAD_ANCHOR|botbook/src/06-channels/whatsapp-webhooks.md|./README.md#security-considerations|heading renamed; the link needs the new slug (truth pass)
+VERSION_DRIFT|botbook/src/07-user-interface/how-to/monitor-sessions.md|7.2.4|stale version badge inside a terminal mockup; the mockup belongs to the truth pass
+PORT_DRIFT|botbook/src/09-security/compliance-requirements.md|botserver:6333|the port belongs to Qdrant in the same curl command, not to botserver
+PORT_DRIFT|botbook/src/09-security/protection-tools.md|botserver:9000|legacy Caddy snippet predates the 8080/5858 split; the real API port is 8080
+PORT_DRIFT|botbook/src/10-configuration-deployment/multimodal.md|botserver:8082|the port belongs to BotModels (BOTMODELS_HOST), not to botserver
+PORT_DRIFT|botbook/src/12-ecosystem-reference/architecture.md|postgresql:5433|example deployment on a non-default port
+PORT_DRIFT|botbook/src/12-ecosystem-reference/architecture.md|redis:6380|example deployment on a non-default port
+PORT_DRIFT|botbook/src/12-ecosystem-reference/architecture.md|minio:9001|example deployment on a non-default port
+PORT_DRIFT|botbook/src/12-ecosystem-reference/architecture.md|botserver:8000|example 'separate services' deployment using a non-default port

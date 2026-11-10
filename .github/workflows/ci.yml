@@ -92,7 +92,7 @@ jobs:
           else
             echo "migrations=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$CHANGED" | grep -qE '^(botbook/|.*\.md$)'; then
+          if printf '%s\n' "$CHANGED" | grep -qE '^(botbook/|scripts/(gen_catalogs|botbook_guards)\.py$|.*\.md$)'; then
             echo "botbook=true" >> "$GITHUB_OUTPUT"
           else
             echo "botbook=false" >> "$GITHUB_OUTPUT"
@@ -224,6 +224,20 @@ jobs:
           tar -xzf /tmp/mdbook.tar.gz -C /tmp
           install -m 0755 /tmp/mdbook /usr/local/bin/mdbook
           mdbook --version
+      - name: BotBook guards (#2082)
+        # SUMMARY/link/version/port guards. Pre-existing debt is recorded in
+        # botbook/guards-allowlist.txt, which may only shrink.
+        run: |
+          set -euo pipefail
+          python3 scripts/botbook_guards.py --check
+          python3 scripts/botbook_guards.py --self-test
+      - name: Generated catalogs (#2080)
+        # Connector and skills catalogs are derived from code; a stale page
+        # means someone edited the generated output instead of the source.
+        run: |
+          set -euo pipefail
+          python3 scripts/gen_catalogs.py --report
+          python3 scripts/gen_catalogs.py --check
       - name: Rebuild and compare
         run: |
           set -euo pipefail

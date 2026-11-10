@@ -12,3 +12,8 @@ scripts + prompts + declared permissions).
 
 The storefront page is available anonymously at `/marketplace`; installing
 prompts for sign-in and shows the permission consent card before applying.
+
+The curated skills that ship in this repository (category, purpose, source and
+declared permissions) are listed in the generated
+[skills catalog](./skills-catalog.md); this page describes the package format
+and the marketplace endpoints, not the individual skills.

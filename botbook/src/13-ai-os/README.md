@@ -14,6 +14,7 @@ when disabled. Backend entry points are additive namespaces (`/api/agent/*`,
 ## In this chapter
 
 - [Agent Mode & Snapshots](./agent-mode.md)
+- [Model Routing and Fallback](./model-routing.md)
 - [Workspace Tabs](./workspace-tabs.md)
 - [Adaptive Automations](./automations.md)
 - [Skills Marketplace](./marketplace.md)

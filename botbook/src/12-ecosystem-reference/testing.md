@@ -55,16 +55,25 @@ cargo test module_name::
 
 ### Test Coverage
 
-```bash
-# Install tarpaulin
-cargo install cargo-tarpaulin
+There is **no coverage instrumentation in this repository**: no
+`cargo-tarpaulin`, no `llvm-cov`, and no coverage gate in `.github/workflows/`.
+A coverage percentage quoted in a pull request therefore has no CI counterpart,
+and `cargo tarpaulin` is not a supported local command here.
 
-# Generate coverage report
-cargo tarpaulin --out Html
+What the CI actually runs (`.github/workflows/ci.yml`):
 
-# View coverage
-open tarpaulin-report.html
-```
+| Job | Command | Scope |
+|---|---|---|
+| `unit-tests` | `cargo test -p botserver --bin botserver` | The binary crate's unit tests |
+| `workspace-tests` | `cargo test -p <crate> --lib` (matrix) | 17 library crates |
+| `bottest-unit` | `cargo test -p bottest --test unit` | Cross-crate unit module |
+| `feature-manifest` | `cargo test -p botcore --no-default-features --features desktop-local,chat,drive manifest_reports_only_requested_features` | Feature unification guard |
+| `evaluate` | `cargo run -p boteval --bin boteval-run -- --gate …` | Paid model evaluation |
+
+`botserver` is a binary crate, so `cargo test -p botserver --lib` fails with
+"no library targets found" and tests nothing. The `--bin botserver` form is
+mandatory; the `unit-tests` job exists specifically to keep that regression from
+returning. Local runs use the same commands without the CI cache.
 
 ## Unit Testing
 
@@ -350,23 +359,22 @@ impl UserBuilder {
 
 ## Continuous Integration
 
-### GitHub Actions
+The repository runs four test jobs in `.github/workflows/ci.yml`:
+`unit-tests`, `workspace-tests`, `bottest-unit` and `feature-manifest`. Each is
+guarded by `if: ${{ github.server_url == 'https://github.com' }}` so a
+self-hosted mirror does not attempt them.
 
-```yaml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-      - run: cargo test --all-features
-      - run: cargo clippy -- -D warnings
-      - run: cargo fmt -- --check
+```bash
+cargo test -p botserver --bin botserver   # unit-tests
+cargo test -p <crate> --lib               # workspace-tests (17 crates)
+cargo test -p bottest --test unit         # bottest-unit
 ```
+
+`clippy` and `rustfmt` are **not** part of `ci.yml`; clippy passing with zero
+warnings is a local rule, not a workflow gate.
+
+See [GitHub Actions Workflows](./github-actions.md) for every job, the pinning
+conventions and the BotBook/migration gates.
 
 ## Test Documentation
 

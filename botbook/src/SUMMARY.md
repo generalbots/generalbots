@@ -295,14 +295,19 @@
 
 - [Chapter 6: Channels & Connectivity](./06-channels/README.md)
    - [Channel Integrations](./06-channels/channels.md)
+   - [Inbound Webhook Signature Matrix](./06-channels/signature-matrix.md)
    - [Service Catalog](./06-channels/catalog.md)
 <!-- BEGIN GENERATED CONNECTOR CATALOG -->
-   - [Connector Catalog](./06-channels/connectors/README.md)
+   - [Connector Catalog](./06-channels/connectors/index.md)
    - [Connectors — Featured](./06-channels/connectors/featured.md)
    - [Connectors — LLM Providers](./06-channels/connectors/llm.md)
+   - [Connectors — LLM Providers (continued)](./06-channels/connectors/llm-2.md)
    - [Connectors — Productivity](./06-channels/connectors/productivity.md)
+   - [Connectors — Productivity (continued)](./06-channels/connectors/productivity-2.md)
    - [Connectors — Developer](./06-channels/connectors/developer.md)
+   - [Connectors — Developer (continued)](./06-channels/connectors/developer-2.md)
    - [Connectors — Startups](./06-channels/connectors/startups.md)
+   - [Connectors — Startups (continued)](./06-channels/connectors/startups-2.md)
    - [Connectors — Small Business](./06-channels/connectors/small_business.md)
    - [Connectors — Finance](./06-channels/connectors/finance.md)
    - [Connectors — Social & Messaging](./06-channels/connectors/social_messaging.md)
@@ -436,6 +441,7 @@
    - [Theme Structure](./07-user-interface/structure.md)
    - [CSS Customization](./07-user-interface/css.md)
    - [Agentic UI Orchestration & Universal Search](./07-user-interface/agentic-ui-orchestration.md)
+   - [App Action Model](./07-user-interface/app-action-model.md)
    - [Dev Chat Widget](./07-user-interface/dev-chat.md)
 
 ---
@@ -626,6 +632,8 @@
    - [API Endpoints](./09-security/api-endpoints.md)
    - [Bot Authentication](./09-security/bot-auth.md)
    - [Security Features](./09-security/security-features.md)
+   - [Browser Policy and Budgets](./09-security/browser-policy.md)
+   - [Input Guardrails: SSRF, DLP, Injection, Files](./09-security/input-guardrails.md)
    - [Security Policy](./09-security/security-policy.md)
    - [Production Security Verification (2026-11-06)](./09-security/production-verification.md)
    - [Production Penetration Test — Results (2026-11-06)](./09-security/production-pentest-results.md)
@@ -705,6 +713,7 @@
    - [Testing Strategy](./12-ecosystem-reference/architecture.md)
    - [End-to-End Testing](./12-ecosystem-reference/e2e-testing.md)
    - [CI/CD Integration](./12-ecosystem-reference/ci-cd.md)
+   - [GitHub Actions Workflows](./12-ecosystem-reference/github-actions.md)
    - [Contributing Overview](./12-ecosystem-reference/setup.md)
    - [Pull Requests](./12-ecosystem-reference/pull-requests.md)
    - [Community Guidelines](./12-ecosystem-reference/community.md)
@@ -804,6 +813,7 @@
 
 - [Chapter 13: AI OS](./13-ai-os/README.md)
    - [Agent Mode & Snapshots](./13-ai-os/agent-mode.md)
+   - [Model Routing and Fallback](./13-ai-os/model-routing.md)
    - [Workspace Tabs](./13-ai-os/workspace-tabs.md)
    - [Adaptive Automations](./13-ai-os/automations.md)
    - [Goal Runs](./13-ai-os/goal-runs.md)

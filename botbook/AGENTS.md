@@ -21,8 +21,8 @@ review pass reported "0 dead links" while 497 links pointed at 209 pages that
 mdBook never published. Always check against `SUMMARY.md`:
 
 ```bash
-python3 scripts/docs_link_check.py     # MISSING and UNPUBLISHED, exit 1 on failure
-python3 scripts/docs_summary_sync.py --check   # every page listed in SUMMARY.md
+python3 scripts/botbook_guards.py --check   # MISSING, UNPUBLISHED, BAD_ANCHOR, drift; exit 1
+python3 scripts/botbook_guards.py           # same scan, report only (exit 0)
 ```
 
 ## Workflow
@@ -40,11 +40,13 @@ python3 scripts/docs_summary_sync.py --check   # every page listed in SUMMARY.md
 
 | Claim | Authority |
 |---|---|
-| Which apps exist, their titles/categories | `botserver/src/apps/registry.rs` |
+| Which apps exist, their titles/categories | `botserver/src/apps/registry/` (`entries.rs`, `entries_extra.rs`, `mod.rs::all_apps`) |
 | What an app's UI actually offers | `botui/ui/suite/<app>/` — the `.html` plus `modules/*.js` |
 | Dependency versions (Postgres, Valkey, Vault, …) | `botserver/3rdparty.toml` |
 | Product version | `Cargo.toml` at the repository root |
-| Available BASIC keywords | `botserver/src/basic/keywords/` |
+| Available BASIC keywords | `botserver/crates/botbasic_*/src/keywords/` plus local keywords in `botserver/src/basic/keywords/` |
+| Integration providers, auth and actions | `botserver/src/apps/integration_catalog/` (seeds) and `botserver/crates/botintegrations/src/providers/` (adapters) |
+| Curated skills | `botskills/<category>/<skill>/SKILL.md` |
 | Retrieval behaviour and configuration keys | `botserver/src/core/bot/kb_context/` |
 | Crate layout and responsibilities | `botserver/crates/*/` |
 | Live hostnames and routing | Caddy config on the `proxy` container |
@@ -63,8 +65,8 @@ cannot reproduce it from one of these, treat the sentence as wrong.
   say it is unused instead.
 - **Confirm a feature gate gates something.** A flag read into a variable that
   nothing branches on is not a gate.
-- **Prefer the manifest to prose** for anything versioned, then sync with
-  `scripts/docs_component_versions.py`.
+- **Prefer the manifest to prose** for anything versioned; `scripts/botbook_guards.py`
+  fails a product-version claim that disagrees with `Cargo.toml`.
 - **Check artwork the way you check prose.** Screen mockups carry dates and
   version badges that go stale: verify a calendar grid has the right number of
   days and that its weekdays line up, and verify version labels against the
@@ -103,51 +105,53 @@ leaving the reader to discover it.
 
 ## Guards
 
-Run from the repository root. All five must pass before committing.
+Run from the repository root. Everything in this table exists today; the
+generated-reference scripts are listed with the pages they own.
 
 | Script | Checks | Exit code |
 |---|---|---|
-| `scripts/docs_link_check.py` | every internal link resolves to a published page | 1 on any broken link |
-| `scripts/docs_summary_sync.py --check` | every page is registered in `SUMMARY.md` | 1 when pages are missing |
-| `scripts/docs_component_versions.py --check` | documented versions match `3rdparty.toml` | 1 on drift |
-| `scripts/docs_suite_apps_status.py` | regenerates the Suite Apps status page from the registry | 0 (writes the page) |
-| `scripts/docs_suite_svg_audit.py` | text inside the canvas, plus version claims in the SVG screens | 1 on drift |
-| `scripts/docs_app_screens.py --check` | every app screen extracts from the registry | 1 on a failed app |
+| `scripts/botbook_guards.py --check` | SUMMARY chapters exist and have a body, every relative link resolves to a published page and a real anchor, product versions match `Cargo.toml`, port claims match `AGENTS.md` | 1 on a violation that is not in the allowlist |
+| `scripts/botbook_guards.py --self-test` | injects a bad link, a bad anchor, an empty chapter, a stale version and a wrong port; asserts each is reported | 1 when a guard stops catching its defect |
+| `scripts/gen_catalogs.py --check` | the connector catalog (`06-channels/connectors/`) and the skills catalog (`13-ai-os/skills-catalog.md`) match the seeds, the adapter registry and `botskills/**` | 1 when a page is stale |
+| `scripts/gen_api_reference.py --check` | the generated REST/WebSocket reference matches the route and catalog sources | 1 when a page is stale |
+| `scripts/gen_schema_reference.py --check` | the schema reference matches `botschema` and the migrations | 1 when a page is stale |
+| `scripts/gen_basic_reference.py --check` | the BASIC reference matches the registered keywords | 1 when a page is stale |
+| `scripts/botbook_reindex.sh` | mdBook builds and the search index exists; every `SUMMARY.md` link resolves | 1 when the build fails |
 
-`docs_summary_sync.py` without `--check` appends the missing entries to
-`SUMMARY.md`; `docs_suite_svg_wire.py` wires orphaned screens into their pages.
+`botbook/guards-allowlist.txt` records reviewed debt (`kind|path|detail|reason`);
+it may only shrink, and `python3 scripts/botbook_guards.py --prune` removes rows
+that no longer match. Adding a row is a decision, not a way to silence a guard.
 
-## Regenerating the app screens
+Still missing from #2082 and therefore **not** documented as available:
+`docs_component_versions.py` (component versions against `3rdparty.toml`),
+`docs_summary_sync.py` (auto-registering orphan pages), `docs_suite_apps_status.py`,
+`docs_app_screens.py`, `docs_suite_svg_audit.py`, `docs_suite_svg_wire.py` and
+`docs_code_ref_check.py`. Do not cite them as guards until they exist.
 
-Do not redraw an app screen by hand. `scripts/docs_app_screens.py` builds each
-one from the app's own markup, so a screen that disagrees with the product is a
-generator bug rather than an artwork task.
 
-```bash
-python3 scripts/docs_app_screens.py                # rewrite all 73 screens
-python3 scripts/docs_app_screens.py tasks drive    # rewrite a subset
-python3 scripts/docs_app_screens.py --report       # extraction summary only
-```
+## App screens
 
-Its two inputs are authoritative and must not be replaced with copies:
+`scripts/docs_app_screens.py` does **not exist yet** (#2082); the SVGs in
+`src/assets/suite/` are maintained by hand. When editing one, check it against
+the same two authorities a generator would read:
 
-1. **`botserver/src/apps/registry.rs`** — the app list the suite renders. It is
-   read directly; there is no committed catalogue to drift from it.
+1. **`botserver/src/apps/registry/`** — the app list the suite renders
+   (`all_apps()`); a screen for an id that is not there is a phantom.
 2. **`botui/ui/suite/<app>/`** markup, following `hx-get` partials, and
    **`botlib/locales/en/ui.ftl`** for every `data-i18n` label.
 
-Conventions the generator follows, and that a replacement must keep:
+Conventions the screens must follow:
 
 - **Row and card bodies stay neutral.** Region names, tabs, filters, columns and
   actions are real; record payloads are skeleton blocks. Never invent records.
 - **`display:none` is not absent.** Suite apps ship shells hidden and reveal
   them on hydration, so those containers are the real interface.
-- **Modals are not the surface.** `TRANSIENT` excludes dialogs, masks and
-  drawers: an app is documented by its shell, not by a dialog.
+- **Modals are not the surface.** Dialogs, masks and drawers are transient: an
+  app is documented by its shell, not by a dialog.
 - **A conversation surface keeps its declared thread** instead of falling back
   to recovered script markup.
 
-After regenerating, run the guards above and review the diff: a screen that
+After editing a screen, run the guards above and review the diff: a screen that
 loses real labels has regressed, even if it still parses.
 
 ## Build and read the result

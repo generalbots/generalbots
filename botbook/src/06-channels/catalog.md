@@ -1,6 +1,10 @@
 # Service Catalog 🟡 BETA
 
-This catalog provides detailed information about every external service that General Bots integrates with.
+This page covers the **LLM, storage, directory and messaging services** General
+Bots talks to. The provider integrations the Integrations app offers (auth
+style, credential fields and the action each provider advertises) are generated
+separately in the [connector catalog](./connectors/index.md) — do not duplicate
+that list here.
 
 ## LLM Providers
 
