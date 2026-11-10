@@ -107,3 +107,99 @@ pub fn current_org_id() -> uuid::Uuid {
 pub fn build_bot_path(org_id: impl std::fmt::Display, bot_bucket: &str, sub_path: &str) -> String {
     format!("{org_id}.gborg/{bot_bucket}.gbai/{sub_path}")
 }
+
+#[cfg(test)]
+mod to_array_tests {
+    use super::*;
+
+    #[test]
+    fn an_array_is_returned_as_is() {
+        let value = Dynamic::from(vec![Dynamic::from(1_i64), Dynamic::from(2_i64)]);
+        assert_eq!(to_array(&value).len(), 2);
+    }
+
+    #[test]
+    fn a_map_yields_its_values() {
+        let mut map = rhai::Map::new();
+        map.insert("a".into(), Dynamic::from(1_i64));
+        map.insert("b".into(), Dynamic::from(2_i64));
+        assert_eq!(to_array(&Dynamic::from(map)).len(), 2);
+    }
+
+    #[test]
+    fn a_scalar_is_wrapped_in_a_single_element_array() {
+        let wrapped = to_array(&Dynamic::from(7_i64));
+        assert_eq!(wrapped.len(), 1);
+        assert_eq!(wrapped[0].as_int().unwrap(), 7);
+        assert_eq!(to_array(&Dynamic::from("x")).len(), 1);
+    }
+
+    #[test]
+    fn json_scalars_map_to_the_matching_rhai_type() {
+        assert!(json_value_to_dynamic(&Value::Null).is_unit());
+        assert_eq!(json_value_to_dynamic(&Value::Bool(true)).as_bool().unwrap(), true);
+        assert_eq!(json_value_to_dynamic(&serde_json::json!(42)).as_int().unwrap(), 42);
+        assert_eq!(json_value_to_dynamic(&serde_json::json!(1.5)).as_float().unwrap(), 1.5);
+        assert_eq!(
+            json_value_to_dynamic(&serde_json::json!("hi")).into_string().unwrap(),
+            "hi"
+        );
+    }
+
+    #[test]
+    fn json_collections_round_trip_through_rhai() {
+        let original = serde_json::json!({"a": [1, 2], "b": {"c": true}, "d": null});
+        let dynamic = json_value_to_dynamic(&original);
+        assert_eq!(dynamic_to_json(&dynamic), original);
+    }
+
+    #[test]
+    fn dynamic_to_json_covers_scalars_and_containers() {
+        assert_eq!(dynamic_to_json(&Dynamic::UNIT), Value::Null);
+        assert_eq!(dynamic_to_json(&Dynamic::from(true)), Value::Bool(true));
+        assert_eq!(dynamic_to_json(&Dynamic::from(3_i64)), serde_json::json!(3));
+        assert_eq!(dynamic_to_json(&Dynamic::from(3.5_f64)), serde_json::json!(3.5));
+        assert_eq!(dynamic_to_json(&Dynamic::from("s")), serde_json::json!("s"));
+        assert_eq!(
+            dynamic_to_json(&Dynamic::from(vec![Dynamic::from(1_i64)])),
+            serde_json::json!([1])
+        );
+    }
+
+    #[test]
+    fn iso_dates_pass_through_unchanged() {
+        assert_eq!(convert_date_to_iso_format("2026-11-10"), "2026-11-10");
+        assert_eq!(
+            convert_date_to_iso_format("2026-11-10 14:30:00"),
+            "2026-11-10 14:30:00"
+        );
+        assert_eq!(convert_date_to_iso_format("  2026-11-10  "), "2026-11-10");
+    }
+
+    #[test]
+    fn brazilian_dates_convert_to_iso() {
+        assert_eq!(convert_date_to_iso_format("10/11/2026"), "2026-11-10");
+        assert_eq!(
+            convert_date_to_iso_format("10/11/2026 14:30:00"),
+            "2026-11-10 14:30:00"
+        );
+        assert_eq!(convert_date_to_iso_format("01/02/2026"), "2026-02-01");
+    }
+
+    #[test]
+    fn invalid_or_unrecognised_dates_are_returned_verbatim() {
+        assert_eq!(convert_date_to_iso_format("not a date"), "not a date");
+        assert_eq!(convert_date_to_iso_format("32/01/2026"), "32/01/2026");
+        assert_eq!(convert_date_to_iso_format("10/13/2026"), "10/13/2026");
+        assert_eq!(convert_date_to_iso_format("10/ab/2026"), "10/ab/2026");
+        assert_eq!(convert_date_to_iso_format(""), "");
+    }
+
+    #[test]
+    fn bot_paths_wrap_the_bucket_in_the_org() {
+        assert_eq!(
+            build_bot_path(uuid::Uuid::nil(), "acme", "acme.gbdialog/x.bas"),
+            "00000000-0000-0000-0000-000000000000.gborg/acme.gbai/acme.gbdialog/x.bas"
+        );
+    }
+}
