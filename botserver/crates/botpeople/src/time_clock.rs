@@ -319,4 +319,105 @@ mod tests {
         }];
         assert!(svc.verify_location(&geo, &locs).is_some());
     }
+
+    fn office() -> WorkLocation {
+        WorkLocation {
+            id: Uuid::new_v4(),
+            tenant_id: Uuid::nil(),
+            name: "Office".into(),
+            latitude: -23.55,
+            longitude: -46.63,
+            radius_meters: 100,
+            active: true,
+        }
+    }
+
+    fn geo(lat: f64, lon: f64) -> GeoLocation {
+        GeoLocation {
+            latitude: lat,
+            longitude: lon,
+            accuracy_meters: Some(10.0),
+            captured_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn a_location_outside_the_radius_fails() {
+        let svc = TimeClockService::new();
+        let locs = vec![office()];
+        // ~1.1 km north of the office.
+        assert!(svc.verify_location(&geo(-23.54, -46.63), &locs).is_none());
+        assert!(svc.verify_location(&geo(-23.55, -46.63), &locs).is_some());
+    }
+
+    #[test]
+    fn inactive_locations_never_verify() {
+        let svc = TimeClockService::new();
+        let mut loc = office();
+        loc.active = false;
+        assert!(svc.verify_location(&geo(-23.55, -46.63), &[loc]).is_none());
+        assert!(svc
+            .verify_location(&geo(-23.55, -46.63), &[])
+            .is_none());
+    }
+
+    #[test]
+    fn no_entries_means_absent() {
+        let svc = TimeClockService::new();
+        let shift = svc.compute_shift(Vec::new(), None, Utc::now().date_naive());
+        assert_eq!(shift.status, ShiftStatus::Absent);
+        assert_eq!(shift.total_worked_minutes, 0);
+        assert!(!shift.approval_required);
+    }
+
+    #[test]
+    fn an_open_shift_is_in_progress() {
+        let svc = TimeClockService::new();
+        let emp = Uuid::new_v4();
+        let entries = vec![entry(emp, ClockType::In, 0)];
+        let shift = svc.compute_shift(entries, None, Utc::now().date_naive());
+        assert_eq!(shift.status, ShiftStatus::InProgress);
+        assert_eq!(shift.total_worked_minutes, 0);
+    }
+
+    #[test]
+    fn break_minutes_are_subtracted_and_never_negative() {
+        let svc = TimeClockService::new();
+        let emp = Uuid::new_v4();
+        let entries = vec![
+            entry(emp, ClockType::In, 0),
+            entry(emp, ClockType::BreakStart, 60),
+            entry(emp, ClockType::BreakEnd, 75),
+            entry(emp, ClockType::Out, 120),
+        ];
+        let shift = svc.compute_shift(entries, None, Utc::now().date_naive());
+        assert_eq!(shift.total_break_minutes, 15);
+        assert_eq!(shift.total_worked_minutes, 105);
+    }
+
+    #[test]
+    fn an_unmatched_break_end_does_not_go_negative() {
+        let svc = TimeClockService::new();
+        let emp = Uuid::new_v4();
+        let entries = vec![
+            entry(emp, ClockType::In, 0),
+            entry(emp, ClockType::BreakEnd, 30),
+            entry(emp, ClockType::Out, 60),
+        ];
+        let shift = svc.compute_shift(entries, None, Utc::now().date_naive());
+        assert_eq!(shift.total_break_minutes, 0);
+        assert_eq!(shift.total_worked_minutes, 60);
+    }
+
+    #[test]
+    fn a_long_shift_requires_approval_for_overtime() {
+        let svc = TimeClockService::new();
+        let emp = Uuid::new_v4();
+        // 10 hours worked, no schedule: overtime is only computed with one, so
+        // the shift completes without approval.
+        let entries = vec![entry(emp, ClockType::In, 0), entry(emp, ClockType::Out, 600)];
+        let shift = svc.compute_shift(entries, None, Utc::now().date_naive());
+        assert_eq!(shift.status, ShiftStatus::Completed);
+        assert_eq!(shift.total_worked_minutes, 600);
+    }
 }
