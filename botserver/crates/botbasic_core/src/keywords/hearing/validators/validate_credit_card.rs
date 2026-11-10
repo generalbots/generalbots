@@ -124,3 +124,64 @@ pub(super) fn validate_menu(input: &str, options: &[String]) -> ValidationResult
     let opts = options.join(", ");
     ValidationResult::invalid(format!("Please select one of: {opts}"))
 }
+
+#[cfg(test)]
+mod credit_card_tests {
+    use super::*;
+
+    #[test]
+    fn a_valid_visa_passes_and_reports_its_type() {
+        let result = validate_credit_card("4111 1111 1111 1111");
+        assert!(result.is_valid);
+        assert_eq!(
+            result.metadata.as_ref().unwrap()["card_type"],
+            serde_json::json!("Visa")
+        );
+        assert_eq!(
+            result.metadata.as_ref().unwrap()["last_four"],
+            serde_json::json!("1111")
+        );
+    }
+
+    #[test]
+    fn known_test_numbers_pass_luhn() {
+        assert!(validate_credit_card("5555555555554444").is_valid, "mastercard");
+        assert!(validate_credit_card("378282246310005").is_valid, "amex");
+        assert!(validate_credit_card("6011111111111117").is_valid, "discover");
+        assert!(validate_credit_card("30569309025904").is_valid, "diners");
+    }
+
+    #[test]
+    fn a_failing_luhn_checksum_is_rejected() {
+        let result = validate_credit_card("4111111111111112");
+        assert!(!result.is_valid);
+        assert!(result
+            .error_message
+            .as_deref()
+            .unwrap_or_default()
+            .contains("Invalid card number"));
+    }
+
+    #[test]
+    fn wrong_lengths_are_rejected_before_the_checksum() {
+        assert!(!validate_credit_card("411111111111").is_valid);
+        assert!(!validate_credit_card("41111111111111111111").is_valid);
+        assert!(!validate_credit_card("").is_valid);
+        assert!(!validate_credit_card("not a card").is_valid);
+    }
+
+    #[test]
+    fn separators_and_spaces_are_ignored() {
+        assert!(validate_credit_card("4111-1111-1111-1111").is_valid);
+        assert!(validate_credit_card("4111.1111.1111.1111").is_valid);
+    }
+
+    #[test]
+    fn the_masked_value_never_exposes_the_full_number() {
+        let result = validate_credit_card("4111111111111111");
+        assert!(result.normalized_value.starts_with("4111"));
+        assert!(result.normalized_value.ends_with("1111"));
+        assert!(!result.normalized_value.contains("111111111111"));
+        assert_eq!(result.normalized_value.matches('*').count(), 8);
+    }
+}
