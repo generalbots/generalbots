@@ -5,9 +5,10 @@
 //! commands create a real artifact (with an id) instead of only opening the app.
 
 use crate::auth::{resolve_user_id, SheetError, SheetUser};
-use crate::handlers::cell_ops::{MAX_COLS, MAX_ROWS};
+use crate::handlers::cell_ops::{MAX_COLS, MAX_RECALC_CELLS, MAX_ROWS};
 use crate::state::{save_sheet_to_drive, SheetState};
 use crate::types::{CellData, SaveResponse, Spreadsheet, Worksheet};
+use botsheet_core::dependency_graph::DepGraph;
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -115,6 +116,21 @@ fn cell_from_text(text: &str, worksheets: &[Worksheet], index: usize) -> CellDat
     }
 }
 
+/// Carries the presentation of an already formatted cell onto a new value.
+///
+/// Presentation lives on the cell, not on the value, so writing `Cinza` into a
+/// yellow `A1` must keep the fill, number format and note the user set before
+/// (#2150 UAT-06: five colours vanished as soon as the labels were written).
+fn keep_presentation(cell: &mut CellData, existing: Option<&CellData>) {
+    if let Some(existing) = existing {
+        cell.style = existing.style.clone();
+        cell.format = existing.format.clone();
+        cell.note = existing.note.clone();
+        cell.locked = existing.locked;
+        cell.has_comment = existing.has_comment;
+    }
+}
+
 /// Builds a spreadsheet from a title and rows without touching Drive, so the
 /// shape of the created artifact is testable on its own.
 pub fn build_spreadsheet(
@@ -173,8 +189,9 @@ pub async fn handle_set_cells(
     Json(req): Json<SetCellsRequest>,
 ) -> Result<Json<SaveResponse>, SheetError> {
     let user_id = resolve_user_id(user.as_deref())?;
-    let ((start_row, start_col), _) = botsheet_core::formulas::refs::parse_range(&req.range)
-        .ok_or_else(|| bad_request(format!("invalid A1 range '{}'", req.range)))?;
+    let ((start_row, start_col), _) =
+        botsheet_core::formulas::refs::parse_range_or_single(&req.range)
+            .ok_or_else(|| bad_request(format!("invalid A1 range '{}'", req.range)))?;
     let grid = row_values(&req.values).map_err(bad_request)?;
 
     let session = state
@@ -193,6 +210,7 @@ pub async fn handle_set_cells(
         }
 
         let mut written = 0usize;
+        let mut written_keys: Vec<(u32, u32)> = Vec::with_capacity(grid.len());
         for (row_offset, row) in grid.iter().enumerate() {
             for (col_offset, text) in row.iter().enumerate() {
                 let row_index = start_row.saturating_add(row_offset as u32);
@@ -200,13 +218,38 @@ pub async fn handle_set_cells(
                 if row_index >= MAX_ROWS || col_index >= MAX_COLS {
                     return Err(bad_request("Cell out of grid bounds".to_string()));
                 }
-                let cell = cell_from_text(text, &sheet.worksheets, req.worksheet_index);
+                let mut cell = cell_from_text(text, &sheet.worksheets, req.worksheet_index);
+                let key = format!("{row_index},{col_index}");
+                let existing = sheet.worksheets[req.worksheet_index].data.get(&key).cloned();
+                keep_presentation(&mut cell, existing.as_ref());
                 sheet.worksheets[req.worksheet_index]
                     .data
-                    .insert(format!("{row_index},{col_index}"), cell);
+                    .insert(key, cell);
+                written_keys.push((row_index, col_index));
                 written += 1;
             }
         }
+
+        {
+            // A block write invalidates every formula that reads the block:
+            // without this pass `SUM(C2:C4)` keeps the total it had before the
+            // edit (#2150 SHEET-04 step 3).
+            let mut graphs = match session.dep_graphs.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            if graphs.len() != sheet.worksheets.len() {
+                *graphs = sheet.worksheets.iter().map(DepGraph::build).collect();
+            }
+            let index = req.worksheet_index;
+            graphs[index].on_edit(&sheet.worksheets[index], &written_keys);
+            graphs[index].recalc_cascade_typed_many(
+                &mut sheet.worksheets[index],
+                &written_keys,
+                MAX_RECALC_CELLS,
+            );
+        }
+
         sheet.updated_at = Utc::now();
         written
     };
@@ -281,7 +324,40 @@ mod tests {
         let grid = row_values(&json!([["a", "b"], ["c", "d"]])).expect("valid grid");
         assert_eq!(grid, vec![vec!["a", "b"], vec!["c", "d"]]);
         let ((row, col), _) =
-            botsheet_core::formulas::refs::parse_range("B2:C3").expect("valid range");
+            botsheet_core::formulas::refs::parse_range_or_single("B2:C3").expect("valid range");
         assert_eq!((row, col), (1, 1));
+        let ((row, col), _) =
+            botsheet_core::formulas::refs::parse_range_or_single("A1").expect("single cell");
+        assert_eq!((row, col), (0, 0));
+    }
+
+    #[test]
+    fn writing_a_value_keeps_the_existing_presentation() {
+        let mut cell = cell_from_text("Cinza", &[], 0);
+        let existing = CellData {
+            value: Some("old".to_string()),
+            typed: None,
+            formula: None,
+            style: Some(botsheet_core::types::CellStyle {
+                background: Some("#fde68a".to_string()),
+                font_weight: Some("bold".to_string()),
+                ..Default::default()
+            }),
+            format: Some("0.00".to_string()),
+            note: Some("keep me".to_string()),
+            locked: Some(true),
+            has_comment: Some(true),
+            array_formula_id: None,
+        };
+
+        keep_presentation(&mut cell, Some(&existing));
+
+        assert_eq!(cell.value.as_deref(), Some("Cinza"));
+        let style = cell.style.as_ref().expect("style survives the write");
+        assert_eq!(style.background.as_deref(), Some("#fde68a"));
+        assert_eq!(style.font_weight.as_deref(), Some("bold"));
+        assert_eq!(cell.format.as_deref(), Some("0.00"));
+        assert_eq!(cell.note.as_deref(), Some("keep me"));
+        assert_eq!(cell.locked, Some(true));
     }
 }

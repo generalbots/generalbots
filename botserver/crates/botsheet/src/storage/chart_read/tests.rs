@@ -51,10 +51,10 @@ fn extracts_chart_from_workbook_package() {
     let mut worksheets = Vec::new();
     for sheet in workbook.sheet_collection() {
         let mut data = HashMap::new();
-        let (max_col, max_row) = sheet.get_highest_column_and_row();
+        let (max_col, max_row) = sheet.highest_column_and_row();
         for row in 1..=max_row {
             for col in 1..=max_col {
-                if let Some(cell) = sheet.get_cell((col, row)) {
+                if let Some(cell) = sheet.cell((col, row)) {
                     let value = cell.value().to_string();
                     if !value.is_empty() {
                         data.insert(

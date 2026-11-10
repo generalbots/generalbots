@@ -88,6 +88,17 @@ impl PdfWriter {
         (self.objects.len() as u32) + HEADER_OBJECTS
     }
 
+    /// Pushes a content stream as a proper `<< /Length >> stream ... endstream`
+    /// object. A bare `BT ... ET` body is not a stream: readers accept the file
+    /// but render a blank page, and text extraction returns nothing (#2150
+    /// SHEET-10 step 3).
+    fn push_stream_object(&mut self, content: &[u8]) -> u32 {
+        let mut body = format!("<< /Length {} >>\nstream\n", content.len()).into_bytes();
+        body.extend_from_slice(content);
+        body.extend_from_slice(b"\nendstream");
+        self.push_object(&body)
+    }
+
     /// Renders one worksheet onto as many pages as its grid needs. Rows with
     /// no data are skipped, so a sparse sheet prints compactly.
     pub(super) fn add_worksheet(
@@ -179,7 +190,7 @@ impl PdfWriter {
     }
 
     fn add_page_object(&mut self, stream: &[u8]) -> Result<(), String> {
-        let stream_obj = self.push_object(stream);
+        let stream_obj = self.push_stream_object(stream);
         let page_body = format!(
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w} {h}] \
              /Resources << /Font << /F1 3 0 R >> >> /Contents {stream} 0 R >>",

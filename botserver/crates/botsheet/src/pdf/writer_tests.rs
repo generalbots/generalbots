@@ -144,3 +144,20 @@ fn xref_offsets_point_at_every_object() {
         assert!(pdf[offset].is_ascii_digit(), "object header at {offset}");
     }
 }
+
+/// #2150 SHEET-10 step 3 — the page content must be a real stream object.
+/// A bare `BT ... ET` body is not valid PDF: viewers open the file and render
+/// a blank page, and `pdftotext` extracts nothing.
+#[test]
+fn page_content_is_a_declared_stream() {
+    let mut writer = PdfWriter::new(options(false, 1.0));
+    writer.add_blank_page("Sheet1");
+    let pdf = String::from_utf8_lossy(&writer.finish()).to_string();
+
+    assert!(pdf.contains("/Length "), "content stream needs a /Length: {pdf}");
+    assert!(pdf.contains("stream\n"), "content stream needs the stream keyword");
+    assert!(pdf.contains("endstream"), "content stream needs endstream");
+    let content_start = pdf.find("stream\nBT").expect("content stream body");
+    let content_end = pdf.find("\nendstream").expect("endstream marker");
+    assert!(content_end > content_start);
+}

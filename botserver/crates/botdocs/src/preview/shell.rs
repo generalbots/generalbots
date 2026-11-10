@@ -33,6 +33,10 @@ pub fn preview_html(file_name: &str, extension: &str, bytes: &[u8]) -> Result<St
 .gb-office-preview .gb-office-media{{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;}}
 .gb-office-preview .gb-office-media img{{max-width:320px;max-height:240px;border:1px solid #cbd5e1;border-radius:6px;}}
 .gb-office-preview .gb-office-media figcaption{{font:11px sans-serif;color:#64748b;}}
+.gb-office-preview .gb-doc-pages{{display:flex;flex-direction:column;align-items:center;gap:18px;background:#e2e8f0;padding:18px;border-radius:8px;}}
+.gb-office-preview .gb-doc-page{{position:relative;width:100%;max-width:794px;min-height:1050px;background:#fff;box-shadow:0 2px 12px rgba(15,23,42,.18);padding:56px 60px;box-sizing:border-box;}}
+.gb-office-preview .gb-doc-page-number{{position:absolute;right:16px;bottom:12px;font:11px sans-serif;color:#94a3b8;letter-spacing:.06em;}}
+.gb-office-preview .gb-doc-page-break{{display:none;}}
 </style>
 <div class="gb-preview-name">{name}</div>
 {body}

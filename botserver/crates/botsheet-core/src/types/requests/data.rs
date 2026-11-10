@@ -46,7 +46,7 @@ pub fn bounds_from_request(
     end_row: u32,
     end_col: u32,
 ) -> (u32, u32, u32, u32) {
-    match range.and_then(crate::formulas::refs::parse_range) {
+    match range.and_then(crate::formulas::refs::parse_range_or_single) {
         Some(((start_r, start_c), (end_r, end_c))) => (start_r, start_c, end_r, end_c),
         None => (start_row, start_col, end_row, end_col),
     }

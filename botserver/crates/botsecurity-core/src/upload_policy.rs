@@ -25,8 +25,6 @@
 //! translate a stable catalogue code for the request locale and never echo
 //! internal detail.
 
-use axum::http::{header, HeaderMap};
-
 use crate::file_validation::{blocked_extensions, detect_mime_type};
 pub use crate::upload_archive::{inspect_archive, MAX_ARCHIVE_ENTRIES, MAX_ARCHIVE_UNCOMPRESSED_BYTES};
 pub use crate::upload_transport::{body_limit, check_declared_length};

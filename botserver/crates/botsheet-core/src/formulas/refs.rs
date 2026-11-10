@@ -81,6 +81,19 @@ pub fn parse_range(range: &str) -> Option<((u32, u32), (u32, u32))> {
     Some((start, end))
 }
 
+/// Parses an A1 range that may also be a single cell (`"A1"` -> `(0,0)-(0,0)`).
+///
+/// Request payloads and the toolbar use `"A1"` for a one-cell target, so they
+/// need this lenient form. Formula evaluation must keep using [`parse_range`]:
+/// there a bare `A1` is a scalar reference, not a 1x1 array (#2150).
+pub fn parse_range_or_single(range: &str) -> Option<((u32, u32), (u32, u32))> {
+    if let Some(bounds) = parse_range(range) {
+        return Some(bounds);
+    }
+    let cell = parse_cell_ref(range.trim())?;
+    Some((cell, cell))
+}
+
 pub fn parse_cell_ref(cell_ref: &str) -> Option<(u32, u32)> {
     let cell_ref = cell_ref.trim();
     if cell_ref.is_empty() {
@@ -363,6 +376,18 @@ mod tests {
             parse_cell_ref("XFD1048576"),
             Some((MAX_ROW_INDEX, MAX_COL_INDEX))
         );
+    }
+
+    /// #2150 — the toolbar and `POST /api/sheet/cells` send `"A1"` for a single
+    /// cell. Strict [`parse_range`] must keep rejecting it so formula arrays
+    /// are unaffected, while the lenient form used by requests accepts it.
+    #[test]
+    fn single_cell_range_is_accepted_by_request_parser() {
+        assert_eq!(parse_range("A1"), None);
+        assert_eq!(parse_range_or_single("A1"), Some(((0, 0), (0, 0))));
+        assert_eq!(parse_range_or_single("B3:C4"), Some(((2, 1), (3, 2))));
+        assert_eq!(parse_range_or_single("$C$2"), Some(((1, 2), (1, 2))));
+        assert_eq!(parse_range_or_single("notarange"), None);
     }
 
     #[test]

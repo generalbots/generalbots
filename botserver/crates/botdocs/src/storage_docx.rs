@@ -4,6 +4,20 @@ use docx_rs::*;
 
 use crate::storage_core::{escape_html, parse_html_to_paragraphs};
 
+/// Document-level marker for `<w:br w:type="page"/>`. The DOCX preview splits
+/// the converted document on it and starts a new page there.
+pub const PAGE_BREAK_MARKER: &str = r#"<div class="gb-doc-page-break"></div>"#;
+
+/// Whether a `<w:br>` ends the page.
+///
+/// `docx_rs::Break` keeps `break_type` private and exposes it only through its
+/// `Serialize` impl (`{"breakType":"page"}`), so that is what we read.
+fn is_page_break(br: &docx_rs::Break) -> bool {
+    serde_json::to_string(br)
+        .map(|json| json.contains(r#""breakType":"page""#))
+        .unwrap_or(false)
+}
+
 /// Renders one run's text with its emphasis and line-break children. Used by
 /// both paragraphs and hyperlinks because docx-rs nests runs inside links.
 fn run_html(run: &Run) -> String {
@@ -17,9 +31,7 @@ fn run_html(run: &Run) -> String {
             // A page break must survive the conversion: without it a two-page
             // document renders as one endless page in the preview, which is
             // exactly what a reader sees as "only one page" (#2150).
-            RunChild::Break(br) if matches!(br.br_type, docx_rs::BreakType::Page) => {
-                run_text.push_str(r#"<div class="gb-doc-page-break"></div>"#)
-            }
+            RunChild::Break(br) if is_page_break(br) => run_text.push_str(PAGE_BREAK_MARKER),
             RunChild::Break(_) => run_text.push_str("<br>"),
             RunChild::Tab(_) => run_text.push_str("&nbsp;&nbsp;&nbsp;&nbsp;"),
             _ => {}
@@ -38,6 +50,31 @@ fn run_html(run: &Run) -> String {
         run_text = format!("<u>{run_text}</u>");
     }
     run_text
+}
+
+/// Wraps one paragraph's inline HTML, hoisting any page break out of the
+/// paragraph so the marker is always a sibling of the block elements around it
+/// (a marker left inside `<p>` would split the tag across two pages).
+fn push_paragraph(html: &mut String, para_html: &str, is_heading: bool, heading_level: u8) {
+    let mut rest = para_html;
+    while let Some(index) = rest.find(PAGE_BREAK_MARKER) {
+        let (before, after) = rest.split_at(index);
+        html.push_str(&paragraph_tag(before, is_heading, heading_level));
+        html.push_str(PAGE_BREAK_MARKER);
+        rest = &after[PAGE_BREAK_MARKER.len()..];
+    }
+    html.push_str(&paragraph_tag(rest, is_heading, heading_level));
+}
+
+fn paragraph_tag(inner: &str, is_heading: bool, heading_level: u8) -> String {
+    if inner.is_empty() {
+        return String::new();
+    }
+    if is_heading && (1..=6).contains(&heading_level) {
+        format!("<h{heading_level}>{inner}</h{heading_level}>")
+    } else {
+        format!("<p>{inner}</p>")
+    }
 }
 
 pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
@@ -85,11 +122,7 @@ pub fn convert_docx_to_html(bytes: &[u8]) -> Result<String, String> {
                 }
 
                 if !para_html.is_empty() {
-                    if is_heading && heading_level > 0 && heading_level <= 6 {
-                        html.push_str(&format!("<h{heading_level}>{para_html}</h{heading_level}>"));
-                    } else {
-                        html.push_str(&format!("<p>{para_html}</p>"));
-                    }
+                    push_paragraph(&mut html, &para_html, is_heading, heading_level);
                 } else {
                     html.push_str("<p><br></p>");
                 }
@@ -212,4 +245,31 @@ pub fn convert_html_to_docx(title: &str, html_content: &str) -> Result<Vec<u8>, 
         .map_err(|e| format!("Failed to build DOCX: {e}"))?;
 
     Ok(buf.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// #2150 — a page break must survive the conversion as a document-level
+    /// boundary, never as a plain `<br>` (which renders one endless page).
+    #[test]
+    fn page_break_is_hoisted_out_of_the_paragraph() {
+        let docx = Docx::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_text("first page")))
+            .add_paragraph(
+                Paragraph::new().add_run(Run::new().add_break(Break::new(BreakType::Page))),
+            )
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_text("second page")));
+        let mut buffer = Cursor::new(Vec::new());
+        docx.build()
+            .pack(&mut buffer)
+            .expect("pack the fixture document");
+
+        let html = convert_docx_to_html(&buffer.into_inner()).expect("convert");
+        assert_eq!(html.matches(PAGE_BREAK_MARKER).count(), 1);
+        assert!(!html.contains("<br>"), "a page break is not a line break");
+        assert!(html.contains("<p>first page</p>"));
+        assert!(html.contains("<p>second page</p>"));
+    }
 }

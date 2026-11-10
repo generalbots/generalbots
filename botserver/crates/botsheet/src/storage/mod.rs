@@ -22,6 +22,7 @@ pub mod xlsx_source;
 pub mod xlsx_workbook;
 pub mod xlsx_workbook_patch;
 pub mod xlsx_write;
+pub mod xlsx_write_charts;
 
 pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;

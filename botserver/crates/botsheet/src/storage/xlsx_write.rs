@@ -136,6 +136,12 @@ pub fn convert_to_xlsx(sheet: &Spreadsheet) -> Result<Vec<u8>, String> {
                 }
             }
         }
+
+        if let Some(ref charts) = worksheet.charts {
+            for config in charts {
+                super::xlsx_write_charts::attach_chart(worksheet, umya_sheet, config);
+            }
+        }
     }
 
     let mut buf = Cursor::new(Vec::new());
