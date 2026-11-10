@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#1811 product-profile guard.
+"""#1811 / #2120 product-profile guard.
 
 The build compiles every app by default (`all-apps` is part of `default`).
 Product files are the only place that classifies each registry app as always
@@ -10,7 +10,14 @@ visible, preview or hidden. This script fails CI when:
 - an app appears in more than one bucket (or twice in the same bucket),
 - a registry app is not classified exactly once,
 - a product file lists a core app (about/admin/settings are implicit),
-- the default/desktop build does not compile the feature an app needs.
+- the default/desktop build does not compile the feature an app needs,
+- a tier of `botserver/.product.matrix` disagrees with its `.product*` profile,
+  supports a deprecated app, or names an unknown id/feature (#2120),
+- a registry app has no owner/status row, or its status disagrees with the
+  matrix (#2120).
+
+Failures print a matrix diff (profile/registry vs matrix) so the fix is
+mechanical. The matrix model lives in `scripts/product_matrix.py`.
 
 Usage:
     python3 scripts/product_profile_check.py
@@ -20,104 +27,25 @@ from __future__ import annotations
 
 import re
 import sys
-from pathlib import Path
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # Python < 3.11
-    try:
-        import tomli as tomllib  # type: ignore
-    except ModuleNotFoundError:
-        print("product_profile_check: Python 3.11+ (tomllib) is required", file=sys.stderr)
-        raise SystemExit(2)
-
-ROOT = Path(__file__).resolve().parents[1]
-CARGO = ROOT / "botserver" / "Cargo.toml"
-REGISTRY = ROOT / "botserver" / "src" / "apps" / "registry"
-PRODUCT_FILES = [ROOT / "botserver" / ".product", ROOT / "botserver" / ".product.desktop-local"]
-
-CORE_APPS = {"about", "settings"}
-NON_APP_SURFACES = {"sources"}
-BUCKETS = ("apps", "preview_apps", "hidden_apps")
+from product_matrix import (
+    APP_FEATURES,
+    BUCKETS,
+    CORE_APPS,
+    NON_APP_SURFACES,
+    PRODUCT_FILES,
+    REGISTRY,
+    ROOT,
+    check_matrix,
+    feature_closure,
+    load_features,
+    parse_product,
+)
 
 # The product profile requested in #1811. Both shipped files use this list.
 EXPECTED_ALWAYS = {
     "chat", "drive", "clock-widget", "jukebox", "sheet", "player",
     "calculator", "notes", "photos", "timer", "weather", "integrations",
-}
-
-# Registry id -> botserver Cargo feature. `None` means the app ships with every
-# build (UI/routes have no feature gate). Keep in sync with the catalog and
-# `is_app_compiled`; the guard below then verifies `all-apps` really turns it on.
-APP_FEATURES: dict[str, str | None] = {
-    "about": None,
-    "settings": None,
-    "analytics": "analytics",
-    "attendant": "attendant",
-    "automations": "automations",
-    "banking": "banking",
-    "billing": "billing",
-    "browser": "browser",
-    "calculator": None,
-    "calendar": "calendar",
-    "campaigns": "marketing",
-    "canvas": "canvas",
-    "chat": "chat",
-    "clock-widget": None,
-    "clock": None,
-    "compliance": "compliance",
-    "concierge": None,
-    "crm": "people",
-    "database": "database",
-    "designer": "designer",
-    "desktop": "desktop",
-    "docs": "docs",
-    "drive": "drive",
-    "editor": "editor",
-    "fraud": "fraud",
-    "goals": "goals",
-    "handoff": "handoff",
-    "hr": "hr",
-    "integrations": "integrations",
-    "jukebox": None,
-    "kyc": "kyc",
-    "learn": "learn",
-    "lists": "marketing",
-    "mail": "mail",
-    "meet": "meet",
-    "memory": "memory-os",
-    "minutes": "minutes",
-    "monitoring": "monitoring",
-    "notes": None,
-    "o365": "m365",
-    "paper": "paper",
-    "people": "people",
-    "photos": None,
-    "plan": "plan",
-    "player": "player",
-    "plugins": None,
-    "pos": "pos",
-    "products": "products",
-    "project": "project",
-    "recycle": None,
-    "research": "research",
-    "retail": "retail",
-    "sheet": "sheet",
-    "slides": "slides",
-    "social": "social",
-    "store": None,
-    "tasks": "tasks",
-    "tax": "tax",
-    "templates": "templates",
-    "terminal": "terminal",
-    "tickets": "tickets",
-    "timeclock": "timeclock",
-    "timer": None,
-    "vibe": "vibe",
-    "video": "video",
-    "vision": "vision",
-    "weather": None,
-    "workspace": "workspaces",
 }
 
 
@@ -128,44 +56,10 @@ def registry_ids() -> set[str]:
     return ids
 
 
-def parse_product(path: Path) -> dict[str, list[str]]:
-    result = {key: [] for key in BUCKETS}
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip().lower()
-        if key not in result:
-            continue
-        result[key] = [part.strip().lower() for part in value.split(",") if part.strip()]
-    return result
-
-
-def feature_closure(features: dict, roots: list[str]) -> set[str]:
-    seen: set[str] = set()
-    stack = list(roots)
-    while stack:
-        name = stack.pop()
-        if name in seen:
-            continue
-        seen.add(name)
-        entries = features.get(name)
-        if entries is None:
-            continue
-        for entry in entries:
-            if entry.startswith("dep:") or "/" in entry or entry.startswith("-"):
-                continue
-            stack.append(entry)
-    return seen
-
-
 def main() -> int:
     errors: list[str] = []
 
-    with CARGO.open("rb") as handle:
-        cargo = tomllib.load(handle)
-    features = cargo.get("features", {})
+    features = load_features()
 
     if "all-apps" not in features:
         errors.append("botserver/Cargo.toml has no `all-apps` feature")
@@ -253,15 +147,24 @@ def main() -> int:
         )
         errors.append(f"`all-apps` does not compile features for: {', '.join(missing)}")
 
+    # #2120 — the supported matrix is the product decision; the profiles and
+    # the registry ownership table must agree with it.
+    matrix_errors, matrix_diff = check_matrix(features, apps)
+    errors.extend(matrix_errors)
+
     if errors:
         print("product profile check failed:", file=sys.stderr)
+        if matrix_diff:
+            print("  matrix diff (profile/registry vs matrix):", file=sys.stderr)
+            for line in matrix_diff:
+                print(f"    - {line}", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         return 1
 
     print(
-        f"product profile: {len(apps)} apps fully classified; "
-        "default and desktop compile all apps"
+        f"product profile: {len(apps)} apps classified, owned and in agreement "
+        "with the supported matrix; default and desktop compile all apps"
     )
     return 0
 

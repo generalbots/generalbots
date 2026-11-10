@@ -350,7 +350,8 @@ def command_check(args: argparse.Namespace) -> int:
         )
         return 1
     current = ".".join(str(part) for part in rv.workspace_version(rv.read_text(root / "Cargo.toml")))
-    print(f"versions agree: {current} ({len(artifacts(root)) + 1} artifact(s))")
+    files = len(artifacts(root)) + 1 + (1 if (root / "Cargo.lock").exists() else 0)
+    print(f"versions agree: {current} ({files} artifact(s))")
     return 0
 
 

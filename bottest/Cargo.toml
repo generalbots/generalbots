@@ -21,6 +21,7 @@ diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_js
 
 # Crates under test
 botbilling = { workspace = true }
+botsecurity-core = { workspace = true }
 
 # HTTP mocking and testing
 wiremock = { workspace = true }
@@ -36,6 +37,8 @@ serde_json = { workspace = true }
 
 # Utilities
 base64 = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 chrono = { workspace = true, features = ["serde"] }

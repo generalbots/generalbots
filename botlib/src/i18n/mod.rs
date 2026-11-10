@@ -6,16 +6,50 @@ pub use bundle::I18nBundle;
 pub use locale::Locale;
 pub use translation_parser::MessageArgs;
 
-use crate::error::{BotError, BotResult};
+use crate::error::BotResult;
 use std::sync::OnceLock;
 
 static GLOBAL_BUNDLE: OnceLock<I18nBundle> = OnceLock::new();
 
 pub fn init(locales_path: &str) -> BotResult<()> {
     let bundle = I18nBundle::load(locales_path)?;
-    GLOBAL_BUNDLE
-        .set(bundle)
-        .map_err(|_| BotError::config("i18n already initialized"))
+    match GLOBAL_BUNDLE.set(bundle) {
+        Ok(()) => Ok(()),
+        // A lazy embedded load already installed the catalogue (`bundle`).
+        // `init` then only has to confirm a catalogue is present, not replace
+        // it, so a boot hook that runs after the first lookup still succeeds.
+        Err(_) => Ok(()),
+    }
+}
+
+/// The process-wide catalogue.
+///
+/// With the `i18n` feature the translations are embedded in the binary, so the
+/// first lookup installs them without a path or a boot hook. Library crates
+/// (channel adapters, emails, the CLI) and their unit tests then resolve real
+/// strings instead of rendering `[message_id]`. Without the feature the files
+/// have to be read from disk, so only [`init`] can install the catalogue.
+#[cfg(feature = "i18n")]
+fn bundle() -> Option<&'static I18nBundle> {
+    if let Some(installed) = GLOBAL_BUNDLE.get() {
+        return Some(installed);
+    }
+    match I18nBundle::load("") {
+        Ok(loaded) => {
+            // Losing the race is fine: the winner's catalogue is equivalent.
+            let _ = GLOBAL_BUNDLE.set(loaded);
+            GLOBAL_BUNDLE.get()
+        }
+        Err(e) => {
+            log::error!("embedded i18n catalogue could not be loaded: {e}");
+            None
+        }
+    }
+}
+
+#[cfg(not(feature = "i18n"))]
+fn bundle() -> Option<&'static I18nBundle> {
+    GLOBAL_BUNDLE.get()
 }
 
 pub fn get(locale: &Locale, message_id: &str) -> String {
@@ -23,8 +57,7 @@ pub fn get(locale: &Locale, message_id: &str) -> String {
 }
 
 pub fn get_with_args(locale: &Locale, message_id: &str, args: Option<&MessageArgs>) -> String {
-    GLOBAL_BUNDLE
-        .get()
+    bundle()
         .map(|b| b.get_message(locale, message_id, args))
         .unwrap_or_else(|| format!("[{message_id}]"))
 }
@@ -60,9 +93,91 @@ pub fn locale_from_config(read: impl FnOnce(&str) -> Option<String>) -> Locale {
         .unwrap_or_default()
 }
 
+/// Header a client may send to pin the response language (#2094).
+pub const LOCALE_HEADER: &str = "x-locale";
+
+/// Locale negotiation from raw header values, for crates that cannot use the
+/// `botcore` extractor (the people, attendance and products routes).
+///
+/// The order matches `botcore::i18n::locale_from_headers`: explicit
+/// `X-Locale` (only when the catalogue ships it), then `Accept-Language`, then
+/// the default locale.
+#[must_use]
+pub fn locale_from_request(explicit: Option<&str>, accept_language: Option<&str>) -> Locale {
+    if let Some(locale) = explicit
+        .and_then(|raw| Locale::new(raw.trim()))
+        .filter(|locale| is_supported(locale))
+    {
+        return locale;
+    }
+
+    accept_language
+        .map(parse_accept_language)
+        .and_then(|requested| negotiate_requested(&requested))
+        .unwrap_or_default()
+}
+
+/// Whether the catalogue ships `locale`. Before the bundle is loaded nothing
+/// can be verified, so the explicit header is honoured as sent.
+fn is_supported(locale: &Locale) -> bool {
+    let available = available_locales();
+
+    available.is_empty()
+        || available
+            .iter()
+            .filter_map(|code| Locale::new(code))
+            .any(|candidate| candidate.matches(locale))
+}
+
+/// `Accept-Language` tags ordered by descending quality, dropping `q=0`
+/// (RFC 9110 "not acceptable") and the `*` wildcard.
+fn parse_accept_language(header: &str) -> Vec<Locale> {
+    let mut weighted: Vec<(Locale, f32)> = header
+        .split(',')
+        .filter_map(|part| {
+            let mut iter = part.trim().split(';');
+            let tag = iter.next()?.trim();
+
+            if tag.is_empty() || tag == "*" {
+                return None;
+            }
+
+            let quality = iter
+                .next()
+                .and_then(|q| q.trim().strip_prefix("q="))
+                .and_then(|q| q.parse::<f32>().ok())
+                .unwrap_or(1.0);
+
+            if quality <= 0.0 {
+                return None;
+            }
+
+            Locale::new(tag).map(|locale| (locale, quality))
+        })
+        .collect();
+
+    weighted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    weighted.into_iter().map(|(locale, _)| locale).collect()
+}
+
+fn negotiate_requested(requested: &[Locale]) -> Option<Locale> {
+    let available: Vec<Locale> = available_locales()
+        .iter()
+        .filter_map(|code| Locale::new(code))
+        .collect();
+
+    if available.is_empty() {
+        return Some(Locale::default());
+    }
+
+    let requested_refs: Vec<&Locale> = requested.iter().collect();
+    let fallback = Locale::default();
+
+    Some(Locale::negotiate(&requested_refs, &available, &fallback).clone())
+}
+
 pub fn available_locales() -> Vec<String> {
-    GLOBAL_BUNDLE
-        .get()
+    bundle()
         .map(I18nBundle::available_locales)
         .unwrap_or_default()
 }
@@ -73,21 +188,18 @@ pub fn available_locales() -> Vec<String> {
 /// authored text instead of rendering an identifier.
 #[must_use]
 pub fn has_message(message_id: &str) -> bool {
-    GLOBAL_BUNDLE
-        .get()
-        .is_some_and(|b| b.has_message(message_id))
+    bundle().is_some_and(|b| b.has_message(message_id))
 }
 
 /// Message ids authored in the English (fallback) locale bundle.
 pub fn message_ids() -> Vec<String> {
-    GLOBAL_BUNDLE
-        .get()
+    bundle()
         .map(I18nBundle::message_ids)
         .unwrap_or_default()
 }
 
 pub fn is_initialized() -> bool {
-    GLOBAL_BUNDLE.get().is_some()
+    bundle().is_some()
 }
 
 #[cfg(test)]
@@ -125,5 +237,33 @@ mod tests {
     fn has_message_is_false_without_a_loaded_catalogue() {
         // A process that never initialised i18n keeps the authored text.
         assert!(!has_message("bot-suggest-check-my-balance") || is_initialized());
+    }
+
+    /// #2094 — `q=0` opts a language out and the `*` wildcard is not a locale.
+    #[test]
+    fn accept_language_drops_zero_quality_and_wildcard() {
+        let parsed = parse_accept_language("pt-BR;q=0, *;q=0.9, es;q=0.5, en;q=0.8");
+        let tags: Vec<String> = parsed.iter().map(Locale::to_string).collect();
+        assert_eq!(tags, vec!["en".to_string(), "es".to_string()]);
+    }
+
+    #[test]
+    fn accept_language_orders_by_quality() {
+        let parsed = parse_accept_language("en;q=0.5, pt-BR;q=0.9, es;q=0.7");
+        let tags: Vec<String> = parsed.iter().map(Locale::to_string).collect();
+        assert_eq!(tags, vec!["pt-BR".to_string(), "es".to_string(), "en".to_string()]);
+    }
+
+    /// A malformed header degrades to the default locale instead of erroring.
+    #[test]
+    fn malformed_accept_language_falls_back_to_default() {
+        let locale = locale_from_request(None, Some("pt-BR;q=abc, ;;, "));
+        assert_eq!(locale, Locale::default());
+    }
+
+    #[test]
+    fn explicit_locale_header_wins_over_accept_language() {
+        let locale = locale_from_request(Some("pt-BR"), Some("en-US,en;q=0.9"));
+        assert_eq!(locale.to_string(), "pt-BR");
     }
 }

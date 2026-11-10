@@ -442,6 +442,7 @@
    - [CSS Customization](./07-user-interface/css.md)
    - [Agentic UI Orchestration & Universal Search](./07-user-interface/agentic-ui-orchestration.md)
    - [App Action Model](./07-user-interface/app-action-model.md)
+   - [Supported Matrix](./07-user-interface/app-support-matrix.md)
    - [Dev Chat Widget](./07-user-interface/dev-chat.md)
    - [Localization (i18n)](./07-user-interface/i18n/README.md)
       - [i18n Server Surface](./07-user-interface/i18n/server.md)
@@ -692,6 +693,7 @@
    - [Local LLM with llama.cpp](./11-hardware-scaling/local-llm.md)
    - [Sharding Architecture](./11-hardware-scaling/sharding.md)
    - [Database Optimization](./11-hardware-scaling/database-optimization.md)
+   - [Service Level Objectives (SLOs)](./11-hardware-scaling/slo.md)
 
 ---
 
@@ -714,6 +716,7 @@
    - [Backup and Recovery](./12-ecosystem-reference/backup-recovery.md)
    - [Troubleshooting](./12-ecosystem-reference/troubleshooting.md)
    - [Testing Strategy](./12-ecosystem-reference/architecture.md)
+   - [Unit Test Coverage by Crate](./12-ecosystem-reference/unit-coverage.md)
    - [End-to-End Testing](./12-ecosystem-reference/e2e-testing.md)
    - [CI/CD Integration](./12-ecosystem-reference/ci-cd.md)
    - [GitHub Actions Workflows](./12-ecosystem-reference/github-actions.md)

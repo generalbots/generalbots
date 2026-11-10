@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -200,8 +201,14 @@ def _last_line(text: str) -> str:
     """The tool's own summary: last real line, ignoring per-rule notes."""
     for line in reversed([line.strip() for line in text.splitlines()]):
         if line and not line.startswith(("- ", "note:", "remediation:", "run: ")):
-            return line
+            return _stable(line)
     return ""
+
+
+def _stable(text: str) -> str:
+    """Drop wall-clock/file-count noise so the scoreboard cannot drift."""
+    text = re.sub(r"\s*\([^()]*\bscanned\b[^()]*\)", "", text)
+    return re.sub(r"\s*\(?\bin [\d.]+s\b\)?", "", text).strip()
 
 
 def _clip(text: str, width: int = 78) -> str:

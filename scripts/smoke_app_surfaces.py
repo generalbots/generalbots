@@ -23,6 +23,14 @@ Each surface must answer `200` with a non-empty HTML body. The run stops at the
 first surface that does not respond (the CI job should fail loudly, not report a
 summary that hides a blank app -- see #2100).
 
+Contract mode (#2119)
+---------------------
+`--contracts` runs the static half of the same idea, before any build: every
+registry app must be classified in both product files, present in the smoke
+list derived above, and documented in `issues/app-contracts/apps.toml` (routes
+that really exist, or `no_api` with a reason and an issue). No server, no
+cargo -- seconds, and it fails a new app that nobody documented.
+
 Usage (CI starts the servers; this script only probes them):
 
     python3 scripts/smoke_app_surfaces.py \
@@ -248,14 +256,50 @@ def check_integrations_api(base: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite-base", required=True, help="botserver base URL")
-    parser.add_argument("--static-base", required=True, help="botui static base URL")
+    parser.add_argument("--suite-base", help="botserver base URL")
+    parser.add_argument("--static-base", help="botui static base URL")
     parser.add_argument(
         "--catalog",
         default=None,
         help="catalog URL (default: <suite-base>/api/apps/catalog)",
     )
+    parser.add_argument(
+        "--contracts",
+        action="store_true",
+        help="static app-contract check (#2119): no servers needed",
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="prove the app-contract rules fail when violated",
+    )
     args = parser.parse_args()
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import app_contracts
+
+    if args.self_test:
+        return app_contracts.self_test()
+
+    if args.contracts:
+        registry = registry_entries()
+        try:
+            return app_contracts.report(
+                registry,
+                app_contracts.validate(
+                    registry,
+                    app_contracts.load_contracts(),
+                    app_contracts.classification(),
+                    app_contracts.route_literals(),
+                    {app_id for app_id, _ in suite_paths()},
+                ),
+            )
+        except app_contracts.ContractError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
+
+    if not args.suite_base or not args.static_base:
+        parser.error("--suite-base and --static-base are required (or use --contracts)")
 
     suite = suite_paths()
     static = static_pages()

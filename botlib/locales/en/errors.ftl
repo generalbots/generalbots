@@ -247,3 +247,51 @@ error-terminal-command-too-long = The command is limited to 16000 characters.
 error-terminal-blocked-pattern = The command matches a blocked destructive pattern.
 error-terminal-workspace-stopped = The agent workspace is not running. Finish provisioning (or restart the desktop app), then retry.
 error-terminal-timeout = The command timed out.
+
+# =============================================================================
+# Collaboration, groups, autotasks and AI accounts (#2094)
+# =============================================================================
+
+error-db-unavailable = The database is unavailable right now. Please try again.
+error-collab-invalid-resource = The resource type or resource id is invalid.
+error-collab-owner-only = Only the owner can do this.
+error-collab-invalid-grantee-type = The grantee type must be 'user' or 'domain'.
+error-collab-invalid-role = The role is invalid.
+error-collab-invalid-grantee-id = The grantee id is invalid.
+error-collab-grant-not-found = The grant was not found.
+error-collab-invalid-new-owner = The new owner id is invalid.
+error-collab-link-not-found = The share link was not found.
+error-collab-comment-not-found = The comment was not found.
+error-collab-comment-resolve-forbidden = The comment was not found, or it is not yours to resolve.
+error-collab-comment-body-required = A comment body is required.
+error-collab-comment-too-long = The comment is limited to 8000 characters.
+error-collab-invalid-emoji = The emoji is invalid.
+error-collab-invalid-cursor = The 'before' cursor is invalid.
+error-collab-invalid-action = The action is invalid.
+error-collab-invalid-name = The name is invalid.
+error-collab-content-required = Content is required.
+error-collab-content-too-large = The content is too large.
+error-collab-version-not-found = The version was not found.
+error-collab-invalid-base-version = The base version is invalid.
+error-collab-invalid-parent = The parent id is invalid.
+error-collab-invalid-op-type = The operation type is invalid.
+error-collab-operation-not-found = The operation was not found.
+error-collab-not-a-conflict = The operation is not an unresolved conflict.
+error-collab-invalid-resolution = The resolution must be 'accept-server' or 'accept-client'.
+error-group-budget-not-found = The group budget was not found.
+error-group-budget-invalid-id = The budget id is invalid.
+error-group-budget-amount-invalid = The amount must be zero or positive.
+error-group-budget-caps-invalid = The caps must be zero or positive (zero means no limit).
+error-autotask-fields-required = Title, schedule and command are required.
+error-autotask-kind-invalid = The kind must be 'cron' or 'systemd'.
+error-conversation-not-found = The conversation was not found.
+error-conversation-session-invalid = The conversation session is invalid.
+error-subagent-invalid-tasks = The sub-agent tasks are invalid.
+error-ai-account-unknown-provider = The AI account provider is unknown.
+error-ai-account-workspace-unavailable = The agent workspace is not available in this build.
+error-ai-account-agent-invalid = The agent must be reasoning, agentic or fast.
+error-ai-account-not-connected-vibe = Connect the account before assigning it to Vibe.
+error-ai-account-not-connected-chat = Connect the account before selecting it for chat.
+error-computer-use-action-id-mismatch = The action id does not match the path.
+error-http-no-route = No route matches this path.
+error-goal-run-advance-refused = The run cannot advance in its current state.

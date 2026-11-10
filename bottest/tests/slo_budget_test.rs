@@ -113,6 +113,35 @@ fn snapshot_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../target/slo/hotpath.json")
 }
 
+/// Loads the shipped catalogue. `None` means the build has no embedded locales,
+/// in which case the i18n budget is skipped instead of failing the run.
+fn load_bundle() -> Option<I18nBundle> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../botlib/locales");
+    match I18nBundle::load(path.to_string_lossy().as_ref()) {
+        Ok(bundle) => Some(bundle),
+        Err(error) => {
+            println!("slo_budget: catalogue unavailable ({error}); skipping the i18n budget");
+            None
+        }
+    }
+}
+
+fn measure_message_lookup(bundle: &I18nBundle) -> Stats {
+    let locale = Locale::new("pt-BR").expect("pt-BR parses");
+    let mut args: MessageArgs = MessageArgs::new();
+    args.insert("count".to_string(), "3".to_string());
+    let key = bundle
+        .message_ids()
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| "bot-greeting-default".to_string());
+
+    measure(|| {
+        let rendered = bundle.get_message(&locale, &key, Some(&args));
+        assert!(!rendered.is_empty());
+    })
+}
+
 fn write_snapshot(measured: &[(&str, Stats)]) -> Option<PathBuf> {
     let path = snapshot_path();
     let metrics: serde_json::Map<String, serde_json::Value> = measured
@@ -129,9 +158,15 @@ fn write_snapshot(measured: &[(&str, Stats)]) -> Option<PathBuf> {
         })
         .collect();
 
+    // `chrono` has no `clock` feature in this workspace, so the timestamp is the
+    // Unix epoch in seconds; the checker only needs it for the report header.
+    let measured_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
     let snapshot = serde_json::json!({
         "profile": "hotpath",
-        "measured_at": chrono::Utc::now().to_rfc3339(),
+        "measured_at_epoch_s": measured_at,
         "window_days": 0,
         "source": "bottest/tests/slo_budget_test.rs",
         "metrics": metrics,
@@ -184,32 +219,10 @@ fn locale_negotiation_stays_within_budget() {
 /// Catalogue lookup plus placeholder interpolation, as called for every label.
 #[test]
 fn message_lookup_stays_within_budget() {
-    let bundle = match I18nBundle::load(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../botlib/locales")
-            .to_string_lossy()
-            .as_ref(),
-    ) {
-        Ok(bundle) => bundle,
-        Err(error) => {
-            println!("slo_budget: catalogue unavailable ({error}); skipping the i18n budget");
-            return;
-        }
+    let Some(bundle) = load_bundle() else {
+        return;
     };
-
-    let locale = Locale::new("pt-BR").expect("pt-BR parses");
-    let mut args: MessageArgs = MessageArgs::new();
-    args.insert("count".to_string(), "3".to_string());
-    let key = bundle
-        .message_ids()
-        .into_iter()
-        .next()
-        .unwrap_or_else(|| "bot-greeting-default".to_string());
-
-    let stats = measure(|| {
-        let rendered = bundle.get_message(&locale, &key, Some(&args));
-        assert!(!rendered.is_empty());
-    });
+    let stats = measure_message_lookup(&bundle);
     assert_budget("hotpath.i18n_message_us", &stats);
 }
 
@@ -237,8 +250,9 @@ fn emits_the_hotpath_snapshot() {
         .filter_map(|tag| Locale::new(tag))
         .collect();
     let pattern = "^slo-budget-[0-9]+$";
+    let bundle = load_bundle().expect("the shipped catalogue must load for the snapshot");
 
-    let measured = vec![
+    let mut measured = vec![
         (
             "hotpath.locale_parse_us",
             measure(|| {
@@ -253,6 +267,7 @@ fn emits_the_hotpath_snapshot() {
                 assert_eq!(negotiated.language(), "pt");
             }),
         ),
+        ("hotpath.i18n_message_us", measure_message_lookup(&bundle)),
         (
             "hotpath.regex_cache_us",
             measure(|| {
@@ -261,6 +276,7 @@ fn emits_the_hotpath_snapshot() {
             }),
         ),
     ];
+    measured.sort_by(|left, right| left.0.cmp(right.0));
 
     let path = write_snapshot(&measured);
     assert!(path.is_some(), "the snapshot must be written for the CI checker");

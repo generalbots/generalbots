@@ -8,6 +8,7 @@ mod accessibility;
 mod internationalization;
 mod cloud_tenant;
 mod tenant_isolation;
+mod tenant_tokens;
 mod verification;
 
 use bottest::prelude::*;

@@ -18,8 +18,8 @@
 use bottest::prelude::*;
 use diesel::prelude::*;
 use reqwest::Client;
-use serde_json::json;
 use std::time::Duration;
+use tenant_tokens::{mint_admin_jwt, mint_forged_jwt};
 use uuid::Uuid;
 
 fn test_client() -> Client {
@@ -192,27 +192,6 @@ fn grant_global_admin_group(slug: &str) -> Option<()> {
     .execute(&mut conn)
     .ok()?;
     Some(())
-}
-
-/// Mints a local HMAC JWT whose `email` claim maps to the seeded admin.
-/// The suite auth path mirrors how the drive endpoints resolve identity
-/// from the token email.
-fn mint_admin_jwt(slug: &str, org_id: &str, branch_id: &str) -> String {
-    use base64::Engine;
-    let b64 = |b: &[u8]| base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b);
-    let header = b64(br#"{"alg":"HS256","typ":"JWT"}"#);
-    let payload = b64(
-        json!({
-            "sub": format!("zitadel-{}", slug),
-            "email": format!("admin-{slug}@tenant.test"),
-            "org_id": org_id,
-            "branch_id": branch_id,
-            "exp": 4102444800i64,
-        })
-        .to_string()
-        .as_bytes(),
-    );
-    format!("{header}.{payload}.fakesig")
 }
 
 fn org_id_of(slug: &str) -> Option<String> {
@@ -424,6 +403,41 @@ async fn test_org_admin_is_not_platform_admin() {
     assert!(
         resp.status() == reqwest::StatusCode::FORBIDDEN || resp.status() == reqwest::StatusCode::NOT_FOUND,
         "org admin must not search foreign buckets (got {})",
+        resp.status()
+    );
+}
+
+/// #2112 — a token whose signature does not verify must never resolve a
+/// tenant, even when its payload names a real branch of the same org.
+#[tokio::test]
+async fn test_forged_token_cannot_read_a_tenant_branch() {
+    let server = get_test_server().await;
+    skip_if_no_server!(server);
+
+    let Some(a) = seed_tenant("isola") else {
+        eprintln!("Skipping: tenant seeding unavailable");
+        return;
+    };
+    let Some(org_a) = org_id_of(&a.slug) else {
+        eprintln!("Skipping: org lookup failed");
+        return;
+    };
+    let forged = mint_forged_jwt(&a.slug, &org_a, &a.branch_id.to_string());
+    let (_ctx, base_url) = server.unwrap();
+    let client = test_client();
+
+    let own = format!("{}.gborg", a.slug);
+    let resp = client
+        .get(format!("{base_url}/api/files/list"))
+        .query(&[("bucket", own.as_str()), ("path", "")])
+        .bearer_auth(&forged)
+        .send()
+        .await
+        .expect("list request failed");
+
+    assert!(
+        !resp.status().is_success(),
+        "a forged JWT must not read a tenant branch (got {}) — #2112 regression",
         resp.status()
     );
 }

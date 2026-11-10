@@ -29,15 +29,35 @@ name: Release
 # purpose by pushing a `v*.*.*` tag or dispatching this workflow with an
 # existing tag.
 #
+# #2118 — the version is computed, not typed. Dispatching with `bump` (patch,
+# minor or major, or `auto` for Conventional Commits) runs
+# `scripts/next_version.py --write`, which derives the next tag from the
+# commits since the last product tag and syncs it into every version-bearing
+# file, then commits `chore(release): vX.Y.Z`, tags it and builds that commit in
+# the same run (a GITHUB_TOKEN push cannot trigger a second workflow run). The
+# `--check` gate runs on every path, so a drifting artifact fails the release
+# before anything is built.
+#
 on:
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing product tag (for example v7.0.0)"
-        required: true
+        description: "Existing product tag to rebuild (for example v7.0.0)"
+        required: false
         type: string
+      bump:
+        description: "Compute the next tag from Conventional Commits since the last tag"
+        required: false
+        default: "none"
+        type: choice
+        options:
+          - none
+          - auto
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -51,8 +71,96 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  version:
+    name: Compute the release version
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.compute.outputs.tag }}
+      sha: ${{ steps.compute.outputs.sha }}
+      bumped: ${{ steps.compute.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      # #2118 — one job owns the version: it either adopts the tag that was
+      # pushed/dispatched, or derives the next one from the Conventional
+      # Commits since the last product tag, writes it into every artifact and
+      # commits + tags it. Either way `--check` runs, so a hand-edited version
+      # file stops the release here instead of shipping a wrong `/api/product`.
+      - name: Compute, sync and tag the release version (#2118)
+        id: compute
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          BUMP="${INPUT_BUMP:-none}"
+          BUMPED="false"
+          if [ "$BUMP" != "none" ]; then
+            if [ "$REF_NAME" != "main" ]; then
+              echo "::error::a bump dispatch must run on main (got '$REF_NAME')"
+              exit 1
+            fi
+            if [ -n "$INPUT_TAG" ]; then
+              echo "::error::pass 'tag' (rebuild an existing release) or 'bump' (cut a new one), not both"
+              exit 1
+            fi
+            git fetch --tags --force
+            TAG="$(python3 scripts/next_version.py --bump "$BUMP" --write)"
+            BUMPED="true"
+            echo "::notice::computed ${TAG} from the commits since the last product tag"
+          else
+            TAG="${INPUT_TAG:-$REF_NAME}"
+            python3 scripts/next_version.py --check
+          fi
+          python3 scripts/release_version.py --check
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release tag must look like vMAJOR.MINOR.PATCH (got '$TAG')"
+            exit 1
+          fi
+          CARGO_VERSION="$(python3 scripts/release_version.py current)"
+          if [ "$BUMPED" = "true" ]; then
+            if [ "${TAG#v}" != "$CARGO_VERSION" ]; then
+              echo "::error::the bump produced ${TAG} but Cargo.toml says ${CARGO_VERSION}"
+              exit 1
+            fi
+            git config user.name "general-bots-release-bot"
+            git config user.email "release-bot@generalbots.org"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(release): ${TAG}"
+            else
+              echo "::warning::no version file changed; tagging the current commit"
+            fi
+            if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+              echo "::error::tag ${TAG} already exists; re-run with 'tag' to rebuild it"
+              exit 1
+            fi
+            git tag -a "${TAG}" -m "chore(release): ${TAG}"
+            git push origin "HEAD:${REF_NAME}"
+            git push origin "${TAG}"
+          elif [ "${TAG#v}" != "$CARGO_VERSION" ]; then
+            echo "::warning::Cargo.toml says ${CARGO_VERSION} but the tag is ${TAG}; the build syncs the tag into every artifact (#2103)"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "bumped=${BUMPED}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Version ${TAG}"
+            echo
+            echo "- source: $( [ "$BUMPED" = "true" ] && echo "computed (bump=${BUMP})" || echo "existing tag" )"
+            echo "- commit: $(git rev-parse --short HEAD)"
+            echo "- artifacts: $(python3 scripts/next_version.py --check)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   release:
     name: Resolve the product tag
+    needs: [version]
     if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -62,17 +170,16 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0
 
       - name: Resolve and verify the release tag
         id: version
         env:
-          INPUT_TAG: ${{ inputs.tag }}
-          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
-          VERSION="${INPUT_TAG:-$REF_NAME}"
+          VERSION="${RELEASE_TAG}"
           if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::release tag must look like vMAJOR.MINOR.PATCH (got '$VERSION')"
             exit 1
@@ -96,6 +203,7 @@ jobs:
             echo "### Product release ${VERSION}"
             echo
             echo "- tag: ${VERSION} at $(git rev-parse --short HEAD)"
+            echo "- version source: ${{ needs.version.outputs.bumped == 'true' && 'computed from Conventional Commits' || 'existing tag' }}"
             echo "- build ref: the tag commit"
           } >> "$GITHUB_STEP_SUMMARY"
 

@@ -249,3 +249,51 @@ error-terminal-command-too-long = O comando está limitado a 16000 caracteres.
 error-terminal-blocked-pattern = O comando corresponde a um padrão destrutivo bloqueado.
 error-terminal-workspace-stopped = O workspace do agente não está em execução. Conclua o provisionamento (ou reinicie o aplicativo) e tente novamente.
 error-terminal-timeout = O comando expirou.
+
+# =============================================================================
+# Colaboração, grupos, autotarefas e contas de IA (#2094)
+# =============================================================================
+
+error-db-unavailable = O banco de dados está indisponível no momento. Tente novamente.
+error-collab-invalid-resource = O tipo ou o id do recurso é inválido.
+error-collab-owner-only = Apenas o proprietário pode fazer isso.
+error-collab-invalid-grantee-type = O tipo de destinatário deve ser 'user' ou 'domain'.
+error-collab-invalid-role = A função é inválida.
+error-collab-invalid-grantee-id = O id do destinatário é inválido.
+error-collab-grant-not-found = A concessão não foi encontrada.
+error-collab-invalid-new-owner = O id do novo proprietário é inválido.
+error-collab-link-not-found = O link de compartilhamento não foi encontrado.
+error-collab-comment-not-found = O comentário não foi encontrado.
+error-collab-comment-resolve-forbidden = O comentário não foi encontrado ou não é seu para resolver.
+error-collab-comment-body-required = O corpo do comentário é obrigatório.
+error-collab-comment-too-long = O comentário é limitado a 8000 caracteres.
+error-collab-invalid-emoji = O emoji é inválido.
+error-collab-invalid-cursor = O cursor 'before' é inválido.
+error-collab-invalid-action = A ação é inválida.
+error-collab-invalid-name = O nome é inválido.
+error-collab-content-required = O conteúdo é obrigatório.
+error-collab-content-too-large = O conteúdo é muito grande.
+error-collab-version-not-found = A versão não foi encontrada.
+error-collab-invalid-base-version = A versão base é inválida.
+error-collab-invalid-parent = O id do pai é inválido.
+error-collab-invalid-op-type = O tipo de operação é inválido.
+error-collab-operation-not-found = A operação não foi encontrada.
+error-collab-not-a-conflict = A operação não é um conflito não resolvido.
+error-collab-invalid-resolution = A resolução deve ser 'accept-server' ou 'accept-client'.
+error-group-budget-not-found = O orçamento do grupo não foi encontrado.
+error-group-budget-invalid-id = O id do orçamento é inválido.
+error-group-budget-amount-invalid = O valor deve ser zero ou positivo.
+error-group-budget-caps-invalid = Os limites devem ser zero ou positivos (zero significa sem limite).
+error-autotask-fields-required = Título, agendamento e comando são obrigatórios.
+error-autotask-kind-invalid = O tipo deve ser 'cron' ou 'systemd'.
+error-conversation-not-found = A conversa não foi encontrada.
+error-conversation-session-invalid = A sessão da conversa é inválida.
+error-subagent-invalid-tasks = As tarefas do subagente são inválidas.
+error-ai-account-unknown-provider = O provedor de conta de IA é desconhecido.
+error-ai-account-workspace-unavailable = O workspace do agente não está disponível nesta versão.
+error-ai-account-agent-invalid = O agente deve ser reasoning, agentic ou fast.
+error-ai-account-not-connected-vibe = Conecte a conta antes de atribuí-la ao Vibe.
+error-ai-account-not-connected-chat = Conecte a conta antes de selecioná-la para o chat.
+error-computer-use-action-id-mismatch = O id da ação não corresponde ao caminho.
+error-http-no-route = Nenhuma rota corresponde a este caminho.
+error-goal-run-advance-refused = A execução não pode avançar no estado atual.

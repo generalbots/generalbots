@@ -415,6 +415,30 @@ Configured in Zitadel:
 - SMS OTP (if configured)
 - Email OTP
 
+#### TOTP secret format (`botsecurity-auth`)
+
+The in-process MFA module (`botserver/crates/botsecurity-auth/src/mfa/`) fixes one
+wire format so the QR code and the verifier cannot disagree:
+
+| Step | Value |
+|---|---|
+| Generation | 20 random bytes (`TotpSecret::generate`, `mfa_totp.rs`) |
+| Stored and emitted | unpadded, uppercase RFC 4648 base32 — 32 characters |
+| QR parameter | `otpauth://totp/{issuer}:{account}?secret={base32}&algorithm=SHA1&digits=6&period=30` |
+| HMAC key | `base32_decode(secret)` — the raw 20 bytes, never the base32 or hex text |
+| Verification | RFC 6238, current 30 s step, ±1 period tolerance |
+
+`MfaConfig::default()` advertises SHA-1 with 6 digits and a 30 s period, which is
+what `TotpEnrollment::to_uri` writes into the URI and what
+`verify_totp_full` uses. Enrollments persisted before this format stored
+`hex::encode(raw bytes)` (40 characters, all `[0-9a-f]`); `TotpSecret::parse_stored`
+recognizes exactly that shape, converts it to base32 on read, and serializes it
+back as base32, so no re-enrollment is required. The secret is redacted in `Debug`
+output and never appears in an error message or log line.
+
+Tests for both paths live in `mfa/totp_tests.rs` (RFC 4648 vectors, RFC 6238
+SHA-1/SHA-256/SHA-512 vectors, and an end-to-end `to_uri` → code → verify check).
+
 ### Single Sign-On
 
 - One login for all applications

@@ -16,14 +16,25 @@ Exclusion rules (enforced, not advisory)
 * a crate that carries a floor must keep at least one measured file — an
   exclusion set that erases the crate fails instead of reporting 100%.
 
+Coverage ratchet (#2119)
+------------------------
+`issues/coverage/baseline.json` records the last measured percentage per crate
+and the gate fails when a run is *lower* than that baseline on any metric, so
+coverage can only move up (the mechanics live in `scripts/coverage_ratchet.py`):
+a decrease fails even while still above the floor, an enforced crate with no
+baseline entry fails, `--record-baseline` only ever raises a value, and
+report-only crates (`enforce = false`) warn until their issue lands.
+
 Usage
 -----
     python3 scripts/check_coverage.py --list-crates
     python3 scripts/check_coverage.py --crate botlib --json coverage/botlib.json
+    python3 scripts/check_coverage.py --crate botlib --json coverage/botlib.json \\
+        --record-baseline
     python3 scripts/check_coverage.py --self-test
 
-Exit codes: 0 = at/above every enforced floor, 1 = below a floor or an invalid
-exclusion, 2 = usage/config error.
+Exit codes: 0 = at/above every enforced floor and baseline, 1 = below a floor,
+below a baseline or an invalid exclusion, 2 = usage/config error.
 """
 
 from __future__ import annotations
@@ -36,8 +47,19 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from coverage_ratchet import (  # noqa: E402 - sibling module, resolved above
+    BaselineError,
+    compare_baseline,
+    load_baseline,
+    record_baseline,
+)
+
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = "coverage-exclusions.toml"
+# #2119 — the ratchet baseline is data next to the other committed baselines.
+DEFAULT_BASELINE = "issues/coverage/baseline.json"
 
 METRICS = ("lines", "functions", "branches")
 MIN_REASON_CHARS = 20
@@ -172,7 +194,8 @@ def format_row(crate: str, result: dict, floor: dict) -> str:
     return f"| `{crate}` | " + " | ".join(cells) + f" | {result['measured_files']} | {mode} |"
 
 
-def check(crate: str, report_path: Path, config: dict) -> int:
+def check(crate: str, report_path: Path, config: dict, baseline: dict | None = None,
+          baseline_path: Path | None = None, record: bool = False) -> int:
     floors = parse_floors(config)
     exclusions = validate(config, floors)
     if crate not in floors:
@@ -216,6 +239,23 @@ def check(crate: str, report_path: Path, config: dict) -> int:
             print(f"error: {message}")
             return 1
         print(f"warning (report-only): {message}")
+
+    # #2119 — the ratchet. A floor is a constant; a decrease against the
+    # committed baseline is a regression even while the crate is still above
+    # its floor, so this comparison is independent of the check above.
+    if record and baseline_path is not None:
+        record_baseline(baseline_path, crate, result)
+        return 0
+    if baseline is None:
+        return 0
+    drops = compare_baseline(crate, result, baseline)
+    if drops:
+        message = f"{crate} ratchet: " + "; ".join(drops)
+        if floor["enforce"]:
+            print(f"error: {message}")
+            print("error: coverage may not decrease; add tests, or raise the baseline on purpose with --record-baseline")
+            return 1
+        print(f"warning (report-only ratchet): {message}")
     return 0
 
 
@@ -315,6 +355,45 @@ def self_test() -> int:
             "report-only mode never fails the job",
         )
 
+        # #2119 — the ratchet: same floor, but the recorded baseline is what
+        # decides. 80% measured against an 80% baseline passes; 60% fails even
+        # though it is still above the 50% floor; recording only raises.
+        baseline_path = tmp_path / "baseline.json"
+        baseline_path.write_text(
+            json.dumps({"crates": {"botlib": {"lines": 80.0, "functions": 100.0, "branches": 100.0}}}),
+            encoding="utf-8",
+        )
+        baseline = load_baseline(baseline_path)
+        expect(
+            check("botlib", good, config, baseline) == 0,
+            "coverage equal to the baseline passes",
+        )
+        dropped = tmp_path / "dropped.json"
+        dropped.write_text(json.dumps(report(60, 100)), encoding="utf-8")
+        expect(
+            check("botlib", dropped, config, baseline) == 1,
+            "a decrease against an enforced baseline fails even above the floor",
+        )
+        expect(
+            check("botlib", dropped, report_only, baseline) == 0,
+            "a report-only crate warns on a decrease instead of failing",
+        )
+        missing = load_baseline(tmp_path / "absent.json")
+        expect(
+            check("botlib", good, config, missing) == 1,
+            "an enforced crate without a baseline entry fails",
+        )
+        record_baseline(baseline_path, "botlib", summarize(report(60, 100), []))
+        expect(
+            load_baseline(baseline_path)["botlib"]["lines"] == 80.0,
+            "--record-baseline never lowers a stored value",
+        )
+        record_baseline(baseline_path, "botlib", summarize(report(95, 100), []))
+        expect(
+            load_baseline(baseline_path)["botlib"]["lines"] == 95.0,
+            "--record-baseline raises the stored value",
+        )
+
     if failures:
         print(f"self-test: {failures} failure(s)")
         return 1
@@ -323,24 +402,45 @@ def self_test() -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Per-crate coverage gate (#2074)")
+    parser = argparse.ArgumentParser(description="Per-crate coverage gate and ratchet (#2074, #2119)")
     parser.add_argument("--config", default=DEFAULT_CONFIG, help="coverage-exclusions.toml")
     parser.add_argument("--list-crates", action="store_true", help="matrix crates, GitHub-output form")
     parser.add_argument("--crate", help="crate whose floor to enforce")
     parser.add_argument("--json", help="cargo-llvm-cov JSON export for that crate")
+    parser.add_argument(
+        "--baseline",
+        default=DEFAULT_BASELINE,
+        help=f"committed ratchet baseline (default: {DEFAULT_BASELINE})",
+    )
+    parser.add_argument(
+        "--record-baseline", action="store_true",
+        help="raise the baseline with this run instead of gating on it",
+    )
     parser.add_argument("--self-test", action="store_true", help="prove the gate logic")
     args = parser.parse_args()
+
+    def resolve(value: str) -> Path:
+        path = Path(value)
+        return path if path.is_absolute() else ROOT / path
 
     if args.self_test:
         return self_test()
     try:
-        config = load_config(ROOT / args.config if not Path(args.config).is_absolute() else Path(args.config))
+        config = load_config(resolve(args.config))
         if args.list_crates:
             return list_crates(config)
         if not args.crate or not args.json:
             parser.error("--crate and --json are required (or use --list-crates)")
-        return check(args.crate, Path(args.json), config)
-    except ConfigError as error:
+        baseline_path = resolve(args.baseline)
+        return check(
+            args.crate,
+            Path(args.json),
+            config,
+            load_baseline(baseline_path),
+            baseline_path,
+            args.record_baseline,
+        )
+    except (ConfigError, BaselineError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
 

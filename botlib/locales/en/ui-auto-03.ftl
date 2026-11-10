@@ -6,8 +6,6 @@
 # fall back to these values until a translator fills their own file.
 # =============================================================================
 
-auto-loading-tasks = Loading tasks...
-auto-loading-templates = Loading templates...
 auto-loading-users = Loading users...
 auto-loading-version-information = Loading version information...
 auto-loading-vibe = Loading Vibe…
@@ -64,7 +62,6 @@ auto-memories-are-created-by-the-assistant-edit-or-remove-them-he = Memories are
 auto-memory-usage = Memory Usage
 auto-messaging = Messaging
 auto-metric = Metric *
-auto-mike-chen = Mike Chen
 auto-min-vram = Min VRAM
 auto-minimalist = Minimalist
 auto-missing-features-i-need = Missing features I need
@@ -112,7 +109,6 @@ auto-new-tab = New Tab
 auto-new-table = + New Table
 auto-new-template = New Template
 auto-new-template-2 = + New Template
-auto-new-york = New York
 auto-new-york-gmt-5 = New York (GMT-5)
 auto-newsletter = Newsletter
 auto-next = Next →
@@ -386,3 +382,7 @@ auto-reset-to-default = Reset to Default
 auto-response-time-ms = Response Time (ms)
 auto-restart = Restart
 auto-restart-service = Restart service
+auto-restart-the-desktop-app-so-new-share-links-are-composed-agai = Restart the desktop app so new share links are composed against the domain; existing links keep their tokens.
+auto-result = Result
+auto-resultados = Resultados
+auto-resumo = Resumo

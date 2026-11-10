@@ -156,6 +156,14 @@ ALLOWLIST = frozenset(
         "Português",
         "Italiano",
         "Acme Corporation",
+        "Rio de Janeiro",
+        "New York",
+        "São Paulo",
+        "Sarah Johnson",
+        "Mike Chen",
+        "Emily Davis",
+        "software_development",
+        "Localhost",
         "Ok",
         "OK",
         "PT-BR",
@@ -199,7 +207,7 @@ TRANSLATED_WORDS = frozenset(
         "funcionário", "funcionarios", "empresa", "empresas", "usuários",
         "agendar", "alertas", "recentes", "alta", "baixa", "solicitar",
         "equipe", "chave", "fiscal", "brasileiro", "hora", "nome", "telefone",
-        "cnpj", "cpf", "cep", "boleto", "saldo", "filial", "movimentação",
+        "gerar", "cnpj", "cpf", "cep", "boleto", "saldo", "filial", "movimentação",
         "movimentacao", "estoque", "estoque-minimo", "cadastro", "painel",
     }
 )
@@ -239,7 +247,11 @@ def normalize(text: str) -> str:
 
 
 def is_allowlisted(text: str) -> bool:
+    """Proper nouns survive translation; so do emoji-prefixed brand labels."""
     if text in ALLOWLIST or text.lower() in _ALLOWLIST_LOWER:
+        return True
+    stripped = re.sub(r"[^\w\s]", "", text).strip()
+    if stripped and (stripped in ALLOWLIST or stripped.lower() in _ALLOWLIST_LOWER):
         return True
     return any(pattern.match(text) for pattern in ALLOWED_PATTERNS)
 

@@ -76,6 +76,25 @@ impl SafeCommand {
             .map_err(|e| CommandGuardError::ExecutionFailed(e.to_string()))
     }
 
+    /// Builds the validated process command (allow-listed binary, validated
+    /// argv, scrubbed environment) for callers that need streaming I/O the
+    /// blocking helpers cannot provide — an interactive piped shell or a PTY.
+    ///
+    /// Callers wrap this instead of recreating `Command::new` from a raw
+    /// binary name, so the binary stays allow-listed and every argument stays
+    /// validated (#2126).
+    pub fn into_std_command(&self) -> std::process::Command {
+        let mut cmd = std::process::Command::new(&self.command);
+        self.append_args(&mut cmd);
+
+        if let Some(ref dir) = self.working_dir {
+            cmd.current_dir(dir);
+        }
+
+        self.apply_common_env(&mut cmd);
+        cmd
+    }
+
     pub fn noop_child() -> Result<Child, CommandGuardError> {
         #[cfg(target_os = "windows")]
         {

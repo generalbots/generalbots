@@ -95,9 +95,6 @@ COMMAND_ALLOWED_FILES = {
     "botapp/src/desktop/sidecar.rs",
     "botapp/src/desktop/wizard/provision.rs",
     "botserver/crates/botvideo/src/safe_command.rs",
-    # Interactive PTY: streams bash inside an LXC container with piped
-    # stdin/stdout in async context; SafeCommand has no async piped-stdin spawn.
-    "botserver/crates/botapi/src/terminal/take_output_receiver.rs",
     # Vibe harness keeps its own narrower allowlist (node/npm/npx, cat, rm, ...)
     # and returns a std Command for its timeout runner; widening botlib's global
     # allowlist with those binaries would weaken every other SafeCommand caller.
