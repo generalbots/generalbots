@@ -258,3 +258,47 @@ impl UserDriveVectorDB {
         Ok(results)
     }
 }
+
+#[cfg(test)]
+mod vector_collection_tests {
+    use super::*;
+
+    #[test]
+    fn the_collection_name_scopes_bot_and_user() {
+        let bot = Uuid::parse_str("11111111-1111-1111-1111-111111111111").expect("bot");
+        let user = Uuid::parse_str("22222222-2222-2222-2222-222222222222").expect("user");
+        let db = UserDriveVectorDB::new(user, bot, PathBuf::from("/tmp/vdb"));
+
+        assert_eq!(db.collection_name(), format!("drive_{bot}_{user}"));
+        assert_eq!(db.user_id(), user);
+        assert_eq!(db.bot_id(), bot);
+        assert_eq!(db.db_path(), std::path::Path::new("/tmp/vdb"));
+    }
+
+    #[test]
+    fn two_users_of_the_same_bot_get_distinct_collections() {
+        let bot = Uuid::nil();
+        let first = UserDriveVectorDB::new(Uuid::new_v4(), bot, PathBuf::from("/tmp/a"));
+        let second = UserDriveVectorDB::new(Uuid::new_v4(), bot, PathBuf::from("/tmp/b"));
+        assert_ne!(first.collection_name(), second.collection_name());
+    }
+
+    #[test]
+    fn the_same_user_on_two_bots_gets_distinct_collections() {
+        let user = Uuid::new_v4();
+        let first = UserDriveVectorDB::new(user, Uuid::new_v4(), PathBuf::from("/tmp/a"));
+        let second = UserDriveVectorDB::new(user, Uuid::new_v4(), PathBuf::from("/tmp/b"));
+        assert_ne!(first.collection_name(), second.collection_name());
+    }
+
+    #[test]
+    fn the_collection_name_uses_only_qdrant_safe_characters() {
+        let db = UserDriveVectorDB::new(Uuid::new_v4(), Uuid::new_v4(), PathBuf::from("/tmp/v"));
+        // Qdrant accepts alphanumerics, underscore and hyphen; the UUID hyphens
+        // are part of the scoped name.
+        assert!(db
+            .collection_name()
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'));
+    }
+}
