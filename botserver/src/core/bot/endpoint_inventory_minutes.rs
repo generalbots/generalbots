@@ -2014,6 +2014,31 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
     },
     ApiEndpoint {
         method: "GET",
+        path: "/api/ui/analytics/ops/cost",
+        summary: "registered in crates/botanalytics/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/ui/analytics/ops/endpoints",
+        summary: "registered in crates/botanalytics/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/ui/analytics/ops/queue",
+        summary: "registered in crates/botanalytics/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/ui/analytics/ops/slo",
+        summary: "registered in crates/botanalytics/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
+        path: "/api/ui/analytics/ops/traffic",
+        summary: "registered in crates/botanalytics/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "GET",
         path: "/api/ui/analytics/queries/top",
         summary: "registered in crates/botanalytics/src/routes.rs",
     },

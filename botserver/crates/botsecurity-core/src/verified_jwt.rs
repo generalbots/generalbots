@@ -60,7 +60,12 @@ pub enum JwtVerifyError {
     MissingExpiry,
     /// The `exp` claim is in the past.
     Expired,
+    /// The `nbf` claim is in the future.
+    NotYetValid,
 }
+
+/// Clock-skew tolerance applied to `nbf`, in seconds.
+const NBF_LEEWAY_SECONDS: i64 = 60;
 
 impl std::fmt::Display for JwtVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,6 +79,7 @@ impl std::fmt::Display for JwtVerifyError {
             Self::MissingSubject => "token carries no identity claim",
             Self::MissingExpiry => "token carries no expiry",
             Self::Expired => "token expired",
+            Self::NotYetValid => "token is not valid yet",
         };
         f.write_str(text)
     }
@@ -145,8 +151,17 @@ pub fn verify_hs256_jwt(token: &str, secret: &str) -> Result<VerifiedJwt, JwtVer
         .get("exp")
         .and_then(|v| v.as_i64())
         .ok_or(JwtVerifyError::MissingExpiry)?;
-    if chrono::Utc::now().timestamp() >= exp {
+    let now = chrono::Utc::now().timestamp();
+    if now >= exp {
         return Err(JwtVerifyError::Expired);
+    }
+    // #2112 — `nbf` is honoured when present. A 60-second leeway absorbs clock
+    // skew between the minting host and this process, the same tolerance the
+    // suite `JwtConfig` uses.
+    if let Some(nbf) = payload.get("nbf").and_then(|v| v.as_i64()) {
+        if nbf > now.saturating_add(NBF_LEEWAY_SECONDS) {
+            return Err(JwtVerifyError::NotYetValid);
+        }
     }
 
     Ok(VerifiedJwt {
@@ -209,8 +224,19 @@ pub fn resolve_saas_jwt_secret() -> String {
 }
 
 /// Verifies a token against the server's SaaS JWT secret.
+///
+/// The secret is resolved once per process: it is persisted into
+/// `directory_config.json` during bootstrap before any request is served, and
+/// tenant resolution runs on every handler, so re-reading the file per call
+/// would add a syscall to each request for a value that cannot change.
 pub fn verify_saas_jwt(token: &str) -> Result<VerifiedJwt, JwtVerifyError> {
-    verify_hs256_jwt(token, &resolve_saas_jwt_secret())
+    verify_hs256_jwt(token, saas_jwt_secret())
+}
+
+/// The process-wide secret, resolved once.
+fn saas_jwt_secret() -> &'static str {
+    static SECRET: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    SECRET.get_or_init(resolve_saas_jwt_secret).as_str()
 }
 
 #[cfg(test)]
@@ -223,7 +249,6 @@ mod tests;
 /// exactly the accept/reject boundary production uses.
 #[cfg(test)]
 pub(crate) mod test_support {
-    use super::resolve_saas_jwt_secret;
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
@@ -241,9 +266,9 @@ pub(crate) mod test_support {
         format!("{signing_input}.{signature}")
     }
 
-    /// The secret the verifier will resolve in this process.
+    /// The secret the verifier uses in this process.
     pub(crate) fn process_secret() -> String {
-        resolve_saas_jwt_secret()
+        super::saas_jwt_secret().to_string()
     }
 
     /// A valid token for `claims`, signed with the process secret.

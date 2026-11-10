@@ -6,7 +6,7 @@
 //! every branch is pinned.
 
 use super::*;
-use crate::{BillingError, BillingPeriod, LimitValue, OrganizationUsage, PlanConfig, PlanLimits, PlanPrice, UsageMetric};
+use crate::{BillingError, BillingPeriod, LimitValue, PlanConfig, PlanLimits, PlanPrice, UsageMetric};
 use std::collections::HashMap;
 use uuid::Uuid;
 

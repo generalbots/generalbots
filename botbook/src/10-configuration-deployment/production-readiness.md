@@ -10,7 +10,7 @@ The production-readiness program ([#2121](https://github.com/generalbots/general
 | **FAIL** | the check ran and failed — a regression; CI fails |
 | **SKIP** | the gate does not exist yet — the row names the issue and what must land |
 
-Current run: **7 PASS · 0 FAIL · 7 SKIP** of 14 checks.
+Current run: **6 PASS · 1 FAIL · 7 SKIP** of 14 checks.
 
 ## Workstreams
 
@@ -41,7 +41,7 @@ Current run: **7 PASS · 0 FAIL · 7 SKIP** of 14 checks.
 | `coverage-ratchet` | Coverage ratchet against a committed baseline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **SKIP** | not landed yet — expected 1× coverage/baseline.json |
 | `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **PASS** | product profile: 68 apps classified, owned and in agreement with the supported matrix; default and desktop compile all apps |
 | `security-scan` | Supply-chain and secret scans are wired in CI | [#2121](https://github.com/generalbots/generalbots/issues/2121) | **PASS** | security.yml wires 6 scans (gitleaks not installed here) |
-| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **PASS** | adequacy_guard: OK — 17 rules at or below baseline (5752 files scanned in 21.01s) |
+| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **FAIL** | `python3 scripts/adequacy_guard.py --baseline issues/adequacy/baseline.json` exited 1: adequacy_guard: FAIL — 1 issue(s) against issues/adequacy/baseline.json |
 | `i18n-lint` | Fluent catalogs and the keys the UI asks for are consistent | [#2090](https://github.com/generalbots/generalbots/issues/2090) | **PASS** | no new catalog violation |
 | `workflow-pinning` | Every `uses:` is a commit SHA and no workflow trusts a fork | [#1726](https://github.com/generalbots/generalbots/issues/1726) | **PASS** | ok: 86 action reference(s) across 9 workflow/action file(s) are pinned |
 

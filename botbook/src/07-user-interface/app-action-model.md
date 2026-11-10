@@ -98,8 +98,11 @@ that makes this safe:
   `group_name = 'admin'` and refuses non-admin users;
 - with the `consent` feature the action class (`read`/`create`/`update`/`delete`)
   goes through `consent_gate::check`;
-- the loopback request carries `X-User-ID` (and `X-Bot-ID`) so the auth
-  middleware resolves the same user and re-applies RBAC and CSRF rules;
+- the loopback request authenticates with a short-lived HS256 service assertion
+  (`api_exec_assertion.rs`) signed by the server secret — `sub` is the session
+  user, `exp` is 120 s — so the auth middleware verifies the caller instead of
+  trusting a header, then re-applies RBAC and CSRF rules. `X-User-ID` is never
+  an identity (#2122);
 - response bodies are truncated to 60,000 bytes before reaching the model.
 
 ## Surface 2 — web UI: `__ui_plan__` and message type 9

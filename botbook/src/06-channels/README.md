@@ -109,9 +109,9 @@ The routes, their handlers and the documented credential resolution are:
 | Channel | Inbound route | Handler auth |
 |---------|---------------|--------------|
 | Telegram | `POST /webhook/telegram` | optional `telegram-webhook-secret` (`X-Telegram-Bot-Api-Secret-Token`) |
-| Teams | `POST /api/msteams/messages` | Bot Framework activity validation |
+| Teams | `POST /api/msteams/messages` | Bot Framework JWT (`Authorization: Bearer`) or outgoing-webhook `HMAC` |
 | Instagram | `GET/POST /api/instagram/webhook` | verification token (`hub.verify_token`) + payload signature |
-| WhatsApp | `GET/POST /webhook/whatsapp` | Meta verify token (`hub.verify_token`) |
+| WhatsApp | `GET/POST /webhook/whatsapp` | Meta verify token (`hub.verify_token`) on GET, `X-Hub-Signature-256` on POST |
 
 Channels addressed directly (outside `/api`) also need a proxy route in the UI
 server, which is what `/webhook/*path` provides.

@@ -96,17 +96,7 @@ impl VideoEngine {
 
         let result: serde_json::Value = response.json().await?;
 
-        let segments: Vec<TranscriptionSegment> = result["segments"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .map(|s| TranscriptionSegment {
-                start_ms: (s["start"].as_f64().unwrap_or(0.0) * 1000.0) as i64,
-                end_ms: (s["end"].as_f64().unwrap_or(0.0) * 1000.0) as i64,
-                text: s["text"].as_str().unwrap_or("").to_string(),
-                confidence: s["confidence"].as_f64().unwrap_or(0.9) as f32,
-            })
-            .collect();
+        let segments = segments_from_transcription_json(&result);
 
         let full_text = segments
             .iter()
@@ -253,41 +243,78 @@ impl VideoEngine {
 
         let result = cmd.execute()?;
 
-        let mut scenes = Vec::new();
-        let mut last_time: f64 = 0.0;
-
-        let stderr = String::from_utf8_lossy(&result.stderr);
-        for line in stderr.lines() {
-            if line.contains("pts_time:") {
-                if let Some(time_str) = line.split("pts_time:").nth(1) {
-                    if let Some(time_end) = time_str.find(char::is_whitespace) {
-                        if let Ok(time) = time_str[..time_end].parse::<f64>() {
-                            if time > last_time + 0.5 {
-                                scenes.push(SceneInfo {
-                                    start_ms: (last_time * 1000.0) as i64,
-                                    end_ms: (time * 1000.0) as i64,
-                                    thumbnail_url: None,
-                                    description: None,
-                                });
-                                last_time = time;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         let duration_ms = self.get_audio_duration(&clip.source_url).unwrap_or(0);
-        if last_time > 0.0 {
-            scenes.push(SceneInfo {
-                start_ms: (last_time * 1000.0) as i64,
-                end_ms: duration_ms,
-                thumbnail_url: None,
-                description: None,
-            });
-        }
+        let scenes = scenes_from_ffmpeg_log(&String::from_utf8_lossy(&result.stderr), duration_ms);
 
         info!("Detected {} scenes in project {}", scenes.len(), project_id);
         Ok(SceneDetectionResponse { scenes })
     }
 }
+
+/// Decodes the transcription service payload into timeline segments. A missing
+/// or non-array `segments` key yields no captions (rather than an error): the
+/// service answers `200` with an empty body when the audio has no speech.
+fn segments_from_transcription_json(result: &serde_json::Value) -> Vec<TranscriptionSegment> {
+    result["segments"]
+        .as_array()
+        .map(|segments| {
+            segments
+                .iter()
+                .map(|segment| TranscriptionSegment {
+                    start_ms: (segment["start"].as_f64().unwrap_or(0.0) * 1000.0) as i64,
+                    end_ms: (segment["end"].as_f64().unwrap_or(0.0) * 1000.0) as i64,
+                    text: segment["text"].as_str().unwrap_or("").to_string(),
+                    confidence: segment["confidence"].as_f64().unwrap_or(0.9) as f32,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Turns an ffmpeg `showinfo` log into scene ranges. A cut closer than 500 ms
+/// to the previous one is folded into it (ffmpeg emits several lines per
+/// change and a sub-second scene is not useful on the timeline). The last cut
+/// runs to the end of the media, so the returned ranges always cover the tail.
+fn scenes_from_ffmpeg_log(stderr: &str, duration_ms: i64) -> Vec<SceneInfo> {
+    let mut scenes = Vec::new();
+    let mut last_time: f64 = 0.0;
+
+    for line in stderr.lines() {
+        if !line.contains("pts_time:") {
+            continue;
+        }
+        let Some(time_str) = line.split("pts_time:").nth(1) else {
+            continue;
+        };
+        let Some(time_end) = time_str.find(char::is_whitespace) else {
+            continue;
+        };
+        let Ok(time) = time_str[..time_end].parse::<f64>() else {
+            continue;
+        };
+        if time > last_time + 0.5 {
+            scenes.push(SceneInfo {
+                start_ms: (last_time * 1000.0) as i64,
+                end_ms: (time * 1000.0) as i64,
+                thumbnail_url: None,
+                description: None,
+            });
+            last_time = time;
+        }
+    }
+
+    if last_time > 0.0 {
+        scenes.push(SceneInfo {
+            start_ms: (last_time * 1000.0) as i64,
+            end_ms: duration_ms,
+            thumbnail_url: None,
+            description: None,
+        });
+    }
+
+    scenes
+}
+
+#[cfg(test)]
+#[path = "effects_tests.rs"]
+mod effects_tests;

@@ -324,6 +324,28 @@ General Bots integrates with the directory service through:
 4. User context loaded from directory service
 5. Request processed with user identity
 
+### Accepted Credentials (and what is *not* a credential)
+
+The auth middleware accepts exactly three identity sources:
+
+| Source | Verified how |
+|--------|--------------|
+| `Authorization: Bearer <JWT>` | HS256 signature + `exp` (SaaS secret or local JWT key) |
+| `Authorization: Bearer <gb_…>` session token | Session cache / `login_sessions` row |
+| `Cookie: <session>` | Same session store |
+
+`X-User-ID` is **not** an identity (#2122). The header is caller-supplied, so
+the middleware only logs it for correlation and never resolves it into a user;
+`X-Bot-ID` narrows scope, it does not authenticate. Internal service calls
+(chat `api.exec`, VIBE RUN) present a short-lived signed assertion instead, and
+CSRF is skipped only for that verified service identity — never because a
+header happens to be non-empty.
+
+**Reverse proxy:** strip `X-User-ID`, `X-Internal-Token` and
+`X-Forwarded-Host` from external requests at the edge. The OS panel derives
+loopback from the real `Host` header only, so a forwarded-host override cannot
+open it.
+
 ## Directory Service Configuration
 
 ### Auto-Configuration

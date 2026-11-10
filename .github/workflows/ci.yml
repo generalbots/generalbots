@@ -33,6 +33,10 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+  schedule:
+    # #2119 — the deep quality run: libfuzzer needs more than a 90 s PR budget,
+    # and the flake scan needs accumulated CI history.
+    - cron: "17 3 * * *"
 
 permissions:
   contents: read
@@ -365,6 +369,78 @@ jobs:
           fi
           echo "6.8.x schema verified"
 
+  # #2117 — migrations, tenant isolation and the restore drill used to be three
+  # separate properties with three different fixtures. This job proves all three
+  # on one deterministic production-like dataset against a throwaway PostgreSQL:
+  # every migration applied from scratch, the resulting schema equal to what
+  # `botschema` declares, every scoped read confined to its own org/branch/bot,
+  # and a pg_dump/pg_restore round-trip that keeps row counts and per-tenant
+  # checksums. INTEGRITY_STRICT=1 turns every skip into a failure, so a missing
+  # tool cannot masquerade as a pass.
+  data-integrity:
+    name: Data integrity (migrate + tenancy + restore)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gb
+          POSTGRES_PASSWORD: gb
+          POSTGRES_DB: botserver
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gb -d botserver"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+      PGPASSWORD: gb
+      INTEGRITY_STRICT: "1"
+      INTEGRITY_DATASET: /tmp/gb-integrity
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # postgresql-client is what the suite shells out to for psql/pg_dump and
+      # pg_restore; without it the drill would skip.
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: data-integrity
+          packages: clang mold libpq-dev libssl-dev liblzma-dev pkg-config postgresql-client
+      - name: Cache diesel CLI
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cargo/bin/diesel
+          key: diesel-cli-2.3.14-${{ runner.os }}
+      - name: Install diesel CLI
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/diesel" ]; then
+            cargo install diesel_cli --version 2.3.14 --locked \
+              --no-default-features --features postgres
+          fi
+          diesel --version
+      - name: Apply every migration to an empty database
+        working-directory: botserver
+        run: diesel migration run
+      - name: Generate the production-like dataset (deterministic, seed 2117)
+        run: python3 scripts/gen_integrity_dataset.py --out "$INTEGRITY_DATASET" --report
+      - name: Load the dataset
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$INTEGRITY_DATASET/integrity_dataset.sql"
+          loaded="$(psql "$DATABASE_URL" -tAc "select count(*) from organizations where slug like 'integrity-%'")"
+          if [ "$loaded" != "3" ]; then
+            echo "::error::expected 3 integrity orgs after the dataset load, found $loaded"
+            exit 1
+          fi
+          echo "dataset loaded: $loaded orgs"
+      - name: Migrations, schema, tenancy and restore drill
+        run: |
+          cargo test -p bottest --features integration --test integration data_integrity \
+            -- --nocapture --test-threads=1
+
   check:
     name: Verify product profiles
     if: ${{ github.server_url == 'https://github.com' }}
@@ -377,6 +453,55 @@ jobs:
           python3 --version
           python3 scripts/product_profile_check.py
           python3 scripts/app_complexity_budget.py
+
+      # #2119 — an app is not shipped until it is documented. For every id in
+      # `botserver/src/apps/registry/*.rs` this static check requires a product
+      # classification, a `/suite/...` smoke surface and a contract entry in
+      # `issues/app-contracts/apps.toml` (routes that really exist in the
+      # sources, or `no_api` with a reason and an issue). No cargo, no server:
+      # it fails a new app that nobody documented, in under a second.
+      - name: App contracts (#2119)
+        run: |
+          set -euo pipefail
+          python3 scripts/smoke_app_surfaces.py --self-test
+          python3 scripts/smoke_app_surfaces.py --contracts
+
+      # #2119 — coverage can only move up. The self-test proves the ratchet
+      # fails on a decrease; the per-crate `unit-coverage` jobs then enforce it
+      # against `issues/coverage/baseline.json`.
+      - name: Coverage ratchet self-test (#2119)
+        run: python3 scripts/check_coverage.py --self-test
+
+      # #2119 — flake policy. The committed registry must be complete and
+      # inside its 14-day SLA on every PR. The history scan needs CI logs, so it
+      # is a documented manual/nightly run:
+      #   gh run list --workflow ci.yml --limit 20 --json databaseId \
+      #     --jq '.[].databaseId' | while read id; do
+      #       gh run view "$id" --log > "/tmp/flakes/$id.log"; done
+      #   python3 scripts/flake_report.py --logs /tmp/flakes
+      - name: Flake policy (#2119)
+        run: |
+          set -euo pipefail
+          python3 scripts/flake_report.py --self-test
+          python3 scripts/flake_report.py --quarantine-only
+
+  # #2121 — one gate over every readiness check. The table, the JSON and the
+  # BotBook scoreboard all come from `scripts/prod_readiness.py`, so a check that
+  # is missing shows up as SKIP with its issue instead of disappearing, and a
+  # check that regresses fails here. The job also fails when the committed
+  # scoreboard no longer matches the gate output (regenerate it, never hand-edit).
+  prod-readiness:
+    name: Production readiness gate (#2121)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Run every readiness check and verify the scoreboard
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 scripts/prod_readiness.py --check-markdown
 
   static-precheck:
     name: Lighthouse static pre-check
@@ -852,6 +977,13 @@ jobs:
           cache-scope: bottest-unit
       - name: Cross-crate unit tests
         run: cargo test -p bottest --test unit
+      # #2119 — the stable half of the fuzzing program. The `fuzz/` targets need
+      # nightly + libfuzzer (see `fuzz-nightly`), so every PR drives the same
+      # four parsers (JWT/claims, WhatsApp webhooks, BASIC transforms, office
+      # import) through a deterministic mutation corpus here. A minimized crash
+      # from the nightly run is added to the seed slices in this file.
+      - name: Property fallback for the fuzz targets (#2119)
+        run: cargo test -p bottest --test fuzz_regressions
       - name: In-process SLO budgets (#2115)
         # The budgets live in ops/slo.yaml (profile `hotpath`); the Rust test
         # fails fast with the measured number and emits target/slo/hotpath.json,
@@ -958,12 +1090,17 @@ jobs:
             --output-path "coverage/${{ matrix.crate }}.lcov"
           cargo llvm-cov report --json \
             --output-path "coverage/${{ matrix.crate }}.json"
-      - name: Enforce the floor (${{ matrix.crate }})
+      - name: Enforce the floor and the ratchet (${{ matrix.crate }})
         run: |
           set -euo pipefail
+          # #2119 — the floor is a constant, the baseline is the promise: this
+          # fails when the crate measures below `issues/coverage/baseline.json`
+          # even while still above its floor. Raise it deliberately with
+          # `--record-baseline` in the PR that adds the tests.
           python3 scripts/check_coverage.py \
             --crate "${{ matrix.crate }}" \
-            --json "coverage/${{ matrix.crate }}.json"
+            --json "coverage/${{ matrix.crate }}.json" \
+            --baseline issues/coverage/baseline.json
       - name: Upload the lcov report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -993,3 +1130,77 @@ jobs:
 
   # Desktop builds are triggered by release.yml (on tag) and manual dispatch;
   # ci.yml only runs the lightweight gates.
+
+  # #2119 — deep fuzzing. The stable property fallback (`bottest-unit`) covers
+  # every PR; this job is the libfuzzer run that finds *new* crashes, so it runs
+  # nightly and on demand only. Targets live in `fuzz/fuzz_targets/`:
+  #   jwt_claims     JWT + claims JSON decode (unauthenticated auth surface)
+  #   webhook_body   WhatsApp JSON / Twilio form bodies and signature headers
+  #   basic_compile  BASIC preprocessor + IF/THEN + GOTO + LLM unquote
+  #   office_import  XLSX/XLS/ODS/CSV import at the binary boundary
+  # A minimized crash is committed to the matching seed slice in
+  # `bottest/tests/fuzz_regressions.rs` and to `fuzz/corpus/<target>/`, which is
+  # how the regression runs on stable from then on.
+  fuzz-nightly:
+    name: Fuzz (${{ matrix.target }})
+    if: ${{ github.server_url == 'https://github.com' && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [jwt_claims, webhook_body, basic_compile, office_import]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # libfuzzer needs a nightly toolchain; `fuzz/` is detached from the
+      # workspace, so this never affects the stable build of the repo.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: nightly
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-fuzz
+      - name: Run ${{ matrix.target }} for 90 s
+        run: |
+          set -euo pipefail
+          # `--rss_limit_mb` turns an allocation blow-up into a finding instead
+          # of an OOM kill; `-max_total_time` keeps the job inside its budget.
+          cargo fuzz run "${{ matrix.target }}" -- \
+            -max_total_time=90 -rss_limit_mb=4096 -print_final_stats=1
+      - name: Upload any crash artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
+
+  # #2119 — the flake history scan. Pulls the last 20 runs of this workflow and
+  # fails when a test flipped often enough to require quarantine and has no
+  # entry in `issues/flakes/quarantine.toml`. Nightly because it reads history,
+  # not because the policy is optional: the registry itself is checked on every
+  # PR by the `check` job.
+  flake-history:
+    name: Flake history
+    if: ${{ github.server_url == 'https://github.com' && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Collect the last 20 runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/flakes
+          gh run list --workflow ci.yml --limit 20 --json databaseId \
+            --jq '.[].databaseId' | while read -r id; do
+            gh run view "$id" --log > "/tmp/flakes/$id.log" || echo "::warning::no log for $id"
+          done
+          ls -1 /tmp/flakes | wc -l
+      - name: Detect flaky tests and enforce the policy
+        run: python3 scripts/flake_report.py --logs /tmp/flakes --window 20

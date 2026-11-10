@@ -1,304 +1,60 @@
-# Service Level Objectives — machine-readable (#2115).
+# ops/slo.yaml — SLO targets, error budgets and burn-rate alert policy.
 #
-# This file is the single source of truth for the performance budgets. The
-# human-readable table lives in botbook/src/11-hardware-scaling/slo.md and must
-# agree with it; scripts/check_slo.py reads THIS file and nothing else.
+# Single source of truth for the operational view of the Analytics app
+# (#2116) and for the alerts described in
+# botbook/src/10-configuration-deployment/operations/README.md.
 #
-# Status: provisional. Targets are ratified once a 7-day baseline exists for the
-# profile in question. A target only moves through a reviewed pull request that
-# also updates the BotBook page.
+# Shape: a flat key/value YAML map (the parser in
+# botserver/crates/botanalytics/src/ops_slo.rs reads this subset without a YAML
+# dependency). Issue #2115 owns this directory; until it lands, the same values
+# are compiled in as the fallback in `SloConfig::defaults()` and the dashboard
+# prints which source it used.
+#
+# objective.<id>.metric       latency_histogram | error_rate | llm_first_token
+#                             | llm_answer | ws_handshake
+# objective.<id>.target       required good ratio in (0,1); budget = 1 - target
+# objective.<id>.threshold_ms latency objectives only; latency_histogram
+#                             thresholds must sit on a histogram boundary
+#                             (50, 100, 250, 500, 1000, 2500, 5000 ms)
+# objective.<id>.runbook      path inside botbook, linked from the panel
+# objective.<id>.panel        dashboard anchor that explains the objective
+#
+# Burn windows: 1 h, 6 h, 3 d. Alert when a window crosses its threshold:
+# fast >= 14.4x (page), medium >= 6x (page), slow >= 1x (ticket). The same
+# rules are documented in the on-call section of the operations README.
+
 version: 1
-issue: 2115
-currency: USD
+window_days: 30
+owner: platform-oncall
 
-baseline_policy:
-  measured_window_days: 7
-  regression_max_pct: 20
-  status: provisional
-  note: "Ratify after a 7-day baseline; a target never rises to hide a regression."
+objective.api_p95.metric: latency_histogram
+objective.api_p95.threshold_ms: 500
+objective.api_p95.target: 0.95
+objective.api_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.api_p95.panel: ops-endpoints
 
-# Price source for the cost budgets. Per 1M tokens, in the provider's currency.
-# A model that is missing here is a configuration error: the checker refuses to
-# guess a price.
-pricing:
-  unit: "USD per 1M tokens"
-  models:
-    mock:
-      input: 0.0
-      output: 0.0
-    kilo-free:
-      input: 0.0
-      output: 0.0
-    gpt-4o-mini:
-      input: 0.15
-      output: 0.60
+objective.error_rate.metric: error_rate
+objective.error_rate.target: 0.99
+objective.error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-deploy-rollback.md
+objective.error_rate.panel: ops-endpoints
 
-cost_budgets:
-  conversation_usd: 0.010
-  tenant_day_usd: 10.00
-  alert_at_pct: 80
+objective.first_token_p95.metric: llm_first_token
+objective.first_token_p95.threshold_ms: 2000
+objective.first_token_p95.target: 0.95
+objective.first_token_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
+objective.first_token_p95.panel: ops-cost
 
-profiles:
-  local-mock:
-    window: "7d"
-    note: "scripts/mock_llm.py: the provider is out of the loop, so the target measures our path."
-  hotpath:
-    window: "single run"
-    note: "In-process budgets emitted by bottest/tests/slo_budget_test.rs (debug build)."
+objective.answer_p95.metric: llm_answer
+objective.answer_p95.threshold_ms: 15000
+objective.answer_p95.target: 0.95
+objective.answer_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
+objective.answer_p95.panel: ops-cost
 
-slos:
-  # --- chat ---------------------------------------------------------------
-  - id: chat.first_token_ms
-    class: chat
-    statement: "First visible token, WS receive to first streamed chunk"
-    stat: p95
-    op: lte
-    target: 2000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.first_token_ms"
-  - id: chat.first_token_ms
-    class: chat
-    statement: "First visible token, p99"
-    stat: p99
-    op: lte
-    target: 4000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.first_token_ms"
-  - id: chat.complete_ms
-    class: chat
-    statement: "Complete 300-token answer, WS receive to stream end"
-    stat: p95
-    op: lte
-    target: 15000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.complete_ms"
-  - id: chat.complete_ms
-    class: chat
-    statement: "Complete answer, p99"
-    stat: p99
-    op: lte
-    target: 30000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.complete_ms"
-  - id: chat.tool_call_ms
-    class: chat
-    statement: "TOOL_EXEC dispatch to persisted result"
-    stat: p95
-    op: lte
-    target: 3000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.tool_call_ms"
-  - id: chat.tool_call_ms
-    class: chat
-    statement: "Tool call, p99"
-    stat: p99
-    op: lte
-    target: 6000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "chat.tool_call_ms"
+objective.ws_handshake.metric: ws_handshake
+objective.ws_handshake.target: 0.99
+objective.ws_handshake.runbook: botbook/src/10-configuration-deployment/operations/runbook-disable-tenant.md
+objective.ws_handshake.panel: ops-traffic
 
-  # --- api ----------------------------------------------------------------
-  - id: rest.api_ms
-    class: api
-    statement: "REST endpoints that do not call an LLM"
-    stat: p95
-    op: lte
-    target: 300
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "rest.api_ms"
-  - id: rest.api_ms
-    class: api
-    statement: "REST endpoints that do not call an LLM, p99"
-    stat: p99
-    op: lte
-    target: 900
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "rest.api_ms"
-
-  # --- reliability --------------------------------------------------------
-  - id: ws.unexpected_disconnect_pct
-    class: ws
-    statement: "Unexpected disconnects per 1000 sessions"
-    stat: value
-    op: lte
-    target: 0.5
-    unit: "%"
-    window: "7d"
-    profile: local-mock
-    source: "ws.unexpected_disconnect_pct"
-  - id: turn.error_pct
-    class: chat
-    statement: "Turns that end in an unhandled error"
-    stat: value
-    op: lte
-    target: 1.0
-    unit: "%"
-    window: "7d"
-    profile: local-mock
-    source: "turn.error_pct"
-  - id: queue.wait_ms
-    class: chat
-    statement: "Admitted to worker pickup, at rated load"
-    stat: p95
-    op: lte
-    target: 2000
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "queue.wait_ms"
-
-  # --- provider -----------------------------------------------------------
-  - id: llm.provider_error_pct
-    class: llm
-    statement: "Provider 5xx and 429 responses"
-    stat: value
-    op: lte
-    target: 2.0
-    unit: "%"
-    window: "7d"
-    profile: local-mock
-    source: "llm.provider_error_pct"
-  - id: llm.provider_retry_pct
-    class: llm
-    statement: "Provider calls that needed a retry"
-    stat: value
-    op: lte
-    target: 5.0
-    unit: "%"
-    window: "7d"
-    profile: local-mock
-    source: "llm.provider_retry_pct"
-
-  # --- dependencies -------------------------------------------------------
-  - id: dep.db_ms
-    class: dependency
-    statement: "PostgreSQL query round trip"
-    stat: p95
-    op: lte
-    target: 50
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "dep.db_ms"
-  - id: dep.cache_ms
-    class: dependency
-    statement: "Valkey command round trip"
-    stat: p95
-    op: lte
-    target: 10
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "dep.cache_ms"
-  - id: dep.drive_ms
-    class: dependency
-    statement: "MinIO/S3 request round trip"
-    stat: p95
-    op: lte
-    target: 100
-    unit: ms
-    window: "7d"
-    profile: local-mock
-    source: "dep.drive_ms"
-
-  # --- cost ---------------------------------------------------------------
-  - id: cost.conversation_usd
-    class: cost
-    statement: "Mean LLM cost of one conversation"
-    stat: value
-    op: lte
-    target: 0.010
-    unit: USD
-    window: "1d"
-    profile: local-mock
-    source: "cost.conversation_usd"
-  - id: cost.tenant_day_usd
-    class: cost
-    statement: "Hard daily quota per tenant"
-    stat: value
-    op: lte
-    target: 10.00
-    unit: USD
-    window: "1d"
-    profile: local-mock
-    source: "cost.tenant_day_usd"
-
-  # --- soak ---------------------------------------------------------------
-  - id: soak.rss_growth_pct
-    class: soak
-    statement: "Resident set growth over a 60-minute soak"
-    stat: value
-    op: lte
-    target: 10.0
-    unit: "%"
-    window: "60m"
-    profile: local-mock
-    source: "soak.rss_growth_pct"
-  - id: soak.fd_growth_pct
-    class: soak
-    statement: "Open file descriptors growth over a 60-minute soak"
-    stat: value
-    op: lte
-    target: 5.0
-    unit: "%"
-    window: "60m"
-    profile: local-mock
-    source: "soak.fd_growth_pct"
-
-  # --- in-process hot paths (bottest/tests/slo_budget_test.rs) -------------
-  - id: hotpath.locale_parse_us
-    class: hotpath
-    statement: "Locale::new on a BCP-47 tag"
-    stat: p95
-    op: lte
-    target: 20
-    unit: us
-    window: "single run"
-    profile: hotpath
-    source: "hotpath.locale_parse_us"
-  - id: hotpath.locale_negotiate_us
-    class: hotpath
-    statement: "Locale::negotiate over the shipped catalogue"
-    stat: p95
-    op: lte
-    target: 10
-    unit: us
-    window: "single run"
-    profile: hotpath
-    source: "hotpath.locale_negotiate_us"
-  - id: hotpath.i18n_message_us
-    class: hotpath
-    statement: "Catalogue lookup plus placeholder interpolation"
-    stat: p95
-    op: lte
-    target: 60
-    unit: us
-    window: "single run"
-    profile: hotpath
-    source: "hotpath.i18n_message_us"
-  - id: hotpath.regex_cache_us
-    class: hotpath
-    statement: "Memoised runtime regex lookup"
-    stat: p95
-    op: lte
-    target: 30
-    unit: us
-    window: "single run"
-    profile: hotpath
-    source: "hotpath.regex_cache_us"
+alert.fast_burn: 14.4
+alert.medium_burn: 6
+alert.slow_burn: 1

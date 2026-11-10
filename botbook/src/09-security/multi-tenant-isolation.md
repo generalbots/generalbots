@@ -35,40 +35,53 @@ used by crates that already depend on `botcore`. Crates that do not depend on
 `botcore` (e.g. `botinventory`, `botgl`, `botsearch`, `bottasks`) must depend on
 `botsecurity-core` directly and call `botsecurity_core::tenant::...`.
 
-### The resolver decodes, it does not verify
+### The resolver verifies the signature before reading a claim
 
-`branch_from_claims` is a **claim reader**, not an authenticator. It base64url
-decodes the second JWT segment and reads `branch_id`; it never checks a
-signature, and it has no key. The only structural check is
-`jwt_header_is_secured`, which rejects a token whose header has `alg` equal to
-`none` (any casing), is empty, or is missing.
+`branch_from_claims` is both a claim reader **and** the verifier. It extracts the
+token (`Bearer` or the `Basic` password field), then hands it to
+`botsecurity_core::verified_jwt::verify_saas_jwt`, the same function the
+`SaasJwtAuthProvider` uses on the authentication path. That function:
+
+1. requires exactly three dot-separated segments;
+2. requires the header to declare `HS256` — `none` (any casing), a missing
+   algorithm and asymmetric algorithms (`RS256`, `ES256`, `PS512`, `EdDSA`) are
+   refused, so algorithm confusion cannot downgrade the check;
+3. recomputes the HMAC-SHA256 over `header.payload` with the persisted
+   `saas_jwt_secret` and compares it with `Mac::verify_slice`, which is
+   constant time;
+4. requires a non-empty `sub` and an `exp` in the future, and rejects an `nbf`
+   that is more than 60 seconds ahead (clock-skew leeway).
+
+Only then does `VerifiedJwt` exist, and only `VerifiedJwt` exposes `branch_id`,
+`org_id`, `sub` and `email`.
 
 ```text
 Authorization: Bearer <token>
         │
-        ├─ jwt_header_is_secured(header)   ← rejects alg:none / empty / missing
-        ├─ base64url_decode(payload)
-        └─ payload["branch_id"] → Option<Uuid>
+        ├─ verify_hs256_jwt(token, saas_jwt_secret)   ← alg + HMAC + exp
+        │      ├─ error → None  (no claim is ever returned)
+        │      └─ VerifiedJwt
+        └─ verified.branch_id → Option<Uuid>
 ```
 
-The signature is verified earlier, on the authentication path, before a handler
-runs: the auth middleware validates the token (HMAC with the SaaS secret for
-cloud tokens, or the session/directory check for suite tokens) and only then
-builds the `AuthenticatedUser`. Scoping code may therefore trust the claim
-because it is downstream of verification — but the resolver on its own proves
-nothing about authenticity.
+Consequences:
 
-The practical consequence: any handler that calls `branch_from_claims` without
-also being behind the authenticated middleware is reading an unverified,
-attacker-controlled claim. New routes must be mounted inside the authenticated
-scope; do not use the resolver as a substitute for authentication.
+- A forged, tampered, `alg=none`, wrong-key or expired token yields `None` for
+  every `*_from_claims` helper, and the handler falls back to its crate default
+  (`Uuid::nil()`) — it never sees the payload.
+- The `saas_jwt_secret` is the secret the login path mints with
+  (`directory_config.json` → `SAAS_JWT_SECRET` → `JWT_SECRET` → development
+  default), so mint and verify cannot drift.
+- Verification happens *inside* the resolver. A route still has to be mounted in
+  the authenticated scope to know *who* the caller is; the resolver only
+  guarantees that the tenant claim it returns was signed by this server.
 
 ### Fallback rule
 
-When no JWT claim is present (anonymous/system callers), the resolver returns
-`Uuid::nil()`. Requests must still include `branch_id = ?` in every query; the
-nil value then matches the "legacy global" rows, so a tenant can never see
-another tenant's rows.
+When no verified JWT claim is present (anonymous/system callers), the resolver
+returns `None` and callers substitute `Uuid::nil()`. Requests must still include
+`branch_id = ?` in every query; the nil value then matches the "legacy global"
+rows, so a tenant can never see another tenant's rows.
 
 ## Mandatory Query Scoping (ALL CRUD paths)
 

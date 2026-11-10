@@ -480,6 +480,11 @@ END SUB
 
 ### Webhook Security
 
+General Bots verifies `X-Hub-Signature-256` on every delivery it receives and
+refuses (`403`) anything unsigned, so no extra code is needed to protect the
+built-in route — see [Inbound Webhook Signatures](./signature-matrix.md). The
+snippet below shows the same check for a **custom** receiver in front of Meta:
+
 Implement signature verification:
 
 ```javascript

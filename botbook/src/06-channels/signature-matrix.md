@@ -11,9 +11,9 @@ mounted in `botserver/src/main_module/routes/feature_routers/make_saas_router.rs
 
 | Channel | Inbound route | Verification | Behaviour when unconfigured |
 |---|---|---|---|
-| WhatsApp Cloud API | `GET/POST /api/whatsapp/webhook` | `X-Hub-Signature-256` HMAC-SHA256 over the **raw** body | Accepts unsigned deliveries |
+| WhatsApp Cloud API | `GET/POST /api/whatsapp/webhook` | `X-Hub-Signature-256` HMAC-SHA256 over the **raw** body | Rejects every POST (`403`) |
 | Telegram | `POST /webhook/telegram`, `POST /webhook/telegram/:bot_name` | `X-Telegram-Bot-Api-Secret-Token`, constant-time compare | Accepts unsigned deliveries |
-| Microsoft Teams | `POST /api/msteams/messages` | **None** — no JWT, no shared secret | Always accepts |
+| Microsoft Teams | `POST /api/msteams/messages` | `Authorization: Bearer` Bot Framework JWT, or `HMAC` outgoing-webhook signature | Rejects every POST (`401`) |
 | Instagram / Messenger | `GET/POST /api/instagram/webhook` | GET verify token equality only; POST has **no** HMAC | GET rejects on mismatch; POST always accepts |
 | Stripe (billing) | `POST /api/billing/webhook` | `stripe-signature` HMAC-SHA256 with 300 s tolerance | Rejects when no webhook secret is configured |
 | Outbound settings webhooks | delivered by the server, not received | `X-Webhook-Signature` HMAC-SHA256 over the payload | — |
@@ -25,19 +25,21 @@ gate, because the digest binds the exact bytes Meta sent; deserialising into a
 typed body first would re-serialise it and no digest would ever match.
 
 ```text
-app_secret = vault("whatsapp_app_secret")
-if app_secret is empty        → accept
-else                          → require valid X-Hub-Signature-256
+app_secret = vault("whatsapp_app_secret") ?? config("whatsapp-app-secret")
+if app_secret is empty        → 403, the delivery is refused
+else                          → require valid X-Hub-Signature-256, else 403
 ```
+
+The gate fails closed (#2113). An installation that has not configured the app
+secret receives nothing: accepting unsigned POSTs let any caller drive a bot
+session, which is worse than a channel that has to be configured before it
+works.
 
 The comparison is constant-time (`constant_time_eq` in
 `botwhatsapp/src/utils.rs`), the `sha256=` prefix is mandatory, and an uppercase
-digest is rejected rather than normalised. The GET handshake compares
-`hub.verify_token` against `whatsapp_verify_token` and echoes the challenge.
-
-The residual risk is the documented default: a bot with no
-`whatsapp_app_secret` accepts any POST that reaches the route, so the endpoint
-is only as private as the network path to it.
+digest is rejected rather than normalised. The GET handshake is unchanged: it
+compares `hub.verify_token` against `whatsapp_verify_token` and echoes the
+challenge.
 
 ## Telegram
 
@@ -57,13 +59,30 @@ not turn into an open door while the database is down.
 
 ## Microsoft Teams
 
-`handle_incoming` accepts a `TeamsActivity` JSON body and dispatches on
-`activity.type`. There is no `Authorization` header check, no Bot Framework JWT
-validation and no shared secret. Anyone who can reach `/api/msteams/messages`
-can post an activity and have it routed into a session.
+`handle_incoming` reads the body as `Bytes`, calls `auth::authorize` **before**
+parsing the activity, and answers `401` to anything it cannot attribute. Two
+credentials are accepted, one per way Teams reaches a bot:
 
-The outbound side does authenticate: `botmsteams/src/adapter.rs` sends
-`Authorization: Bearer <token>` on its calls to the Bot Framework.
+| Header | Used by | Check |
+|---|---|---|
+| `Authorization: Bearer <jwt>` | Bot Framework channel | RS256 signature against the Bot Framework OpenID key set (`login.botframework.com`), plus `iss` = `https://api.botframework.com`, `aud` = `teams-app-id`, `exp` and `nbf` with 300 s skew |
+| `Authorization: HMAC <sig>` | outgoing webhook | `base64(HMAC-SHA256(base64decode(teams-security-token), raw_body))` |
+
+Implementation notes, all in `botmsteams/src/auth/`:
+
+- the `kid` header selects the key; an unknown `kid` triggers one refresh of the
+  cached key set so a Microsoft key rollover does not reject deliveries forever,
+  and the cache expires after 24 h;
+- `alg` must be RS256 — an HS256 token keyed with the (public) RSA key is the
+  classic confusion attack and is refused before any key lookup;
+- the HMAC is compared with `Mac::verify_slice`, which is constant-time;
+- neither secret is logged; a rejection logs only the reason (`HMAC signature
+  mismatch`, `Bot Framework token rejected`, …).
+
+When neither `teams-app-id` nor `teams-security-token` is configured the route
+rejects every POST. The outbound side authenticates separately:
+`botmsteams/src/adapter.rs` sends `Authorization: Bearer <token>` on its calls
+to the Bot Framework.
 
 ## Instagram / Messenger
 
@@ -111,9 +130,9 @@ are refused. That blocklist does not cover `172.16.0.0/12`, IPv4-mapped IPv6
 
 | Situation | Reasonable posture |
 |---|---|
-| WhatsApp in production | Set `whatsapp_app_secret`; otherwise the route accepts anything |
+| WhatsApp in production | `whatsapp-app-secret` is mandatory: without it every POST is refused |
 | Telegram in production | Set `telegram-webhook-secret`; the default is unsigned |
-| Teams | Terminate at the proxy and restrict the source, or add a verification layer; the server does not check |
+| Teams | Set `teams-app-id` (Bot Framework) or `teams-security-token` (outgoing webhook); without one every POST is refused |
 | Instagram | Keep the route behind the proxy; POST authenticity is not verified |
 | Any channel | The channel routes are public by design — they cannot require a user session |
 

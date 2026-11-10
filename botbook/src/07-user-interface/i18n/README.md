@@ -181,18 +181,30 @@ report, not the build, is how you find gaps.
 
 ## Tooling
 
-Four scripts in `scripts/`, sharing one catalog reader (`i18n_lint.py`):
+Five scripts in `scripts/`, sharing one catalog reader (`i18n_lint.py`) and one
+literal scanner (`i18n_scan.py`):
 
 | Script | Purpose |
 |--------|---------|
 | `i18n_lint.py` | The gate. `--check` exits `1` on violations **beyond the baseline** (`.github/i18n-baseline.json`, which may only shrink). `--json` for machines, `--write-baseline` to record current debt. |
 | `i18n_extract.py` | Translator handoff: emits the keys a locale is missing or whose placeholders disagree with `en`, as JSON or CSV. Never rewrites existing translations. |
 | `i18n_report.py` | Coverage: keys, missing vs `en`, duplicates, plural blocks per locale; used keys and gaps per app. Reports, does not gate. |
+| `i18n_scan.py` | The scanner behind the `HARDCODED` gate: finds English text nodes in suite/cloud/login HTML (skipping `vendor/`, `wizard/`, code blocks and anything already carrying `data-i18n*`) and English strings a JS file writes into `textContent`, `placeholder`, `title`, `alert`/`toast` or an `innerHTML` template. Proper nouns, versions, URLs and e-mail addresses are allowlisted. Import it instead of re-implementing the rules. |
 | `i18n_pseudo.py` | Builds a pseudo-locale (`⟦elongated⟧` values) under `/tmp/gb-i18n-pseudo` for overflow testing. Placeholders and variant labels are preserved; it is deliberately never installed under `botlib/locales`, or it would appear in the language picker. |
 
 Lint violation kinds: `DUPLICATE`, `CONFLICT` (same key, different values),
 `BAD_KEY`, `UNBALANCED` braces, `PLURAL_NO_OTHER`, `MISSING` (a key the UI asks
-for that `en` does not define), `PLACEHOLDER_MISMATCH`.
+for that `en` does not define), `PLACEHOLDER_MISMATCH`, and `HARDCODED` (an
+English user-facing literal in the suite, cloud or login surface that never
+reaches the catalogue). The `HARDCODED` entries recorded in the baseline are the
+translation debt of the JS modules and mixed-content markup; the list may only
+shrink.
+
+Literals that had no key are recorded as `auto-<english-words>` in
+`en/ui-auto-<NN>.ftl` (English source of truth), with the high-frequency ones
+translated in `pt-BR/ui-auto.ftl` and `es/ui-auto.ftl`. Anything a translator has
+not reached yet falls back to the English value, so a missing translation never
+renders a key.
 
 The `MISSING` scan reads every `*.html`/`*.js` under `botui/ui` **except two
 subtrees that do not consume this catalogue**: `vendor/` (Monaco and other

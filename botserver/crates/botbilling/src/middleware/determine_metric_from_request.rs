@@ -30,3 +30,7 @@ pub(super) fn determine_metric_from_request(request: &Request<Body>) -> UsageMet
 
     UsageMetric::ApiCalls
 }
+
+#[cfg(test)]
+#[path = "metric_tests.rs"]
+mod metric_tests;

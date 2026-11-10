@@ -22,7 +22,7 @@ mod jwks;
 mod jwt;
 
 #[cfg(test)]
-#[path = "fixtures.rs"]
+#[path = "fixtures_tests.rs"]
 mod fixtures;
 
 #[cfg(test)]

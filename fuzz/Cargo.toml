@@ -1,0 +1,51 @@
+[package]
+name = "gb-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+description = "cargo-fuzz targets for the highest-risk parsers (#2119)"
+
+# Detached from the workspace on purpose: libfuzzer needs a nightly toolchain
+# and a `--cfg fuzzing` build, so this package must never be built by a normal
+# `cargo test`/`cargo build` of the repo. The CI fallback that runs on stable is
+# `bottest/tests/fuzz_regressions.rs`; these targets are the nightly deep run.
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = { workspace = true }
+
+# The parsers under test. They are workspace members, addressed by path so the
+# fuzz package stays outside the workspace graph.
+botsecurity-auth = { path = "../botserver/crates/botsecurity-auth" }
+botbasic_compiler = { path = "../botserver/crates/botbasic_compiler" }
+botwhatsapp = { path = "../botserver/crates/botwhatsapp" }
+botsheet = { path = "../botserver/crates/botsheet" }
+
+# One [[bin]] per target; `cargo fuzz list` reads these names.
+[[bin]]
+name = "jwt_claims"
+path = "fuzz_targets/jwt_claims.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "webhook_body"
+path = "fuzz_targets/webhook_body.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "basic_compile"
+path = "fuzz_targets/basic_compile.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "office_import"
+path = "fuzz_targets/office_import.rs"
+test = false
+doc = false

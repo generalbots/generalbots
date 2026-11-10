@@ -12,7 +12,7 @@ use hmac::{Hmac, Mac};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header};
 use sha2::Sha256;
 
-use super::*;
+use super::TeamsCredentials;
 
 pub(super) const TEST_RSA_PRIVATE_PEM: &str = "-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDAm442u3McoiOK

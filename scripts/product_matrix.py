@@ -31,8 +31,14 @@ except ModuleNotFoundError:  # Python < 3.11
 ROOT = Path(__file__).resolve().parents[1]
 CARGO = ROOT / "botserver" / "Cargo.toml"
 REGISTRY = ROOT / "botserver" / "src" / "apps" / "registry"
-PRODUCT_FILES = [ROOT / "botserver" / ".product", ROOT / "botserver" / ".product.desktop-local"]
 MATRIX = ROOT / "botserver" / ".product.matrix"
+# Every shipped profile is a `.product*` file next to the matrix. Deriving the
+# list instead of hardcoding it means a new profile cannot skip classification.
+PRODUCT_FILES = sorted(
+    path
+    for path in (ROOT / "botserver").glob(".product*")
+    if path.is_file() and path != MATRIX
+)
 OWNERSHIP_RS = REGISTRY / "ownership.rs"
 
 CORE_APPS = {"about", "settings"}

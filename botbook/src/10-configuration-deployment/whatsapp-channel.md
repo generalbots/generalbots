@@ -409,16 +409,33 @@ END IF
 
 ### Validating Requests
 
-General Bots automatically validates webhook signatures. Ensure your `whatsapp-verify-token` is kept secret.
+Every POST to the webhook must carry `X-Hub-Signature-256`, the HMAC-SHA256 of
+the raw request body keyed by the Meta app secret. General Bots checks it before
+parsing the payload and answers `403` when the header is missing or does not
+match; the delivery never reaches the bot.
+
+The check fails closed (#2113): a bot with no app secret configured receives
+nothing. Keep both `whatsapp-verify-token` (GET handshake) and the app secret
+private, and configure them before pointing Meta at the endpoint.
+
+| Configured app secret | Delivered signature | Result |
+|---|---|---|
+| empty | anything | `403` — every delivery refused |
+| set | valid `sha256=<hex>` | processed |
+| set | missing, malformed or wrong | `403` |
 
 ### Recommended Setup
 
 ```csv
 name,value
 whatsapp-verify-token,a-very-long-random-string-that-is-hard-to-guess
-whatsapp-validate-signature,true
 whatsapp-app-secret,your_app_secret_from_meta
 ```
+
+In Vault the same values are `whatsapp_verify_token` and
+`whatsapp_app_secret` in the bot's WhatsApp entry
+(`secret/gbo/<org>/<branch>/<bot>/whatsapp`), which takes precedence over
+`config.csv`.
 
 ---
 

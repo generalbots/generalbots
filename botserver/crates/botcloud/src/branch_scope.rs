@@ -158,9 +158,10 @@ mod tests {
 
     #[test]
     fn ignores_absent_or_malformed_branch_claim() {
-        let token = bearer(live_claims(
-            serde_json::json!({"email": "owner@example.com"}),
-        ));
+        let token = bearer(live_claims(serde_json::json!({
+            "sub": Uuid::new_v4().to_string(),
+            "email": "owner@example.com",
+        })));
         let claims = claims_from_bearer(&token).expect("claims");
         assert_eq!(claims.branch_id, None);
 

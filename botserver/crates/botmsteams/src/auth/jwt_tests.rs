@@ -5,7 +5,7 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use super::fixtures::*;
 use super::jwks;
 use super::jwt;
-use super::*;
+use super::AuthError;
 
 #[test]
 fn a_valid_bot_framework_token_is_accepted() {

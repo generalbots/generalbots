@@ -259,7 +259,7 @@ def scan_html(text: str, path: str = "") -> list:
                         True,
                     )
                     literals.append(literal)
-                    top["literal"] = literal
+                    top["literals"].append(literal)
                     top["texts"] += 1
         cursor = match.end()
 
@@ -268,11 +268,11 @@ def scan_html(text: str, path: str = "") -> list:
             if not stack:
                 continue
             open_element = stack.pop()
-            if open_element["literal"] is not None and (
-                open_element["kids"] > 0 or open_element["texts"] > 1
-            ):
-                # Mixed content: the parent cannot carry a plain data-i18n key.
-                open_element["literal"].simple = False
+            if open_element["kids"] > 0 or open_element["texts"] > 1:
+                # Mixed content: the parent cannot carry a plain data-i18n key,
+                # so every text node it holds is a fragment, not a label.
+                for literal in open_element["literals"]:
+                    literal.simple = False
             continue
         if tag in VOID_TAGS:
             continue
@@ -290,7 +290,7 @@ def scan_html(text: str, path: str = "") -> list:
                 "insert_at": match.end() - 1,
                 "kids": 0,
                 "texts": 0,
-                "literal": None,
+                "literals": [],
             }
         )
 

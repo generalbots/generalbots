@@ -42,5 +42,6 @@ mod checks;
 mod dataset;
 mod drill;
 mod isolation;
+mod migrations;
 mod restore;
 mod schema;

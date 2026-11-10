@@ -11,11 +11,12 @@ Store the credentials in the bot's `config.csv` (`.gbot` folder):
 
 | Key | Required | Purpose |
 |-----|----------|---------|
-| `teams-app-id` | yes | Azure Bot registration (Microsoft App ID) |
+| `teams-app-id` | yes | Azure Bot registration (Microsoft App ID); also the `aud` every inbound Bot Framework token must carry |
 | `teams-app-password` | yes | Client secret for that registration |
 | `teams-tenant-id` | no | Single-tenant registrations; empty for multi-tenant |
 | `teams-bot-id` | no | Bot identity as Teams sees it; defaults to `teams-app-id` |
 | `teams-service-url` | no | Bot Framework endpoint; defaults to `https://smba.trafficmanager.net/teams` |
+| `teams-security-token` | no | Base64 security token of an **outgoing webhook**; only needed for that integration |
 
 ```csv
 key,value
@@ -28,18 +29,39 @@ When `teams-app-id` or `teams-app-password` is absent the adapter refuses to
 send (`Teams adapter not configured`) and reports it in the log rather than
 posting an unauthenticated call.
 
+## Inbound authentication
+
+`POST /api/msteams/messages` is anonymous (Teams posts from its own
+infrastructure), so the handler proves the caller before it parses the body
+(`botmsteams/src/auth/`):
+
+| Header | Used by | Check |
+|---|---|---|
+| `Authorization: Bearer <jwt>` | Bot Framework channel | RS256 signature against the Bot Framework OpenID key set, `iss` = `https://api.botframework.com`, `aud` = `teams-app-id`, `exp`/`nbf` with 300 s skew |
+| `Authorization: HMAC <sig>` | outgoing webhook | `base64(HMAC-SHA256(base64decode(teams-security-token), raw_body))` |
+
+Anything else — no header, another scheme, a token for a different app id or
+issuer, an expired token, a signature that does not cover the body — answers
+`401` and never reaches a session. With neither `teams-app-id` nor
+`teams-security-token` configured the route refuses every POST: it fails closed
+rather than trusting the network path (#2113).
+
+The signing keys are cached for 24 h and refreshed once when an unknown `kid`
+arrives, which is how a Microsoft key rollover is absorbed without a restart.
+
 ## Endpoints
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| `POST` | `/api/msteams/messages` | anonymous | Inbound Bot Framework activities |
+| `POST` | `/api/msteams/messages` | Bot Framework JWT or outgoing-webhook HMAC | Inbound Bot Framework activities |
 | `POST` | `/api/msteams/send` | authenticated (`/api/msteams/**` permission) | Send an activity from a script or integration |
 
-The inbound route is anonymous because Teams posts from its own infrastructure
-without a token; it is also exempt from CSRF and registered as an anonymous
-RBAC route for the same reason. Without those three registrations the activity
-never reaches the handler — the same defect that made the Telegram channel
-unreachable (#1327, #1330).
+The inbound route is anonymous at the RBAC layer because Teams posts without a
+user session; it is exempt from CSRF and registered as an anonymous RBAC route
+for the same reason. Without those three registrations the activity never
+reaches the handler — the same defect that made the Telegram channel
+unreachable (#1327, #1330). The credential check happens inside the handler, not
+in the RBAC layer.
 
 ## How the credentials are resolved
 
@@ -73,7 +95,8 @@ session with an attendant assigned go to the attendant queue.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `Teams adapter not configured` | `teams-app-id` / `teams-app-password` missing for that bot | Add both to the bot's `config.csv` |
-| Activities never arrive | the inbound route is not reachable (registration missing after an upgrade) | `curl -i -X POST https://<host>/api/msteams/messages -H 'Content-Type: application/json' -d '{}'` must answer `422` (body validation) — `401` means the route lost its anonymous registration |
+| Activities never arrive | the inbound route is not reachable (registration missing after an upgrade) | `curl -i -X POST https://<host>/api/msteams/messages -H 'Content-Type: application/json' -d '{}'` must answer `422` (body validation) — `401` means the credential check ran and rejected the request, so check `teams-app-id` / `teams-security-token` and the sender |
+| `401` on every activity | no credential configured, or the token `aud`/`iss` does not match | Set `teams-app-id` (Bot Framework) or `teams-security-token` (outgoing webhook); the log names the rejection reason |
 | `401 Unauthorized` from the Bot Framework | wrong/rotated client secret, or a single-tenant registration without `teams-tenant-id` | Reissue the secret, set the tenant id |
 | Bot answers nothing in Teams | outbound call rejected (service URL or app id mismatch) | Check `teams-bot-id` / `teams-service-url` and the Bot Framework channel registration |
 

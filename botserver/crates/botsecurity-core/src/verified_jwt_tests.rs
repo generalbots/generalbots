@@ -119,6 +119,23 @@ fn a_token_without_an_expiry_is_rejected() {
 }
 
 #[test]
+fn a_token_that_is_not_valid_yet_is_rejected() {
+    let now = chrono::Utc::now().timestamp();
+    let payload = format!(r#"{{"sub":"user-1","exp":{},"nbf":{}}}"#, now + 7200, now + 3600);
+    assert_eq!(
+        verify_hs256_jwt(&token(&payload, SECRET), SECRET),
+        Err(JwtVerifyError::NotYetValid)
+    );
+}
+
+#[test]
+fn a_not_before_claim_within_the_leeway_is_accepted() {
+    let now = chrono::Utc::now().timestamp();
+    let payload = format!(r#"{{"sub":"user-1","exp":{},"nbf":{}}}"#, now + 3600, now + 5);
+    assert!(verify_hs256_jwt(&token(&payload, SECRET), SECRET).is_ok());
+}
+
+#[test]
 fn a_token_without_a_subject_is_rejected() {
     let payload = format!(r#"{{"email":"user@example.com","exp":{}}}"#, in_an_hour());
     assert_eq!(

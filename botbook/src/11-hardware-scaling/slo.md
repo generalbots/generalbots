@@ -97,7 +97,27 @@ The HTTP classes are driven by the k6 scripts in `scripts/load/`
 (`k6_http.js` for REST, `k6_ws.js` for session stability and first token). The
 in-process budgets — locale resolution, translation, the regex memo — are
 asserted by `bottest/tests/slo_budget_test.rs`, which needs no server and runs on
-every pull request.
+every pull request:
+
+| Hot path | p95 budget |
+|----------|------------|
+| `Locale::new` on a BCP-47 tag | ≤ 20 µs |
+| `Locale::negotiate` over the catalogue | ≤ 10 µs |
+| Catalogue lookup plus placeholder interpolation | ≤ 60 µs |
+| Memoised runtime regex lookup | ≤ 30 µs |
+
+A load run never calls a paid provider: the mock (`scripts/mock_llm.py`) and the
+free gateway model are priced at zero in `ops/slo.yaml`, and the smoke profile
+runs against anonymous endpoints only.
+
+The k6 summary is not the snapshot format, so `scripts/load/k6_to_snapshot.py`
+is the one adapter between them:
+
+```bash
+k6 run -e SCENARIO=smoke --summary-export=/tmp/k6.json scripts/load/k6_http.js
+python3 scripts/load/k6_to_snapshot.py --summary /tmp/k6.json --out /tmp/slo.json --class api
+python3 scripts/check_slo.py --snapshot /tmp/slo.json --class api
+```
 
 ## How the gate works
 

@@ -63,6 +63,7 @@ class Gate:
     evidence: tuple[str, ...] = ()
     min_files: int = 1
     ok_detail: str = ""
+    fixed_detail: bool = False
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,8 @@ GATES: tuple[Gate, ...] = (
         owner=2119,
         proves="A shipped app is documented and an invented route fails the build",
         steps=(("python3", "scripts/smoke_app_surfaces.py", "--contracts"),),
+        ok_detail="every registry app classified, smoked and documented",
+        fixed_detail=True,
     ),
     Gate(
         id="coverage-ratchet",
@@ -163,6 +166,8 @@ GATES: tuple[Gate, ...] = (
             ("python3", "scripts/product_profile_check.py"),
             ("python3", "scripts/app_complexity_budget.py"),
         ),
+        ok_detail="every app classified, owned and within the complexity budget",
+        fixed_detail=True,
     ),
     Gate(
         id="security-scan",
@@ -185,6 +190,7 @@ GATES: tuple[Gate, ...] = (
         proves="A new user-facing string cannot ship untranslated or unbalanced",
         steps=(("python3", "scripts/i18n_lint.py", "--check"),),
         ok_detail="no new catalog violation",
+        fixed_detail=True,
     ),
     Gate(
         id="workflow-pinning",
@@ -192,6 +198,8 @@ GATES: tuple[Gate, ...] = (
         owner=1726,
         proves="A retargeted action tag cannot execute with the repository token",
         steps=(("python3", "scripts/check_workflow_pinning.py"),),
+        ok_detail="every `uses:` is a commit SHA; no workflow trusts a fork",
+        fixed_detail=True,
     ),
 )
 
@@ -242,7 +250,8 @@ def run_commands(gate: Gate, steps: tuple[tuple[str, ...], ...] | None = None) -
         if proc.returncode != 0:
             reason = _last_line(proc.stderr) or _last_line(proc.stdout) or "no output"
             return Result(gate, FAIL, f"`{' '.join(step)}` exited {proc.returncode}: {reason}")
-        detail = _last_line(proc.stdout) or detail
+        if not gate.fixed_detail:
+            detail = _last_line(proc.stdout) or detail
     return Result(gate, PASS, detail)
 
 

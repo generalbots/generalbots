@@ -7,7 +7,7 @@ use sha2::Sha256;
 
 use super::fixtures::*;
 use super::hmac as teams_hmac;
-use super::*;
+use super::{authorize, AuthError, TeamsCredentials};
 
 // ------------------------------------------------------------ HMAC (webhook)
 

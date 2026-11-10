@@ -4,7 +4,7 @@
 use uuid::Uuid;
 
 use super::common::{connect, database_url, ensure_dataset, repo_root, strict};
-use super::{dataset, schema};
+use super::{dataset, migrations, schema};
 
 /// Every migration on disk was applied, and nothing else was.
 #[test]
@@ -14,11 +14,11 @@ fn migrations_apply_from_scratch() {
         return;
     };
     let dir = repo_root().join("botserver").join("migrations");
-    let on_disk = match schema::migration_versions(&dir) {
+    let on_disk = match migrations::migration_versions(&dir) {
         Ok(versions) => versions,
         Err(e) => skip_or_fail!(strict, (), "cannot read {}: {e}", dir.display()),
     };
-    let applied = match schema::applied_versions(&mut conn) {
+    let applied = match migrations::applied_versions(&mut conn) {
         Ok(versions) => versions,
         Err(e) => skip_or_fail!(
             strict,

@@ -146,7 +146,7 @@ pub fn verify_webhook_signature<B: AsRef<[u8]>>(
             return false;
         }
     };
-    mac.update(body.as_ref());
+    mac.update(AsRef::<[u8]>::as_ref(&body));
     let computed = hex::encode(mac.finalize().into_bytes());
 
     // Meta always sends lowercase hex; an uppercase digest is not the same
