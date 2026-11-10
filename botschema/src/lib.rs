@@ -124,3 +124,6 @@ pub mod desktop;
 pub use self::desktop::*;
 pub mod database_manager;
 pub use self::database_manager::*;
+
+#[cfg(test)]
+mod tests;

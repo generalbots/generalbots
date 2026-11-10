@@ -4,3 +4,6 @@ pub mod schema;
 
 pub use runtime::BasicRuntime;
 pub use types::*;
+
+#[cfg(test)]
+mod tests;
