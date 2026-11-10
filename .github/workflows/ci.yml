@@ -107,6 +107,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Lint the locale catalogs
         run: python3 scripts/i18n_lint.py --check
+      - name: Pseudo-locale generator (#2088)
+        run: python3 scripts/i18n_pseudo.py --check
 
   windows:
     name: Windows agent adapters
