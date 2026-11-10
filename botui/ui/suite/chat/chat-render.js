@@ -90,6 +90,12 @@ function stripMarkdownBlocks(content) {
 // still streaming does not flash its raw source before the frame catches up.
 function stripLiveArtifactBlock(content) {
   var text = String(content || "");
+  // #2019 — the artifact module knows every detection variant (escaped markup,
+  // ~~~ fences, language-less fences, XML prolog, prose-wrapped SVG, JSON
+  // envelope); strip exactly what it detected so the bubble never keeps a copy.
+  if (window.GBLiveArtifact && typeof window.GBLiveArtifact.strip === "function") {
+    return window.GBLiveArtifact.strip(text);
+  }
   // A message that is only a bare <svg> is owned by the preview too.
   if (/^\s*<svg[\s>][\s\S]*<\/svg>\s*$/i.test(text)) return "";
   // #2005 — a bare <svg> is previewed while it streams (before </svg>), so its

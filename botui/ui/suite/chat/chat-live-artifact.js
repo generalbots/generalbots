@@ -15,11 +15,28 @@
 "use strict";
 
 window.GBLiveArtifact = window.GBLiveArtifact || (function () {
-  var OPEN_FENCE = /```(svg|html|htm|xml)\s*\n([\s\S]*)$/i;
+  // #2019 — models fence drawings as ```svg, ~~~svg, ```svg+xml or even a
+  // language-less fence, and sometimes precede the element with an XML prolog
+  // or a doctype. All of those must reach the live preview.
+  var FENCE = /(```|~~~)\s*([a-z0-9+._-]*)\s*\r?\n([\s\S]*)$/i;
+  var SVG_LANGS = ["svg", "svg+xml", "image/svg+xml"];
+  var HTML_LANGS = ["html", "htm", "xml", "html5", "xhtml"];
   // Models often answer a drawing request with the bare element instead of a
-  // fenced block. A message that is *only* an <svg> is treated the same way.
-  var BARE_SVG = /^\s*(<svg[\s>][\s\S]*<\/svg>)\s*$/i;
-  var BARE_OPEN_SVG = /^\s*(<svg[\s>][\s\S]*)$/i;
+  // fenced block. A message that is *only* an SVG is treated the same way.
+  var BARE_SVG = /^\s*((?:<\?xml[\s\S]*?\?>\s*)?(?:<!doctype[^>]*>\s*)?<svg[\s>][\s\S]*<\/svg\s*>)\s*$/i;
+  var BARE_OPEN_SVG = /^\s*((?:<\?xml[\s\S]*?\?>\s*)?(?:<!doctype[^>]*>\s*)?<svg[\s>][\s\S]*)$/i;
+
+  function hasSvgRoot(body) {
+    return /^\s*(?:<\?xml[\s\S]*?\?>\s*)?(?:<!doctype[^>]*>\s*)?<svg[\s>]/i.test(body);
+  }
+
+  function fenceLang(lang, body) {
+    var normalized = (lang || "").toLowerCase();
+    if (SVG_LANGS.indexOf(normalized) >= 0) return "svg";
+    if (HTML_LANGS.indexOf(normalized) >= 0) return hasSvgRoot(body) ? "svg" : normalized;
+    if (!normalized && hasSvgRoot(body)) return "svg";
+    return normalized;
+  }
 
   /* ---------------------------------------------------------------- blocks */
 
@@ -37,30 +54,105 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
       .replace(/&amp;/gi, "&");
   }
 
+  function escapeMarkup(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function detectionText(text) {
     return /&lt;\s*\/?\s*(svg|html|htm|xml|!doctype)/i.test(text)
       ? unescapeMarkup(text)
       : text;
   }
 
+  // #2019 — a tool-call envelope may carry the drawing as a JSON string
+  // (`{"svg": "<svg …>"}`). Unwrap the last SVG-bearing string before
+  // detection so the payload does not print as JSON in the bubble.
+  function findSvgString(value, depth) {
+    if (value === null || value === undefined || depth > 4) return null;
+    if (typeof value === "string") {
+      return /<svg[\s>]/i.test(value) ? value : null;
+    }
+    if (Array.isArray(value)) {
+      for (var i = value.length - 1; i >= 0; i -= 1) {
+        var fromArray = findSvgString(value[i], depth + 1);
+        if (fromArray) return fromArray;
+      }
+      return null;
+    }
+    if (typeof value === "object") {
+      var preferred = ["svg", "content", "html", "markup", "artifact", "result", "text", "output"];
+      for (var k = 0; k < preferred.length; k += 1) {
+        var hit = findSvgString(value[preferred[k]], depth + 1);
+        if (hit) return hit;
+      }
+      for (var key in value) {
+        if (preferred.indexOf(key) >= 0) continue;
+        var nested = findSvgString(value[key], depth + 1);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  function unwrapJsonEnvelope(text) {
+    var trimmed = text.trim();
+    if (!/^[[{]/.test(trimmed)) return null;
+    try {
+      return findSvgString(JSON.parse(trimmed), 0);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // #2019 — "Here is your robot: <svg>…</svg> — enjoy!" must still preview.
+  // The drawing wins when it outweighs the prose around it.
+  function dominantSvg(text) {
+    var start = text.search(/<svg[\s>]/i);
+    if (start < 0) return null;
+    var lower = text.toLowerCase();
+    var close = lower.lastIndexOf("</svg");
+    if (close < start) return null;
+    var end = text.indexOf(">", close);
+    if (end < 0) return null;
+    var svg = text.slice(start, end + 1).trim();
+    if (svg.length < 12) return null;
+    var outside = (text.slice(0, start) + text.slice(end + 1)).replace(/\s+/g, "");
+    if (outside.length > svg.length) return null;
+    return { lang: "svg", body: svg, closed: true };
+  }
+
   function lastBlock(content) {
     var text = detectionText(String(content || ""));
+    var unwrapped = unwrapJsonEnvelope(text);
+    if (unwrapped) text = detectionText(unwrapped);
+
+    var match = FENCE.exec(text);
+    if (match) {
+      var fence = match[1];
+      var rest = match[3];
+      var end = rest.indexOf(fence);
+      var closed = end >= 0;
+      var body = (closed ? rest.slice(0, end) : rest).trim();
+      var lang = fenceLang(match[2], body);
+      // A language-less fence is only a drawing when its body is an SVG; any
+      // other bare fence stays ordinary markdown.
+      if (body.length >= 12 && (match[2] !== "" || lang === "svg")) {
+        return { lang: lang || "html", body: body, closed: closed };
+      }
+    }
+
     var bare = BARE_SVG.exec(text);
     if (bare && bare[1].trim().length >= 12) {
       return { lang: "svg", body: bare[1].trim(), closed: true };
     }
-    var match = OPEN_FENCE.exec(text);
-    if (match) {
-      var rest = match[2];
-      var end = rest.indexOf("```");
-      var closed = end >= 0;
-      var body = (closed ? rest.slice(0, end) : rest).trim();
-      if (body.length < 12) return null;
-      return { lang: match[1].toLowerCase(), body: body, closed: closed };
-    }
     // Still streaming a bare <svg> with no fence yet: preview it too, instead
     // of flashing the raw markup until </svg> lands.
-    if (text.indexOf("```") < 0) {
+    if (text.indexOf("```") < 0 && text.indexOf("~~~") < 0) {
       var open = BARE_OPEN_SVG.exec(text);
       if (open) {
         var partial = open[1].trim();
@@ -69,8 +161,61 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
         }
       }
     }
+
+    var dominant = dominantSvg(text);
+    if (dominant) return dominant;
     return null;
   }
+
+  // #2019 — remove whichever variant was detected (raw, escaped, fenced,
+  // prolog-prefixed or prose-wrapped) from the bubble text.
+  function strip(content) {
+    var text = String(content || "");
+    var block = lastBlock(text);
+    if (!block) return text;
+
+    // A JSON tool envelope carries the drawing as data, not as prose: drop the
+    // whole envelope instead of leaving `{"svg":""}` behind.
+    if (unwrapJsonEnvelope(text)) return "";
+
+    var out = text;
+    // The detected body may include the XML prolog/doctype, so remove it
+    // verbatim first (raw or HTML-escaped form).
+    var bodyVariants = [block.body, escapeMarkup(block.body)];
+    for (var i = 0; i < bodyVariants.length; i += 1) {
+      var at = out.indexOf(bodyVariants[i]);
+      if (at >= 0) {
+        out = out.slice(0, at) + out.slice(at + bodyVariants[i].length);
+        break;
+      }
+    }
+
+    var fenceRe = /(```|~~~)[^\n]*\n([\s\S]*?)\1/g;
+    out = out.replace(fenceRe, function (all, marker, body) {
+      var decoded = unescapeMarkup(body).trim();
+      return hasSvgRoot(decoded) || fenceLang("", decoded) === "svg" ? "" : all;
+    });
+    // Still-streaming fence with no closing marker yet.
+    out = out.replace(/(```|~~~)[^\n]*\n([\s\S]*)$/, function (all, marker, body) {
+      var decoded = unescapeMarkup(body).trim();
+      return hasSvgRoot(decoded) ? "" : all;
+    });
+
+    if (block.lang === "svg") {
+      out = out.replace(/&lt;\s*svg[\s>][\s\S]*?&lt;\s*\/\s*svg\s*&gt;/gi, "");
+      out = out.replace(/<svg[\s>][\s\S]*?<\/svg\s*>/gi, "");
+      out = out.replace(/&lt;\s*svg[\s>][\s\S]*$/i, "");
+      out = out.replace(/<svg[\s>][\s\S]*$/i, "");
+      // Empty fences and a dangling opening marker left by the removal.
+      out = out.replace(/(```|~~~)[^\n]*\n\s*\1/g, "");
+      out = out.replace(/(```|~~~)\s*[a-z0-9+._-]*\s*$/i, "");
+      // Orphaned prolog/doctype left by the removed drawing.
+      out = out.replace(/<\?xml[\s\S]*?\?>/gi, "");
+      out = out.replace(/<!doctype[^>]*>/gi, "");
+    }
+    return out.trim();
+  }
+
 
   /* ---------------------------------------------------------------- surfaces */
 
@@ -195,7 +340,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     if (!box) box = build(container);
     var state = box.__gbLiveSvg;
     if (!state) return;
-    var isSvg = block.lang === "svg" || /^\s*<svg[\s>]/i.test(block.body);
+    var isSvg = block.lang === "svg" || hasSvgRoot(block.body);
     if (state.frame) state.frame.hidden = isSvg;
     state.host.hidden = !isSvg;
     state.send.hidden = !isSvg;
@@ -206,5 +351,5 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     if (window.GBLiveSvg) window.GBLiveSvg.render(state, block);
   }
 
-  return { render: render, lastBlock: lastBlock };
+  return { render: render, lastBlock: lastBlock, strip: strip };
 })();
