@@ -93,4 +93,7 @@ mod default_manager;
 mod get_stats;
 mod compute_spki_fingerprint;
 
+#[cfg(test)]
+mod pinning_tests;
+
 pub use compute_spki_fingerprint::*;
