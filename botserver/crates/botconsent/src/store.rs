@@ -317,4 +317,52 @@ mod tests {
             Some(explicit.expires_at.expect("set by helper"))
         );
     }
+
+    fn context(thread: Option<&str>, run: Option<&str>) -> crate::enforce::ConsentContext {
+        crate::enforce::ConsentContext {
+            thread_id: thread.map(str::to_string),
+            run_id: run.map(str::to_string),
+            workspace_id: None,
+        }
+    }
+
+    #[test]
+    fn legacy_and_unknown_scopes_cover_every_call() {
+        let ctx = context(None, None);
+
+        assert!(scope_allows(&serde_json::json!({}), &ctx));
+        assert!(scope_allows(&serde_json::json!({ "kind": "unknown" }), &ctx));
+        assert!(scope_allows(&serde_json::json!({ "kind": "run" }), &ctx));
+    }
+
+    #[test]
+    fn run_scope_requires_the_same_run_and_thread() {
+        let scope = serde_json::json!({ "kind": "run", "thread_id": "t1", "run_id": "r1" });
+
+        assert!(scope_allows(&scope, &context(Some("t1"), Some("r1"))));
+        assert!(!scope_allows(&scope, &context(Some("t1"), Some("r2"))));
+        assert!(!scope_allows(&scope, &context(Some("t2"), Some("r1"))));
+        assert!(!scope_allows(&scope, &context(None, None)));
+    }
+
+    #[test]
+    fn run_scope_without_ids_matches_any_context() {
+        let scope = serde_json::json!({ "kind": "run" });
+
+        assert!(scope_allows(&scope, &context(None, None)));
+        assert!(scope_allows(&scope, &context(Some("t"), Some("r"))));
+    }
+
+    #[test]
+    fn workspace_scope_matches_only_the_same_thread() {
+        let scope = serde_json::json!({ "kind": "workspace", "thread_id": "t1" });
+
+        assert!(scope_allows(&scope, &context(Some("t1"), None)));
+        assert!(!scope_allows(&scope, &context(Some("t2"), None)));
+        assert!(!scope_allows(&scope, &context(None, None)));
+        assert!(scope_allows(
+            &serde_json::json!({ "kind": "workspace" }),
+            &context(None, None)
+        ));
+    }
 }
