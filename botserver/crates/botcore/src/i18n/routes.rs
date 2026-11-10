@@ -38,7 +38,7 @@ async fn handle_get_translations(
     let translations = get_translations_json(&locale);
 
     Json(serde_json::json!({
-        "locale": locale.to_bcp47(),
+        "locale": locale.to_string(),
         "translations": translations
     }))
 }

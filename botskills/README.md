@@ -55,10 +55,15 @@ botskills/
 
 ## Content-generation pack (#2063)
 
-100 content-generation skills grouped in seven categories, plus the five
-original skills that already covered a listed concern (so 101 packages in
-total; the issue's own tables sum 96 unique names). All are authored in this
-repository (`source: in-repo`) with the same `SKILL.md` contract:
+The issue's tables sum 96 unique names, all of which ship here: 11 already
+existed in the original categories (`systematic-debugging`,
+`verification-before-completion`, `next-best-practices`, `shadcn`, `zod`,
+`mcp-builder`, `skill-creator`, `context7`, `exa-web-search-free`, `firecrawl`,
+`last30days`) and 85 are new packages in the seven added categories, for 101
+packages in total together with the five pre-existing skills outside the
+issue's list (`agent-browser`, `documentation-writer`, `sentry-cli`, `vitest`,
+`webapp-testing`). All are authored in this repository (`source: in-repo`)
+with the same `SKILL.md` contract:
 
 ```
 ---
@@ -94,7 +99,7 @@ system prompt. See "Runtime contract" below.
 | content | copywriting, seo-on-page, blog-outline, newsletter, social-posts, ad-copy, video-script, podcast-script, translation, brand-tone |
 | research | exa-web-search-free, firecrawl, context7, last30days, research-synthesis, fact-checking, citations, competitive-analysis, pricing-research, news-briefing |
 | integration | mcp-builder, skill-creator, webhooks, slack-workflows, gmail-workflows, calendar-scheduling, crm-actions, web-scraping |
-| quality | systematic-debugging, verification-before-completion, tdd, code-review, refactoring, performance-profiling, security-review, logging-observability, release-management |
+| quality | tdd, code-review, refactoring, performance-profiling, security-review, logging-observability, release-management (systematic-debugging and verification-before-completion already live under `engineering/`) |
 | business | finance-reporting, invoicing-brazil, contracts-review, hr-onboarding, kyc-verification, compliance-iso27001, tax-brazil, procurement, customer-support, analytics-kpis |
 | media | image-generation, audio-generation, video-generation, voice-tts, subtitles-captions, thumbnails, memes, gif-creator, music-generation, upscaling-restoration |
 
@@ -111,7 +116,7 @@ describe the request shape and the verification, not a local model stack.
 - `skills.find {query}` returns the matching package bodies (bounded), which is
   how the model gets the method without a giant system prompt.
 
-## Why these sixteen
+## Why the original sixteen
 
 Selection criteria, in order:
 

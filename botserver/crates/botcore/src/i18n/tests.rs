@@ -31,7 +31,7 @@
         let result = negotiate_locale(&requested);
         assert!(result.is_some());
         assert_eq!(
-            result.as_ref().map(|l| l.to_bcp47()),
+            result.as_ref().map(|l| l.to_string()),
             Some("pt-BR".to_string())
         );
     }
