@@ -189,8 +189,8 @@ pub(super) fn entries() -> Vec<AppDefinition> {
             category: "business",
             color: "#3b82f6",
             url: "/suite/analytics/analytics.html",
-            description: "Business analytics dashboards and reports.",
-            keywords: "analytics dashboards reports",
+            description: "Business analytics dashboards and reports, plus the Operations view with SLO burn, error budgets, traffic, endpoint counters, queue depth, LLM cost and deploy markers.",
+            keywords: "analytics dashboards reports operations slo error budget burn rate queue cost runbook",
             icon: "<line x1=\"18\" y1=\"20\" x2=\"18\" y2=\"10\"/><line x1=\"12\" y1=\"20\" x2=\"12\" y2=\"4\"/><line x1=\"6\" y1=\"20\" x2=\"6\" y2=\"14\"/>",
         }),
         app(AppSpec {

@@ -10,7 +10,7 @@ The production-readiness program ([#2121](https://github.com/generalbots/general
 | **FAIL** | the check ran and failed — a regression; CI fails |
 | **SKIP** | the gate does not exist yet — the row names the issue and what must land |
 
-Current run: **6 PASS · 1 FAIL · 7 SKIP** of 14 checks.
+Current run: **8 PASS · 3 FAIL · 5 SKIP** of 16 checks.
 
 ## Workstreams
 
@@ -19,12 +19,12 @@ Current run: **6 PASS · 1 FAIL · 7 SKIP** of 14 checks.
 | [#2112](https://github.com/generalbots/generalbots/issues/2112) | security(auth): JWT signature | `security-auth` | **SKIP** |
 | [#2113](https://github.com/generalbots/generalbots/issues/2113) | security(webhooks): WhatsApp/Teams auth | `security-webhooks` | **SKIP** |
 | [#2114](https://github.com/generalbots/generalbots/issues/2114) | security(mfa): TOTP encoding | `security-mfa` | **SKIP** |
-| [#2115](https://github.com/generalbots/generalbots/issues/2115) | perf(slo): SLOs and budgets | `slo-check` | **SKIP** |
+| [#2115](https://github.com/generalbots/generalbots/issues/2115) | perf(slo): SLOs and budgets | `slo-check` | **FAIL** |
 | [#2116](https://github.com/generalbots/generalbots/issues/2116) | ops(analytics): console, budgets, runbooks | `ops-runbooks` | **SKIP** |
 | [#2117](https://github.com/generalbots/generalbots/issues/2117) | data(integrity): migrations, restore, tenancy | `data-restore` | **SKIP** |
 | [#2118](https://github.com/generalbots/generalbots/issues/2118) | release(auto-bump): one version | `release-version` | **PASS** |
-| [#2119](https://github.com/generalbots/generalbots/issues/2119) | test(quality): ratchet, contracts, fuzzing | `test-guards`, `coverage-ratchet` | **SKIP** |
-| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **PASS** |
+| [#2119](https://github.com/generalbots/generalbots/issues/2119) | test(quality): ratchet, contracts, fuzzing | `test-guards`, `app-contracts`, `coverage-ratchet`, `flake-policy` | **PASS** |
+| [#2120](https://github.com/generalbots/generalbots/issues/2120) | product(focus): supported matrix | `product-profile` | **FAIL** |
 
 ## Checks
 
@@ -33,17 +33,19 @@ Current run: **6 PASS · 1 FAIL · 7 SKIP** of 14 checks.
 | `security-auth` | JWT claims are signature-verified before they pick a tenant | [#2112](https://github.com/generalbots/generalbots/issues/2112) | **SKIP** | not landed yet — expected 1× bottest/tests/unit/security/*jwt*.rs or bottest/tests/unit/security/*tenant*.rs |
 | `security-webhooks` | WhatsApp/Teams inbound requests prove their origin | [#2113](https://github.com/generalbots/generalbots/issues/2113) | **SKIP** | not landed yet — expected 1× bottest/tests/unit/security/*webhook*.rs |
 | `security-mfa` | TOTP enrollment and verification share one secret encoding | [#2114](https://github.com/generalbots/generalbots/issues/2114) | **SKIP** | not landed yet — expected 1× bottest/tests/unit/security/*mfa*.rs or bottest/tests/unit/security/*totp*.rs |
-| `slo-check` | SLOs are defined, instrumented and gated | [#2115](https://github.com/generalbots/generalbots/issues/2115) | **SKIP** | not landed yet — expected 1× scripts/slo_check.py |
+| `slo-check` | SLOs are defined, instrumented and gated | [#2115](https://github.com/generalbots/generalbots/issues/2115) | **FAIL** | `python3 scripts/check_slo.py --self-test` exited 1: self-test: cannot load /home/a404011/src/generalbots/ops/slo.yaml: 'slos' |
 | `ops-runbooks` | Operational runbooks exist for the on-call surface | [#2116](https://github.com/generalbots/generalbots/issues/2116) | **SKIP** | not landed yet — expected 6× botbook/src/10-configuration-deployment/runbooks/*.md |
 | `data-restore` | Restore drill proves migrations, tenancy and recovery together | [#2117](https://github.com/generalbots/generalbots/issues/2117) | **SKIP** | not landed yet — expected 1× scripts/restore_drill.sh or scripts/restore_drill.py |
 | `release-version` | One version everywhere, and the tag is applied to the build | [#2118](https://github.com/generalbots/generalbots/issues/2118) | **PASS** | selftest: ok (v9.8.7 -> 9.8.7, drift detected) |
 | `test-guards` | Unit-suite policy: registered modules, reasons for skips, offline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | self-test: ok |
-| `coverage-ratchet` | Coverage ratchet against a committed baseline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **SKIP** | not landed yet — expected 1× coverage/baseline.json |
-| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **PASS** | product profile: 68 apps classified, owned and in agreement with the supported matrix; default and desktop compile all apps |
+| `app-contracts` | Every registry app declares its classification, smoke and API surface | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | every registry app classified, smoked and documented |
+| `flake-policy` | Flaky tests are registered, owned and inside the quarantine SLA | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | no flake outside its SLA |
+| `coverage-ratchet` | Coverage ratchet against a committed baseline | [#2119](https://github.com/generalbots/generalbots/issues/2119) | **PASS** | baseline committed; the ratchet self-test fails on a decrease |
+| `product-profile` | Every app is classified always/preview/hidden and its feature compiles | [#2120](https://github.com/generalbots/generalbots/issues/2120) | **FAIL** | `python3 scripts/app_complexity_budget.py` exited 1: app complexity budget exceeded: |
 | `security-scan` | Supply-chain and secret scans are wired in CI | [#2121](https://github.com/generalbots/generalbots/issues/2121) | **PASS** | security.yml wires 6 scans (gitleaks not installed here) |
-| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **FAIL** | `python3 scripts/adequacy_guard.py --baseline issues/adequacy/baseline.json` exited 1: adequacy_guard: FAIL — 1 issue(s) against issues/adequacy/baseline.json |
-| `i18n-lint` | Fluent catalogs and the keys the UI asks for are consistent | [#2090](https://github.com/generalbots/generalbots/issues/2090) | **PASS** | no new catalog violation |
-| `workflow-pinning` | Every `uses:` is a commit SHA and no workflow trusts a fork | [#1726](https://github.com/generalbots/generalbots/issues/1726) | **PASS** | ok: 86 action reference(s) across 9 workflow/action file(s) are pinned |
+| `adequacy-guard` | AGENTS.md structural rules stay at or below the baseline | [#1735](https://github.com/generalbots/generalbots/issues/1735) | **PASS** | adequacy_guard: OK — 17 rules at or below baseline |
+| `i18n-lint` | Fluent catalogs and the keys the UI asks for are consistent | [#2090](https://github.com/generalbots/generalbots/issues/2090) | **FAIL** | `python3 scripts/i18n_lint.py --check` exited 1: i18n gate: 2 new violation(s) |
+| `workflow-pinning` | Every `uses:` is a commit SHA and no workflow trusts a fork | [#1726](https://github.com/generalbots/generalbots/issues/1726) | **PASS** | every `uses:` is a commit SHA; no workflow trusts a fork |
 
 ## How to run it
 

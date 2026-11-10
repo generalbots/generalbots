@@ -32,7 +32,7 @@ fn run(program: &str, args: &[&str]) -> Result<(), String> {
 /// Runs one SQL file through `psql` against `url`.
 pub fn psql_file(url: &str, path: &Path) -> Result<(), String> {
     let sql = path.to_string_lossy().to_string();
-    run("psql", &[url, "-v", "ON_ERROR_STOP=1", "-q", "-f", &sql])
+    run("psql", &[url, "-v", "ON_ERROR_STOP=1", "-q", "-f", sql.as_str()])
 }
 
 /// Runs one SQL statement through `psql` against `url`.
@@ -65,7 +65,7 @@ pub fn scratch_name(prefix: &str) -> String {
 /// `pg_dump -Fc` of the whole database.
 pub fn dump(url: &str, path: &Path) -> Result<(), String> {
     let target = path.to_string_lossy().to_string();
-    run("pg_dump", &["-Fc", "-d", url, "-f", &target])
+    run("pg_dump", &["-Fc", "-d", url, "-f", target.as_str()])
 }
 
 /// Creates the scratch database; the identifier is quoted because it is derived
@@ -90,7 +90,7 @@ pub fn restore(url: &str, path: &Path) -> Result<(), String> {
             "--exit-on-error",
             "-d",
             url,
-            &source,
+            source.as_str(),
         ],
     )
 }

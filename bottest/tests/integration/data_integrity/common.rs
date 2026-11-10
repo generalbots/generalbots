@@ -68,7 +68,7 @@ pub fn connect(strict: bool) -> Option<PgConnection> {
 }
 
 fn count_integrity_orgs(conn: &mut PgConnection) -> Result<i64, String> {
-    #[derive(QueryableByName)]
+    #[derive(diesel::QueryableByName)]
     struct Count {
         #[diesel(sql_type = diesel::sql_types::BigInt)]
         row_count: i64,

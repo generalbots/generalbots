@@ -50,7 +50,7 @@ pub struct ScopeExpectation {
     pub checksum: String,
 }
 
-#[derive(QueryableByName)]
+#[derive(diesel::QueryableByName)]
 pub struct Probe {
     #[diesel(sql_type = BigInt)]
     pub row_count: i64,
@@ -58,7 +58,7 @@ pub struct Probe {
     pub id_checksum: String,
 }
 
-#[derive(QueryableByName)]
+#[derive(diesel::QueryableByName)]
 pub struct RowCount {
     #[diesel(sql_type = BigInt)]
     pub row_count: i64,

@@ -1,0 +1,333 @@
+/**
+ * Operational view of the Analytics app (#2116).
+ *
+ * Tab shell, SLO table, traffic chart, queue/cost tables and the deploy
+ * markers. Colours come from the suite theme variables so the panel follows
+ * the active theme; the three severity classes are shared by every panel.
+ */
+
+/* Tab shell ------------------------------------------------------------- */
+.analytics-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.analytics-tab {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.analytics-tab:hover {
+    color: var(--text-primary);
+}
+
+.analytics-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-color);
+    font-weight: 600;
+}
+
+.analytics-pane {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.analytics-pane.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.analytics-pane.active > .analytics-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#analytics-operations-pane.active {
+    overflow-y: auto;
+    padding: 1rem 1.5rem 2rem;
+    gap: 1rem;
+}
+
+/* Toolbar --------------------------------------------------------------- */
+.ops-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0 1rem;
+}
+
+.ops-toolbar label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.ops-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Panels ---------------------------------------------------------------- */
+.ops-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ops-panel .chart-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.ops-panel .chart-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ops-subtitle {
+    margin: 1rem 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ops-empty,
+.ops-empty-cell {
+    padding: 1rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.ops-hint {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ops-hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ops-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+}
+
+/* Stat row -------------------------------------------------------------- */
+.ops-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.ops-stat {
+    display: flex;
+    flex-direction: column;
+    min-width: 110px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+}
+
+.ops-stat-value {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ops-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Tables ---------------------------------------------------------------- */
+.ops-table-wrap {
+    overflow-x: auto;
+}
+
+.ops-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.ops-table th,
+.ops-table td {
+    padding: 0.45rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.ops-table th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.ops-objective-kind,
+.ops-observed {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.ops-burn,
+.ops-status {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ops-links a {
+    margin-right: 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Severity -------------------------------------------------------------- */
+.ops-ok {
+    color: #10b981;
+}
+
+.ops-warn {
+    color: #f59e0b;
+}
+
+.ops-page {
+    color: #ef4444;
+}
+
+.ops-nodata {
+    color: var(--text-secondary);
+}
+
+.ops-status {
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+.ops-status.ops-ok {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.ops-status.ops-warn {
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.ops-status.ops-page {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.ops-status.ops-nodata {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+/* Share bar ------------------------------------------------------------- */
+.ops-share {
+    width: 90px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-tertiary);
+    overflow: hidden;
+}
+
+.ops-share-fill {
+    height: 100%;
+    background: var(--accent-color);
+}
+
+/* Traffic chart --------------------------------------------------------- */
+.ops-chart {
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+}
+
+.ops-grid line {
+    stroke: var(--border-color);
+    stroke-dasharray: 4;
+}
+
+.ops-axis {
+    fill: var(--text-secondary);
+    font-size: 9px;
+}
+
+.ops-bar {
+    fill: var(--accent-color);
+    opacity: 0.85;
+}
+
+.ops-deploy-line {
+    stroke: #8b5cf6;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+}
+
+.ops-deploy-label {
+    fill: #8b5cf6;
+    font-size: 9px;
+}
+
+.ops-deploy-list {
+    margin: 0;
+    padding-left: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ops-deploy-version {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Two-column block ------------------------------------------------------ */
+.ops-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+/* Runbooks -------------------------------------------------------------- */
+.ops-runbooks ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.35rem 1rem;
+    margin: 0;
+    padding-left: 1rem;
+    font-size: 0.8125rem;
+}
+
+.ops-runbooks a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.ops-runbooks a:hover {
+    text-decoration: underline;
+}

@@ -681,6 +681,13 @@
    - [Microsoft Teams Channel Configuration](./10-configuration-deployment/teams-channel.md)
    - [WhatsApp Channel Configuration](./10-configuration-deployment/whatsapp-channel.md)
    - [Production Readiness Gate](./10-configuration-deployment/production-readiness.md)
+   - [Operations: on-call, SLOs and runbooks](./10-configuration-deployment/operations/README.md)
+      - [Runbook: deploy and rollback](./10-configuration-deployment/operations/runbook-deploy-rollback.md)
+      - [Runbook: restore PostgreSQL or MinIO](./10-configuration-deployment/operations/runbook-restore-backup.md)
+      - [Runbook: rotate Vault secrets](./10-configuration-deployment/operations/runbook-rotate-secrets.md)
+      - [Runbook: drain or disable a tenant](./10-configuration-deployment/operations/runbook-disable-tenant.md)
+      - [Runbook: LLM provider outage](./10-configuration-deployment/operations/runbook-llm-outage.md)
+      - [Runbook: disk full, failed migration or stuck queue](./10-configuration-deployment/operations/runbook-disk-and-queue.md)
 
 ---
 

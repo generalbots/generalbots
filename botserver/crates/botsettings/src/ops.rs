@@ -111,11 +111,15 @@ pub async fn ops_metrics_summary(State(state): State<Arc<AppState>>) -> impl Int
         "--".to_string()
     };
 
+    // 5xx counters come from the ops middleware (#2116); the previous hardcoded
+    // `0` made the ops API disagree with the Analytics operational view.
+    let errors = request_errors_24h(&mut conn);
+
     Html(format!(
         r#"<div class="ops-summary">
     <div class="summary-stat"><span class="summary-value">{requests}</span><span class="summary-label">Requests (24h)</span></div>
     <div class="summary-stat"><span class="summary-value">{sessions}</span><span class="summary-label">Active Sessions (24h)</span></div>
-    <div class="summary-stat"><span class="summary-value">0</span><span class="summary-label">Errors (24h)</span></div>
+    <div class="summary-stat"><span class="summary-value">{errors}</span><span class="summary-label">Errors (24h)</span></div>
     <div class="summary-stat"><span class="summary-value">{latency_text}</span><span class="summary-label">Avg Latency</span></div>
 </div>"#
     ))

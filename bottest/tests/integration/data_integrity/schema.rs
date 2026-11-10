@@ -204,7 +204,7 @@ pub fn read_botschema(dir: &Path) -> Result<Tables, String> {
     Ok(tables)
 }
 
-#[derive(QueryableByName)]
+#[derive(diesel::QueryableByName)]
 struct ColumnRow {
     #[diesel(sql_type = Text)]
     table_name: String,
@@ -216,7 +216,7 @@ struct ColumnRow {
     is_nullable: String,
 }
 
-#[derive(QueryableByName)]
+#[derive(diesel::QueryableByName)]
 struct PrimaryKeyRow {
     #[diesel(sql_type = Text)]
     table_name: String,

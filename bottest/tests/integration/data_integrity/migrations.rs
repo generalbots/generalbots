@@ -33,7 +33,7 @@ pub fn migration_versions(dir: &Path) -> Result<Vec<String>, String> {
 
 /// Versions diesel recorded as applied.
 pub fn applied_versions(conn: &mut PgConnection) -> Result<Vec<String>, String> {
-    #[derive(QueryableByName)]
+    #[derive(diesel::QueryableByName)]
     struct VersionRow {
         #[diesel(sql_type = Text)]
         version: String,
