@@ -142,7 +142,7 @@ User: How do I implement pagination in our API?
 
 Bot:  Based on our API documentation, here's the pagination pattern:
 
-      GET /api/v1/users?page=1&per_page=20
+      GET /api/users?page=1&per_page=20
       
       Response includes:
       • data: Array of results

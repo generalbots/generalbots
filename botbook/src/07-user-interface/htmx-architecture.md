@@ -406,13 +406,13 @@ const state = {
 ### File Operations (HTMX)
 ```html
 <!-- Load file via HTMX -->
-<button hx-get="/api/v1/designer/files"
+<button hx-get="/api/designer/files"
         hx-target="#file-list-content">
     Open File
 </button>
 
 <!-- Save via HTMX -->
-<button hx-post="/api/v1/designer/save"
+<button hx-post="/api/designer/save"
         hx-include="#designer-data">
     Save
 </button>

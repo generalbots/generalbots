@@ -190,7 +190,7 @@ General Bots is a single binary that includes everything:
 
 <img src="./assets/architecture-overview.svg" alt="General Bots Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
-One process, one port, one command to run. Deploy anywhere - laptop, server, LXC container.
+One process, one port, one command to run. Deploy anywhere - laptop, server, Incus container.
 
 ## Real-World Use Cases
 

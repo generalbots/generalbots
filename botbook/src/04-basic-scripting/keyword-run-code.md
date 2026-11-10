@@ -31,7 +31,7 @@ The output (stdout) from the executed code as a string.
 
 The `RUN` keywords execute code in isolated, sandboxed environments. This provides:
 
-- **Security** - Code runs in isolated containers (LXC, Docker, or Firecracker)
+- **Security** - Code runs in isolated containers (Incus, Docker, or Firecracker)
 - **Flexibility** - Use the right language for the task
 - **Safety** - Resource limits prevent runaway processes
 - **Integration** - Pass data between BASIC and other languages
@@ -218,9 +218,15 @@ TALK "Results: " + aggregated
 
 The sandbox supports multiple isolation backends:
 
+The value is the `SandboxRuntime` enum in
+`botserver/crates/botbasic_ai/src/keywords/code_sandbox/mod.rs`; the `lxc`
+variant launches an **Incus** instance (`incus launch images:ubuntu/24.04`,
+`botserver/crates/botagent/src/sandbox.rs`). The name is legacy — LXC itself is
+not a supported runtime.
+
 | Runtime | Security | Performance | Requirements |
 |---------|----------|-------------|--------------|
-| `LXC` | High | Excellent | LXC installed |
+| `lxc` (Incus) | High | Excellent | Incus installed |
 | `Docker` | High | Good | Docker daemon |
 | `Firecracker` | Highest | Good | Firecracker binary |
 | `Process` | Low | Best | None (fallback) |

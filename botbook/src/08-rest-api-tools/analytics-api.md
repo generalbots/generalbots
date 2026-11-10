@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/analytics
+http://localhost:8080/api/analytics
 ```
 
 ## Authentication
@@ -22,48 +22,48 @@ Uses the standard botserver authentication mechanism with appropriate role-based
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/analytics/usage` | Get overall usage statistics |
-| GET | `/api/v1/analytics/usage/daily` | Get daily usage breakdown |
-| GET | `/api/v1/analytics/usage/monthly` | Get monthly usage summary |
+| GET | `/api/analytics/usage` | Get overall usage statistics |
+| GET | `/api/analytics/usage/daily` | Get daily usage breakdown |
+| GET | `/api/analytics/usage/monthly` | Get monthly usage summary |
 
 ### Conversation Metrics
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/analytics/conversations` | Get conversation metrics |
-| GET | `/api/v1/analytics/conversations/volume` | Get conversation volume over time |
-| GET | `/api/v1/analytics/conversations/duration` | Get average conversation duration |
-| GET | `/api/v1/analytics/conversations/resolution` | Get resolution rate metrics |
+| GET | `/api/analytics/conversations` | Get conversation metrics |
+| GET | `/api/analytics/conversations/volume` | Get conversation volume over time |
+| GET | `/api/analytics/conversations/duration` | Get average conversation duration |
+| GET | `/api/analytics/conversations/resolution` | Get resolution rate metrics |
 
 ### User Engagement
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/analytics/engagement` | Get user engagement metrics |
-| GET | `/api/v1/analytics/engagement/retention` | Get user retention data |
-| GET | `/api/v1/analytics/engagement/satisfaction` | Get satisfaction scores |
+| GET | `/api/analytics/engagement` | Get user engagement metrics |
+| GET | `/api/analytics/engagement/retention` | Get user retention data |
+| GET | `/api/analytics/engagement/satisfaction` | Get satisfaction scores |
 
 ### Reports
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/analytics/reports` | Generate a custom report |
-| GET | `/api/v1/analytics/reports/{report_id}` | Get report by ID |
-| GET | `/api/v1/analytics/reports` | List all reports |
+| POST | `/api/analytics/reports` | Generate a custom report |
+| GET | `/api/analytics/reports/{report_id}` | Get report by ID |
+| GET | `/api/analytics/reports` | List all reports |
 
 ### Real-time Metrics
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/analytics/realtime` | Get real-time metrics |
-| GET | `/api/v1/analytics/realtime/active` | Get active sessions count |
+| GET | `/api/analytics/realtime` | Get real-time metrics |
+| GET | `/api/analytics/realtime/active` | Get active sessions count |
 
 ## Request Examples
 
 ### Get Usage Statistics
 
 ```bas
-stats = GET "/api/v1/analytics/usage"
+stats = GET "/api/analytics/usage"
 TALK "Total conversations: " + stats.total_conversations
 TALK "Active users: " + stats.active_users
 ```
@@ -71,7 +71,7 @@ TALK "Active users: " + stats.active_users
 ### Get Daily Usage
 
 ```bas
-daily = GET "/api/v1/analytics/usage/daily?days=7"
+daily = GET "/api/analytics/usage/daily?days=7"
 FOR EACH day IN daily.data
     TALK day.date + ": " + day.conversations + " conversations"
 NEXT
@@ -86,14 +86,14 @@ report_config.start_date = "2025-01-01"
 report_config.end_date = "2025-01-31"
 report_config.format = "pdf"
 
-report = POST "/api/v1/analytics/reports", report_config
+report = POST "/api/analytics/reports", report_config
 TALK "Report ID: " + report.id
 ```
 
 ### Get Real-time Metrics
 
 ```bas
-realtime = GET "/api/v1/analytics/realtime"
+realtime = GET "/api/analytics/realtime"
 TALK "Active sessions: " + realtime.active_sessions
 TALK "Messages per minute: " + realtime.messages_per_minute
 ```

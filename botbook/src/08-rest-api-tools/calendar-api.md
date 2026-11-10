@@ -16,19 +16,19 @@ The Calendar API will enable event creation and management, meeting scheduling, 
 
 ### Event Management
 
-Event management endpoints handle the lifecycle of calendar events. Create events with `POST /api/v1/calendar/events`, list events with `GET /api/v1/calendar/events`, retrieve specific event details with `GET /api/v1/calendar/events/{event_id}`, update events with `PATCH /api/v1/calendar/events/{event_id}`, and delete events with `DELETE /api/v1/calendar/events/{event_id}`.
+Event management endpoints handle the lifecycle of calendar events. Create events with `POST /api/calendar/events`, list events with `GET /api/calendar/events`, retrieve specific event details with `GET /api/calendar/events/{event_id}`, update events with `PATCH /api/calendar/events/{event_id}`, and delete events with `DELETE /api/calendar/events/{event_id}`.
 
 ### Scheduling
 
-Scheduling endpoints help coordinate meetings. Find available time slots with `POST /api/v1/calendar/schedule`, schedule meetings with `POST /api/v1/calendar/meeting`, and check availability with `GET /api/v1/calendar/availability`.
+Scheduling endpoints help coordinate meetings. Find available time slots with `POST /api/calendar/schedule`, schedule meetings with `POST /api/calendar/meeting`, and check availability with `GET /api/calendar/availability`.
 
 ### Recurring Events
 
-Recurring event endpoints manage events that repeat on a schedule. Create recurring events with `POST /api/v1/calendar/events/recurring` and update recurrence patterns with `PATCH /api/v1/calendar/events/{event_id}/recurrence`.
+Recurring event endpoints manage events that repeat on a schedule. Create recurring events with `POST /api/calendar/events/recurring` and update recurrence patterns with `PATCH /api/calendar/events/{event_id}/recurrence`.
 
 ### Reminders
 
-Reminder endpoints manage notifications for upcoming events. Add reminders with `POST /api/v1/calendar/events/{event_id}/reminders` and list upcoming reminders with `GET /api/v1/calendar/reminders`.
+Reminder endpoints manage notifications for upcoming events. Add reminders with `POST /api/calendar/events/{event_id}/reminders` and list upcoming reminders with `GET /api/calendar/reminders`.
 
 ## Planned Integration with BASIC
 

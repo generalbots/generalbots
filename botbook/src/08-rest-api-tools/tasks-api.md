@@ -15,7 +15,7 @@ The Tasks API enables:
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/tasks
+http://localhost:8080/api/tasks
 ```
 
 ## Authentication

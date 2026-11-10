@@ -1,33 +1,33 @@
-# NVIDIA GPU Setup for LXC Containers 🟡 BETA
+# NVIDIA GPU Setup for Incus Containers 🟡 BETA
 
-This guide covers setting up NVIDIA GPU passthrough for botserver running in LXC containers, enabling hardware acceleration for local LLM inference.
+This guide covers setting up NVIDIA GPU passthrough for botserver running in Incus containers, enabling hardware acceleration for local LLM inference.
 
 ## Prerequisites
 
 - NVIDIA GPU (RTX 3060 or better with 12GB+ VRAM recommended)
 - NVIDIA drivers installed on the host system
-- LXD/LXC installed
+- Incus installed
 - CUDA-capable GPU
 
-## LXD Configuration (Interactive Setup)
+## Incus Configuration (Interactive Setup)
 
-When initializing LXD, use these settings:
+When initializing Incus, use these settings:
 
 ```bash
-sudo lxd init
+sudo incus admin init
 ```
 
 Answer the prompts as follows:
-- **Would you like to use LXD clustering?** → `no`
+- **Would you like to use Incus clustering?** → `no`
 - **Do you want to configure a new storage pool?** → `no` (will create `/generalbots` later)
 - **Would you like to connect to a MAAS server?** → `no`
 - **Would you like to create a new local network bridge?** → `yes`
-- **What should the new bridge be called?** → `lxdbr0`
+- **What should the new bridge be called?** → `incusbr0`
 - **What IPv4 address should be used?** → `auto`
 - **What IPv6 address should be used?** → `auto`
-- **Would you like the LXD server to be available over the network?** → `no`
+- **Would you like the Incus server to be available over the network?** → `no`
 - **Would you like stale cached images to be updated automatically?** → `no`
-- **Would you like a YAML "lxd init" preseed to be printed?** → `no`
+- **Would you like a YAML "incus admin init" preseed to be printed?** → `no`
 
 ### Storage Configuration
 - **Storage backend name:** → `default`
@@ -42,13 +42,13 @@ Create a GPU profile and attach it to your container:
 
 ```bash
 # Create GPU profile
-lxc profile create gpu
+incus profile create gpu
 
 # Add GPU device to profile
-lxc profile device add gpu gpu gpu gputype=physical
+incus profile device add gpu gpu gpu gputype=physical
 
 # Apply GPU profile to your container
-lxc profile add gb-system gpu
+incus profile add gb-system gpu
 ```
 
 ### Inside the Container
@@ -136,7 +136,7 @@ If `nvidia-smi` doesn't show the GPU:
    ```bash
    # On host
    nvidia-smi
-   lxc config device list gb-system
+   incus config device list gb-system
    ```
 
 2. Verify GPU passthrough:
@@ -267,8 +267,8 @@ For systems with multiple GPUs, specify which GPU to use:
 
 ```bash
 # List available GPUs
-lxc profile device add gpu gpu0 gpu gputype=physical id=0
-lxc profile device add gpu gpu1 gpu gputype=physical id=1
+incus profile device add gpu gpu0 gpu gputype=physical id=0
+incus profile device add gpu gpu1 gpu gputype=physical id=1
 ```
 
 ## Benefits of GPU Acceleration

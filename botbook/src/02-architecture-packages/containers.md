@@ -1,203 +1,132 @@
-# Container Deployment (LXC) 🟡 BETA
+# Container Deployment (Incus) 🟡 BETA
 
-botserver uses LXC (Linux Containers) for isolated component deployment with system-level containerization.
+Containers are **Incus** instances. `lxc`/`lxd` are not a supported runtime for
+this project: `AGENTS.md` states Incus is the only container layer, and the
+bootstrap code calls `incus` directly
+(`botserver/crates/botcore/src/package_manager/container/bootstrap_container_inner.rs`).
 
-> ⚠️ **IMPORTANT**: All container create and management commands must be run from the **host system**, not from inside a container. The botserver binary manages LXC containers from the host level.
+> ⚠️ All container commands run on the **host**, not inside a container.
 
-## What is LXC?
+## Prerequisites
 
-- **System containers** - Full Linux userspace (lightweight VMs)
-- **Shared kernel** - More efficient than virtual machines
-- **Isolation** - Separate processes, networking, filesystems
-- **Resource control** - CPU, memory, I/O limits
+```bash
+sudo apt install incus
+sudo incus admin init --auto
+sudo usermod -aG incus-admin "$USER"   # then log out and back in
+```
 
-## Automatic Setup
+Membership of `incus-admin` is what lets a non-root user talk to the Incus
+socket; without it every `incus` command fails with a permission error.
 
-Run on the **host system**:
+## Automatic setup
 
 ```bash
 ./botserver --container
 ```
 
-This automatically:
-1. Detects LXC/LXD availability
-2. Initializes LXD if needed
-3. Creates Debian 12 containers per component
-4. Mounts directories for persistent data
-5. Configures networking and ports
-6. Installs and starts services
+`--container` selects container mode (`botserver/src/main_module/init.rs`,
+`botserver/crates/botcorepkg/src/cli.rs`). The installer then, per component:
 
-## Container Architecture
+1. creates `{tenant}-{component}` as an Incus instance
+   (`botserver/crates/botcore/src/package_manager/facade/install.rs`),
+2. copies the component's binaries and configuration,
+3. adds an `eth0` NIC and the port proxy devices
+   (`bootstrap_container_inner.rs`),
+4. starts the systemd unit inside the instance.
 
-### Container Naming
+Images are tried in order: `ubuntu:24.04`, `ubuntu:22.04`, `images:debian/12`,
+`images:debian/11` — the first that launches wins.
+
+## Naming and mounts
+
+| Instance | Component |
+|---|---|
+| `{tenant}-tables` | PostgreSQL |
+| `{tenant}-drive` | object storage (MinIO) |
+| `{tenant}-cache` | Valkey |
+| `{tenant}-llm` | llama.cpp (optional) |
+| `{tenant}-email` | mail server (optional) |
+
+Data lives on host mounts, so deleting an instance does not delete data:
 
 ```
-{tenant}-tables      → PostgreSQL
-{tenant}-drive       → S3-compatible storage
-{tenant}-cache       → Valkey cache
-{tenant}-llm         → LLM server (optional)
-{tenant}-email       → Mail server (optional)
+botserver-stack/tables/data/  → /opt/gbo/data/
+botserver-stack/tables/conf/  → /opt/gbo/conf/
+botserver-stack/tables/logs/  → /opt/gbo/logs/
 ```
 
-Default tenant: `default` → `default-tables`, `default-drive`, etc.
-
-### Directory Mounting
-
-```
-Host: botserver-stack/tables/data/  → Container: /opt/gbo/data/
-Host: botserver-stack/tables/conf/  → Container: /opt/gbo/conf/
-Host: botserver-stack/tables/logs/  → Container: /opt/gbo/logs/
-```
-
-Data persists even if containers are deleted.
-
-### Port Forwarding
-
-| Container Port | Host Port | Service |
-|----------------|-----------|---------|
-| 5432 | 5432 | PostgreSQL |
-| 9000 | 9000 | Drive API |
-| 9001 | 9001 | Drive Console |
-| 6379 | 6379 | Cache |
-
-## Common Operations
-
-Run these commands on the **host system**:
+## Common operations
 
 ```bash
-# List containers
-lxc list
-
-# Execute command in container
-lxc exec default-tables -- psql -U gbuser botserver
-
-# View logs
-lxc exec default-tables -- journalctl -u tables
-
-# Stop/Start
-lxc stop default-tables
-lxc start default-tables
-
-# Delete (data in mounts persists)
-lxc delete default-tables --force
+incus list
+incus exec default-tables -- psql -U gbuser botserver
+incus exec default-tables -- journalctl -u tables
+incus stop  default-tables
+incus start default-tables
+incus delete default-tables --force     # host mounts persist
 ```
 
-## Resource Limits
+## Limits and snapshots
 
 ```bash
-lxc config set default-tables limits.cpu 2
-lxc config set default-tables limits.memory 4GB
+incus config set default-tables limits.cpu 2
+incus config set default-tables limits.memory 4GiB
+
+incus snapshot create default-tables pre-upgrade-$(date +%Y%m%d)
+incus info default-tables                       # lists snapshots
+incus copy default-tables/pre-upgrade-20260101 default-tables-restored
 ```
 
-## Snapshots
-
-```bash
-# Create
-lxc snapshot default-tables backup-2024-01-15
-
-# List
-lxc info default-tables
-
-# Restore
-lxc restore default-tables backup-2024-01-15
-```
+Restore in place by copying the snapshot to a new instance and swapping names;
+`incus` has no in-place `restore` for a running instance.
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| LXC not installed | `sudo snap install lxd && sudo lxd init --auto` |
-| Permission denied | `sudo usermod -aG lxd $USER && newgrp lxd` |
-| Container won't start | `lxc console default-tables --show-log` |
-| Port in use | `sudo netstat -tulpn \| grep PORT` |
+| Symptom | Cause / fix |
+|---|---|
+| `incus: command not found` | install Incus (above); `lxd` is not a substitute |
+| Permission denied on the socket | user is not in `incus-admin` |
+| Instance won't start | `incus info --show-log default-tables` |
+| Port already bound on the host | check the proxy devices: `incus config device list <instance>` |
+| Port reachable only from the host | NAT rules: `configure_iptables_nat.rs` writes them; DNAT must use the external interface |
 
-## Container vs Local
+## Known gap in the installer
 
-| Use Containers When | Use Local When |
-|---------------------|----------------|
-| Clean isolation needed | Maximum performance |
-| Multiple instances | LXC not available |
-| Easy cleanup/reinstall | Simple deployment |
-| Security isolation | Direct service access |
-
-## Example: Create Vault and VectorDB Containers
-
-Run on the **host system**:
-
-```bash
-# Install Vault for secrets management
-botserver install vault --container --tenant mycompany
-
-# Install VectorDB (Qdrant) for embeddings
-botserver install vector_db --container --tenant mycompany
-
-# Verify containers are running
-lxc list | grep mycompany
-
-# Get container IPs
-lxc list mycompany-vault -c n4 --format csv
-lxc list mycompany-vectordb -c n4 --format csv
-
-# Test services
-curl http://<vault-ip>:8200/v1/sys/health
-curl http://<vectordb-ip>:6333/health
-```
+The legacy installer helpers still shell out to `lxc` and `lxd`
+(`botserver/crates/botcore/src/package_manager/facade/safe_lxc.rs`), while the
+bootstrap path uses `incus`. On a host that only has Incus, those legacy calls
+fail and are ignored; container creation still happens through the Incus path.
+Do not read the file name as support for LXC.
 
 ## Migration
 
-### Local → Container
-
-Run on the **host system**:
-
 ```bash
-pg_dump botserver > backup.sql
+# host → container
+pg_dump botserver > /tmp/backup.sql
 ./botserver --container
-lxc exec default-tables -- psql -U gbuser botserver < backup.sql
-```
+incus exec default-tables -- psql -U gbuser botserver < /tmp/backup.sql
 
-### Container → Local
-
-Run on the **host system**:
-
-```bash
-lxc exec default-tables -- pg_dump -U gbuser botserver > backup.sql
+# container → host
+incus exec default-tables -- pg_dump -U gbuser botserver > /tmp/backup.sql
 ./botserver uninstall tables
 ./botserver install tables --local
-psql -U gbuser botserver < backup.sql
+psql -U gbuser botserver < /tmp/backup.sql
 ```
 
-## Brother Mode Configuration
+## "Brother mode"
 
-If you are running `botserver` itself inside a container (e.g., LXC or Docker) but want it to manage other LXC containers on the host ("Brother Mode"), you must expose the host's LXD socket.
-
-### Required LXD Profile
-
-To allow child containers to communicate with the host LXD daemon, add the `lxd-sock` proxy device to the default profile. This maps the host's socket to `/tmp/lxd.sock` inside the container, avoiding conflicts with missing `/var/lib/lxd` directories in standard images.
-
-LXD installed via snap uses `/var/snap/lxd/common/lxd/unix.socket`:
+To let `botserver` manage Incus on the host from inside a container, expose the
+host socket as a proxy device:
 
 ```bash
-lxc profile device add default lxd-sock proxy \
-  connect=unix:/var/snap/lxd/common/lxd/unix.socket \
-  listen=unix:/tmp/lxd.sock \
-  bind=container \
-  uid=0 gid=0 mode=0660
+incus config device add default incus-sock proxy \
+  connect=unix:/var/lib/incus/unix.socket \
+  listen=unix:/tmp/incus.sock \
+  bind=container uid=0 gid=0 mode=0660
 ```
 
-For LXD installed via packages (non-snap), use:
+## See also
 
-```bash
-lxc profile device add default lxd-sock proxy \
-  connect=unix:/var/lib/lxd/unix.socket \
-  listen=unix:/tmp/lxd.sock \
-  bind=container \
-  uid=0 gid=0 mode=0660
-```
-
-> **Note**: The `botserver` installer attempts to configure this automatically. If you encounter "socket not found" errors, verify this proxy device exists.
-
-## See Also
-
-- [Installation](../01-getting-started/installation.md) - Local setup
-- [Docker Deployment](./docker-deployment.md) - Docker alternative
-- [Architecture](./architecture.md) - System design
+- [Installation](../01-getting-started/installation.md)
+- [Docker Deployment](./docker-deployment.md) — experimental, no Dockerfile
+- [Infrastructure Design](./infrastructure.md)

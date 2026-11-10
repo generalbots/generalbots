@@ -31,7 +31,7 @@ regenerate them rather than editing by hand.
 | Fact | Value | Source |
 |---|---|---|
 | Pages | 545 | `find botbook/src -name '*.md' \| wc -l` |
-| Suite apps in catalog | 73 | `scripts/docs_suite_apps_status.py` |
+| Suite apps in catalog | 68 | `botserver/src/apps/registry/entries*.rs` (`all_apps()`) |
 | Apps documented / missing | 73 / 0 | same |
 | Screen SVGs | 73 | same |
 

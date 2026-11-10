@@ -1,1 +1,0 @@
-# SMS Providers 🟡 BETA

@@ -4,7 +4,7 @@ After botserver starts, you can immediately start chatting with your bot. No pro
 
 ## Just Start Talking
 
-Open your browser to `http://localhost:9000` and start chatting:
+Open your browser to `http://localhost:3000` and start chatting:
 
 ```
 You: Hi!

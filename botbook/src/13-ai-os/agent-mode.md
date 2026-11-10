@@ -26,7 +26,7 @@ a retryable "still starting" reason instead of the generic
 
 ## Sandbox execution
 
-`POST /api/v1/sandbox/exec` runs short-lived code (Python, Node, shell) inside
+`POST /api/v1/sandbox/exec` (`botserver/crates/botagent/src/lib.rs`) runs short-lived code (Python, Node, shell) inside
 an ephemeral container with memory/CPU limits and network deny-by-default.
 Authentication accepts either a JWT or an organization API key
 (`GET|POST /api/cloud/orgkeys`, keys stored as SHA-256 hashes).

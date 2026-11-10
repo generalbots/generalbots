@@ -442,5 +442,5 @@ mod my_feature;
 ## See Also
 
 - [Testing Overview](./README.md) - Testing strategy and structure
-- [Performance Testing](./performance.md) - Benchmarks and load tests
+- [Testing](./testing.md) - test suites and how to run them
 - [Test Architecture](./architecture.md) - Design patterns and best practices

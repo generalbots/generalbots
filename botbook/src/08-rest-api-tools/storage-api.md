@@ -14,7 +14,7 @@ The Storage API allows you to:
 ## Base URL
 
 ```
-http://localhost:8080/api/v1/storage
+http://localhost:8080/api/storage
 ```
 
 ## Authentication
@@ -268,7 +268,7 @@ curl -X PUT \
   -H "Authorization: Bearer token123" \
   -H "Content-Type: application/pdf" \
   --data-binary @document.pdf \
-  http://localhost:8080/api/v1/storage/buckets/mybot.gbai/objects/docs/manual.pdf
+  http://localhost:8080/api/storage/buckets/mybot.gbai/objects/docs/manual.pdf
 ```
 
 ### Download File
@@ -276,7 +276,7 @@ curl -X PUT \
 ```bash
 curl -X GET \
   -H "Authorization: Bearer token123" \
-  http://localhost:8080/api/v1/storage/buckets/mybot.gbai/objects/docs/manual.pdf \
+  http://localhost:8080/api/storage/buckets/mybot.gbai/objects/docs/manual.pdf \
   -o downloaded.pdf
 ```
 
@@ -285,7 +285,7 @@ curl -X GET \
 ```bash
 curl -X GET \
   -H "Authorization: Bearer token123" \
-  "http://localhost:8080/api/v1/storage/buckets/mybot.gbai/objects?prefix=docs/"
+  "http://localhost:8080/api/storage/buckets/mybot.gbai/objects?prefix=docs/"
 ```
 
 ## Storage Organization

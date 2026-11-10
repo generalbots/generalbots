@@ -158,7 +158,7 @@ greeting,Welcome to support!
 ```bash
 cp -r my-bot.gbai/ templates/
 ./botserver restart
-# Visit http://localhost:9000/my-bot
+# Visit http://localhost:3000/my-bot
 ```
 
 ### Production Server
@@ -168,9 +168,9 @@ ssh server "cd botserver && ./botserver restart"
 ```
 ### Deployment
 
-### LXC Container
+### Incus Container
 ```bash
-lxc file push my-bot.gbai/ container/app/templates/
+incus file push my-bot.gbai/ container/app/templates/
 ```
 
 No build step. No compilation. Just copy files.

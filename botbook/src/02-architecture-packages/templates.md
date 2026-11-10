@@ -122,7 +122,7 @@ Select based on your needs:
 
 ```bash
 # Templates are auto-deployed during bootstrap
-# Access at: http://localhost:9000/template-name
+# Access at: http://localhost:3000/template-name
 ```
 
 ### 3. Customize Configuration

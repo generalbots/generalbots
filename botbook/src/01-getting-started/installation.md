@@ -348,15 +348,15 @@ Requires CUDA installed and 12GB+ VRAM.
 |--------|----------|-------|
 | **Local** | Development, single instance | This page |
 | **Docker** | Production, microservices | [Docker Deployment](../02-architecture-packages/docker-deployment.md) |
-| **LXC** | Isolated components, Linux | [Container Deployment](../02-architecture-packages/containers.md) |
+| **Incus** | Isolated components, Linux | [Container Deployment](../02-architecture-packages/containers.md) |
 | **Brother Mode** | Container managing host containers | See below |
 
 ### Container-on-Host (Brother Mode)
 
-You can run `botserver` inside a container (Docker/LXC) while letting it manage other containers directly on the host system. This is useful for CI/CD pipelines or managing "host" deployment from a restricted environment.
+You can run `botserver` inside a container (Docker/Incus) while letting it manage other containers directly on the host system. This is useful for CI/CD pipelines or managing "host" deployment from a restricted environment.
 
 **Requirements:**
-- Mount host's LXD socket to container
+- Mount host's Incus socket to container
 - Run container as privileged (if accessing host devices)
 
 **Docker Run Example:**
@@ -365,15 +365,15 @@ docker run -d \
   --name botserver \
   --network host \
   --privileged \
-  -v /var/snap/lxd/common/lxd/unix.socket:/var/snap/lxd/common/lxd/unix.socket \
+  -v /var/lib/incus/unix.socket:/var/lib/incus/unix.socket \
   -e VAULT_ADDR="https://127.0.0.1:8200" \
   -e VAULT_TOKEN="<your-token>" \
   botserver:latest
 ```
 
-> **Note**: For non-snap LXD, use `-v /var/lib/lxd/unix.socket:/var/lib/lxd/unix.socket` instead.
+> **Note**: the Incus socket is `/var/lib/incus/unix.socket` for a package install; snap installs use `/var/snap/incus/common/incus/unix.socket`.
 
-The installer detects if it is running in a container but needs to manage the host (brother mode) and will configure the host's LXD/LXC environment safely.
+The installer detects if it is running in a container but needs to manage the host (brother mode) and will configure the host's Incus environment safely.
 
 > ⚠️ **IMPORTANT**: Container create commands (`botserver install ... --container`) must be run from the **host system**, not inside a container.
 
@@ -385,7 +385,7 @@ botserver install vault --container --tenant mycompany
 botserver install vector_db --container --tenant mycompany
 
 # Verify containers
-lxc list | grep mycompany
+incus list | grep mycompany
 ```
 
 ## Troubleshooting

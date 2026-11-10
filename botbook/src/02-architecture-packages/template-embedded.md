@@ -674,7 +674,7 @@ idleTimeout = 60    ' Return to welcome screen after inactivity
 lastActivity = NOW
 
 ' Initialize display
-' (Runs in browser kiosk mode at http://localhost:9000/embedded/)
+' (Runs in browser kiosk mode at http://localhost:3000/embedded/)
 
 TALK welcomeMessage
 

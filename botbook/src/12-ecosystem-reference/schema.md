@@ -17,27 +17,32 @@ The database schema follows several key design principles. All tables use UUID p
 
 <img src="../assets/schema-detailed.svg" alt="Database Entity Details" style="max-height: 400px; width: 100%; object-fit: contain;">
 
-## Schema Categories
+## Schema Reference Is Generated
 
-### Organization & Bot Management
+Every table is documented in the [generated schema reference](./schema/index.md),
+built from `botschema/src/**` (`table!`, `joinable!`) and
+`botserver/migrations/*/up.sql`. Do not add table lists to this page: a
+hand-written list drifts from the code, the generator cannot.
 
-The `organizations` table provides multi-tenant organization support, isolating data between different customers or deployments. The `bots` table stores bot instances and their configurations. The `bot_configuration` table contains bot-specific settings and parameters. The `bot_memories` table provides persistent key-value storage for bots to maintain state across sessions.
+| Need | Page |
+|---|---|
+| All tables, grouped by domain, with columns/types/nullability/defaults/PK/FK and migration tag | [Generated schema reference](./schema/index.md) |
+| Flat list of all tables | [Tables](./tables.md) |
+| Every `joinable!` and SQL `REFERENCES` edge | [Relationships](./relationships.md) |
+| Mermaid graph per domain | [Relationship pages](./relationships.md) |
 
-### User & Authentication
+Regenerate after any schema change:
 
-The `users` table stores user accounts with secure password storage using Argon2 hashing. The `user_sessions` table tracks active user sessions with authentication tokens. The `user_login_tokens` table manages authentication tokens for login flows. The `user_preferences` table contains user-specific settings and customizations.
+```bash
+python3 scripts/gen_schema_reference.py          # rewrite the pages
+python3 scripts/gen_schema_reference.py --check  # fail when committed pages are stale
+python3 scripts/gen_schema_reference.py --report # inventory, drift and per-domain counts
+```
 
-### Conversation & Messaging
-
-The `message_history` table maintains complete conversation history between users and bots. The `clicks` table tracks user interaction events for analytics. The `system_automations` table stores scheduled tasks and automation rules that run without user intervention.
-
-### Knowledge Base
-
-The `kb_collections` table defines knowledge base collection containers. The `kb_documents` table stores documents within those collections. The `user_kb_associations` table manages user access permissions to knowledge bases. The `session_tool_associations` table tracks which tools are available within specific sessions.
-
-### Tools & Integration
-
-The `basic_tools` table stores BASIC script tool definitions compiled from `.bas` files. The `user_email_accounts` table manages email integration accounts for users. The `email_drafts` table stores draft emails being composed. The `email_folders` table organizes email folder structures.
+The generator reports drift but never fixes it: a table present in a migration
+and absent from `botschema` (or the reverse) is a code issue, because
+`botschema` is the single owner of every `table!` (see
+`botschema/index.md`).
 
 ## Table Relationships
 
@@ -51,13 +56,11 @@ The `basic_tools` table stores BASIC script tool definitions compiled from `.bas
 
 ### Primary Relationships
 
-The bot hierarchy establishes that organizations contain multiple bots in a one-to-many relationship. Each bot has multiple configuration entries and memories associated with it.
-
-User sessions connect users to bots through the session table. Users can have multiple sessions, and each session maintains its own message history. Bots also connect to sessions, enabling the many-to-many relationship between users and bots.
-
-Knowledge management links bots to knowledge base collections, with each collection containing multiple documents. Sessions associate with knowledge bases through the user_kb_associations table.
-
-Tool associations connect bots to their defined tools, and sessions link to available tools through the session_tool_associations junction table.
+The full edge list is generated in the [relationship reference](./relationships.md).
+The shape is: organizations own branches and bots; bots own configuration,
+memory, knowledge-base collections and tools; sessions join users to bots and
+carry the conversation; knowledge-base collections contain documents; tool
+associations link bots and sessions to the tools they may run.
 
 ## Data Types
 

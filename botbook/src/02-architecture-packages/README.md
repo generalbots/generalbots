@@ -27,7 +27,7 @@ botserver is built in Rust with a modular architecture. Extend it by creating cu
 |--------|----------|-------|
 | **Local** | Development | [Installation](../01-getting-started/installation.md) |
 | **Docker** | Production | [Docker Deployment](./docker-deployment.md) |
-| **LXC** | Isolated components | [Container Deployment](./containers.md) |
+| **Incus** | Isolated components | [Container Deployment](./containers.md) |
 
 ## Module Structure
 
@@ -71,7 +71,7 @@ See [Autonomous Task AI](./autonomous-tasks.md) for complete documentation.
 
 - [Architecture Overview](./architecture.md) - System design
 - [Building from Source](./building.md) - Compilation guide
-- [Container Deployment (LXC)](./containers.md) - Linux containers
+- [Container Deployment (Incus)](./containers.md) - Linux containers
 - [Docker Deployment](./docker-deployment.md) - Docker setup
 - [Scaling](./scaling.md) - Load balancing
 - [Infrastructure](./infrastructure.md) - Hardware planning

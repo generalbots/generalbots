@@ -290,7 +290,7 @@ sandbox-network,false
 
 | Runtime | Security | Performance | Requirements |
 |---------|----------|-------------|--------------|
-| LXC | High | Excellent | LXC installed |
+| `lxc` (Incus) | High | Excellent | Incus installed |
 | Docker | High | Good | Docker daemon |
 | Firecracker | Highest | Good | Firecracker |
 | Process | Low | Best | None (fallback) |

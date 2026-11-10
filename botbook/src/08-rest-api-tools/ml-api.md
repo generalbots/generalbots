@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/ml
+http://localhost:8080/api/ml
 ```
 
 ## Authentication
@@ -22,44 +22,44 @@ Uses the standard botserver authentication mechanism with appropriate role-based
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ml/datasets` | Create a new dataset |
-| GET | `/api/v1/ml/datasets` | List all datasets |
-| GET | `/api/v1/ml/datasets/{dataset_id}` | Get dataset details |
-| PUT | `/api/v1/ml/datasets/{dataset_id}` | Update dataset |
-| DELETE | `/api/v1/ml/datasets/{dataset_id}` | Delete dataset |
+| POST | `/api/ml/datasets` | Create a new dataset |
+| GET | `/api/ml/datasets` | List all datasets |
+| GET | `/api/ml/datasets/{dataset_id}` | Get dataset details |
+| PUT | `/api/ml/datasets/{dataset_id}` | Update dataset |
+| DELETE | `/api/ml/datasets/{dataset_id}` | Delete dataset |
 
 ### Model Training
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ml/train` | Start a training job |
-| GET | `/api/v1/ml/jobs` | List all training jobs |
-| GET | `/api/v1/ml/jobs/{job_id}` | Get job details |
-| POST | `/api/v1/ml/jobs/{job_id}/stop` | Stop a training job |
+| POST | `/api/ml/train` | Start a training job |
+| GET | `/api/ml/jobs` | List all training jobs |
+| GET | `/api/ml/jobs/{job_id}` | Get job details |
+| POST | `/api/ml/jobs/{job_id}/stop` | Stop a training job |
 
 ### Predictions
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ml/predict` | Make a single prediction |
-| POST | `/api/v1/ml/batch-predict` | Make batch predictions |
-| GET | `/api/v1/ml/predictions/{prediction_id}` | Get prediction result |
+| POST | `/api/ml/predict` | Make a single prediction |
+| POST | `/api/ml/batch-predict` | Make batch predictions |
+| GET | `/api/ml/predictions/{prediction_id}` | Get prediction result |
 
 ### Model Evaluation
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/ml/models/{model_id}/metrics` | Get model metrics |
-| POST | `/api/v1/ml/models/{model_id}/evaluate` | Evaluate model on test data |
-| GET | `/api/v1/ml/models/{model_id}/confusion-matrix` | Get confusion matrix |
+| GET | `/api/ml/models/{model_id}/metrics` | Get model metrics |
+| POST | `/api/ml/models/{model_id}/evaluate` | Evaluate model on test data |
+| GET | `/api/ml/models/{model_id}/confusion-matrix` | Get confusion matrix |
 
 ### Feature Engineering
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ml/features/extract` | Extract features from data |
-| GET | `/api/v1/ml/features/importance` | Get feature importance scores |
-| POST | `/api/v1/ml/features/transform` | Transform features |
+| POST | `/api/ml/features/extract` | Extract features from data |
+| GET | `/api/ml/features/importance` | Get feature importance scores |
+| POST | `/api/ml/features/transform` | Transform features |
 
 ## Request Examples
 
@@ -71,7 +71,7 @@ dataset.name = "customer_churn"
 dataset.source = "customers_table"
 dataset.target_column = "churned"
 
-result = POST "/api/v1/ml/datasets", dataset
+result = POST "/api/ml/datasets", dataset
 TALK "Dataset created: " + result.id
 ```
 
@@ -84,7 +84,7 @@ training_config.model_type = "classification"
 training_config.algorithm = "random_forest"
 training_config.parameters = {"n_estimators": 100, "max_depth": 10}
 
-job = POST "/api/v1/ml/train", training_config
+job = POST "/api/ml/train", training_config
 TALK "Training job started: " + job.job_id
 ```
 
@@ -95,7 +95,7 @@ input = NEW OBJECT
 input.model_id = "model-456"
 input.features = {"age": 35, "tenure": 24, "monthly_charges": 75.50}
 
-result = POST "/api/v1/ml/predict", input
+result = POST "/api/ml/predict", input
 TALK "Prediction: " + result.prediction
 TALK "Confidence: " + result.confidence
 ```
@@ -111,7 +111,7 @@ batch_input.data = [
     {"age": 30, "tenure": 6, "monthly_charges": 65.00}
 ]
 
-results = POST "/api/v1/ml/batch-predict", batch_input
+results = POST "/api/ml/batch-predict", batch_input
 FOR EACH result IN results.predictions
     TALK result.id + ": " + result.prediction
 NEXT
@@ -120,7 +120,7 @@ NEXT
 ### Get Model Metrics
 
 ```bas
-metrics = GET "/api/v1/ml/models/model-456/metrics"
+metrics = GET "/api/ml/models/model-456/metrics"
 TALK "Accuracy: " + metrics.accuracy
 TALK "Precision: " + metrics.precision
 TALK "Recall: " + metrics.recall

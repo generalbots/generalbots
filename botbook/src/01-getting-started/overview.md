@@ -90,9 +90,9 @@ The `.gbot` subfolder contains configuration files including the main `config.cs
 
 The standalone deployment model runs a single botserver instance serving multiple bots. This approach provides the simplest setup with shared resources across bots. Standalone deployment works best for small to medium deployments where isolation between bots is not critical.
 
-### LXC Containers
+### Incus Containers
 
-Linux containers provide lightweight virtualization for bot isolation. Each bot or group of bots runs in its own container with dedicated resources. LXC deployment offers easy management through standard container tooling while maintaining lower overhead than full virtual machines.
+Linux containers provide lightweight virtualization for bot isolation. Each bot or group of bots runs in its own container with dedicated resources. Incus deployment offers easy management through standard container tooling while maintaining lower overhead than full virtual machines.
 
 ### Embedded Mode
 
@@ -105,7 +105,7 @@ Installation begins by downloading and running the botserver binary. The bootstr
 
 Bot deployment uses object storage buckets. Each bot receives its own bucket for file storage. Bots are deployed to the drive rather than the work folder, which is reserved for internal operations as documented in the gbapp chapter.
 
-After startup, access the UI interface at `http://localhost:9000` to interact with your bots and monitor their operation.
+After startup, access the UI interface at `http://localhost:3000` to interact with your bots and monitor their operation.
 
 
 ## Use Cases

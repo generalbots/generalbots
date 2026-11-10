@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/backup
+http://localhost:8080/api/backup
 ```
 
 ## Authentication
@@ -22,26 +22,26 @@ Uses the standard botserver authentication mechanism with administrator-level pe
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/backup/create` | Create a new backup |
-| GET | `/api/v1/backup/list` | List all backups |
-| GET | `/api/v1/backup/{backup_id}` | Get backup details |
-| DELETE | `/api/v1/backup/{backup_id}` | Delete a backup |
+| POST | `/api/backup/create` | Create a new backup |
+| GET | `/api/backup/list` | List all backups |
+| GET | `/api/backup/{backup_id}` | Get backup details |
+| DELETE | `/api/backup/{backup_id}` | Delete a backup |
 
 ### Restore Operations
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/backup/restore/{backup_id}` | Restore from backup |
-| GET | `/api/v1/backup/restore/{job_id}/status` | Check restore status |
+| POST | `/api/backup/restore/{backup_id}` | Restore from backup |
+| GET | `/api/backup/restore/{job_id}/status` | Check restore status |
 
 ### Scheduling
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/backup/schedule` | Create backup schedule |
-| GET | `/api/v1/backup/schedule` | List backup schedules |
-| PUT | `/api/v1/backup/schedule/{schedule_id}` | Update schedule |
-| DELETE | `/api/v1/backup/schedule/{schedule_id}` | Delete schedule |
+| POST | `/api/backup/schedule` | Create backup schedule |
+| GET | `/api/backup/schedule` | List backup schedules |
+| PUT | `/api/backup/schedule/{schedule_id}` | Update schedule |
+| DELETE | `/api/backup/schedule/{schedule_id}` | Delete schedule |
 
 ## Request Examples
 
@@ -53,14 +53,14 @@ backup_options.type = "full"
 backup_options.include_files = true
 backup_options.include_database = true
 
-result = POST "/api/v1/backup/create", backup_options
+result = POST "/api/backup/create", backup_options
 TALK "Backup created: " + result.backup_id
 ```
 
 ### List Backups
 
 ```bas
-backups = GET "/api/v1/backup/list"
+backups = GET "/api/backup/list"
 FOR EACH backup IN backups
     TALK backup.id + " - " + backup.created_at + " (" + backup.size + ")"
 NEXT
@@ -72,7 +72,7 @@ NEXT
 restore_options = NEW OBJECT
 restore_options.target = "staging"
 
-result = POST "/api/v1/backup/restore/backup-123", restore_options
+result = POST "/api/backup/restore/backup-123", restore_options
 TALK "Restore job started: " + result.job_id
 ```
 
@@ -84,7 +84,7 @@ schedule.cron = "0 2 * * *"
 schedule.type = "incremental"
 schedule.retention_days = 30
 
-POST "/api/v1/backup/schedule", schedule
+POST "/api/backup/schedule", schedule
 TALK "Backup schedule created"
 ```
 

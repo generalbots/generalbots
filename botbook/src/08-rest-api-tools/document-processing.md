@@ -14,7 +14,7 @@ The Document Processing API enables:
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/documents
+http://localhost:8080/api/documents
 ```
 
 ## Authentication
@@ -47,7 +47,7 @@ curl -X POST \
   -H "Authorization: Bearer token123" \
   -F "file=@document.pdf" \
   -F 'process_options={"extract_text":true,"extract_metadata":true}' \
-  http://localhost:9000/api/v1/documents/upload
+  http://localhost:8080/api/documents/upload
 ```
 
 **Response:**
@@ -257,7 +257,7 @@ Convert document to another format.
   "converted_id": "doc_def456",
   "original_format": "docx",
   "target_format": "pdf",
-  "download_url": "/api/v1/documents/doc_def456/download"
+  "download_url": "/api/documents/doc_def456/download"
 }
 ```
 
@@ -321,12 +321,12 @@ Split a document into multiple parts.
     {
       "part_id": "part_001",
       "pages": "1-5",
-      "download_url": "/api/v1/documents/part_001/download"
+      "download_url": "/api/documents/part_001/download"
     },
     {
       "part_id": "part_002",
       "pages": "6-10",
-      "download_url": "/api/v1/documents/part_002/download"
+      "download_url": "/api/documents/part_002/download"
     }
   ],
   "total_parts": 2
@@ -354,7 +354,7 @@ Merge multiple documents into one.
   "merged_document_id": "doc_merged_xyz",
   "source_count": 3,
   "total_pages": 30,
-  "download_url": "/api/v1/documents/doc_merged_xyz/download"
+  "download_url": "/api/documents/doc_merged_xyz/download"
 }
 ```
 
@@ -532,7 +532,7 @@ import requests
 # Upload and process document
 with open('document.pdf', 'rb') as f:
     response = requests.post(
-        'http://localhost:9000/api/v1/documents/upload',
+        'http://localhost:8080/api/documents/upload',
         headers={'Authorization': 'Bearer token123'},
         files={'file': f},
         data={'process_options': '{"extract_text": true}'}
@@ -542,7 +542,7 @@ document_id = response.json()['document_id']
 
 # Get extracted text
 text_response = requests.get(
-    f'http://localhost:9000/api/v1/documents/{document_id}/text',
+    f'http://localhost:8080/api/documents/{document_id}/text',
     headers={'Authorization': 'Bearer token123'}
 )
 

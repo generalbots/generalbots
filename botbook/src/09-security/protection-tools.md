@@ -183,7 +183,7 @@ Access the Security Protection panel:
 
 ### Via API
 
-All endpoints are under `/api/v1/security/protection/`
+All endpoints are under `/api/security/protection/`
 
 **Get Status of All Tools:**
 ```http

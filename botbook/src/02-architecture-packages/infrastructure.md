@@ -4,7 +4,7 @@ This chapter covers the complete infrastructure design for General Bots, includi
 
 ## Architecture Overview
 
-General Bots uses a modular architecture where each component runs in isolated LXC containers. This provides isolation where each service has its own filesystem and process space, scalability through adding more containers to handle increased load, security since compromised components cannot affect others, and portability allowing containers to move between hosts easily.
+General Bots uses a modular architecture where each component runs in isolated Incus containers. This provides isolation where each service has its own filesystem and process space, scalability through adding more containers to handle increased load, security since compromised components cannot affect others, and portability allowing containers to move between hosts easily.
 
 ## Component Diagram
 ## High Availability Architecture
@@ -218,7 +218,7 @@ shard-detection,ip
 
 The global router uses GeoIP to direct users to the nearest regional cluster. US-East in Virginia runs a full cluster, EU-West in Frankfurt runs a full cluster, and AP-South in Singapore runs a full cluster. Each regional cluster runs independently with data replication between regions for disaster recovery.
 
-## Auto-Scaling with LXC
+## Auto-Scaling with Incus
 
 ### Configuration
 
@@ -266,7 +266,7 @@ WantedBy=multi-user.target
 
 ## Container Lifecycle
 
-The startup flow begins with creating the LXC container from a template, then configuring resources for CPU, memory, and storage, then starting the botserver binary, and finally marking the container as ready and adding it to the load balancer pool.
+The startup flow begins with creating the Incus container from a template, then configuring resources for CPU, memory, and storage, then starting the botserver binary, and finally marking the container as ready and adding it to the load balancer pool.
 
 The shutdown flow begins with an active container serving requests, then draining to stop accepting new connections, then stopping with a graceful botserver shutdown, and finally deleting or returning the container to the pool.
 
@@ -335,7 +335,7 @@ Every service exposes `/health`:
 ```json
 {
   "status": "healthy",
-  "version": "6.7.0",
+  "version": "7.0.0",
   "checks": {
     "database": {"status": "ok", "latency_ms": 5},
     "cache": {"status": "ok", "latency_ms": 2},
@@ -540,4 +540,4 @@ PostgreSQL, Redis, Qdrant, MinIO, and Zitadel are required components. Vault, In
 
 ## Next Steps
 
-The Scaling and Load Balancing chapter provides a detailed scaling guide. The Container Deployment chapter covers LXC setup. The Security Features chapter offers a security deep dive. The LLM Providers appendix helps with model selection.
+The Scaling and Load Balancing chapter provides a detailed scaling guide. The Container Deployment chapter covers Incus setup. The Security Features chapter offers a security deep dive. The LLM Providers appendix helps with model selection.

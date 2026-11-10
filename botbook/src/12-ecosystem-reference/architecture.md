@@ -406,4 +406,4 @@ Report Results
 
 - [End-to-End Testing Guide](./e2e-testing.md)
 - [CI/CD Integration](./ci-cd.md)
-- [Performance Benchmarking](./performance.md)
+- [Testing](./testing.md)

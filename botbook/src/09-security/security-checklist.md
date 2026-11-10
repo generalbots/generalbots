@@ -180,7 +180,7 @@ cargo test --all
 RUSTFLAGS="-Z sanitizer=address" cargo +nightly test
 
 # Verify rate limiting
-curl -X POST http://localhost:9000/api/test \
+curl -X POST http://localhost:8080/api/test \
   -H "Content-Type: application/json" \
   --data '{}' \
   --parallel --parallel-max 1000

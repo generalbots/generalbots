@@ -16,19 +16,19 @@ The Whiteboard API will enable collaborative real-time drawing, shape and diagra
 
 ### Whiteboard Management
 
-The whiteboard management endpoints handle the lifecycle of whiteboard instances. Creating a whiteboard uses `POST /api/v1/whiteboards`, while retrieving whiteboard details uses `GET /api/v1/whiteboards/{board_id}`. Updates are handled through `PATCH /api/v1/whiteboards/{board_id}`, deletion through `DELETE /api/v1/whiteboards/{board_id}`, and listing all whiteboards through `GET /api/v1/whiteboards`.
+The whiteboard management endpoints handle the lifecycle of whiteboard instances. Creating a whiteboard uses `POST /api/whiteboards`, while retrieving whiteboard details uses `GET /api/whiteboards/{board_id}`. Updates are handled through `PATCH /api/whiteboards/{board_id}`, deletion through `DELETE /api/whiteboards/{board_id}`, and listing all whiteboards through `GET /api/whiteboards`.
 
 ### Collaboration
 
-Real-time collaboration is managed through several endpoints. Users join sessions via `POST /api/v1/whiteboards/{board_id}/join` and leave via `POST /api/v1/whiteboards/{board_id}/leave`. The current participant list is available at `GET /api/v1/whiteboards/{board_id}/participants`. For real-time updates, a WebSocket connection is established at `WebSocket /api/v1/whiteboards/{board_id}/ws`.
+Real-time collaboration is managed through several endpoints. Users join sessions via `POST /api/whiteboards/{board_id}/join` and leave via `POST /api/whiteboards/{board_id}/leave`. The current participant list is available at `GET /api/whiteboards/{board_id}/participants`. For real-time updates, a WebSocket connection is established at `WebSocket /api/whiteboards/{board_id}/ws`.
 
 ### Content Operations
 
-Content manipulation endpoints allow adding elements with `POST /api/v1/whiteboards/{board_id}/elements`, updating them with `PATCH /api/v1/whiteboards/{board_id}/elements/{element_id}`, and removing them with `DELETE /api/v1/whiteboards/{board_id}/elements/{element_id}`. The entire board can be cleared using `POST /api/v1/whiteboards/{board_id}/clear`.
+Content manipulation endpoints allow adding elements with `POST /api/whiteboards/{board_id}/elements`, updating them with `PATCH /api/whiteboards/{board_id}/elements/{element_id}`, and removing them with `DELETE /api/whiteboards/{board_id}/elements/{element_id}`. The entire board can be cleared using `POST /api/whiteboards/{board_id}/clear`.
 
 ### Export
 
-Export functionality supports multiple formats. PNG export is available at `GET /api/v1/whiteboards/{board_id}/export/png`, SVG at `GET /api/v1/whiteboards/{board_id}/export/svg`, and PDF at `GET /api/v1/whiteboards/{board_id}/export/pdf`.
+Export functionality supports multiple formats. PNG export is available at `GET /api/whiteboards/{board_id}/export/png`, SVG at `GET /api/whiteboards/{board_id}/export/svg`, and PDF at `GET /api/whiteboards/{board_id}/export/pdf`.
 
 ## Planned Integration with BASIC
 

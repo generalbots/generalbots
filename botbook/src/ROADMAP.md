@@ -162,7 +162,7 @@ Per-application state, with counts generated from the catalog, is in
 | **2018–2024** | v1–v5, pre-LLM | 12 | ✅ Shipped |
 | **2024** | v6 foundation — Rust core, PostgreSQL, Vault | 8 | ✅ Shipped |
 | **2025 H1** | Rust migration — BASIC engine, channels, Drive (S3), email, REST, WhatsApp, Telegram, PDF | 10 | ✅ Shipped |
-| **2025 H2** | Features and Autotask — tasks AI, knowledge base, vector search, tools, generators, multimodal, NVIDIA GPU/LXC, Paper, Research, Calendar, Meet | 19 | ✅ Shipped |
+| **2025 H2** | Features and Autotask — tasks AI, knowledge base, vector search, tools, generators, multimodal, NVIDIA GPU/Incus, Paper, Research, Calendar, Meet | 19 | ✅ Shipped |
 | **2026 Q1** | Autonomous tasks, cloud productivity connections | see below | 🟡 Partially shipped |
 | **2026 Q2** | Collaboration and multi-agent | see below | 🟡 Partially shipped |
 | **2026 Q3** | Workflow and CRM — Designer, CRM | 2 | ✅ Shipped |

@@ -28,13 +28,13 @@ Installing Cache...
 Creating bots from templates...
    default.gbai deployed
    announcements.gbai deployed
-botserver ready at http://localhost:9000
+botserver ready at http://localhost:3000
 ```
 
 ### 3. Open Browser
 
 ```
-http://localhost:9000
+http://localhost:3000
 ```
 
 Start chatting with your bot!
@@ -115,17 +115,17 @@ The bot automatically:
 
 ---
 
-## Container Deployment (LXC)
+## Container Deployment (Incus)
 
-For production isolation, botserver supports **LXC** (Linux Containers):
+For production isolation, botserver supports **Incus** (Linux Containers):
 
 ```bash
 # Create container
-lxc-create -n botserver -t download -- -d ubuntu -r jammy -a amd64
+incus launch images:ubuntu/22.04 botserver
 
 # Start and attach
-lxc-start -n botserver
-lxc-attach -n botserver
+incus start botserver
+incus exec botserver
 
 # Install botserver inside container
 ./botserver

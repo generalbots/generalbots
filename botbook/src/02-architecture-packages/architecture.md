@@ -11,7 +11,7 @@ The architecture diagrams below illustrate the major components and their relati
 
 Every band of the running platform, from the client surfaces down to the drive tenancy model. Read it top to bottom, or follow the numbered phases: request, process, decide, execute, respond.
 
-<img src="../assets/platform-master.svg" alt="Complete platform architecture: clients and channels, the edge, the botui front ends, botserver's transport surfaces, message pipeline, engines, security rails and 113 grouped domain crates, the AI layer, the data and platform services, the drive tenancy model, and operations" style="width: 100%;">
+<img src="../assets/platform-master.svg" alt="Complete platform architecture: clients and channels, the edge, the botui front ends, botserver's transport surfaces, message pipeline, engines, security rails and 117 feature crates, the AI layer, the data and platform services, the drive tenancy model, and operations" style="width: 100%;">
 
 ### Data Flow Architecture
 

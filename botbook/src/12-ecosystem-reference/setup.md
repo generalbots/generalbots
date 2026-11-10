@@ -22,7 +22,7 @@ This guide covers setting up a development environment for contributing to Gener
 
 - **Drive**: For S3-compatible storage (auto-installed by bootstrap)
 - **Cache (Valkey)**: For caching (auto-installed by bootstrap)
-- **LXC**: For containerized development
+- **Incus**: For containerized development
 
 ## Getting Started
 
@@ -320,19 +320,19 @@ cargo test --all-features
    - Clean build: `cargo clean`
    - Check dependencies: `cargo tree`
 
-## LXC Development
+## Incus Development
 
-### Using LXC Containers
+### Using Incus Containers
 
 ```bash
 # Create development containers
-lxc-create -n botserver-dev-db -t download -- -d alpine -r 3.18 -a amd64
-lxc-create -n botserver-dev-drive -t download -- -d alpine -r 3.18 -a amd64
-lxc-create -n botserver-dev-cache -t download -- -d alpine -r 3.18 -a amd64
+incus launch images:alpine/3.18 botserver-dev-db
+incus launch images:alpine/3.18 botserver-dev-drive
+incus launch images:alpine/3.18 botserver-dev-cache
 
 # Configure PostgreSQL container
-lxc-start -n botserver-dev-db
-lxc-attach -n botserver-dev-db -- sh -c "
+incus start botserver-dev-db
+incus exec botserver-dev-db -- sh -c "
   apk add postgresql14 postgresql14-client
   rc-service postgresql setup
   rc-service postgresql start
@@ -341,24 +341,24 @@ lxc-attach -n botserver-dev-db -- sh -c "
 "
 
 # Configure MinIO (Drive) container
-lxc-start -n botserver-dev-drive
-lxc-attach -n botserver-dev-drive -- sh -c "
+incus start botserver-dev-drive
+incus exec botserver-dev-drive -- sh -c "
   wget https://dl.min.io/server/minio/release/linux-amd64/minio
   chmod +x minio
   MINIO_ROOT_USER=driveadmin MINIO_ROOT_PASSWORD=driveadmin ./minio server /data --console-address ':9001' &
 "
 
 # Configure Redis (Cache) container
-lxc-start -n botserver-dev-cache
-lxc-attach -n botserver-dev-cache -- sh -c "
+incus start botserver-dev-cache
+incus exec botserver-dev-cache -- sh -c "
   apk add redis
   rc-service redis start
 "
 
 # Get container IPs
-DB_IP=$(lxc-info -n botserver-dev-db -iH)
-DRIVE_IP=$(lxc-info -n botserver-dev-drive -iH)
-CACHE_IP=$(lxc-info -n botserver-dev-cache -iH)
+DB_IP=$(incus list botserver-dev-db -c 4 --format csv | cut -d' ' -f1)
+DRIVE_IP=$(incus list botserver-dev-drive -c 4 --format csv | cut -d' ' -f1)
+CACHE_IP=$(incus list botserver-dev-cache -c 4 --format csv | cut -d' ' -f1)
 
 echo "Database: $DB_IP:5432"
 echo "Drive: $DRIVE_IP:9000"
@@ -367,9 +367,9 @@ echo "Cache: $CACHE_IP:6379"
 
 Start all services:
 ```bash
-lxc-start -n botserver-dev-db
-lxc-start -n botserver-dev-drive
-lxc-start -n botserver-dev-cache
+incus start botserver-dev-db
+incus start botserver-dev-drive
+incus start botserver-dev-cache
 ```
 
 ## Contributing Guidelines

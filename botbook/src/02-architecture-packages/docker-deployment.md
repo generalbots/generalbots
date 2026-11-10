@@ -4,8 +4,8 @@
 > publishes no container image and contains no `Dockerfile`. The manifests on
 > this page are a starting sketch: you must build and host your own image, then
 > replace `your-registry/botserver:latest` accordingly. Production deployments
-> use the installer and LXC containers instead — see
-> [Container Deployment (LXC)](./containers.md).
+> use the installer and Incus containers instead — see
+> [Container Deployment (Incus)](./containers.md).
 
 ## Deployment Options
 
@@ -48,7 +48,7 @@ services:
       - ADMIN_PASS=${ADMIN_PASS:-changeme}
       - DOMAIN=${DOMAIN:-localhost}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -216,5 +216,5 @@ docker exec gb-minio mc cp --recursive /backup minio/drive/
 ## See Also
 
 - [Installation](../01-getting-started/installation.md) - Local installation
-- [Container Deployment (LXC)](./containers.md) - Linux containers
+- [Container Deployment (Incus)](./containers.md) - Linux containers
 - [Scaling](./scaling.md) - Load balancing and scaling

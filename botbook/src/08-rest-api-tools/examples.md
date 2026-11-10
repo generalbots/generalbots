@@ -22,7 +22,7 @@ async function authenticate() {
 **cURL:**
 ```bash
 # Session validation
-curl -X GET http://localhost:9000/auth/validate \
+curl -X GET http://localhost:8080/api/auth/validate \
   -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 ```
 
@@ -55,7 +55,7 @@ async function createGroup() {
 import requests
 
 def create_group():
-    url = "http://localhost:9000/api/groups/create"
+    url = "http://localhost:8080/api/groups/create"
     headers = {
         "Authorization": "Bearer YOUR_TOKEN",
         "Content-Type": "application/json"
@@ -96,7 +96,7 @@ async function addMember(groupId, userId) {
 
 **cURL:**
 ```bash
-curl -X GET http://localhost:9000/api/admin/system/status \
+curl -X GET http://localhost:8080/api/admin/system/status \
   -H "Authorization: Bearer ADMIN_TOKEN"
 ```
 
@@ -113,7 +113,7 @@ import (
 func getSystemStatus(token string) {
     client := &http.Client{}
     req, _ := http.NewRequest("GET", 
-        "http://localhost:9000/api/admin/system/status", nil)
+        "http://localhost:8080/api/admin/system/status", nil)
     req.Header.Add("Authorization", "Bearer " + token)
     
     resp, err := client.Do(req)
@@ -164,7 +164,7 @@ class BotChat {
   }
   
   connect() {
-    this.ws = new WebSocket('ws://localhost:9000/ws');
+    this.ws = new WebSocket('ws://localhost:8080/ws');
     
     this.ws.onopen = () => {
       console.log('Connected to bot');
@@ -370,7 +370,7 @@ function handleConversationCompleted(conversationData) {
 
 1. Import the API collection (when available)
 2. Set environment variables for:
-   - `base_url`: http://localhost:9000
+   - `base_url`: http://localhost:8080/api
    - `token`: Your session token
 3. Run requests individually or as collection
 

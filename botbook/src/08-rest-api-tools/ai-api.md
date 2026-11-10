@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/ai
+http://localhost:8080/api/ai
 ```
 
 ## Authentication
@@ -22,40 +22,40 @@ Uses the standard botserver authentication mechanism with appropriate role-based
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/ai/models` | List available models |
-| GET | `/api/v1/ai/models/{model_id}` | Get model details |
-| POST | `/api/v1/ai/models/deploy` | Deploy a new model |
-| DELETE | `/api/v1/ai/models/{model_id}` | Remove a model |
+| GET | `/api/ai/models` | List available models |
+| GET | `/api/ai/models/{model_id}` | Get model details |
+| POST | `/api/ai/models/deploy` | Deploy a new model |
+| DELETE | `/api/ai/models/{model_id}` | Remove a model |
 
 ### Inference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ai/inference` | Run inference on input data |
-| POST | `/api/v1/ai/chat/completions` | Chat completion endpoint |
-| POST | `/api/v1/ai/embeddings` | Generate embeddings |
+| POST | `/api/ai/inference` | Run inference on input data |
+| POST | `/api/ai/chat/completions` | Chat completion endpoint |
+| POST | `/api/ai/embeddings` | Generate embeddings |
 
 ### Training
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/ai/training/start` | Start a training job |
-| GET | `/api/v1/ai/training/{job_id}/status` | Get training job status |
-| POST | `/api/v1/ai/training/{job_id}/cancel` | Cancel training job |
+| POST | `/api/ai/training/start` | Start a training job |
+| GET | `/api/ai/training/{job_id}/status` | Get training job status |
+| POST | `/api/ai/training/{job_id}/cancel` | Cancel training job |
 
 ### Model Configuration
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/ai/models/{model_id}/config` | Get model configuration |
-| PUT | `/api/v1/ai/models/{model_id}/config` | Update model configuration |
+| GET | `/api/ai/models/{model_id}/config` | Get model configuration |
+| PUT | `/api/ai/models/{model_id}/config` | Update model configuration |
 
 ## Request Examples
 
 ### List Available Models
 
 ```bas
-models = GET "/api/v1/ai/models"
+models = GET "/api/ai/models"
 FOR EACH model IN models
     TALK model.name + " - " + model.status
 NEXT
@@ -69,7 +69,7 @@ request.model = "gpt-4"
 request.messages = NEW ARRAY
 request.messages.ADD({"role": "user", "content": "Hello, how are you?"})
 
-response = POST "/api/v1/ai/chat/completions", request
+response = POST "/api/ai/chat/completions", request
 TALK response.choices[0].message.content
 ```
 
@@ -80,7 +80,7 @@ request = NEW OBJECT
 request.input = "Convert this text to embeddings"
 request.model = "text-embedding-3-small"
 
-result = POST "/api/v1/ai/embeddings", request
+result = POST "/api/ai/embeddings", request
 embedding = result.data[0].embedding
 ```
 
@@ -92,7 +92,7 @@ training_config.base_model = "llama-2-7b"
 training_config.dataset = "my-training-data"
 training_config.epochs = 3
 
-job = POST "/api/v1/ai/training/start", training_config
+job = POST "/api/ai/training/start", training_config
 TALK "Training job started: " + job.id
 ```
 

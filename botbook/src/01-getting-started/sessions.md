@@ -14,7 +14,7 @@ A session is a persistent conversation container that tracks everything about an
 
 ### UI Interface
 
-When a user opens `http://localhost:9000`, the browser receives a session token in the form of a UUID. This token is stored in localStorage for persistence across page loads. The session itself is created in PostgreSQL for durability and cached for fast access during active conversations.
+When a user opens `http://localhost:3000`, the browser receives a session token in the form of a UUID. This token is stored in localStorage for persistence across page loads. The session itself is created in PostgreSQL for durability and cached for fast access during active conversations.
 
 ### API Access
 
@@ -22,12 +22,12 @@ Programmatic access to sessions uses the REST API. A POST request to `/api/sessi
 
 ```bash
 # Get new session
-curl -X POST http://localhost:9000/api/session
+curl -X POST http://localhost:8080/api/session
 # Returns: {"session_id": "uuid-here", "token": "secret-token"}
 
 # Use session
 curl -H "Authorization: Bearer secret-token" \
-     http://localhost:9000/api/chat
+     http://localhost:8080/api/chat
 ```
 
 ### Anonymous vs Authenticated

@@ -2,7 +2,7 @@
 
 botserver provides a command-line interface for managing components, secrets, and services.
 
-> ⚠️ **IMPORTANT**: All container create commands (`botserver install ... --container`) must be run from the **host system**, not from inside a container. The botserver binary manages LXC containers from the host level.
+> ⚠️ **IMPORTANT**: All container create commands (`botserver install ... --container`) must be run from the **host system**, not from inside a container. The botserver binary manages Incus containers from the host level.
 
 ## General Usage
 
@@ -30,7 +30,7 @@ botserver <command> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--container` | Use LXC container mode instead of local installation |
+| `--container` | Use Incus container mode instead of local installation |
 | `--tenant <name>` | Specify tenant name (default: "default") |
 | `--help`, `-h` | Show help information |
 | `--version`, `-v` | Show version |
@@ -53,7 +53,7 @@ botserver install <component> [--container] [--tenant <name>]
 # Install vault locally
 botserver install vault
 
-# Install vault in an LXC container with tenant name (run on HOST)
+# Install vault in an Incus container with tenant name (run on HOST)
 botserver install vault --container --tenant pragmatismo
 
 # Install vector database (run on HOST)
@@ -74,15 +74,15 @@ botserver install vault --container --tenant mycompany
 botserver install vector_db --container --tenant mycompany
 
 # Step 3: Verify containers are running
-lxc list | grep mycompany
+incus list | grep mycompany
 
 # Expected output:
 # | mycompany-vault     | RUNNING | 10.x.x.x (eth0) | ... |
 # | mycompany-vectordb  | RUNNING | 10.x.x.x (eth0) | ... |
 
 # Step 4: Get container IPs for configuration
-lxc list mycompany-vault -c n4 --format csv
-lxc list mycompany-vectordb -c n4 --format csv
+incus list mycompany-vault -c n4 --format csv
+incus list mycompany-vectordb -c n4 --format csv
 
 # Step 5: Test Vault health
 curl http://<vault-ip>:8200/v1/sys/health
@@ -349,7 +349,7 @@ botserver version [--all]
 ```bash
 # Simple version
 botserver version
-# Output: botserver 6.7.0
+# Output: botserver 7.0.0
 
 # Detailed version with all components
 botserver version --all
@@ -358,7 +358,7 @@ botserver version --all
 **Output with --all:**
 
 ```
-botserver 6.7.0
+botserver 7.0.0
 
 Build Information:
   rustc: rustc 1.83.0 (90b35a623 2024-11-26)
@@ -473,15 +473,15 @@ After rotating secrets, follow this checklist:
 
 ```bash
 # 1. Update PostgreSQL
-lxc exec pragmatismo-tables -- psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-password';"
+incus exec pragmatismo-tables -- psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new-password';"
 
 # 2. Update MinIO (create new user, migrate data, delete old)
-lxc exec pragmatismo-drive -- mc admin user add local newkey newsecret
-lxc exec pragmatismo-drive -- mc admin policy attach local readwrite --user newkey
+incus exec pragmatismo-drive -- mc admin user add local newkey newsecret
+incus exec pragmatismo-drive -- mc admin policy attach local readwrite --user newkey
 
 # 3. Update Valkey/Redis
-lxc exec pragmatismo-cache -- redis-cli CONFIG SET requirepass 'new-password'
-lxc exec pragmatismo-cache -- redis-cli CONFIG REWRITE
+incus exec pragmatismo-cache -- redis-cli CONFIG SET requirepass 'new-password'
+incus exec pragmatismo-cache -- redis-cli CONFIG REWRITE
 
 # 4. Update Zitadel (via admin console)
 # Navigate to: Settings > OAuth > Applications > Update Secret
@@ -578,7 +578,7 @@ botserver install vault --container --tenant pragmatismo
 botserver install vector_db --container --tenant pragmatismo
 
 # 3. Get Vault container IP
-lxc list pragmatismo-vault
+incus list pragmatismo-vault
 
 # 4. Set environment variables
 export VAULT_ADDR=http://<vault-ip>:8200
@@ -713,13 +713,13 @@ Encryption keys.
 
 ```bash
 # Check if Vault is running
-lxc exec pragmatismo-vault -- systemctl status vault
+incus exec pragmatismo-vault -- systemctl status vault
 
 # Check Vault seal status
-lxc exec pragmatismo-vault -- vault status
+incus exec pragmatismo-vault -- vault status
 
 # Unseal Vault if sealed
-lxc exec pragmatismo-vault -- vault operator unseal <unseal-key>
+incus exec pragmatismo-vault -- vault operator unseal <unseal-key>
 ```
 
 ### Component Installation Fails
@@ -729,10 +729,10 @@ lxc exec pragmatismo-vault -- vault operator unseal <unseal-key>
 tail -f botserver-stack/logs/<component>.log
 
 # Verify container exists
-lxc list | grep <tenant>-<component>
+incus list | grep <tenant>-<component>
 
 # Check container logs
-lxc exec <tenant>-<component> -- journalctl -xe
+incus exec <tenant>-<component> -- journalctl -xe
 ```
 
 ### Missing Dependencies
@@ -752,7 +752,7 @@ sudo dnf install -y libpq openssl-libs \
 ```
 
 The desktop shell additionally needs `libwebkit2gtk-4.1-0` (Debian/Ubuntu) or
-`webkit2gtk4.1` (Fedora/RHEL). LXC/LXD is not required — the code sandbox runs
+`webkit2gtk4.1` (Fedora/RHEL). Incus is not required — the code sandbox runs
 in-process by default.
 
 For development/building from source:

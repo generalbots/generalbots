@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/admin
+http://localhost:8080/api/admin
 ```
 
 ## Authentication
@@ -22,48 +22,48 @@ Uses the standard botserver authentication mechanism with administrator-level pe
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/admin/config` | Retrieve system configuration |
-| PUT | `/api/v1/admin/config` | Update system configuration |
+| GET | `/api/admin/config` | Retrieve system configuration |
+| PUT | `/api/admin/config` | Update system configuration |
 
 ### User Management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/admin/users` | List all users |
-| POST | `/api/v1/admin/users` | Create a new user |
-| GET | `/api/v1/admin/users/{user_id}` | Get user details |
-| PUT | `/api/v1/admin/users/{user_id}` | Update user |
-| DELETE | `/api/v1/admin/users/{user_id}` | Delete user |
+| GET | `/api/admin/users` | List all users |
+| POST | `/api/admin/users` | Create a new user |
+| GET | `/api/admin/users/{user_id}` | Get user details |
+| PUT | `/api/admin/users/{user_id}` | Update user |
+| DELETE | `/api/admin/users/{user_id}` | Delete user |
 
 ### Bot Management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/admin/bots` | List all bots |
-| GET | `/api/v1/admin/bots/{bot_id}` | Get bot details |
-| POST | `/api/v1/admin/bots/{bot_id}/restart` | Restart a bot |
-| DELETE | `/api/v1/admin/bots/{bot_id}` | Delete a bot |
+| GET | `/api/admin/bots` | List all bots |
+| GET | `/api/admin/bots/{bot_id}` | Get bot details |
+| POST | `/api/admin/bots/{bot_id}/restart` | Restart a bot |
+| DELETE | `/api/admin/bots/{bot_id}` | Delete a bot |
 
 ### System Health
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/admin/health` | System health check |
-| GET | `/api/v1/admin/metrics` | System metrics |
+| GET | `/api/admin/health` | System health check |
+| GET | `/api/admin/metrics` | System metrics |
 
 ### Audit Logs
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/admin/audit` | Retrieve audit logs |
-| GET | `/api/v1/admin/audit/{event_id}` | Get specific audit event |
+| GET | `/api/admin/audit` | Retrieve audit logs |
+| GET | `/api/admin/audit/{event_id}` | Get specific audit event |
 
 ## Request Examples
 
 ### Get System Configuration
 
 ```bas
-config = GET "/api/v1/admin/config"
+config = GET "/api/admin/config"
 TALK "Server port: " + config.server_port
 ```
 
@@ -74,14 +74,14 @@ user_data = NEW OBJECT
 user_data.email = "admin@example.com"
 user_data.role = "administrator"
 
-result = POST "/api/v1/admin/users", user_data
+result = POST "/api/admin/users", user_data
 TALK "Created user: " + result.id
 ```
 
 ### Restart Bot
 
 ```bas
-POST "/api/v1/admin/bots/my-bot/restart", {}
+POST "/api/admin/bots/my-bot/restart", {}
 TALK "Bot restart initiated"
 ```
 

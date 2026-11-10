@@ -21,7 +21,7 @@ The dashboard displays botserver at the center orchestrating all interactions, w
 The monitoring dashboard is the **default homepage** when accessing Suite:
 
 ```/dev/null/monitoring-url.txt#L1
-http://localhost:9000/monitoring
+http://localhost:3000/monitoring
 ```
 
 Or from within Suite:

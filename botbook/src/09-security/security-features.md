@@ -132,7 +132,7 @@ Security testing validates protection mechanisms. Run the security test suite wi
 
 ### Deployment Practices
 
-Container security for LXC deployments requires disabling privileged mode with security.privileged set to false, enabling isolated ID mapping with security.idmap.isolated set to true, and disabling nesting with security.nesting set to false. Applications should run as non-root users within containers.
+Container security for Incus deployments requires disabling privileged mode with security.privileged set to false, enabling isolated ID mapping with security.idmap.isolated set to true, and disabling nesting with security.nesting set to false. Applications should run as non-root users within containers.
 
 Container security profiles should specify resource limits including CPU and memory caps. Root device configuration should use appropriate storage pools. Security settings should prevent privilege escalation.
 

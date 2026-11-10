@@ -324,7 +324,7 @@ Quick lookup for General Bots terms. If you're lost, start here.
 
 ## Common Confusions
 
-**"Do I need containers?"** - No. botserver installs everything directly or in optional LXC containers.
+**"Do I need containers?"** - No. botserver installs everything directly or in optional Incus containers.
 
 **"What database?"** - PostgreSQL, automatically installed and configured.
 

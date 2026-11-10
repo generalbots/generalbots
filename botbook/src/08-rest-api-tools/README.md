@@ -1,16 +1,19 @@
 # Chapter 8: REST API & Tools 🟡 BETA
 
-HTTP API endpoints for integrating with botserver.
-
-## Overview
-
-botserver exposes REST endpoints organized by functional area. All endpoints follow consistent patterns for authentication, pagination, and error handling.
+HTTP API for integrating with botserver. The canonical port and prefix table
+lives in [Network Contract](../02-architecture-packages/network-contract.md);
+this chapter covers the endpoint families and their response shapes.
 
 ## Base URL
 
 ```
-http://localhost:8000/api/v1
+http://localhost:8080/api
 ```
+
+Every local route starts with `/api`. The single exception is the legacy
+sandbox endpoint `POST /api/v1/sandbox/exec`
+(`botserver/crates/botagent/src/lib.rs`) — it is the only local `/api/v1` route
+in the tree; do not treat `/api/v1` as a versioned base URL.
 
 ## Authentication
 
@@ -18,69 +21,91 @@ http://localhost:8000/api/v1
 Authorization: Bearer <token>
 ```
 
-## API Categories
+The auth layer, the anonymous allow-list (`/ws`, health, public catalog) and
+the rate-limit classes are applied in
+`botserver/src/main_module/server/run_axum_server.rs` and
+`botserver/src/main_module/routes/security_setup.rs`. Endpoints that need no
+token are listed in the generated reference with `public`.
 
-| Category | Prefix | Description |
-|----------|--------|-------------|
-| **User APIs** | `/api/user/*` | Personal settings, profile, preferences |
-| **Admin APIs** | `/api/admin/*` | Organization management (requires admin role) |
-| **Files** | `/files/*` | Drive operations |
-| **Chat** | `/chat/*` | Conversations and messages |
+## Endpoint families
 
-## User vs Admin Endpoints
+| Family | Prefix | Example routes |
+|---|---|---|
+| Users / profile | `/api/user/*`, `/api/users/*` | `GET /api/users` |
+| Admin | `/api/admin/*` | `GET /api/admin/dashboard/stats` |
+| Drive files | `/api/files/*` | `GET /api/files/list`, `POST /api/files/write` |
+| Apps / catalog | `/api/apps/*` | `GET /api/apps/catalog` |
+| CRM / people | `/api/crm/*`, `/api/contacts/*` | see generated reference |
+| Products / billing | `/api/products/*`, `/api/billing/*` | see generated reference |
+| Analytics | `/api/analytics/*` | `GET /api/analytics/usage` |
 
-The API separates user-level and admin-level operations:
+`/chat/*` is **not** a REST prefix: chat runs over the WebSocket pipeline at
+`/ws` (see [WebSocket protocol](../07-user-interface/ws-protocol.md)). The only
+`/api/chat*` routes are the history/session helpers in
+`botserver/src/main_module/routes/chat_handlers.rs`.
 
-**User Endpoints** (`/api/user/*`):
-- Personal profile and settings
-- User's own files and data
-- Individual preferences
-- Accessible by all authenticated users
+The full, code-derived table is [generated](./generated/README.md).
 
-**Admin Endpoints** (`/api/admin/*`):
-- Organization-wide settings
-- User management
-- Group management
-- DNS, billing, audit logs
-- Requires `admin` role
+## Response shapes are per family
 
-## Quick Example
+There is **no universal envelope**. The claim `{"success", "data", "error"}`
+for every endpoint is false. What the code actually returns:
 
-```bash
-curl -X POST http://localhost:8000/api/v1/chat \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello", "session_id": "abc123"}'
-```
+| Family | Shape | Source |
+|---|---|---|
+| Typed handlers (most crates) | the resource JSON itself, e.g. a product object or an array | `botserver/crates/*/src/**/handlers.rs` |
+| Handlers that report an outcome | `{"success": true, …}` plus family-specific keys | `botserver/crates/botanalytics/src/handlers.rs` |
+| HTMX fragments (`/api/ui/*`) | HTML, not JSON | `botserver/crates/*/src/*_ui.rs` |
+| Errors (all families) | `SafeErrorResponse` | `botserver/crates/botsecurity-core/src/error_sanitizer/mod.rs` |
 
-## Response Format
+Error body:
 
 ```json
 {
-  "success": true,
-  "data": { ... },
-  "error": null
+  "error": "internal_error",
+  "message": "…",
+  "code": "…",
+  "request_id": "…"
 }
 ```
 
-## Chapter Contents
+`code`, `request_id` and `details` are omitted when absent
+(`skip_serializing_if`). Handlers must build this body with
+`log_and_sanitize` / `log_and_sanitize_json` — never with `e.to_string()`.
 
-- [Files API](./files-api.md) - Upload/download
-- [Document Processing](./document-processing.md) - Text extraction
-- [Users API](./users-api.md) - User management
-- [User Security API](./user-security.md) - 2FA, sessions
-- [Groups API](./groups-api.md) - Group management
-- [Conversations API](./conversations-api.md) - Chat sessions
-- [Calendar API](./calendar-api.md) - Scheduling
-- [Tasks API](./tasks-api.md) - Task management
-- [Storage API](./storage-api.md) - Object storage
-- [Analytics API](./analytics-api.md) - Metrics
-- [Admin API](./admin-api.md) - Administration
-- [AI API](./ai-api.md) - LLM endpoints
-- [Example Integrations](./examples.md) - Code samples
+## Status codes
 
-## See Also
+| Code | Meaning in this server |
+|---|---|
+| 200 | success (JSON or HTML fragment) |
+| 400 | validation failure |
+| 401 | missing/invalid bearer token |
+| 403 | RBAC role too low (`resolve_user_role`) |
+| 404 | unknown route, or a feature not compiled into this build |
+| 429 | rate limit (`governor`; general 100 req/s, auth 10 req/s, API 50 req/s) |
+| 500 | sanitized internal error |
 
-- [LLM Tools](../08-rest-api-tools/README.md) - Tool definitions
-- [Authentication](../09-security/README.md) - Security
-- [Permissions Matrix](../09-security/permissions-matrix.md) - Access control
+## Quick example
+
+```bash
+curl -s http://localhost:8080/api/product \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## Chapter contents
+
+- [Generated REST reference](./generated/README.md) — every route, from the code
+- [Files API](./files-api.md) — `/api/files/*`
+- [Users API](./users-api.md) — user management
+- [Groups API](./groups-api.md) — groups and membership
+- [Conversations API](./conversations-api.md) — chat sessions
+- [Admin API](./admin-api.md) — administration
+- [AI API](./ai-api.md) — LLM endpoints
+- [MCP format](./mcp-format.md) and [tool definitions](./tool-definition.md)
+- [Example integrations](./examples.md) — code samples
+
+## See also
+
+- [Network Contract](../02-architecture-packages/network-contract.md)
+- [Permissions Matrix](../09-security/permissions-matrix.md)
+- [WebSocket protocol](../07-user-interface/ws-protocol.md)

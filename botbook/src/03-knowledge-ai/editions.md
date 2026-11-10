@@ -1,375 +1,82 @@
 # Feature Editions 🟡 BETA
 
-General Bots offers flexible feature configurations to match different deployment needs. Features can be enabled at compile time using Cargo feature flags or selected through pre-configured edition bundles.
+Build profiles are **Cargo features** in `botserver/Cargo.toml`. There is no
+separate "edition" layer: an edition is just a named bundle of features, and a
+bundle that is not in the manifest cannot be built.
 
-## Edition Overview
+Authority: `[features]` in `botserver/Cargo.toml` (121 entries) and
+`APP_FEATURES` in `scripts/product_profile_check.py`.
 
-| Edition | Target Use Case | Key Features |
-|---------|-----------------|--------------|
-| **Minimal** | Embedded, IoT, testing | Basic chat only |
-| **Lightweight** | Small teams, startups | Chat + Drive + Tasks |
-| **Core** | General business use | Full productivity suite |
-| **Standard** | Professional teams | + Email + Calendar + Meet |
-| **Enterprise** | Large organizations | + Compliance + Multi-channel + GPU |
-| **Full** | Maximum capability | All features enabled |
+## Bundles that exist
 
----
-
-## Minimal Edition
-
-**Use Case:** Embedded systems, IoT devices, testing environments
-
-**Cargo Feature:** `minimal`
-
-```bash
-cargo build --features minimal
-```
-
-### Included Features
-- ✅ UI Server (web interface)
-- ✅ Basic chat functionality
-
-### Not Included
-- ❌ Console TUI
-- ❌ File storage
-- ❌ Task management
-- ❌ Email
-- ❌ LLM integration
-- ❌ Vector search
-
-**Typical Deployment:** Raspberry Pi, edge devices, containerized microservices
-
----
-
-## Lightweight Edition
-
-**Use Case:** Small teams, startups, personal use
-
-**Cargo Feature:** `lightweight`
+| Bundle | Expands to | Use |
+|---|---|---|
+| `default` | `all-apps`, `botcore/default` | every application compiled; `.product` decides visibility |
+| `minimal` | `chat` | smallest build that answers chat |
+| `minimal-chat` | `chat`, `automation`, `cache` | chat with no security layer |
+| `lightweight` | `chat`, `tasks`, `people` | chat + tasks + CRM |
+| `full` | `chat`, `people`, `mail`, `tasks`, `calendar`, `drive`, `docs`, `llm`, `cache`, `compliance`, `tax` | the wide server profile |
+| `chat-drive` | `chat`, `drive`, `agent-vm` + office workbench | lean product profile |
+| `desktop-local` | `chat`, `drive`, `security`, `directory`, `llm`, `vectordb`, `settings`, `no-security`, `kb-extraction`, `botcore/desktop-local` | desktop installer |
+| `all-apps` | every app feature | used by `default` |
 
 ```bash
-cargo build --features lightweight
+cargo build -p botserver --no-default-features --features minimal
+cargo build -p botserver --no-default-features --features lightweight
+cargo build -p botserver --no-default-features --features full
+cargo build -p botserver --no-default-features --features desktop-local
 ```
 
-### Included Features
-- ✅ UI Server
-- ✅ Chat
-- ✅ Drive (file storage)
-- ✅ Tasks
-- ✅ Redis caching
+## Bundles that do not exist
 
-### Not Included
-- ❌ Email integration
-- ❌ Calendar
-- ❌ Video meetings
-- ❌ Compliance tools
-- ❌ Multi-channel messaging
+These names were documented in earlier editions of this book and are **not**
+Cargo features — `cargo build --features <name>` fails:
 
-**Typical Deployment:** Small office server, developer workstation
+`core`, `standard`, `enterprise`, `productivity`, `communications`.
 
----
+Use the closest real bundle from the table above, or compose individual
+features.
 
-## Core Edition (Default)
+## Individual features
 
-**Use Case:** General business operations, mid-size teams
+Every feature maps to a crate (`dep:<crate>`) and, usually, a `botcore`
+sub-feature. A representative slice:
 
-**Cargo Feature:** `default` (or no feature flag)
+| Area | Features |
+|---|---|
+| Core transport | `chat`, `scripting`, `automation`, `cache`, `no-security` |
+| Storage | `drive`, `kb-extraction`, `docs`, `sheet`, `slides`, `paper`, `player`, `canvas` |
+| People / business | `people`, `tickets`, `billing`, `workspaces`, `calendar`, `tasks`, `project`, `plan`, `goals` |
+| Channels | `mail`, `whatsapp`, `telegram`, `instagram`, `social`, `msteams`, `meet` |
+| AI | `llm`, `vectordb`, `research`, `web-search`, `agent-vm`, `memory-os`, `connectors`, `consent`, `browser-policy` |
+| Platform | `security`, `directory`, `rbac`, `settings`, `monitoring`, `analytics`, `dashboards`, `marketplace`, `git`, `database`, `editor` |
+
+Feature names are case-sensitive and hyphenated (`web-search`, `agent-vm`,
+`memory-os`).
+
+## Composing a custom build
 
 ```bash
-cargo build
-# or explicitly:
-cargo build --features default
+cargo build -p botserver --no-default-features --features "chat,drive,tasks"
 ```
 
-### Included Features
-- ✅ UI Server
-- ✅ Console TUI
-- ✅ Chat
-- ✅ Automation (Rhai scripting)
-- ✅ Tasks (with cron scheduling)
-- ✅ Drive
-- ✅ LLM integration
-- ✅ Redis caching
-- ✅ Progress bars
-- ✅ Directory services
+Dependencies are declared in the manifest, so asking for `mail` also brings
+`automation`, `drive`, `cache`, `digest` and the email crates. Enabling a
+feature never disables another; use `--no-default-features` to drop `all-apps`.
 
-### Not Included
-- ❌ Email (IMAP/SMTP)
-- ❌ Calendar management
-- ❌ Video meetings
-- ❌ Vector database
-- ❌ Compliance monitoring
-- ❌ Multi-channel (WhatsApp, Teams, etc.)
-- ❌ NVIDIA GPU support
-- ❌ Desktop application
+## Verifying a profile
 
-**Typical Deployment:** On-premise server, cloud VM, container
-
----
-
-## Standard Edition
-
-**Use Case:** Professional teams requiring full productivity features
-
-**Cargo Feature:** `productivity`
+`scripts/product_profile_check.py` holds the mapping between Cargo features and
+the apps they gate (`APP_FEATURES`). Apps without a feature gate (notes, photos,
+timer, weather) ship with every build and are hidden through the `.product`
+file instead.
 
 ```bash
-cargo build --features productivity
+python3 scripts/product_profile_check.py
 ```
 
-### Included Features
-All Core features plus:
-- ✅ Email integration (IMAP/SMTP)
-- ✅ Calendar management
-- ✅ Video meetings (LiveKit)
-- ✅ Mail client interface
-- ✅ Redis caching
+## Related
 
-### Additional Dependencies
-- `imap` - Email receiving
-- `lettre` - Email sending
-- `mailparse` - Email parsing
-- `livekit` - Video conferencing
-
-**Typical Deployment:** Business office, remote teams
-
----
-
-## Enterprise Edition
-
-**Use Case:** Large organizations with compliance and integration requirements
-
-**Cargo Feature:** `enterprise`
-
-```bash
-cargo build --features enterprise
-```
-
-### Included Features
-All Standard features plus:
-- ✅ Compliance monitoring (LGPD/GDPR/HIPAA/SOC2)
-- ✅ Attendance tracking
-- ✅ Directory services (LDAP/AD compatible)
-- ✅ Vector database (Qdrant)
-- ✅ Advanced monitoring (sysinfo)
-- ✅ LLM integration
-
-### Compliance Features
-| Framework | Status | Implementation |
-|-----------|--------|----------------|
-| LGPD | ✅ | Data subject rights dialogs |
-| GDPR | ✅ | Consent management, data portability |
-| HIPAA | ✅ | PHI handling, audit trails |
-| SOC 2 | ✅ | Access controls, logging |
-| ISO 27001 | ✅ | Asset management, risk assessment |
-| PCI DSS | ✅ | Payment data protection |
-
-**Typical Deployment:** Enterprise data center, regulated industries
-
----
-
-## Communications Edition
-
-**Use Case:** Organizations needing multi-channel customer engagement
-
-**Cargo Feature:** `communications`
-
-```bash
-cargo build --features communications
-```
-
-### Included Features
-- ✅ Email (IMAP/SMTP)
-- ✅ WhatsApp Business
-- ✅ Instagram messaging
-- ✅ Microsoft Teams
-- ✅ Chat
-- ✅ Redis caching
-
-### Channel Support
-| Channel | Protocol | Status |
-|---------|----------|--------|
-| WhatsApp | Cloud API | ✅ |
-| Instagram | Graph API | ✅ |
-| MS Teams | Bot Framework | ✅ |
-| Telegram | Bot API | Planned |
-| Slack | Web API | Planned |
-| SMS | Twilio | Planned |
-
-**Typical Deployment:** Customer service center, marketing teams
-
----
-
-## Full Edition
-
-**Use Case:** Maximum capability, all features enabled
-
-**Cargo Feature:** `full`
-
-```bash
-cargo build --features full
-```
-
-### All Features Enabled
-- ✅ UI Server + Desktop application
-- ✅ Console TUI
-- ✅ Vector database (Qdrant)
-- ✅ LLM integration
-- ✅ NVIDIA GPU acceleration
-- ✅ All communication channels
-- ✅ Full productivity suite
-- ✅ Compliance & attendance
-- ✅ Directory services
-- ✅ Web automation
-- ✅ Redis caching
-- ✅ System monitoring
-- ✅ Automation (Rhai)
-- ✅ gRPC support
-- ✅ Progress bars
-
-### Hardware Recommendations
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| CPU | 4 cores | 8+ cores |
-| RAM | 8 GB | 32 GB |
-| Storage | 100 GB SSD | 500 GB NVMe |
-| GPU | Optional | NVIDIA RTX 3060+ |
-| Network | 100 Mbps | 1 Gbps |
-
-**Typical Deployment:** Enterprise AI platform, research environments
-
----
-
-## Feature Matrix
-
-| Feature | Minimal | Light | Core | Standard | Enterprise | Full |
-|---------|---------|-------|------|----------|------------|------|
-| UI Server | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Chat | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Console TUI | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Drive | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tasks | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Automation | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| LLM | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Email | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Calendar | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Meet | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Vector DB | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Compliance | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Multi-channel | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Desktop | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| GPU | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-
----
-
-## Custom Feature Combinations
-
-You can combine individual features for custom builds:
-
-```bash
-# Chat + Email + Vector search
-cargo build --features "chat,email,vectordb"
-
-# Productivity + Compliance
-cargo build --features "productivity,compliance"
-
-# Everything except desktop
-cargo build --features "full" --no-default-features
-```
-
-### Available Feature Flags
-
-```toml
-[features]
-# UI Features
-desktop = ["dep:tauri", ...]
-ui-server = []
-console = ["dep:crossterm", "dep:ratatui", "monitoring"]
-
-# Core Integrations
-vectordb = ["dep:qdrant-client"]
-llm = []
-nvidia = []
-
-# Communication Channels
-email = ["dep:imap", "dep:lettre", ...]
-whatsapp = []
-instagram = []
-msteams = []
-
-# Productivity Features
-chat = []
-drive = ["dep:aws-config", "dep:aws-sdk-s3", ...]
-tasks = ["dep:cron"]
-calendar = []
-meet = ["dep:livekit"]
-mail = ["email"]
-
-# Enterprise Features
-compliance = ["dep:csv"]
-attendance = []
-directory = []
-weba = []
-
-# Infrastructure
-redis-cache = ["dep:redis"]
-monitoring = ["dep:sysinfo"]
-automation = ["dep:rhai"]
-grpc = ["dep:tonic"]
-progress-bars = ["dep:indicatif"]
-```
-
----
-
-## Deployment Recommendations
-
-### By Organization Size
-
-| Size | Employees | Recommended Edition |
-|------|-----------|---------------------|
-| Solo | 1 | Lightweight |
-| Startup | 2-10 | Core |
-| SMB | 11-50 | Standard |
-| Mid-market | 51-200 | Enterprise |
-| Enterprise | 200+ | Full |
-
-### By Industry
-
-| Industry | Recommended Edition | Key Features |
-|----------|---------------------|--------------|
-| Healthcare | Enterprise | HIPAA compliance |
-| Finance | Enterprise | SOC 2, PCI DSS |
-| Education | Standard | Calendar, Meet |
-| Retail | Communications | Multi-channel |
-| Legal | Enterprise | Document management, compliance |
-| Manufacturing | Core | Automation, tasks |
-| Tech/SaaS | Full | All capabilities |
-
----
-
-## Upgrading Editions
-
-Editions can be changed by rebuilding with different feature flags:
-
-```bash
-# From Core to Enterprise
-cargo build --release --features enterprise
-
-# From Standard to Full
-cargo build --release --features full
-```
-
-**Note:** Some features may require additional infrastructure components:
-- `vectordb` → Requires Qdrant service
-- `meet` → Requires LiveKit server
-- `redis-cache` → Requires Redis/Valkey
-- `nvidia` → Requires NVIDIA GPU + CUDA
-
----
-
-## See Also
-
-- [Cargo.toml Feature Definitions](../02-architecture-packages/dependencies.md)
-- [Installation Guide](../01-getting-started/installation.md)
-- [Architecture Overview](../02-architecture-packages/architecture.md)
-- [Compliance Requirements](../09-security/compliance-requirements.md)
+- [Module Structure](../02-architecture-packages/crates.md) — the 123-member workspace
+- [Building from Source](../02-architecture-packages/building.md)
+- [Suite apps status](../07-user-interface/apps/suite-apps-status.md)

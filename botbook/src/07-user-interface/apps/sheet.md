@@ -357,6 +357,7 @@ Charts are not rendered in the grid yet. The definition is stored and returned b
 ## See Also
 
 - [Sheet Parity Plan](./sheet-parity-plan.md) — current gaps and the plan to close them
+- [Office fidelity contract](./office-fidelity.md) — what a save preserves, and when a workbook is regenerated
 - [Sheets API](../../08-rest-api-tools/sheets-api.md) — endpoint reference
 - [Suite Manual](../suite-manual.md) — complete user guide
 - [Drive](./drive.md) — file storage for imports

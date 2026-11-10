@@ -15,7 +15,7 @@ The User Security API enables:
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/security
+http://localhost:8080/api/security
 ```
 
 ## Authentication

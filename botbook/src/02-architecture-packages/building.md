@@ -720,7 +720,7 @@ After building, verify the binary works:
 ./target/release/botserver --version
 ```
 
-Expected output: `botserver 6.7.0` or similar.
+Expected output: `botserver 7.0.0` or similar.
 
 ## Development Builds
 
@@ -885,25 +885,20 @@ jobs:
         run: cargo build --release --all-features
 ```
 
-### LXC Build
+### Incus Build
 
-Build inside LXC container:
+Build inside Incus container:
 
 ```bash
 # Create build container
-lxc-create -n botserver-build -t download -- -d ubuntu -r jammy -a amd64
+incus launch images:ubuntu/22.04 botserver-build
 
 # Configure container with build resources
-cat >> /var/lib/lxc/botserver-build/config << EOF
-lxc.cgroup2.memory.max = 4G
-lxc.cgroup2.cpu.max = 400000 100000
-EOF
-
-# Start container
-lxc-start -n botserver-build
+incus config set botserver-build limits.memory 4GiB
+incus config set botserver-build limits.cpu 4
 
 # Install build dependencies
-lxc-attach -n botserver-build -- bash -c "
+incus exec botserver-build -- bash -c "
 apt-get update
 apt-get install -y clang lld build-essential pkg-config libssl-dev libpq-dev cmake curl git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -911,7 +906,7 @@ source \$HOME/.cargo/env
 "
 
 # Build botserver
-lxc-attach -n botserver-build -- bash -c "
+incus exec botserver-build -- bash -c "
 git clone --recursive https://github.com/GeneralBots/gb.git /build
 cd /build
 source \$HOME/.cargo/env
@@ -919,7 +914,7 @@ cargo build --release --no-default-features
 "
 
 # Copy binary from container
-lxc-attach -n botserver-build -- cat /build/target/release/botserver > /usr/local/bin/botserver
+incus exec botserver-build -- cat /build/target/release/botserver > /usr/local/bin/botserver
 chmod +x /usr/local/bin/botserver
 ```
 
@@ -943,7 +938,7 @@ Verify installation:
 botserver --version
 ```
 
-Expected output: `botserver 6.7.0` or similar.
+Expected output: `botserver 7.0.0` or similar.
 
 ## Quick Reference
 

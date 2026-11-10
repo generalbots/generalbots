@@ -445,14 +445,14 @@ Use a second "unsealer" Vault instance to unseal the main one. Both can be local
 botserver install vault --container --tenant unsealer
 
 # Initialize unsealer (manual unseal - use Shamir)
-lxc exec unsealer-vault -- /opt/gbo/bin/vault operator init \
+incus exec unsealer-vault -- /opt/gbo/bin/vault operator init \
   -key-shares=5 -key-threshold=3
 
 # Enable transit secrets engine
-lxc exec unsealer-vault -- /opt/gbo/bin/vault secrets enable transit
+incus exec unsealer-vault -- /opt/gbo/bin/vault secrets enable transit
 
 # Create auto-unseal key
-lxc exec unsealer-vault -- /opt/gbo/bin/vault write -f transit/keys/autounseal
+incus exec unsealer-vault -- /opt/gbo/bin/vault write -f transit/keys/autounseal
 ```
 
 **Configure Main Vault to use Transit:**

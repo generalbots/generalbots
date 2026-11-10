@@ -162,7 +162,7 @@ This table merges the proposed timeline with all features documented in botbook/
 | 3 | **Backup & Restore** | botbook | 08-rest-api-tools/backup-api.md |
 | 4 | **NVIDIA GPU Support** | botbook | 08-rest-api-tools/nvidia-gpu-setup.md |
 | 5 | **Docker Deployment** | botbook | 07-gbapp/docker-deployment.md |
-| 6 | **LXC Containers** | botbook | 07-gbapp/containers.md |
+| 6 | **Incus Containers** | botbook | 07-gbapp/containers.md |
 | 7 | **Advanced Monitoring** | botbook | 08-rest-api-tools/monitoring-api.md |
 
 ---
@@ -221,7 +221,7 @@ This table merges the proposed timeline with all features documented in botbook/
 | Vault Secrets | 2024 ✅ | 10-configuration-deployment/secrets-management.md |
 | NVIDIA GPU | 2026 Q4 📋 | 08-rest-api-tools/nvidia-gpu-setup.md |
 | Docker | 2026 Q4 📋 | 07-gbapp/docker-deployment.md |
-| LXC | 2026 Q4 📋 | 07-gbapp/containers.md |
+| Incus | 2026 Q4 📋 | 07-gbapp/containers.md |
 
 ---
 

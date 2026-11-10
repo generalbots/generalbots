@@ -72,5 +72,6 @@ Docs is a **preview** application and is additionally gated behind Preview mode 
 
 - [Paper](./paper.md) - Notes and documents
 - [Slides](./slides.md) - Presentations (in test)
+- [Office fidelity contract](./office-fidelity.md) - What a save preserves in DOCX/PPTX/XLSX
 - [Explorer](./drive.md) - Where documents are stored
 - [Apps overview](./README.md) - Stability classification for the whole suite

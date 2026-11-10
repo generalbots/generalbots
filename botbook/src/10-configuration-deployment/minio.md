@@ -74,12 +74,12 @@ The `force_path_style(true)` setting ensures compatibility with S3-compatible st
 
 The default mode runs drive on the same machine. The binary is downloaded to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`.
 
-### Container Mode (LXC)
+### Container Mode (Incus)
 
-Drive can run in an LXC container with mapped volumes for persistent storage:
+Drive can run in an Incus container with mapped volumes for persistent storage:
 
 ```bash
-lxc config device add default-drive data disk \
+incus config device add default-drive data disk \
   source=/opt/gbo/data path=/opt/gbo/data
 ```
 
@@ -164,5 +164,5 @@ never silently redirected to a second backend.
 
 [Storage Services](../06-channels/storage.md) documents the backend catalog,
 pricing and the private-by-default share-link model. The Environment Variables
-appendix covers Directory service configuration options. The LXC Containers
+appendix covers Directory service configuration options. The Incus Containers
 documentation explains container deployment in detail.

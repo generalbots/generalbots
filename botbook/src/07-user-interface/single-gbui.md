@@ -71,7 +71,7 @@ Automatic dark mode activates based on system preference:
 Connection handling is simplified for reliability:
 
 ```javascript
-const ws = new WebSocket('ws://localhost:9000/ws');
+const ws = new WebSocket('ws://localhost:8080/ws');
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -98,7 +98,7 @@ function sendMessage() {
 The single.gbui template is perfect for embedding in existing websites:
 
 ```html
-<iframe src="http://localhost:9000/ui/suite/single.gbui" 
+<iframe src="http://localhost:3000/suite/single.gbui" 
         width="400" 
         height="600">
 </iframe>

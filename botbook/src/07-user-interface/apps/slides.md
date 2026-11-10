@@ -59,5 +59,6 @@ Presenting from an in-test editor carries a specific kind of risk: the failure i
 
 - [Docs](./docs.md) - Documents (in test)
 - [Sheets](./sheet.md) - Spreadsheets, the most advanced preview app
+- [Office fidelity contract](./office-fidelity.md) - What a save preserves in DOCX/PPTX/XLSX
 - [Meet](./meet.md) - Running the meeting around the presentation
 - [Apps overview](./README.md) - Stability classification for the whole suite

@@ -16,19 +16,19 @@ The Calls API will enable voice call initiation and management, video conferenci
 
 ### Call Management
 
-The call management endpoints will handle the lifecycle of individual calls. Use `POST /api/v1/calls/initiate` to start a call, `GET /api/v1/calls/{call_id}` to retrieve call details, `POST /api/v1/calls/{call_id}/end` to terminate a call, and `GET /api/v1/calls/history` to access call history.
+The call management endpoints will handle the lifecycle of individual calls. Use `POST /api/calls/initiate` to start a call, `GET /api/calls/{call_id}` to retrieve call details, `POST /api/calls/{call_id}/end` to terminate a call, and `GET /api/calls/history` to access call history.
 
 ### Conference Rooms
 
-Conference room endpoints manage persistent meeting spaces. Create rooms with `POST /api/v1/calls/rooms`, retrieve room details with `GET /api/v1/calls/rooms/{room_id}`, and manage participation through `POST /api/v1/calls/rooms/{room_id}/join`, `POST /api/v1/calls/rooms/{room_id}/leave`, and `GET /api/v1/calls/rooms/{room_id}/participants`.
+Conference room endpoints manage persistent meeting spaces. Create rooms with `POST /api/calls/rooms`, retrieve room details with `GET /api/calls/rooms/{room_id}`, and manage participation through `POST /api/calls/rooms/{room_id}/join`, `POST /api/calls/rooms/{room_id}/leave`, and `GET /api/calls/rooms/{room_id}/participants`.
 
 ### Recording
 
-Recording endpoints control call archival. Start recording with `POST /api/v1/calls/{call_id}/record/start`, stop with `POST /api/v1/calls/{call_id}/record/stop`, and retrieve recordings via `GET /api/v1/calls/{call_id}/recordings`.
+Recording endpoints control call archival. Start recording with `POST /api/calls/{call_id}/record/start`, stop with `POST /api/calls/{call_id}/record/stop`, and retrieve recordings via `GET /api/calls/{call_id}/recordings`.
 
 ### Transcription
 
-Transcription endpoints provide speech-to-text capabilities. Enable transcription with `POST /api/v1/calls/{call_id}/transcribe` and retrieve the transcript using `GET /api/v1/calls/{call_id}/transcript`.
+Transcription endpoints provide speech-to-text capabilities. Enable transcription with `POST /api/calls/{call_id}/transcribe` and retrieve the transcript using `GET /api/calls/{call_id}/transcript`.
 
 ## Planned Integration with BASIC
 

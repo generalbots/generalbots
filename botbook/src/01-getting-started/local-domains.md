@@ -32,7 +32,7 @@ curl -k https://127.0.0.1:8443/health
 curl --cert ./botserver-stack/conf/system/certificates/api/client.crt \
      --key ./botserver-stack/conf/system/certificates/api/client.key \
      --cacert ./botserver-stack/conf/system/certificates/ca/ca.crt \
-     https://127.0.0.1:8443/api/v1/status
+     https://127.0.0.1:8443/api/status
 ```
 
 ### Code Examples
@@ -42,7 +42,7 @@ curl --cert ./botserver-stack/conf/system/certificates/api/client.crt \
 import requests
 
 response = requests.get(
-    "https://127.0.0.1:8443/api/v1/bots",
+    "https://127.0.0.1:8443/api/bots",
     cert=("./botserver-stack/conf/system/certificates/api/client.crt",
           "./botserver-stack/conf/system/certificates/api/client.key"),
     verify="./botserver-stack/conf/system/certificates/ca/ca.crt"
@@ -58,7 +58,7 @@ const fs = require('fs');
 const options = {
   hostname: '127.0.0.1',
   port: 8443,
-  path: '/api/v1/bots',
+  path: '/api/bots',
   method: 'GET',
   cert: fs.readFileSync('./botserver-stack/conf/system/certificates/api/client.crt'),
   key: fs.readFileSync('./botserver-stack/conf/system/certificates/api/client.key'),
@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
     
     let response = client
-        .get("https://127.0.0.1:8443/api/v1/bots")
+        .get("https://127.0.0.1:8443/api/bots")
         .send()
         .await?;
     

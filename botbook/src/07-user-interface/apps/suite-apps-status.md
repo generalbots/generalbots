@@ -1,15 +1,18 @@
 # Suite Apps Status 🟡 BETA
 
-This page is generated from the application catalog in `botserver/src/apps/registry.rs`, so the counts below match the software. Do not edit it by hand — run `python3 scripts/docs_suite_apps_status.py`.
+The counts below are derived from `all_apps()` in
+`botserver/src/apps/registry/` (`entries.rs` + `entries_extra.rs`). A generator
+(`scripts/docs_suite_apps_status.py`) does **not** exist yet, so this page is
+maintained by hand: re-run the count before editing it.
 
-**Verified September 2026.** 73 applications in the catalog, 73 documented, 0 without a page, 73 with a screen diagram.
+**Verified against `all_apps()` (November 2026).** 68 applications in the catalog (`entries.rs` 34 + `entries_extra.rs` 34), 68 documented, 0 without a page, 68 with a screen diagram.
 
 ## Coverage
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="system-ui, -apple-system, sans-serif" role="img" aria-label="Suite documentation coverage: 73 of 73 catalog apps have a page">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="system-ui, -apple-system, sans-serif" role="img" aria-label="Suite documentation coverage: 68 of 68 catalog apps have a page">
   <rect width="660" height="380" rx="12" fill="#0d1117"/>
   <text x="330" y="38" text-anchor="middle" fill="#e6edf3" font-size="17" font-weight="600">Suite Documentation Coverage</text>
-  <text x="330" y="62" text-anchor="middle" fill="#8b949e" font-size="12">73 of 73 catalog apps documented · 73 with a screen diagram · 100%</text>
+  <text x="330" y="62" text-anchor="middle" fill="#8b949e" font-size="12">68 of 68 catalog apps documented · 68 with a screen diagram · 100%</text>
   <text x="20" y="104" fill="#8b949e" font-size="12">AI &amp; Assistants</text>
   <rect x="180" y="92" width="360" height="16" rx="4" fill="#161b22"/>
   <rect x="180" y="92" width="360" height="16" rx="4" fill="#3fb950"/>
@@ -30,7 +33,7 @@ This page is generated from the application catalog in `botserver/src/apps/regis
   <rect x="180" y="276" width="360" height="16" rx="4" fill="#161b22"/>
   <rect x="180" y="276" width="360" height="16" rx="4" fill="#3fb950"/>
   <text x="556" y="289" fill="#e6edf3" font-size="12">16/16 pages · 16 screens</text>
-  <text x="20" y="336" fill="#8b949e" font-size="11">Generated from registry.rs by scripts/docs_suite_apps_status.py — do not edit by hand</text>
+  <text x="20" y="336" fill="#8b949e" font-size="11">Counts derived from all_apps() in botserver/src/apps/registry/</text>
 </svg>
 
 ## Stability
@@ -159,8 +162,8 @@ Progress is stated as counts, not dates — nothing here promises a release wind
 
 | Area | Done | Outstanding |
 |---|---|---|
-| App pages | 73 documented | 0 applications have no page |
-| Screen diagrams | 73 apps have a screen | 0 applications have none |
+| App pages | 68 documented | 0 applications have no page |
+| Screen diagrams | 68 apps have a screen | 0 applications have none |
 | Non-app pages | 12 classified | 0 pages still need a decision |
 | Screens for non-catalog surfaces | 7 documented | 0 removed |
 

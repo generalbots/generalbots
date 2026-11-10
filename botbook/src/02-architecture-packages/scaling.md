@@ -1,10 +1,10 @@
 # Scaling and Load Balancing 🟡 BETA
 
-General Bots is designed to scale from a single instance to a distributed cluster using LXC containers. This chapter covers auto-scaling, load balancing, sharding strategies, and failover systems.
+General Bots is designed to scale from a single instance to a distributed cluster using Incus containers. This chapter covers auto-scaling, load balancing, sharding strategies, and failover systems.
 
 ## Scaling Architecture
 
-General Bots uses a **horizontal scaling** approach with LXC containers:
+General Bots uses a **horizontal scaling** approach with Incus containers:
 
 ```
                     ┌─────────────────┐
@@ -16,7 +16,7 @@ General Bots uses a **horizontal scaling** approach with LXC containers:
          │                   │                   │
          ▼                   ▼                   ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│  LXC Container  │ │  LXC Container  │ │  LXC Container  │
+│  Incus Container  │ │  Incus Container  │ │  Incus Container  │
 │   botserver-1   │ │   botserver-2   │ │   botserver-3   │
 └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
          │                   │                   │
@@ -78,15 +78,15 @@ scale-rule-queue-depth,100
 scale-rule-queue-action,up
 ```
 
-## LXC Container Management
+## Incus Container Management
 
 ### Creating Scaled Instances
 
 ```bash
 # Create additional botserver containers
 for i in {2..5}; do
-  lxc launch images:debian/12 botserver-$i
-  lxc config device add botserver-$i port-$((8080+i)) proxy \
+  incus launch images:debian/12 botserver-$i
+  incus config device add botserver-$i port-$((8080+i)) proxy \
     listen=tcp:0.0.0.0:$((8080+i)) connect=tcp:127.0.0.1:9000
 done
 ```
@@ -97,17 +97,17 @@ Set resource limits per container:
 
 ```bash
 # CPU limits (number of cores)
-lxc config set botserver-1 limits.cpu 4
+incus config set botserver-1 limits.cpu 4
 
 # Memory limits
-lxc config set botserver-1 limits.memory 8GB
+incus config set botserver-1 limits.memory 8GB
 
 # Disk I/O priority (0-10)
-lxc config set botserver-1 limits.disk.priority 5
+incus config set botserver-1 limits.disk.priority 5
 
 # Network bandwidth (ingress/egress)
-lxc config device set botserver-1 eth0 limits.ingress 100Mbit
-lxc config device set botserver-1 eth0 limits.egress 100Mbit
+incus config device set botserver-1 eth0 limits.ingress 100Mbit
+incus config device set botserver-1 eth0 limits.egress 100Mbit
 ```
 
 ### Auto-Scaling Script
@@ -127,8 +127,8 @@ LAST_SCALE_FILE="/tmp/last_scale_time"
 get_avg_cpu() {
     local total=0
     local count=0
-    for container in $(lxc list -c n --format csv | grep "^botserver-"); do
-        cpu=$(lxc exec $container -- cat /proc/loadavg | awk '{print $1}')
+    for container in $(incus list -c n --format csv | grep "^botserver-"); do
+        cpu=$(incus exec $container -- cat /proc/loadavg | awk '{print $1}')
         total=$(echo "$total + $cpu" | bc)
         count=$((count + 1))
     done
@@ -136,7 +136,7 @@ get_avg_cpu() {
 }
 
 get_instance_count() {
-    lxc list -c n --format csv | grep -c "^botserver-"
+    incus list -c n --format csv | grep -c "^botserver-"
 }
 
 can_scale() {
@@ -159,15 +159,15 @@ scale_up() {
     new_id=$((current + 1))
     echo "Scaling up: creating botserver-$new_id"
     
-    lxc launch images:debian/12 botserver-$new_id
-    lxc config set botserver-$new_id limits.cpu 4
-    lxc config set botserver-$new_id limits.memory 8GB
+    incus launch images:debian/12 botserver-$new_id
+    incus config set botserver-$new_id limits.cpu 4
+    incus config set botserver-$new_id limits.memory 8GB
     
     # Copy configuration
-    lxc file push /opt/gbo/conf/botserver.env botserver-$new_id/opt/gbo/conf/
+    incus file push /opt/gbo/conf/botserver.env botserver-$new_id/opt/gbo/conf/
     
     # Start botserver
-    lxc exec botserver-$new_id -- /opt/gbo/bin/botserver &
+    incus exec botserver-$new_id -- /opt/gbo/bin/botserver &
     
     # Update load balancer
     update_load_balancer
@@ -188,12 +188,12 @@ scale_down() {
     echo "Scaling down: removing $target"
     
     # Drain connections
-    lxc exec $target -- /opt/gbo/bin/botserver drain
+    incus exec $target -- /opt/gbo/bin/botserver drain
     sleep 30
     
     # Stop and delete
-    lxc stop $target
-    lxc delete $target
+    incus stop $target
+    incus delete $target
     
     # Update load balancer
     update_load_balancer
@@ -205,8 +205,8 @@ scale_down() {
 update_load_balancer() {
     # Generate upstream list
     upstreams=""
-    for container in $(lxc list -c n --format csv | grep "^botserver-"); do
-        ip=$(lxc list $container -c 4 --format csv | cut -d' ' -f1)
+    for container in $(incus list -c n --format csv | grep "^botserver-"); do
+        ip=$(incus list $container -c 4 --format csv | cut -d' ' -f1)
         upstreams="$upstreams\n        to $ip:9000"
     done
     
@@ -221,7 +221,7 @@ upstream botserver {
 EOF
     
     # Reload Caddy
-    lxc exec proxy-1 -- caddy reload --config /etc/caddy/Caddyfile
+    incus exec proxy-1 -- caddy reload --config /etc/caddy/Caddyfile
 }
 
 # Main loop
@@ -268,12 +268,12 @@ bot.example.com {
     
     # Health check endpoint (no load balancing)
     handle /api/health {
-        reverse_proxy localhost:9000
+        reverse_proxy localhost:8080
     }
     
     # WebSocket connections (sticky sessions)
     handle /ws* {
-        reverse_proxy botserver-1:9000 botserver-2:9000 botserver-3:9000 {
+        reverse_proxy botserver-1:8080 botserver-2:8080 botserver-3:8080 {
             lb_policy cookie
             lb_try_duration 5s
             health_uri /api/health
@@ -284,7 +284,7 @@ bot.example.com {
     
     # API requests (round robin)
     handle /api/* {
-        reverse_proxy botserver-1:9000 botserver-2:9000 botserver-3:9000 {
+        reverse_proxy botserver-1:8080 botserver-2:8080 botserver-3:8080 {
             lb_policy round_robin
             lb_try_duration 5s
             health_uri /api/health
@@ -295,7 +295,7 @@ bot.example.com {
     
     # Static files (any instance)
     handle {
-        reverse_proxy botserver-1:9000 botserver-2:9000 botserver-3:9000 {
+        reverse_proxy botserver-1:8080 botserver-2:8080 botserver-3:8080 {
             lb_policy first
         }
     }
@@ -491,7 +491,7 @@ Health check response:
 ```json
 {
   "status": "healthy",
-  "version": "6.7.0",
+  "version": "7.0.0",
   "uptime": 86400,
   "checks": {
     "database": "ok",
@@ -667,6 +667,6 @@ groups:
 
 ## Next Steps
 
-- [Container Deployment](./containers.md) - LXC container basics
+- [Container Deployment](./containers.md) - Incus container basics
 - [Architecture Overview](./architecture.md) - System design
 - [Monitoring Dashboard](../07-user-interface/monitoring.md) - Observe your cluster

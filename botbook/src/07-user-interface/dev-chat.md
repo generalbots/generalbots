@@ -130,7 +130,7 @@ This means:
 The widget connects via WebSocket for real-time updates:
 
 ```
-ws://localhost:9000/ws/dev
+ws://localhost:8080/ws/dev
 ```
 
 When connected:

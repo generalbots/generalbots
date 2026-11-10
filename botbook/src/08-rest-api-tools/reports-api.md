@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/reports
+http://localhost:8080/api/reports
 ```
 
 ## Authentication
@@ -22,34 +22,34 @@ Uses the standard botserver authentication mechanism with appropriate role-based
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/reports/generate` | Generate a new report |
-| GET | `/api/v1/reports/{report_id}/status` | Get report generation status |
-| GET | `/api/v1/reports/{report_id}` | Get report metadata |
+| POST | `/api/reports/generate` | Generate a new report |
+| GET | `/api/reports/{report_id}/status` | Get report generation status |
+| GET | `/api/reports/{report_id}` | Get report metadata |
 
 ### Report Management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/reports` | List all reports |
-| GET | `/api/v1/reports/{report_id}/download` | Download report file |
-| DELETE | `/api/v1/reports/{report_id}` | Delete a report |
+| GET | `/api/reports` | List all reports |
+| GET | `/api/reports/{report_id}/download` | Download report file |
+| DELETE | `/api/reports/{report_id}` | Delete a report |
 
 ### Report Scheduling
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/reports/schedule` | Create scheduled report |
-| GET | `/api/v1/reports/schedule` | List scheduled reports |
-| PUT | `/api/v1/reports/schedule/{schedule_id}` | Update schedule |
-| DELETE | `/api/v1/reports/schedule/{schedule_id}` | Delete schedule |
+| POST | `/api/reports/schedule` | Create scheduled report |
+| GET | `/api/reports/schedule` | List scheduled reports |
+| PUT | `/api/reports/schedule/{schedule_id}` | Update schedule |
+| DELETE | `/api/reports/schedule/{schedule_id}` | Delete schedule |
 
 ### Report Templates
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/reports/templates` | List available templates |
-| POST | `/api/v1/reports/templates` | Create custom template |
-| GET | `/api/v1/reports/templates/{template_id}` | Get template details |
+| GET | `/api/reports/templates` | List available templates |
+| POST | `/api/reports/templates` | Create custom template |
+| GET | `/api/reports/templates/{template_id}` | Get template details |
 
 ## Report Types
 
@@ -83,18 +83,18 @@ report_config.end_date = "2025-01-31"
 report_config.format = "pdf"
 report_config.include_charts = true
 
-result = POST "/api/v1/reports/generate", report_config
+result = POST "/api/reports/generate", report_config
 TALK "Report ID: " + result.report_id
 ```
 
 ### Check Report Status
 
 ```bas
-status = GET "/api/v1/reports/rpt-123/status"
+status = GET "/api/reports/rpt-123/status"
 
 IF status.state = "completed" THEN
     TALK "Report ready for download"
-    url = GET "/api/v1/reports/rpt-123/download"
+    url = GET "/api/reports/rpt-123/download"
 ELSE
     TALK "Report generation: " + status.progress + "%"
 END IF
@@ -110,14 +110,14 @@ schedule.cron = "0 8 * * 1"
 schedule.recipients = ["manager@company.com"]
 schedule.timezone = "America/New_York"
 
-result = POST "/api/v1/reports/schedule", schedule
+result = POST "/api/reports/schedule", schedule
 TALK "Scheduled report: " + result.schedule_id
 ```
 
 ### List Available Templates
 
 ```bas
-templates = GET "/api/v1/reports/templates"
+templates = GET "/api/reports/templates"
 FOR EACH template IN templates
     TALK template.name + " - " + template.description
 NEXT
@@ -135,7 +135,7 @@ report.sections.ADD({"type": "top_conversations"})
 report.sections.ADD({"type": "satisfaction_scores"})
 report.format = "pdf"
 
-result = POST "/api/v1/reports/generate", report
+result = POST "/api/reports/generate", report
 ```
 
 ## Response Codes

@@ -14,7 +14,7 @@ The Notifications API enables:
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/notifications
+http://localhost:8080/api/notifications
 ```
 
 ## Authentication
@@ -446,7 +446,7 @@ curl -X POST \
     "title": "Hello",
     "message": "This is a test notification"
   }' \
-  http://localhost:9000/api/v1/notifications/send
+  http://localhost:8080/api/notifications/send
 ```
 
 ### Schedule Broadcast
@@ -463,7 +463,7 @@ curl -X POST \
     },
     "schedule": "2024-01-20T02:00:00Z"
   }' \
-  http://localhost:9000/api/v1/notifications/broadcast
+  http://localhost:8080/api/notifications/broadcast
 ```
 
 ## Best Practices

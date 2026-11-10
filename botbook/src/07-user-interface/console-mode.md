@@ -90,7 +90,7 @@ Console mode supports any terminal with basic text output capabilities. UTF-8 su
 
 ## Tips
 
-Console mode operates in read-only fashion and does not accept bot commands. For interactive bot testing, use the web interface available at http://localhost:9000. The display refreshes automatically every few seconds to show current status. Output is buffered for performance to avoid slowing down the server during high activity periods.
+Console mode operates in read-only fashion and does not accept bot commands. For interactive bot testing, use the web interface available at http://localhost:3000. The display refreshes automatically every few seconds to show current status. Output is buffered for performance to avoid slowing down the server during high activity periods.
 
 ## Troubleshooting
 

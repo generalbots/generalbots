@@ -110,9 +110,9 @@ A lightweight remote desktop environment is provided through XFCE from [xfce.org
 
 Essential developer utilities including Git, Curl, and Xclip are bundled with the platform. These tools, available under GPL, MIT, and BSD licenses respectively, support automation and scripting workflows.
 
-### Host (LXD)
+### Host (Incus)
 
-Container and virtualization management is handled by LXD from [linuxcontainers/lxd](https://github.com/lxc/lxd). This Apache 2.0 licensed component enables isolated environments for bot deployment and testing.
+Container and virtualization management is handled by [Incus](https://github.com/lxc/incus) (Apache 2.0), the fork of LXD maintained by the Linux Containers community. It enables isolated environments for bot deployment and testing.
 
 ---
 

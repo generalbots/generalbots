@@ -9,7 +9,7 @@ automation, the hardened browsing control plane and enterprise connectors.
 Every capability ships behind a feature flag and preserves legacy behavior
 when disabled. Backend entry points are additive namespaces (`/api/agent/*`,
 `/api/automations/*`, `/api/marketplace/*`, `/api/memory/*`, `/api/browser/*`,
-`/api/consent/*`, `/api/connectors/*`, `/api/v1/sandbox`).
+`/api/consent/*`, `/api/connectors/*`, `/api/v2/sandbox/*`).
 
 ## In this chapter
 

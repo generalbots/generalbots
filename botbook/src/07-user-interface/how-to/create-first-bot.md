@@ -76,7 +76,7 @@ Launch your preferred web browser by clicking its icon.
 Type your General Bots address in the address bar and press **Enter**.
 
 💡 **Tip**: Your URL will look something like:
-- `http://localhost:9000` (development)
+- `http://localhost:3000` (suite, development)
 - `https://bots.yourcompany.com` (production)
 - `https://app.pragmatismo.cloud` (cloud hosted)
 

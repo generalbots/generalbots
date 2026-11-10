@@ -9,7 +9,7 @@ This API is on the development roadmap. The endpoints documented below represent
 ## Base URL
 
 ```
-http://localhost:9000/api/v1/security
+http://localhost:8080/api/security
 ```
 
 ## Authentication
@@ -22,60 +22,60 @@ Uses the standard botserver authentication mechanism with elevated security perm
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/security/auth/login` | Authenticate user |
-| POST | `/api/v1/security/auth/logout` | End session |
-| POST | `/api/v1/security/auth/refresh` | Refresh access token |
-| POST | `/api/v1/security/auth/mfa/setup` | Setup MFA |
-| POST | `/api/v1/security/auth/mfa/verify` | Verify MFA code |
+| POST | `/api/security/auth/login` | Authenticate user |
+| POST | `/api/security/auth/logout` | End session |
+| POST | `/api/security/auth/refresh` | Refresh access token |
+| POST | `/api/security/auth/mfa/setup` | Setup MFA |
+| POST | `/api/security/auth/mfa/verify` | Verify MFA code |
 
 ### API Keys
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/security/keys/generate` | Generate new API key |
-| GET | `/api/v1/security/keys` | List API keys |
-| GET | `/api/v1/security/keys/{key_id}` | Get key details |
-| PUT | `/api/v1/security/keys/{key_id}` | Update key permissions |
-| DELETE | `/api/v1/security/keys/{key_id}` | Revoke API key |
+| POST | `/api/security/keys/generate` | Generate new API key |
+| GET | `/api/security/keys` | List API keys |
+| GET | `/api/security/keys/{key_id}` | Get key details |
+| PUT | `/api/security/keys/{key_id}` | Update key permissions |
+| DELETE | `/api/security/keys/{key_id}` | Revoke API key |
 
 ### Access Control
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/security/roles` | List all roles |
-| POST | `/api/v1/security/roles` | Create a role |
-| GET | `/api/v1/security/roles/{role_id}` | Get role details |
-| PUT | `/api/v1/security/roles/{role_id}` | Update role |
-| DELETE | `/api/v1/security/roles/{role_id}` | Delete role |
-| GET | `/api/v1/security/permissions` | List all permissions |
-| PUT | `/api/v1/security/permissions` | Update permissions |
+| GET | `/api/security/roles` | List all roles |
+| POST | `/api/security/roles` | Create a role |
+| GET | `/api/security/roles/{role_id}` | Get role details |
+| PUT | `/api/security/roles/{role_id}` | Update role |
+| DELETE | `/api/security/roles/{role_id}` | Delete role |
+| GET | `/api/security/permissions` | List all permissions |
+| PUT | `/api/security/permissions` | Update permissions |
 
 ### Audit Logs
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/security/audit` | List audit log entries |
-| GET | `/api/v1/security/audit/{id}` | Get specific audit entry |
-| POST | `/api/v1/security/audit/export` | Export audit logs |
-| GET | `/api/v1/security/audit/summary` | Get audit summary |
+| GET | `/api/security/audit` | List audit log entries |
+| GET | `/api/security/audit/{id}` | Get specific audit entry |
+| POST | `/api/security/audit/export` | Export audit logs |
+| GET | `/api/security/audit/summary` | Get audit summary |
 
 ### Session Management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/security/sessions` | List active sessions |
-| GET | `/api/v1/security/sessions/{session_id}` | Get session details |
-| DELETE | `/api/v1/security/sessions/{session_id}` | Terminate session |
-| DELETE | `/api/v1/security/sessions/user/{user_id}` | Terminate all user sessions |
+| GET | `/api/security/sessions` | List active sessions |
+| GET | `/api/security/sessions/{session_id}` | Get session details |
+| DELETE | `/api/security/sessions/{session_id}` | Terminate session |
+| DELETE | `/api/security/sessions/user/{user_id}` | Terminate all user sessions |
 
 ### Security Monitoring
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/security/threats` | List detected threats |
-| GET | `/api/v1/security/vulnerabilities` | List vulnerabilities |
-| POST | `/api/v1/security/scan` | Initiate security scan |
-| GET | `/api/v1/security/scan/{scan_id}` | Get scan results |
+| GET | `/api/security/threats` | List detected threats |
+| GET | `/api/security/vulnerabilities` | List vulnerabilities |
+| POST | `/api/security/scan` | Initiate security scan |
+| GET | `/api/security/scan/{scan_id}` | Get scan results |
 
 ## Request Examples
 
@@ -86,7 +86,7 @@ credentials = NEW OBJECT
 credentials.email = "admin@example.com"
 credentials.password = "secure_password"
 
-result = POST "/api/v1/security/auth/login", credentials
+result = POST "/api/security/auth/login", credentials
 token = result.access_token
 TALK "Logged in successfully"
 ```
@@ -99,7 +99,7 @@ key_config.name = "Integration Key"
 key_config.scopes = ["read:bots", "write:messages"]
 key_config.expires_in_days = 90
 
-result = POST "/api/v1/security/keys/generate", key_config
+result = POST "/api/security/keys/generate", key_config
 TALK "API Key: " + result.key
 TALK "Expires: " + result.expires_at
 ```
@@ -112,14 +112,14 @@ role.name = "bot_manager"
 role.description = "Can manage bots and configurations"
 role.permissions = ["bot:read", "bot:write", "bot:delete", "config:read", "config:write"]
 
-result = POST "/api/v1/security/roles", role
+result = POST "/api/security/roles", role
 TALK "Role created: " + result.id
 ```
 
 ### List Active Sessions
 
 ```bas
-sessions = GET "/api/v1/security/sessions"
+sessions = GET "/api/security/sessions"
 FOR EACH session IN sessions
     TALK session.user_email + " - " + session.ip_address + " (" + session.last_activity + ")"
 NEXT
@@ -128,7 +128,7 @@ NEXT
 ### Query Audit Logs
 
 ```bas
-audit = GET "/api/v1/security/audit?action=login&days=7"
+audit = GET "/api/security/audit?action=login&days=7"
 FOR EACH entry IN audit
     TALK entry.timestamp + " | " + entry.user + " | " + entry.action + " | " + entry.result
 NEXT
@@ -137,7 +137,7 @@ NEXT
 ### Terminate Session
 
 ```bas
-DELETE "/api/v1/security/sessions/session-123"
+DELETE "/api/security/sessions/session-123"
 TALK "Session terminated"
 ```
 

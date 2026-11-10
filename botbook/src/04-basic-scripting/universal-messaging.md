@@ -21,7 +21,7 @@ This script works identically whether the user is:
 ## Supported Channels
 
 ### Web (Default)
-The primary channel. Users access via browser at `http://localhost:9000`.
+The primary channel. Users access via browser at `http://localhost:3000`.
 
 ### WhatsApp Business
 Requires WhatsApp Business API configuration. Messages are automatically formatted for WhatsApp's constraints.

@@ -10,7 +10,7 @@ A complete General Bots deployment typically includes:
 
 | Component | Purpose | Providers Supported |
 |-----------|---------|---------------------|
-| **Hosting** | Run botserver | Any VPS, LXC, bare metal |
+| **Hosting** | Run botserver | Any VPS, Incus, bare metal |
 | **DNS** | Domain registration + records | Porkbun, Cloudflare, Dynadot, Namecheap, deSEC |
 | **MDA** | Email delivery | Stalwart, Postfix, external SMTP |
 | **AI/LLM** | Language models | OpenAI, Anthropic, local models |
@@ -231,27 +231,27 @@ vastai-api-key, your-key-here
 vultr-api-key, your-key-here
 ```
 
-### LXC Container Deployment
+### Incus Container Deployment
 
 Recommended for production isolation:
 
 ```bash
 # Create container
-lxc launch ubuntu:22.04 botserver
+incus launch ubuntu:22.04 botserver
 
 # Configure resources
-lxc config set botserver limits.memory 4GB
-lxc config set botserver limits.cpu 2
+incus config set botserver limits.memory 4GB
+incus config set botserver limits.cpu 2
 
 # Forward ports
-lxc config device add botserver http proxy listen=tcp:0.0.0.0:80 connect=tcp:127.0.0.1:8080
-lxc config device add botserver https proxy listen=tcp:0.0.0.0:443 connect=tcp:127.0.0.1:8443
+incus config device add botserver http proxy listen=tcp:0.0.0.0:80 connect=tcp:127.0.0.1:8080
+incus config device add botserver https proxy listen=tcp:0.0.0.0:443 connect=tcp:127.0.0.1:8443
 
 # Set environment for Vault
-lxc config set botserver environment.VAULT_ADDR="http://vault:8200"
+incus config set botserver environment.VAULT_ADDR="http://vault:8200"
 
 # Deploy
-lxc exec botserver -- ./botserver
+incus exec botserver -- ./botserver
 ```
 
 ### Docker Deployment

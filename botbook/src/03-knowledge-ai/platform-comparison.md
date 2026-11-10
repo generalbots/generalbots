@@ -151,7 +151,7 @@ Integration flexibility allows connecting to any system without marketplace limi
 
 ### Self-Hosted
 
-Run General Bots on your own infrastructure with single binary deployment, container support through LXC and Docker, horizontal scaling, and full observability.
+Run General Bots on your own infrastructure with single binary deployment, container support through Incus and Docker, horizontal scaling, and full observability.
 
 ### Quick Start
 
