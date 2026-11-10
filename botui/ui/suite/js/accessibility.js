@@ -4,6 +4,12 @@
 "use strict";
 
 (function () {
+  // #2095 — every user-visible string goes through the catalogue; the authored
+  // English text is the fallback when the locale bundle lacks the key.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   function addSkipNav() {
     if (document.getElementById("gb-skip-nav")) return;
     // Prefer the always-present main landmark; #messages only exists after
@@ -14,7 +20,7 @@
     skip.id = "gb-skip-nav";
     skip.href = target ? "#desktop-content" : "#messages";
     skip.tabIndex = 0;
-    skip.textContent = "Skip to main content";
+    skip.textContent = t("a11y-skip-to-content", "Skip to main content");
     skip.style.cssText = "position:fixed;top:-100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:#fff;padding:10px 20px;border-radius:0 0 8px 8px;z-index:999999;font-size:14px;font-weight:600;transition:top 0.2s;";
     skip.addEventListener("focus", function () { skip.style.top = "0"; });
     skip.addEventListener("blur", function () { skip.style.top = "-100px"; });
@@ -28,26 +34,26 @@
       // main landmark. A chat window is one region inside it, never a second
       // main — two main landmarks fail landmark-one-main on the served page.
       chat.setAttribute("role", "region");
-      chat.setAttribute("aria-label", "Chat conversation");
+      chat.setAttribute("aria-label", t("a11y-chat-conversation", "Chat conversation"));
     }
     var messages = document.getElementById("messages");
     if (messages) {
       messages.setAttribute("role", "log");
       messages.setAttribute("aria-live", "polite");
-      messages.setAttribute("aria-label", "Chat messages");
+      messages.setAttribute("aria-label", t("a11y-chat-messages", "Chat messages"));
     }
     var chatForm = document.getElementById("chatForm");
     if (chatForm) {
       chatForm.setAttribute("role", "form");
-      chatForm.setAttribute("aria-label", "Send message");
+      chatForm.setAttribute("aria-label", t("a11y-send-message", "Send message"));
     }
     var input = document.getElementById("messageInput");
     if (input) {
-      input.setAttribute("aria-label", "Type your message");
+      input.setAttribute("aria-label", t("a11y-type-message", "Type your message"));
     }
     var sendBtn = document.getElementById("sendBtn");
     if (sendBtn) {
-      sendBtn.setAttribute("aria-label", "Send message");
+      sendBtn.setAttribute("aria-label", t("a11y-send-message", "Send message"));
     }
   }
 
@@ -96,19 +102,19 @@
     modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
 
     var shortcuts = [
-      ["/", "Focus chat input"],
-      ["Shift + ?", "Show this help"],
-      ["Escape", "Close modal / clear selection"],
-      ["Ctrl + K", "Command palette"],
-      ["Ctrl + ,", "Privacy settings"],
-      ["PageUp / PageDown", "Scroll chat history"],
-      ["Tab", "Navigate between elements"],
-      ["Enter", "Activate focused element"],
-      ["Delete", "Delete selected files (Drive)"],
-      ["Ctrl + A", "Select all files (Drive)"],
-      ["Ctrl + C / X / V", "Copy / Cut / Paste files"],
-      ["Backspace", "Navigate up in Drive"],
-      ["F2", "Rename selected file"],
+      ["/", t("a11y-shortcut-focus-chat", "Focus chat input")],
+      ["Shift + ?", t("a11y-shortcut-show-help", "Show this help")],
+      ["Escape", t("a11y-shortcut-escape", "Close modal / clear selection")],
+      ["Ctrl + K", t("a11y-shortcut-command-palette", "Command palette")],
+      ["Ctrl + ,", t("a11y-shortcut-privacy", "Privacy settings")],
+      ["PageUp / PageDown", t("a11y-shortcut-scroll-history", "Scroll chat history")],
+      ["Tab", t("a11y-shortcut-navigate", "Navigate between elements")],
+      ["Enter", t("a11y-shortcut-activate", "Activate focused element")],
+      ["Delete", t("a11y-shortcut-delete-files", "Delete selected files (Drive)")],
+      ["Ctrl + A", t("a11y-shortcut-select-all", "Select all files (Drive)")],
+      ["Ctrl + C / X / V", t("a11y-shortcut-clipboard", "Copy / Cut / Paste files")],
+      ["Backspace", t("a11y-shortcut-navigate-up", "Navigate up in Drive")],
+      ["F2", t("a11y-shortcut-rename", "Rename selected file")],
     ];
 
     var rows = shortcuts.map(function (s) {
@@ -116,7 +122,7 @@
     }).join("");
 
     modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;padding:24px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3 style="margin:0;color:#f8fafc;">Keyboard Shortcuts</h3><button onclick="document.getElementById(\'keyboard-help-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3 style="margin:0;color:#f8fafc;">' + t("a11y-keyboard-shortcuts", "Keyboard Shortcuts") + '</h3><button onclick="document.getElementById(\'keyboard-help-modal\').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>'
       + '<table style="width:100%;border-collapse:collapse;">' + rows + '</table>'
       + '</div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });

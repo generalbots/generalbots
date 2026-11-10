@@ -8,6 +8,11 @@
 (function () {
   // Path segments that are suite routes/apps — never treated as bot names
   // when deriving the active bot from location.pathname.
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
   var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app",
     "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin", "wizard"];
 
@@ -351,12 +356,12 @@
     if (host) {
       host.innerHTML =
         '<span class="sidebar-user-avatar sidebar-user-avatar-anon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>' +
-        '<span class="sidebar-user-name">Sign in</span>';
+        '<span class="sidebar-user-name">' + t("sidebar-sign-in", "Sign in") + '</span>';
       host.onclick = goLogin;
     }
     if (collapsedHost) {
       collapsedHost.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-      collapsedHost.title = "Sign in";
+      collapsedHost.title = t("sidebar-sign-in", "Sign in");
       collapsedHost.onclick = goLogin;
     }
   }

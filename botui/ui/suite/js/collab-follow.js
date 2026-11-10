@@ -12,6 +12,12 @@
  * `getPresence` must be a function returning the presence API object.
  */
 (function (window) {
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   var panel = null;
 
   function build() {
@@ -33,13 +39,15 @@
     try { list = (getPresence && getPresence().list()) || []; } catch (_) {}
 
     var header = document.createElement("div");
-    header.textContent = "Collaborators (" + list.length + ")";
+    header.textContent = window.gbT
+      ? window.gbT("collab-collaborators", "Collaborators (" + list.length + ")", { count: list.length })
+      : "Collaborators (" + list.length + ")";
     header.style.cssText = "color:#94a3b8;font-size:11px;font-weight:600;padding:4px 8px;";
     p.appendChild(header);
 
     if (!list.length) {
       var empty = document.createElement("div");
-      empty.textContent = "No one else is here";
+      empty.textContent = t("collab-no-one-else", "No one else is here");
       empty.style.cssText = "color:#64748b;font-size:12px;padding:8px;";
       p.appendChild(empty);
       return;

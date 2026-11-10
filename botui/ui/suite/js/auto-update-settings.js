@@ -6,6 +6,12 @@
 
 (function () {
   if (!window.GBUpdate || window.GBUpdateSettings) return;
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
 
   var GB = window.GBUpdate;
 
@@ -40,7 +46,10 @@
     if (!status) return;
     status.style.color = error ? "#f87171" : "";
     if (error) {
-      status.textContent = "Update check failed: " + String(error);
+      var message = String(error);
+      status.textContent = window.gbT
+        ? window.gbT("update-check-failed", "Update check failed: " + message, { error: message })
+        : "Update check failed: " + message;
       return;
     }
     status.textContent = text || "";
@@ -60,7 +69,7 @@
         status.innerHTML =
           'Update available: <strong>v' +
           escapeHtml(info.latest_version) +
-          '</strong> <a href="#" id="updates-release-link">View release notes</a>';
+          '</strong> <a href="#" id="updates-release-link">' + t("update-view-release-notes", "View release notes") + '</a>';
         var link = document.getElementById("updates-release-link");
         if (link) {
           link.addEventListener("click", function (event) {
@@ -119,13 +128,15 @@
         "position:fixed;top:0;left:0;width:100%;height:100%;" +
         "background:rgba(15,23,42,0.85);display:flex;align-items:center;" +
         "justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
-      var text = notes || "No release notes available.";
+      var text = notes || t("update-no-release-notes", "No release notes available.");
       modal.innerHTML =
         '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;' +
         'width:90%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;' +
-        'border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;">Release Notes — v' +
-        escapeHtml(version) +
+        'border-bottom:1px solid #334155;"><h3 style="margin:0;color:#f8fafc;">' +
+        (window.gbT
+          ? window.gbT("update-release-notes-title", "Release Notes — v" + escapeHtml(version), { version: escapeHtml(version) })
+          : "Release Notes — v" + escapeHtml(version)) +
         '</h3><button type="button" id="release-notes-close" style="background:none;border:none;' +
         'color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>' +
         '<div style="padding:24px;overflow-y:auto;flex:1;color:#cbd5e1;font-size:14px;' +

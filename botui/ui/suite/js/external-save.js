@@ -139,8 +139,12 @@ window.GBExternalSave = (function () {
         item.dataset.target = option.id;
         item.innerHTML = option.icon + '<span class="gb-save-menu-label"></span>';
         item.querySelector(".gb-save-menu-label").textContent =
-          "Save to " + option.label;
-        item.title = "Save to " + option.label;
+          window.gbT
+            ? window.gbT("external-save-to", "Save to " + option.label, { target: option.label })
+            : "Save to " + option.label;
+        item.title = window.gbT
+          ? window.gbT("external-save-to", "Save to " + option.label, { target: option.label })
+          : "Save to " + option.label;
         item.addEventListener("click", function () {
           closeMenu();
           resolve(option.id);

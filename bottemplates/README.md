@@ -86,9 +86,49 @@ cp -r templates/bots/sales/crm.gbai /path/to/your/bot/packages/
 
 ---
 
+## Localization (i18n)
+
+Templates ship **one language per template** — a default template must never mix
+Portuguese and English in the same `start.bas` (suggestions, `TALK` body and
+system prompt all in the same language). The English pack under `bots/` is the
+source language; the Brazil-specific demos (`food`, `taxi`, `doctor`, …) ship in
+pt-BR.
+
+Every shipped prompt carries the **response-language contract** so a bot never
+answers in a language the user did not write:
+
+```
+Always answer in the user's language. If the user writes in Portuguese, answer
+in Portuguese; if Japanese, answer in Japanese. Keep code, commands,
+identifiers and file paths unchanged.
+```
+
+Prompts are resolved per channel by the runtime, in this order
+(`load_system_prompt_for_channel`):
+
+1. `PROMPT-<CHANNEL>.md` (e.g. `PROMPT-WEB.md`, `PROMPT-WHATSAPP.md`)
+2. `PROMPT.md` / `prompt.md` / `PROMPT.txt` / `prompt.txt`
+3. The generic assistant fallback
+
+A localized variant is a **new file next to the base one** — never an edit of the
+base prompt: `PROMPT-<CHANNEL>.md` stays English (source), and a translated copy
+is named `PROMPT-<CHANNEL>.<locale>.md` (`PROMPT-WEB.pt-BR.md`). The same rule
+applies to content: `start.<locale>.bas` next to `start.bas`. Today the deploy
+endpoint copies the template tree as-is and the runtime reads only the base
+names, so a variant file is inert until the locale-aware selection lands; ship
+it alongside the base file so the copy is already in place when it does.
+
+Suggestion and switcher labels are authored as plain text today. The target
+mechanism (tracked in #2095) is keyed labels — `ADD SUGGESTION "bot-food-order"`
+resolved through `botlib/locales/<locale>/bot-templates.ftl` — which needs a
+catalogue lookup on the BASIC side; until that exists, keep each template in a
+single language and put the translation in a locale variant.
+
+---
+
 ## License
 
-All templates are licensed under AGPL-3.0 as part of General Bots.
+All templates are licensed under MIT as part of General Bots.
 
 ---
 

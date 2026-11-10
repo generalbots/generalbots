@@ -61,3 +61,88 @@ setup-next = Avançar
 setup-finish = Concluir
 setup-skip = Pular Configuração
 agent-all-apps = Todos os apps
+
+# --- Painéis do shell do desktop: versões, acessibilidade, barra lateral,
+# --- colaboração, atualizações, modais e uso (suite/js/*.js) — #2095
+
+versions-component = Componente
+versions-version = Versão
+versions-status = Status
+versions-action = Ação
+versions-up-to-date = Atualizado
+versions-unknown = Desconhecido
+versions-check-update = Verificar atualização
+versions-checking = Verificando...
+versions-checked = Verificado
+versions-error = Erro
+versions-update-available = Atualizar: { $version }
+versions-could-not-load = Não foi possível carregar as informações de versão.
+versions-ensure-backend = Verifique se o servidor backend está em execução.
+versions-retry = Tentar novamente
+
+a11y-chat-conversation = Conversa do chat
+a11y-chat-messages = Mensagens do chat
+a11y-send-message = Enviar mensagem
+a11y-type-message = Digite sua mensagem
+a11y-keyboard-shortcuts = Atalhos de teclado
+a11y-shortcut-focus-chat = Focar o campo do chat
+a11y-shortcut-show-help = Mostrar esta ajuda
+a11y-shortcut-escape = Fechar modal / limpar seleção
+a11y-shortcut-command-palette = Paleta de comandos
+a11y-shortcut-privacy = Configurações de privacidade
+a11y-shortcut-scroll-history = Rolar o histórico do chat
+a11y-shortcut-navigate = Navegar entre elementos
+a11y-shortcut-activate = Ativar o elemento em foco
+a11y-shortcut-delete-files = Excluir arquivos selecionados (Drive)
+a11y-shortcut-select-all = Selecionar todos os arquivos (Drive)
+a11y-shortcut-clipboard = Copiar / Recortar / Colar arquivos
+a11y-shortcut-navigate-up = Subir um nível no Drive
+a11y-shortcut-rename = Renomear o arquivo selecionado
+
+sidebar-locked-conversations = Conversas bloqueadas
+sidebar-no-conversations = Nenhuma conversa ainda
+sidebar-sign-in-conversations = Entre para ver suas conversas
+sidebar-history-unavailable = Histórico indisponível
+sidebar-back-to-conversations = ← Voltar para as conversas
+sidebar-no-locked-conversations = Nenhuma conversa bloqueada
+sidebar-locked-conversation = Conversa bloqueada
+sidebar-sign-in = Entrar
+sidebar-add-pin = Adicionar fixado
+
+collab-collaborators = Colaboradores ({ $count })
+collab-no-one-else = Ninguém mais está aqui
+
+update-available-title = Atualização disponível — v{ $version }
+update-now = Atualizar agora
+update-later = Depois
+update-skip-version = Ignorar esta versão
+update-platform = Plataforma: { $name }
+update-asset = Arquivo: { $name }
+update-check-failed = Falha ao verificar atualização: { $error }
+update-view-release-notes = Ver notas da versão
+update-release-notes-title = Notas da versão — v{ $version }
+update-no-release-notes = Nenhuma nota de versão disponível.
+
+modal-alert-title = Aviso
+modal-input-title = Entrada
+
+external-save-to = Salvar em { $target }
+
+usage-title = Uso e custo
+usage-last-days = Últimos { $days } dias
+usage-loading = Carregando uso…
+usage-per-model = Por modelo
+usage-per-day = Por dia
+usage-model = Modelo
+usage-tokens = Tokens
+usage-messages = Mensagens
+usage-cost = Custo
+usage-day = Dia
+usage-days-7 = 7 dias
+usage-days-30 = 30 dias
+usage-days-90 = 90 dias
+
+pin-close = Fechar
+pin-length-hint = 4–8 dígitos
+pin-cancel = Cancelar
+pin-ok = OK

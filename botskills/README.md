@@ -206,6 +206,56 @@ provided one (Apache-2.0 for the Anthropic-derived skills).
 against its `LICENSE` at the pin above. Re-verify licenses before commercial
 redistribution.
 
+## Localization
+
+The pack is **English-only by design**: English is the source language for every
+`SKILL.md` (front matter and instructions), and `description` must stay English
+because it is the marketplace/skill-catalog metadata the runtime advertises to
+the model.
+
+Skill instructions must not pin an answer language — no "answer in English"
+rule. The response language comes from the prompt assembly, which carries the
+contract:
+
+```
+Always answer in the user's language. If the user writes in Portuguese, answer
+in Portuguese; if Japanese, answer in Japanese. Keep code, commands,
+identifiers and file paths unchanged.
+```
+
+### Adding a translated skill
+
+Do **not** translate the 101 packages in place. A translation is an additive
+variant next to the source file:
+
+```
+business/tax-summary/
+├── SKILL.md              # English source (unchanged, always present)
+├── pt-BR/SKILL.md        # translated variant
+├── es/SKILL.md
+└── scripts/…             # shared, language-neutral
+```
+
+Declare the source language and the shipped variants in the manifest:
+
+```yaml
+---
+name: tax-summary
+description: Summarizes tax obligations for a fiscal period.
+language: en                 # source language (BCP-47), defaults to en
+translations: [pt-BR, es]    # variants present under <locale>/SKILL.md
+---
+```
+
+Rules for a variant:
+
+- `name` and `language` must match the source manifest; only prose is translated.
+- Keep code blocks, commands, identifiers and file paths byte-identical.
+- A missing variant falls back to the English `SKILL.md` — never leave a
+  half-translated file in place of the source.
+- The catalog (`botlib/locales/<locale>/*.ftl`) carries the translated `name` and
+  purpose for the marketplace; the skill body is not part of the UI catalogue.
+
 ## Usage
 
 Skills are plain folders — copy the category/skill directory into the agent's

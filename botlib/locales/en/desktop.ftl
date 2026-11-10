@@ -61,3 +61,88 @@ setup-next = Next
 setup-finish = Finish
 setup-skip = Skip Setup
 agent-all-apps = All apps
+
+# --- Desktop shell panels: versions, accessibility, sidebar, collaboration,
+# --- updates, modals and usage (suite/js/*.js) — #2095
+
+versions-component = Component
+versions-version = Version
+versions-status = Status
+versions-action = Action
+versions-up-to-date = Up to date
+versions-unknown = Unknown
+versions-check-update = Check Update
+versions-checking = Checking...
+versions-checked = Checked
+versions-error = Error
+versions-update-available = Update: { $version }
+versions-could-not-load = Could not load version information.
+versions-ensure-backend = Make sure the backend server is running.
+versions-retry = Retry
+
+a11y-chat-conversation = Chat conversation
+a11y-chat-messages = Chat messages
+a11y-send-message = Send message
+a11y-type-message = Type your message
+a11y-keyboard-shortcuts = Keyboard Shortcuts
+a11y-shortcut-focus-chat = Focus chat input
+a11y-shortcut-show-help = Show this help
+a11y-shortcut-escape = Close modal / clear selection
+a11y-shortcut-command-palette = Command palette
+a11y-shortcut-privacy = Privacy settings
+a11y-shortcut-scroll-history = Scroll chat history
+a11y-shortcut-navigate = Navigate between elements
+a11y-shortcut-activate = Activate focused element
+a11y-shortcut-delete-files = Delete selected files (Drive)
+a11y-shortcut-select-all = Select all files (Drive)
+a11y-shortcut-clipboard = Copy / Cut / Paste files
+a11y-shortcut-navigate-up = Navigate up in Drive
+a11y-shortcut-rename = Rename selected file
+
+sidebar-locked-conversations = Locked conversations
+sidebar-no-conversations = No conversations yet
+sidebar-sign-in-conversations = Sign in to see your conversations
+sidebar-history-unavailable = History unavailable
+sidebar-back-to-conversations = ← Back to conversations
+sidebar-no-locked-conversations = No locked conversations
+sidebar-locked-conversation = Locked conversation
+sidebar-sign-in = Sign in
+sidebar-add-pin = Add pin
+
+collab-collaborators = Collaborators ({ $count })
+collab-no-one-else = No one else is here
+
+update-available-title = Update available — v{ $version }
+update-now = Update now
+update-later = Later
+update-skip-version = Skip this version
+update-platform = Platform: { $name }
+update-asset = Asset: { $name }
+update-check-failed = Update check failed: { $error }
+update-view-release-notes = View release notes
+update-release-notes-title = Release Notes — v{ $version }
+update-no-release-notes = No release notes available.
+
+modal-alert-title = Alert
+modal-input-title = Input
+
+external-save-to = Save to { $target }
+
+usage-title = Usage & Cost
+usage-last-days = Last { $days } days
+usage-loading = Loading usage…
+usage-per-model = Per model
+usage-per-day = Per day
+usage-model = Model
+usage-tokens = Tokens
+usage-messages = Messages
+usage-cost = Cost
+usage-day = Day
+usage-days-7 = 7 days
+usage-days-30 = 30 days
+usage-days-90 = 90 days
+
+pin-close = Close
+pin-length-hint = 4–8 digits
+pin-cancel = Cancel
+pin-ok = OK

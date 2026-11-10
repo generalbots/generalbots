@@ -16,6 +16,12 @@
 (function () {
   if (window.GBUpdate) return;
 
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   var DAY_MS = 24 * 60 * 60 * 1000;
   var CHECK_INTERVAL = 4 * 60 * 60 * 1000;
   var STARTUP_DELAY = 30 * 1000;
@@ -169,7 +175,10 @@
 
     var title = document.createElement("div");
     title.style.cssText = "font-size:14px;font-weight:600;";
-    title.textContent = "Update available — v" + String(info.latest_version || "");
+    var latestVersion = String(info.latest_version || "");
+    title.textContent = window.gbT
+      ? window.gbT("update-available-title", "Update available — v" + latestVersion, { version: latestVersion })
+      : "Update available — v" + latestVersion;
     header.appendChild(title);
 
     var close = button(
@@ -179,7 +188,7 @@
         dismiss(info.latest_version);
       }
     );
-    close.setAttribute("aria-label", "Later");
+    close.setAttribute("aria-label", t("update-later", "Later"));
     header.appendChild(close);
     banner.appendChild(header);
 
@@ -196,8 +205,8 @@
     var meta = document.createElement("div");
     meta.style.cssText = "color:#64748b;font-size:11px;margin-top:6px;";
     var parts = [];
-    if (info.platform) parts.push("Platform: " + info.platform);
-    if (info.download_name) parts.push("Asset: " + info.download_name);
+    if (info.platform) parts.push(window.gbT ? window.gbT("update-platform", "Platform: " + info.platform, { name: info.platform }) : "Platform: " + info.platform);
+    if (info.download_name) parts.push(window.gbT ? window.gbT("update-asset", "Asset: " + info.download_name, { name: info.download_name }) : "Asset: " + info.download_name);
     var size = formatSize(info.download_size);
     if (size) parts.push(size);
     meta.textContent = parts.join(" · ");
@@ -208,7 +217,7 @@
 
     actions.appendChild(
       button(
-        "Update now",
+        t("update-now", "Update now"),
         "background:#3b82f6;border:none;border-radius:6px;color:#fff;" +
           "padding:8px 20px;cursor:pointer;font-weight:500;font-size:13px;",
         function () {
@@ -219,7 +228,7 @@
     );
     actions.appendChild(
       button(
-        "Later",
+        t("update-later", "Later"),
         "background:#334155;border:none;border-radius:6px;color:#f8fafc;" +
           "padding:8px 20px;cursor:pointer;font-size:13px;",
         function () {
@@ -229,7 +238,7 @@
     );
     actions.appendChild(
       button(
-        "Skip this version",
+        t("update-skip-version", "Skip this version"),
         "background:transparent;border:1px solid #475569;border-radius:6px;" +
           "color:#cbd5e1;padding:8px 16px;cursor:pointer;font-size:12px;",
         function () {

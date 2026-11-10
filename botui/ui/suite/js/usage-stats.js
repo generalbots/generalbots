@@ -8,6 +8,12 @@
 "use strict";
 
 (function () {
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   var STORAGE_KEY = "gb_usage_stats";
   var ENABLED_KEY = "gb_usage_stats_enabled";
 
@@ -151,9 +157,9 @@
         '<td style="padding:6px;border-top:1px solid #334155;">' + (entry.messages || 0) + '</td>' +
         '<td style="padding:6px;border-top:1px solid #334155;">' + cost + '</td></tr>';
     }).join("");
-    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">Per model</h4>' +
+    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">' + t("usage-per-model", "Per model") + '</h4>' +
       '<table style="width:100%;border-collapse:collapse;color:#cbd5e1;font-size:12px;">' +
-      '<thead><tr style="text-align:left;color:#64748b;"><th>Model</th><th>Tokens</th><th>Messages</th><th>Cost</th></tr></thead>' +
+      '<thead><tr style="text-align:left;color:#64748b;"><th>' + t("usage-model", "Model") + '</th><th>' + t("usage-tokens", "Tokens") + '</th><th>' + t("usage-messages", "Messages") + '</th><th>' + t("usage-cost", "Cost") + '</th></tr></thead>' +
       "<tbody>" + rows + "</tbody></table>";
   }
 
@@ -165,9 +171,9 @@
         '<td style="padding:4px 6px;border-top:1px solid #334155;">' + formatTokens(entry.tokens || 0) + '</td>' +
         '<td style="padding:4px 6px;border-top:1px solid #334155;">' + (entry.messages || 0) + '</td></tr>';
     }).join("");
-    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">Per day</h4>' +
+    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">' + t("usage-per-day", "Per day") + '</h4>' +
       '<div style="max-height:180px;overflow:auto;"><table style="width:100%;border-collapse:collapse;color:#cbd5e1;font-size:12px;">' +
-      '<thead><tr style="text-align:left;color:#64748b;"><th>Day</th><th>Tokens</th><th>Messages</th></tr></thead>' +
+      '<thead><tr style="text-align:left;color:#64748b;"><th>' + t("usage-day", "Day") + '</th><th>' + t("usage-tokens", "Tokens") + '</th><th>' + t("usage-messages", "Messages") + '</th></tr></thead>' +
       "<tbody>" + rows + "</tbody></table></div>";
   }
 
@@ -175,8 +181,13 @@
     var box = document.querySelector("#usage-modal [data-usage-box]");
     if (!box) return;
     var period = document.querySelector("#usage-modal [data-usage-period]");
-    if (period) period.textContent = "Last " + days + " days";
-    box.innerHTML = '<p style="color:#94a3b8;font-size:12px;">Loading usage…</p>';
+    if (period) {
+      var periodText = "Last " + days + " days";
+      period.textContent = window.gbT
+        ? window.gbT("usage-last-days", periodText, { days: days })
+        : periodText;
+    }
+    box.innerHTML = '<p style="color:#94a3b8;font-size:12px;">' + t("usage-loading", "Loading usage…") + '</p>';
     var summary;
     var payload = null;
     var note;
@@ -192,7 +203,7 @@
       note = "The usage service is unreachable, so these numbers are estimated locally (4 characters per token). Cost stays unavailable because no authoritative price list was read.";
     }
     box.innerHTML =
-      cardMarkup("Last " + days + " days", summary, "") +
+      cardMarkup(window.gbT ? window.gbT("usage-last-days", "Last " + days + " days", { days: days }) : "Last " + days + " days", summary, "") +
       (payload ? perDayTable(payload) : "") +
       (payload ? breakdownTable(payload) : "") +
       '<p style="color:#475569;font-size:11px;margin:16px 0 0;">' + note + "</p>";
@@ -206,13 +217,13 @@
     modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
     modal.innerHTML = '<div data-usage-box style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:640px;max-height:85vh;overflow:auto;padding:24px;color:#94a3b8;">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-      '<h3 style="margin:0;color:#f8fafc;">Usage &amp; Cost</h3>' +
+      '<h3 style="margin:0;color:#f8fafc;">' + t("usage-title", "Usage & Cost") + '</h3>' +
       '<button type="button" data-usage-close style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
-      '<span data-usage-period style="color:#64748b;font-size:12px;align-self:center;margin-right:auto;">Last 30 days</span>' +
-      '<button type="button" data-usage-days="7" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">7 days</button>' +
-      '<button type="button" data-usage-days="30" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">30 days</button>' +
-      '<button type="button" data-usage-days="90" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">90 days</button>' +
+      '<span data-usage-period style="color:#64748b;font-size:12px;align-self:center;margin-right:auto;">' + (window.gbT ? window.gbT("usage-last-days", "Last 30 days", { days: 30 }) : "Last 30 days") + '</span>' +
+      '<button type="button" data-usage-days="7" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">' + t("usage-days-7", "7 days") + '</button>' +
+      '<button type="button" data-usage-days="30" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">' + t("usage-days-30", "30 days") + '</button>' +
+      '<button type="button" data-usage-days="90" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">' + t("usage-days-90", "90 days") + '</button>' +
       '</div><div data-usage-body></div></div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);

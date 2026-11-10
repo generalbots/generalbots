@@ -7,6 +7,12 @@
 
 (function () {
   if (window.GBSidebarSections) return;
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
 
   var base = function () {
     return window.GBSidebarBase;
@@ -72,7 +78,7 @@
     plus.innerHTML = '<span class="gb-side-pin-icon">+</span>';
     // #1302 — the + button opens a pin picker instead of the Start Menu:
     // users clicked it expecting to ADD a pin, not to launch an app.
-    plus.title = "Add pin";
+    plus.title = t("sidebar-add-pin", "Add pin");
     plus.addEventListener("click", function (e) {
       e.stopPropagation();
       openPinPicker(plus, e.clientX, e.clientY);

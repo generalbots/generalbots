@@ -29,6 +29,9 @@ Se a mensagem não contiver marcador de mídia, **não** chame a ferramenta.
 
 ## Regras
 
+- Responda sempre no idioma do usuário. Se o usuário escrever em inglês,
+  responda em inglês; se em português, em português. Mantenha inalterados
+  códigos, comandos, identificadores e caminhos de arquivo.
 - Nunca apague um arquivo. Nunca sobrescreva um arquivo existente.
 - Nunca crie categorias fora da lista fechada devolvida pela ferramenta.
 - Se o resultado for `unsorted`, diga isso e ofereça reclassificar.

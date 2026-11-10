@@ -4,6 +4,12 @@
 "use strict";
 
 (function (mod) {
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   /// Reports a failure without a blocking native alert.
   function report(title, message) {
     if (window.GBToasts && typeof window.GBToasts.show === "function") {
@@ -38,11 +44,11 @@
         '<div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;' +
         'padding:14px 18px;border-bottom:1px solid var(--border,#2a2a2a)">' +
         '<h3 id="gbPinTitle" style="margin:0;font-size:15px"></h3>' +
-        '<button type="button" class="modal-close" aria-label="Close" ' +
+        '<button type="button" class="modal-close" aria-label="' + t("pin-close", "Close") + '" ' +
         'style="background:none;border:0;color:inherit;font-size:16px;cursor:pointer;padding:4px 8px">\u2715</button></div>' +
         '<div class="modal-content" style="padding:16px 18px 20px">' +
         '<label for="gbPinInput" style="display:block;font-size:12px;opacity:.7;margin-bottom:8px">' +
-        "4\u20138 digits</label>" +
+        t("pin-length-hint", "4\u20138 digits") + "</label>" +
         '<input id="gbPinInput" type="password" inputmode="numeric" pattern="[0-9]*" ' +
         'maxlength="8" autocomplete="off" ' +
         'style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;' +
@@ -52,7 +58,7 @@
         'style="display:none;color:#f87171;font-size:12px;margin-top:8px"></div>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">' +
         '<button type="button" class="btn gb-pin-cancel" style="padding:8px 14px;border-radius:8px;' +
-        'border:1px solid var(--border,#333);background:transparent;color:inherit;cursor:pointer">Cancel</button>' +
+        'border:1px solid var(--border,#333);background:transparent;color:inherit;cursor:pointer">' + t("pin-cancel", "Cancel") + '</button>' +
         '<button type="button" class="btn btn-primary gb-pin-ok" style="padding:8px 14px;border-radius:8px;' +
         'border:1px solid transparent;background:var(--accent,#2563eb);color:#fff;cursor:pointer"></button>' +
         "</div></div></div>";
@@ -61,7 +67,7 @@
       var input = overlay.querySelector("#gbPinInput");
       var error = overlay.querySelector(".gb-pin-error");
       titleEl.textContent = title;
-      submit.textContent = submitLabel || "OK";
+      submit.textContent = submitLabel || t("pin-ok", "OK");
       document.body.appendChild(overlay);
 
       function finish(value) {
@@ -154,7 +160,7 @@
         var back = document.createElement("button");
         back.type = "button";
         back.className = "chat-sidebar-conv-back";
-        back.textContent = "\u2190 Back to conversations";
+        back.textContent = t("sidebar-back-to-conversations", "\u2190 Back to conversations");
         back.addEventListener("click", function () {
           mod.loadHistory();
         });
@@ -162,7 +168,7 @@
         if (!sessions.length) {
           var empty = document.createElement("div");
           empty.className = "chat-sidebar-history-empty";
-          empty.textContent = "No locked conversations";
+          empty.textContent = t("sidebar-no-locked-conversations", "No locked conversations");
           list.appendChild(empty);
           return;
         }
@@ -177,7 +183,7 @@
             'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
             '<rect x="4" y="10" width="16" height="10" rx="2"></rect>' +
             '<path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>' +
-            " Locked conversation</div>" +
+            " " + t("sidebar-locked-conversation", "Locked conversation") + "</div>" +
             "</div>" +
             '<div class="chat-sidebar-conv-time"></div>';
           item.addEventListener("click", function () {

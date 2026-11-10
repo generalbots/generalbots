@@ -21,6 +21,12 @@
  * Response: { component: "botserver", current: "0.1.0", latest: "0.1.1", update_available: true }
  */
 
+// #2095 — user-visible strings come from the catalogue; the authored English
+// text is the fallback when the active locale has no entry yet.
+function versionsT(key, fallback) {
+  return window.gbT ? window.gbT(key, fallback) : fallback;
+}
+
 var VersionComponents = [
   { id: "botserver", name: "BotServer", icon: "\u2699\uFE0F" },
   { id: "botui", name: "BotUI", icon: "\u{1F4BB}" },
@@ -53,12 +59,12 @@ function loadVersions() {
 
 function renderVersionsTable(container, versions) {
   var html = '<table class="versions-table">' +
-    '<thead><tr><th>Component</th><th>Version</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    '<thead><tr><th>' + versionsT("versions-component", "Component") + '</th><th>' + versionsT("versions-version", "Version") + '</th><th>' + versionsT("versions-status", "Status") + '</th><th>' + versionsT("versions-action", "Action") + '</th></tr></thead><tbody>';
 
   VersionComponents.forEach(function(comp) {
     var ver = versions[comp.id] || "N/A";
     var statusClass = ver !== "N/A" ? "up-to-date" : "unknown";
-    var statusText = ver !== "N/A" ? "Up to date" : "Unknown";
+    var statusText = ver !== "N/A" ? versionsT("versions-up-to-date", "Up to date") : versionsT("versions-unknown", "Unknown");
 
     html += '<tr>' +
       '<td><div class="version-component">' +
@@ -68,7 +74,7 @@ function renderVersionsTable(container, versions) {
       '<td><span class="version-number">' + escapeHtml(ver) + '</span></td>' +
       '<td><span class="version-status ' + statusClass + '">' + statusText + '</span></td>' +
       '<td><button class="version-check-btn" onclick="checkUpdate(\'' + comp.id + '\', this)" ' +
-        (ver === "N/A" ? 'disabled' : '') + '>Check Update</button></td>' +
+        (ver === "N/A" ? 'disabled' : '') + '>' + versionsT("versions-check-update", "Check Update") + '</button></td>' +
       '</tr>';
   });
 
@@ -79,16 +85,16 @@ function renderVersionsTable(container, versions) {
 function renderVersionsFallback() {
   var html = '<div style="padding: 24px; text-align: center; color: var(--text-secondary, #888);">';
   html += '<p style="font-size: 24px; margin: 0 0 12px;">&#9888;&#65039;</p>';
-  html += '<p>Could not load version information.</p>';
-  html += '<p style="font-size: 13px;">Make sure the backend server is running.</p>';
-  html += '<button class="version-check-btn" onclick="loadVersions()" style="margin-top: 12px;">Retry</button>';
+  html += '<p>' + versionsT("versions-could-not-load", "Could not load version information.") + '</p>';
+  html += '<p style="font-size: 13px;">' + versionsT("versions-ensure-backend", "Make sure the backend server is running.") + '</p>';
+  html += '<button class="version-check-btn" onclick="loadVersions()" style="margin-top: 12px;">' + versionsT("versions-retry", "Retry") + '</button>';
   html += '</div>';
   return html;
 }
 
 function checkUpdate(componentId, btn) {
   btn.disabled = true;
-  btn.textContent = "Checking...";
+  btn.textContent = versionsT("versions-checking", "Checking...");
 
   fetch("/api/system/check-updates", {
     method: "POST",
@@ -103,24 +109,27 @@ function checkUpdate(componentId, btn) {
       if (statusCell) {
         if (result.update_available) {
           statusCell.className = "version-status update-available";
-          statusCell.textContent = "Update: " + escapeHtml(result.latest);
+          var latest = escapeHtml(result.latest);
+          statusCell.textContent = window.gbT
+            ? window.gbT("versions-update-available", "Update: " + latest, { version: latest })
+            : "Update: " + latest;
         } else {
           statusCell.className = "version-status up-to-date";
-          statusCell.textContent = "Up to date";
+          statusCell.textContent = versionsT("versions-up-to-date", "Up to date");
         }
       }
-      btn.textContent = "Checked";
+      btn.textContent = versionsT("versions-checked", "Checked");
       setTimeout(function() {
         btn.disabled = false;
-        btn.textContent = "Check Update";
+        btn.textContent = versionsT("versions-check-update", "Check Update");
       }, 3000);
     })
     .catch(function(e) {
       console.warn("[Versions] Check update failed:", e);
-      btn.textContent = "Error";
+      btn.textContent = versionsT("versions-error", "Error");
       setTimeout(function() {
         btn.disabled = false;
-        btn.textContent = "Check Update";
+        btn.textContent = versionsT("versions-check-update", "Check Update");
       }, 3000);
     });
 }

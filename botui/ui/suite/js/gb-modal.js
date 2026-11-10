@@ -3,6 +3,12 @@
    Uses the desktop WindowManager floating tool windows when available, falling
    back to native dialogs in isolated runs. */
 const GBModal = (() => {
+
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -16,7 +22,7 @@ const GBModal = (() => {
   }
 
   function alert(message, title) {
-    title = title || "Alert";
+    title = title || t("modal-alert-title", "Alert");
     const w = wm();
     if (w && w.openToolWindowBody) {
       const body = w.openToolWindowBody("gb-alert", title, {
@@ -41,9 +47,9 @@ const GBModal = (() => {
     if (typeof title === "function") {
       onNo = onYes;
       onYes = title;
-      title = "Confirm";
+      title = t("modal-confirm-title", "Confirm");
     }
-    title = title || "Confirm";
+    title = title || t("modal-confirm-title", "Confirm");
     const hasCallback = typeof onYes === "function";
     const w = wm();
     if (hasCallback && w && w.confirmFloating) {
@@ -61,12 +67,12 @@ const GBModal = (() => {
     if (typeof defaultValue === "function") {
       onOk = defaultValue;
       defaultValue = "";
-      title = "Input";
+      title = t("modal-input-title", "Input");
     } else if (typeof title === "function") {
       onOk = title;
-      title = "Input";
+      title = t("modal-input-title", "Input");
     }
-    title = title || "Input";
+    title = title || t("modal-input-title", "Input");
     defaultValue = (defaultValue == null) ? "" : String(defaultValue);
     const hasCallback = typeof onOk === "function";
     const w = wm();

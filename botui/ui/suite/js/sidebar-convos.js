@@ -7,6 +7,12 @@
 window.GBSidebarConvos = window.GBSidebarConvos || {};
 
 (function (mod) {
+  // #2095 — user-visible strings come from the catalogue; the authored English
+  // text is the fallback when the active locale has no entry yet.
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   var historyLoading = false;
   var historyPending = false;
 
@@ -211,7 +217,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<rect x="4" y="10" width="16" height="10" rx="2"></rect>' +
       '<path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>' +
-      '<span>Locked conversations</span>';
+      '<span>' + t("sidebar-locked-conversations", "Locked conversations") + '</span>';
     lockedToggle.addEventListener("click", function (e) {
       e.preventDefault();
       mod.showLocked();
@@ -226,7 +232,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     if (!sessions || !sessions.length) {
       var empty = document.createElement("div");
       empty.className = "chat-sidebar-history-empty";
-      empty.textContent = "No conversations yet";
+      empty.textContent = t("sidebar-no-conversations", "No conversations yet");
       list.appendChild(empty);
       // #1682 — the locked entry must stay reachable when every conversation
       // is locked (otherwise the user can never unlock one).
@@ -246,7 +252,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     list.innerHTML = "";
     var hint = document.createElement("div");
     hint.className = "chat-sidebar-signin-hint";
-    hint.textContent = "Sign in to see your conversations";
+    hint.textContent = t("sidebar-sign-in-conversations", "Sign in to see your conversations");
     hint.addEventListener("click", function () {
       window.location.href =
         (window.GB_LOGIN_URL || "/login") +
@@ -283,7 +289,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
         if (!list.children.length) {
           var empty = document.createElement("div");
           empty.className = "chat-sidebar-history-empty";
-          empty.textContent = "History unavailable";
+          empty.textContent = t("sidebar-history-unavailable", "History unavailable");
           list.appendChild(empty);
         }
       })
