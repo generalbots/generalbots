@@ -7,6 +7,10 @@ pub(crate) use uuid::Uuid;
 pub struct QuotaManager {
     usage_cache: Arc<RwLock<HashMap<Uuid, OrganizationQuotas>>>,
     alert_thresholds: Vec<f64>,
+    /// Language of the generated alert text (#2094). Background quota checks
+    /// have no request to read a locale from, so the manager carries the
+    /// workspace default and falls back to English.
+    locale: botlib::i18n::Locale,
 }
 
 #[derive(Debug, Clone)]

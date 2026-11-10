@@ -98,7 +98,10 @@ impl InvoiceService {
         }
 
         invoice.total_discount = invoice.discounts.iter().map(|d| d.amount).sum();
-        let taxable_amount = invoice.subtotal - invoice.total_discount;
+        // Discounts can exceed the subtotal (a 100% coupon plus a manual
+        // credit); the taxable base floors at zero so tax and total never go
+        // negative.
+        let taxable_amount = (invoice.subtotal - invoice.total_discount).max(0);
 
         for tax in &mut invoice.taxes {
             tax.amount = (taxable_amount as f64 * tax.rate / 100.0) as i64;

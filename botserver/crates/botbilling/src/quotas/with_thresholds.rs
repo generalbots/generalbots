@@ -5,13 +5,22 @@ impl QuotaManager {
         Self {
             usage_cache: Arc::new(RwLock::new(HashMap::new())),
             alert_thresholds: vec![80.0, 90.0, 100.0],
+            locale: botlib::i18n::Locale::default(),
         }
+    }
+
+    /// Sets the language used for generated quota alerts.
+    #[must_use]
+    pub fn with_locale(mut self, locale: botlib::i18n::Locale) -> Self {
+        self.locale = locale;
+        self
     }
 
     pub fn with_thresholds(thresholds: Vec<f64>) -> Self {
         Self {
             usage_cache: Arc::new(RwLock::new(HashMap::new())),
             alert_thresholds: thresholds,
+            locale: botlib::i18n::Locale::default(),
         }
     }
 

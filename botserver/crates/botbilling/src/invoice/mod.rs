@@ -253,3 +253,7 @@ mod with_tax_id;
 mod add_line_item;
 mod generate_invoice_html;
 mod invoice_error;
+
+#[cfg(test)]
+#[path = "totals_tests.rs"]
+mod totals_tests;

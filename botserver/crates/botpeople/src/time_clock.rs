@@ -167,20 +167,26 @@ impl TimeClockService {
         };
         let (late, early, overtime) = match schedule {
             Some(sched) => {
+                // `saturating_sub` only clamps at `i32::MIN`, so on signed
+                // integers an early arrival would make lateness negative
+                // (10 - 5 is fine, but 3 - 5 must be 0, not -2). The trailing
+                // `.max(0)` is the clamp that matters here.
                 let late = actual_start
                     .and_then(|clock_in| {
                         combine(date, sched.start_time.0)
-                            .map(|sched_start| (clock_in - sched_start).num_minutes().max(0) as i32)
+                            .map(|sched_start| (clock_in - sched_start).num_minutes() as i32)
                     })
                     .unwrap_or(0)
-                    .saturating_sub(sched.tolerance_minutes);
+                    .saturating_sub(sched.tolerance_minutes)
+                    .max(0);
                 let early = actual_end
                     .and_then(|clock_out| {
                         combine(date, sched.end_time.0)
-                            .map(|sched_end| (sched_end - clock_out).num_minutes().max(0) as i32)
+                            .map(|sched_end| (sched_end - clock_out).num_minutes() as i32)
                     })
                     .unwrap_or(0)
-                    .saturating_sub(sched.tolerance_minutes);
+                    .saturating_sub(sched.tolerance_minutes)
+                    .max(0);
                 let scheduled_minutes = (sched.end_time.0 - sched.start_time.0).num_minutes() as i32;
                 let overtime = (total_worked - scheduled_minutes).max(0);
                 (late, early, overtime)
@@ -258,6 +264,10 @@ impl Default for TimeClockService {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "time_clock_schedule_tests.rs"]
+mod schedule_tests;
 
 #[cfg(test)]
 mod tests {

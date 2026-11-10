@@ -29,8 +29,22 @@ mod html_escape;
 mod handle_tickets_cards;
 mod handle_stats_by_status;
 mod handle_ai_suggest;
+mod stats_helpers;
 
 pub use html_escape::*;
 use handle_tickets_cards::*;
 use handle_stats_by_status::*;
 use handle_ai_suggest::*;
+use stats_helpers::*;
+
+#[cfg(test)]
+#[path = "html_escape_tests.rs"]
+mod html_escape_tests;
+
+#[cfg(test)]
+#[path = "handle_ai_suggest_tests.rs"]
+mod handle_ai_suggest_tests;
+
+#[cfg(test)]
+#[path = "stats_helpers_tests.rs"]
+mod stats_helpers_tests;

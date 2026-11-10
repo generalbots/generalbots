@@ -150,18 +150,3 @@ fn breaks_are_subtracted_before_overtime_is_computed() {
     assert_eq!(shift.status, ShiftStatus::Completed);
 }
 
-#[test]
-fn debug_schedule_inputs() {
-    let s = schedule();
-    let start = super::combine(day(), s.start_time.0);
-    let end = super::combine(day(), s.end_time.0);
-    let late = (at(9, 10) - start.expect("start")).num_minutes().max(0) as i32;
-    let early = (end.expect("end") - at(17, 0)).num_minutes().max(0) as i32;
-    let svc = TimeClockService::new();
-    let shift = svc.compute_shift(
-        vec![entry(ClockType::In, at(9, 10)), entry(ClockType::Out, at(17, 0))],
-        Some(&s),
-        day(),
-    );
-    panic!("start={start:?} end={end:?} late={late} early={early} tol={} shift_late={} shift_early={} shift_worked={}", s.tolerance_minutes, shift.late_minutes, shift.early_leave_minutes, shift.total_worked_minutes);
-}

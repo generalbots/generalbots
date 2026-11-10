@@ -137,22 +137,9 @@ pub(super) async fn handle_avg_resolution(State(state): State<Arc<TicketsState>>
         return Html("-".to_string());
     }
 
-    let total_hours: f64 = resolved_tickets
-        .iter()
-        .filter_map(|t| {
-            t.resolved_at.map(|resolved| {
-                let duration = resolved - t.created_at;
-                duration.num_hours() as f64
-            })
-        })
-        .sum();
-
-    let avg_hours = total_hours / resolved_tickets.len() as f64;
-
-    if avg_hours < 24.0 {
-        Html(format!("{:.1}h", avg_hours))
-    } else {
-        Html(format!("{:.1}d", avg_hours / 24.0))
+    match average_resolution_hours(&resolved_tickets) {
+        Some(avg_hours) => Html(format_resolution_span(avg_hours)),
+        None => Html("-".to_string()),
     }
 }
 pub(super) async fn handle_stats_open(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {

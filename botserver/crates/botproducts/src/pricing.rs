@@ -103,7 +103,9 @@ impl PricingEngine {
         let promotion_price = self.apply_promotions(list_price, product, promotions, quantity, now);
         let final_price = promotion_price.max(product.cost_cents);
         let discount = list_price - final_price;
-        let tax_cents = ((final_price as f64) * product.tax_rate) as i64;
+        // Tax is money: round to the nearest cent instead of truncating
+        // (999 * 7.5% = 74.925 must charge 75, not 74).
+        let tax_cents = ((final_price as f64) * product.tax_rate).round() as i64;
         PriceQuote {
             product_id: product.id,
             list_price_cents: list_price,
@@ -256,3 +258,7 @@ mod tests {
         assert_eq!(q.final_price_cents, 1000);
     }
 }
+
+#[cfg(test)]
+#[path = "pricing_tests.rs"]
+mod pricing_tests;
