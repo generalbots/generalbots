@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-bindings-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Channel Bindings — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .bindings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
     @media (max-width: 900px) { .bindings-grid { grid-template-columns: 1fr; } }
@@ -26,7 +28,7 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Channel Bindings</span>
+      <span class="mgmt-page-title" data-i18n="cloud-bindings-title">Channel Bindings</span>
       <div class="mgmt-topbar-actions"></div>
     </div>
 
@@ -35,45 +37,45 @@
 
         <!-- Bindings form -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Default Channel Identities</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-bindings-form-title">Default Channel Identities</h2>
           <div class="form-group">
-            <label for="bot_id">Bot</label>
+            <label for="bot_id" data-i18n="cloud-bindings-bot">Bot</label>
             <select id="bot_id" required>
-              <option value="">Loading bots...</option>
+              <option value="" data-i18n="cloud-bindings-loading-bots">Loading bots...</option>
             </select>
           </div>
           <form id="bindings-form" onsubmit="handleSaveBindings(event)" style="display:none">
             <div class="form-group">
-              <label for="phone_default">Default Phone Number</label>
+              <label for="phone_default" data-i18n="cloud-bindings-phone">Default Phone Number</label>
               <input type="text" id="phone_default" placeholder="+55 11 4000-0000" maxlength="40">
             </div>
             <div class="form-group">
-              <label for="whatsapp_number">WhatsApp Number</label>
+              <label for="whatsapp_number" data-i18n="cloud-bindings-whatsapp">WhatsApp Number</label>
               <input type="text" id="whatsapp_number" placeholder="+55 11 90000-0000" maxlength="40">
             </div>
             <div class="form-group">
-              <label for="telegram_username">Telegram Username</label>
+              <label for="telegram_username" data-i18n="cloud-bindings-telegram">Telegram Username</label>
               <input type="text" id="telegram_username" placeholder="@mybot" maxlength="80">
             </div>
             <div class="form-group">
-              <label for="domains">Domains (comma separated)</label>
+              <label for="domains" data-i18n="cloud-bindings-domains">Domains (comma separated)</label>
               <textarea id="domains" rows="2" placeholder="bot.example.com, chat.example.org"></textarea>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%">Save Bindings</button>
+            <button type="submit" class="btn btn-primary" style="width:100%" data-i18n="cloud-bindings-save">Save Bindings</button>
           </form>
           <div id="save-message"></div>
         </div>
 
         <!-- Recent calls -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Recent Calls</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-bindings-calls-title">Recent Calls</h2>
           <div style="overflow-x:auto">
             <table class="calls-table">
               <thead>
-                <tr><th>Direction</th><th>From</th><th>To</th><th>Status</th><th>Duration</th><th>Date</th></tr>
+                <tr><th data-i18n="cloud-bindings-col-direction">Direction</th><th data-i18n="cloud-bindings-col-from">From</th><th data-i18n="cloud-bindings-col-to">To</th><th data-i18n="cloud-bindings-col-status">Status</th><th data-i18n="cloud-bindings-col-duration">Duration</th><th data-i18n="cloud-bindings-col-date">Date</th></tr>
               </thead>
               <tbody id="calls-table-body">
-                <tr><td colspan="6" style="text-align:center;color:var(--muted)">Select a bot.</td></tr>
+                <tr><td colspan="6" style="text-align:center;color:var(--muted)" data-i18n="cloud-bindings-select-bot">Select a bot.</td></tr>
               </tbody>
             </table>
           </div>
@@ -99,10 +101,10 @@
       const data = await res.json();
       const bots = data.bots || [];
       select.innerHTML = bots.length
-        ? '<option value="">Select a bot...</option>' + bots.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')
-        : '<option value="">No bots available</option>';
+        ? '<option value="">' + gbT('cloud-bindings-select-bot-option', 'Select a bot...') + '</option>' + bots.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')
+        : '<option value="">' + gbT('cloud-no-bots-available', 'No bots available') + '</option>';
     } catch (e) {
-      select.innerHTML = '<option value="">Failed to load bots</option>';
+      select.innerHTML = '<option value="">' + gbT('cloud-error-load-bots', 'Failed to load bots') + '</option>';
     }
   }
 
@@ -124,7 +126,7 @@
       await loadCalls(botId);
     } catch (e) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Could not load current bindings.';
+      msg.textContent = gbT('cloud-bindings-load-error', 'Could not load current bindings.');
     }
   }
 
@@ -134,7 +136,7 @@
     if (!botId) return;
     const msg = document.getElementById('save-message');
     msg.style.color = 'var(--muted)';
-    msg.textContent = 'Saving...';
+    msg.textContent = gbT('cloud-saving', 'Saving...');
     const body = {
       phone_default: document.getElementById('phone_default').value.trim() || null,
       whatsapp_number: document.getElementById('whatsapp_number').value.trim() || null,
@@ -149,15 +151,15 @@
       });
       if (res.ok) {
         msg.style.color = '#34d399';
-        msg.textContent = 'Bindings saved.';
-        showToast('Channel bindings saved.', 'success');
+        msg.textContent = gbT('cloud-bindings-saved', 'Bindings saved.');
+        showToast(gbT('cloud-bindings-saved-toast', 'Channel bindings saved.'), 'success');
       } else {
         msg.style.color = '#ef4444';
-        msg.textContent = 'Save failed.';
+        msg.textContent = gbT('cloud-bindings-save-failed', 'Save failed.');
       }
     } catch (err) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Connection error while saving.';
+      msg.textContent = gbT('cloud-bindings-save-error', 'Connection error while saving.');
     }
   };
 
@@ -169,7 +171,7 @@
       const data = await res.json();
       const calls = data.calls || [];
       if (!calls.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No calls logged.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">' + gbT('cloud-bindings-no-calls', 'No calls logged.') + '</td></tr>';
         return;
       }
       tbody.innerHTML = calls.map(c => `<tr>
@@ -181,7 +183,7 @@
         <td style="color:var(--muted)">${new Date(c.created_at).toLocaleString()}</td>
       </tr>`).join('');
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Could not load calls.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">' + gbT('cloud-bindings-calls-error', 'Could not load calls.') + '</td></tr>';
     }
   }
 

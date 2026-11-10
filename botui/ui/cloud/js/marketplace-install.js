@@ -11,7 +11,7 @@ async function openSkillDetail(slug) {
     try {
         MktState.detail = await mktApi("/api/marketplace/skills/" + encodeURIComponent(slug));
     } catch (err) {
-        if (body) body.innerHTML = '<p class="mkt-state">Failed to load details: ' + mktEsc(err.message) + "</p>";
+        if (body) body.innerHTML = '<p class="mkt-state">' + mktEsc(gbT("cloud-marketplace-details-error", "Failed to load details:") + " " + err.message) + "</p>";
     }
     if (!MktState.detail) return;
     renderSkillDetail(MktState.detail);
@@ -61,26 +61,26 @@ function renderSkillDetail(detail) {
     let html = '<div class="mkt-detail-head">';
     html += '<span class="mkt-avatar lg" aria-hidden="true">' + mktEsc(glyph) + "</span>";
     html += "<div><h3 style=\"margin:0;font-size:1.05rem;color:var(--text)\">" + mktEsc(detail.name) + "</h3>";
-    html += '<div class="mkt-publisher">by ' + mktEsc(detail.publisher_name || "Community") +
+    html += '<div class="mkt-publisher">' + mktEsc(gbT("cloud-marketplace-by", "by {publisher}", { publisher: detail.publisher_name || gbT("cloud-marketplace-community", "Community") })) +
         " · v" + mktEsc(detail.latest_version || "—") +
         " · ↓ " + mktEsc(mktFmtDownloads(detail.downloads)) + "</div></div></div>";
     html += '<p class="mkt-desc" style="-webkit-line-clamp:unset">' + mktEsc(detail.description || "") + "</p>";
     if (perms.length) {
-        html += '<div class="mkt-section-title">Requested permissions</div>';
+        html += '<div class="mkt-section-title">' + mktEsc(gbT("cloud-marketplace-permissions", "Requested permissions")) + '</div>';
         html += perms.map(function (perm) {
             const label = typeof perm === "string" ? perm : (perm.name || JSON.stringify(perm));
             return '<div class="mkt-perm-row">' + mktPermIcon(label) + "<span>" + mktEsc(label) + "</span></div>";
         }).join("");
     } else {
-        html += '<div class="mkt-section-title">Requested permissions</div><div class="mkt-perm-row"><span>No special permissions requested.</span></div>';
+        html += '<div class="mkt-section-title">' + mktEsc(gbT("cloud-marketplace-permissions", "Requested permissions")) + '</div><div class="mkt-perm-row"><span>' + mktEsc(gbT("cloud-marketplace-no-permissions", "No special permissions requested.")) + '</span></div>';
     }
     if (shots.length) {
-        html += '<div class="mkt-section-title">Screenshots</div>' + shots.map(function () {
-            return '<div class="mkt-shot">Screenshot preview unavailable</div>';
+        html += '<div class="mkt-section-title">' + mktEsc(gbT("cloud-marketplace-screenshots", "Screenshots")) + '</div>' + shots.map(function () {
+            return '<div class="mkt-shot">' + mktEsc(gbT("cloud-marketplace-screenshot-unavailable", "Screenshot preview unavailable")) + '</div>';
         }).join("");
     }
     if (detail.changelog) {
-        html += '<div class="mkt-section-title">Changelog</div><div style="font-size:.76rem;color:var(--muted);white-space:pre-wrap">' +
+        html += '<div class="mkt-section-title">' + mktEsc(gbT("cloud-marketplace-changelog", "Changelog")) + '</div><div style="font-size:.76rem;color:var(--muted);white-space:pre-wrap">' +
             mktEsc(detail.changelog) + "</div>";
     }
     body.innerHTML = html;
@@ -89,12 +89,12 @@ function renderSkillDetail(detail) {
 async function loadBotsForInstall() {
     const select = document.getElementById("mkt-bot-select");
     if (!select) return;
-    select.innerHTML = '<option value="">Loading bots…</option>';
+    select.innerHTML = '<option value="">' + mktEsc(gbT("cloud-marketplace-loading-bots", "Loading bots…")) + '</option>';
     try {
         const data = await mktApi("/api/cloud/bots");
         const bots = data.items || data.bots || data;
         if (!Array.isArray(bots) || !bots.length) {
-            select.innerHTML = '<option value="">No bots available — create one first.</option>';
+            select.innerHTML = '<option value="">' + mktEsc(gbT("cloud-marketplace-no-bots", "No bots available — create one first.")) + '</option>';
             return;
         }
         select.innerHTML = bots.map(function (bot) {
@@ -103,7 +103,7 @@ async function loadBotsForInstall() {
             return '<option value="' + mktEsc(id) + '">' + mktEsc(name) + "</option>";
         }).join("");
     } catch (err) {
-        select.innerHTML = '<option value="">Failed to load bots (' + mktEsc(err.message) + ")</option>";
+        select.innerHTML = '<option value="">' + mktEsc(gbT("cloud-error-load-bots", "Failed to load bots")) + ' (' + mktEsc(err.message) + ")</option>";
     }
 }
 
@@ -123,7 +123,7 @@ async function installSelectedSkill() {
     const botId = document.getElementById("mkt-bot-select").value;
     const btn = document.getElementById("mkt-install-btn");
     if (!botId) {
-        if (typeof showToast === "function") showToast("Select a target bot to install.", "error");
+        if (typeof showToast === "function") showToast(gbT("cloud-marketplace-select-bot", "Select a target bot to install."), "error");
         return;
     }
     btn.disabled = true;
@@ -134,9 +134,9 @@ async function installSelectedSkill() {
         });
         const botName = document.getElementById("mkt-bot-select").selectedOptions[0].textContent;
         closeMarketplaceModal();
-        if (typeof showToast === "function") showToast("Skill installed into " + botName + ".", "success");
+        if (typeof showToast === "function") showToast(gbT("cloud-marketplace-installed", "Skill installed into {bot}.", { bot: botName }), "success");
     } catch (err) {
-        if (typeof showToast === "function") showToast("Install failed: " + err.message, "error");
+        if (typeof showToast === "function") showToast(gbT("cloud-marketplace-install-failed", "Install failed:") + " " + err.message, "error");
     } finally {
         btn.disabled = false;
     }

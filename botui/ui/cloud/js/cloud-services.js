@@ -28,6 +28,12 @@ const PLAN_INCLUDED = {
 
 let currentPlan = 'free';
 
+function fmtDate(value) {
+  return window.i18n && window.i18n.formatDate
+    ? window.i18n.formatDate(value, { dateStyle: 'medium' })
+    : new Date(value).toLocaleDateString();
+}
+
 async function loadServices(token) {
   // Resolve the current plan for the included-services summary
   try {
@@ -54,26 +60,27 @@ async function loadServices(token) {
     const data = await res.json();
     renderServices(data.services || []);
   } catch (err) {
-    showError('Error: ' + err.message);
+    showError(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 
 function renderPlanSummary() {
   const container = document.getElementById('services-list');
   if (!container) return;
-  const plan = PLAN_INCLUDED[currentPlan] || PLAN_INCLUDED.free;
+  const planKey = PLAN_INCLUDED[currentPlan] ? currentPlan : 'free';
+  const plan = PLAN_INCLUDED[planKey];
   const planCard = document.createElement('div');
   planCard.className = 'service-plan-card';
   planCard.innerHTML = `
     <div class="service-plan-head">
       <div>
-        <div class="service-plan-name">${escapeHtml(plan.label)}</div>
-        <div class="service-plan-price">${escapeHtml(plan.price)}</div>
+        <div class="service-plan-name">${escapeHtml(gbT('cloud-services-plan-' + planKey + '-label', plan.label))}</div>
+        <div class="service-plan-price">${escapeHtml(gbT('cloud-services-plan-' + planKey + '-price', plan.price))}</div>
       </div>
       <div class="service-plan-items">
-        ${plan.items.map(i => `<span class="service-plan-item">✓ ${escapeHtml(i)}</span>`).join('')}
+        ${plan.items.map((i, idx) => `<span class="service-plan-item">✓ ${escapeHtml(gbT('cloud-services-plan-' + planKey + '-item-' + (idx + 1), i))}</span>`).join('')}
       </div>
-      <a href="${plan.cta.href}" class="btn-secondary btn-sm service-plan-cta">${escapeHtml(plan.cta.text)}</a>
+      <a href="${plan.cta.href}" class="btn-secondary btn-sm service-plan-cta">${escapeHtml(gbT('cloud-services-plan-' + planKey + '-cta', plan.cta.text))}</a>
     </div>
   `;
   container.insertBefore(planCard, container.firstChild);
@@ -110,8 +117,8 @@ function renderFilteredServices() {
     const addon = document.createElement('div');
     addon.className = 'saas-loading';
     addon.textContent = filter === 'all'
-      ? 'No extra services yet. Add VPS, GPU, storage, phone numbers or domains from the Store.'
-      : 'Nothing in this category yet. Visit the Store to add it.';
+      ? gbT('cloud-services-empty', 'No extra services yet. Add VPS, GPU, storage, phone numbers or domains from the Store.')
+      : gbT('cloud-services-empty-filter', 'Nothing in this category yet. Visit the Store to add it.');
     container.appendChild(addon);
     return;
   }
@@ -126,13 +133,13 @@ function renderFilteredServices() {
       <div class="service-body">
         <p>${escapeHtml(s.description || '')}</p>
         <div class="service-meta">
-          <span>Created: ${new Date(s.created_at).toLocaleDateString()}</span>
-          ${s.expires_at ? `<span>Expires: ${new Date(s.expires_at).toLocaleDateString()}</span>` : ''}
+          <span>${gbT('cloud-services-created', 'Created:')} ${fmtDate(s.created_at)}</span>
+          ${s.expires_at ? `<span>${gbT('cloud-services-expires', 'Expires:')} ${fmtDate(s.expires_at)}</span>` : ''}
         </div>
       </div>
       <div class="service-actions">
-        ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank">Open</a>` : ''}
-        ${s.status === 'active' ? `<button class="btn-text" onclick="cancelService('${s.id}')">Cancel</button>` : ''}
+        ${s.dashboard_url ? `<a href="${s.dashboard_url}" class="btn-secondary" target="_blank">${gbT('cloud-open', 'Open')}</a>` : ''}
+        ${s.status === 'active' ? `<button class="btn-text" onclick="cancelService('${s.id}')">${gbT('cloud-cancel', 'Cancel')}</button>` : ''}
       </div>
     `;
     container.appendChild(card);
@@ -140,17 +147,17 @@ function renderFilteredServices() {
 }
 
 async function cancelService(id) {
-  if (!confirm('Are you sure you want to cancel this service?')) return;
+  if (!confirm(gbT('cloud-services-cancel-confirm', 'Are you sure you want to cancel this service?'))) return;
   const token = requireAuth();
   try {
     const res = await cloudFetch(`${API_BASE}/services/${id}/cancel`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert('Cancel failed'); return; }
+    if (!res.ok) { alert(gbT('cloud-services-cancel-failed', 'Cancel failed')); return; }
     await loadServices(token);
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message);
   }
 }
 

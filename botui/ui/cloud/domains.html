@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-domains-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Domains — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .domains-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
@@ -30,7 +32,7 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Domain Manager</span>
+      <span class="mgmt-page-title" data-i18n="cloud-domains-title">Domain Manager</span>
       <div class="mgmt-topbar-actions"></div>
     </div>
 
@@ -39,28 +41,28 @@
 
         <!-- Create Domain Mapping -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Map Domain to Bot</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-domains-create-title">Map Domain to Bot</h2>
           <form id="create-domain-form" onsubmit="handleCreateDomain(event)" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;align-items:end">
             <div class="form-group">
-              <label for="domain">Domain</label>
+              <label for="domain" data-i18n="cloud-domains-domain">Domain</label>
               <input type="text" id="domain" name="domain" placeholder="chat.example.com" required>
             </div>
             <div class="form-group">
-              <label for="bot_id">Bot</label>
+              <label for="bot_id" data-i18n="cloud-domains-bot">Bot</label>
               <select id="bot_id" name="bot_id" required>
-                <option value="">Loading bots...</option>
+                <option value="" data-i18n="cloud-bindings-loading-bots">Loading bots...</option>
               </select>
             </div>
             <div class="form-group" style="display:none">
-              <label for="org_id">Org ID (optional)</label>
-              <input type="text" id="org_id" name="org_id" placeholder="UUID of organization">
+              <label for="org_id" data-i18n="cloud-domains-org-id">Org ID (optional)</label>
+              <input type="text" id="org_id" name="org_id" placeholder="UUID of organization" data-i18n-placeholder="cloud-domains-org-id-placeholder">
             </div>
             <div class="form-group" style="display:none">
-              <label for="branch_id">Branch ID (optional)</label>
-              <input type="text" id="branch_id" name="branch_id" placeholder="UUID of branch">
+              <label for="branch_id" data-i18n="cloud-domains-branch-id">Branch ID (optional)</label>
+              <input type="text" id="branch_id" name="branch_id" placeholder="UUID of branch" data-i18n-placeholder="cloud-domains-branch-id-placeholder">
             </div>
             <div class="form-group">
-              <button type="submit" class="btn btn-primary" style="width:100%">Create Mapping</button>
+              <button type="submit" class="btn btn-primary" style="width:100%" data-i18n="cloud-domains-create">Create Mapping</button>
             </div>
           </form>
           <div id="create-message" style="margin-top:1rem;font-size:.85rem"></div>
@@ -68,22 +70,22 @@
 
         <!-- Domain List -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Domain Mappings</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-domains-list-title">Domain Mappings</h2>
           <div style="overflow-x:auto">
             <table class="domains-table">
               <thead>
                 <tr>
-                  <th>Domain</th>
-                  <th>Bot ID</th>
-                  <th>Org ID</th>
-                  <th>Branch ID</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th data-i18n="cloud-domains-domain">Domain</th>
+                  <th data-i18n="cloud-domains-col-bot-id">Bot ID</th>
+                  <th data-i18n="cloud-domains-col-org-id">Org ID</th>
+                  <th data-i18n="cloud-domains-col-branch-id">Branch ID</th>
+                  <th data-i18n="cloud-domains-col-created">Created</th>
+                  <th data-i18n="cloud-domains-col-actions">Actions</th>
                 </tr>
               </thead>
               <tbody id="domains-table-body">
                 <tr>
-                  <td colspan="6" style="text-align:center;color:var(--muted)">Loading domains...</td>
+                  <td colspan="6" style="text-align:center;color:var(--muted)" data-i18n="cloud-domains-loading">Loading domains...</td>
                 </tr>
               </tbody>
             </table>
@@ -111,14 +113,14 @@
       const data = await res.json();
       const bots = data.bots || [];
       if (!bots.length) {
-        select.innerHTML = '<option value="">No bots available</option>';
+        select.innerHTML = '<option value="">' + gbT('cloud-no-bots-available', 'No bots available') + '</option>';
         return;
       }
       select.innerHTML = bots.map(b =>
         `<option value="${b.id}">${escapeHtml(b.name)}</option>`
       ).join('');
     } catch (e) {
-      select.innerHTML = '<option value="">Failed to load bots</option>';
+      select.innerHTML = '<option value="">' + gbT('cloud-error-load-bots', 'Failed to load bots') + '</option>';
     }
   }
 
@@ -131,7 +133,7 @@
         const data = await res.json();
         const tbody = document.getElementById('domains-table-body');
         if (!data.domains || data.domains.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No domain mappings configured.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">' + gbT('cloud-domains-empty', 'No domain mappings configured.') + '</td></tr>';
           return;
         }
         tbody.innerHTML = data.domains.map(d => {
@@ -146,16 +148,16 @@
             <td style="font-size:.75rem;color:var(--muted)" title="${d.branch_id || ''}">${branchIdShort}</td>
             <td style="font-size:.75rem;color:var(--muted)">${created}</td>
             <td><div class="actions-cell">
-              <button class="btn-sm btn-danger" onclick="deleteDomain('${d.id}')">Delete</button>
+              <button class="btn-sm btn-danger" onclick="deleteDomain('${d.id}')">${gbT('cloud-delete', 'Delete')}</button>
             </div></td>
           </tr>`;
         }).join('');
       } else {
-        showToast('Failed to load domain mappings.', 'error');
+        showToast(gbT('cloud-domains-load-error', 'Failed to load domain mappings.'), 'error');
       }
     } catch (e) {
       console.error(e);
-      showToast('Connection error loading domains.', 'error');
+      showToast(gbT('cloud-domains-connection-error', 'Connection error loading domains.'), 'error');
     }
   }
 
@@ -169,13 +171,13 @@
     if (!bot_id) {
       const msg = document.getElementById('create-message');
       msg.style.color = '#ef4444';
-      msg.textContent = 'Select a bot to map the domain to.';
+      msg.textContent = gbT('cloud-domains-select-bot', 'Select a bot to map the domain to.');
       return;
     }
 
     const msg = document.getElementById('create-message');
     msg.style.color = 'var(--muted)';
-    msg.textContent = 'Creating domain mapping...';
+    msg.textContent = gbT('cloud-domains-creating', 'Creating domain mapping...');
 
     try {
       const res = await fetch('/api/cloud/domains', {
@@ -194,35 +196,35 @@
       const data = await res.json();
       if (res.ok) {
         msg.style.color = '#34d399';
-        msg.innerHTML = `Domain mapping created: <span class="domain-badge">${domain}</span>`;
-        showToast('Domain mapped!', 'success');
+        msg.innerHTML = gbT('cloud-domains-created', 'Domain mapping created:') + ` <span class="domain-badge">${domain}</span>`;
+        showToast(gbT('cloud-domains-mapped', 'Domain mapped!'), 'success');
         document.getElementById('create-domain-form').reset();
         await loadDomains();
       } else {
         msg.style.color = '#ef4444';
-        msg.textContent = `Error: ${data.error || data.message || 'Failed to create.'}`;
+        msg.textContent = gbT('cloud-error-prefix', 'Error:') + ' ' + (data.error || data.message || gbT('cloud-error-create-failed', 'Failed to create.'));
       }
     } catch (err) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Error processing creation.';
+      msg.textContent = gbT('cloud-error-processing', 'Error processing creation.');
     }
   };
 
   window.deleteDomain = async function(id) {
-    if (!confirm('Delete this domain mapping?')) return;
+    if (!confirm(gbT('cloud-domains-delete-confirm', 'Delete this domain mapping?'))) return;
     try {
       const res = await fetch(`/api/cloud/domains/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        showToast('Domain mapping deleted.', 'success');
+        showToast(gbT('cloud-domains-deleted', 'Domain mapping deleted.'), 'success');
         await loadDomains();
       } else {
-        showToast('Failed to delete.', 'error');
+        showToast(gbT('cloud-error-delete-failed', 'Failed to delete.'), 'error');
       }
     } catch (err) {
-      showToast('Connection error.', 'error');
+      showToast(gbT('cloud-error-connection', 'Connection error.'), 'error');
     }
   };
 

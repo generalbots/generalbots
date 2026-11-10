@@ -154,14 +154,14 @@ function openOrder(plan) {
 async function confirmOrder() {
   if (!selectedPlan) return;
   const btn = document.getElementById('modal-confirm-btn');
-  btn.textContent = 'Processing…';
+  btn.textContent = gbT('cloud-store-processing', 'Processing…');
   btn.disabled = true;
   // Simulate provisioning
   await new Promise(r => setTimeout(r, 1200));
-  btn.textContent = 'Confirm & Purchase';
+  btn.textContent = gbT('cloud-store-confirm-purchase', 'Confirm & Purchase');
   btn.disabled = false;
   hideModal();
-  showToast(`✅ ${selectedPlan.name} provisioned! Check My Services.`);
+  showToast(gbT('cloud-store-provisioned', '✅ {name} provisioned! Check My Services.', { name: selectedPlan.name }));
 }
 
 function hideModal() { document.getElementById('purchase-modal').classList.remove('open'); }
@@ -183,18 +183,18 @@ function searchDomain() {
       <span style="font-size:1.5rem">${available?'✅':'❌'}</span>
       <div style="flex:1">
         <div style="font-size:1rem;font-weight:700;color:var(--text)">${esc(domain)}</div>
-        <div style="font-size:.82rem;color:var(--muted)">${available?'Available — register now!':'Not available. Try another extension.'}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${available ? gbT('cloud-store-domain-available', 'Available — register now!') : gbT('cloud-store-domain-taken', 'Not available. Try another extension.')}</div>
       </div>
-      ${available?`<button class="btn btn-primary btn-sm" onclick="orderDomainName('${esc(domain)}')">Register $21.99/yr</button>`:''}
+      ${available?`<button class="btn btn-primary btn-sm" onclick="orderDomainName('${esc(domain)}')">${gbT('cloud-store-domain-register', 'Register $21.99/yr')}</button>`:''}
     </div>`;
 }
 
 function orderDomain(ext) {
   selectedPlan = { name: `Domain ${ext}`, amount: TLD_PRICES.find(t=>t.ext===ext)?.price?.replace('$','') || '21.99', currency:'$', period:'yr', specs:[`${ext} domain`,'Free WHOIS privacy','Managed DNS'] };
-  document.getElementById('modal-title').textContent = `Register ${ext} Domain`;
+  document.getElementById('modal-title').textContent = gbT('cloud-store-register-domain-ext', 'Register {ext} Domain', { ext: ext });
   document.getElementById('modal-body').innerHTML = `
-    <div class="form-group"><label class="form-label">Domain Name</label><input id="order-domain" class="form-control" type="text" placeholder="${ext.replace('.','')}.com"></div>
-    <p style="font-size:.82rem;color:var(--muted)">Includes free WHOIS privacy, managed DNS and auto-renew.</p>`;
+    <div class="form-group"><label class="form-label">${gbT('cloud-store-domain-name', 'Domain Name')}</label><input id="order-domain" class="form-control" type="text" placeholder="${ext.replace('.','')}.com"></div>
+    <p style="font-size:.82rem;color:var(--muted)">${gbT('cloud-store-domain-includes', 'Includes free WHOIS privacy, managed DNS and auto-renew.')}</p>`;
   document.getElementById('purchase-modal').classList.add('open');
 }
 
@@ -203,7 +203,7 @@ function orderDomainName(domain) {
   const p = PRODUCT_MAP['domain-' + ext.replace('.', '')];
   const price = p ? parseFloat(p.price).toFixed(2) : '21.99';
   selectedPlan = { name: domain, amount: price, currency: '$', period: 'yr', specs:['Free WHOIS privacy','Managed DNS'] };
-  document.getElementById('modal-title').textContent = `Register ${domain}`;
+  document.getElementById('modal-title').textContent = gbT('cloud-store-register-domain', 'Register {domain}', { domain: domain });
   document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Register <strong style="color:var(--text)">${esc(domain)}</strong> for $${price}/yr including free WHOIS privacy.</p>`;
   document.getElementById('purchase-modal').classList.add('open');
 }
@@ -221,10 +221,10 @@ function searchNumbers() {
   tbody.innerHTML = mockNumbers.map(n => `
     <tr>
       <td style="font-family:monospace;font-size:.9rem">${n}</td>
-      <td>United States</td>
-      <td><span class="badge badge-active">SMS + Voice</span></td>
+      <td>${gbT('cloud-store-number-country', 'United States')}</td>
+      <td><span class="badge badge-active">${gbT('cloud-store-number-features', 'SMS + Voice')}</span></td>
       <td>$${price}/mo</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="orderNumber('${n}')">Buy</button></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="orderNumber('${n}')">${gbT('cloud-store-buy', 'Buy')}</button></td>
     </tr>`).join('');
 }
 
@@ -233,7 +233,7 @@ function orderNumber(number) {
   const p = PRODUCT_MAP['number-local'];
   const price = p ? parseFloat(p.price).toFixed(2) : '5.99';
   selectedPlan = { name:'Virtual Number', amount: price, currency:'$', period:'mo', specs:[number,'SMS + Voice','WhatsApp-ready'] };
-  document.getElementById('modal-title').textContent = `Order Number ${number}`;
+  document.getElementById('modal-title').textContent = gbT('cloud-store-order-number', 'Order Number {number}', { number: number });
   document.getElementById('modal-body').innerHTML = `<p style="color:var(--muted)">Purchase <strong style="color:var(--text)">${esc(number)}</strong> for $${price}/mo with SMS + Voice capabilities.</p>`;
   document.getElementById('purchase-modal').classList.add('open');
 }

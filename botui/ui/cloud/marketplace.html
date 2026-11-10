@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-marketplace-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Skills Marketplace — General Bots Cloud</title>
   <meta name="description" content="Browse and install community skill packages for your General Bots agents.">
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .mkt-hero {
       text-align: center;
@@ -166,42 +168,42 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Marketplace</span>
+      <span class="mgmt-page-title" data-i18n="cloud-marketplace-title">Marketplace</span>
     </div>
 
     <section class="mkt-hero">
-      <h1>Skills Marketplace</h1>
-      <p>Community-built skill packages that extend your agents with new capabilities. Install into any of your bots with one click.</p>
+      <h1 data-i18n="cloud-marketplace-hero-title">Skills Marketplace</h1>
+      <p data-i18n="cloud-marketplace-hero-desc">Community-built skill packages that extend your agents with new capabilities. Install into any of your bots with one click.</p>
       <div class="mkt-search-wrap">
         <svg class="mkt-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="search" id="mkt-search" placeholder="Search skills…" aria-label="Search skills" />
+        <input type="search" id="mkt-search" placeholder="Search skills…" aria-label="Search skills" data-i18n-placeholder="cloud-marketplace-search" data-i18n-aria-label="cloud-marketplace-search" />
       </div>
     </section>
 
-    <div class="mkt-tags" id="mkt-tags" role="group" aria-label="Filter by tag"></div>
+    <div class="mkt-tags" id="mkt-tags" role="group" aria-label="Filter by tag" data-i18n-aria-label="cloud-marketplace-filter-tag"></div>
 
     <div class="mkt-main">
       <div class="mkt-grid" id="mkt-grid" aria-live="polite">
-        <div class="mkt-state">Loading skills…</div>
+        <div class="mkt-state" data-i18n="cloud-marketplace-loading">Loading skills…</div>
       </div>
     </div>
 
     <footer class="mkt-footer">
-      <span>General Bots Cloud · Skills Marketplace</span><br>
-      <a href="/store">Store</a>·<a href="/plans">Plans</a>·<a href="/dashboard">Dashboard</a>
+      <span data-i18n="cloud-marketplace-footer">General Bots Cloud · Skills Marketplace</span><br>
+      <a href="/store" data-i18n="cloud-nav-store">Store</a>·<a href="/plans" data-i18n="cloud-nav-plans">Plans</a>·<a href="/dashboard" data-i18n="cloud-nav-dashboard">Dashboard</a>
     </footer>
   </main>
 
 <div class="mkt-modal" id="mkt-modal" role="dialog" aria-modal="true" aria-labelledby="mkt-detail-name">
   <div class="mkt-backdrop" data-mkt-close="1"></div>
   <div class="mkt-drawer">
-    <button type="button" class="mkt-close-x" data-mkt-close="1" aria-label="Close">&times;</button>
+    <button type="button" class="mkt-close-x" data-mkt-close="1" aria-label="Close" data-i18n-aria-label="cloud-close">&times;</button>
     <div id="mkt-detail-body"></div>
     <div class="mkt-install-row">
-      <select id="mkt-bot-select" aria-label="Target bot for installation"></select>
-      <button type="button" id="mkt-install-btn">Install</button>
+      <select id="mkt-bot-select" aria-label="Target bot for installation" data-i18n-aria-label="cloud-marketplace-target-bot"></select>
+      <button type="button" id="mkt-install-btn" data-i18n="cloud-marketplace-install">Install</button>
     </div>
   </div>
 </div>

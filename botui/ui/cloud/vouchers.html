@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-vouchers-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vouchers — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .vouchers-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
@@ -24,7 +26,7 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Manage Vouchers</span>
+      <span class="mgmt-page-title" data-i18n="cloud-vouchers-title">Manage Vouchers</span>
       <div class="mgmt-topbar-actions"></div>
     </div>
 
@@ -33,28 +35,28 @@
         
         <!-- Create Voucher -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Criar Novo Voucher</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-vouchers-create-title">Create New Voucher</h2>
           <form id="create-voucher-form" onsubmit="handleCreateVoucher(event)" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;align-items:end">
             <div class="form-group">
-              <label for="trial_days">Dias de Avaliação (Trial Days)</label>
+              <label for="trial_days" data-i18n="cloud-vouchers-trial-days">Trial Days</label>
               <input type="number" id="trial_days" name="trial_days" value="30" min="1" max="180" required>
             </div>
             <div class="form-group">
-              <label for="plan">Plano Assinatura</label>
+              <label for="plan" data-i18n="cloud-vouchers-plan">Subscription Plan</label>
               <select id="plan" name="plan">
                 <option value="shared">Shared</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="max_uses">Limite de Usos (Max Uses)</label>
+              <label for="max_uses" data-i18n="cloud-vouchers-max-uses">Max Uses</label>
               <input type="number" id="max_uses" name="max_uses" value="1" min="1" required>
             </div>
             <div class="form-group">
-              <label for="expires_at">Expiração (Opcional)</label>
+              <label for="expires_at" data-i18n="cloud-vouchers-expires">Expiration (optional)</label>
               <input type="datetime-local" id="expires_at" name="expires_at">
             </div>
             <div class="form-group">
-              <button type="submit" class="btn btn-primary" style="width:100%">Gerar Voucher</button>
+              <button type="submit" class="btn btn-primary" style="width:100%" data-i18n="cloud-vouchers-generate">Generate Voucher</button>
             </div>
           </form>
           <div id="create-message" style="margin-top:1rem;font-size:.85rem"></div>
@@ -62,23 +64,23 @@
 
         <!-- Voucher List -->
         <div class="card">
-          <h2 style="font-size:1.1rem;margin-bottom:1rem">Vouchers Disponíveis</h2>
+          <h2 style="font-size:1.1rem;margin-bottom:1rem" data-i18n="cloud-vouchers-list-title">Available Vouchers</h2>
           <div style="overflow-x:auto">
             <table class="vouchers-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Plano</th>
-                  <th>Dias Trial</th>
-                  <th>Usos</th>
-                  <th>Criador</th>
-                  <th>Expiração</th>
-                  <th>Criado Em</th>
+                  <th data-i18n="cloud-vouchers-col-code">Code</th>
+                  <th data-i18n="cloud-vouchers-col-plan">Plan</th>
+                  <th data-i18n="cloud-vouchers-col-trial-days">Trial Days</th>
+                  <th data-i18n="cloud-vouchers-col-uses">Uses</th>
+                  <th data-i18n="cloud-vouchers-col-creator">Creator</th>
+                  <th data-i18n="cloud-vouchers-col-expires">Expiration</th>
+                  <th data-i18n="cloud-vouchers-col-created">Created At</th>
                 </tr>
               </thead>
               <tbody id="vouchers-table-body">
                 <tr>
-                  <td colspan="7" style="text-align:center;color:var(--muted)">Carregando vouchers...</td>
+                  <td colspan="7" style="text-align:center;color:var(--muted)" data-i18n="cloud-vouchers-loading">Loading vouchers...</td>
                 </tr>
               </tbody>
             </table>
@@ -94,7 +96,13 @@
 <script>
 (async function() {
   const token = await requireAuth();
-  
+
+  function fmtDate(value) {
+    return window.i18n && window.i18n.formatDate
+      ? window.i18n.formatDate(value, { dateStyle: 'short', timeStyle: 'short' })
+      : new Date(value).toLocaleString();
+  }
+
   async function loadVouchers() {
     try {
       const res = await fetch('/api/cloud/vouchers', {
@@ -104,28 +112,28 @@
         const data = await res.json();
         const tbody = document.getElementById('vouchers-table-body');
         if (!data.vouchers || data.vouchers.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum voucher cadastrado.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">' + gbT('cloud-vouchers-empty', 'No vouchers registered.') + '</td></tr>';
           return;
         }
         tbody.innerHTML = data.vouchers.map(v => {
-          const expires = v.expires_at ? new Date(v.expires_at).toLocaleString() : 'Nunca';
-          const created = new Date(v.created_at).toLocaleString();
+          const expires = v.expires_at ? fmtDate(v.expires_at) : gbT('cloud-vouchers-never', 'Never');
+          const created = fmtDate(v.created_at);
           return `<tr>
             <td><span class="code-badge">${v.code}</span></td>
             <td>${v.plan}</td>
-            <td>${v.trial_days} dias</td>
+            <td>${gbT('cloud-vouchers-days', '{count} days', { count: v.trial_days })}</td>
             <td>${v.uses_count} / ${v.max_uses}</td>
-            <td style="font-size:.75rem;color:var(--muted)">${v.created_by || 'Sistema'}</td>
+            <td style="font-size:.75rem;color:var(--muted)">${v.created_by || gbT('cloud-vouchers-system', 'System')}</td>
             <td>${expires}</td>
             <td>${created}</td>
           </tr>`;
         }).join('');
       } else {
-        showToast('Erro ao carregar vouchers.', 'error');
+        showToast(gbT('cloud-vouchers-load-error', 'Error loading vouchers.'), 'error');
       }
     } catch (e) {
       console.error(e);
-      showToast('Falha de conexão ao carregar vouchers.', 'error');
+      showToast(gbT('cloud-vouchers-connection-error', 'Connection failed while loading vouchers.'), 'error');
     }
   }
 
@@ -139,7 +147,7 @@
 
     const msg = document.getElementById('create-message');
     msg.style.color = 'var(--muted)';
-    msg.textContent = 'Gerando voucher promocional...';
+    msg.textContent = gbT('cloud-vouchers-generating', 'Generating promotional voucher...');
 
     try {
       const res = await fetch('/api/cloud/vouchers', {
@@ -153,17 +161,17 @@
       const data = await res.json();
       if (res.ok) {
         msg.style.color = '#34d399';
-        msg.innerHTML = `Voucher gerado com sucesso: <span class="code-badge">${data.code}</span>`;
-        showToast('Voucher criado!', 'success');
+        msg.innerHTML = gbT('cloud-vouchers-created', 'Voucher generated successfully:') + ` <span class="code-badge">${data.code}</span>`;
+        showToast(gbT('cloud-vouchers-created-toast', 'Voucher created!'), 'success');
         document.getElementById('create-voucher-form').reset();
         await loadVouchers();
       } else {
         msg.style.color = '#ef4444';
-        msg.textContent = `Erro: ${data.message || data.error || 'Falha ao criar.'}`;
+        msg.textContent = gbT('cloud-error-prefix', 'Error:') + ' ' + (data.message || data.error || gbT('cloud-error-create-failed', 'Failed to create.'));
       }
     } catch (err) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Erro ao processar criação.';
+      msg.textContent = gbT('cloud-error-processing', 'Error processing creation.');
     }
   };
 

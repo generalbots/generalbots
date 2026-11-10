@@ -78,27 +78,27 @@ function renderPlans(period) {
     const monthlyAmount = isFree ? 0 : (plan.price.amount || 0) / 100;
     const yearlyAmount = monthlyAmount * 12 * 0.8;
     const displayAmount = period === 'yearly' ? yearlyAmount : monthlyAmount;
-    const periodLabel = period === 'yearly' ? '/yr' : '/mo';
+    const periodLabel = period === 'yearly' ? gbT('cloud-plans-period-year', '/yr') : gbT('cloud-plans-period-month', '/mo');
 
     return `
       <div class="saas-plan-card">
         <h3>${escapeHtml(plan.name)}</h3>
         <div class="plan-subtitle">${escapeHtml(plan.description || '')}</div>
         <div class="price">
-          ${isFree ? 'Free' : isCustom ? 'Custom' : '$' + displayAmount.toFixed(2) + '<span class="price-period">' + periodLabel + '</span>'}
+          ${isFree ? gbT('cloud-price-free', 'Free') : isCustom ? gbT('cloud-price-custom', 'Custom') : '$' + displayAmount.toFixed(2) + '<span class="price-period">' + periodLabel + '</span>'}
         </div>
-        ${plan.trial_days ? `<div class="plan-trial">${plan.trial_days}-day free trial — no credit card required</div>` : ''}
+        ${plan.trial_days ? `<div class="plan-trial">${gbT('cloud-plans-trial', '{days}-day free trial — no credit card required', { days: plan.trial_days })}</div>` : ''}
         <ul class="plan-features">
           ${(plan.features || []).map(f => '<li>' + featureLabel(f) + '</li>').join('')}
         </ul>
         <div class="plan-limits">
-          <div class="limit-row"><span>Messages/day</span><span>${formatLimit(plan.limits.messages_per_day)}</span></div>
-          <div class="limit-row"><span>Storage</span><span>${formatStorage(plan.limits.storage_mb)}</span></div>
-          <div class="limit-row"><span>Bots</span><span>${formatLimit(plan.limits.bots)}</span></div>
-          <div class="limit-row"><span>Users</span><span>${formatLimit(plan.limits.users)}</span></div>
+          <div class="limit-row"><span>${gbT('cloud-plans-limit-messages-day', 'Messages/day')}</span><span>${formatLimit(plan.limits.messages_per_day)}</span></div>
+          <div class="limit-row"><span>${gbT('cloud-plans-limit-storage', 'Storage')}</span><span>${formatStorage(plan.limits.storage_mb)}</span></div>
+          <div class="limit-row"><span>${gbT('cloud-plans-limit-bots', 'Bots')}</span><span>${formatLimit(plan.limits.bots)}</span></div>
+          <div class="limit-row"><span>${gbT('cloud-plans-limit-users', 'Users')}</span><span>${formatLimit(plan.limits.users)}</span></div>
         </div>
         <button class="btn-primary btn-block" onclick="selectPlan('${id}')">
-          ${isFree ? 'Get Started' : isCustom ? 'Contact Us' : 'Choose Plan'}
+          ${isFree ? gbT('cloud-plans-cta-start', 'Get Started') : isCustom ? gbT('cloud-plans-cta-contact', 'Contact Us') : gbT('cloud-plans-cta-choose', 'Choose Plan')}
         </button>
       </div>
     `;
@@ -110,7 +110,7 @@ function renderFeatureMatrix() {
   const tbody = document.getElementById('features-body');
   const entries = Object.entries(allPlans);
 
-  thead.innerHTML = '<th>Feature</th>' + entries.map(([id, p]) => '<th>' + escapeHtml(p.name) + '</th>').join('');
+  thead.innerHTML = '<th>' + gbT('cloud-plans-feature', 'Feature') + '</th>' + entries.map(([id, p]) => '<th>' + escapeHtml(p.name) + '</th>').join('');
 
   const allFeatures = [...new Set(entries.flatMap(([_, p]) => p.features || []))];
   const allLimits = ['messages_per_day', 'storage_mb', 'bots', 'users', 'api_calls_per_day', 'kb_documents', 'apps'];
@@ -123,7 +123,7 @@ function renderFeatureMatrix() {
         ((p.features || []).includes(feat) ? '✓' : '—') + '</td>').join('') + '</tr>';
   });
 
-  tbody.innerHTML += '<tr class="section-divider"><td colspan="' + (entries.length + 1) + '">Limits</td></tr>';
+  tbody.innerHTML += '<tr class="section-divider"><td colspan="' + (entries.length + 1) + '">' + gbT('cloud-plans-limits', 'Limits') + '</td></tr>';
 
   allLimits.forEach(limit => {
     tbody.innerHTML += '<tr><td class="feature-name">' + limitLabel(limit) + '</td>' +
@@ -178,7 +178,7 @@ function featureLabel(f) {
     on_premise: 'On-Premise Option',
     audit_logs: 'Audit Logs',
   };
-  return labels[f] || f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return gbT('cloud-plans-feature-' + f.replace(/_/g, '-'), labels[f] || f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
 }
 
 function limitLabel(l) {
@@ -191,7 +191,7 @@ function limitLabel(l) {
     kb_documents: 'KB Documents',
     apps: 'Apps',
   };
-  return labels[l] || l.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return gbT('cloud-plans-limit-' + l.replace(/_/g, '-'), labels[l] || l.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
 }
 
 function formatLimit(val) {

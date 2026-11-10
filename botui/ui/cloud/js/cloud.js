@@ -154,14 +154,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           const navVouchers = document.getElementById('nav-vouchers');
           if (navVouchers) navVouchers.style.display = 'flex';
           const avatarEl = document.getElementById('sidebar-avatar');
-          if (avatarEl) avatarEl.title = 'Super Admin';
+          if (avatarEl) avatarEl.title = gbT('cloud-role-super-admin', 'Super Admin');
         }
       }
     } catch (_) {}
   } else {
     // Anonymous: show sign-up prompt in sidebar
     const emailEl = document.getElementById('sidebar-email');
-    if (emailEl) emailEl.textContent = 'Browse anonymously';
+    if (emailEl) emailEl.textContent = gbT('cloud-anon-browse', 'Browse anonymously');
     const avatarEl = document.getElementById('sidebar-avatar');
     if (avatarEl) avatarEl.textContent = '?';
     const logoutBtn = document.getElementById('sidebar-logout');
@@ -179,9 +179,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         banner.className = 'anon-cta-banner';
         const loginBase = window.GB_LOGIN_URL || '/login';
         banner.innerHTML = '<div class="anon-cta-content">' +
-          '<span>Browse freely — <strong>create a free account</strong> to manage bots, domains and services.</span>' +
-          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">Sign In</a>' +
-          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">Create Free Account</a>' +
+          '<span>' + gbT('cloud-anon-banner', 'Browse freely — <strong>create a free account</strong> to manage bots, domains and services.') + '</span>' +
+          '<a href="' + loginBase + '?redirect=' + encodeURIComponent(location.href) + '" class="anon-cta-btn">' + gbT('cloud-signin', 'Sign In') + '</a>' +
+          '<a href="' + loginBase + '/signup' + '" class="anon-cta-btn" style="background:var(--accent2, #00d4aa);color:#04241c !important">' + gbT('cloud-create-free-account', 'Create Free Account') + '</a>' +
           '</div>';
         main.insertBefore(banner, main.firstChild);
       }
@@ -197,18 +197,18 @@ async function loadDashboardOrgs(token) {
     const res = await fetch(`${API_BASE}/organizations`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { container.innerHTML = '<p>Failed to load organizations</p>'; return; }
+    if (!res.ok) { container.innerHTML = '<p>' + gbT('cloud-error-load-orgs', 'Failed to load organizations') + '</p>'; return; }
     const orgs = await res.json();
     renderDashboardOrgs(orgs);
   } catch (err) {
-    container.innerHTML = `<p>Error: ${err.message}</p>`;
+    container.innerHTML = `<p>${gbT('cloud-error-prefix', 'Error:')} ${err.message}</p>`;
   }
 }
 
 function renderDashboardOrgs(orgs) {
   const container = document.getElementById('orgs-list');
   if (!container || !orgs || orgs.length === 0) {
-    if (container) container.innerHTML = '<div class="saas-loading"><p>No organizations yet.</p><button onclick="showNewOrgModal()" class="btn-primary">Create Your First Organization</button></div>';
+    if (container) container.innerHTML = '<div class="saas-loading"><p>' + gbT('cloud-orgs-empty', 'No organizations yet.') + '</p><button onclick="showNewOrgModal()" class="btn-primary">' + gbT('cloud-dashboard-create-first-org', 'Create Your First Organization') + '</button></div>';
     return;
   }
   container.innerHTML = orgs.map(o => `
@@ -219,8 +219,8 @@ function renderDashboardOrgs(orgs) {
         ${o.vps_address ? `<p>VPS: ${o.vps_address}</p>` : ''}
       </div>
       <div class="saas-org-actions">
-        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank"' : 'disabled'}>Open</a>
-        <button onclick="openBilling('${o.id}')" class="btn-text">Billing</button>
+        <a href="${o.vps_address ? 'https://' + o.vps_address : '#'}" class="btn-secondary" ${o.vps_address ? 'target="_blank"' : 'disabled'}>${gbT('cloud-open', 'Open')}</a>
+        <button onclick="openBilling('${o.id}')" class="btn-text">${gbT('cloud-billing', 'Billing')}</button>
       </div>
     </div>
   `).join('');
@@ -252,7 +252,7 @@ function renderDashboardPlans(plans) {
     return `
     <div class="saas-plan-card">
       <h3>${escapeHtml(plan.name)}</h3>
-      <div class="price">${isFree ? 'Free' : isCustom ? 'Custom' : '$' + monthlyAmount.toFixed(2) + '/' + periodLabel}</div>
+      <div class="price">${isFree ? gbT('cloud-price-free', 'Free') : isCustom ? gbT('cloud-price-custom', 'Custom') : '$' + monthlyAmount.toFixed(2) + '/' + periodLabel}</div>
       <ul>
         ${(plan.features || []).map(f => `<li>${escapeHtml(f)}</li>`).join('')}
       </ul>
@@ -280,11 +280,11 @@ async function createOrgFromDashboard(e) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ name, plan, period, storage_gb: storage, ai_addons: [] }),
     });
-    if (!res.ok) { const err = await res.json(); alert(err.detail || 'Failed'); return; }
+    if (!res.ok) { const err = await res.json(); alert(err.detail || gbT('cloud-error-failed', 'Failed')); return; }
     const data = await res.json();
     if (data.checkout_url) window.location.href = data.checkout_url;
     else { hideNewOrgModal(); await loadDashboardOrgs(token); }
-  } catch (err) { alert('Error: ' + err.message); }
+  } catch (err) { alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
 }
 
 async function openBilling(orgId) {
@@ -293,10 +293,10 @@ async function openBilling(orgId) {
     const res = await fetch(`${API_BASE}/organizations/${orgId}/billing`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!res.ok) { alert('Failed to open billing portal'); return; }
+    if (!res.ok) { alert(gbT('cloud-error-billing-portal', 'Failed to open billing portal')); return; }
     const data = await res.json();
     if (data.url) window.open(data.url, '_blank');
-  } catch (err) { alert('Error: ' + err.message); }
+  } catch (err) { alert(gbT('cloud-error-prefix', 'Error:') + ' ' + err.message); }
 }
 
 function showNewOrgModal() { const m = document.getElementById('new-org-modal'); if (m) m.style.display = 'flex'; }

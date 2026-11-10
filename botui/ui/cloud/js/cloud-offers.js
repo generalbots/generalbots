@@ -57,14 +57,14 @@ async function loadInvoicesAndBalance(token, email) {
     const tbody = document.getElementById('topup-history-tbody');
     if (tbody) {
       if (topupInvoices.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">No top-ups found yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">${gbT('cloud-offers-no-topups', 'No top-ups found yet.')}</td></tr>`;
       } else {
         tbody.innerHTML = topupInvoices.map(inv => `
           <tr>
             <td style="font-family:monospace;font-size:.85rem">${inv.number}</td>
             <td>${inv.issue_date}</td>
             <td style="color:var(--accent2);font-weight:700">+$${parseFloat(inv.total).toFixed(2)}</td>
-            <td><span class="badge badge-active" style="background:rgba(0,212,170,.15);color:var(--accent2)">Paid</span></td>
+            <td><span class="badge badge-active" style="background:rgba(0,212,170,.15);color:var(--accent2)">${gbT('cloud-offers-paid', 'Paid')}</span></td>
           </tr>
         `).join('');
       }
@@ -101,19 +101,19 @@ async function executeTopup() {
   const email = localStorage.getItem('management_email') || '';
 
   if (!orgId) {
-    showToast('❌ Please select or create an organization first.', 'error');
+    showToast(gbT('cloud-offers-select-org', '❌ Please select or create an organization first.'), 'error');
     return;
   }
 
   if (isNaN(amount) || amount <= 0) {
-    showToast('❌ Please enter a valid amount greater than $0.', 'error');
+    showToast(gbT('cloud-offers-invalid-amount', '❌ Please enter a valid amount greater than $0.'), 'error');
     return;
   }
 
   const btn = document.getElementById('topup-btn');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Processing Top-up...';
+    btn.textContent = gbT('cloud-offers-processing', 'Processing Top-up...');
   }
 
   try {
@@ -132,16 +132,16 @@ async function executeTopup() {
 
     if (!res.ok) {
       const err = await res.json();
-      showToast(`❌ Top-up failed: ${err.detail || 'Server error'}`, 'error');
+      showToast(gbT('cloud-offers-failed', '❌ Top-up failed:') + ' ' + (err.detail || gbT('cloud-offers-server-error', 'Server error')), 'error');
       if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Top-up Now';
+        btn.textContent = gbT('cloud-offers-topup-now', 'Top-up Now');
       }
       return;
     }
 
     const data = await res.json();
-    showToast(`✅ Top-up of $${amount.toFixed(2)} completed successfully!`);
+    showToast(gbT('cloud-offers-success', '✅ Top-up of {amount} completed successfully!', { amount: '$' + amount.toFixed(2) }));
     
     // Atualizar UI
     if (amountInput) amountInput.value = '';
@@ -150,11 +150,11 @@ async function executeTopup() {
     await loadInvoicesAndBalance(token, email);
 
   } catch (err) {
-    showToast(`❌ Connection error: ${err.message}`, 'error');
+    showToast(gbT('cloud-offers-connection-error', '❌ Connection error:') + ' ' + err.message, 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Top-up Now';
+      btn.textContent = gbT('cloud-offers-topup-now', 'Top-up Now');
     }
   }
 }
@@ -162,13 +162,13 @@ async function executeTopup() {
 // Save promo code to clipboard / localStorage for user convenience
 function copyPromoCode(code, elementId) {
   navigator.clipboard.writeText(code).then(() => {
-    showToast(`📋 Code "${code}" copied to clipboard!`);
+    showToast(gbT('cloud-offers-code-copied', '📋 Code "{code}" copied to clipboard!', { code: code }));
     localStorage.setItem('active_promo_code', code);
     
     const el = document.getElementById(elementId);
     if (el) {
       const originalText = el.textContent;
-      el.textContent = 'Copied!';
+      el.textContent = gbT('cloud-offers-copied', 'Copied!');
       el.style.background = 'var(--accent2)';
       el.style.borderColor = 'var(--accent2)';
       el.style.color = '#000';
@@ -182,7 +182,7 @@ function copyPromoCode(code, elementId) {
     }
   }).catch(err => {
     localStorage.setItem('active_promo_code', code);
-    showToast(`✅ Code "${code}" saved for checkout!`);
+    showToast(gbT('cloud-offers-code-saved', '✅ Code "{code}" saved for checkout!', { code: code }));
   });
 }
 

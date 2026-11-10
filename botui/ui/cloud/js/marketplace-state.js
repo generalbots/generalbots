@@ -31,7 +31,7 @@ async function mktApi(endpoint, options = {}) {
     const response = await fetch(endpoint, Object.assign({}, options, { headers }));
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || "Request failed (" + response.status + ")");
+        throw new Error(body.error || (window.gbT ? gbT("cloud-error-request-failed", "Request failed") : "Request failed") + " (" + response.status + ")");
     }
     return response.json();
 }
@@ -48,8 +48,8 @@ async function mktLoadSkills() {
         renderMktTags();
         renderMktGrid();
     } catch (err) {
-        if (grid) grid.innerHTML = '<div class="mkt-state">Failed to load marketplace: ' +
-            mktEsc(err.message) + "</div>";
+        if (grid) grid.innerHTML = '<div class="mkt-state">' +
+            mktEsc(gbT("cloud-marketplace-load-error", "Failed to load marketplace:") + " " + err.message) + "</div>";
     }
 }
 
@@ -68,7 +68,7 @@ function renderMktTags() {
     const row = document.getElementById("mkt-tags");
     if (!row) return;
     let html = '<button type="button" class="mkt-tag-chip' + (MktState.activeTag === "" ? " active" : "") +
-        '" data-mkt-tag="">All</button>';
+        '" data-mkt-tag="">' + mktEsc(gbT("cloud-marketplace-tag-all", "All")) + "</button>";
     for (const tag of MktState.tags) {
         html += '<button type="button" class="mkt-tag-chip' + (MktState.activeTag === tag ? " active" : "") +
             '" data-mkt-tag="' + mktEsc(tag) + '">' + mktEsc(tag) + "</button>";
@@ -80,11 +80,11 @@ function mktCardHtml(skill) {
     const glyph = skill.icon_glyph || (skill.name || "?").charAt(0).toUpperCase();
     const tags = (skill.tags || []).slice(0, 3)
         .map(t => '<span class="mkt-mini-tag">' + mktEsc(t) + "</span>").join("");
-    let html = '<button type="button" class="mkt-card" data-mkt-open="' + mktEsc(skill.slug) + '" aria-label="View details for ' + mktEsc(skill.name) + '">';
+    let html = '<button type="button" class="mkt-card" data-mkt-open="' + mktEsc(skill.slug) + '" aria-label="' + mktEsc(gbT("cloud-marketplace-view-details", "View details for {name}", { name: skill.name })) + '">';
     html += '<div class="mkt-card-head">';
     html += '<span class="mkt-avatar" aria-hidden="true">' + mktEsc(glyph) + "</span>";
     html += "<div><h3 class=\"mkt-name\">" + mktEsc(skill.name) + "</h3>" +
-        '<div class="mkt-publisher">by ' + mktEsc(skill.publisher_name || "Community") + "</div></div>";
+        '<div class="mkt-publisher">' + mktEsc(gbT("cloud-marketplace-by", "by {publisher}", { publisher: skill.publisher_name || gbT("cloud-marketplace-community", "Community") })) + "</div></div>";
     html += "</div>";
     html += '<p class="mkt-desc">' + mktEsc(skill.description || "") + "</p>";
     html += '<div class="mkt-card-foot">' + tags +
@@ -98,5 +98,5 @@ function renderMktGrid() {
     if (!grid) return;
     grid.innerHTML = MktState.skills.length
         ? MktState.skills.map(mktCardHtml).join("")
-        : '<div class="mkt-empty">No skills match your search. Try different keywords or clear the tag filter.</div>';
+        : '<div class="mkt-empty">' + mktEsc(gbT("cloud-marketplace-empty", "No skills match your search. Try different keywords or clear the tag filter.")) + "</div>";
 }

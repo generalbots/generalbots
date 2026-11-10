@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-llm-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LLM Models — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .provider-section { margin-bottom: 2.5rem; }
     .provider-header {
@@ -67,22 +69,22 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">LLM Models</span>
+      <span class="mgmt-page-title" data-i18n="cloud-llm-title">LLM Models</span>
       <div class="mgmt-topbar-actions"></div>
     </div>
 
     <div style="padding:2rem">
       <div class="llm-page-header">
         <div style="display:none">
-          <h1>Model Browser</h1>
+          <h1 data-i18n="cloud-llm-browser-title">Model Browser</h1>
         </div>
       </div>
 
       <div class="filter-bar" id="filter-bar">
-        <button class="filter-btn active" data-filter="all">All</button>
-        <button class="filter-btn" data-filter="chinese">Chinese Providers</button>
-        <button class="filter-btn" data-filter="buy">Buy Tokens</button>
-        <button class="filter-btn" data-filter="included">Included in Plan</button>
+        <button class="filter-btn active" data-filter="all" data-i18n="cloud-llm-filter-all">All</button>
+        <button class="filter-btn" data-filter="chinese" data-i18n="cloud-llm-filter-chinese">Chinese Providers</button>
+        <button class="filter-btn" data-filter="buy" data-i18n="cloud-llm-filter-buy">Buy Tokens</button>
+        <button class="filter-btn" data-filter="included" data-i18n="cloud-llm-filter-included">Included in Plan</button>
       </div>
 
       <div id="providers-container"></div>
@@ -91,23 +93,23 @@
 
 <div id="llm-connect-mask" class="llm-connect-mask" role="dialog" aria-modal="true" aria-labelledby="llm-connect-title">
   <div class="llm-connect-dialog">
-    <h2 id="llm-connect-title">Connect provider</h2>
-    <p>Choose how this Cloud workspace authenticates with the provider. Secrets are stored server-side in Vault.</p>
+    <h2 id="llm-connect-title" data-i18n="cloud-llm-connect-title">Connect provider</h2>
+    <p data-i18n="cloud-llm-connect-desc">Choose how this Cloud workspace authenticates with the provider. Secrets are stored server-side in Vault.</p>
     <div class="llm-connect-tabs">
-      <button class="connect-btn" data-connect-tab="key">API key</button>
-      <button class="connect-btn" data-connect-tab="oauth">OAuth</button>
+      <button class="connect-btn" data-connect-tab="key" data-i18n="cloud-llm-tab-key">API key</button>
+      <button class="connect-btn" data-connect-tab="oauth" data-i18n="cloud-llm-tab-oauth">OAuth</button>
     </div>
     <div class="llm-connect-panel active" data-connect-panel="key">
-      <label for="llm-connect-key" style="display:block;font-size:.75rem;font-weight:700;margin-bottom:.35rem">Provider API key</label>
-      <input id="llm-connect-key" class="llm-connect-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key">
-      <button id="llm-save-key" class="connect-btn" style="margin-top:.7rem">Save encrypted key</button>
+      <label for="llm-connect-key" style="display:block;font-size:.75rem;font-weight:700;margin-bottom:.35rem" data-i18n="cloud-llm-key-label">Provider API key</label>
+      <input id="llm-connect-key" class="llm-connect-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" data-i18n-placeholder="cloud-llm-key-placeholder">
+      <button id="llm-save-key" class="connect-btn" style="margin-top:.7rem" data-i18n="cloud-llm-save-key">Save encrypted key</button>
     </div>
     <div class="llm-connect-panel" data-connect-panel="oauth">
-      <p id="llm-oauth-help">OAuth is available when the provider exposes account authorization and an administrator configured its OAuth client.</p>
-      <button id="llm-start-oauth" class="connect-btn">Continue with OAuth</button>
+      <p id="llm-oauth-help" data-i18n="cloud-llm-oauth-help">OAuth is available when the provider exposes account authorization and an administrator configured its OAuth client.</p>
+      <button id="llm-start-oauth" class="connect-btn" data-i18n="cloud-llm-continue-oauth">Continue with OAuth</button>
     </div>
     <div id="llm-connect-status" style="min-height:1.2rem;margin-top:.75rem;font-size:.75rem;color:var(--muted)"></div>
-    <div class="llm-connect-actions"><button id="llm-connect-close" class="connect-btn">Close</button></div>
+    <div class="llm-connect-actions"><button id="llm-connect-close" class="connect-btn" data-i18n="cloud-close">Close</button></div>
   </div>
 </div>
 
@@ -194,28 +196,28 @@
   function renderProvider(prov) {
     const icon = PROV_ICONS[prov.icon] || { bg: '#6b7280', label: '?' };
     const badge = prov.requires_byok
-      ? '<span class="provider-badge byok">Requires BYOK</span>'
+      ? '<span class="provider-badge byok">' + gbT('cloud-llm-requires-byok', 'Requires BYOK') + '</span>'
       : prov.models && prov.models.some(m => m.pricing === 'token-package')
-        ? '<a href="/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">Token packages ↗</a>'
-        : '<span class="provider-badge included">Included</span>';
+        ? '<a href="/store?calc=1#calc-llm-grid" class="provider-badge" style="background:rgba(255,0,128,.1);color:var(--accent);text-decoration:none">' + gbT('cloud-llm-token-packages', 'Token packages ↗') + '</a>'
+        : '<span class="provider-badge included">' + gbT('cloud-llm-included', 'Included') + '</span>';
 
     const modelsHtml = (prov.models || []).map(m => {
       const caps = (m.capabilities || []).map(c => `<span class="model-meta-tag">${c}</span>`).join('');
       const ctx = m.context ? (m.context / 1000).toFixed(0) + 'K' : '\u2014';
-      const pricing = m.pricing === 'included' ? '<span class="free">Included</span>'
+      const pricing = m.pricing === 'included' ? '<span class="free">' + gbT('cloud-llm-included', 'Included') + '</span>'
         : m.pricing === 'token-package'
-          ? '<a href="' + (m.package_url || '/store?calc=1#calc-llm-grid') + '" style="color:var(--accent2);font-weight:600;text-decoration:none">Buy tokens ↗</a>'
-          : '<span class="paid">Pay-per-token</span>';
+          ? '<a href="' + (m.package_url || '/store?calc=1#calc-llm-grid') + '" style="color:var(--accent2);font-weight:600;text-decoration:none">' + gbT('cloud-llm-buy-tokens', 'Buy tokens ↗') + '</a>'
+          : '<span class="paid">' + gbT('cloud-llm-pay-per-token', 'Pay-per-token') + '</span>';
       return '<div class="model-card">' +
         '<div class="model-name">' + m.name + '</div>' +
-        '<div class="model-meta"><span class="model-meta-tag">' + ctx + ' ctx</span>' + caps + '</div>' +
+        '<div class="model-meta"><span class="model-meta-tag">' + gbT('cloud-llm-context-tag', '{size} ctx', { size: ctx }) + '</span>' + caps + '</div>' +
         '<div class="model-desc">' + (m.description || '') + '</div>' +
         '<div class="model-pricing"><span>' + pricing + '</span><span style="color:var(--muted);font-size:.7rem">' + m.id + '</span></div>' +
         '</div>';
     }).join('');
 
     const connect = prov.id === 'generalbots' ? '' : '<div class="provider-connect">' +
-      '<button class="connect-btn" data-connect-provider="' + prov.id + '" data-connect-name="' + prov.name.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">Connect</button></div>';
+      '<button class="connect-btn" data-connect-provider="' + prov.id + '" data-connect-name="' + prov.name.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + gbT('cloud-llm-connect', 'Connect') + '</button></div>';
     return '<div class="provider-section" data-provider-id="' + prov.id + '">' +
       '<div class="provider-header" onclick="this.classList.toggle(\'open\')">' +
       '<div class="provider-icon" style="background:' + icon.bg + '">' + icon.label + '</div>' +
@@ -248,7 +250,7 @@
     if (filtered.length) {
       html = filtered.map(renderProvider).join('');
     } else {
-      html = '<p style="color:var(--muted)">No providers in this category.</p>';
+      html = '<p style="color:var(--muted)">' + gbT('cloud-llm-no-providers', 'No providers in this category.') + '</p>';
     }
     container.innerHTML = html;
   }
@@ -261,13 +263,13 @@
   function showConnect(provider, name) {
     if (!token) { window.location.href = (window.GB_LOGIN_URL || 'http://localhost:5000') + '/login'; return; }
     connectProvider = provider;
-    document.getElementById('llm-connect-title').textContent = 'Connect ' + name;
+    document.getElementById('llm-connect-title').textContent = gbT('cloud-llm-connect-provider', 'Connect {name}', { name: name });
     document.getElementById('llm-connect-key').value = '';
     document.getElementById('llm-connect-status').textContent = '';
     document.getElementById('llm-start-oauth').disabled = provider !== 'google';
     document.getElementById('llm-oauth-help').textContent = provider === 'google'
-      ? 'Authorize Gemini API access with Google OAuth. Access and refresh credentials are encrypted per workspace in Vault.'
-      : 'This provider currently authenticates API access with a key. OAuth is not exposed by this provider.';
+      ? gbT('cloud-llm-oauth-google', 'Authorize Gemini API access with Google OAuth. Access and refresh credentials are encrypted per workspace in Vault.')
+      : gbT('cloud-llm-oauth-unsupported', 'This provider currently authenticates API access with a key. OAuth is not exposed by this provider.');
     document.getElementById('llm-connect-mask').classList.add('open');
   }
 
@@ -284,26 +286,26 @@
   document.getElementById('llm-save-key').addEventListener('click', async () => {
     const key = document.getElementById('llm-connect-key').value.trim();
     const status = document.getElementById('llm-connect-status');
-    if (!key || !connectProvider) { status.textContent = 'Enter an API key.'; return; }
-    status.textContent = 'Saving…';
+    if (!key || !connectProvider) { status.textContent = gbT('cloud-llm-enter-key', 'Enter an API key.'); return; }
+    status.textContent = gbT('cloud-saving', 'Saving…');
     try {
       const response = await fetch('/api/cloud/tenant/settings/byok', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({keys:{[connectProvider]:key}}) });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Save failed');
+      if (!response.ok) throw new Error(data.error || gbT('cloud-llm-save-failed', 'Save failed'));
       document.getElementById('llm-connect-key').value = '';
-      status.textContent = 'API key saved securely.';
+      status.textContent = gbT('cloud-llm-key-saved', 'API key saved securely.');
     } catch (error) { status.textContent = error.message || String(error); }
   });
   document.getElementById('llm-start-oauth').addEventListener('click', async () => {
     if (connectProvider !== 'google') return;
     const status = document.getElementById('llm-connect-status');
-    status.textContent = 'Preparing secure Google authorization…';
+    status.textContent = gbT('cloud-llm-preparing-oauth', 'Preparing secure Google authorization…');
     try {
       const response = await fetch('/api/cloud/tenant/settings/oauth/google/start', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.authorization_url) throw new Error(data.error || data.message || 'OAuth is not configured');
+      if (!response.ok || !data.authorization_url) throw new Error(data.error || data.message || gbT('cloud-llm-oauth-not-configured', 'OAuth is not configured'));
       window.location.href = data.authorization_url;
     } catch (error) {
       status.textContent = error.message || String(error);

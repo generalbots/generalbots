@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function purchaseAppStore(store) {
   const token = requireAuth();
   const email = localStorage.getItem('management_email');
-  if (!email) { showToast('Please login first'); return; }
+  if (!email) { showToast(gbT('cloud-appstores-login-first', 'Please login first')); return; }
 
   const prices = { google: 125, apple: 199, bundle: 280 };
   const labels = {
@@ -71,18 +71,18 @@ async function purchaseAppStore(store) {
       body: JSON.stringify({ store, amount, email, description: label }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Request failed' }));
-      showToast('Error: ' + (err.detail || err.message || 'Unknown'));
+      const err = await res.json().catch(() => ({ detail: gbT('cloud-error-request-failed', 'Request failed') }));
+      showToast(gbT('cloud-error-prefix', 'Error:') + ' ' + (err.detail || err.message || gbT('cloud-settings-unknown', 'Unknown')));
       return;
     }
     const data = await res.json();
     if (data.checkout_url) {
       window.location.href = data.checkout_url;
     } else {
-      showToast('Order placed! Invoice: ' + data.invoice_number);
+      showToast(gbT('cloud-appstores-order-placed', 'Order placed! Invoice:') + ' ' + data.invoice_number);
       setTimeout(() => { window.location.href = '/invoices'; }, 1500);
     }
   } catch (err) {
-    showToast('Network error: ' + err.message);
+    showToast(gbT('cloud-settings-network-error', 'Network error:') + ' ' + err.message);
   }
 }

@@ -15,7 +15,7 @@ function selectProfile(profile) {
       btn.classList.add('recommended');
       const input = btn.querySelector('input[name="calc-vps"]');
       if (input && !input.checked) input.checked = true;
-      btn.insertAdjacentHTML('beforeend', '<span class="calc-rec-badge">Recommended</span>');
+      btn.insertAdjacentHTML('beforeend', '<span class="calc-rec-badge">' + gbT('cloud-store-recommended', 'Recommended') + '</span>');
     }
   });
   calcUpdate();

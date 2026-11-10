@@ -59,17 +59,17 @@ async function loadOrgs() {
 function renderOrgs() {
   const el = document.getElementById('org-list');
   if (!orgs.length) {
-    el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">🏢</div><div>No organizations yet.<br><button class="btn btn-primary btn-sm" onclick="showCreateOrg()" style="margin-top:.75rem">Create your first organization</button></div></div>';
+    el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">🏢</div><div>' + gbT('cloud-orgs-empty', 'No organizations yet.') + '<br><button class="btn btn-primary btn-sm" onclick="showCreateOrg()" style="margin-top:.75rem">' + gbT('cloud-orgs-create-first', 'Create your first organization') + '</button></div></div>';
     return;
   }
   el.innerHTML = orgs.map(o => `
     <div class="org-card" onclick="showOrgDetail('${o.id}')">
       <div class="org-card-icon">${(o.name||'O')[0].toUpperCase()}</div>
       <div class="org-card-name">${esc(o.name)}<span class="org-card-suffix">.gborg</span></div>
-      <div class="org-card-plan">${o.plan || 'free'} plan</div>
+      <div class="org-card-plan">${gbT('cloud-orgs-plan-suffix', '{plan} plan', { plan: o.plan || 'free' })}</div>
       <div class="org-card-stats">
-        <div class="org-card-stat"><div class="org-card-stat-num">${o.wsCount || 0}</div><div class="org-card-stat-label">Workspaces</div></div>
-        <div class="org-card-stat"><div class="org-card-stat-num">${o.resCount || 0}</div><div class="org-card-stat-label">Resources</div></div>
+        <div class="org-card-stat"><div class="org-card-stat-num">${o.wsCount || 0}</div><div class="org-card-stat-label">${gbT('cloud-orgs-workspaces', 'Workspaces')}</div></div>
+        <div class="org-card-stat"><div class="org-card-stat-num">${o.resCount || 0}</div><div class="org-card-stat-label">${gbT('cloud-orgs-resources', 'Resources')}</div></div>
       </div>
     </div>
   `).join('');
@@ -82,7 +82,7 @@ function hideCreateOrg() { document.getElementById('create-org-modal').classList
 async function createOrg() {
   const name = document.getElementById('org-name-input').value.trim();
   const plan = document.getElementById('org-plan-select').value;
-  if (!name) return alert('Enter a name');
+  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations', {
@@ -91,7 +91,7 @@ async function createOrg() {
     body: JSON.stringify({ name, plan })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.detail || 'Failed to create');
+  if (!res.ok) return alert(data.detail || gbT('cloud-error-create-failed', 'Failed to create'));
   hideCreateOrg();
   document.getElementById('org-name-input').value = '';
   await loadOrgs();
@@ -109,8 +109,8 @@ function hideEditOrg() { document.getElementById('edit-org-modal').classList.rem
 async function updateOrg() {
   const orgId = document.getElementById('edit-org-modal').getAttribute('data-org-id');
   const name = document.getElementById('edit-org-name-input').value.trim();
-  if (!name) return alert('Enter a name');
-  if (!orgId) return alert('No organization selected');
+  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
+  if (!orgId) return alert(gbT('cloud-orgs-no-org', 'No organization selected'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + orgId, {
@@ -118,7 +118,7 @@ async function updateOrg() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed to update'); }
+  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-orgs-update-failed', 'Failed to update')); }
   hideEditOrg();
   await loadOrgs();
   // Re-show detail with updated data
@@ -126,12 +126,12 @@ async function updateOrg() {
 }
 
 async function deleteOrg(orgId, name) {
-  if (!confirm(`Delete organization "${name}"?\n\nThis will also remove all workspaces and resources. This action cannot be undone.`)) return;
+  if (!confirm(gbT('cloud-orgs-delete-confirm', 'Delete organization "{name}"?\n\nThis will also remove all workspaces and resources. This action cannot be undone.', { name: name }))) return;
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + orgId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed to delete'); }
+  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-error-delete-failed', 'Failed to delete')); }
   if (currentOrgId === orgId) showOrgList();
   await loadOrgs();
 }
@@ -143,11 +143,11 @@ async function showOrgDetail(orgId) {
   const safeName = jesc(org.name);
   document.getElementById('org-detail-header').innerHTML = `
     <div class="org-detail-icon">${(org.name||'O')[0].toUpperCase()}</div>
-    <div><div class="org-detail-name">${esc(org.name)}<span class="org-detail-suffix" style="color:var(--muted)">.gborg</span></div><div class="org-detail-plan">${org.plan || 'free'} plan</div>
-    <div class="org-detail-meta">ID: ${orgId}</div></div>
+    <div><div class="org-detail-name">${esc(org.name)}<span class="org-detail-suffix" style="color:var(--muted)">.gborg</span></div><div class="org-detail-plan">${gbT('cloud-orgs-plan-suffix', '{plan} plan', { plan: org.plan || 'free' })}</div>
+    <div class="org-detail-meta">${gbT('cloud-orgs-id', 'ID:')} ${orgId}</div></div>
     <div class="org-detail-actions">
-      <button class="btn btn-secondary btn-sm" onclick="showEditOrg('${orgId}','${safeName}')">Edit</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteOrg('${orgId}','${safeName}')">Delete</button>
+      <button class="btn btn-secondary btn-sm" onclick="showEditOrg('${orgId}','${safeName}')">${gbT('cloud-edit', 'Edit')}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteOrg('${orgId}','${safeName}')">${gbT('cloud-delete', 'Delete')}</button>
     </div>
   `;
   document.querySelector('#app-root > .mgmt-topbar').style.display = 'none';
@@ -176,11 +176,11 @@ async function loadWorkspaces(orgId) {
   if (!el) return;
   try {
     const res = await cloudFetch(API + '/organizations/' + orgId + '/workspaces', );
-    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);padding:1rem">Failed to load workspaces.</div>'; return; }
+    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + gbT('cloud-orgs-workspaces-error', 'Failed to load workspaces.') + '</div>'; return; }
     const data = await res.json();
     const wss = data.workspaces || [];
     if (!wss.length) {
-      el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">📂</div><div>No workspaces in this organization.<br><button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()" style="margin-top:.75rem">Create your first workspace</button></div></div>';
+      el.innerHTML = '<div class="mgmt-empty"><div class="mgmt-empty-icon">📂</div><div>' + gbT('cloud-orgs-no-workspaces', 'No workspaces in this organization.') + '<br><button class="btn btn-primary btn-sm" onclick="showCreateWorkspace()" style="margin-top:.75rem">' + gbT('cloud-orgs-create-first-workspace', 'Create your first workspace') + '</button></div></div>';
       return;
     }
     // Fetch resource counts per workspace
@@ -199,15 +199,15 @@ async function loadWorkspaces(orgId) {
           <div class="ws-card-icon">${ws.icon || '⊞'}</div>
           <div class="ws-card-name">${esc(ws.name)}<span class="ws-card-suffix" style="color:var(--muted)">.gbai</span></div>
         </div>
-        <div class="ws-card-desc">${ws.description ? esc(ws.description) : 'No description'}</div>
+        <div class="ws-card-desc">${ws.description ? esc(ws.description) : gbT('cloud-orgs-no-description', 'No description')}</div>
         <div class="ws-card-footer">
-          <span class="ws-card-resource">${ws.resCount || 0} resources</span>
-          <button class="btn btn-ghost btn-sm" onclick="showWsDetail('${ws.id}','${safeName}')">Manage</button>
+          <span class="ws-card-resource">${gbT('cloud-orgs-resource-count', '{count} resources', { count: ws.resCount || 0 })}</span>
+          <button class="btn btn-ghost btn-sm" onclick="showWsDetail('${ws.id}','${safeName}')">${gbT('cloud-orgs-manage', 'Manage')}</button>
         </div>
       </div>`;
     }).join('');
   } catch (_) {
-    el.innerHTML = '<div style="color:var(--muted);padding:1rem">Could not load workspaces.</div>';
+    el.innerHTML = '<div style="color:var(--muted);padding:1rem">' + gbT('cloud-orgs-workspaces-load-error', 'Could not load workspaces.') + '</div>';
   }
 }
 
@@ -218,8 +218,8 @@ function hideCreateWorkspace() { document.getElementById('create-ws-modal').clas
 async function createWorkspace() {
   const name = document.getElementById('ws-name-input').value.trim();
   const desc = document.getElementById('ws-desc-input').value.trim();
-  if (!name) return alert('Enter a name');
-  if (!currentOrgId) return alert('No organization selected');
+  if (!name) return alert(gbT('cloud-orgs-enter-name', 'Enter a name'));
+  if (!currentOrgId) return alert(gbT('cloud-orgs-no-org', 'No organization selected'));
 
   const token = requireAuth();
   const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces', {
@@ -228,7 +228,7 @@ async function createWorkspace() {
     body: JSON.stringify({ name, description: desc || null })
   });
   const data = await res.json();
-  if (!res.ok) return alert(data.detail || 'Failed');
+  if (!res.ok) return alert(data.detail || gbT('cloud-error-failed', 'Failed'));
   hideCreateWorkspace();
   document.getElementById('ws-name-input').value = '';
   document.getElementById('ws-desc-input').value = '';
@@ -260,11 +260,11 @@ async function loadResources(wsId) {
   if (!el) return;
   try {
     const res = await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId + '/resources', );
-    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load resources.</div>'; return; }
+    if (!res.ok) { el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-resources-error', 'Could not load resources.') + '</div>'; return; }
     const data = await res.json();
     const resources = data.resources || [];
     if (!resources.length) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No resources assigned yet.</div>';
+      el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-no-resources', 'No resources assigned yet.') + '</div>';
       return;
     }
     el.innerHTML = resources.map(r => {
@@ -281,12 +281,12 @@ async function loadResources(wsId) {
     const assignModal = document.getElementById('assign-res-modal');
     if (assignModal) assignModal.setAttribute('data-ws-id', wsId);
   } catch (_) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load resources.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">' + gbT('cloud-orgs-resources-error', 'Could not load resources.') + '</div>';
   }
 }
 
 async function removeResource(resId) {
-  if (!confirm('Remove this resource?')) return;
+  if (!confirm(gbT('cloud-orgs-remove-resource-confirm', 'Remove this resource?'))) return;
   const token = requireAuth();
   await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + currentWsId + '/resources/' + resId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
@@ -295,7 +295,7 @@ async function removeResource(resId) {
 }
 
 async function deleteWorkspace(wsId) {
-  if (!confirm('Delete this workspace and all its resources?')) return;
+  if (!confirm(gbT('cloud-orgs-delete-workspace-confirm', 'Delete this workspace and all its resources?'))) return;
   const token = requireAuth();
   await cloudFetch(API + '/organizations/' + currentOrgId + '/workspaces/' + wsId, {
     method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token },
@@ -327,7 +327,7 @@ async function confirmAssignResource() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ store_item_id: storeItemId, name })
   });
-  if (!res.ok) { const d = await res.json(); return alert(d.detail || 'Failed'); }
+  if (!res.ok) { const d = await res.json(); return alert(d.detail || gbT('cloud-error-failed', 'Failed')); }
   hideAssignResource();
   document.getElementById('assign-res-name').value = '';
   await loadResources(currentWsId);

@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-settings-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .settings-section { margin-bottom: 2rem; }
     .settings-card {
@@ -53,7 +55,7 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Settings</span>
+      <span class="mgmt-page-title" data-i18n="cloud-settings-title">Settings</span>
       <div class="mgmt-topbar-actions"></div>
     </div>
 
@@ -61,14 +63,14 @@
 
       <!-- Current Plan -->
       <div class="settings-section">
-        <div class="settings-card-title">Current Plan</div>
+        <div class="settings-card-title" data-i18n="cloud-settings-current-plan">Current Plan</div>
         <div class="plan-info-card">
           <div>
-            <div class="plan-info-name" id="plan-name">Loading...</div>
+            <div class="plan-info-name" id="plan-name" data-i18n="cloud-loading">Loading...</div>
             <div class="plan-info-price" id="plan-price">—</div>
           </div>
           <div class="plan-info-actions">
-            <a href="/offers" class="btn btn-primary btn-sm">View Upgrade Options</a>
+            <a href="/offers" class="btn btn-primary btn-sm" data-i18n="cloud-settings-view-upgrades">View Upgrade Options</a>
           </div>
         </div>
       </div>
@@ -78,11 +80,11 @@
       <!-- Resgatar Voucher -->
       <div class="settings-section">
         <div class="settings-card">
-          <div class="settings-card-title">Resgatar Voucher</div>
-          <div class="settings-card-desc">Insira um código de voucher promocional (ex: GB30-XXXX) para ativar ou prolongar seu período de testes (trial).</div>
+          <div class="settings-card-title" data-i18n="cloud-settings-redeem-title">Redeem Voucher</div>
+          <div class="settings-card-desc" data-i18n="cloud-settings-redeem-desc">Enter a promotional voucher code (e.g. GB30-XXXX) to activate or extend your trial period.</div>
           <div style="display:flex;gap:.75rem;align-items:center">
             <input type="text" id="voucher-code-input" placeholder="GB30-XXXX" style="padding:.5rem .75rem;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:monospace;width:250px" spellcheck="false" autocomplete="off">
-            <button class="btn btn-primary btn-sm" onclick="redeemVoucher()">Resgatar</button>
+            <button class="btn btn-primary btn-sm" onclick="redeemVoucher()" data-i18n="cloud-settings-redeem">Redeem</button>
           </div>
           <div id="voucher-message" style="margin-top:.75rem;font-size:.85rem"></div>
         </div>
@@ -94,12 +96,12 @@
            their own editor in the Integrations app (Model providers (BYOK)). -->
       <div class="settings-section">
         <div class="settings-card">
-          <div class="settings-card-title">Model providers (account)</div>
-          <div class="settings-card-desc">Keys this billing account uses to reach model providers. Platform-wide keys stored in Vault are managed in the Integrations app.</div>
+          <div class="settings-card-title" data-i18n="cloud-settings-byok-title">Model providers (account)</div>
+          <div class="settings-card-desc" data-i18n="cloud-settings-byok-desc">Keys this billing account uses to reach model providers. Platform-wide keys stored in Vault are managed in the Integrations app.</div>
           <div id="byok-list">
-            <p style="color:var(--muted);font-size:.85rem">Loading providers...</p>
+            <p style="color:var(--muted);font-size:.85rem" data-i18n="cloud-settings-loading-providers">Loading providers...</p>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-top:.75rem" onclick="saveByokKeys()">Save Keys</button>
+          <button class="btn btn-outline btn-sm" style="margin-top:.75rem" onclick="saveByokKeys()" data-i18n="cloud-settings-save-keys">Save Keys</button>
         </div>
       </div>
 
@@ -108,27 +110,27 @@
       <!-- Token Packs -->
       <div class="settings-section">
         <div class="settings-card">
-          <div class="settings-card-title">Token Packs</div>
-          <div class="settings-card-desc">Purchase token packs to use across your bots. Available on paid plans.</div>
+          <div class="settings-card-title" data-i18n="cloud-settings-tokens-title">Token Packs</div>
+          <div class="settings-card-desc" data-i18n="cloud-settings-tokens-desc">Purchase token packs to use across your bots. Available on paid plans.</div>
           <div class="token-grid" id="token-grid">
             <div class="token-card" data-token="10K" data-price="1.00" onclick="purchaseTokens('llm-tokens-10k', '10K tokens', 1.00)">
-              <div class="token-amount">10K <small>tokens</small></div>
+              <div class="token-amount">10K <small data-i18n="cloud-settings-tokens-unit">tokens</small></div>
               <div class="token-price">$1.00</div>
             </div>
             <div class="token-card" data-token="100K" data-price="9.00" onclick="purchaseTokens('llm-tokens-100k', '100K tokens', 9.00)">
-              <div class="token-amount">100K <small>tokens</small></div>
+              <div class="token-amount">100K <small data-i18n="cloud-settings-tokens-unit">tokens</small></div>
               <div class="token-price">$9.00</div>
-              <div class="token-bonus">+10% bonus</div>
+              <div class="token-bonus" data-i18n="cloud-settings-bonus-10">+10% bonus</div>
             </div>
             <div class="token-card" data-token="1M" data-price="79.00" onclick="purchaseTokens('llm-tokens-1m', '1M tokens', 79.00)">
-              <div class="token-amount">1M <small>tokens</small></div>
+              <div class="token-amount">1M <small data-i18n="cloud-settings-tokens-unit">tokens</small></div>
               <div class="token-price">$79.00</div>
-              <div class="token-bonus">+21% bonus</div>
+              <div class="token-bonus" data-i18n="cloud-settings-bonus-21">+21% bonus</div>
             </div>
             <div class="token-card" data-token="10M" data-price="699.00" onclick="purchaseTokens('llm-tokens-10m', '10M tokens', 699.00)">
-              <div class="token-amount">10M <small>tokens</small></div>
+              <div class="token-amount">10M <small data-i18n="cloud-settings-tokens-unit">tokens</small></div>
               <div class="token-price">$699.00</div>
-              <div class="token-bonus">+30% bonus</div>
+              <div class="token-bonus" data-i18n="cloud-settings-bonus-30">+30% bonus</div>
             </div>
           </div>
         </div>
@@ -139,6 +141,12 @@
 <script src="/cloud/js/gb-shared.js"></script>
 <script src="/cloud/js/cloud.js"></script>
 <script>
+function fmtCurrency(amount) {
+  return window.i18n && window.i18n.formatCurrency
+    ? window.i18n.formatCurrency(amount, 'USD')
+    : '$' + Number(amount).toFixed(2);
+}
+
 (async function() {
   const token = requireAuth();
   if (!token) return;
@@ -191,7 +199,7 @@
         '</div>' +
         '<div class="byok-status inactive" id="byok-status-' + p.id + '">' +
         '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>' +
-        ' Not set' +
+        ' ' + gbT('cloud-settings-not-set', 'Not set') +
         '</div>' +
         '</div>';
     }).join('');
@@ -221,22 +229,22 @@
           body: JSON.stringify({ keys }),
         });
         if (res.ok) {
-          showToast('API keys saved encrypted on server.', 'success');
+          showToast(gbT('cloud-settings-keys-saved', 'API keys saved encrypted on server.'), 'success');
         } else {
-          const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-          showToast('Server save failed: ' + (err.error || 'Unknown'), 'error');
+          const err = await res.json().catch(() => ({ error: gbT('cloud-settings-unknown-error', 'Unknown error') }));
+          showToast(gbT('cloud-settings-keys-failed', 'Server save failed:') + ' ' + (err.error || gbT('cloud-settings-unknown', 'Unknown')), 'error');
         }
       } catch (e) {
-        showToast('Server unavailable. Keys were not stored.', 'error');
+        showToast(gbT('cloud-settings-server-unavailable', 'Server unavailable. Keys were not stored.'), 'error');
       }
     } else {
-      showToast('Sign in before saving provider keys.', 'error');
+      showToast(gbT('cloud-settings-signin-required', 'Sign in before saving provider keys.'), 'error');
     }
 
     // Update status indicators
     Object.keys(keys).forEach(id => {
       const status = document.getElementById('byok-status-' + id);
-      if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved'; }
+      if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> ' + gbT('cloud-settings-saved', 'Saved'); }
     });
   };
 
@@ -246,12 +254,12 @@
     const code = input.value.trim();
     if (!code) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Por favor, insira o código do voucher.';
+      msg.textContent = gbT('cloud-settings-voucher-required', 'Please enter the voucher code.');
       return;
     }
-    
+
     msg.style.color = 'var(--muted)';
-    msg.textContent = 'Processando resgate...';
+    msg.textContent = gbT('cloud-settings-redeeming', 'Processing redemption...');
     
     try {
       const res = await fetch('/api/cloud/vouchers/redeem', {
@@ -266,16 +274,16 @@
       const data = await res.json();
       if (res.ok) {
         msg.style.color = '#34d399';
-        msg.textContent = `Sucesso! Voucher resgatado: ${data.subscription.trial_days} dias de trial concedidos. Expira em ${data.subscription.trial_end}.`;
+        msg.textContent = gbT('cloud-settings-redeem-success', 'Success! Voucher redeemed: {days} trial days granted. Expires on {date}.', { days: data.subscription.trial_days, date: data.subscription.trial_end });
         input.value = '';
         setTimeout(() => window.location.reload(), 3000);
       } else {
         msg.style.color = '#ef4444';
-        msg.textContent = `Erro: ${data.message || data.error || 'Código inválido ou já utilizado.'}`;
+        msg.textContent = gbT('cloud-error-prefix', 'Error:') + ' ' + (data.message || data.error || gbT('cloud-settings-voucher-invalid', 'Invalid or already used code.'));
       }
     } catch (e) {
       msg.style.color = '#ef4444';
-      msg.textContent = 'Erro ao conectar ao servidor.';
+      msg.textContent = gbT('cloud-settings-voucher-connection', 'Error connecting to the server.');
     }
   };
 
@@ -291,7 +299,9 @@
       const plan = plansData.plans && plansData.plans[currentPlan];
       if (plan) {
         document.getElementById('plan-name').textContent = plan.name || currentPlan;
-        const price = plan.pricing === 'free' ? 'Free' : plan.pricing === 'custom' ? 'Custom' : '$' + (parseFloat(plan.pricing) || 0).toFixed(2) + ' / month';
+        const price = plan.pricing === 'free' ? gbT('cloud-price-free', 'Free')
+          : plan.pricing === 'custom' ? gbT('cloud-price-custom', 'Custom')
+          : fmtCurrency(parseFloat(plan.pricing) || 0) + ' / ' + gbT('cloud-settings-month', 'month');
         document.getElementById('plan-price').textContent = price;
       }
     }
@@ -312,9 +322,9 @@ window.purchaseTokens = async function(itemId, label, price) {
   const token = requireAuth();
   if (!token) return;
   const email = localStorage.getItem('management_email') || '';
-  if (!email) { showToast('Please sign in first.', 'error'); return; }
+  if (!email) { showToast(gbT('cloud-settings-signin-first', 'Please sign in first.'), 'error'); return; }
 
-  var confirmed = confirm('Purchase ' + label + ' for $' + price.toFixed(2) + '?');
+  var confirmed = confirm(gbT('cloud-settings-purchase-confirm', 'Purchase {label} for {price}?', { label: label, price: fmtCurrency(price) }));
   if (!confirmed) return;
 
   try {
@@ -325,13 +335,13 @@ window.purchaseTokens = async function(itemId, label, price) {
     });
     if (res.ok) {
       const data = await res.json();
-      showToast('Purchase complete! Invoice #' + (data.invoice_number || data.invoice_id) + ' created.', 'success');
+      showToast(gbT('cloud-settings-purchase-done', 'Purchase complete! Invoice #{number} created.', { number: data.invoice_number || data.invoice_id }), 'success');
     } else {
-      const err = await res.json().catch(() => ({ error: 'Request failed' }));
-      showToast('Purchase failed: ' + (err.error || err.message || 'Unknown error'), 'error');
+      const err = await res.json().catch(() => ({ error: gbT('cloud-error-request-failed', 'Request failed') }));
+      showToast(gbT('cloud-settings-purchase-failed', 'Purchase failed:') + ' ' + (err.error || err.message || gbT('cloud-settings-unknown-error', 'Unknown error')), 'error');
     }
   } catch (e) {
-    showToast('Network error: ' + e.message, 'error');
+    showToast(gbT('cloud-settings-network-error', 'Network error:') + ' ' + e.message, 'error');
   }
 };
 
