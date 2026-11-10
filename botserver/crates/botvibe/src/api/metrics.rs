@@ -288,11 +288,13 @@ pub(crate) async fn create_run(
                 // DNS verify or a TLS hiccup) must not fail the whole run:
                 // only fail-fast stage failures abort the deploy.
                 let blocking_failure = |report_stage: &PipelineStageReport| {
-                    report_stage.status == StageStatus::Failed
-                        && pipeline
-                            .stage(&report_stage.stage_id)
-                            .map(|st| !st.continue_on_failure)
-                            .unwrap_or(true)
+                    matches!(
+                        report_stage.status,
+                        StageStatus::Failed | StageStatus::TimedOut
+                    ) && pipeline
+                        .stage(&report_stage.stage_id)
+                        .map(|st| !st.continue_on_failure)
+                        .unwrap_or(true)
                 };
                 let failed = report.stages.iter().any(&blocking_failure);
                 let skipped = report

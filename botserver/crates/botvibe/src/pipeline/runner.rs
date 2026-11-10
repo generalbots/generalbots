@@ -1,6 +1,7 @@
 //! `pipeline::runner` — split per #1443 (AGENTS.md 450-line rule).
 
 use super::*;
+use crate::workspace_run::{BudgetLimits, BudgetOutcome, TraceRecorder, TraceStatus};
 
 /// A single runnable stage of a pipeline.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,6 +67,11 @@ pub enum StageStatus {
     /// vibe33 #812 — stage not executed because a previous fail-fast stage
     /// aborted the pipeline (e.g. publish skipped when tests failed).
     Skipped,
+    /// #2045 — the stage outlived its workspace budget. It is a blocking
+    /// failure (a deploy must not continue on a half-built tree), but it is
+    /// reported apart from `Failed` so the chat can show which step was cut
+    /// off together with the rows that already finished.
+    TimedOut,
 }
 
 /// Per-stage result within a pipeline run report.
@@ -118,6 +124,21 @@ impl PipelineEngine {
         executor: &VibeToolExecutor,
         state: &dyn VibeState,
         ctx: &PipelineRunContext<'_>,
+    ) -> PipelineRunReport {
+        self.run_with_limits(pipeline, executor, state, ctx, BudgetLimits::from_env())
+            .await
+    }
+
+    /// #2045 — same pipeline, explicit budget limits. The deploy path uses the
+    /// environment-derived limits; tests pin them so a cut-off is deterministic
+    /// instead of waiting minutes.
+    pub async fn run_with_limits(
+        &self,
+        pipeline: &RunPipeline,
+        executor: &VibeToolExecutor,
+        state: &dyn VibeState,
+        ctx: &PipelineRunContext<'_>,
+        limits: BudgetLimits,
     ) -> PipelineRunReport {
         let PipelineRunContext {
             run_id,
@@ -211,14 +232,52 @@ impl PipelineEngine {
             // Internal pipeline stages may carry sanctioned hidden arguments
             // (the publish production stamp); agent-loop calls never do.
             tool_call.internal = true;
-            let outcome = executor.execute(&mut tool_call, use_case, state).await;
-            let took_ms = start.elapsed().as_millis() as u64;
-            let (status, error) = stage_outcome(
-                &outcome,
-                tool_call.result.as_ref().map(|r| r.success),
-                tool_call.result.as_ref().and_then(|r| r.error.clone()),
+            // #2045/#2046 — every stage runs under the resolved workspace
+            // budget and reports a trace row: what is running, for how long
+            // and how much budget is left. A stage cut off by the budget keeps
+            // its row (and every finished row) instead of collapsing into a
+            // bare error with no partial progress.
+            let budget = limits.resolve(Some(stage.timeout_secs.saturating_mul(1_000)));
+            let mut trace = TraceRecorder::new(format!("{run_id}:{}", stage.id), budget);
+            trace.begin(&stage.name, &budget.describe());
+            state.broadcast_progress(
+                trace.progress_event(&stage.id, &format!("{} · {}", stage.name, budget.describe())),
             );
-            if status == StageStatus::Failed && !stage.continue_on_failure {
+            let outcome = trace
+                .run(executor.execute(&mut tool_call, use_case, state))
+                .await;
+            let took_ms = start.elapsed().as_millis() as u64;
+            let (status, error) = match &outcome {
+                BudgetOutcome::TimedOut { .. } => (
+                    StageStatus::TimedOut,
+                    Some(budget.timeout_message(&stage.name, trace.artifacts())),
+                ),
+                BudgetOutcome::Completed { .. } => stage_outcome(
+                    &Ok(()),
+                    tool_call.result.as_ref().map(|r| r.success),
+                    tool_call.result.as_ref().and_then(|r| r.error.clone()),
+                ),
+                BudgetOutcome::Failed { error, .. } => (StageStatus::Failed, Some(error.clone())),
+            };
+            let trace_status = match status {
+                StageStatus::Completed => TraceStatus::Ok,
+                StageStatus::TimedOut => TraceStatus::TimedOut,
+                StageStatus::Failed | StageStatus::Skipped => TraceStatus::Error,
+            };
+            let finish_detail = error.clone().unwrap_or_default();
+            let _ = trace.finish(&stage.name, trace_status, &finish_detail);
+            state.broadcast_progress(trace.progress_event(
+                &stage.id,
+                &format!(
+                    "{} · {} · {took_ms} ms · {} ms of budget left",
+                    stage.name,
+                    trace_status.as_str(),
+                    trace.remaining_ms()
+                ),
+            ));
+            if matches!(status, StageStatus::Failed | StageStatus::TimedOut)
+                && !stage.continue_on_failure
+            {
                 reports.push(PipelineStageReport {
                     stage_id: stage.id.clone(),
                     stage_name: stage.name.clone(),

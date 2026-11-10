@@ -63,6 +63,7 @@ pub mod sessions;
 pub mod teams;
 pub mod capability_registry;
 pub mod pipeline;
+pub mod workspace_run;
 pub mod run_store;
 pub mod grounding;
 pub mod wired_tools;

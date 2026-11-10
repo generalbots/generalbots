@@ -95,13 +95,22 @@ use super::*;
 
     struct MockState {
         runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
+        events: Arc<std::sync::Mutex<Vec<crate::types::VibeProgressEvent>>>,
     }
 
     impl MockState {
         fn new() -> Self {
             Self {
                 runs: Arc::new(RwLock::new(HashMap::new())),
+                events: Arc::new(std::sync::Mutex::new(Vec::new())),
             }
+        }
+
+        fn events(&self) -> Vec<crate::types::VibeProgressEvent> {
+            self.events
+                .lock()
+                .map(|events| events.clone())
+                .unwrap_or_default()
         }
     }
 
@@ -109,7 +118,11 @@ use super::*;
         fn db_pool(&self) -> &crate::types::DbPool {
             unreachable!("db_pool not exercised in pipeline tests")
         }
-        fn broadcast_progress(&self, _event: crate::types::VibeProgressEvent) {}
+        fn broadcast_progress(&self, event: crate::types::VibeProgressEvent) {
+            if let Ok(mut events) = self.events.lock() {
+                events.push(event);
+            }
+        }
         fn progress_sender(
             &self,
         ) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeProgressEvent>> {
@@ -178,3 +191,108 @@ use super::*;
         assert!(metrics.total_tool_calls >= 1 && metrics.total_tool_calls <= 3);
     }
 
+/// #2045/#2046 — a stage cut off by its workspace budget must report
+/// `timed_out` with the in-flight step named, keep the rows that already
+/// finished, and publish the budget to the run card sink.
+#[tokio::test]
+async fn a_stage_cut_off_by_the_budget_keeps_the_finished_rows() {
+    use crate::tool_executor::{ToolCategory, ToolDescriptor, ToolHandler, ToolSchema};
+    use crate::types::VibeToolResult;
+    use crate::workspace_run::BudgetLimits;
+
+    fn tool_result() -> VibeToolResult {
+        VibeToolResult {
+            success: true,
+            data: serde_json::Value::Null,
+            error: None,
+            latency_ms: 0,
+        }
+    }
+
+    let registry = Arc::new(crate::tool_executor::ToolRegistry::new());
+    let fast: ToolHandler = Arc::new(|_args, _state| Box::pin(async move { tool_result() }));
+    registry
+        .register(
+            ToolDescriptor {
+                schema: ToolSchema::new("bot/deploy-prod", "fast stage").with_parameters(
+                    serde_json::json!({
+                        "type": "object",
+                        "properties": { "project_id": { "type": "string" } },
+                    }),
+                ),
+                category: ToolCategory::Deployment,
+            },
+            fast,
+        )
+        .await;
+    let slow: ToolHandler = Arc::new(|_args, _state| {
+        Box::pin(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            tool_result()
+        })
+    });
+    registry
+        .register(
+            ToolDescriptor {
+                schema: ToolSchema::new("test/run", "slow build").with_parameters(
+                    serde_json::json!({
+                        "type": "object",
+                        "properties": {
+                            "project": { "type": "string" },
+                            "project_id": { "type": "string" },
+                            "message": { "type": "string" },
+                        },
+                    }),
+                ),
+                category: ToolCategory::Deployment,
+            },
+            slow,
+        )
+        .await;
+    let executor = VibeToolExecutor::new(registry);
+
+    let pipeline = RunPipeline {
+        pipeline_id: "test/budget".to_string(),
+        use_case: VibeUseCase::SoftwareDevelopment,
+        stages: vec![
+            stage("fast", PipelineStageKind::PromoteBotProd, 1_000),
+            stage("slow", PipelineStageKind::BuildTest, 0),
+        ],
+    };
+    let state = MockState::new();
+    let engine = PipelineEngine::new(Arc::new(VibeTelemetry::new()));
+    let limits = BudgetLimits::from_values(Some(1), Some(2_000), Some(0), None);
+    let report = engine
+        .run_with_limits(
+            &pipeline,
+            &executor,
+            &state,
+            &PipelineRunContext {
+                run_id: Uuid::new_v4(),
+                use_case: VibeUseCase::SoftwareDevelopment,
+                intent: "build it",
+                project_id: Some("project-1"),
+                project_name: Some("demo"),
+                user_id: Uuid::nil(),
+            },
+            limits,
+        )
+        .await;
+
+    assert_eq!(report.stages.len(), 2, "the finished stage must be kept");
+    assert_eq!(report.stages[0].status, StageStatus::Completed);
+    assert_eq!(report.stages[1].status, StageStatus::TimedOut);
+    let error = report.stages[1].error.clone().unwrap_or_default();
+    assert!(
+        error.contains("Build and test"),
+        "the in-flight step must be named: {error}"
+    );
+    assert!(error.contains("budget"), "the budget must be quoted: {error}");
+
+    let events = state.events();
+    assert!(
+        events.iter().any(|event| event.message.contains("budget")),
+        "the run card must receive the budget: {:?}",
+        events.iter().map(|e| &e.message).collect::<Vec<_>>()
+    );
+}
