@@ -16,6 +16,14 @@ function slidesScope() {
   return document.querySelector('[id^="window-body-slides"]') || document;
 }
 
+// True for a Drive path of an importable deck: a folder path or an office
+// extension. Anything else in `file` is a deck id, not a file.
+function isDriveOfficePath(value) {
+  if (!value) return false;
+  if (value.indexOf('/') !== -1) return true;
+  return /\.(pptx|ppt|odp|key|pdf)$/i.test(value);
+}
+
 // Bind the app to a stored deck: title, rename target and every toolbar form
 // that sends the literal "current".
 function pointDeckAt(id) {
@@ -71,8 +79,12 @@ function loadDrivePresentationIntoApp(linkParams) {
   var gp = linkParams || window.__gbAppParams__ || {};
   var file = params.get('file') || gp.file;
   var bucket = params.get('bucket') || gp.bucket;
-  var deckRef = deckRefFromParams(params, gp);
-  if (!file && deckRef) {
+  // The curated verbs emit `app://slides?file=<deck id>`, so `file` is a deck
+  // reference unless it names a real office file. Treating that id as a Drive
+  // path made the download 404 and left the blank deck on screen.
+  var fileIsPath = isDriveOfficePath(file);
+  var deckRef = deckRefFromParams(params, gp) || (fileIsPath ? '' : file || '');
+  if (deckRef && !fileIsPath) {
     loadDeckById(deckRef);
     return;
   }

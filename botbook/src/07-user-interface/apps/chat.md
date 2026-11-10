@@ -74,6 +74,18 @@ BotModels (`/api/vision/describe`), so the assistant can answer questions about
 the photo in the same turn. Browsers without `getUserMedia` fall back to the
 native image-capture input.
 
+The preview is declared ready from the frames themselves (`videoWidth > 0`,
+polled plus `loadedmetadata`/`canplay`/`playing`/`requestVideoFrameCallback`),
+never from `video.play()`: on the desktop WebView (WebKitGTK) that promise can
+stay pending forever while the picture is already capturable, which used to
+leave the dialog on "Waiting for the camera to start…" with a disabled shutter
+(#2106). Readiness has its own 6 s deadline; if no frame arrives the dialog
+closes and hands the user to the system picker with the reason, and after 2 s
+the status names the device or says no video device was found. The Tauri shell
+enables MediaStream/WebRTC and logs every allow/deny decision of the WebKitGTK
+permission handler (`generalbots-webkit-permissions`), so the desktop log says
+whether the WebView even asked for the camera.
+
 ### Conversation tabs
 
 Each chat window can hold up to ten conversations. The tab strip is pinned

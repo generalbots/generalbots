@@ -223,3 +223,7 @@ pub(super) async fn oauth_connect_handler(
     crate::settings_oauth::oauth_connect(State(state), headers, axum::extract::Path(provider_name))
         .await
 }
+
+#[cfg(test)]
+#[path = "html_escape_tests.rs"]
+mod html_escape_tests;

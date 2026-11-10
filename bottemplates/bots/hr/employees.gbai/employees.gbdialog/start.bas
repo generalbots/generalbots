@@ -11,11 +11,11 @@ SET CONTEXT "employee management" AS "You are an HR assistant helping manage emp
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "directory" AS "Employee directory"
-ADD SUGGESTION "add" AS "Add new employee"
-ADD SUGGESTION "search" AS "Search employee"
-ADD SUGGESTION "org" AS "Organization chart"
-ADD SUGGESTION "emergency" AS "Emergency contacts"
+ADD SUGGESTION "directory" AS "bot-suggest-employee-directory"
+ADD SUGGESTION "add" AS "bot-suggest-add-new-employee"
+ADD SUGGESTION "search" AS "bot-suggest-search-employee"
+ADD SUGGESTION "org" AS "bot-suggest-organization-chart"
+ADD SUGGESTION "emergency" AS "bot-suggest-emergency-contacts"
 
 BEGIN TALK
 **Employee Management System**

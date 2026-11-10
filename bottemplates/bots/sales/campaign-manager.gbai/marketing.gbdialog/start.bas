@@ -14,15 +14,15 @@ SET CONTEXT "marketing" AS "Você é um assistente de automação de marketing d
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "newcamp" AS "Criar nova campanha"
-ADD SUGGESTION "viewcamps" AS "Ver minhas campanhas"
-ADD SUGGESTION "lists" AS "Criar lista dinâmica"
-ADD SUGGESTION "send" AS "Enviar uma campanha"
-ADD SUGGESTION "template" AS "Criar template"
-ADD SUGGESTION "broadcast" AS "Enviar broadcast WhatsApp"
-ADD SUGGESTION "ideas" AS "Gerar ideias de conteúdo"
-ADD SUGGESTION "image" AS "Gerar imagem com IA"
-ADD SUGGESTION "instagram" AS "Postar no Instagram"
+ADD SUGGESTION "newcamp" AS "bot-suggest-create-new-campaign"
+ADD SUGGESTION "viewcamps" AS "bot-suggest-view-my-campaigns"
+ADD SUGGESTION "lists" AS "bot-suggest-create-dynamic-list"
+ADD SUGGESTION "send" AS "bot-suggest-send-a-campaign"
+ADD SUGGESTION "template" AS "bot-suggest-create-template"
+ADD SUGGESTION "broadcast" AS "bot-suggest-send-whatsapp-broadcast"
+ADD SUGGESTION "ideas" AS "bot-suggest-generate-content-ideas"
+ADD SUGGESTION "image" AS "bot-suggest-generate-an-image-with-ai"
+ADD SUGGESTION "instagram" AS "bot-suggest-post-to-instagram"
 
 BEGIN TALK
 **Marketing — Campanhas e Envio**

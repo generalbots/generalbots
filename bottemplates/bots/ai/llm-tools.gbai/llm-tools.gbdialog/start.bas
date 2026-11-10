@@ -4,9 +4,9 @@ USE KB "products.gbkb"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "price" AS "Check product price"
-ADD SUGGESTION "products" AS "View products"
-ADD SUGGESTION "help" AS "How to use"
+ADD SUGGESTION "price" AS "bot-suggest-check-product-price"
+ADD SUGGESTION "products" AS "bot-suggest-view-products"
+ADD SUGGESTION "help" AS "bot-suggest-how-to-use"
 
 BEGIN TALK
 **Product Assistant**

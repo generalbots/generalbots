@@ -5,6 +5,23 @@
         namespace.announce(root, message);
     }
 
+    function syncStatusButtons(root, state) {
+        root.querySelectorAll("[data-status]").forEach(function (button) {
+            button.setAttribute("aria-pressed", String(button.dataset.status === state.statusFilter));
+        });
+    }
+
+    /* #2100 — a filter that hides every provider must be one click away from
+       showing everything again. */
+    function showAllProviders(root) {
+        var state = namespace.getState(root);
+        state.statusFilter = "all";
+        state.exploreTouched = true;
+        syncStatusButtons(root, state);
+        namespace.renderExplore(root);
+        announce(root, "Showing all " + state.providers.length + " providers");
+    }
+
     function testFailureMessage(error) {
         var status = error && typeof error.status === "number" ? error.status : 0;
         if (status === 503) {
@@ -40,8 +57,15 @@
         }
         if (!url) {
             state.connectors = [];
-            state.connectedStatus = "error";
-            namespace.renderConnectedUnavailable(root);
+            if (namespace.context.error) {
+                state.connectedStatus = "error";
+                namespace.renderConnectedError(root, namespace.context.error);
+            } else {
+                // #2100 — no active bot is a documented workspace state, not a
+                // status failure.
+                state.connectedStatus = "empty";
+                namespace.renderConnectedNoContext(root);
+            }
             return;
         }
         try {
@@ -127,6 +151,13 @@
             }
             state.totals = catalog.totals;
             state.catalogStatus = "ready";
+            // #2100 — the default filter follows the payload: Preview OFF only
+            // narrows to "must" when the catalog actually carries priorities,
+            // so a payload without them can never hide every provider.
+            if (!state.exploreTouched) {
+                state.statusFilter = namespace.preferredStatusFilter(state.providers);
+                syncStatusButtons(root, state);
+            }
             namespace.renderExplore(root);
             announce(root, "Integration catalog loaded");
         } catch (error) {
@@ -205,6 +236,8 @@
             namespace.toggleMcpServer(root, button.dataset.mcpName, button.dataset.mcpEnabled === "true");
         } else if (action === "retry-catalog") {
             namespace.loadCatalog(root);
+        } else if (action === "show-all-providers") {
+            showAllProviders(root);
         } else if (action === "clear-filters") {
             clearFilters(root);
         } else if (action === "show-explore") {
@@ -346,28 +379,34 @@
             return;
         }
         root.dataset.integrationsReady = "true";
+        try {
+            start(root);
+        } catch (error) {
+            // #2100 — never leave a blank pane: an exception during init (a
+            // stale cached module, a missing fragment node, a bad payload)
+            // renders an actionable card with a reload action.
+            console.error("[integrations] initialization failed", error);
+            try {
+                namespace.renderCatalogUnavailable(root, error);
+            } catch (fallbackError) {
+                console.error("[integrations] fallback state failed", fallbackError);
+            }
+        }
+    };
+
+    function start(root) {
         var state = namespace.createState(root);
         state.connectedStatus = "idle";
         // BBSIA #1542: preview OFF exposes only production-ready connectors.
-        state.statusFilter =
-            window.GBPreviewMode && !window.GBPreviewMode.isOn() ? "must" : "all";
-        root.querySelectorAll("[data-status]").forEach(function (button) {
-            button.setAttribute(
-                "aria-pressed",
-                String(button.dataset.status === state.statusFilter)
-            );
-        });
+        // #2100: the value is re-resolved from the payload in `loadCatalog`,
+        // because a catalog without priorities would match nothing here.
+        state.statusFilter = "all";
+        syncStatusButtons(root, state);
         window.addEventListener("gb-preview-changed", function () {
-            var next =
-                window.GBPreviewMode && !window.GBPreviewMode.isOn() ? "must" : "all";
+            var next = namespace.preferredStatusFilter(state.providers);
             if (state.statusFilter === next) return;
             state.statusFilter = next;
-            root.querySelectorAll("[data-status]").forEach(function (button) {
-                button.setAttribute(
-                    "aria-pressed",
-                    String(button.dataset.status === next)
-                );
-            });
+            syncStatusButtons(root, state);
             namespace.renderExplore(root);
         });
         configureAria(root, state);
@@ -393,5 +432,5 @@
         namespace.renderConnectedLoading(root);
         namespace.loadCatalog(root);
         namespace.fetchContext(root).then(function () { namespace.loadConnected(root); });
-    };
+    }
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

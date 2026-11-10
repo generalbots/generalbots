@@ -169,6 +169,16 @@
     // (which scopes, and who else can use the connection).
     namespace.sharedCell = sharedCell;
 
+    function statusFilterLabel(value) {
+        if (value === "must") {
+            return "production-ready";
+        }
+        if (value === "available") {
+            return "available";
+        }
+        return "all";
+    }
+
     namespace.renderExplore = function (root) {
         var state = namespace.getState(root);
         var catalog = query(root, "[data-catalog-view]");
@@ -180,11 +190,20 @@
         categoryList.setAttribute("aria-busy", "false");
         categoryPanel.setAttribute("aria-labelledby", query(root, '[data-category][aria-selected="true"]').id);
         query(root, "[data-explore-notice]").innerHTML = firstUseNotice(state);
-        query(root, "[data-result-status]").textContent = filtered.length + " of " + activeCategory.count +
-            " providers in " + activeCategory.label;
+        // #2100 — the count names the active filter, so an empty pane is never
+        // mistaken for an empty catalog.
+        query(root, "[data-result-status]").textContent = filtered.length + " of " + state.providers.length +
+            " providers · " + activeCategory.label + " · " + statusFilterLabel(state.statusFilter);
         catalog.setAttribute("aria-busy", "false");
         if (!state.providers.length) {
-            catalog.innerHTML = stateView("0", "The catalog is empty", "No providers were returned. Refresh after catalog configuration is available.", "retry-catalog", "Refresh catalog", false);
+            catalog.innerHTML = stateView("0", "The catalog is empty",
+                "The provider service answered but returned no providers. Refresh to try again; if this build ships without the connector catalog, configure one on the server.",
+                "retry-catalog", "Refresh catalog", false);
+        } else if (!filtered.length && state.statusFilter !== "all" && !state.search) {
+            catalog.innerHTML = stateView("0", "No providers in this filter",
+                "All " + state.providers.length + " providers are hidden by the \"" +
+                statusFilterLabel(state.statusFilter) + "\" availability filter.",
+                "show-all-providers", "Show all " + state.providers.length + " providers", false);
         } else if (!filtered.length) {
             catalog.innerHTML = stateView("0", "No matching integrations", "Try a broader search or clear the category and availability filters.", "clear-filters", "Clear filters", false);
         } else {
@@ -204,6 +223,7 @@
         query(root, "[data-result-status]").textContent = "Provider catalog unavailable";
         catalog.setAttribute("aria-busy", "false");
         var status = failure && failure.status;
+        var detail = status ? " The request answered HTTP " + status + "." : "";
         if (status === 401 || status === 403) {
             var loginUrl = (window.GB_LOGIN_URL || "/login") + "?next=" +
                 encodeURIComponent(location.pathname + location.search);
@@ -214,12 +234,62 @@
             if (action) action.addEventListener("click", function () {
                 window.location.href = loginUrl;
             });
+        } else if (status === 404) {
+            catalog.innerHTML = stateView("!", "This build does not expose the catalog API",
+                "The Integrations app called " + namespace.catalogUrl + " and the server has no such route." +
+                detail + " This is a build/profile problem, not an empty catalog: rebuild with the integrations feature and reload the app.",
+                "retry-catalog", "Try again", true);
         } else if (status && status >= 500) {
-            catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service returned an error. Connected services remain independent and may still be available.", "retry-catalog", "Try again", true);
+            catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service returned an error." +
+                detail + " Connected services remain independent and may still be available.",
+                "retry-catalog", "Try again", true);
         } else {
-            catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service did not respond. Connected services remain independent and may still be available.", "retry-catalog", "Try again", true);
+            catalog.innerHTML = stateView("!", "The provider service is unreachable",
+                "The Integrations app could not reach " + namespace.catalogUrl + "." + detail +
+                " This is a backend/network failure, not an empty catalog. Connected services remain independent and may still be available.",
+                "retry-catalog", "Try again", true);
         }
         namespace.renderCatalogHealth(root);
+    };
+
+    /* #2100 — last line of defence: if the app's own initialization throws
+       (a stale cached module, a missing fragment node, an unexpected payload)
+       the pane used to stay blank with no explanation. Say what happened and
+       offer a retry instead. */
+    namespace.renderCatalogUnavailable = function (root, failure) {
+        var catalog = query(root, "[data-catalog-view]");
+        var categories = query(root, "[data-category-filters]");
+        if (categories) {
+            categories.innerHTML = "";
+            categories.setAttribute("aria-busy", "false");
+        }
+        var panel = query(root, "[data-category-panel]");
+        if (panel) {
+            panel.removeAttribute("aria-labelledby");
+        }
+        var notice = query(root, "[data-explore-notice]");
+        if (notice) {
+            notice.innerHTML = "";
+        }
+        var statusNode = query(root, "[data-result-status]");
+        if (statusNode) {
+            statusNode.textContent = "Integrations could not start";
+        }
+        if (!catalog) {
+            return;
+        }
+        catalog.setAttribute("aria-busy", "false");
+        var reason = failure && failure.message ? failure.message : "unknown error";
+        catalog.innerHTML = stateView("!", "Integrations could not start",
+            "The app failed to initialize (" + reason + "). Reload the app; if the problem persists, the shipped module bundle is inconsistent.",
+            "retry-catalog", "Reload catalog", true);
+        var healthText = query(root, "[data-catalog-health-text]");
+        var health = query(root, "[data-catalog-health]");
+        if (health && healthText) {
+            health.classList.remove("is-ready");
+            health.classList.add("is-error");
+            healthText.textContent = "Integrations unavailable";
+        }
     };
 
     function formatDate(value) {
@@ -324,5 +394,17 @@
             copy += " Reported cause: " + reason + ".";
         }
         view.innerHTML = stateView("!", "Status unavailable", copy, "retry-connected", "Check again", true);
+    };
+
+    /* #2100 — the context endpoint documents a no-workspace answer
+       (`bot_id: null` + `reason: "no_active_bot"`). That is not a failure:
+       say so, and keep Explore usable. */
+    namespace.renderConnectedNoContext = function (root) {
+        var view = query(root, "[data-connected-view]");
+        query(root, "[data-connected-status]").textContent = "No active bot/workspace context";
+        view.setAttribute("aria-busy", "false");
+        view.innerHTML = stateView("0", "No active bot/workspace context",
+            "Connections belong to a bot. This installation has no active bot yet, so there is nothing to list; the provider catalog in Explore is still available.",
+            "retry-connected", "Check again", false);
     };
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

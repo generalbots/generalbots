@@ -297,3 +297,7 @@ fn labeled_memory(status: &str, memory: crate::models::UserMemory) -> Value {
 fn bad_request(message: String) -> (StatusCode, String) {
     (StatusCode::BAD_REQUEST, message)
 }
+
+#[cfg(test)]
+#[path = "api_tests.rs"]
+mod api_tests;

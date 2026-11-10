@@ -11,11 +11,11 @@ SET CONTEXT "sales pipeline" AS "You are a sales assistant helping manage the sa
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "newdeal" AS "Create a new deal"
-ADD SUGGESTION "pipeline" AS "Show my pipeline"
-ADD SUGGESTION "update" AS "Update a deal stage"
-ADD SUGGESTION "forecast" AS "View sales forecast"
-ADD SUGGESTION "report" AS "Generate pipeline report"
+ADD SUGGESTION "newdeal" AS "bot-suggest-create-a-new-deal"
+ADD SUGGESTION "pipeline" AS "bot-suggest-show-my-pipeline"
+ADD SUGGESTION "update" AS "bot-suggest-update-a-deal-stage"
+ADD SUGGESTION "forecast" AS "bot-suggest-view-sales-forecast"
+ADD SUGGESTION "report" AS "bot-suggest-generate-pipeline-report"
 
 BEGIN TALK
 **Sales Pipeline Manager**

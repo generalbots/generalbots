@@ -110,6 +110,10 @@ Prompts are resolved per channel by the runtime, in this order
 2. `PROMPT.md` / `prompt.md` / `PROMPT.txt` / `prompt.txt`
 3. The generic assistant fallback
 
+The loader appends the contract to whatever it resolved (and skips it when the
+authored prompt already states it), so a custom bot that never mentions language
+still answers in the language the user wrote.
+
 A localized variant is a **new file next to the base one** — never an edit of the
 base prompt: `PROMPT-<CHANNEL>.md` stays English (source), and a translated copy
 is named `PROMPT-<CHANNEL>.<locale>.md` (`PROMPT-WEB.pt-BR.md`). The same rule
@@ -118,11 +122,15 @@ endpoint copies the template tree as-is and the runtime reads only the base
 names, so a variant file is inert until the locale-aware selection lands; ship
 it alongside the base file so the copy is already in place when it does.
 
-Suggestion and switcher labels are authored as plain text today. The target
-mechanism (tracked in #2095) is keyed labels — `ADD SUGGESTION "bot-food-order"`
-resolved through `botlib/locales/<locale>/bot-templates.ftl` — which needs a
-catalogue lookup on the BASIC side; until that exists, keep each template in a
-single language and put the translation in a locale variant.
+Suggestion and switcher labels are **catalogue keys**, not literals: the
+runtime resolves `ADD SUGGESTION "scan" AS "bot-suggest-scan-a-qr-code"` for the
+session locale (session `context_data.locale` → bot `locale` configuration →
+`en`) through `botlib/locales/<locale>/bot-templates.ftl`. A string the
+catalogue does not define is kept exactly as authored, so a custom bot keeps its
+own wording. `bottemplates/**/start.bas` therefore carries `bot-suggest-*` keys
+(en / pt-BR / es ship translations today; other locales fall back to en), and
+the same template serves every locale. `TALK` bodies remain authored in the
+template's language — translating business content is out of scope for #2095.
 
 ---
 

@@ -7,10 +7,10 @@ USE KB "reminder.gbkb"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "add" AS "Add a reminder"
-ADD SUGGESTION "list" AS "View my reminders"
-ADD SUGGESTION "today" AS "Today's reminders"
-ADD SUGGESTION "delete" AS "Delete a reminder"
+ADD SUGGESTION "add" AS "bot-suggest-add-a-reminder"
+ADD SUGGESTION "list" AS "bot-suggest-view-my-reminders"
+ADD SUGGESTION "today" AS "bot-suggest-today-s-reminders"
+ADD SUGGESTION "delete" AS "bot-suggest-delete-a-reminder"
 
 SET CONTEXT "reminders" AS "You are a reminder assistant helping users manage their tasks and reminders. Help with creating, viewing, and managing reminders. Be helpful and confirm actions."
 

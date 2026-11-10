@@ -235,3 +235,7 @@ impl IntoResponse for InsightsError {
         (status, axum::Json(serde_json::json!({ "error": message }))).into_response()
     }
 }
+
+#[cfg(test)]
+#[path = "insights_types_tests.rs"]
+mod insights_types_tests;

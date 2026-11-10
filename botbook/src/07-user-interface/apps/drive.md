@@ -48,6 +48,23 @@ Drive is your personal cloud storage within General Bots Suite. Upload, organize
 | **Grid** | Large thumbnails with previews |
 | **List** | Detailed table with columns |
 
+### Preview
+
+Double-click a file to open the preview window (also available from the
+context menu). It always shows the file name, a type badge and the size, with
+**Download**, **Copy path** and close (or `Esc`).
+
+| Type | Preview |
+|------|---------|
+| **CSV / TSV** | Spreadsheet-style table: sticky header, zebra rows, numeric columns right-aligned. The delimiter (`,` `;` tab `\|`) is detected, and quoted commas, quoted line breaks, `""` escapes, CRLF and a BOM are handled. The first 500 rows and 100 columns are shown with a "Showing first N of M" note and **Download full file**; **View raw** shows the plain text. |
+| **JSON** | Pretty-printed with keys, strings, numbers and booleans colour-coded. Invalid JSON is reported and the raw text is shown instead of an empty pane. |
+| **Code / logs** | Line numbers, colour-coded tokens, **Wrap** and **Copy**. Log levels (`ERROR`, `WARN`, `INFO`) and timestamps are highlighted. |
+| **Markdown** | Rendered and sanitized, with **View raw**. |
+| **Image / PDF / audio / video** | Native player or embedded viewer. Files that cannot be rendered show an explicit message with a download action. |
+
+Previews follow the active light/dark theme. Files larger than 4 MB are read
+partially and the window says so.
+
 ### Navigation
 
 - **Breadcrumb**: Click any folder in the path to jump back

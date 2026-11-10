@@ -6,11 +6,11 @@ ADD TOOL "notes"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "manager" AS "Manager access"
-ADD SUGGESTION "developer" AS "Developer access"
-ADD SUGGESTION "customer" AS "Customer support"
-ADD SUGGESTION "hr" AS "HR resources"
-ADD SUGGESTION "finance" AS "Finance tools"
+ADD SUGGESTION "manager" AS "bot-suggest-manager-access"
+ADD SUGGESTION "developer" AS "bot-suggest-developer-access"
+ADD SUGGESTION "customer" AS "bot-suggest-customer-support"
+ADD SUGGESTION "hr" AS "bot-suggest-hr-resources"
+ADD SUGGESTION "finance" AS "bot-suggest-finance-tools"
 
 role = GET role
 
@@ -69,34 +69,34 @@ CLEAR SUGGESTIONS
 
 SWITCH role
   CASE "manager"
-    ADD SUGGESTION "performance" AS "Team performance"
-    ADD SUGGESTION "report" AS "Generate report"
-    ADD SUGGESTION "meeting" AS "Schedule meeting"
+    ADD SUGGESTION "performance" AS "bot-suggest-team-performance"
+    ADD SUGGESTION "report" AS "bot-suggest-generate-report"
+    ADD SUGGESTION "meeting" AS "bot-suggest-schedule-meeting"
 
   CASE "developer"
-    ADD SUGGESTION "docs" AS "Search documentation"
-    ADD SUGGESTION "api" AS "API reference"
-    ADD SUGGESTION "review" AS "Code review checklist"
+    ADD SUGGESTION "docs" AS "bot-suggest-search-documentation"
+    ADD SUGGESTION "api" AS "bot-suggest-api-reference"
+    ADD SUGGESTION "review" AS "bot-suggest-code-review-checklist"
 
   CASE "customer"
-    ADD SUGGESTION "order" AS "Track my order"
-    ADD SUGGESTION "product" AS "Product information"
-    ADD SUGGESTION "support" AS "Contact support"
+    ADD SUGGESTION "order" AS "bot-suggest-track-my-order"
+    ADD SUGGESTION "product" AS "bot-suggest-product-information"
+    ADD SUGGESTION "support" AS "bot-suggest-contact-support"
 
   CASE "hr"
-    ADD SUGGESTION "handbook" AS "Employee handbook"
-    ADD SUGGESTION "benefits" AS "Benefits overview"
-    ADD SUGGESTION "onboard" AS "New hire checklist"
+    ADD SUGGESTION "handbook" AS "bot-suggest-employee-handbook"
+    ADD SUGGESTION "benefits" AS "bot-suggest-benefits-overview"
+    ADD SUGGESTION "onboard" AS "bot-suggest-new-hire-checklist"
 
   CASE "finance"
-    ADD SUGGESTION "expense" AS "Expense policy"
-    ADD SUGGESTION "budget" AS "Budget status"
-    ADD SUGGESTION "approval" AS "Approval workflow"
+    ADD SUGGESTION "expense" AS "bot-suggest-expense-policy"
+    ADD SUGGESTION "budget" AS "bot-suggest-budget-status"
+    ADD SUGGESTION "approval" AS "bot-suggest-approval-workflow"
 
   DEFAULT
-    ADD SUGGESTION "help" AS "Help"
-    ADD SUGGESTION "directory" AS "Contact directory"
-    ADD SUGGESTION "hours" AS "Office hours"
+    ADD SUGGESTION "help" AS "bot-suggest-help"
+    ADD SUGGESTION "directory" AS "bot-suggest-contact-directory"
+    ADD SUGGESTION "hours" AS "bot-suggest-office-hours"
 END SWITCH
 
 BEGIN SYSTEM PROMPT

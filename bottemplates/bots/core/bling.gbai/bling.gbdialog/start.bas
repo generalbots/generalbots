@@ -8,10 +8,10 @@ ADD TOOL "refresh-llm"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "estoque" AS "Consultar estoque"
-ADD SUGGESTION "pedido" AS "Fazer pedido"
-ADD SUGGESTION "sync" AS "Sincronizar ERP"
-ADD SUGGESTION "analise" AS "Análise de dados"
+ADD SUGGESTION "estoque" AS "bot-suggest-check-stock"
+ADD SUGGESTION "pedido" AS "bot-suggest-place-an-order"
+ADD SUGGESTION "sync" AS "bot-suggest-sync-erp"
+ADD SUGGESTION "analise" AS "bot-suggest-data-analysis"
 
 BEGIN TALK
 **BlingBot** - Assistente ERP

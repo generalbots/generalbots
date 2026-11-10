@@ -11,11 +11,11 @@ SET CONTEXT "contact directory" AS "You are a contact management assistant helpi
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "add" AS "Add a new contact"
-ADD SUGGESTION "search" AS "Search contacts"
-ADD SUGGESTION "companies" AS "View companies"
-ADD SUGGESTION "recent" AS "Recent contacts"
-ADD SUGGESTION "export" AS "Export contacts"
+ADD SUGGESTION "add" AS "bot-suggest-add-a-new-contact"
+ADD SUGGESTION "search" AS "bot-suggest-search-contacts"
+ADD SUGGESTION "companies" AS "bot-suggest-view-companies"
+ADD SUGGESTION "recent" AS "bot-suggest-recent-contacts"
+ADD SUGGESTION "export" AS "bot-suggest-export-contacts"
 
 BEGIN TALK
 **Contact Directory**

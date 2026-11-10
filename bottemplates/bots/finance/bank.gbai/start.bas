@@ -16,14 +16,14 @@ USE KB "banking-faq"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "balance" AS "Check my balance"
-ADD SUGGESTION "transfer" AS "Make a transfer"
-ADD SUGGESTION "pix" AS "Send PIX"
-ADD SUGGESTION "bills" AS "Pay a bill"
-ADD SUGGESTION "card" AS "Card services"
-ADD SUGGESTION "history" AS "Transaction history"
-ADD SUGGESTION "invest" AS "Investment options"
-ADD SUGGESTION "loan" AS "Loan information"
+ADD SUGGESTION "balance" AS "bot-suggest-check-my-balance"
+ADD SUGGESTION "transfer" AS "bot-suggest-make-a-transfer"
+ADD SUGGESTION "pix" AS "bot-suggest-send-pix"
+ADD SUGGESTION "bills" AS "bot-suggest-pay-a-bill"
+ADD SUGGESTION "card" AS "bot-suggest-card-services"
+ADD SUGGESTION "history" AS "bot-suggest-transaction-history"
+ADD SUGGESTION "invest" AS "bot-suggest-investment-options"
+ADD SUGGESTION "loan" AS "bot-suggest-loan-information"
 
 SET CONTEXT "You are a professional banking assistant for General Bank. Help customers with accounts, transfers, payments, cards, loans, and investments. Always verify identity before sensitive operations. Be helpful and secure. Never ask for full card numbers or passwords in chat."
 

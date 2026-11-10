@@ -58,12 +58,12 @@ fn every_family_in_all_is_serializable_and_back() {
 fn required_fields_are_declared_for_the_payload_carrying_families() {
     assert!(EventType::RunStarted.required_data_fields().is_empty());
     assert!(EventType::RunFinished.required_data_fields().is_empty());
-    assert_eq!(EventType::RunError.required_data_fields(), vec!["message"]);
+    assert_eq!(EventType::RunError.required_data_fields(), &["message"][..]);
     assert_eq!(
         EventType::ToolCallResult.required_data_fields(),
-        vec!["call_id", "status"]
+        &["call_id", "status"][..]
     );
-    assert_eq!(EventType::Custom.required_data_fields(), vec!["name"]);
+    assert_eq!(EventType::Custom.required_data_fields(), &["name"][..]);
     for event_type in EventType::ALL {
         for field in event_type.required_data_fields() {
             assert!(!field.is_empty(), "{event_type} declares an empty field");

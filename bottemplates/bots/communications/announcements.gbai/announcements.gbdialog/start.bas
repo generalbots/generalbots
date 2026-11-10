@@ -8,12 +8,12 @@ SET CONTEXT "toolbix"  AS resume3
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "general" AS "Weekly announcements"
-ADD SUGGESTION "general" AS "Latest circulars"
-ADD SUGGESTION "auxiliom" AS "What is Auxiliom?"
-ADD SUGGESTION "auxiliom" AS "Auxiliom services"
-ADD SUGGESTION "toolbix" AS "Toolbix features"
-ADD SUGGESTION "toolbix" AS "Toolbix for business"
+ADD SUGGESTION "general" AS "bot-suggest-weekly-announcements"
+ADD SUGGESTION "general" AS "bot-suggest-latest-circulars"
+ADD SUGGESTION "auxiliom" AS "bot-suggest-what-is-auxiliom"
+ADD SUGGESTION "auxiliom" AS "bot-suggest-auxiliom-services"
+ADD SUGGESTION "toolbix" AS "bot-suggest-toolbix-features"
+ADD SUGGESTION "toolbix" AS "bot-suggest-toolbix-for-business"
 
 ADD TOOL "change-subject"
 

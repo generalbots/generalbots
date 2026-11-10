@@ -22,8 +22,8 @@ botlib/locales/
 │   ├── common.ftl
 │   ├── email.ftl
 │   ├── errors.ftl
-│   ├── ui.ftl
-│   └── … (27 topic files)
+│   ├── ui-*.ftl          ← 15 topic files split out of the old `ui.ftl`
+│   └── … (41 topic files)
 ├── pt-BR/
 ├── es/
 ├── fr/
@@ -32,6 +32,16 @@ botlib/locales/
 ├── ko/
 └── zh-CN/
 ```
+
+The `ui-*` files are one family per surface, and every locale carries the same
+set: `ui-shell` (navigation, dashboard, cards, generic controls), `ui-navigation`
+(settings nav and guided tours), `ui-chat`, `ui-drive`, `ui-productivity`
+(tasks, calendar, meet, mail, research, paper), `ui-settings`, `ui-auth`,
+`ui-admin`, `ui-sources`, `ui-compliance`, `ui-attendant`, `ui-crm`,
+`ui-business` (billing, products, tickets), `ui-apps` (office/business bundles)
+and `ui-apps-runtime` (sheet, canvas, project, dashboards). Each file stays well
+under the 450-line limit; the loader does not care about the split, so a new
+topic file needs no registration.
 
 One directory per locale, named with a BCP-47 code (`pt-BR`, `zh-CN`). The
 directory name *is* the locale: `botlib::i18n::available_locales()` lists the
@@ -56,9 +66,10 @@ merge rule:
 
 **Splitting a large catalogue is just adding a file.** Create
 `botlib/locales/en/settings.ftl`, move the `settings-*` keys into it, and the
-loader picks it up — no code change, no registry. That is how `ui.ftl` was
-broken into `ui.ftl`, `admin.ftl`, `email.ftl`, `suite-*.ftl` and friends
-(#2087 asked for exactly this split).
+loader picks it up — no code change, no registry. That is how the old 2,466-line
+`ui.ftl` became the fifteen `ui-*.ftl` topic files, one per surface (#2087 asked
+for exactly this split), and how `admin.ftl`, `email.ftl` and `suite-*.ftl` were
+carved out before them.
 
 ### Embedded vs. filesystem loading
 
@@ -183,6 +194,15 @@ Lint violation kinds: `DUPLICATE`, `CONFLICT` (same key, different values),
 `BAD_KEY`, `UNBALANCED` braces, `PLURAL_NO_OTHER`, `MISSING` (a key the UI asks
 for that `en` does not define), `PLACEHOLDER_MISMATCH`.
 
+The `MISSING` scan reads every `*.html`/`*.js` under `botui/ui` **except two
+subtrees that do not consume this catalogue**: `vendor/` (Monaco and other
+third-party bundles call their own `localize()` with their own keys) and
+`wizard/` (the setup wizard ships its own dictionaries under
+`botui/ui/wizard/i18n/<locale>.js` and uses no `data-i18n`). Scanning them
+reported 239 phantom gaps — 195 wizard, 44 vendor — that no translator could
+ever close. With the scope fixed the baseline is empty: the catalogue has no
+duplicate, conflicting, unbalanced or missing key.
+
 ### The CI job
 
 `.github/workflows/ci.yml` defines the `i18n` job ("i18n catalog gate"), which
@@ -281,11 +301,22 @@ an `RTL_LANGUAGES` list (`ar`, `he`, `fa`, `ur`) and set `<html dir="rtl">`.
 
 ## What is deliberately not localized (yet)
 
-- **Bot prompts.** `load_system_prompt_for_channel`
+- **Bot prompt files.** `load_system_prompt_for_channel`
   (`botserver/src/core/bot/ws/message.rs`) reads `PROMPT-{CHANNEL}.md`, then
-  `PROMPT.md`/`prompt.md`/`PROMPT.txt`. There is **no locale dimension**: a
-  `PROMPT-pt-BR.md` is never read. Answering in the user's language depends on
-  the prompt text itself.
+  `PROMPT.md`/`prompt.md`/`PROMPT.txt`. There is **no locale dimension** in the
+  file names: a `PROMPT-pt-BR.md` is never read. The *language of the answer* is
+  not left to the authored text either — the loader appends the
+  response-language contract
+  (`RESPONSE_LANGUAGE_INSTRUCTION`: "Always answer in the user's language …",
+  skipped when the authored prompt already states it), so a custom bot without
+  any language instruction still answers in the language the user wrote.
+- **Suggestion and switcher labels.** `ADD SUGGESTION … AS "<key>"` and
+  `ADD SWITCHER … AS "<key>"` accept a catalogue key: the runtime resolves it
+  for the session locale (session `context_data.locale` → bot `locale`
+  configuration → `en`) and keeps an unknown string exactly as authored, so
+  custom bots keep their own wording. The shipped templates under
+  `bottemplates/**/start.bas` use `bot-suggest-*` keys from
+  `botlib/locales/<locale>/bot-templates.ftl`.
 - **Log lines.** Only human-facing CLI and UI text is translated; log output
   stays English so it remains greppable (`botcore/src/i18n/cli.rs`).
 - **Machine-readable payloads.** JSON keys, provider codes and

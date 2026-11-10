@@ -12,10 +12,10 @@ SET CONTEXT "crm" AS "You are a CRM sales assistant for General Bots. You help s
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "newdeal" AS "Criar um novo deal"
-ADD SUGGESTION "pipeline" AS "Ver meu pipeline"
-ADD SUGGESTION "contacts" AS "Buscar contato"
-ADD SUGGESTION "report" AS "Relatório de vendas"
+ADD SUGGESTION "newdeal" AS "bot-suggest-create-a-new-deal"
+ADD SUGGESTION "pipeline" AS "bot-suggest-view-my-pipeline"
+ADD SUGGESTION "contacts" AS "bot-suggest-search-contact"
+ADD SUGGESTION "report" AS "bot-suggest-sales-report"
 
 BEGIN TALK
 **CRM — Gestão de Vendas**

@@ -9,11 +9,11 @@ data = FIND "products.csv"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "products" AS "View products"
-ADD SUGGESTION "cart" AS "View my cart"
-ADD SUGGESTION "checkout" AS "Checkout"
-ADD SUGGESTION "orders" AS "Track my order"
-ADD SUGGESTION "help" AS "Shopping help"
+ADD SUGGESTION "products" AS "bot-suggest-view-products"
+ADD SUGGESTION "cart" AS "bot-suggest-view-my-cart"
+ADD SUGGESTION "checkout" AS "bot-suggest-checkout"
+ADD SUGGESTION "orders" AS "bot-suggest-track-my-order"
+ADD SUGGESTION "help" AS "bot-suggest-shopping-help"
 
 SET CONTEXT "store" AS "You are a virtual store sales assistant. Help customers browse products, add items to cart, and complete purchases. Be friendly and helpful. Available products: ${TOJSON(data)}"
 

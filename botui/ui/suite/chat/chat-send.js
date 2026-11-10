@@ -20,6 +20,7 @@ function armChatPending(text) {
   clearChatPending();
   ChatState.pendingResponseAt = Date.now();
   ChatState.pendingText = text || "";
+  var slowAfter = (window.GBTurn && GBTurn.SLOW_AFTER_MS) || 12000;
   ChatState.responseWatchdog = setTimeout(function () {
     if (!ChatState.pendingResponseAt) return;
     // #2098 — the watchdog keeps the SAME progress element and says why the
@@ -30,7 +31,7 @@ function armChatPending(text) {
     if (typeof setChatStatus === "function") {
       setChatStatus("Waiting for the model… the provider may be busy.");
     }
-  }, 12000);
+  }, slowAfter);
 }
 
 function clientCapabilities() {

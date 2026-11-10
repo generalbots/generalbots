@@ -9,10 +9,10 @@ SET CONTEXT "attendance" AS "You are a customer service assistant for General Bo
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "queue" AS "Ver fila de espera"
-ADD SUGGESTION "take" AS "Atender próximo"
-ADD SUGGESTION "transfer" AS "Transferir conversa"
-ADD SUGGESTION "resolve" AS "Resolver conversa"
+ADD SUGGESTION "queue" AS "bot-suggest-view-waiting-queue"
+ADD SUGGESTION "take" AS "bot-suggest-serve-next-customer"
+ADD SUGGESTION "transfer" AS "bot-suggest-transfer-conversation"
+ADD SUGGESTION "resolve" AS "bot-suggest-resolve-conversation"
 
 BEGIN TALK
 **Atendimento — Gestão de Fila**

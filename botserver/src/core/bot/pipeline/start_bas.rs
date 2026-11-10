@@ -104,13 +104,15 @@ pub async fn run_start_bas(
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
     let channel_name = sink.channel_type().to_string();
+    // #2095 — keyed suggestion labels resolve for the user's own language.
+    let locale_for_bas = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
     let session_for_bas = botlib::models::UserSession {
         id: session_id,
         user_id,
         branch_id: Uuid::nil(),
         bot_id: bot_id_for_bas,
         title: String::new(),
-        context_data: serde_json::json!({"channel": channel_name}),
+        context_data: serde_json::json!({"channel": channel_name, "locale": locale_for_bas.to_string()}),
         current_tool: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),

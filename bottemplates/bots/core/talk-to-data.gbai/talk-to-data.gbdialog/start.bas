@@ -7,11 +7,11 @@ SET ANSWER MODE "sql"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "products" AS "Top products chart"
-ADD SUGGESTION "sales" AS "Sales across years"
-ADD SUGGESTION "orders" AS "Latest orders"
-ADD SUGGESTION "chart" AS "Create a chart"
-ADD SUGGESTION "export" AS "Export data"
+ADD SUGGESTION "products" AS "bot-suggest-top-products-chart"
+ADD SUGGESTION "sales" AS "bot-suggest-sales-across-years"
+ADD SUGGESTION "orders" AS "bot-suggest-latest-orders"
+ADD SUGGESTION "chart" AS "bot-suggest-create-a-chart"
+ADD SUGGESTION "export" AS "bot-suggest-export-data"
 
 SET CONTEXT "talk-to-data" AS "You are a data analyst assistant helping users query and visualize their data. Convert natural language questions into SQL queries and generate charts. Be helpful and suggest visualizations."
 

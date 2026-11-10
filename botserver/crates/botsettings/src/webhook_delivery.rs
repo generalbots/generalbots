@@ -237,3 +237,7 @@ fn mark_delivery(
     .bind::<diesel::sql_types::Uuid, _>(delivery_id)
     .execute(&mut conn);
 }
+
+#[cfg(test)]
+#[path = "webhook_delivery_tests.rs"]
+mod webhook_delivery_tests;

@@ -24,12 +24,12 @@ SET CONTEXT "health" AS "System health: " + healthPercent + "%, Last updated: " 
 REM Clear and set up suggestions
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "overview" AS "Show overview"
-ADD SUGGESTION "overview" AS "Storage usage"
-ADD SUGGESTION "activity" AS "Recent activity"
-ADD SUGGESTION "activity" AS "Growth trends"
-ADD SUGGESTION "health" AS "System health"
-ADD SUGGESTION "health" AS "Collection status"
+ADD SUGGESTION "overview" AS "bot-suggest-show-overview"
+ADD SUGGESTION "overview" AS "bot-suggest-storage-usage"
+ADD SUGGESTION "activity" AS "bot-suggest-recent-activity"
+ADD SUGGESTION "activity" AS "bot-suggest-growth-trends"
+ADD SUGGESTION "health" AS "bot-suggest-system-health"
+ADD SUGGESTION "health" AS "bot-suggest-collection-status"
 
 REM Add tools for detailed reports
 ADD TOOL "detailed-report"

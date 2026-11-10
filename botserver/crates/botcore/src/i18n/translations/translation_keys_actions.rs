@@ -452,6 +452,8 @@ pub(super) const TRANSLATION_KEYS: &[&str] = &[
     "window-loading",
     "window-minimize",
     "window-maximize",
+    "window-fullscreen",
+    "window-exit-fullscreen",
     "window-close",
     "app-loading",
     "start-menu-search-placeholder",

@@ -29,15 +29,41 @@ before-initialisation fallback.
 
 ### `GET /api/i18n/locales`
 
-Lists the locales the catalogue actually ships, plus the default.
+Lists the locales the catalogue actually ships, plus the default and the
+presentation metadata a language picker and a formatter need.
 
 ```json
-{ "locales": ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"], "default": "en" }
+{
+  "locales": ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"],
+  "default": "en",
+  "details": [
+    {
+      "code": "en",
+      "native_name": "English",
+      "dir": "ltr",
+      "date_format": "MM/dd/yyyy",
+      "number_format": "#,##0.###"
+    }
+  ]
+}
 ```
 
-No authentication. The order is the loader's, so treat the array as a set. This
-is the list the client adopts for its picker — nothing else needs editing when
-a language directory is added.
+No authentication. `locales` is the flat list of codes the two client loaders
+already read; `details` describes the same locales, in the same order, with:
+
+| Field | Meaning |
+|-------|---------|
+| `code` | BCP-47 code, identical to the catalogue directory name |
+| `native_name` | The language's own name (`Português (Brasil)`, `日本語`), so the picker is readable in every locale |
+| `dir` | `ltr` or `rtl`; the shell sets the document direction from it |
+| `date_format` | CLDR date pattern for `Intl.DateTimeFormat` (`dd/MM/yyyy`) |
+| `number_format` | CLDR decimal pattern for `Intl.NumberFormat` (`#.##0,###`) |
+
+The table lives in `botcore/src/i18n/locale_meta.rs`. It decorates the
+catalogue, it does not define it: a locale directory added without an entry
+still appears in `locales` and `details`, with its code as the native name, the
+English formats and `ltr`. RTL is decided by the language subtag (`ar`, `he`,
+`fa`, `ur`, …), so the first right-to-left locale needs no code change either.
 
 ### `GET /api/i18n/:locale`
 

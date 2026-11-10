@@ -9,12 +9,12 @@ USE KB "privacy.gbkb"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "access" AS "View my data"
-ADD SUGGESTION "export" AS "Export my data"
-ADD SUGGESTION "delete" AS "Delete my data"
-ADD SUGGESTION "consents" AS "Manage consents"
-ADD SUGGESTION "correct" AS "Correct my data"
-ADD SUGGESTION "object" AS "Object to processing"
+ADD SUGGESTION "access" AS "bot-suggest-view-my-data"
+ADD SUGGESTION "export" AS "bot-suggest-export-my-data"
+ADD SUGGESTION "delete" AS "bot-suggest-delete-my-data"
+ADD SUGGESTION "consents" AS "bot-suggest-manage-consents"
+ADD SUGGESTION "correct" AS "bot-suggest-correct-my-data"
+ADD SUGGESTION "object" AS "bot-suggest-object-to-processing"
 
 SET CONTEXT "privacy rights" AS "You are a Privacy Rights Center assistant helping users exercise their data protection rights under LGPD, GDPR, and CCPA. Help with data access, rectification, erasure, portability, and consent management."
 

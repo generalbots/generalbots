@@ -5,10 +5,10 @@ ADD TOOL "cleanup-old"
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "backup" AS "Run backup now"
-ADD SUGGESTION "list" AS "View archived files"
-ADD SUGGESTION "restore" AS "Restore a file"
-ADD SUGGESTION "status" AS "Backup status"
+ADD SUGGESTION "backup" AS "bot-suggest-run-backup-now"
+ADD SUGGESTION "list" AS "bot-suggest-view-archived-files"
+ADD SUGGESTION "restore" AS "bot-suggest-restore-a-file"
+ADD SUGGESTION "status" AS "bot-suggest-backup-status"
 
 SET CONTEXT "backup" AS "You are a backup management assistant. Help users archive files to server storage, restore archived files, and manage backup schedules."
 

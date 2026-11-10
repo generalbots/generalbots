@@ -166,6 +166,25 @@ pub fn default_locales_path() -> &'static str {
         .unwrap_or("./locales")
 }
 
+/// Locale of `user_id` from the preference they saved in the UI, resolved
+/// through the connection pool.
+///
+/// Sessions materialised for a BASIC script carry the result in
+/// `context_data.locale`, so keyed UI strings published by `start.bas`
+/// (`ADD SUGGESTION … AS "<key>"`, #2095) follow the language the user picked.
+/// A missing pool or an unset preference yields the default locale, never an
+/// error: a chip label must not block a conversation.
+#[must_use]
+pub fn locale_for_user_pool(pool: &botlib::db_pool::DbPool, user_id: uuid::Uuid) -> Locale {
+    match pool.get() {
+        Ok(mut conn) => locale_for_user(&mut conn, user_id),
+        Err(error) => {
+            log::debug!("locale lookup skipped: pool unavailable ({error})");
+            Locale::default()
+        }
+    }
+}
+
 pub fn init_i18n(locales_path: &str) -> Result<(), String> {
     i18n::init(locales_path).map_err(|e| format!("Failed to initialize i18n: {e}"))
 }

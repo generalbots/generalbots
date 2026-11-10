@@ -2,10 +2,10 @@ ADD TOOL "qr"
 USE KB "sheetlib"
 
 CLEAR SUGGESTIONS
-ADD SUGGESTION "scan" AS "Scan a QR Code"
-ADD SUGGESTION "find" AS "Find a procedure"
-ADD SUGGESTION "help" AS "How to search documents"
-ADD SUGGESTION "test kb" AS "Test KB injection"
+ADD SUGGESTION "scan" AS "bot-suggest-scan-a-qr-code"
+ADD SUGGESTION "find" AS "bot-suggest-find-a-procedure"
+ADD SUGGESTION "help" AS "bot-suggest-how-to-search-documents"
+ADD SUGGESTION "test kb" AS "bot-suggest-test-kb-injection"
 
 BEGIN TALK
 General Bots AI Search

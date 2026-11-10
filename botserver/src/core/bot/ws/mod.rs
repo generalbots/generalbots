@@ -1,7 +1,9 @@
 pub mod handler;
 pub mod message;
+pub mod prompt;
 pub mod session;
 pub mod stream;
+pub mod suggestions;
 
 pub use handler::{
     validate_bot_name, verify_path_within_workdir, websocket_handler, websocket_handler_with_bot,

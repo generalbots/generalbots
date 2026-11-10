@@ -68,13 +68,16 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         let state_for_tool = state.clone();
         let tool_name_clone = tool_name.to_string();
         let channel_name = channel.to_string();
+        // #2095 — a tool that publishes chips resolves their keys for the
+        // language the user picked.
+        let locale_for_tool = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
         let session_for_tool = botlib::models::UserSession {
             id: session_id,
             user_id,
             branch_id: Uuid::nil(),
             bot_id: bot_uuid,
             title: String::new(),
-            context_data: serde_json::json!({"channel": channel_name}),
+            context_data: serde_json::json!({"channel": channel_name, "locale": locale_for_tool.to_string()}),
             current_tool: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),

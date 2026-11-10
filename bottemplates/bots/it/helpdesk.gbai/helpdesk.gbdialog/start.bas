@@ -10,12 +10,12 @@ SET CONTEXT "it helpdesk" AS "You are an IT helpdesk assistant. Help users creat
 
 CLEAR SUGGESTIONS
 
-ADD SUGGESTION "new" AS "Report a problem"
-ADD SUGGESTION "status" AS "Check ticket status"
-ADD SUGGESTION "password" AS "Reset my password"
-ADD SUGGESTION "vpn" AS "VPN issues"
-ADD SUGGESTION "email" AS "Email not working"
-ADD SUGGESTION "mytickets" AS "View my tickets"
+ADD SUGGESTION "new" AS "bot-suggest-report-a-problem"
+ADD SUGGESTION "status" AS "bot-suggest-check-ticket-status"
+ADD SUGGESTION "password" AS "bot-suggest-reset-my-password"
+ADD SUGGESTION "vpn" AS "bot-suggest-vpn-issues"
+ADD SUGGESTION "email" AS "bot-suggest-email-not-working"
+ADD SUGGESTION "mytickets" AS "bot-suggest-view-my-tickets"
 
 BEGIN TALK
 **IT Helpdesk Support**
