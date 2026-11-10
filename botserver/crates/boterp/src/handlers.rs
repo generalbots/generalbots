@@ -108,3 +108,27 @@ pub async fn list_branches(headers: HeaderMap) -> Result<Json<serde_json::Value>
     })).collect();
     Ok(Json(serde_json::json!({"items": items})))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anonymous_callers_resolve_to_the_nil_branch() {
+        // No JWT header: the handler still runs, constrained to the global
+        // branch. It must never default to an arbitrary tenant.
+        assert_eq!(resolve_branch(&HeaderMap::new()), Uuid::nil());
+    }
+
+    #[test]
+    fn an_invalid_bearer_token_does_not_pick_a_tenant() {
+        let mut headers = HeaderMap::new();
+        headers.insert("authorization", "Bearer not-a-jwt".parse().expect("header"));
+        assert_eq!(resolve_branch(&headers), Uuid::nil());
+    }
+
+    #[test]
+    fn the_router_exposes_the_erp_surface() {
+        let _router: axum::Router<()> = crate::routes::configure();
+    }
+}

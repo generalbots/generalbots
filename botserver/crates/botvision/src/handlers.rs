@@ -93,3 +93,33 @@ pub async fn list_history(headers: HeaderMap) -> Result<Json<serde_json::Value>,
     })).collect();
     Ok(Json(serde_json::json!({"items": items})))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anonymous_callers_resolve_to_the_nil_branch() {
+        assert_eq!(resolve_branch(&HeaderMap::new()), Uuid::nil());
+    }
+
+    #[test]
+    fn analysis_request_deserializes_with_and_without_parameters() {
+        let minimal: AnalysisRequest = serde_json::from_str(
+            r#"{"image_url":"https://example.invalid/a.png","kind":"general"}"#,
+        )
+        .expect("minimal request");
+        assert!(minimal.parameters.is_none());
+
+        let full: AnalysisRequest = serde_json::from_str(
+            r#"{"image_url":"https://example.invalid/a.png","kind":"ocr","parameters":{"lang":"pt"}}"#,
+        )
+        .expect("full request");
+        assert_eq!(full.parameters.expect("parameters")["lang"], "pt");
+    }
+
+    #[test]
+    fn the_router_exposes_the_vision_surface() {
+        let _router: axum::Router<()> = crate::routes::configure();
+    }
+}
