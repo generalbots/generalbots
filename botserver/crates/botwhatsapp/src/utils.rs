@@ -1,6 +1,13 @@
 pub fn format_phone_number(phone: &str) -> String {
     let cleaned: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
 
+    // An input without a single digit used to come back as "55" (the country
+    // code prefixed to nothing), which then addressed a Graph API call to a
+    // nonexistent recipient. Keep it empty so the caller can reject it.
+    if cleaned.is_empty() {
+        return String::new();
+    }
+
     if cleaned.starts_with('0') && cleaned.len() > 2 {
         let without_leading_zero = &cleaned[1..];
         if !without_leading_zero.starts_with("55") {
@@ -28,17 +35,27 @@ pub fn is_list_message(text: &str) -> bool {
             trimmed.starts_with("- ")
                 || trimmed.starts_with("* ")
                 || trimmed.starts_with("• ")
-                || (trimmed.len() > 2
-                    && trimmed
-                        .chars()
-                        .next()
-                        .map(|c| c.is_ascii_digit())
-                        .unwrap_or(false)
-                    && trimmed.chars().nth(1) == Some('.'))
+                || is_numbered_marker(trimmed)
         })
         .count();
 
     list_lines >= 2
+}
+
+/// A numbered marker is `<digits>.` followed by a space or the end of the line.
+///
+/// The check used to stop at the dot, so "1.5 is a number" counted as a list
+/// item and two decimal lines made the whole reply render as a list.
+fn is_numbered_marker(line: &str) -> bool {
+    let digits = line.chars().take_while(|c| c.is_ascii_digit()).count();
+    if digits == 0 {
+        return false;
+    }
+
+    match line[digits..].strip_prefix('.') {
+        Some(rest) => rest.is_empty() || rest.starts_with(' '),
+        None => false,
+    }
 }
 
 pub fn split_long_message(text: &str) -> Vec<String> {
@@ -89,12 +106,56 @@ pub fn split_long_message(text: &str) -> Vec<String> {
     parts
 }
 
-pub fn verify_webhook_signature(
-    _body: &str,
-    _signature: &str,
-    _app_secret: &str,
-) -> bool {
-    true
+/// Verifies a Meta webhook delivery.
+///
+/// Meta signs the **raw request body** with the app secret:
+/// `X-Hub-Signature-256: sha256=<hex(hmac_sha256(app_secret, body))>`. The
+/// signature must be computed over the bytes exactly as received — a
+/// re-serialized `serde_json` value differs in key order and whitespace and
+/// never matches.
+///
+/// This used to be a stub returning `true`, so any caller could post a forged
+/// delivery. The digest is compared in constant time: the hex form is public
+/// through the header, and a byte-wise `==` leaks how many leading characters
+/// were guessed.
+pub fn verify_webhook_signature(body: &str, signature: &str, app_secret: &str) -> bool {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+
+    if app_secret.is_empty() {
+        return false;
+    }
+
+    let provided = match signature.trim().strip_prefix("sha256=") {
+        Some(hex_digest) if !hex_digest.is_empty() => hex_digest,
+        _ => return false,
+    };
+
+    let mut mac = match Hmac::<Sha256>::new_from_slice(app_secret.as_bytes()) {
+        Ok(mac) => mac,
+        Err(e) => {
+            log::error!("WhatsApp webhook HMAC key error: {e}");
+            return false;
+        }
+    };
+    mac.update(body.as_bytes());
+    let computed = hex::encode(mac.finalize().into_bytes());
+
+    // Meta always sends lowercase hex; an uppercase digest is not the same
+    // string and is rejected rather than normalized.
+    constant_time_eq(computed.as_bytes(), provided.as_bytes())
+}
+
+/// Byte-wise equality that does not short-circuit on the first difference.
+pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (left, right) in a.iter().zip(b.iter()) {
+        diff |= left ^ right;
+    }
+    diff == 0
 }
 
 pub fn extract_message_text(message: &crate::models::WhatsAppMessage) -> Option<String> {
@@ -124,72 +185,5 @@ pub fn format_whatsapp_timestamp(timestamp: &str) -> Result<chrono::DateTime<chr
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_format_phone_br_number() {
-        assert_eq!(format_phone_number("11987654321"), "5511987654321");
-    }
-
-    #[test]
-    fn test_format_phone_already_international() {
-        assert_eq!(format_phone_number("5511987654321"), "5511987654321");
-    }
-
-    #[test]
-    fn test_format_phone_with_leading_zero() {
-        assert_eq!(format_phone_number("011987654321"), "5511987654321");
-    }
-
-    #[test]
-    fn test_is_list_message_dash() {
-        assert!(is_list_message("- Item 1\n- Item 2\n- Item 3"));
-    }
-
-    #[test]
-    fn test_is_list_message_numbered() {
-        assert!(is_list_message("1. First\n2. Second\n3. Third"));
-    }
-
-    #[test]
-    fn test_is_list_message_single_line() {
-        assert!(!is_list_message("Just a single line"));
-    }
-
-    #[test]
-    fn test_is_list_message_not_list() {
-        assert!(!is_list_message("Hello\nWorld\nTest"));
-    }
-
-    #[test]
-    fn test_split_short_message() {
-        let msg = "Short message";
-        let parts = split_long_message(msg);
-        assert_eq!(parts.len(), 1);
-        assert_eq!(parts[0], msg);
-    }
-
-    #[test]
-    fn test_split_long_message() {
-        let long_msg = "A".repeat(5000);
-        let parts = split_long_message(&long_msg);
-        assert!(parts.len() > 1);
-        for part in &parts {
-            assert!(part.len() <= 4096);
-        }
-    }
-
-    #[test]
-    fn test_split_message_preserves_newlines() {
-        let msg = "Line 1\nLine 2\nLine 3";
-        let parts = split_long_message(msg);
-        assert_eq!(parts.len(), 1);
-        assert_eq!(parts[0], msg);
-    }
-
-    #[test]
-    fn test_verify_webhook_signature() {
-        assert!(verify_webhook_signature("body", "sig", "secret"));
-    }
-}
+#[path = "utils_tests.rs"]
+mod utils_tests;

@@ -269,11 +269,14 @@ pub async fn route_to_bot(
             session.bot_id,
             state.get_config.clone(),
         );
+        let locale = botlib::i18n::locale_from_config(|key| {
+            (state.get_config)(&session.bot_id, key, None).ok()
+        });
         let error_response = BotResponse::new(
             session.bot_id.to_string(),
             session.id.to_string(),
             chat_id.to_string(),
-            "Sorry, I encountered an error processing your message. Please try again.",
+            botlib::i18n::translate(&locale, "channel-reply-processing-failed", &[]),
             "telegram",
         );
 

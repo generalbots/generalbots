@@ -1,6 +1,10 @@
 pub mod mail;
 pub mod talk;
 
+#[cfg(test)]
+#[path = "blocks_tests.rs"]
+mod blocks_tests;
+
 pub use mail::convert_mail_block;
 pub use talk::convert_talk_block;
 

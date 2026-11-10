@@ -2,72 +2,12 @@ use botlib::models::BotResponse;
 use log::info;
 use serde::{Deserialize, Serialize};
 
+use crate::payload::{
+    buttons_payload, document_payload, location_payload, photo_payload, text_payload,
+};
 use crate::state::{GetConfigFn, DbPool};
 use std::sync::Arc;
 use uuid::Uuid;
-
-#[derive(Debug, Serialize)]
-struct TelegramSendMessage {
-    chat_id: String,
-    text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    parse_mode: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reply_markup: Option<TelegramReplyMarkup>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramReplyMarkup {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    inline_keyboard: Option<Vec<Vec<TelegramInlineButton>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    keyboard: Option<Vec<Vec<TelegramKeyboardButton>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    one_time_keyboard: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    resize_keyboard: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramInlineButton {
-    text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    callback_data: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramKeyboardButton {
-    text: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    request_contact: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    request_location: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramSendPhoto {
-    chat_id: String,
-    photo: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    caption: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramSendDocument {
-    chat_id: String,
-    document: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    caption: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct TelegramSendLocation {
-    chat_id: String,
-    latitude: f64,
-    longitude: f64,
-}
 
 #[derive(Debug, Deserialize)]
 pub struct TelegramResponse {
@@ -127,12 +67,7 @@ impl TelegramAdapter {
         text: &str,
         parse_mode: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let payload = TelegramSendMessage {
-            chat_id: chat_id.to_string(),
-            text: text.to_string(),
-            parse_mode: parse_mode.map(String::from),
-            reply_markup: None,
-        };
+        let payload = text_payload(chat_id, text, parse_mode);
 
         self.send_telegram_request("sendMessage", &payload).await?;
         info!("Telegram message sent to chat {}", chat_id);
@@ -145,28 +80,7 @@ impl TelegramAdapter {
         text: &str,
         buttons: Vec<(String, String)>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let inline_buttons: Vec<Vec<TelegramInlineButton>> = buttons
-            .into_iter()
-            .map(|(label, callback)| {
-                vec![TelegramInlineButton {
-                    text: label,
-                    callback_data: Some(callback),
-                    url: None,
-                }]
-            })
-            .collect();
-
-        let payload = TelegramSendMessage {
-            chat_id: chat_id.to_string(),
-            text: text.to_string(),
-            parse_mode: Some("HTML".to_string()),
-            reply_markup: Some(TelegramReplyMarkup {
-                inline_keyboard: Some(inline_buttons),
-                keyboard: None,
-                one_time_keyboard: None,
-                resize_keyboard: None,
-            }),
-        };
+        let payload = buttons_payload(chat_id, text, buttons);
 
         self.send_telegram_request("sendMessage", &payload).await?;
         info!("Telegram message with buttons sent to chat {}", chat_id);
@@ -179,11 +93,7 @@ impl TelegramAdapter {
         photo_url: &str,
         caption: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let payload = TelegramSendPhoto {
-            chat_id: chat_id.to_string(),
-            photo: photo_url.to_string(),
-            caption: caption.map(String::from),
-        };
+        let payload = photo_payload(chat_id, photo_url, caption);
 
         self.send_telegram_request("sendPhoto", &payload).await?;
         info!("Telegram photo sent to chat {}", chat_id);
@@ -196,11 +106,7 @@ impl TelegramAdapter {
         document_url: &str,
         caption: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let payload = TelegramSendDocument {
-            chat_id: chat_id.to_string(),
-            document: document_url.to_string(),
-            caption: caption.map(String::from),
-        };
+        let payload = document_payload(chat_id, document_url, caption);
 
         self.send_telegram_request("sendDocument", &payload).await?;
         info!("Telegram document sent to chat {}", chat_id);
@@ -213,11 +119,7 @@ impl TelegramAdapter {
         latitude: f64,
         longitude: f64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let payload = TelegramSendLocation {
-            chat_id: chat_id.to_string(),
-            latitude,
-            longitude,
-        };
+        let payload = location_payload(chat_id, latitude, longitude);
 
         self.send_telegram_request("sendLocation", &payload).await?;
         info!("Telegram location sent to chat {}", chat_id);

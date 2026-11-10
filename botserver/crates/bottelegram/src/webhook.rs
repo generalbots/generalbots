@@ -29,20 +29,76 @@ use uuid::Uuid;
 /// message is processed once instead of once per redelivery.
 const UPDATE_DEDUP_WINDOW: std::time::Duration = std::time::Duration::from_secs(600);
 
-fn update_dedup_registry() -> &'static Mutex<HashSet<(i64, std::time::Instant)>> {
+/// Redelivery guard with an injectable clock.
+///
+/// The window used to be a process-global `HashSet<(i64, Instant)>` whose
+/// eviction only ran on the next delivery, which made the 600 s boundary
+/// unreachable from a test. Keeping the state in a struct lets the tests drive
+/// `now` directly while the handler still owns a single instance.
+pub(crate) struct DedupRegistry {
+    window: std::time::Duration,
+    seen: HashSet<i64>,
+    order: std::collections::VecDeque<(i64, std::time::Instant)>,
+}
+
+impl DedupRegistry {
+    pub(crate) fn new(window: std::time::Duration) -> Self {
+        Self {
+            window,
+            seen: HashSet::new(),
+            order: std::collections::VecDeque::new(),
+        }
+    }
+
+    /// Records `update_id` at `now` and reports whether it is new. An id is a
+    /// duplicate while it is still inside the window; once it ages out the same
+    /// id is accepted again, which is what keeps the set from growing forever.
+    pub(crate) fn register_at(&mut self, update_id: i64, now: std::time::Instant) -> bool {
+        self.evict_at(now);
+        if !self.seen.insert(update_id) {
+            return false;
+        }
+        self.order.push_back((update_id, now));
+        true
+    }
+
+    fn evict_at(&mut self, now: std::time::Instant) {
+        while let Some((update_id, accepted_at)) = self.order.front().copied() {
+            if now.saturating_duration_since(accepted_at) < self.window {
+                break;
+            }
+            self.order.pop_front();
+            self.seen.remove(&update_id);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.seen.len()
+    }
+}
+
+fn update_dedup_registry() -> &'static Mutex<DedupRegistry> {
     use std::sync::OnceLock;
-    static REGISTRY: OnceLock<Mutex<HashSet<(i64, std::time::Instant)>>> = OnceLock::new();
-    REGISTRY.get_or_init(|| Mutex::new(HashSet::new()))
+    static REGISTRY: OnceLock<Mutex<DedupRegistry>> = OnceLock::new();
+    REGISTRY.get_or_init(|| Mutex::new(DedupRegistry::new(UPDATE_DEDUP_WINDOW)))
 }
 
 /// Returns true when this update_id was not seen inside the window.
 async fn register_update_id(update_id: i64) -> bool {
-    let mut seen = update_dedup_registry().lock().await;
-    seen.retain(|(_, seen_at)| seen_at.elapsed() < UPDATE_DEDUP_WINDOW);
-    seen.insert((update_id, std::time::Instant::now()))
+    let mut registry = update_dedup_registry().lock().await;
+    registry.register_at(update_id, std::time::Instant::now())
 }
 
-pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
+/// Placeholder carried into the conversation when an update has no text.
+///
+/// These markers are shown in the chat transcript and read by the model, so
+/// they are localized (#2094). `locale` is the bot/workspace default: the
+/// sender is a Telegram chat, not a `users` row with a stored preference.
+pub(crate) fn extract_message_content(
+    locale: &botlib::i18n::Locale,
+    message: &TelegramMessage,
+) -> String {
     if let Some(text) = &message.text {
         return text.clone();
     }
@@ -50,27 +106,44 @@ pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
         return caption.clone();
     }
     if message.photo.is_some() {
-        return "[Photo received]".to_string();
+        return marker_text(locale, "channel-telegram-photo-received");
     }
     if message.document.is_some() {
-        return "[Document received]".to_string();
+        return marker_text(locale, "channel-telegram-document-received");
     }
     if message.voice.is_some() {
-        return "[Voice message received]".to_string();
+        return marker_text(locale, "channel-telegram-voice-received");
     }
     if message.audio.is_some() {
-        return "[Audio message received]".to_string();
+        return marker_text(locale, "channel-telegram-audio-received");
     }
     if message.video.is_some() {
-        return "[Video received]".to_string();
+        return marker_text(locale, "channel-telegram-video-received");
     }
     if let Some(location) = &message.location {
-        return format!("[Location: {}, {}]", location.latitude, location.longitude);
+        let latitude = location.latitude.to_string();
+        let longitude = location.longitude.to_string();
+        return botlib::i18n::translate(
+            locale,
+            "channel-telegram-location-received",
+            &[("latitude", &latitude), ("longitude", &longitude)],
+        );
     }
     if let Some(contact) = &message.contact {
-        return format!("[Contact: {} {}]", contact.first_name, contact.phone_number);
+        return botlib::i18n::translate(
+            locale,
+            "channel-telegram-contact-received",
+            &[
+                ("name", &contact.first_name),
+                ("phone", &contact.phone_number),
+            ],
+        );
     }
     String::new()
+}
+
+fn marker_text(locale: &botlib::i18n::Locale, key: &str) -> String {
+    botlib::i18n::translate(locale, key, &[])
 }
 
 pub fn configure() -> Router<Arc<ChannelState>> {
@@ -102,12 +175,34 @@ enum WebhookGate {
 /// A webhook is accepted when no secret is configured, or when the delivered
 /// header matches the configured secret exactly. An empty delivery never
 /// satisfies a configured secret.
+///
+/// The comparison is byte-wise constant time (beyond the length, which is
+/// already public through the header size): `==` on `&str` returns at the first
+/// differing byte, which lets a caller recover a valid secret byte by byte from
+/// response timing. The secret is short and shared per bot, so this endpoint is
+/// exactly where that attack is cheap.
 fn secret_matches(expected: &str, provided: &str) -> bool {
     let expected = expected.trim();
     if expected.is_empty() {
         return true;
     }
-    !provided.is_empty() && provided.trim() == expected
+    let provided = provided.trim();
+    if provided.is_empty() {
+        return false;
+    }
+    constant_time_eq(expected.as_bytes(), provided.as_bytes())
+}
+
+/// Byte-wise equality that does not short-circuit on the first difference.
+pub(crate) fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (left, right) in a.iter().zip(b.iter()) {
+        diff |= left ^ right;
+    }
+    diff == 0
 }
 
 /// Reads the configured secret for `bot_id` and compares it with the delivered
@@ -329,27 +424,5 @@ async fn process_callback(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{secret_matches, SECRET_HEADER};
-
-    #[test]
-    fn unsigned_delivery_is_accepted_when_no_secret_is_configured() {
-        assert!(secret_matches("", ""));
-        assert!(secret_matches("   ", ""));
-        assert!(secret_matches("", "anything"));
-    }
-
-    #[test]
-    fn configured_secret_requires_the_exact_header_value() {
-        assert!(secret_matches("s3cret", "s3cret"));
-        assert!(secret_matches(" s3cret ", "s3cret"));
-        assert!(!secret_matches("s3cret", ""));
-        assert!(!secret_matches("s3cret", "s3cre"));
-        assert!(!secret_matches("s3cret", "S3CRET"));
-    }
-
-    #[test]
-    fn secret_header_name_matches_the_bot_api() {
-        assert_eq!(SECRET_HEADER, "x-telegram-bot-api-secret-token");
-    }
-}
+#[path = "webhook_tests.rs"]
+mod webhook_tests;

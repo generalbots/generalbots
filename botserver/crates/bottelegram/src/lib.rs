@@ -4,6 +4,7 @@ pub mod handlers;
 pub mod html;
 pub mod media;
 mod media_names;
+pub mod payload;
 pub mod schema;
 pub mod session;
 pub mod state;

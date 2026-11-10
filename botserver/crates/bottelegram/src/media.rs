@@ -39,8 +39,10 @@ pub async fn message_content(
     message: &TelegramMessage,
     bot_id: Uuid,
 ) -> String {
+    let locale = botlib::i18n::locale_from_config(|key| (state.get_config)(&bot_id, key, None).ok());
+
     let Some(media) = select_media(message) else {
-        return extract_message_content(message);
+        return extract_message_content(&locale, message);
     };
 
     let caption = message.caption.as_deref().unwrap_or("").trim();
@@ -243,7 +245,7 @@ mod tests {
         message.text = Some("bom dia".to_string());
 
         assert!(select_media(&message).is_none());
-        assert_eq!(extract_message_content(&message), "bom dia");
+        assert_eq!(extract_message_content(&botlib::i18n::Locale::default(), &message), "bom dia");
     }
 
     #[test]

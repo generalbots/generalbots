@@ -210,7 +210,7 @@ struct CapabilitiesResponse {
     fax: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TwilioApiError {
     pub code: i32,
     pub message: String,
@@ -218,7 +218,7 @@ pub struct TwilioApiError {
     pub status: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TwilioError {
     NetworkError(String),
     ApiError(TwilioApiError),

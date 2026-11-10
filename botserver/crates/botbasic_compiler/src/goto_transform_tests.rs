@@ -123,3 +123,48 @@ fn blocks_chain_to_the_next_label_in_source_order() {
     assert_eq!(blocks[2].name, "second");
     assert_eq!(blocks[2].next_label, None);
 }
+
+#[test]
+fn a_lone_label_without_goto_is_left_alone() {
+    // A label alone is not a jump: the source is returned untouched.
+    let source = "done:\nTALK \"x\"";
+    assert_eq!(transform_goto(source), source);
+}
+
+#[test]
+fn an_undefined_goto_target_still_emits_the_jump() {
+    // The label does not exist, so the jump can never be taken; the transform
+    // must still produce a valid state machine instead of panicking.
+    let output = transform_goto("GOTO nowhere\nTALK \"x\"");
+    assert!(output.contains("__goto_label = \"nowhere\"; continue;"), "got: {output}");
+    assert!(output.contains("while __goto_label != \"__exit\""), "got: {output}");
+}
+
+#[test]
+fn blocks_keep_comments_as_line_comments() {
+    let lines = vec!["' a note", "TALK \"a\"", "next:", "TALK \"b\""];
+    let labels: HashSet<String> = ["next".to_string()].into_iter().collect();
+    let blocks = split_into_blocks(&lines, &labels);
+
+    assert_eq!(blocks[0].lines[0], "//  a note");
+    assert_eq!(blocks[0].lines[1], "TALK \"a\"");
+    assert_eq!(blocks[1].name, "next");
+}
+
+#[test]
+fn empty_source_yields_one_empty_start_block() {
+    let blocks = split_into_blocks(&[], &HashSet::new());
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].name, "__start");
+    assert!(blocks[0].lines.is_empty());
+    assert_eq!(blocks[0].next_label, None);
+}
+
+#[test]
+fn the_state_machine_guards_every_block() {
+    let output = transform_goto("a:\nTALK \"a\"\nb:\nGOTO a");
+    assert!(output.contains("if __goto_label == \"a\" {"), "got: {output}");
+    assert!(output.contains("if __goto_label == \"b\" {"), "got: {output}");
+    assert!(output.contains("let __goto_iterations = 0;"), "got: {output}");
+    assert!(output.trim_end().ends_with('}'), "got: {output}");
+}

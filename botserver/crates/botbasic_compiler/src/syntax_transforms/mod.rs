@@ -134,6 +134,26 @@ mod convert_while_wend_syntax;
 mod convert_multiword_keywords;
 mod unquote;
 
+#[cfg(test)]
+#[path = "unquote_tests.rs"]
+mod unquote_tests;
+
+#[cfg(test)]
+#[path = "convert_if_then_tests.rs"]
+mod convert_if_then_tests;
+
+#[cfg(test)]
+#[path = "convert_multiword_tests.rs"]
+mod convert_multiword_tests;
+
+#[cfg(test)]
+#[path = "convert_while_wend_select_tests.rs"]
+mod convert_while_wend_select_tests;
+
+#[cfg(test)]
+#[path = "predeclare_tests.rs"]
+mod predeclare_tests;
+
 pub use predeclare_variables::*;
 pub use convert_if_then_syntax::*;
 pub use convert_while_wend_syntax::*;

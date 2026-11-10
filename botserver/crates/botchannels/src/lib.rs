@@ -114,7 +114,7 @@ pub struct PostResult {
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChannelError {
     UnknownChannel(String),
     AccountNotFound(String),
