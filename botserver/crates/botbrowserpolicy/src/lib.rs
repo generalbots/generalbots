@@ -8,6 +8,7 @@
 //! before any step is recorded.
 
 pub mod api;
+mod jwt;
 pub mod budget;
 pub mod memory;
 pub mod models;

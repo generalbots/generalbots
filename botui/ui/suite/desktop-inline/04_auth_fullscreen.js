@@ -126,10 +126,8 @@
                 ) || null;
                 // The packaged desktop serves the shell at /suite/desktop.html;
                 // "suite" is a static segment, not a bot. Without this guard the
-                // Drive app took it as the bot name and probed suite.gborg /
-                // suite.gbai, so its tabs answered 'Access denied for this
-                // bucket' (#1709). Assign the result so every app reads the same
-                // identity (it used to be undefined here).
+                // Drive app took it as the bot name and probed suite.gborg / suite.gbai
+                // (#1709). Assign the result so every app reads the same identity.
                 const staticShell = pathName === 'suite' || pathName === 'auth';
                 const botName = window.__INITIAL_BOT_NAME__ ||
                     (routeApp || staticShell ? 'default' : routeName) || 'default';
@@ -140,12 +138,8 @@
                 // shell. The shell stays hidden until this gate resolves; on
                 // private+unauthenticated we redirect to login immediately.
                 var authDenied = false;
-                // #2085 — the splash window (asset origin) must never run the
-                // auth gate: it has no login form, so the redirect opened a
-                // stray tauri.localhost/suite/login.html window whose /api
-                // calls hit the asset protocol ("asset not found").
-                var isSplashPage = /(^|\/)splash\.html$/.test(window.location.pathname);
-                if (noSecurity || isSplashPage) { /* skip auth gate entirely */ } else try {
+                // #2085 — the splash never runs the auth gate (flag set in 01_boot_flags.js).
+                if (noSecurity || window.__GB_IS_SPLASH__) { } else try {
 
                     if (botName && botName !== 'default') {
                         const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());

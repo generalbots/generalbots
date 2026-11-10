@@ -93,8 +93,7 @@ pub async fn execute_command(
         "apps.find" => {
             Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) }))
         }
-        // #2063 — the prompt advertises `name: description`; the package body
-        // is pulled on demand, exactly like apps.find / api.find.
+        // #2063 — the prompt advertises `name: description`; the body is on demand.
         #[cfg(feature = "sources")]
         "skills.list" => super::skills::list_skills(state, bot_uuid),
         #[cfg(feature = "sources")]
@@ -351,8 +350,7 @@ pub async fn execute_command(
             let query = str_of("query").unwrap_or_default();
             list_people(state, &bot_uuid, Some(&query)).await
         }
-        // #1441 P3 — pipeline/forecast/report commands so chat and WhatsApp can
-        // answer CRM questions and capture leads without opening the suite.
+        // #1441 P3 — CRM pipeline/forecast/report from chat, no suite needed.
         "crm.pipeline.forecast" => {
             let periods = obj
                 .get("periods")
@@ -367,8 +365,7 @@ pub async fn execute_command(
         "crm.leads.report" => {
             crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await
         }
-        // #1441 C8 — operate the pipeline from chat: create a deal, move a
-        // stage, capture a contact.
+        // #1441 C8 — operate the pipeline from chat: deal, stage, contact.
         "crm.deal.create" => {
             crate::core::bot::crm_commands::crm_create_deal_command(state, &bot_uuid, obj).await
         }
@@ -395,150 +392,6 @@ pub async fn execute_command(
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
-        // AutoTask: the command is advertised to the model, so it must be
-        // executable here — it used to fall through to the navigation
-        // catch-all and answer with a deep link while creating nothing.
-        #[cfg(feature = "automations")]
-        #[cfg(feature = "database")]
-        "database.rows.insert" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let values = obj
-                .get("values")
-                .cloned()
-                .ok_or_else(|| "params.values is required".to_string())?;
-            let result = botdatabase::handlers::insert_row(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Path(table),
-                axum::extract::Json(values),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.rows.update" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let id = str_of("id").ok_or_else(|| "params.id is required".to_string())?;
-            let data = obj
-                .get("values")
-                .cloned()
-                .ok_or_else(|| "params.values is required".to_string())?;
-            let result = botdatabase::handlers::update_row(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::UpdateRowRequest {
-                    pk_value: id,
-                    data,
-                }),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.rows.delete" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let id = str_of("id").ok_or_else(|| "params.id is required".to_string())?;
-            let result = botdatabase::handlers::delete_row(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Path((table, id)),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.rows.batch_delete" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let ids: Vec<String> = serde_json::from_value(
-                obj.get("ids")
-                    .cloned()
-                    .ok_or_else(|| "params.ids is required".to_string())?,
-            )
-            .map_err(|_| "params.ids must be a JSON array of row ids".to_string())?;
-            let result = botdatabase::handlers::batch_delete(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::BatchDeleteRequest { ids }),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.table.create" => {
-            let name = str_of("name").ok_or_else(|| "params.name is required".to_string())?;
-            let columns: Vec<botdatabase::handlers::ColumnDef> = serde_json::from_value(
-                obj.get("columns")
-                    .cloned()
-                    .ok_or_else(|| "params.columns is required".to_string())?,
-            )
-            .map_err(|_| "params.columns must be a JSON array of {name, type}".to_string())?;
-            let result = botdatabase::handlers::create_table(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Json(botdatabase::handlers::CreateTableRequest {
-                    name,
-                    columns,
-                    table_name: None,
-                }),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.column.add" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let name = str_of("name").ok_or_else(|| "params.name is required".to_string())?;
-            let data_type = str_of("type").ok_or_else(|| "params.type is required".to_string())?;
-            let result = botdatabase::handlers::add_column(
-                axum::extract::State(Arc::clone(state)),
-                database_bot_headers(bot_uuid),
-                axum::extract::Path(table),
-                axum::extract::Json(botdatabase::handlers::AddColumnRequest {
-                    name,
-                    data_type: Some(data_type),
-                    col_type: None,
-                    nullable: None,
-                    not_null: None,
-                    default: None,
-                }),
-            )
-            .await
-            .map_err(database_error)?;
-            Ok(json!({ "success": result.0.success, "message": result.0.message }))
-        }
-        #[cfg(feature = "database")]
-        "database.rows.import" => {
-            let table = str_of("table").ok_or_else(|| "params.table is required".to_string())?;
-            let rows = import_rows(obj)?;
-            if rows.is_empty() {
-                return Err("params.csv or params.json must carry at least one row".to_string());
-            }
-            let mut inserted = 0usize;
-            for row in rows {
-                botdatabase::handlers::insert_row(
-                    axum::extract::State(Arc::clone(state)),
-                    database_bot_headers(bot_uuid),
-                    axum::extract::Path(table.clone()),
-                    axum::extract::Json(row),
-                )
-                .await
-                .map_err(database_error)?;
-                inserted += 1;
-            }
-            Ok(json!({
-                "success": true,
-                "table": table,
-                "inserted": inserted,
-                "message": format!("{inserted} row(s) imported into {table}"),
-            }))
-        }
         "tasks.autotask.create" | "tasks.autotask.run" | "automations.create" | "automations.run" => {
             let intent = str_of("intent").unwrap_or_default();
             if intent.trim().is_empty() {
@@ -554,28 +407,16 @@ pub async fn execute_command(
             }
             Ok(serde_json::to_value(&response).unwrap_or_else(|_| json!({})))
         }
-        // #2037 — Docs publishes one route per template and per export format,
-        // so the verb's `template`/`format` selects the registered path instead
-        // of inventing a query parameter the handler does not read.
-        "docs.new" => {
-            let template = str_of("template").unwrap_or_else(|| "blank".to_string());
-            let path = crate::apps::commands::docs_template_path(&template.to_lowercase())?;
-            exec_docs_path(state, user_id, bot_uuid, path, serde_json::Map::new()).await
+        name if docs_verbs::handles(name) => {
+            docs_verbs::execute(state, user_id, bot_uuid, name, obj).await
         }
-        "docs.export" => {
-            let file_id =
-                str_of("file_id").ok_or_else(|| "params.file_id is required".to_string())?;
-            let format = str_of("format").unwrap_or_else(|| "pdf".to_string());
-            let path = crate::apps::commands::docs_export_path(&format.to_lowercase())?;
-            let mut params = serde_json::Map::new();
-            params.insert("id".to_string(), Value::String(file_id));
-            exec_docs_path(state, user_id, bot_uuid, path, params).await
+        #[cfg(feature = "database")]
+        name if database_verbs::handles(name) => {
+            database_verbs::execute(state, bot_uuid, name, obj).await
         }
         _ => {
-            // #2037/#2038/#2039/#2040 — a verb whose endpoint already exists is
-            // executed through the same loopback path as api.exec. Without this
-            // it fell through to the navigation catch-all and answered with a
-            // deep link while performing nothing.
+            // #2037-#2040 — a verb with an endpoint runs through api.exec's
+            // loopback path instead of answering with a deep link.
             if let Some(binding) = crate::apps::commands::verb_endpoint(name) {
                 let mapped = binding.map_params(obj);
                 return crate::core::bot::api_exec::exec_endpoint(
@@ -588,8 +429,7 @@ pub async fn execute_command(
                 )
                 .await;
             }
-            // Unknown/mostly-navigation commands resolve to an in-app deep link
-            // when the command declares one, otherwise a clear error.
+            // Navigation commands resolve to a deep link, else a clear error.
             if let Some(cmd) = command_by_name(name) {
                 if let Some(link) = cmd.deep_link {
                     Ok(
@@ -608,176 +448,3 @@ pub async fn execute_command(
     }
 }
 
-/// Docs templates and exporters are one route each; both verbs reach them the
-/// same way, so the loopback call lives in one place.
-async fn exec_docs_path(
-    state: &Arc<AppState>,
-    user_id: Uuid,
-    bot_uuid: Uuid,
-    path: &str,
-    params: serde_json::Map<String, Value>,
-) -> Result<Value, String> {
-    crate::core::bot::api_exec::exec_endpoint(
-        state,
-        user_id,
-        Some(bot_uuid),
-        "GET",
-        path,
-        &params,
-    )
-    .await
-}
-
-/// #2034 — the database handlers authorize on the `X-Bot-Id` header. The chat
-/// command already runs for a resolved bot, so synthesize the same scope header
-/// instead of trusting client input.
-#[cfg(feature = "database")]
-fn database_bot_headers(bot_id: Uuid) -> axum::http::HeaderMap {
-    let mut headers = axum::http::HeaderMap::new();
-    if let Ok(value) = axum::http::HeaderValue::from_str(&bot_id.to_string()) {
-        headers.insert("X-Bot-Id", value);
-    }
-    headers
-}
-
-#[cfg(feature = "database")]
-fn database_error(
-    (_status, axum::Json(body)): (axum::http::StatusCode, axum::Json<Value>),
-) -> String {
-    body.get("error")
-        .and_then(Value::as_str)
-        .unwrap_or("database operation failed")
-        .to_string()
-}
-
-/// #2034 — accepts either a JSON array of objects or CSV text with a header
-/// row, so a chat import does not depend on the caller guessing the shape.
-#[cfg(feature = "database")]
-fn import_rows(params: &serde_json::Map<String, Value>) -> Result<Vec<Value>, String> {
-    if let Some(rows) = params.get("json") {
-        let rows: Vec<Value> = serde_json::from_value(rows.clone())
-            .map_err(|_| "params.json must be an array of objects".to_string())?;
-        return Ok(rows);
-    }
-
-    let Some(csv) = params.get("csv").and_then(Value::as_str) else {
-        return Err("params.csv or params.json is required".to_string());
-    };
-
-    let mut lines = csv.lines().filter(|line| !line.trim().is_empty());
-    let header_line = lines
-        .next()
-        .ok_or_else(|| "CSV is empty (a header row is required)".to_string())?;
-    let headers = split_csv_line(header_line);
-    if headers.is_empty() {
-        return Err("CSV header row is empty".to_string());
-    }
-
-    let mut rows = Vec::new();
-    for line in lines {
-        let values = split_csv_line(line);
-        if values.len() != headers.len() {
-            return Err(format!(
-                "CSV row has {} value(s) but the header has {}",
-                values.len(),
-                headers.len()
-            ));
-        }
-        let mut object = serde_json::Map::new();
-        for (key, value) in headers.iter().zip(values) {
-            object.insert(key.clone(), Value::String(value));
-        }
-        rows.push(Value::Object(object));
-    }
-
-    Ok(rows)
-}
-
-/// Splits one CSV line, honouring double-quoted fields with `""` escapes.
-#[cfg(feature = "database")]
-fn split_csv_line(line: &str) -> Vec<String> {
-    let mut fields = Vec::new();
-    let mut current = String::new();
-    let mut quoted = false;
-    let mut chars = line.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        match ch {
-            '"' if quoted && chars.peek() == Some(&'"') => {
-                current.push('"');
-                chars.next();
-            }
-            '"' => quoted = !quoted,
-            ',' if !quoted => {
-                fields.push(current.trim().to_string());
-                current.clear();
-            }
-            _ => current.push(ch),
-        }
-    }
-    fields.push(current.trim().to_string());
-    fields
-}
-
-#[cfg(test)]
-mod database_import_tests {
-    #![cfg(feature = "database")]
-    use super::{import_rows, split_csv_line};
-    use serde_json::json;
-
-    fn params(value: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
-        match value {
-            serde_json::Value::Object(map) => map,
-            other => panic!("expected object, got {other}"),
-        }
-    }
-
-    #[test]
-    fn csv_import_maps_the_header_to_each_row() {
-        let rows = import_rows(&params(json!({
-            "csv": "name,email\nJoão,joao@example.com\nMaria,maria@example.com\n"
-        })))
-        .expect("rows");
-
-        assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0]["name"], json!("João"));
-        assert_eq!(rows[1]["email"], json!("maria@example.com"));
-    }
-
-    #[test]
-    fn csv_import_honours_quoted_fields_and_escaped_quotes() {
-        let rows = import_rows(&params(json!({
-            "csv": "name,note\n\"Silva, João\",\"said \"\"hi\"\"\"\n"
-        })))
-        .expect("rows");
-
-        assert_eq!(rows[0]["name"], json!("Silva, João"));
-        assert_eq!(rows[0]["note"], json!("said \"hi\""));
-    }
-
-    #[test]
-    fn csv_import_rejects_ragged_rows() {
-        let error = import_rows(&params(json!({ "csv": "a,b\n1\n" }))).unwrap_err();
-        assert!(error.contains("header has 2"));
-    }
-
-    #[test]
-    fn json_import_accepts_an_array_of_objects() {
-        let rows = import_rows(&params(json!({
-            "json": [{ "name": "João" }, { "name": "Maria" }]
-        })))
-        .expect("rows");
-
-        assert_eq!(rows.len(), 2);
-    }
-
-    #[test]
-    fn import_requires_csv_or_json() {
-        assert!(import_rows(&params(json!({ "table": "clientes" }))).is_err());
-    }
-
-    #[test]
-    fn csv_split_trims_and_keeps_empty_fields() {
-        assert_eq!(split_csv_line(" a , ,c "), vec!["a", "", "c"]);
-    }
-}

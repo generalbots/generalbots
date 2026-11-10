@@ -43,6 +43,8 @@
                     window.gbDebugContextMenu = true;
                 }
             } catch (e) {}
+            // #2085 — the splash window must not run the shell auth gate.
+            window.__GB_IS_SPLASH__ = /(^|\/)splash\.html$/.test(window.location.pathname);
             window.__BOT_IS_PUBLIC__ = false;
             // Hide the shell from the very first paint: a private bot must
             // never flash an empty desktop before the auth gate resolves.

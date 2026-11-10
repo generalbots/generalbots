@@ -13,6 +13,7 @@ mod db;
 mod exec;
 mod identity;
 mod incus;
+mod incus_errors;
 mod lifecycle;
 mod retry;
 mod workspace;

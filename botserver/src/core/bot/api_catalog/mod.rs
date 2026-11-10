@@ -106,6 +106,9 @@ struct TicketRow {
 
 mod archive_drive_files;
 mod branch_scope;
+#[cfg(feature = "database")]
+mod database_verbs;
+mod docs_verbs;
 mod commands_list;
 mod execute_command;
 mod find_api_entries;
