@@ -247,3 +247,121 @@ mod permissive;
 mod validate;
 
 pub use validate::*;
+
+#[cfg(test)]
+mod adversarial_tests {
+    use super::*;
+
+    #[test]
+    fn absolute_paths_outside_the_roots_are_refused() {
+        let guard = PathGuard::new(PathGuardConfig::new().with_root("/data/uploads"));
+        assert!(guard.validate(Path::new("/data/uploads/a.txt")).is_ok());
+        assert_eq!(
+            guard.validate(Path::new("/etc/passwd")).unwrap_err(),
+            PathGuardError::AbsolutePath
+        );
+    }
+
+    #[test]
+    fn encoded_traversal_is_still_rejected() {
+        let guard = PathGuard::default();
+        // %2f is decoded by the caller; the guard refuses the literal form too.
+        // The leading dot makes it a hidden component, which is also refused.
+        assert!(guard.validate(Path::new("..%2fsecret")).is_err());
+        assert!(guard.validate(Path::new("foo/%2e%2e/secret")).is_err());
+        // A leading dot trips the hidden-file rule first; either way it is
+        // refused, which is what matters.
+        assert!(guard.validate(Path::new("foo/..%2fsecret")).is_err());
+    }
+
+    #[test]
+    fn shell_metacharacters_in_a_component_are_rejected() {
+        let guard = PathGuard::default();
+        for hostile in [
+            "file;rm -rf.txt",
+            "file`id`.txt",
+            "file$(whoami).txt",
+            "file|cat.txt",
+        ] {
+            assert!(
+                guard.validate(Path::new(hostile)).is_err(),
+                "{hostile} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn traversal_above_the_base_is_rejected_at_every_depth() {
+        let guard = PathGuard::default();
+        assert_eq!(
+            guard.validate(Path::new("a/b/../../../etc/passwd")).unwrap_err(),
+            PathGuardError::PathTraversal
+        );
+        assert_eq!(
+            guard.validate(Path::new("./../x")).unwrap_err(),
+            PathGuardError::PathTraversal
+        );
+    }
+
+    #[test]
+    fn resolve_rejects_a_path_that_escapes_the_base() {
+        let guard = PathGuard::new(PathGuardConfig::new().with_root("/data/uploads"));
+        assert!(guard
+            .validate_and_resolve(Path::new("/data/uploads"), Path::new("a/b.txt"))
+            .is_ok());
+        assert!(guard
+            .validate_and_resolve(Path::new("/etc"), Path::new("passwd"))
+            .is_err());
+    }
+
+    #[test]
+    fn join_safe_refuses_an_escaping_relative_path() {
+        let base = Path::new("/data/uploads");
+        assert!(join_safe(base, Path::new("../etc/passwd")).is_err());
+    }
+
+    #[test]
+    fn extension_checks_are_case_insensitive() {
+        let guard = PathGuard::new(
+            PathGuardConfig::default().with_allowed_extensions(vec!["TXT".to_string()]),
+        );
+        assert!(guard.validate(Path::new("report.txt")).is_ok());
+        assert_eq!(
+            guard.validate(Path::new("report.pdf")).unwrap_err(),
+            PathGuardError::InvalidExtension
+        );
+    }
+
+    #[test]
+    fn denied_extensions_win_over_allowed_ones() {
+        let guard = PathGuard::new(PathGuardConfig::default().with_allowed_extensions(vec![
+            "exe".to_string(),
+        ]));
+        assert_eq!(
+            guard.validate(Path::new("payload.exe")).unwrap_err(),
+            PathGuardError::InvalidExtension
+        );
+    }
+
+    #[test]
+    fn a_path_without_extension_is_unaffected_by_the_extension_rules() {
+        let guard = PathGuard::new(
+            PathGuardConfig::default().with_allowed_extensions(vec!["txt".to_string()]),
+        );
+        assert!(guard.validate(Path::new("README")).is_ok());
+    }
+
+    #[test]
+    fn sanitize_filename_strips_traversal_and_reserved_names() {
+        // Slashes become underscores and dots are kept, so the result can never
+        // climb out of its directory even though it is not prettified.
+        let sanitized = sanitize_filename("../../etc/passwd");
+        assert!(!sanitized.contains('/'));
+        assert!(!sanitized.contains('\\'));
+        assert_eq!(sanitize_filename("NUL"), "_NUL");
+        // AUX is a reserved Windows device name, so it is prefixed.
+        assert_eq!(sanitize_filename("aux.tar.gz"), "_aux.tar.gz");
+        assert_eq!(sanitize_filename("report.tar.gz"), "report.tar.gz");
+        assert!(!sanitize_filename("a\u{0}b").contains('\u{0}'));
+    }
+}
