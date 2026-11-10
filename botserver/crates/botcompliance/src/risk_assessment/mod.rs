@@ -196,3 +196,7 @@ impl Default for RiskAssessmentService {
 mod service;
 
 mod matrix;
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;

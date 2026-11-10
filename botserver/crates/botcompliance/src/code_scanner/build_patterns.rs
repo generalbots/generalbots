@@ -269,7 +269,7 @@ impl CodeScanner {
         })
     }
 
-    async fn scan_file(&self, file_path: &Path) -> Result<Vec<CodeIssue>, Box<dyn std::error::Error + Send + Sync>> {
+    pub(super) async fn scan_file(&self, file_path: &Path) -> Result<Vec<CodeIssue>, Box<dyn std::error::Error + Send + Sync>> {
         let content = tokio::fs::read_to_string(file_path).await?;
         let mut issues = Vec::new();
 

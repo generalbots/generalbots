@@ -125,3 +125,11 @@ pub struct ComplianceReport {
 mod service;
 
 mod filter;
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "export_tests.rs"]
+mod export_tests;

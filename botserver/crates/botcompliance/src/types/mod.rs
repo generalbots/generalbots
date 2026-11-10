@@ -320,6 +320,10 @@ pub struct CreateTrainingRequest {
     pub certificate_url: Option<String>,
 }
 
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;
+
 mod err;
 mod compliance_status;
 mod severity;

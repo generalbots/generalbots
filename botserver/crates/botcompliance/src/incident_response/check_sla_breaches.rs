@@ -63,26 +63,39 @@ impl IncidentResponseService {
 
         filtered.sort_by_key(|a| std::cmp::Reverse(a.created_at));
 
-        let total = filtered.len() as u64;
-        let total_pages = ((total as f64) / (per_page as f64)).ceil() as u32;
-        let start = ((page - 1) * per_page) as usize;
-        let end = (start + per_page as usize).min(filtered.len());
+        // Pagination is caller controlled (query string), so both bounds are
+        // clamped: a page of 0 or a per_page of 0 used to underflow/divide by
+        // zero, and a page past the end used to slice `start..end` with
+        // start > end, panicking the handler.
+        let page = page.max(1);
+        let per_page = per_page.max(1);
 
-        let summaries: Vec<IncidentSummary> = filtered[start..end]
-            .iter()
-            .map(|i| IncidentSummary {
-                id: i.id,
-                incident_number: i.incident_number.clone(),
-                title: i.title.clone(),
-                severity: i.severity.as_str().to_string(),
-                status: i.status.as_str().to_string(),
-                category: i.category.as_str().to_string(),
-                assigned_to: i.assigned_to.clone(),
-                sla_breach: i.sla_breach,
-                response_due_at: i.response_due_at,
-                created_at: i.created_at,
-            })
-            .collect();
+        let total = filtered.len() as u64;
+        let total_pages = total.div_ceil(u64::from(per_page)) as u32;
+        let start = ((page - 1) as usize).saturating_mul(per_page as usize);
+        let end = start
+            .saturating_add(per_page as usize)
+            .min(filtered.len());
+
+        let summaries: Vec<IncidentSummary> = if start >= filtered.len() {
+            Vec::new()
+        } else {
+            filtered[start..end]
+                .iter()
+                .map(|i| IncidentSummary {
+                    id: i.id,
+                    incident_number: i.incident_number.clone(),
+                    title: i.title.clone(),
+                    severity: i.severity.as_str().to_string(),
+                    status: i.status.as_str().to_string(),
+                    category: i.category.as_str().to_string(),
+                    assigned_to: i.assigned_to.clone(),
+                    sla_breach: i.sla_breach,
+                    response_due_at: i.response_due_at,
+                    created_at: i.created_at,
+                })
+                .collect()
+        };
 
         IncidentListResponse {
             incidents: summaries,

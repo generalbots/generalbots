@@ -96,3 +96,7 @@ mod add_issue;
 mod build_patterns;
 mod scan_bots;
 mod to_html;
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;
