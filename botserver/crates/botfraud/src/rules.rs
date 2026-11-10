@@ -42,14 +42,21 @@ pub fn evaluate_rule(rule: &FraudRule, request: &FraudAssessmentRequest) -> bool
 
     match op {
         ">" => {
-            let threshold = cond.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            // A malformed threshold must not silently become 0.0: that turned
+            // `amount > "not-a-number"` into "any positive amount", firing a
+            // rule whose condition was never actually expressed.
+            let Some(threshold) = cond.get("value").and_then(|v| v.as_f64()) else {
+                return false;
+            };
             actual
                 .and_then(|v| v.as_f64())
                 .map(|v| v > threshold)
                 .unwrap_or(false)
         }
         "<" => {
-            let threshold = cond.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let Some(threshold) = cond.get("value").and_then(|v| v.as_f64()) else {
+                return false;
+            };
             actual
                 .and_then(|v| v.as_f64())
                 .map(|v| v < threshold)
@@ -104,4 +111,121 @@ struct RuleDbRow {
     is_active: bool,
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[cfg(test)]
+mod rule_evaluation_tests {
+    use super::*;
+    use crate::types::{FraudAssessmentRequest, FraudRule};
+    use chrono::Utc;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    fn rule(condition: serde_json::Value) -> FraudRule {
+        FraudRule {
+            id: Uuid::new_v4(),
+            branch_id: Uuid::nil(),
+            name: "test".to_string(),
+            description: None,
+            rule_type: "threshold".to_string(),
+            condition_json: condition,
+            action: "flag".to_string(),
+            severity: "high".to_string(),
+            is_active: true,
+            created_at: Utc::now(),
+        }
+    }
+
+    fn request(details: serde_json::Value) -> FraudAssessmentRequest {
+        FraudAssessmentRequest {
+            event_type: "payment".to_string(),
+            entity_type: "order".to_string(),
+            entity_id: Uuid::new_v4(),
+            details,
+            branch_id: None,
+        }
+    }
+
+    #[test]
+    fn numeric_comparisons_respect_the_threshold() {
+        let amount = request(json!({"amount": 500}));
+        assert!(evaluate_rule(&rule(json!({"field":"amount","op":">","value":100})), &amount));
+        assert!(!evaluate_rule(&rule(json!({"field":"amount","op":">","value":500})), &amount));
+        assert!(evaluate_rule(&rule(json!({"field":"amount","op":"<","value":1000})), &amount));
+        assert!(!evaluate_rule(&rule(json!({"field":"amount","op":"<","value":500})), &amount));
+    }
+
+    #[test]
+    fn equality_handles_strings_and_numbers() {
+        let details = request(json!({"country": "BR", "attempts": 3}));
+        assert!(evaluate_rule(&rule(json!({"field":"country","op":"==","value":"BR"})), &details));
+        assert!(!evaluate_rule(&rule(json!({"field":"country","op":"==","value":"US"})), &details));
+        assert!(evaluate_rule(&rule(json!({"field":"country","op":"!=","value":"US"})), &details));
+        assert!(evaluate_rule(&rule(json!({"field":"attempts","op":"==","value":3})), &details));
+    }
+
+    #[test]
+    fn membership_and_substring_operators_work() {
+        let details = request(json!({"country": "BR", "email": "a@fraud.example"}));
+        assert!(evaluate_rule(
+            &rule(json!({"field":"country","op":"in","value":["BR","AR"]})),
+            &details
+        ));
+        assert!(!evaluate_rule(
+            &rule(json!({"field":"country","op":"in","value":["US"]})),
+            &details
+        ));
+        assert!(evaluate_rule(
+            &rule(json!({"field":"email","op":"contains","value":"fraud"})),
+            &details
+        ));
+        assert!(!evaluate_rule(
+            &rule(json!({"field":"email","op":"contains","value":"trusted"})),
+            &details
+        ));
+    }
+
+    #[test]
+    fn a_missing_field_never_matches() {
+        let details = request(json!({"amount": 500}));
+        for condition in [
+            json!({"field":"nope","op":">","value":1}),
+            json!({"field":"nope","op":"<","value":1}),
+            json!({"field":"nope","op":"==","value":1}),
+            json!({"field":"nope","op":"!=","value":1}),
+            json!({"field":"nope","op":"in","value":[1]}),
+            json!({"field":"nope","op":"contains","value":"x"}),
+        ] {
+            assert!(
+                !evaluate_rule(&rule(condition.clone()), &details),
+                "{condition} must not match a missing field"
+            );
+        }
+    }
+
+    #[test]
+    fn a_malformed_condition_is_false_not_a_panic() {
+        let details = request(json!({"amount": 500}));
+        for condition in [
+            json!({"op": ">", "value": 1}),
+            json!({"field": "amount"}),
+            json!({"field": "amount", "op": "unknown-op", "value": 1}),
+            json!({"field": "amount", "op": ">", "value": "not-a-number"}),
+            json!({}),
+        ] {
+            assert!(
+                !evaluate_rule(&rule(condition.clone()), &details),
+                "{condition} must be false"
+            );
+        }
+    }
+
+    #[test]
+    fn a_string_field_is_not_compared_numerically() {
+        let details = request(json!({"amount": "500"}));
+        assert!(!evaluate_rule(
+            &rule(json!({"field":"amount","op":">","value":100})),
+            &details
+        ));
+    }
 }
