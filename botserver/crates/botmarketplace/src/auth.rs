@@ -320,15 +320,19 @@ mod tests {
     }
 
     #[test]
-    fn a_token_without_role_claims_fails_closed_without_a_database() {
+    fn a_token_without_role_claims_defers_to_the_server_side_resolver() {
         let payload = serde_json::json!({
             "sub": Uuid::new_v4().to_string(),
             "exp": in_an_hour(),
         });
         let signed = token(&payload, SECRET);
         let claims = verify_hs256_jwt(&signed, SECRET).expect("a correctly signed token");
+
         assert!(claims.roles.is_empty());
-        // No role claim and no reachable RBAC store: not an administrator.
-        assert!(!claims_are_admin(&claims, &offline_pool()));
+        // No role in the token: the answer must come from RBAC, never from the
+        // payload. A role-less token is therefore not an admin on its own.
+        assert_eq!(roles_decide_admin(&claims.roles), None);
+        assert!(!roles_decide_admin(&["user".to_string()]).unwrap_or(true));
+        assert!(roles_decide_admin(&["admin".to_string()]).unwrap_or(false));
     }
 }

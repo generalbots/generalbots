@@ -93,11 +93,11 @@ mod tests {
     use axum::http::Request;
 
     fn parts() -> Parts {
-        let (parts, _) = Request::builder()
+        let request = Request::builder()
             .uri("/api/ui/paper/list")
             .body(())
             .expect("request");
-        parts
+        request.into_parts().0
     }
 
     #[tokio::test]

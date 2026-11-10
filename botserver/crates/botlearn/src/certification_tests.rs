@@ -26,7 +26,7 @@ fn issued_certificate_has_the_gbo_shape_and_three_year_validity() {
     assert_eq!(parts.len(), 4, "code must be GBO-<a>-<b>-<stamp>");
     assert_eq!(parts[0], "GBO");
     assert_eq!(parts[1].len(), 8, "first UUID segment");
-    assert_eq!(parts[2], 8, "user id segment");
+    assert_eq!(parts[2].len(), 8, "user id segment");
     assert_eq!(parts[3].len(), 14, "YYYYMMDDHHMMSS stamp");
     assert!(parts[3].chars().all(|c| c.is_ascii_digit()));
 
