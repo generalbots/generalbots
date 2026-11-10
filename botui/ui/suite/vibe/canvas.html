@@ -27,28 +27,28 @@
       // CANVAS · <span id="vibeCanvasProjectLabel" style="color: var(--text);">project</span>
       <span style="color:var(--text-muted); margin-left:8px;" id="vibeCanvasDrawFile">project.draw</span>
       <div style="float: right; display: flex; align-items: center; gap: 8px;">
-        <span id="vibeCanvasSaveState" class="vibe-canvas-save-state">Ready</span>
+        <span id="vibeCanvasSaveState" class="vibe-canvas-save-state" data-i18n="vibe-canvas-ready">Ready</span>
         <button data-vibe-zoom="-1" type="button" style="border:1px solid var(--border); background: var(--bg); border-radius:4px; padding:2px 9px; cursor:pointer;">-</button>
         <span data-vibe-zoom-label style="font-size:11px; color: var(--text);">100%</span>
         <button data-vibe-zoom="1" type="button" style="border:1px solid var(--border); background: var(--bg); border-radius:4px; padding:2px 9px; cursor:pointer;">+</button>
       </div>
     </div>
 
-    <div id="vibeCanvasToolbar" class="vibe-canvas-toolbar" role="toolbar" aria-label="Canvas tools">
-      <button type="button" data-vibe-tool="select" class="active" title="Select and move elements">Select</button>
-      <button type="button" data-vibe-tool="rectangle" title="Draw a rectangle">Rectangle</button>
-      <button type="button" data-vibe-tool="text" title="Add text">Text</button>
-      <button type="button" data-vibe-tool="connector" title="Draw a connector">Connector</button>
+    <div id="vibeCanvasToolbar" class="vibe-canvas-toolbar" role="toolbar" aria-label="Canvas tools" data-i18n-aria-label="vibe-canvas-tools">
+      <button type="button" data-vibe-tool="select" class="active" title="Select and move elements" data-i18n-title="vibe-canvas-tool-select-hint" data-i18n="vibe-canvas-tool-select">Select</button>
+      <button type="button" data-vibe-tool="rectangle" title="Draw a rectangle" data-i18n-title="vibe-canvas-tool-rectangle-hint" data-i18n="vibe-canvas-tool-rectangle">Rectangle</button>
+      <button type="button" data-vibe-tool="text" title="Add text" data-i18n-title="vibe-canvas-tool-text-hint" data-i18n="vibe-canvas-tool-text">Text</button>
+      <button type="button" data-vibe-tool="connector" title="Draw a connector" data-i18n-title="vibe-canvas-tool-connector-hint" data-i18n="vibe-canvas-tool-connector">Connector</button>
       <span class="vibe-toolbar-separator"></span>
-      <button type="button" data-vibe-zoom-reset title="Reset zoom">Fit 100%</button>
-      <button type="button" data-vibe-canvas-clear title="Clear design elements">Clear</button>
+      <button type="button" data-vibe-zoom-reset title="Reset zoom" data-i18n-title="vibe-canvas-zoom-reset-hint" data-i18n="vibe-canvas-zoom-reset">Fit 100%</button>
+      <button type="button" data-vibe-canvas-clear title="Clear design elements" data-i18n-title="vibe-canvas-clear-hint" data-i18n="vibe-canvas-clear">Clear</button>
       <span class="vibe-toolbar-separator"></span>
-      <button type="button" id="vibeCanvasLlmBtn" title="Generate the architecture with the bot LLM (tokenrouter) and save to project.draw">✦ Generate (LLM)</button>
+      <button type="button" id="vibeCanvasLlmBtn" title="Generate the architecture with the bot LLM (tokenrouter) and save to project.draw" data-i18n-title="vibe-canvas-generate-hint" data-i18n="vibe-canvas-generate">✦ Generate (LLM)</button>
     </div>
 
     <!-- Persistent design layer: generated architecture baseline + drawable surface -->
-    <div id="vibeGeneratedLayer" class="vibe-generated-layer" aria-label="Generated project design"></div>
-    <div id="vibeDesignSurface" class="vibe-design-surface active" aria-label="Visual design canvas">
+    <div id="vibeGeneratedLayer" class="vibe-generated-layer" aria-label="Generated project design" data-i18n-aria-label="vibe-canvas-generated-layer"></div>
+    <div id="vibeDesignSurface" class="vibe-design-surface active" aria-label="Visual design canvas" data-i18n-aria-label="vibe-canvas-design-surface">
       <svg id="vibeDesignConnectors" class="vibe-design-connectors" aria-hidden="true"></svg>
       <div id="vibeDesignElements" class="vibe-design-elements"></div>
     </div>

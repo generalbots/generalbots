@@ -1,5 +1,11 @@
 /* Editor app — module 2/3: auth fetch, save and CSV mode (split from editor-inline-panels.js for #1731) */
 
+    // #2093 — translated text with an authored English fallback so a missing
+    // catalogue entry never leaks a raw key into the editor UI.
+    function t(key, fallback, params) {
+        return window.gbT ? window.gbT(key, fallback, params) : fallback;
+    }
+
         // Add auth token to HTMX requests
         var gbToken = localStorage.getItem('gb-access-token') || '';
         if (gbToken && window.htmx) {
@@ -180,7 +186,7 @@
             var thead = table.querySelector('thead');
             if (thead) {
                 var th = document.createElement('th');
-                th.textContent = 'Column ' + (thead.querySelectorAll('th').length);
+                th.textContent = t('editor-column-number', 'Column ' + thead.querySelectorAll('th').length, { number: thead.querySelectorAll('th').length });
                 thead.appendChild(th);
             }
             var rows = table.querySelectorAll('tbody tr');

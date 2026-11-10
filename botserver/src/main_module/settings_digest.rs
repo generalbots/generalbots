@@ -192,7 +192,7 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
     let mut sent = 0usize;
 
     for user in users {
-        let (previous_status, body, recipient) = {
+        let (previous_status, body, recipient, locale) = {
             let mut conn = state
                 .conn
                 .get()
@@ -215,15 +215,20 @@ fn run_due(state: &Arc<AppState>) -> Result<usize, String> {
             // address.
             let recipient = notification_recipient(&mut conn, &user.id.to_string())
                 .unwrap_or_else(|| user.email.clone());
+            // #2094 — the subject follows the recipient's own language, never
+            // the process locale.
+            let locale = botcore::i18n::locale_for_user(&mut conn, user.id);
             (
                 previous_status,
                 build_digest_body(&user.username, since, now, &timezone, summary),
                 recipient,
+                locale,
             )
         };
 
+        let subject = botcore::i18n::t(&locale, "notification-digest-subject");
         let delivery = match sender.as_ref() {
-            Some(sender) => sender.send(&recipient, "Your General Bots weekly digest", &body),
+            Some(sender) => sender.send(&recipient, &subject, &body),
             None => Err(
                 "No platform notification sender is configured (set MAIL_* or the \
                  workspace mailbox); the digest cannot be delivered"

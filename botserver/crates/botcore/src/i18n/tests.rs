@@ -93,3 +93,147 @@
         let locales = available_locales();
         assert!(!locales.is_empty());
     }
+
+    #[test]
+    fn test_parse_accept_language_drops_zero_quality() {
+        // `q=0` means "not acceptable": the language must not be negotiated.
+        let result = parse_accept_language("pt-BR;q=0, en;q=0.5");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "en");
+    }
+
+    #[test]
+    fn test_parse_accept_language_malformed_header() {
+        // Junk quality values fall back to 1.0 and never panic.
+        let result = parse_accept_language("pt-BR;q=abc");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "pt-BR");
+        assert!((result[0].1 - 1.0).abs() < f32::EPSILON);
+
+        let empty = parse_accept_language("");
+        assert!(empty.is_empty());
+    }
+
+    fn headers(pairs: &[(&str, &str)]) -> axum::http::HeaderMap {
+        let mut map = axum::http::HeaderMap::new();
+        for (name, value) in pairs {
+            if let (Ok(name), Ok(value)) = (
+                axum::http::HeaderName::from_bytes(name.as_bytes()),
+                axum::http::HeaderValue::from_str(value),
+            ) {
+                map.insert(name, value);
+            }
+        }
+        map
+    }
+
+    #[test]
+    fn test_locale_from_headers_explicit_header_wins() {
+        let map = headers(&[
+            ("x-locale", "pt-BR"),
+            ("accept-language", "en-US,en;q=0.9"),
+        ]);
+        assert_eq!(locale_from_headers(&map).to_string(), "pt-BR");
+    }
+
+    #[test]
+    fn test_locale_from_headers_accept_language() {
+        let map = headers(&[("accept-language", "pt-BR,pt;q=0.9,en;q=0.8")]);
+        assert_eq!(locale_from_headers(&map).to_string(), "pt-BR");
+
+        let language_only = headers(&[("accept-language", "pt-PT")]);
+        assert_eq!(locale_from_headers(&language_only).language(), "pt");
+
+        let english = headers(&[("accept-language", "en-US")]);
+        assert_eq!(locale_from_headers(&english).language(), "en");
+    }
+
+    #[test]
+    fn test_locale_from_headers_fallbacks() {
+        // Unsupported explicit locale is ignored in favour of Accept-Language.
+        let unsupported = headers(&[("x-locale", "sv"), ("accept-language", "es")]);
+        assert_eq!(locale_from_headers(&unsupported).language(), "es");
+
+        // No headers at all resolves to the default locale.
+        assert_eq!(locale_from_headers(&headers(&[])).language(), "en");
+
+        // A malformed Accept-Language header still resolves to a locale.
+        let malformed = headers(&[("accept-language", ";;;q=")]);
+        assert_eq!(locale_from_headers(&malformed).language(), "en");
+    }
+
+    #[test]
+    fn test_error_body_is_backward_compatible() {
+        let locale = Locale::default();
+        let body = error_body(&locale, "error-http-404");
+        assert_eq!(body["code"], "error-http-404");
+        // Legacy clients read `error` as a string.
+        assert!(body["error"].is_string());
+        assert_eq!(body["message"], body["error"]);
+    }
+
+    #[test]
+    fn test_localized_error_body_with_details() {
+        let locale = Locale::default();
+        let body = LocalizedError::internal(&locale)
+            .with_details(serde_json::json!({ "trace_id": "abc" }))
+            .body();
+        assert_eq!(body["code"], "error-http-500");
+        assert_eq!(body["details"]["trace_id"], "abc");
+    }
+
+    #[test]
+    fn test_error_contract_codes_are_localized() {
+        // The catalogue is embedded, so initializing with any path loads the
+        // shipped .ftl files. A second call in the same process is expected to
+        // fail (OnceCell) and is ignored.
+        let _ = init_i18n("locales");
+
+        let en = Locale::new("en").expect("en locale");
+        let pt = Locale::new("pt-BR").expect("pt-BR locale");
+
+        let plain = [
+            ("error-http-400", 400),
+            ("error-http-401", 401),
+            ("error-http-403", 403),
+            ("error-http-500", 500),
+        ];
+
+        for (code, status) in plain {
+            let english = error_body(&en, code);
+            let portuguese = error_body(&pt, code);
+
+            assert_eq!(english["code"], code, "stable code for {status}");
+            assert_eq!(portuguese["code"], code, "stable code for {status}");
+            assert!(
+                english["message"].as_str().is_some_and(|m| !m.is_empty()),
+                "localized message for {status}"
+            );
+            assert_ne!(english["message"], format!("[{code}]"));
+            assert_ne!(portuguese["message"], format!("[{code}]"));
+            assert_ne!(
+                english["message"], portuguese["message"],
+                "pt-BR differs from en for {code}"
+            );
+        }
+
+        let mut args = MessageArgs::new();
+        args.insert("entity".to_string(), "Bot".to_string());
+        let not_found = error_body_with_args(&pt, "error-http-404", &args);
+        assert_eq!(not_found["code"], "error-http-404");
+        assert!(not_found["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("Bot")));
+
+        let mut conflict_args = MessageArgs::new();
+        conflict_args.insert("message".to_string(), "duplicate key".to_string());
+        let conflict = error_body_with_args(&en, "error-http-409", &conflict_args);
+        assert!(conflict["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("duplicate key")));
+
+        let mut rate_args = MessageArgs::new();
+        rate_args.insert("seconds".to_string(), "30".to_string());
+        let rate = error_body_with_args(&en, "error-http-429", &rate_args);
+        assert!(rate["message"].as_str().is_some_and(|m| m.contains("30")));
+    }

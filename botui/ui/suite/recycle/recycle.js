@@ -5,17 +5,22 @@
 (function () {
   if (window.GBRecycle) return;
 
+  function t(key, fallback) {
+    return window.gbT ? window.gbT(key, fallback) : fallback;
+  }
+
   function load() {
     const list = document.getElementById("recycleList");
     if (!list) return;
-    list.innerHTML = '<div class="recycle-empty">Loading…</div>';
+    list.innerHTML = '<div class="recycle-empty">' + escapeHtml(t("label-loading", "Loading…")) + "</div>";
     fetch("/api/files/trash?scope=user&_=" + Date.now())
       .then(function (r) { return r.json(); })
       .then(function (items) {
         if (!items || !items.length) {
-          list.innerHTML = '<div class="recycle-empty">Trash is empty. 🎉</div>';
+          list.innerHTML = '<div class="recycle-empty">' + escapeHtml(t("recycle-empty-state", "Trash is empty. 🎉")) + "</div>";
           return;
         }
+        const deletedPrefix = t("recycle-deleted-at", "Deleted");
         list.innerHTML = items
           .map(function (item) {
             const name = item.original_path ? item.original_path.split("/").pop() || item.path : item.path;
@@ -23,8 +28,8 @@
               '<div class="recycle-item">' +
               '<span class="recycle-icon">🗑</span>' +
               '<span class="recycle-name" title="' + escapeAttr(item.original_path || item.path) + '">' + escapeHtml(name) + "</span>" +
-              '<span class="recycle-time">' + (item.deleted_at ? "Deleted " + escapeHtml(item.deleted_at) : "") + "</span>" +
-              '<button class="recycle-restore" data-id="' + escapeAttr(item.id) + '">↩ Restore</button>' +
+              '<span class="recycle-time">' + (item.deleted_at ? escapeHtml(deletedPrefix + " " + item.deleted_at) : "") + "</span>" +
+              '<button class="recycle-restore" data-id="' + escapeAttr(item.id) + '">↩ ' + escapeHtml(t("recycle-restore", "Restore")) + "</button>" +
               "</div>"
             );
           })
@@ -36,8 +41,12 @@
         });
       })
       .catch(function () {
-        list.innerHTML = '<div class="recycle-empty">Could not load trash.</div>';
+        list.innerHTML = '<div class="recycle-empty">' + escapeHtml(t("recycle-load-failed", "Could not load trash.")) + "</div>";
       });
+  }
+
+  function toast(bodyKey, fallback, kind) {
+    if (window.GBToasts) window.GBToasts.show(t("recycle-title", "Recycle Bin"), t(bodyKey, fallback), kind);
   }
 
   function restore(id) {
@@ -48,16 +57,17 @@
     })
       .then(function (r) { return r.json(); })
       .then(function () {
-        if (window.GBToasts) window.GBToasts.show("Recycle Bin", "File restored.", "success");
+        toast("recycle-restored", "File restored.", "success");
         load();
       })
       .catch(function () {
-        if (window.GBToasts) window.GBToasts.show("Recycle Bin", "Restore failed.", "error");
+        toast("recycle-restore-failed", "Restore failed.", "error");
       });
   }
 
   function empty() {
-    if (!(window.GBModal||{confirm:confirm}).confirm("Permanently delete all items in the Recycle Bin?")) return;
+    const question = t("recycle-empty-confirm", "Permanently delete all items in the Recycle Bin?");
+    if (!(window.GBModal || { confirm: confirm }).confirm(question)) return;
     fetch("/api/files/trash/empty", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,11 +75,11 @@
     })
       .then(function (r) { return r.json(); })
       .then(function () {
-        if (window.GBToasts) window.GBToasts.show("Recycle Bin", "Trash emptied.", "success");
+        toast("recycle-emptied", "Trash emptied.", "success");
         load();
       })
       .catch(function () {
-        if (window.GBToasts) window.GBToasts.show("Recycle Bin", "Empty failed.", "error");
+        toast("recycle-empty-failed", "Empty failed.", "error");
       });
   }
 
@@ -93,6 +103,8 @@
     if (refresh) refresh.addEventListener("click", load);
     load();
   });
+
+  window.addEventListener("localeChanged", load);
 
   window.GBRecycle = { load: load, restore: restore, empty: empty };
 })();

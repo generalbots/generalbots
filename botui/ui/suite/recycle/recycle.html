@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Recycle Bin</title>
+    <title data-i18n="recycle-title">Recycle Bin</title>
     <link rel="stylesheet" href="/suite/recycle/recycle.css" />
+    <script src="/suite/js/i18n.js"></script>
 </head>
 <body>
     <div class="gb-recycle" id="gb-recycle">
         <div class="recycle-toolbar">
-            <h2>Recycle Bin</h2>
-            <button class="recycle-empty-btn" id="recycleEmpty">🗑 Empty Trash</button>
-            <button class="recycle-refresh" id="recycleRefresh">↻ Refresh</button>
+            <h2 data-i18n="recycle-title">Recycle Bin</h2>
+            <button class="recycle-empty-btn" id="recycleEmpty" data-i18n="recycle-empty-trash">🗑 Empty Trash</button>
+            <button class="recycle-refresh" id="recycleRefresh" data-i18n="recycle-refresh">↻ Refresh</button>
         </div>
         <div class="recycle-list" id="recycleList">
-            <div class="recycle-empty">Loading…</div>
+            <div class="recycle-empty" data-i18n="label-loading">Loading…</div>
         </div>
     </div>
     <script src="/suite/recycle/recycle.js"></script>

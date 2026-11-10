@@ -1,6 +1,14 @@
 /* Admin modals — billing admin and operations dashboard */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
   var showModal = A.showModal;
   var hideModal = A.hideModal;
@@ -10,7 +18,7 @@
 // =============================================================================
 
 function downloadInvoice(invoiceId) {
-  showNotification("Exporting invoices...", "info");
+  showNotification(t("admin-notify-exporting-invoices", "Exporting invoices..."), "info");
 
   fetch("/api/ui/billing/invoices/export")
     .then((response) => {
@@ -26,10 +34,10 @@ function downloadInvoice(invoiceId) {
       link.download = "invoices-export.csv";
       link.click();
       URL.revokeObjectURL(url);
-      showNotification("Invoices exported", "success");
+      showNotification(t("admin-notify-invoices-exported", "Invoices exported"), "success");
     })
     .catch((err) =>
-      showNotification("Failed to download: " + err.message, "error"),
+      showNotification(t("admin-notify-failed-to-download-reason", "Failed to download: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -55,7 +63,7 @@ function viewEvidence(evidenceId) {
         content.innerHTML = html;
       })
       .catch((err) =>
-        showNotification("Failed to load evidence: " + err.message, "error"),
+        showNotification(t("admin-notify-failed-to-load-evidence-reason", "Failed to load evidence: {reason}", { reason: err.message }), "error"),
       );
   }
 }
@@ -151,7 +159,7 @@ function showTraceDetail(traceId) {
       }
     })
     .catch((err) =>
-      showNotification("Failed to load trace: " + err.message, "error"),
+      showNotification(t("admin-notify-failed-to-load-trace-reason", "Failed to load trace: {reason}", { reason: err.message }), "error"),
     );
 }
 

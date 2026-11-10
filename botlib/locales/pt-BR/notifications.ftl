@@ -125,3 +125,5 @@ notification-filter-mentions = Menções
 notification-filter-tasks = Tarefas
 notification-filter-messages = Mensagens
 notification-filter-system = Sistema
+
+notification-digest-subject = Seu resumo semanal do General Bots

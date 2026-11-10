@@ -72,8 +72,9 @@
   // Handle HTMX events for loading states
   document.body.addEventListener("htmx:beforeRequest", function (evt) {
     if (evt.target.id === "monitoring-content") {
+      const label = window.gbT ? window.gbT("monitoring-loading-data", "Loading monitoring data...") : "Loading monitoring data...";
       evt.target.innerHTML =
-        '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+        '<div class="loading-state"><div class="spinner"></div><p>' + label + "</p></div>";
     }
   });
 

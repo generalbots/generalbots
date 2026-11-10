@@ -1,6 +1,14 @@
 /* Admin modals — compliance dashboard and groups */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
   var showModal = A.showModal;
   var hideModal = A.hideModal;
@@ -23,7 +31,7 @@ function updateFramework(framework) {
 function generateComplianceReport() {
   const framework =
     document.getElementById("complianceFramework")?.value || "soc2";
-  showNotification("Generating compliance report...", "info");
+  showNotification(t("admin-notify-generating-compliance-report", "Generating compliance report..."), "info");
 
   fetch(`/api/compliance/report?framework=${framework}`)
     .then((response) => {
@@ -37,10 +45,10 @@ function generateComplianceReport() {
       a.download = `compliance-report-${framework}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification("Report generated", "success");
+      showNotification(t("admin-notify-report-generated", "Report generated"), "success");
     })
     .catch((err) =>
-      showNotification("Report failed: " + err.message, "error"),
+      showNotification(t("admin-notify-report-failed-reason", "Report failed: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -65,7 +73,7 @@ function uploadEvidence() {
   const category = document.getElementById("evidence-category")?.value;
 
   if (!fileInput?.files?.length) {
-    showNotification("Please select a file", "error");
+    showNotification(t("admin-notify-please-select-a-file", "Please select a file"), "error");
     return;
   }
 
@@ -80,13 +88,13 @@ function uploadEvidence() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Evidence uploaded", "success");
+        showNotification(t("admin-notify-evidence-uploaded", "Evidence uploaded"), "success");
         closeEvidenceUpload();
       } else {
-        showNotification("Upload failed: " + data.error, "error");
+        showNotification(t("admin-notify-upload-failed-reason", "Upload failed: {reason}", { reason: data.error }), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function filterLogs() {
@@ -103,7 +111,7 @@ function filterLogs() {
 
 function exportAuditLog() {
   const category = document.getElementById("logCategory")?.value || "all";
-  showNotification("Exporting audit log...", "info");
+  showNotification(t("admin-notify-exporting-audit-log", "Exporting audit log..."), "info");
 
   fetch(`/api/compliance/export?category=${category}`)
     .then((response) => {
@@ -117,10 +125,10 @@ function exportAuditLog() {
       a.download = "audit-log.csv";
       a.click();
       URL.revokeObjectURL(url);
-      showNotification("Audit log exported", "success");
+      showNotification(t("admin-notify-audit-log-exported", "Audit log exported"), "success");
     })
     .catch((err) =>
-      showNotification("Export failed: " + err.message, "error"),
+      showNotification(t("admin-notify-export-failed-reason", "Export failed: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -163,7 +171,7 @@ function saveGroup() {
   const description = document.getElementById("group-description")?.value;
 
   if (!name) {
-    showNotification("Please enter a group name", "error");
+    showNotification(t("admin-notify-please-enter-a-group-name", "Please enter a group name"), "error");
     return;
   }
 
@@ -179,7 +187,7 @@ function saveGroup() {
   })
     .then((response) => {
       if (response.ok) {
-        showNotification("Group created", "success");
+        showNotification(t("admin-notify-group-created", "Group created"), "success");
         closeCreateGroup();
         location.reload();
       } else {
@@ -188,24 +196,24 @@ function saveGroup() {
         });
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function deleteGroup(groupId) {
-  if (!confirm("Delete this group? This action cannot be undone.")) return;
+  if (!confirm(t("admin-notify-delete-group-confirm", "Delete this group? This action cannot be undone."))) return;
 
   fetch(`/api/directory/groups/${groupId}/delete`, { method: "DELETE" })
     .then((response) => response.json())
     .then((data) => {
       if (data.ok || data.success) {
-        showNotification("Group deleted", "success");
+        showNotification(t("admin-notify-group-deleted", "Group deleted"), "success");
         closeDetailPanel();
         location.reload();
       } else {
-        showNotification("Failed to delete group", "error");
+        showNotification(t("admin-notify-failed-to-delete-group", "Failed to delete group"), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================

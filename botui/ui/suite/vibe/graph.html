@@ -6,7 +6,7 @@
 <div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-graph" style="height:100%">
   <div id="vibeGraphPanel" style="display:flex; position:absolute; inset:0; z-index:5; flex-direction:column; border:none; border-radius:0; background:var(--surface,#fff);">
     <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border,#333); font-size:12px; font-weight:700; color:var(--text,#eee);">
-      <span>KNOWLEDGE GRAPH · <span id="vibeGraphUseCaseLabel">software_development</span></span>
+      <span data-i18n="vibe-graph-title">KNOWLEDGE GRAPH</span> · <span id="vibeGraphUseCaseLabel">software_development</span>
       <span>
         <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background:transparent; border:1px solid var(--border,#333); color:var(--text,#eee); border-radius:4px; padding:1px 8px; cursor:pointer; margin-right:6px;">⟳</button>
       </span>
@@ -24,22 +24,22 @@
            works from. -->
       <div id="vibeGraphContext" style="width:290px; min-width:290px; border-left:1px solid var(--border,#333); overflow-y:auto; padding:10px 12px; font-size:11px; color:var(--text,#eee); display:flex; flex-direction:column; gap:12px;">
         <div>
-          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">User asks</div>
-          <div id="vibeGraphAsks"><div style="opacity:.6">Loading asks…</div></div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;" data-i18n="vibe-graph-user-asks">User asks</div>
+          <div id="vibeGraphAsks"><div style="opacity:.6" data-i18n="vibe-graph-loading-asks">Loading asks…</div></div>
         </div>
         <div>
-          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">TODO plan</div>
-          <div id="vibeGraphTodos"><div style="opacity:.6">Loading plan…</div></div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;" data-i18n="vibe-graph-todo-plan">TODO plan</div>
+          <div id="vibeGraphTodos"><div style="opacity:.6" data-i18n="vibe-graph-loading-plan">Loading plan…</div></div>
         </div>
         <div>
-          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">AGENTS.md directives</div>
-          <div id="vibeGraphDirectives"><div style="opacity:.6">Loading directives…</div></div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;" data-i18n="vibe-graph-directives">AGENTS.md directives</div>
+          <div id="vibeGraphDirectives"><div style="opacity:.6" data-i18n="vibe-graph-loading-directives">Loading directives…</div></div>
         </div>
       </div>
     </div>
     <div id="vibeCapabilities" style="max-height:72px; overflow-y:auto; border-top:1px solid var(--border,#333); padding:8px 12px; font-size:11px; color:var(--text-muted,#aaa);"></div>
   </div>
-  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading graph…</span></div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="vibe-graph-loading">Loading graph…</span></div>
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>

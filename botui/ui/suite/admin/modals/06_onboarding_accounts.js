@@ -1,6 +1,14 @@
 /* Admin modals — onboarding and accounts list */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
   var showModal = A.showModal;
   var showNotification = A.showNotification;
@@ -53,7 +61,7 @@ function updateStepIndicators() {
 }
 
 function skipPayment() {
-  showNotification("Skipping payment setup - Free plan selected", "info");
+  showNotification(t("admin-notify-skipping-payment-setup-free-plan-selected", "Skipping payment setup - Free plan selected"), "info");
   nextStep(4);
 }
 
@@ -68,7 +76,7 @@ function removeLogo() {
   if (logoInput) {
     logoInput.value = "";
   }
-  showNotification("Logo removed", "success");
+  showNotification(t("admin-notify-logo-removed", "Logo removed"), "success");
 }
 
 function previewLogo(input) {
@@ -107,7 +115,7 @@ function editAccount(accountId) {
       }
     })
     .catch((err) =>
-      showNotification("Failed to load account: " + err.message, "error"),
+      showNotification(t("admin-notify-failed-to-load-account-reason", "Failed to load account: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -118,15 +126,13 @@ function syncAccount(accountId) {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Account sync started", "success");
+        showNotification(t("admin-notify-account-sync-started", "Account sync started"), "success");
       } else {
-        showNotification(
-          "Sync failed: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-sync-failed-reason", "Sync failed: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Sync error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-sync-error-reason", "Sync error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================

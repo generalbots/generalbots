@@ -1,6 +1,14 @@
 /* Admin modals — modal helpers and accounts */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
 
 
@@ -63,11 +71,11 @@ function testSmtpConnection() {
   const username = document.getElementById("smtp-username")?.value;
 
   if (!host || !port) {
-    showNotification("Please fill in SMTP host and port", "error");
+    showNotification(t("admin-notify-please-fill-in-smtp-host-and-port", "Please fill in SMTP host and port"), "error");
     return;
   }
 
-  showNotification("Testing SMTP connection...", "info");
+  showNotification(t("admin-notify-testing-smtp-connection", "Testing SMTP connection..."), "info");
 
   fetch("/api/settings/smtp/test", {
     method: "POST",
@@ -77,16 +85,14 @@ function testSmtpConnection() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("SMTP connection successful!", "success");
+        showNotification(t("admin-notify-smtp-connection-successful", "SMTP connection successful!"), "success");
       } else {
-        showNotification(
-          "SMTP connection failed: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-smtp-connection-failed-reason", "SMTP connection failed: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
     .catch((err) => {
-      showNotification("Connection test failed: " + err.message, "error");
+      showNotification(t("admin-notify-connection-test-failed-reason", "Connection test failed: {reason}", { reason: err.message }), "error");
     });
 }
 
@@ -106,10 +112,10 @@ function disconnectAccount(provider) {
         showNotification(`${provider} disconnected`, "success");
         location.reload();
       } else {
-        showNotification("Failed to disconnect: " + data.error, "error");
+        showNotification(t("admin-notify-failed-to-disconnect-reason", "Failed to disconnect: {reason}", { reason: data.error }), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================

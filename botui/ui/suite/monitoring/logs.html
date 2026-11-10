@@ -6,18 +6,18 @@
     <div class="logs-header">
         <div class="header-filters">
             <div class="filter-group">
-                <label for="log-level-filter">Level</label>
+                <label for="log-level-filter" data-i18n="monitoring-logs-level">Log Level</label>
                 <select id="log-level-filter" onchange="applyLogFilters()">
-                    <option value="all">All Levels</option>
-                    <option value="debug">Debug</option>
-                    <option value="info">Info</option>
-                    <option value="warn">Warning</option>
-                    <option value="error">Error</option>
-                    <option value="fatal">Fatal</option>
+                    <option value="all" data-i18n="monitoring-logs-all">All Levels</option>
+                    <option value="debug" data-i18n="monitoring-logs-debug">Debug</option>
+                    <option value="info" data-i18n="monitoring-logs-info">Info</option>
+                    <option value="warn" data-i18n="monitoring-logs-warning">Warning</option>
+                    <option value="error" data-i18n="monitoring-logs-error">Error</option>
+                    <option value="fatal" data-i18n="monitoring-logs-fatal">Fatal</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label for="service-filter">Service</label>
+                <label for="service-filter" data-i18n="monitoring-logs-service">Service</label>
                 <select
                     id="service-filter"
                     onchange="applyLogFilters()"
@@ -25,11 +25,11 @@
                     hx-trigger="load"
                     hx-swap="innerHTML"
                 >
-                    <option value="all">All Services</option>
+                    <option value="all" data-i18n="monitoring-logs-all-services">All Services</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label for="search-filter">Search</label>
+                <label for="search-filter" data-i18n="monitoring-logs-search-label">Search</label>
                 <div class="search-input">
                     <svg
                         width="14"
@@ -45,19 +45,19 @@
                     <input
                         type="text"
                         id="search-filter"
-                        placeholder="Search logs..."
+                        placeholder="Search logs..." data-i18n-placeholder="monitoring-logs-search-placeholder"
                         onkeyup="debounceLogSearch(this.value)"
                     />
                 </div>
             </div>
             <div class="filter-group">
-                <label for="time-filter">Time Range</label>
+                <label for="time-filter" data-i18n="monitoring-logs-time-range">Time Range</label>
                 <select id="time-filter" onchange="applyLogFilters()">
-                    <option value="live">Live</option>
-                    <option value="15m">Last 15 minutes</option>
-                    <option value="1h">Last 1 hour</option>
-                    <option value="6h">Last 6 hours</option>
-                    <option value="24h">Last 24 hours</option>
+                    <option value="live" data-i18n="monitoring-logs-live">Live</option>
+                    <option value="15m" data-i18n="monitoring-range-15m">Last 15 minutes</option>
+                    <option value="1h" data-i18n="monitoring-range-1h">Last 1 hour</option>
+                    <option value="6h" data-i18n="monitoring-range-6h">Last 6 hours</option>
+                    <option value="24h" data-i18n="monitoring-range-24h">Last 24 hours</option>
                 </select>
             </div>
         </div>
@@ -78,7 +78,7 @@
                     <rect x="6" y="4" width="4" height="16"></rect>
                     <rect x="14" y="4" width="4" height="16"></rect>
                 </svg>
-                <span>Pause</span>
+                <span data-i18n="monitoring-logs-pause">Pause</span>
             </button>
             <button class="action-btn secondary" onclick="clearLogs()">
                 <svg
@@ -94,7 +94,7 @@
                         d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                     ></path>
                 </svg>
-                Clear
+                <span data-i18n="monitoring-logs-clear">Clear</span>
             </button>
             <button class="action-btn secondary" onclick="downloadLogs()">
                 <svg
@@ -109,7 +109,7 @@
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Download
+                <span data-i18n="monitoring-logs-download">Download</span>
             </button>
         </div>
     </div>
@@ -118,37 +118,37 @@
     <div class="log-stats">
         <div class="stat-item" data-level="debug">
             <span class="stat-dot debug"></span>
-            <span class="stat-label">Debug</span>
+            <span class="stat-label" data-i18n="monitoring-logs-debug">Debug</span>
             <span class="stat-count" id="debug-count">0</span>
         </div>
         <div class="stat-item" data-level="info">
             <span class="stat-dot info"></span>
-            <span class="stat-label">Info</span>
+            <span class="stat-label" data-i18n="monitoring-logs-info">Info</span>
             <span class="stat-count" id="info-count">0</span>
         </div>
         <div class="stat-item" data-level="warn">
             <span class="stat-dot warn"></span>
-            <span class="stat-label">Warning</span>
+            <span class="stat-label" data-i18n="monitoring-logs-warning">Warning</span>
             <span class="stat-count" id="warn-count">0</span>
         </div>
         <div class="stat-item" data-level="error">
             <span class="stat-dot error"></span>
-            <span class="stat-label">Error</span>
+            <span class="stat-label" data-i18n="monitoring-logs-error">Error</span>
             <span class="stat-count" id="error-count">0</span>
         </div>
         <div class="stat-item" data-level="fatal">
             <span class="stat-dot fatal"></span>
-            <span class="stat-label">Fatal</span>
+            <span class="stat-label" data-i18n="monitoring-logs-fatal">Fatal</span>
             <span class="stat-count" id="fatal-count">0</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat-item total">
-            <span class="stat-label">Total</span>
+            <span class="stat-label" data-i18n="monitoring-logs-total">Total</span>
             <span class="stat-count" id="total-count">0</span>
         </div>
         <div class="connection-status" id="connection-status">
             <span class="status-dot"></span>
-            <span class="status-text">Connecting...</span>
+            <span class="status-text" data-i18n="terminal-connecting">Connecting...</span>
         </div>
     </div>
 
@@ -173,9 +173,9 @@
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                     <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
-                <p>Waiting for logs...</p>
+                <p data-i18n="monitoring-logs-waiting">Waiting for logs...</p>
                 <span class="placeholder-hint"
-                    >Logs will appear here in real-time</span
+                     data-i18n="monitoring-logs-placeholder-hint">Logs will appear here in real-time</span
                 >
             </div>
         </div>

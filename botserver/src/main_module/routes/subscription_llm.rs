@@ -105,17 +105,24 @@ pub async fn chat_completions(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    // #2094 — only the human-readable `message` is localized; the
+    // OpenAI-compatible envelope and provider payloads stay untouched.
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let token = bearer(&headers).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": { "message": "Missing subscription token" } })),
+            Json(json!({ "error": {
+                "message": botcore::i18n::t(&locale, "error-llm-subscription-token-missing")
+            } })),
         )
     })?;
     let entry = {
         let mut tokens = TOKENS.lock().map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": { "message": "Token store unavailable" } })),
+                Json(json!({ "error": {
+                    "message": botcore::i18n::t(&locale, "error-llm-token-store-unavailable")
+                } })),
             )
         })?;
         tokens.retain(|_, entry| entry.expires > now());
@@ -124,16 +131,16 @@ pub async fn chat_completions(
     let Some(entry) = entry else {
         return Err((
             StatusCode::UNAUTHORIZED,
-            Json(
-                json!({ "error": { "message": "Subscription token expired; send the message again" } }),
-            ),
+            Json(json!({ "error": {
+                "message": botcore::i18n::t(&locale, "error-llm-subscription-token-expired")
+            } })),
         ));
     };
     if entry.provider == "unlinked" {
         return Err((
             StatusCode::CONFLICT,
             Json(json!({ "error": {
-                "message": "Connect your Claude or ChatGPT account in Settings \u{2192} AI accounts first."
+                "message": botcore::i18n::t(&locale, "error-llm-account-unlinked")
             } })),
         ));
     }
@@ -148,7 +155,9 @@ pub async fn chat_completions(
     if prompt.trim().is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(json!({ "error": { "message": "No prompt in the request" } })),
+            Json(json!({ "error": {
+                "message": botcore::i18n::t(&locale, "error-llm-prompt-missing")
+            } })),
         ));
     }
     let resolved = crate::core::ai_accounts::ResolvedLlm {

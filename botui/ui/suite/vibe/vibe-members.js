@@ -1,5 +1,17 @@
 "use strict";
 
+    // #2093 — translated text with an authored English fallback. When the
+    // catalogue has no entry the fallback is returned with its placeholders
+    // filled in, so a missing key never shows `{ name }` to the user.
+    function t(key, fallback, params) {
+        const value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+        if (value !== fallback || !params) return value;
+        return Object.keys(params).reduce(function (text, name) {
+            return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+        }, fallback);
+    }
+
+
 (function () {
     var currentProjectId = null;
     var selectedMemberId = null;   // resolved UUID from the typeahead
@@ -80,7 +92,7 @@
         listEl.innerHTML = "<div style='color:#999;font-size:13px;'>Loading…</div>";
         var data = await api("/api/vibe/projects/" + pid + "/members");
         if (!data.success) {
-            listEl.innerHTML = "<div style='color:#f88;font-size:13px;'>" + esc(data.error || "Failed to load members") + "</div>";
+            listEl.innerHTML = "<div style='color:#f88;font-size:13px;'>" + esc(data.error || t("vibe-members-load-failed", "Failed to load members")) + "</div>";
             return;
         }
         loadMeter(pid);
@@ -159,7 +171,7 @@
             ? document.getElementById("vibeMemberTarget").value.trim()
             : (selectedMemberId || document.getElementById("vibeMemberTarget").value.trim());
         if (!target) {
-            alert("Choose a user or enter a group name first.");
+            alert(t("vibe-members-choose-target", "Choose a user or enter a group name first."));
             return;
         }
         var path = kind === "group"
@@ -175,7 +187,7 @@
             selectedMemberId = null;
             await load();
         } else {
-            alert(data.error || "Failed to add member");
+            alert(data.error || t("vibe-members-add-failed", "Failed to add member"));
         }
     }
 
@@ -184,11 +196,11 @@
         if (!pid) return;
         var target = selectedTransferId || document.getElementById("vibeTransferTarget").value.trim();
         if (!target) {
-            alert("Choose a new owner first.");
+            alert(t("vibe-members-choose-owner", "Choose a new owner first."));
             return;
         }
         var label = document.getElementById("vibeTransferTarget").value.trim();
-        if (!confirm("Transfer ownership of this project to " + label + "?")) return;
+        if (!confirm(t("vibe-members-transfer-confirm", "Transfer ownership of this project to {name}?", { name: label }))) return;
         var data = await api("/api/vibe/projects/" + pid + "/members/transfer-ownership", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -199,14 +211,14 @@
             selectedTransferId = null;
             await load();
         } else {
-            alert(data.error || "Transfer failed");
+            alert(data.error || t("vibe-members-transfer-failed", "Transfer failed"));
         }
     }
 
     async function loadMeter(pid) {
         var el = document.getElementById("vibeMeterUsage");
         if (!el) return;
-        el.textContent = "Loading usage…";
+        el.textContent = t("vibe-members-loading-usage", "Loading usage…");
         var data = await api("/api/vibe/projects/" + pid + "/metering");
         if (!data.success || !data.summary) {
             el.textContent = "";
@@ -215,13 +227,13 @@
         var s = data.summary;
         var rows = s.rows || [];
         if (rows.length === 0) {
-            el.textContent = "Usage: 0 minutes (" + s.plan + " plan)";
+            el.textContent = t("vibe-members-usage-empty", "Usage: 0 minutes ({plan} plan)", { plan: s.plan });
             return;
         }
         var parts = rows.map(function (r) {
             return r.meter + ": " + Number(r.amount).toFixed(2);
         });
-        el.textContent = "Usage (" + s.plan + " plan): " + parts.join(", ");
+        el.textContent = t("vibe-members-usage", "Usage ({plan} plan): {parts}", { plan: s.plan, parts: parts.join(", ") });
     }
 
     function open() {

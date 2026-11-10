@@ -92,11 +92,12 @@ Retrieve all translated strings for a specific locale. If the requested locale i
 
 ## Locale Negotiation
 
-BotServer automatically negotiates the best locale using the `Accept-Language` header. The negotiation follows these rules:
+BotServer resolves the response language with one helper (`botcore::i18n::locale_from_headers`), in this order:
 
-1. **Exact match** — `pt-BR` matches `pt-BR`
-2. **Language match** — `pt-PT` matches `pt` (any regional variant)
-3. **Fallback** — Any unknown locale falls back to `en`
+1. **Explicit** — `X-Locale: pt-BR` header (public/unauthenticated contexts, and a `?locale=` query for the same callers). An unsupported value is ignored.
+2. **User preference** — the locale stored in `user_preferences` (key `locale`) for authenticated requests, and for background work (emails, notifications, digests) the recipient's preference — never the process locale.
+3. **`Accept-Language`** — exact match, then language match, then fallback. Entries with `q=0` are treated as "not acceptable" and skipped.
+4. **Default** — `en`.
 
 **Example `Accept-Language` header:**
 ```
@@ -104,6 +105,38 @@ Accept-Language: pt-BR,pt;q=0.9,en;q=0.8
 ```
 
 This requests Brazilian Portuguese first, then any Portuguese variant, then English.
+
+---
+
+## Locale Preference
+
+### Get Preference
+
+**`GET /api/i18n/preference`** — returns the locale this user picked (`{"locale": "pt-BR"}`), so another device or a server-rendered email can reuse it.
+
+### Set Preference
+
+**`POST /api/i18n/preference`** with `{"locale": "pt-BR"}`. Only a locale the catalogue ships is accepted; an unsupported value returns `400` with the `available` list.
+
+---
+
+## Localized Error Contract
+
+User-facing API errors carry a stable, machine-readable `code`, a localized
+`message`, and the legacy `error` string (same text) so existing clients keep
+working:
+
+```json
+{
+  "code": "error-bot-not-found",
+  "message": "Bot não encontrado.",
+  "error": "Bot não encontrado."
+}
+```
+
+`details` (optional) carries structured context. Machine-readable payloads —
+OpenAI-compatible `{"error": {"message": ...}}` envelopes, provider codes, JSON
+keys — keep their shape; only the human-readable text is localized.
 
 ---
 

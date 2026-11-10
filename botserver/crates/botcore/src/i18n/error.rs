@@ -62,5 +62,37 @@ impl LocalizedError {
         self.details = Some(details);
         self
     }
+
+    /// Backward-compatible JSON body (#2094).
+    ///
+    /// `code` is stable and machine-readable, `message` is localized, and the
+    /// legacy `error` string carries the same localized text so clients that
+    /// still read `error` keep working during the transition.
+    #[must_use]
+    pub fn body(&self) -> serde_json::Value {
+        let mut body = serde_json::json!({
+            "code": self.code,
+            "message": self.message,
+            "error": self.message,
+        });
+
+        if let (Some(details), Some(map)) = (&self.details, body.as_object_mut()) {
+            map.insert("details".to_string(), details.clone());
+        }
+
+        body
+    }
+}
+
+/// JSON body for a localized error without building a [`LocalizedError`].
+#[must_use]
+pub fn error_body(locale: &Locale, code: &str) -> serde_json::Value {
+    LocalizedError::new(locale, code).body()
+}
+
+/// JSON body for a localized error that takes Fluent arguments.
+#[must_use]
+pub fn error_body_with_args(locale: &Locale, code: &str, args: &MessageArgs) -> serde_json::Value {
+    LocalizedError::with_args(locale, code, args).body()
 }
 

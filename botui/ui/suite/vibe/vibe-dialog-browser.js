@@ -6,6 +6,15 @@
 (function () {
     "use strict";
 
+    // #2093 — translated text with an authored English fallback.
+    function t(key, fallback, params) {
+        const value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+        if (value !== fallback || !params) return value;
+        return Object.keys(params).reduce(function (text, name) {
+            return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+        }, fallback);
+    }
+
     var D = window.VibeDialogs;
     var state = { sessionId: null, url: "", busy: false };
     var refreshTimer = null;
@@ -23,20 +32,20 @@
         url.addEventListener("keydown", function (e) {
             if (e.key === "Enter") navigate();
         });
-        var go = D.el("button", "vibe-btn primary", "Go");
+        var go = D.el("button", "vibe-btn primary", t("vibe-browser-go", "Go"));
         go.addEventListener("click", navigate);
-        var open = D.el("button", "vibe-btn", "Open app ↗");
+        var open = D.el("button", "vibe-btn", t("vibe-browser-open-app", "Open app ↗"));
         open.addEventListener("click", function () {
             if (state.url) window.open(state.url, "_blank", "noopener");
         });
-        var shot = D.el("button", "vibe-btn", "📸 Screenshot");
+        var shot = D.el("button", "vibe-btn", t("vibe-browser-screenshot", "📸 Screenshot"));
         shot.addEventListener("click", screenshot);
 
         var frame = D.el("div", "vibe-browser-frame");
         frame.id = "vibeBrowserFrame";
 
         var status = D.el("div", "vibe-browser-status");
-        status.innerHTML = '<span class="vibe-status info" id="vibeBrowserState">no session</span>' +
+        status.innerHTML = '<span class="vibe-status info" id="vibeBrowserState">' + t("vibe-browser-no-session", "no session") + '</span>' +
             '<span style="flex:1"></span><span id="vibeBrowserInfo">—</span>';
 
         toolbar.appendChild(url);
@@ -54,13 +63,13 @@
         box.className = "vibe-dialog-sidebar";
 
         var head = D.el("div", "vibe-dialog-title");
-        head.textContent = "SESSION";
+        head.textContent = t("vibe-browser-session-title", "SESSION");
 
         var actions = D.el("div", "vibe-commit-box");
-        var sessionBtn = D.el("button", "vibe-btn primary", "▶ New Session");
+        var sessionBtn = D.el("button", "vibe-btn primary", t("vibe-browser-new-session", "▶ New Session"));
         sessionBtn.id = "vibeBrowserSessionBtn";
         sessionBtn.addEventListener("click", createSession);
-        var closeBtn = D.el("button", "vibe-btn danger", "✕ Close Session");
+        var closeBtn = D.el("button", "vibe-btn danger", t("vibe-browser-close-session", "✕ Close Session"));
         closeBtn.id = "vibeBrowserCloseBtn";
         closeBtn.style.display = "none";
         closeBtn.addEventListener("click", closeSession);
@@ -69,8 +78,9 @@
 
         var log = D.el("div", "vibe-list");
         log.id = "vibeBrowserLog";
-        log.innerHTML = '<div class="vibe-empty">Create a session to start browsing. ' +
-            "The agent can navigate, click and extract content.</div>";
+        log.innerHTML = '<div class="vibe-empty">' +
+            t("vibe-browser-empty-hint", "Create a session to start browsing. The agent can navigate, click and extract content.") +
+            "</div>";
 
         box.appendChild(head);
         box.appendChild(actions);
@@ -91,32 +101,32 @@
         var btn = document.getElementById("vibeBrowserSessionBtn");
         var frame = document.getElementById("vibeBrowserFrame");
         var stateEl = document.getElementById("vibeBrowserState");
-        if (btn) { btn.disabled = true; btn.textContent = "Creating..."; }
-        if (frame) frame.innerHTML = '<div class="vibe-empty">Creating headless session...</div>';
+        if (btn) { btn.disabled = true; btn.textContent = t("vibe-browser-creating", "Creating..."); }
+        if (frame) frame.innerHTML = '<div class="vibe-empty">' + t("vibe-browser-creating-session", "Creating headless session...") + '</div>';
         D.api("/api/browser/session", {
             method: "POST",
             body: { headless: true },
         }).then(function (data) {
             if (data && data.id) {
                 state.sessionId = data.id;
-                if (btn) { btn.disabled = false; btn.textContent = "Restart Session"; }
+                if (btn) { btn.disabled = false; btn.textContent = t("vibe-browser-restart-session", "Restart Session"); }
                 var closeBtn = document.getElementById("vibeBrowserCloseBtn");
                 if (closeBtn) closeBtn.style.display = "";
                 if (stateEl) {
-                    stateEl.textContent = "session active";
+                    stateEl.textContent = t("vibe-browser-session-active", "session active");
                     stateEl.className = "vibe-status ok";
                 }
-                logLine("session created", "ok");
+                logLine(t("vibe-browser-session-created", "session created"), "ok");
                 navigate();
             } else {
                 if (btn) { btn.disabled = false; btn.textContent = "▶ New Session"; }
-                if (stateEl) { stateEl.textContent = "create failed"; stateEl.className = "vibe-status err"; }
-                logLine("create failed: " + ((data && data.error) || "unknown"), "err");
+                if (stateEl) { stateEl.textContent = t("vibe-browser-create-failed", "create failed"); stateEl.className = "vibe-status err"; }
+                logLine(t("vibe-browser-create-failed-reason", "create failed: {reason}", { reason: (data && data.error) || t("vibe-unknown-error", "unknown") }), "err");
             }
         }).catch(function (err) {
-            if (frame) frame.innerHTML = '<div class="vibe-empty">Session error: ' + D.esc(err) + "</div>";
+            if (frame) frame.innerHTML = '<div class="vibe-empty">' + D.esc(t("vibe-browser-session-error", "Session error: {reason}", { reason: err })) + "</div>";
             if (btn) { btn.disabled = false; btn.textContent = "▶ New Session"; }
-            logLine("error: " + err, "err");
+            logLine(t("vibe-browser-error", "error: {reason}", { reason: err }), "err");
         });
     }
 
@@ -143,36 +153,36 @@
 
     function resolveProjectUrl() {
         var pid = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
-        if (!pid) return Promise.reject(new Error("Select a project first"));
+        if (!pid) return Promise.reject(new Error(t("vibe-browser-select-project", "Select a project first")));
         return workspaceServeUrl(pid).then(function (url) {
             if (url) {
                 state.url = url;
                 var serveInput = document.getElementById("vibeBrowserUrl");
                 if (serveInput) serveInput.value = url;
-                logLine("custom app preview resolved: " + url, "ok");
+                logLine(t("vibe-browser-custom-preview", "custom app preview resolved: {url}", { url: url }), "ok");
                 return url;
             }
             return D.api("/api/vibe/projects/" + encodeURIComponent(pid)).then(function (projectData) {
-                if (projectData && projectData.success === false) throw new Error(projectData.error || "Project lookup failed");
+                if (projectData && projectData.success === false) throw new Error(projectData.error || t("vibe-browser-project-lookup-failed", "Project lookup failed"));
                 var project = projectData && projectData.project;
                 var env = (project && (project.environment || project.env)) || "production";
                 return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/preview?env=" + encodeURIComponent(env));
             }).then(function (data) {
                 if (typeof data === "string") return data;
-                if (data && data.success === false) throw new Error(data.error || "No preview is available");
+                if (data && data.success === false) throw new Error(data.error || t("vibe-browser-no-preview", "No preview is available"));
                 var payload = data && data.data ? data.data : data;
                 var preview = payload && payload.preview_url;
                 if (!preview || !/^https?:\/\//i.test(preview)) {
                     throw new Error(state.isNodeApp
-                        ? "Run the project first — the Node app serves from its VM once it starts"
-                        : "Publish the project to create its app URL");
+                        ? t("vibe-browser-run-first", "Run the project first — the Node app serves from its VM once it starts")
+                        : t("vibe-browser-publish-first", "Publish the project to create its app URL"));
                 }
                 return preview;
             }).then(function (preview) {
                 state.url = preview;
                 var input = document.getElementById("vibeBrowserUrl");
                 if (input) input.value = preview;
-                logLine("app preview resolved: " + preview, "ok");
+                logLine(t("vibe-browser-preview-resolved", "app preview resolved: {url}", { url: preview }), "ok");
                 return preview;
             });
         });
@@ -185,7 +195,7 @@
         if (!state.url) return;
         state.busy = true;
         var stateEl = document.getElementById("vibeBrowserState");
-        if (stateEl) { stateEl.textContent = "navigating..."; stateEl.className = "vibe-status warn"; }
+        if (stateEl) { stateEl.textContent = t("vibe-browser-navigating", "navigating..."); stateEl.className = "vibe-status warn"; }
         D.api("/api/browser/session/" + encodeURIComponent(state.sessionId) + "/navigate", {
             method: "POST",
             body: { url: state.url },
@@ -193,9 +203,9 @@
             logLine("→ " + state.url, "info");
             screenshot();
         }).catch(function (err) {
-            logLine("navigate error: " + err, "err");
+            logLine(t("vibe-browser-navigate-error", "navigate error: {reason}", { reason: err }), "err");
             state.busy = false;
-            if (stateEl) { stateEl.textContent = "navigate failed"; stateEl.className = "vibe-status err"; }
+            if (stateEl) { stateEl.textContent = t("vibe-browser-navigate-failed", "navigate failed"); stateEl.className = "vibe-status err"; }
         });
     }
 
@@ -209,12 +219,12 @@
         }).then(function (data) {
             state.busy = false;
             if (data && data.image_base64) {
-                frame.innerHTML = '<img src="data:image/png;base64,' + data.image_base64 + '" alt="browser screenshot" />';
+                frame.innerHTML = '<img src="data:image/png;base64,' + data.image_base64 + '" alt="' + D.esc(t("vibe-browser-screenshot-alt", "browser screenshot")) + '" />';
                 if (info) info.textContent = "png " + Math.round((data.size_bytes || 0) / 1024) + " KB";
-                if (stateEl) { stateEl.textContent = "live"; stateEl.className = "vibe-status ok"; }
+                if (stateEl) { stateEl.textContent = t("vibe-browser-live", "live"); stateEl.className = "vibe-status ok"; }
             } else {
-                frame.innerHTML = '<div class="vibe-empty">No screenshot yet — ' + D.esc((data && data.error) || "navigate first") + "</div>";
-                if (stateEl) { stateEl.textContent = "pending"; stateEl.className = "vibe-status warn"; }
+                frame.innerHTML = '<div class="vibe-empty">' + D.esc(t("vibe-browser-no-screenshot", "No screenshot yet — {reason}", { reason: (data && data.error) || t("vibe-browser-navigate-first", "navigate first") })) + "</div>";
+                if (stateEl) { stateEl.textContent = t("vibe-browser-pending", "pending"); stateEl.className = "vibe-status warn"; }
             }
         }).catch(function (err) {
             state.busy = false;

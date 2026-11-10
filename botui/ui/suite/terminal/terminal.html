@@ -5,28 +5,28 @@
     <div class="term-toolbar">
         <div class="term-tabs" id="term-tabs">
             <div class="term-tab active" data-tab="0">
-                <span class="term-tab-label">Terminal 1</span>
+                <span class="term-tab-label" data-i18n="terminal-tab-label" data-i18n-params='{"number":"1"}'>Terminal 1</span>
                 <span class="term-tab-close" onclick="GBTerminal.closeTab(0)">&times;</span>
             </div>
-            <button class="term-tab-add" id="btn-add-tab" title="New tab">+</button>
+            <button class="term-tab-add" id="btn-add-tab" title="New tab" data-i18n-title="terminal-new-tab">+</button>
         </div>
         <div class="term-actions">
-            <label class="term-vm-picker" title="Shell inside a workspace or project VM">
-                <span class="term-vm-label">VM:</span>
+            <label class="term-vm-picker" title="Shell inside a workspace or project VM" data-i18n-title="terminal-vm-picker-title">
+                <span class="term-vm-label" data-i18n="terminal-vm-label">VM:</span>
                 <select id="termVmSelect">
-                    <option value="">Workspace VM</option>
-                    <option value="__loading__" disabled>Loading VMs…</option>
+                    <option value="" data-i18n="terminal-vm-workspace">Workspace VM</option>
+                    <option value="__loading__" disabled data-i18n="terminal-vm-loading">Loading VMs…</option>
                 </select>
             </label>
-            <button class="term-action-btn" onclick="GBTerminal.clearCurrent()" title="Clear">Clear</button>
-            <button class="term-action-btn" onclick="GBTerminal.find()" title="Find (Ctrl+Shift+F)">Find</button>
+            <button class="term-action-btn" onclick="GBTerminal.clearCurrent()" title="Clear" data-i18n="terminal-clear" data-i18n-title="terminal-clear">Clear</button>
+            <button class="term-action-btn" onclick="GBTerminal.find()" title="Find (Ctrl+Shift+F)" data-i18n="terminal-find" data-i18n-title="terminal-find-shortcut">Find</button>
         </div>
     </div>
     <div class="term-body" id="term-body">
         <div class="term-pane active" data-pane="0"></div>
     </div>
     <div class="term-statusbar">
-        <span id="term-status-text">Connecting...</span>
+        <span id="term-status-text" data-i18n="terminal-connecting">Connecting...</span>
         <span class="term-status-sep">|</span>
         <span id="term-dimensions">80x24</span>
         <span class="term-status-sep">|</span>
@@ -34,10 +34,10 @@
     </div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="terminal-service-unavailable">Service unavailable</span></div>
 <script src="/suite/js/vendor/xterm/xterm.js"></script>
 <script src="/suite/js/vendor/xterm/addon-fit.js"></script>
 <script src="/suite/js/vendor/xterm/addon-web-links.js"></script>
-<script src="/suite/terminal/modules/01_vm_picker.js?v=6"></script>
-<script src="/suite/terminal/modules/02_terminal_tabs.js?v=7"></script>
+<script src="/suite/terminal/modules/01_vm_picker.js?v=7"></script>
+<script src="/suite/terminal/modules/02_terminal_tabs.js?v=8"></script>

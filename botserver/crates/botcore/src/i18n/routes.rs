@@ -14,8 +14,9 @@ use diesel::prelude::*;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use super::error::error_body;
 use super::translations::get_translations_json;
-use super::{available_locales, Locale};
+use super::{available_locales, locale_from_headers, Locale};
 use crate::shared::state::AppState;
 
 pub fn configure_i18n_routes() -> Router<Arc<AppState>> {
@@ -72,37 +73,47 @@ async fn handle_get_preference(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
+
     let Some(user_id) = caller_id(&headers) else {
         return (
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "authentication required" })),
+            Json(error_body(&locale, "error-auth-token-missing")),
         );
     };
 
     let stored = tokio::task::spawn_blocking(move || {
         let mut conn = state.conn.get().ok()?;
-        let row: Option<PreferenceRow> = diesel::sql_query(
-            "SELECT preference_value::text AS value FROM user_preferences \
-             WHERE user_id = $1 AND preference_key = 'locale' LIMIT 1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result(&mut conn)
-        .ok();
-
-        row.and_then(|r| r.value)
+        Some(locale_for_user(&mut conn, user_id).to_string())
     })
     .await
     .unwrap_or(None);
 
-    let locale = stored
-        .as_deref()
-        .and_then(|raw| serde_json::from_str::<String>(raw).ok())
-        .filter(|code| Locale::new(code).is_some());
-
     (
         StatusCode::OK,
-        Json(serde_json::json!({ "locale": locale })),
+        Json(serde_json::json!({ "locale": stored })),
     )
+}
+
+/// The locale a user picked in the UI (`user_preferences` key `locale`).
+///
+/// Background work (emails, notifications, scheduled jobs) resolves the
+/// recipient's preference here instead of using the process locale (#2094);
+/// the default locale is returned when nothing is stored.
+#[must_use]
+pub fn locale_for_user(conn: &mut diesel::PgConnection, user_id: Uuid) -> Locale {
+    let row: Option<PreferenceRow> = diesel::sql_query(
+        "SELECT preference_value::text AS value FROM user_preferences \
+         WHERE user_id = $1 AND preference_key = 'locale' LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .get_result(conn)
+    .ok();
+
+    row.and_then(|r| r.value)
+        .and_then(|raw| serde_json::from_str::<String>(&raw).ok())
+        .and_then(|code| Locale::new(code.trim()))
+        .unwrap_or_default()
 }
 
 /// `POST /api/i18n/preference` — persists the user's locale. Only a locale the
@@ -113,17 +124,19 @@ async fn handle_set_preference(
     headers: HeaderMap,
     Json(body): Json<LocalePreferenceBody>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
+
     let Some(user_id) = caller_id(&headers) else {
         return (
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "authentication required" })),
+            Json(error_body(&locale, "error-auth-token-missing")),
         );
     };
 
     let Some(requested) = Locale::new(body.locale.trim()) else {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "invalid locale" })),
+            Json(error_body(&locale, "error-locale-invalid")),
         );
     };
 
@@ -132,17 +145,19 @@ async fn handle_set_preference(
         .any(|code| Locale::new(code).is_some_and(|available| available.matches(&requested)));
 
     if !supported {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "unsupported locale",
-                "available": available_locales(),
-            })),
-        );
+        let mut body = error_body(&locale, "error-locale-unsupported");
+        if let Some(map) = body.as_object_mut() {
+            map.insert(
+                "available".to_string(),
+                serde_json::json!(available_locales()),
+            );
+        }
+
+        return (StatusCode::BAD_REQUEST, Json(body));
     }
 
-    let locale = requested.to_string();
-    let value = serde_json::Value::String(locale.clone()).to_string();
+    let locale_code = requested.to_string();
+    let value = serde_json::Value::String(locale_code.clone()).to_string();
 
     let saved = tokio::task::spawn_blocking(move || {
         let Ok(mut conn) = state.conn.get() else {
@@ -166,9 +181,12 @@ async fn handle_set_preference(
     if !saved {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": "could not persist the locale" })),
+            Json(error_body(&locale, "error-locale-persist-failed")),
         );
     }
 
-    (StatusCode::OK, Json(serde_json::json!({ "locale": locale })))
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "locale": locale_code })),
+    )
 }

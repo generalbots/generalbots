@@ -31,8 +31,10 @@ pub struct SsoResponse {
 /// rejeitados (fix #842: nunca aceitar payloads não assinados).
 pub async fn handle_cloud_sso(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<SsoRequest>,
 ) -> Result<Json<SsoResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let jwt_secret = get_saas_jwt_secret();
 
     // Validate JWT signature — reject on mismatch, no fallback
@@ -40,7 +42,7 @@ pub async fn handle_cloud_sso(
     if parts.len() != 3 {
         return Err((
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "Invalid token format"})),
+            Json(botcore::i18n::error_body(&locale, "error-token-invalid-format")),
         ));
     }
 
@@ -52,7 +54,7 @@ pub async fn handle_cloud_sso(
         Err(_) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Token signing failed"})),
+                Json(botcore::i18n::error_body(&locale, "error-token-signing-failed")),
             ))
         }
     };
@@ -60,7 +62,10 @@ pub async fn handle_cloud_sso(
         log::warn!("cloud-sso: JWT signature mismatch — rejecting token");
         return Err((
             StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({"error": "Invalid token signature"})),
+            Json(botcore::i18n::error_body(
+                &locale,
+                "error-token-signature-invalid",
+            )),
         ));
     }
 
@@ -70,7 +75,7 @@ pub async fn handle_cloud_sso(
         Err(_) => {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid token payload"})),
+                Json(botcore::i18n::error_body(&locale, "error-token-payload-invalid")),
             ))
         }
     };
@@ -80,7 +85,10 @@ pub async fn handle_cloud_sso(
         Err(_) => {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid token payload JSON"})),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-token-payload-json-invalid",
+                )),
             ))
         }
     };
@@ -339,8 +347,10 @@ fn resolve_session_roles(state: &Arc<AppState>, user_id: &str) -> Vec<String> {
 /// Aceita { email, password } ou { cloud_token }.
 pub async fn handle_unified_login(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let jwt_secret = get_saas_jwt_secret();
 
     let email: String;
@@ -354,7 +364,10 @@ pub async fn handle_unified_login(
         if parts.len() != 3 {
             return Err((
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "Invalid cloud token format"})),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-token-invalid-format",
+                )),
             ));
         }
         let message = format!("{}.{}", parts[0], parts[1]);
@@ -363,7 +376,7 @@ pub async fn handle_unified_login(
             Err(_) => {
                 return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(serde_json::json!({"error": "Token signing failed"})),
+                    Json(botcore::i18n::error_body(&locale, "error-token-signing-failed")),
                 ))
             }
         };
@@ -371,19 +384,25 @@ pub async fn handle_unified_login(
             log::warn!("unified-login (cloud_token): JWT signature mismatch — rejecting token");
             return Err((
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({"error": "Invalid token signature"})),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-token-signature-invalid",
+                )),
             ));
         }
         let payload_bytes = base64_url_decode(parts[1]).map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid payload"})),
+                Json(botcore::i18n::error_body(&locale, "error-token-payload-invalid")),
             )
         })?;
         let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "Invalid JSON"})),
+                Json(botcore::i18n::error_body(
+                    &locale,
+                    "error-token-payload-json-invalid",
+                )),
             )
         })?;
         email = claims
@@ -400,7 +419,7 @@ pub async fn handle_unified_login(
     } else {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "Provide cloud_token"})),
+            Json(botcore::i18n::error_body(&locale, "error-cloud-token-required")),
         ));
     }
 

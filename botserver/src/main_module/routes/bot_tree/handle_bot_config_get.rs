@@ -4,7 +4,9 @@ use super::*;
 pub async fn handle_bot_config_get(
     State(state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => return e.into_response(),
@@ -33,7 +35,7 @@ pub async fn handle_bot_config_get(
     let Some(bot) = bot else {
         return (
             StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Bot not found" })),
+            Json(botcore::i18n::error_body(&locale, "error-bot-not-found")),
         )
             .into_response();
     };
@@ -80,8 +82,10 @@ pub async fn handle_bot_config_get(
 /// PUT /api/bots/config — persist bot name/description/tabs/LLM settings.
 pub async fn handle_bot_config_put(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Form(form): Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => return e.into_response(),
@@ -90,14 +94,14 @@ pub async fn handle_bot_config_put(
     let Some(bot_id_str) = form.get("bot_id") else {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "bot_id is required" })),
+            Json(botcore::i18n::error_body(&locale, "error-bot-id-required")),
         )
             .into_response();
     };
     let Ok(bot_id) = Uuid::parse_str(bot_id_str) else {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "invalid bot_id" })),
+            Json(botcore::i18n::error_body(&locale, "error-bot-id-invalid")),
         )
             .into_response();
     };
@@ -122,7 +126,7 @@ pub async fn handle_bot_config_put(
     if name.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Bot name is required" })),
+            Json(botcore::i18n::error_body(&locale, "error-bot-name-required")),
         )
             .into_response();
     }
@@ -200,8 +204,10 @@ pub async fn handle_bot_config_put(
 /// POST /api/bots — create a new bot from the modal form.
 pub async fn handle_bot_create(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Form(form): Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = match pool_conn(&state) {
         Ok(c) => c,
         Err(e) => return e.into_response(),
@@ -211,7 +217,7 @@ pub async fn handle_bot_create(
     if name.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Bot name is required" })),
+            Json(botcore::i18n::error_body(&locale, "error-bot-name-required")),
         )
             .into_response();
     }

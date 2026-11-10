@@ -3,6 +3,14 @@
 (function (app) {
     'use strict';
 
+    function t(key, fallback, params) {
+        return window.gbT ? window.gbT(key, fallback, params) : fallback;
+    }
+
+    function tabLabel(number) {
+        return t('terminal-tab-label', 'Terminal ' + number, { number: number });
+    }
+
     const MAX_TABS = 10;
     const SCROLLBACK = 10000;
     let tabs = [];
@@ -19,9 +27,9 @@
     // is the single cross-app status surface.
     function terminalMetrics() {
         return [
-            { label: 'Size', value: dimensions.textContent || '--', title: 'Terminal size (columns x rows)' },
-            { label: 'WS', value: wsStatus.textContent || 'WS: --', title: 'Terminal WebSocket status' },
-            { label: 'Tabs', value: tabs.length, title: 'Open terminal tabs' }
+            { label: t('terminal-metric-size', 'Size'), value: dimensions.textContent || '--', title: t('terminal-metric-size-title', 'Terminal size (columns x rows)') },
+            { label: 'WS', value: wsStatus.textContent || 'WS: --', title: t('terminal-metric-ws-title', 'Terminal WebSocket status') },
+            { label: t('terminal-metric-tabs', 'Tabs'), value: tabs.length, title: t('terminal-metric-tabs-title', 'Open terminal tabs') }
         ];
     }
 
@@ -29,11 +37,11 @@
         if (!window.GBStatus || typeof window.GBStatus.set !== 'function') return;
         var payload = {
             state: state || 'ready',
-            text: text || 'Ready',
+            text: text || t('terminal-ready', 'Ready'),
             metrics: terminalMetrics(),
             busy: state === 'loading' || state === 'busy' || state === 'connecting',
             progress: (state === 'loading' || state === 'connecting')
-                ? { indeterminate: true, label: text || 'Connecting...' }
+                ? { indeterminate: true, label: text || t('terminal-connecting', 'Connecting...') }
                 : null
         };
         if (extra) Object.keys(extra).forEach(function (key) { payload[key] = extra[key]; });
@@ -116,7 +124,7 @@
         function connect() {
             if (!app._vm.isReady()) {
                 // The VM picker loads async; never race it with a host shell.
-                setTermStatus('Resolving VM…', 'loading');
+                setTermStatus(t('terminal-resolving-vm', 'Resolving VM…'), 'loading');
                 const wait = setInterval(function () {
                     if (app._vm.isReady()) {
                         clearInterval(wait);
@@ -130,14 +138,14 @@
         }
 
         function doConnect() {
-            setTermStatus('Connecting...', 'connecting');
+            setTermStatus(t('terminal-connecting', 'Connecting...'), 'connecting');
             // #1841 — never call an endpoint this build does not ship.
             const unavailable = app._vm.capabilityMessage();
             if (unavailable) {
                 wsStatus.textContent = 'WS: —';
-                setTermStatus('Unavailable', 'error');
+                setTermStatus(t('terminal-unavailable', 'Unavailable'), 'error');
                 terminal.write('\r\n\x1b[31m[' + unavailable + ']\x1b[0m\r\n');
-                terminal.write('\x1b[33m[Chat and file output keep working; the terminal needs the desktop edition\'s agent VM.]\x1b[0m\r\n');
+                terminal.write('\x1b[33m[' + t('terminal-hint-chat-still-works', 'Chat and file output keep working; the terminal needs the desktop edition\'s agent VM.') + ']\x1b[0m\r\n');
                 return;
             }
             const token =
@@ -152,9 +160,9 @@
             // bare botserver shell or a workspace-cwd fallback.
             if (!container) {
                 wsStatus.textContent = 'WS: —';
-                setTermStatus('No VM', 'error');
-                terminal.write('\r\n\x1b[31m[No workspace VM available for your account.]\x1b[0m\r\n');
-                terminal.write('\x1b[33m[Send a message in chat to start your workspace VM, then reopen the terminal.]\x1b[0m\r\n');
+                setTermStatus(t('terminal-no-vm', 'No VM'), 'error');
+                terminal.write('\r\n\x1b[31m[' + t('terminal-hint-no-workspace-vm', 'No workspace VM available for your account.') + ']\x1b[0m\r\n');
+                terminal.write('\x1b[33m[' + t('terminal-hint-start-vm', 'Send a message in chat to start your workspace VM, then reopen the terminal.') + ']\x1b[0m\r\n');
                 return;
             }
             // The backend requires a session created via /api/terminal/create
@@ -185,8 +193,8 @@
                     if (!result.ok || !result.data || !result.data.id) {
                         // Raw payload for support; actionable category for the user.
                         console.error('Terminal create failed:', result.status, result.data);
-                        wsStatus.textContent = 'WS: Error';
-                        setTermStatus('Failed to start terminal', 'error');
+                        wsStatus.textContent = 'WS: ' + t('terminal-ws-error', 'Error');
+                        setTermStatus(t('terminal-start-failed', 'Failed to start terminal'), 'error');
                         terminal.write('\r\n\x1b[31m[' + app._vm.errorMessage(result.data, result.status) + ']\x1b[0m\r\n');
                         return;
                     }
@@ -194,10 +202,10 @@
                 })
                 .catch(function (e) {
                     connecting = false;
-                    wsStatus.textContent = 'WS: Error';
-                    setTermStatus('Failed to start terminal', 'error');
+                    wsStatus.textContent = 'WS: ' + t('terminal-ws-error', 'Error');
+                    setTermStatus(t('terminal-start-failed', 'Failed to start terminal'), 'error');
                     console.error('Terminal create request failed:', e);
-                    terminal.write('\r\n\x1b[31m[Terminal unavailable: ' + (e && e.message ? e.message : e) + ']\x1b[0m\r\n');
+                    terminal.write('\r\n\x1b[31m[' + t('terminal-error-unavailable-detail', 'Terminal unavailable') + ': ' + (e && e.message ? e.message : e) + ']\x1b[0m\r\n');
                 });
         }
 
@@ -216,8 +224,8 @@
             currentSessionId = sessionId;
             ws = new WebSocket(app._vm.getWsUrl(sessionId));
             ws.onopen = function() {
-                wsStatus.textContent = 'WS: Connected';
-                setTermStatus('Connected', 'connected');
+                wsStatus.textContent = 'WS: ' + t('terminal-ws-connected', 'Connected');
+                setTermStatus(t('terminal-connected', 'Connected'), 'connected');
                 fitAddon.fit();
                 ws.send('resize ' + terminal.cols + ' ' + terminal.rows);
             };
@@ -236,22 +244,22 @@
                     // User-chosen VM switch: reconnect immediately to the new
                     // container, no yellow pending message, no artificial delay.
                     switchingVm = false;
-                    wsStatus.textContent = 'WS: Connected';
-                    setTermStatus('Connecting...', 'connecting');
+                    wsStatus.textContent = 'WS: ' + t('terminal-ws-connected', 'Connected');
+                    setTermStatus(t('terminal-connecting', 'Connecting...'), 'connecting');
                     // New shell, new prompt: start it on a fresh line so the
                     // previous `root@name>` prompt is never buried mid-line.
-                    terminal.write('\r\n\x1b[90m[switching VM — new shell]\x1b[0m\r\n');
+                    terminal.write('\r\n\x1b[90m[' + t('terminal-switching-vm', 'Switching VM — new shell') + ']\x1b[0m\r\n');
                     connect();
                     return;
                 }
-                wsStatus.textContent = 'WS: Disconnected';
-                setTermStatus('Disconnected', 'offline');
-                terminal.write('\r\n\x1b[33m[Connection closed. Reconnecting in 3s...]\x1b[0m\r\n');
+                wsStatus.textContent = 'WS: ' + t('terminal-ws-disconnected', 'Disconnected');
+                setTermStatus(t('terminal-disconnected', 'Disconnected'), 'offline');
+                terminal.write('\r\n\x1b[33m[' + t('terminal-reconnecting', 'Connection closed. Reconnecting in 3s…') + ']\x1b[0m\r\n');
                 reconnectTimer = setTimeout(connect, 3000);
             };
             ws.onerror = function() {
-                wsStatus.textContent = 'WS: Error';
-                setTermStatus('WS: Error', 'error');
+                wsStatus.textContent = 'WS: ' + t('terminal-ws-error', 'Error');
+                setTermStatus('WS: ' + t('terminal-ws-error', 'Error'), 'error');
             };
             // #1288 — a WS upgrade that never completes (proxy hiccup, hung
             // backend) otherwise leaves the status at "Connecting..."
@@ -260,8 +268,8 @@
             openTimer = setTimeout(function () {
                 openTimer = null;
                 if (ws && ws.readyState !== WebSocket.OPEN) {
-                    wsStatus.textContent = 'WS: Timeout';
-                    setTermStatus('WS: Timeout', 'error');
+                    wsStatus.textContent = 'WS: ' + t('terminal-ws-timeout', 'Timeout');
+                    setTermStatus('WS: ' + t('terminal-ws-timeout', 'Timeout'), 'error');
                     try { ws.close(); } catch (ignore) { }
                 }
             }, 10000);
@@ -278,7 +286,7 @@
                 ws.send('resize ' + size.cols + ' ' + size.rows);
             }
             dimensions.textContent = size.cols + 'x' + size.rows;
-            publishTerminalStatus(statusText.dataset.state || 'ready', statusText.textContent || 'Ready');
+            publishTerminalStatus(statusText.dataset.state || 'ready', statusText.textContent || t('terminal-ready', 'Ready'));
         });
 
         var observer = new ResizeObserver(function() {
@@ -342,7 +350,7 @@
         for (var i = 0; i < tabs.length; i++) {
             var cls = i === activeTab ? ' active' : '';
             html += '<div class="term-tab' + cls + '" data-tab="' + i + '" onclick="GBTerminal.switchTab(' + i + ')">'
-                + '<span class="term-tab-label">Terminal ' + (i + 1) + '</span>'
+                + '<span class="term-tab-label">' + tabLabel(i + 1) + '</span>'
                 + '<span class="term-tab-close" onclick="event.stopPropagation();GBTerminal.closeTab(' + i + ')">&times;</span>'
                 + '</div>';
         }
@@ -351,7 +359,7 @@
         }
         termTabs.innerHTML = html;
         if (statusText.dataset.state) {
-            publishTerminalStatus(statusText.dataset.state, statusText.textContent || 'Ready');
+            publishTerminalStatus(statusText.dataset.state, statusText.textContent || t('terminal-ready', 'Ready'));
         }
     }
 
@@ -410,11 +418,11 @@
 
     // Hover help through the shared status contract (#1849).
     if (window.GBStatus && typeof window.GBStatus.registerHelp === 'function') {
-        window.GBStatus.registerHelp('#termVmSelect', 'Choose the workspace or project VM for this shell');
-        window.GBStatus.registerHelp('#btn-add-tab', 'Open a new terminal tab (Ctrl+T)');
+        window.GBStatus.registerHelp('#termVmSelect', t('terminal-help-vm', 'Choose the workspace or project VM for this shell'));
+        window.GBStatus.registerHelp('#btn-add-tab', t('terminal-help-new-tab', 'Open a new terminal tab (Ctrl+T)'));
         document.querySelectorAll('.term-action-btn').forEach(function (btn) {
             var label = String(btn.textContent || '').trim();
-            if (label) window.GBStatus.registerHelp(btn, label + ' terminal');
+            if (label) window.GBStatus.registerHelp(btn, t('terminal-help-action', '{action} terminal', { action: label }));
         });
     }
 

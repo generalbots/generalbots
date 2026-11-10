@@ -75,16 +75,16 @@
         <div class="panel-toolbar">
             <div class="filter-group">
                 <select id="severity-filter" onchange="filterAlerts()">
-                    <option value="all">All Severities</option>
-                    <option value="critical">Critical</option>
-                    <option value="warning">Warning</option>
-                    <option value="info">Info</option>
+                    <option value="all" data-i18n="monitoring-alerts-all-severities">All Severities</option>
+                    <option value="critical" data-i18n="monitoring-alerts-critical">Critical</option>
+                    <option value="warning" data-i18n="monitoring-alerts-warning">Warning</option>
+                    <option value="info" data-i18n="monitoring-alerts-info">Info</option>
                 </select>
                 <select id="status-filter" onchange="filterAlerts()">
-                    <option value="all">All Status</option>
-                    <option value="firing">Firing</option>
-                    <option value="pending">Pending</option>
-                    <option value="acknowledged">Acknowledged</option>
+                    <option value="all" data-i18n="monitoring-alerts-all-status">All Status</option>
+                    <option value="firing" data-i18n="monitoring-alerts-firing">Firing</option>
+                    <option value="pending" data-i18n="monitoring-alerts-pending">Pending</option>
+                    <option value="acknowledged" data-i18n="monitoring-alerts-acknowledged">Acknowledged</option>
                 </select>
             </div>
             <div class="search-box">
@@ -105,8 +105,8 @@
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
-                <p>No active alerts</p>
-                <span>All systems are operating normally</span>
+                <p data-i18n="monitoring-alerts-no-active">No active alerts</p>
+                <span data-i18n="monitoring-alerts-all-normal">All systems are operating normally</span>
             </div>
         </div>
     </div>
@@ -116,12 +116,12 @@
         <div class="panel-toolbar">
             <div class="filter-group">
                 <select id="rule-status-filter" onchange="filterRules()">
-                    <option value="all">All Rules</option>
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
+                    <option value="all" data-i18n="monitoring-alerts-all-rules">All Rules</option>
+                    <option value="enabled" data-i18n="monitoring-alerts-enabled">Enabled</option>
+                    <option value="disabled" data-i18n="monitoring-alerts-disabled">Disabled</option>
                 </select>
                 <select id="rule-category-filter" onchange="filterRules()">
-                    <option value="all">All Categories</option>
+                    <option value="all" data-i18n="monitoring-alerts-all-categories">All Categories</option>
                     <option value="system">System</option>
                     <option value="application">Application</option>
                     <option value="database">Database</option>
@@ -163,10 +163,10 @@
                     <option value="30d">Last 30 days</option>
                 </select>
                 <select id="history-outcome-filter" onchange="filterHistory()">
-                    <option value="all">All Outcomes</option>
-                    <option value="resolved">Resolved</option>
+                    <option value="all" data-i18n="monitoring-alerts-all-outcomes">All Outcomes</option>
+                    <option value="resolved" data-i18n="monitoring-alerts-resolved-state">Resolved</option>
                     <option value="acknowledged">Acknowledged</option>
-                    <option value="expired">Expired</option>
+                    <option value="expired" data-i18n="monitoring-alerts-expired">Expired</option>
                 </select>
             </div>
             <button class="action-btn secondary small" onclick="exportHistory()">
@@ -185,14 +185,14 @@
              hx-swap="innerHTML">
             <div class="loading-state">
                 <div class="spinner"></div>
-                <p>Loading history...</p>
+                <p data-i18n="monitoring-alerts-loading-history">Loading history...</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
-<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="label-loading">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="monitoring-service-unavailable">Service unavailable</span></div>
 <script src="/suite/monitoring/alerts.js"></script>
 
 <!-- Create Alert Rule Modal -->

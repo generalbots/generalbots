@@ -1,6 +1,14 @@
 /* Admin modals — role management */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
   var showModal = A.showModal;
   var hideModal = A.hideModal;
@@ -36,7 +44,7 @@ function selectRole(roleId, element) {
       renderRoleDetail(data);
     })
     .catch((err) =>
-      showNotification("Failed to load role: " + err.message, "error"),
+      showNotification(t("admin-notify-failed-to-load-role-reason", "Failed to load role: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -157,7 +165,7 @@ function removeAll() {
 
 function savePermissions() {
   if (!currentRole) {
-    showNotification("No role selected", "error");
+    showNotification(t("admin-notify-no-role-selected", "No role selected"), "error");
     return;
   }
 
@@ -171,16 +179,14 @@ function savePermissions() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Permissions saved successfully", "success");
+        showNotification(t("admin-notify-permissions-saved-successfully", "Permissions saved successfully"), "success");
       } else {
-        showNotification(
-          "Failed to save permissions: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-save-permissions-reason", "Failed to save permissions: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
     .catch((err) =>
-      showNotification("Error saving permissions: " + err.message, "error"),
+      showNotification(t("admin-notify-error-saving-permissions-reason", "Error saving permissions: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -193,12 +199,12 @@ function resetPermissions() {
   )
     return;
   loadRolePermissions(currentRole.id);
-  showNotification("Permissions reset to saved state", "info");
+  showNotification(t("admin-notify-permissions-reset-to-saved-state", "Permissions reset to saved state"), "info");
 }
 
 function duplicateRole() {
   if (!currentRole) {
-    showNotification("No role selected", "error");
+    showNotification(t("admin-notify-no-role-selected", "No role selected"), "error");
     return;
   }
 
@@ -221,22 +227,20 @@ function duplicateRole() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success || data.id) {
-        showNotification("Role duplicated successfully", "success");
+        showNotification(t("admin-notify-role-duplicated-successfully", "Role duplicated successfully"), "success");
         location.reload();
       } else {
-        showNotification(
-          "Failed to duplicate role: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-duplicate-role-reason", "Failed to duplicate role: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function confirmDeleteRole() {
   if (!currentRole) return;
   if (currentRole.isSystem) {
-    showNotification("System roles cannot be deleted", "error");
+    showNotification(t("admin-notify-system-roles-cannot-be-deleted", "System roles cannot be deleted"), "error");
     return;
   }
   showModal("delete-role-modal");
@@ -249,17 +253,15 @@ function deleteRole() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Role deleted", "success");
+        showNotification(t("admin-notify-role-deleted", "Role deleted"), "success");
         hideModal("delete-role-modal");
         location.reload();
       } else {
-        showNotification(
-          "Failed to delete role: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-delete-role-reason", "Failed to delete role: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function assignUsersToRole() {
@@ -268,12 +270,12 @@ function assignUsersToRole() {
   ).map((input) => input.value);
 
   if (selectedUsers.length === 0) {
-    showNotification("Please select at least one user", "error");
+    showNotification(t("admin-notify-please-select-at-least-one-user", "Please select at least one user"), "error");
     return;
   }
 
   if (!currentRole) {
-    showNotification("No role selected", "error");
+    showNotification(t("admin-notify-no-role-selected", "No role selected"), "error");
     return;
   }
 
@@ -291,13 +293,11 @@ function assignUsersToRole() {
         );
         hideModal("assign-users-modal");
       } else {
-        showNotification(
-          "Failed to assign users: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-assign-users-reason", "Failed to assign users: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function assignGroupsToRole() {
@@ -306,12 +306,12 @@ function assignGroupsToRole() {
   ).map((input) => input.value);
 
   if (selectedGroups.length === 0) {
-    showNotification("Please select at least one group", "error");
+    showNotification(t("admin-notify-please-select-at-least-one-group", "Please select at least one group"), "error");
     return;
   }
 
   if (!currentRole) {
-    showNotification("No role selected", "error");
+    showNotification(t("admin-notify-no-role-selected", "No role selected"), "error");
     return;
   }
 
@@ -329,13 +329,11 @@ function assignGroupsToRole() {
         );
         hideModal("assign-groups-modal");
       } else {
-        showNotification(
-          "Failed to assign groups: " + (data.error || "Unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-assign-groups-reason", "Failed to assign groups: {reason}", { reason: (data.error || "Unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function filterRoles(type) {

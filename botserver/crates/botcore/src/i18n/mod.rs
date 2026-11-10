@@ -21,9 +21,14 @@ mod translations;
 mod tests;
 
 pub use botlib::i18n::Locale;
-pub use error::LocalizedError;
+pub use error::{error_body, error_body_with_args, LocalizedError};
 pub use routes::configure_i18n_routes;
+pub use routes::locale_for_user;
 pub use translations::get_translations_json;
+
+/// Header a client may send to pin the response language explicitly. Honoured
+/// before `Accept-Language`, only for public/unauthenticated contexts (#2094).
+pub const LOCALE_HEADER: &str = "x-locale";
 
 /// Locales the catalogue is guaranteed to ship. Used only before the bundles
 /// are loaded (e.g. during early boot or in unit tests without initialisation).
@@ -51,16 +56,40 @@ where
     type Rejection = std::convert::Infallible;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let locale = parts
-            .headers
-            .get(ACCEPT_LANGUAGE)
-            .and_then(|h| h.to_str().ok())
-            .map(parse_accept_language)
-            .and_then(|langs| negotiate_locale(&langs))
-            .unwrap_or_default();
-
-        Ok(Self(locale))
+        Ok(Self(locale_from_headers(&parts.headers)))
     }
+}
+
+/// The single locale resolver (#2094).
+///
+/// Order: explicit `X-Locale` header (public/unauthenticated contexts only),
+/// then `Accept-Language` negotiation, then the default locale (`en`).
+///
+/// Authenticated handlers that need a stronger signal resolve `users.locale`
+/// first and only fall back here; background work (emails, notifications) must
+/// load the recipient's locale explicitly instead of using the process locale.
+#[must_use]
+pub fn locale_from_headers(headers: &axum::http::HeaderMap) -> Locale {
+    if let Some(explicit) = headers
+        .get(LOCALE_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| Locale::new(value.trim()))
+    {
+        let supported = available_locales()
+            .iter()
+            .any(|code| Locale::new(code).is_some_and(|available| available.matches(&explicit)));
+
+        if supported {
+            return explicit;
+        }
+    }
+
+    headers
+        .get(ACCEPT_LANGUAGE)
+        .and_then(|h| h.to_str().ok())
+        .map(parse_accept_language)
+        .and_then(|langs| negotiate_locale(&langs))
+        .unwrap_or_default()
 }
 
 fn parse_accept_language(header: &str) -> Vec<(String, f32)> {
@@ -82,6 +111,9 @@ fn parse_accept_language(header: &str) -> Vec<(String, f32)> {
 
             Some((lang, quality))
         })
+        // `q=0` means "not acceptable" (RFC 9110); keeping it would let a
+        // client opt out of a language and still receive it.
+        .filter(|(_, quality)| *quality > 0.0)
         .collect();
 
     langs.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));

@@ -2,11 +2,22 @@
 
 "use strict";
 
+    // #2093 — translated text with an authored English fallback. When the
+    // catalogue has no entry the fallback is returned with its placeholders
+    // filled in, so a missing key never shows `{ name }` to the user.
+    function t(key, fallback, params) {
+        const value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+        if (value !== fallback || !params) return value;
+        return Object.keys(params).reduce(function (text, name) {
+            return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+        }, fallback);
+    }
+
 function deleteProject(p, force) {
     if (!p) return;
     var id = p.project_id || p.id;
     var name = p.name || "this project";
-    if (!(window.GBModal||{confirm:confirm}).confirm("Delete project '" + name + "'?\n\nThis removes its VMs and workspace files. This cannot be undone.")) {
+    if (!(window.GBModal||{confirm:confirm}).confirm(t("vibe-project-delete-confirm", "Delete project '{name}'?\n\nThis removes its VMs and workspace files. This cannot be undone.", { name: name }))) {
         return;
     }
     // Freeze the UI until the deletion finishes AND the project combo is
@@ -16,7 +27,7 @@ function deleteProject(p, force) {
     var unfreeze = function () {
         if (setBusy) setBusy(false);
     };
-    if (setBusy) setBusy(true, "Deleting project…");
+    if (setBusy) setBusy(true, t("vibe-project-deleting", "Deleting project…"));
 
     // Reload the toolbar's project combo and resolve when it is refreshed,
     // so the UI stays frozen until the dropdown reflects the deletion.
@@ -64,17 +75,17 @@ function deleteProject(p, force) {
                 // #1440 — the default-bot protection answers with an explicit
                 // explanation; offer a one-click force instead of a dead end.
                 if (data && data.code === "default_bot_project_protected") {
-                    if ((window.GBModal||{confirm:confirm}).confirm("Delete default bot project: " + msg)) {
+                    if ((window.GBModal||{confirm:confirm}).confirm(t("vibe-project-delete-default-confirm", "Delete default bot project: {message}", { message: msg }))) {
                         deleteProject(p, true);
                     }
                     return;
                 }
-                (window.GBModal||{alert:alert}).alert("Could not delete project: " + msg);
+                (window.GBModal||{alert:alert}).alert(t("vibe-project-delete-failed", "Could not delete project: {reason}", { reason: msg }));
             }
         })
         .catch(function (e) {
             unfreeze();
-            (window.GBModal||{alert:alert}).alert("Could not delete project: " + e.message);
+            (window.GBModal||{alert:alert}).alert(t("vibe-project-delete-failed", "Could not delete project: {reason}", { reason: e.message }));
         });
 }
 

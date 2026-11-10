@@ -164,3 +164,25 @@ error-unexpected = Ocorreu um erro inesperado. Por favor, tente novamente.
 error-not-implemented = Este recurso ainda não foi implementado.
 error-maintenance = Sistema em manutenção. Por favor, tente novamente mais tarde.
 error-unknown = Ocorreu um erro desconhecido.
+
+# =============================================================================
+# Contrato de API localizado (#2094) — códigos estáveis, mensagens localizadas
+# =============================================================================
+
+error-locale-invalid = O idioma solicitado não é válido.
+error-locale-unsupported = Este idioma não está disponível.
+error-locale-persist-failed = Não foi possível salvar sua preferência de idioma.
+error-bot-id-required = O id do bot é obrigatório.
+error-bot-id-invalid = O id do bot não é válido.
+error-bot-name-required = O nome do bot é obrigatório.
+error-token-invalid-format = O formato do token não é válido.
+error-token-signing-failed = Não foi possível assinar o token.
+error-token-signature-invalid = A assinatura do token não é válida.
+error-token-payload-invalid = O conteúdo do token não é válido.
+error-token-payload-json-invalid = O conteúdo do token não é um JSON válido.
+error-cloud-token-required = Informe um cloud_token.
+error-llm-subscription-token-missing = Token de assinatura ausente.
+error-llm-token-store-unavailable = O armazenamento de tokens está indisponível.
+error-llm-subscription-token-expired = O token de assinatura expirou; envie a mensagem novamente.
+error-llm-prompt-missing = Não há prompt na requisição.
+error-llm-account-unlinked = Conecte sua conta Claude ou ChatGPT em Configurações → Contas de IA primeiro.

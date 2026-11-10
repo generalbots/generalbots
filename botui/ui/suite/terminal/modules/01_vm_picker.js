@@ -5,6 +5,10 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
 (function (app) {
     'use strict';
 
+    function t(key, fallback) {
+        return window.gbT ? window.gbT(key, fallback) : fallback;
+    }
+
     function getWsUrl(sessionId) {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         return proto + '//' + location.host + '/api/terminal/ws?id=' + encodeURIComponent(sessionId);
@@ -16,25 +20,25 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         const code = (data && (data.error || data.code)) || '';
         const detail = data && (data.message || data.error);
         if (code === 'agent_vm_unavailable') {
-            return 'Terminal requires the agent VM, which is not available in this build.';
+            return t('terminal-error-agent-vm-unavailable', 'Terminal requires the agent VM, which is not available in this build.');
         }
         if (code === 'no_workspace_vm') {
-            return 'No workspace VM is running. Send a message in chat to start your workspace, then reopen the terminal.';
+            return t('terminal-error-no-workspace-vm', 'No workspace VM is running. Send a message in chat to start your workspace, then reopen the terminal.');
         }
         if (code === 'vm_not_found' || code === 'vm_stopped') {
-            return 'Your workspace VM is not running. Send a message in chat to start it, then reopen the terminal.';
+            return t('terminal-error-vm-stopped', 'Your workspace VM is not running. Send a message in chat to start it, then reopen the terminal.');
         }
         if (code === 'incus_unavailable') {
-            return 'Terminal needs Incus, but it is not installed or not available on this machine.';
+            return t('terminal-error-incus-unavailable', 'Terminal needs Incus, but it is not installed or not available on this machine.');
         }
         if (code === 'terminal_forbidden') {
-            return 'The terminal cannot access the workspace VM. Check the Incus permissions.';
+            return t('terminal-error-forbidden', 'The terminal cannot access the workspace VM. Check the Incus permissions.');
         }
         if (code === 'terminal_unavailable') {
-            return detail || 'Terminal is not available in this build.';
+            return detail || t('terminal-error-unavailable', 'Terminal is not available in this build.');
         }
         if (code === 'not_found' || status === 404) {
-            return 'Terminal is not available in this build (the terminal API is not compiled).';
+            return t('terminal-error-api-missing', 'Terminal is not available in this build (the terminal API is not compiled).');
         }
         return detail || ('HTTP ' + status);
     }
@@ -44,7 +48,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
     function capabilityMessage() {
         const cfg = window.productConfig;
         if (cfg && cfg.terminal_available === false) {
-            return 'Terminal requires the agent VM, which is not available in this desktop build.';
+            return t('terminal-error-desktop-build', 'Terminal requires the agent VM, which is not available in this desktop build.');
         }
         return '';
     }
@@ -125,7 +129,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             if (!data || !data.has_vm || !data.vm_name) return [];
             return [{
                 container: data.vm_name,
-                label: 'Workspace VM' + (data.status ? ' (' + data.status + ')' : ''),
+                label: t('terminal-vm-workspace', 'Workspace VM') + (data.status ? ' (' + data.status + ')' : ''),
             }];
         }).catch(function () { return []; });
     }

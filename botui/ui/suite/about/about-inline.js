@@ -1,6 +1,7 @@
 CSSLoader.loadMultiple(['about.css']);
 
-(async function loadAboutData() {
+async function loadAboutData() {
+    const t = (key, fallback) => (window.gbT ? window.gbT(key, fallback) : fallback);
     try {
         const response = await fetch('/api/product');
         const config = await response.json();
@@ -44,15 +45,36 @@ CSSLoader.loadMultiple(['about.css']);
                     .map(f => `<span class="feature-badge disabled">${f}</span>`)
                     .join('');
             } else {
-                disabledContainer.innerHTML = '<span class="text-muted">All compiled features are enabled</span>';
+                disabledContainer.innerHTML = `<span class="text-muted">${t('about-all-features-enabled', 'All compiled features are enabled')}</span>`;
             }
         }
         
         // Update copyright
         const copyrightEl = document.getElementById('about-copyright');
-        if (copyrightEl) copyrightEl.textContent = config.copyright || '© 2026 General Bots. All rights reserved.';
+        if (copyrightEl) {
+            copyrightEl.textContent = config.copyright || t('about-copyright', '© 2026 General Bots. All rights reserved.');
+        }
         
     } catch (e) {
         console.warn('Failed to load product config:', e);
     }
+}
+
+loadAboutData();
+window.addEventListener('localeChanged', loadAboutData);
+
+// The dependency tree SVG is optional in a trimmed build; show a translated
+// fallback instead of an English literal baked into an inline handler.
+(function bindFeatureTreeFallback() {
+    const img = document.getElementById('about-feature-tree');
+    if (!img) return;
+    img.addEventListener('error', function () {
+        const fallback = document.createElement('p');
+        fallback.className = 'text-muted';
+        fallback.setAttribute('data-i18n', 'about-dependency-tree-missing');
+        fallback.textContent = window.gbT
+            ? window.gbT('about-dependency-tree-missing', 'Dependency tree not available')
+            : 'Dependency tree not available';
+        img.replaceWith(fallback);
+    });
 })();

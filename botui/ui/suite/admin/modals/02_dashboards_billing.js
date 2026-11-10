@@ -1,6 +1,14 @@
 /* Admin modals — admin/billing dashboards and billing page */
 (function (window) {
   "use strict";
+  // #2093 — translated admin message with an authored English fallback.
+  function t(key, fallback, params) {
+    var value = window.gbT ? window.gbT(key, fallback, params) : fallback;
+    if (value !== fallback || !params) return value;
+    return Object.keys(params).reduce(function (text, name) {
+      return text.replace(new RegExp("\\{\\s*" + name + "\\s*\\}", "g"), params[name]);
+    }, fallback);
+  }
   var A = (window.__GBAdminModals = window.__GBAdminModals || {});
   var showModal = A.showModal;
   var hideModal = A.hideModal;
@@ -43,11 +51,11 @@ function sendInvitation() {
   const orgId = getCurrentOrgId();
 
   if (!orgId) {
-    showNotification("Select an organization first", "error");
+    showNotification(t("admin-notify-select-an-organization-first", "Select an organization first"), "error");
     return;
   }
   if (!email) {
-    showNotification("Please enter an email address", "error");
+    showNotification(t("admin-notify-please-enter-an-email-address", "Please enter an email address"), "error");
     return;
   }
 
@@ -63,13 +71,11 @@ function sendInvitation() {
         closeInviteMemberModal();
         refreshInvitations();
       } else {
-        showNotification(
-          "Failed to send invitation: " + (data.error || "unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-send-invitation-reason", "Failed to send invitation: {reason}", { reason: (data.error || "unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function sendBulkInvitations() {
@@ -82,11 +88,11 @@ function sendBulkInvitations() {
     .filter((e) => e);
 
   if (!orgId) {
-    showNotification("Select an organization first", "error");
+    showNotification(t("admin-notify-select-an-organization-first", "Select an organization first"), "error");
     return;
   }
   if (emails.length === 0) {
-    showNotification("Please enter at least one email address", "error");
+    showNotification(t("admin-notify-please-enter-at-least-one-email-address", "Please enter at least one email address"), "error");
     return;
   }
 
@@ -110,7 +116,7 @@ function sendBulkInvitations() {
       closeBulkInviteModal();
       refreshInvitations();
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function resendInvitation(invitationId) {
@@ -118,30 +124,28 @@ function resendInvitation(invitationId) {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Invitation resent", "success");
+        showNotification(t("admin-notify-invitation-resent", "Invitation resent"), "success");
         refreshInvitations();
       } else {
-        showNotification(
-          "Failed to resend: " + (data.error || "unknown error"),
-          "error",
+        showNotification(t("admin-notify-failed-to-resend-reason", "Failed to resend: {reason}", { reason: (data.error || "unknown error") }), "error",
         );
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function cancelInvitation(invitationId) {
-  if (!confirm("Cancel this invitation?")) return;
+  if (!confirm(t("admin-notify-cancel-invitation-confirm", "Cancel this invitation?"))) return;
 
   fetch(`/api/admin/invitations/${invitationId}`, { method: "DELETE" })
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Invitation cancelled", "success");
+        showNotification(t("admin-notify-invitation-cancelled", "Invitation cancelled"), "success");
         refreshInvitations();
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================
@@ -162,7 +166,7 @@ function updateBillingPeriod(period) {
 
 function exportBillingReport() {
   const period = document.getElementById("billingPeriod")?.value || "current";
-  showNotification("Generating billing report...", "info");
+  showNotification(t("admin-notify-generating-billing-report", "Generating billing report..."), "info");
 
   fetch(`/api/ui/billing/invoices/export?period=${period}`)
     .then((response) => {
@@ -176,10 +180,10 @@ function exportBillingReport() {
       a.download = `billing-report-${period}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification("Report downloaded", "success");
+      showNotification(t("admin-notify-report-downloaded", "Report downloaded"), "success");
     })
     .catch((err) =>
-      showNotification("Export failed: " + err.message, "error"),
+      showNotification(t("admin-notify-export-failed-reason", "Export failed: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -217,13 +221,13 @@ function saveQuotaSettings() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Quota settings saved", "success");
+        showNotification(t("admin-notify-quota-settings-saved", "Quota settings saved"), "success");
         closeQuotaSettings();
       } else {
-        showNotification("Failed to save: " + data.error, "error");
+        showNotification(t("admin-notify-failed-to-save-reason", "Failed to save: {reason}", { reason: data.error }), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function configureAlerts() {
@@ -249,11 +253,11 @@ function saveAlertSettings() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Alert settings saved", "success");
+        showNotification(t("admin-notify-alert-settings-saved", "Alert settings saved"), "success");
         closeAlertsConfig();
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================
@@ -293,7 +297,7 @@ function closeEditAddressModal() {
 }
 
 function exportInvoices() {
-  showNotification("Exporting invoices...", "info");
+  showNotification(t("admin-notify-exporting-invoices", "Exporting invoices..."), "info");
 
   fetch("/api/billing/invoices/export")
     .then((response) => {
@@ -307,10 +311,10 @@ function exportInvoices() {
       a.download = "invoices.csv";
       a.click();
       URL.revokeObjectURL(url);
-      showNotification("Invoices exported", "success");
+      showNotification(t("admin-notify-invoices-exported", "Invoices exported"), "success");
     })
     .catch((err) =>
-      showNotification("Export failed: " + err.message, "error"),
+      showNotification(t("admin-notify-export-failed-reason", "Export failed: {reason}", { reason: err.message }), "error"),
     );
 }
 
@@ -319,7 +323,7 @@ function contactSales() {
   if (typeof showUpgradeModal === "function") {
     showUpgradeModal();
   } else if (typeof showToast === "function") {
-    showToast("Contact sales is disabled", "info");
+    showToast(t("admin-notify-contact-sales-is-disabled", "Contact sales is disabled"), "info");
   }
 }
 
@@ -342,7 +346,7 @@ function selectPlan(planId) {
 function confirmUpgrade() {
   const selectedPlan = document.querySelector(".plan-option.selected");
   if (!selectedPlan) {
-    showNotification("Please select a plan", "error");
+    showNotification(t("admin-notify-please-select-a-plan", "Please select a plan"), "error");
     return;
   }
 
@@ -356,14 +360,14 @@ function confirmUpgrade() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Plan upgraded successfully!", "success");
+        showNotification(t("admin-notify-plan-upgraded-successfully", "Plan upgraded successfully!"), "success");
         closeUpgradeModal();
         location.reload();
       } else {
-        showNotification("Upgrade failed: " + data.error, "error");
+        showNotification(t("admin-notify-upgrade-failed-reason", "Upgrade failed: {reason}", { reason: data.error }), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 function confirmCancellation() {
@@ -377,14 +381,14 @@ function confirmCancellation() {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        showNotification("Subscription cancelled", "success");
+        showNotification(t("admin-notify-subscription-cancelled", "Subscription cancelled"), "success");
         closeCancelModal();
         location.reload();
       } else {
-        showNotification("Cancellation failed: " + data.error, "error");
+        showNotification(t("admin-notify-cancellation-failed-reason", "Cancellation failed: {reason}", { reason: data.error }), "error");
       }
     })
-    .catch((err) => showNotification("Error: " + err.message, "error"));
+    .catch((err) => showNotification(t("admin-notify-error-reason", "Error: {reason}", { reason: err.message }), "error"));
 }
 
 // =============================================================================
