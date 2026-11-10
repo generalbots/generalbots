@@ -192,4 +192,60 @@ mod tests {
         assert!(!is_retryable_status(401));
         assert!(!is_retryable_status(200));
     }
+
+    #[test]
+    fn a_fractional_body_delay_rounds_up() {
+        let parsed = parse_retry_after_ms("{\"retry_after\": 1.2}", None).expect("delay");
+        assert_eq!(parsed, Duration::from_secs(2));
+    }
+
+    #[test]
+    fn a_blank_header_falls_through_to_the_body() {
+        let parsed = parse_retry_after_ms("{\"retry_after\": 7}", Some("   ")).expect("delay");
+        assert_eq!(parsed, Duration::from_secs(7));
+    }
+
+    #[test]
+    fn a_non_numeric_header_falls_through_to_the_body() {
+        let parsed = parse_retry_after_ms("{\"retry_after\": 5}", Some("Wed, 21 Oct 2026 07:28:00 GMT"))
+            .expect("delay");
+        assert_eq!(parsed, Duration::from_secs(5));
+    }
+
+    #[test]
+    fn a_429_without_a_delay_uses_the_default_wait() {
+        assert_eq!(
+            wait_for(429, "", None, 0),
+            DEFAULT_429_WAIT
+        );
+    }
+
+    #[test]
+    fn a_429_with_a_delay_uses_the_delay() {
+        assert_eq!(
+            wait_for(429, "{\"retry_after\": 3}", None, 0),
+            Duration::from_secs(3)
+        );
+    }
+
+    #[test]
+    fn a_server_error_uses_exponential_backoff() {
+        let wait = wait_for(500, "", None, 2);
+        // Base 2s at attempt 2 is 8s, with up to 20% jitter either way.
+        assert!(wait >= Duration::from_millis(6_400), "{wait:?}");
+        assert!(wait <= Duration::from_millis(9_600), "{wait:?}");
+    }
+
+    #[test]
+    fn only_transient_statuses_are_retryable() {
+        for status in [429, 500, 502, 503, 529] {
+            assert!(is_retryable_status(status), "{status} must be retryable");
+        }
+        for status in [200, 201, 400, 401, 403, 404, 422, 501, 504] {
+            assert!(
+                !is_retryable_status(status),
+                "{status} must not be retryable"
+            );
+        }
+    }
 }
