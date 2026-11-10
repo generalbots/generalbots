@@ -87,8 +87,27 @@ fn jwt_payload(token: &str) -> Option<serde_json::Value> {
     if parts.len() != 3 {
         return None;
     }
+    if !jwt_header_is_secured(parts[0]) {
+        return None;
+    }
     let decoded = base64_url_decode(parts[1]).ok()?;
     serde_json::from_slice::<serde_json::Value>(&decoded).ok()
+}
+
+/// #2066 — the payload was decoded with no look at the header, so a forged
+/// unsecured token (`{"alg":"none"}`) could name any user id. An unsecured
+/// token can never have been minted by the server, so it is refused outright.
+fn jwt_header_is_secured(header_segment: &str) -> bool {
+    let Some(decoded) = base64_url_decode(header_segment.trim_end_matches('=')).ok() else {
+        return false;
+    };
+    let Ok(header) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
+        return false;
+    };
+    match header.get("alg").and_then(|v| v.as_str()) {
+        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
+        None => false,
+    }
 }
 
 fn base64_url_decode(input: &str) -> Result<Vec<u8>, String> {
@@ -431,3 +450,7 @@ pub fn configure_routes() -> axum::Router<SharedService> {
         .route("/api/browser/memory", get(memory_handler).delete(delete_memory_handler))
         .route("/api/browser/policy", get(get_policy_handler).put(put_policy_handler))
 }
+
+#[cfg(test)]
+#[path = "api_tests.rs"]
+mod api_tests;

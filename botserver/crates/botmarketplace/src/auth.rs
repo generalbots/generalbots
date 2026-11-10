@@ -16,9 +16,34 @@ pub fn bearer_token(headers: &HeaderMap) -> Option<String> {
 
 pub fn jwt_claims(headers: &HeaderMap) -> Option<Value> {
     let token = bearer_token(headers)?;
-    let payload = token.split('.').nth(1)?;
+    if !jwt_header_is_secured(&token) {
+        return None;
+    }
+    let mut parts = token.split('.');
+    let _header = parts.next()?;
+    let payload = parts.next()?;
+    let _signature = parts.next()?;
     let decoded = b64::decode_flexible(payload)?;
     serde_json::from_slice(&decoded).ok()
+}
+
+/// #2066 — the payload was decoded with no look at the header, so a forged
+/// unsecured token (`{"alg":"none"}`) could claim `role: admin`. An unsecured
+/// token can never have been minted by the server, so it is refused outright.
+fn jwt_header_is_secured(token: &str) -> bool {
+    let Some(header_segment) = token.split('.').next() else {
+        return false;
+    };
+    let Some(decoded) = b64::decode_flexible(header_segment) else {
+        return false;
+    };
+    let Ok(header) = serde_json::from_slice::<Value>(&decoded) else {
+        return false;
+    };
+    match header.get("alg").and_then(Value::as_str) {
+        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
+        None => false,
+    }
 }
 
 fn claims_role_is_admin(claims: &Value) -> bool {
@@ -122,5 +147,38 @@ mod tests {
         let mut bad = HeaderMap::new();
         bad.insert("authorization", axum::http::HeaderValue::from_static("Bearer a.b"));
         assert!(!jwt_is_admin(&bad));
+    }
+
+    #[test]
+    fn unsecured_tokens_are_refused() {
+        let payload = crate::b64::encode_standard(br#"{"role":"admin"}"#)
+            .replace('+', "-")
+            .replace('/', "_");
+        let forged = format!("{}.{}.", crate::b64::encode_standard(br#"{"alg":"none"}"#), payload);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "authorization",
+            axum::http::HeaderValue::from_str(&format!("Bearer {forged}")).unwrap(),
+        );
+
+        assert!(jwt_claims(&headers).is_none());
+        assert!(!jwt_is_admin(&headers));
+        assert!(jwt_user_id(&headers).is_none());
+        assert!(jwt_org_id(&headers).is_none());
+    }
+
+    #[test]
+    fn headers_without_an_algorithm_are_refused() {
+        let payload = crate::b64::encode_standard(br#"{"role":"admin"}"#);
+        let forged = format!("{}.{}.c2ln", crate::b64::encode_standard(br#"{"typ":"JWT"}"#), payload);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "authorization",
+            axum::http::HeaderValue::from_str(&format!("Bearer {forged}")).unwrap(),
+        );
+
+        assert!(!jwt_is_admin(&headers));
     }
 }
