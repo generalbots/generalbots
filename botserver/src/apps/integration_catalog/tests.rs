@@ -27,8 +27,9 @@ fn provider_ids_and_names_are_unique() {
     // adds its three implementable Graph API actions on top of that.
     #[cfg(feature = "integrations")]
     // #2049/#2050 — Basecamp (2 advertised actions) and Twitch (3) were
-    // registered (+5), and #2057 removed Dropbox's unimplemented upload (-1).
-    assert_eq!(catalog.totals.implemented_actions, 324);
+    // registered (+5). #2057 removed Dropbox's *unimplemented* upload action,
+    // which never counted here: the total stays 325.
+    assert_eq!(catalog.totals.implemented_actions, 325);
     #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();
@@ -103,7 +104,9 @@ fn supported_providers_publish_a_direct_credentials_page() {
 
 #[test]
 fn github_and_stripe_flip_llm_available_without_status_drift() {
-    let expectations = [("github", Status::Partial), ("stripe", Status::Built)];
+    // #2048 — the badge is derived: github's adapter answers every advertised
+    // action (the exact-set test below pins it), so it is built, not partial.
+    let expectations = [("github", Status::Built), ("stripe", Status::Built)];
     for (id, status) in expectations {
         let Some(provider) = provider_by_id(id) else {
             panic!("{id} provider is missing");
