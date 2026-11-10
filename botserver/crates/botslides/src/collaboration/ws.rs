@@ -396,6 +396,3 @@ async fn handle_slides_connection(
     }
 }
 
-#[cfg(test)]
-#[path = "ws_tests.rs"]
-mod ws_tests;

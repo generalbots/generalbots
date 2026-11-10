@@ -72,7 +72,9 @@
 
     window.showOpsPanel = function (panelId) {
         window.showAnalyticsTab("operations");
-        var panel = document.getElementById(panelId + "-panel");
+        var panel =
+            document.getElementById(panelId + "-panel") ||
+            document.getElementById(panelId);
         if (panel && panel.scrollIntoView) {
             panel.scrollIntoView({ behavior: "smooth", block: "start" });
         }

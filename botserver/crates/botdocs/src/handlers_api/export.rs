@@ -1,3 +1,4 @@
+use crate::export_isolation::{html_export_headers, render_html_export, text_export_headers};
 use crate::re_cache::cached_re;
 use crate::state::DocState;
 use crate::storage::{get_current_user_id, load_document_from_drive};
@@ -303,75 +304,40 @@ pub async fn handle_export_md(
 
     let markdown = html_to_markdown(&doc.content);
 
-    Ok(([(axum::http::header::CONTENT_TYPE, "text/markdown")], markdown))
+    // A download, not a page: `attachment` keeps the browser from rendering it
+    // on the suite origin (#2124 follow-up).
+    Ok((
+        text_export_headers(&doc.title, "md", "text/markdown; charset=utf-8"),
+        markdown,
+    ))
 }
 
+/// Serves the standalone HTML document as a download.
+///
+/// The title is escaped and the response carries the sandbox policy, so the
+/// document can never run as the suite user even if a proxy drops
+/// `Content-Disposition` (#2124 follow-up). See [`crate::export_isolation`].
 pub async fn handle_export_html(
     State(state): State<Arc<DocState>>,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let doc = load_export_document(&state, &query).await?;
 
-    let doc = match load_document_from_drive(&state, &user_id, &query.id).await {
-        Ok(Some(d)) => d,
-        Ok(None) => {
-            return Err((
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "Document not found" })),
-            ))
-        }
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
-            ))
-        }
-    };
-
-    let full_html = format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{}</title>
-<style>
-body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-</style>
-</head>
-<body>
-{}
-</body>
-</html>"#,
-        doc.title, doc.content
-    );
-
-    Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], full_html))
+    Ok((
+        html_export_headers(&doc.title),
+        render_html_export(&doc.title, &doc.content),
+    ))
 }
 
 pub async fn handle_export_txt(
     State(state): State<Arc<DocState>>,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
-
-    let doc = match load_document_from_drive(&state, &user_id, &query.id).await {
-        Ok(Some(d)) => d,
-        Ok(None) => {
-            return Err((
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "Document not found" })),
-            ))
-        }
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::export", None)})),
-            ))
-        }
-    };
-
+    let doc = load_export_document(&state, &query).await?;
     let plain_text = strip_html(&doc.content);
 
-    Ok(([(axum::http::header::CONTENT_TYPE, "text/plain")], plain_text))
+    Ok((
+        text_export_headers(&doc.title, "txt", "text/plain; charset=utf-8"),
+        plain_text,
+    ))
 }

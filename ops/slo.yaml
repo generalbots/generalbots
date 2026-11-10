@@ -16,8 +16,20 @@
 # objective.<id>.threshold_ms latency objectives only; latency_histogram
 #                             thresholds must sit on a histogram boundary
 #                             (50, 100, 250, 500, 1000, 2500, 5000 ms)
+# objective.<id>.source       snapshot metric that measures the objective
+#                             (`turn.error_pct`, `rest.api_ms`, …). The id is
+#                             the dashboard name and stays stable; the source is
+#                             the name the load adapter and the baselines use.
+#                             Defaults to the id when absent.
 # objective.<id>.runbook      path inside botbook, linked from the panel
 # objective.<id>.panel        dashboard anchor that explains the objective
+#
+# Two consumers read this file. `botanalytics::ops_slo` builds the dashboard
+# from `metric`/`target`/`threshold_ms` and ignores `source`. The CI gate
+# (`scripts/check_slo.py` via `scripts/slo_common.py`) expands each objective
+# into a budget: latency objectives compare the p95 in milliseconds against
+# `threshold_ms`, rate objectives compare a bad-event percentage against
+# `(1 - target) * 100`.
 #
 # Burn windows: 1 h, 6 h, 3 d. Alert when a window crosses its threshold:
 # fast >= 14.4x (page), medium >= 6x (page), slow >= 1x (ticket). The same
@@ -28,29 +40,34 @@ window_days: 30
 owner: platform-oncall
 
 objective.api_p95.metric: latency_histogram
+objective.api_p95.source: rest.api_ms
 objective.api_p95.threshold_ms: 500
 objective.api_p95.target: 0.95
 objective.api_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.api_p95.panel: ops-endpoints
 
 objective.error_rate.metric: error_rate
+objective.error_rate.source: turn.error_pct
 objective.error_rate.target: 0.99
 objective.error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-deploy-rollback.md
 objective.error_rate.panel: ops-endpoints
 
 objective.first_token_p95.metric: llm_first_token
+objective.first_token_p95.source: chat.first_token_ms
 objective.first_token_p95.threshold_ms: 2000
 objective.first_token_p95.target: 0.95
 objective.first_token_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
 objective.first_token_p95.panel: ops-cost
 
 objective.answer_p95.metric: llm_answer
+objective.answer_p95.source: chat.complete_ms
 objective.answer_p95.threshold_ms: 15000
 objective.answer_p95.target: 0.95
 objective.answer_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
 objective.answer_p95.panel: ops-cost
 
 objective.ws_handshake.metric: ws_handshake
+objective.ws_handshake.source: ws.unexpected_disconnect_pct
 objective.ws_handshake.target: 0.99
 objective.ws_handshake.runbook: botbook/src/10-configuration-deployment/operations/runbook-disable-tenant.md
 objective.ws_handshake.panel: ops-traffic
@@ -63,52 +80,61 @@ alert.slow_burn: 1
 # Same flat shape as above (ops_slo.rs reads it without a YAML dependency);
 # scripts/slo_common.py synthesizes the list form from the dotted keys.
 objective.tool_call_p95.metric: latency_histogram
+objective.tool_call_p95.source: chat.tool_call_ms
 objective.tool_call_p95.threshold_ms: 3000
 objective.tool_call_p95.target: 0.95
 objective.tool_call_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.tool_call_p95.panel: ops-endpoints
 
 objective.rest_p95.metric: latency_histogram
+objective.rest_p95.source: rest.api_ms
 objective.rest_p95.threshold_ms: 500
 objective.rest_p95.target: 0.95
 objective.rest_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-deploy-rollback.md
 objective.rest_p95.panel: ops-endpoints
 
 objective.queue_p95.metric: latency_histogram
+objective.queue_p95.source: queue.wait_ms
 objective.queue_p95.threshold_ms: 2500
 objective.queue_p95.target: 0.95
 objective.queue_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.queue_p95.panel: ops-queues
 
 objective.db_p95.metric: latency_histogram
+objective.db_p95.source: dep.db_ms
 objective.db_p95.threshold_ms: 100
 objective.db_p95.target: 0.95
 objective.db_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.db_p95.panel: ops-endpoints
 
 objective.cache_p95.metric: latency_histogram
+objective.cache_p95.source: dep.cache_ms
 objective.cache_p95.threshold_ms: 50
 objective.cache_p95.target: 0.95
 objective.cache_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.cache_p95.panel: ops-endpoints
 
 objective.storage_p95.metric: latency_histogram
+objective.storage_p95.source: dep.drive_ms
 objective.storage_p95.threshold_ms: 250
 objective.storage_p95.target: 0.95
 objective.storage_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
 objective.storage_p95.panel: ops-endpoints
 
 objective.ws_disconnect_rate.metric: error_rate
+objective.ws_disconnect_rate.source: ws.unexpected_disconnect_pct
 objective.ws_disconnect_rate.target: 0.995
 objective.ws_disconnect_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-disable-tenant.md
 objective.ws_disconnect_rate.panel: ops-traffic
 
 objective.turn_error_rate.metric: error_rate
+objective.turn_error_rate.source: turn.error_pct
 objective.turn_error_rate.target: 0.99
 objective.turn_error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
 objective.turn_error_rate.panel: ops-traffic
 
 objective.provider_error_rate.metric: error_rate
+objective.provider_error_rate.source: llm.provider_error_pct
 objective.provider_error_rate.target: 0.98
 objective.provider_error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
 objective.provider_error_rate.panel: ops-cost

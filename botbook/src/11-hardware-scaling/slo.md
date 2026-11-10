@@ -45,6 +45,39 @@ lookup, prompt assembly and the first streamed chunk. A real provider's latency
 is measured separately and never gates a pull request, because it is not ours to
 fix and it is not deterministic.
 
+## Objective names and metric names
+
+`ops/slo.yaml` gives every objective a dashboard name (`api_p95`, `queue_p95`,
+`provider_error_rate`) and points it at the snapshot metric that measures it
+through `objective.<id>.source`. The two names differ on purpose: the id is
+stable in the UI, the source is the name the load adapter and
+`perf/baselines/` publish.
+
+| Objective | Snapshot metric | Statistic | Budget |
+|-----------|-----------------|-----------|--------|
+| `api_p95` | `rest.api_ms` | p95 | ≤ 500 ms |
+| `rest_p95` | `rest.api_ms` | p95 | ≤ 500 ms |
+| `first_token_p95` | `chat.first_token_ms` | p95 | ≤ 2000 ms |
+| `answer_p95` | `chat.complete_ms` | p95 | ≤ 15000 ms |
+| `tool_call_p95` | `chat.tool_call_ms` | p95 | ≤ 3000 ms |
+| `queue_p95` | `queue.wait_ms` | p95 | ≤ 2500 ms |
+| `db_p95` | `dep.db_ms` | p95 | ≤ 100 ms |
+| `cache_p95` | `dep.cache_ms` | p95 | ≤ 50 ms |
+| `storage_p95` | `dep.drive_ms` | p95 | ≤ 250 ms |
+| `error_rate` | `turn.error_pct` | rate | ≤ 1 % |
+| `turn_error_rate` | `turn.error_pct` | rate | ≤ 1 % |
+| `ws_disconnect_rate` | `ws.unexpected_disconnect_pct` | rate | ≤ 0.5 % |
+| `ws_handshake` | `ws.unexpected_disconnect_pct` | rate | ≤ 1 % |
+| `provider_error_rate` | `llm.provider_error_pct` | rate | ≤ 2 % |
+
+The budget column is derived, never duplicated: a latency objective is gated on
+its `threshold_ms`, a rate objective on `(1 - target) * 100`, because the
+snapshot publishes measurements (milliseconds, bad-event percentages) and not
+the good ratio the dashboard shows. `error_rate` and `ws_handshake` borrow the
+closest rate the snapshot carries — the API error counter and a
+handshake-rejection counter are not exported yet — while the objective id keeps
+the panel label honest in the meantime.
+
 ## Measurement points
 
 Every turn is one trace with the phases below. The spans are emitted through the

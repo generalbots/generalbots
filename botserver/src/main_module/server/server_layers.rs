@@ -67,9 +67,7 @@ pub(super) fn apply_middleware(
                 async move { csrf_cookie_injector(mgr, req, next).await }
             }
         }))
-        .layer(axum::middleware::from_fn(security_headers_middleware))
         .layer(axum::middleware::from_fn(auth_rate_limit_middleware))
-        .layer(security_headers_extension)
         .layer(rate_limit_extension)
         .layer(axum::middleware::from_fn(request_id_middleware))
         .layer(axum::middleware::from_fn({
@@ -110,7 +108,12 @@ pub(super) fn apply_middleware(
         .layer(axum::middleware::from_fn(crate::security::cors::strip_proxy_cors_middleware))
         .layer(TraceLayer::new_for_http());
 
-    with_ops_metrics(app)
+    // IMP-09: the header layer is outermost so every response leaving the
+    // process carries it — including the 401/403/429 rendered by the auth,
+    // RBAC, CSRF and rate-limit layers inside it, and the 500 the panic
+    // handler renders. Applied as an inner layer (the previous shape) those
+    // error responses left the process bare.
+    with_security_headers(with_ops_metrics(app), security_headers_config)
 }
 
 /// Adds the operational counter middleware (#2116) when the Analytics app is

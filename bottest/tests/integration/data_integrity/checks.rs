@@ -82,8 +82,14 @@ fn live_schema_matches_botschema() {
         Err(e) => skip_or_fail!(strict, (), "{e}"),
     };
     let drift = schema::compare(&declared, &live);
-    for line in &drift.additive {
+    for line in drift.additive.iter().take(20) {
         eprintln!("additive drift (allowed, Diesel never selects it): {line}");
+    }
+    if drift.additive.len() > 20 {
+        eprintln!(
+            "... {} more additive difference(s) suppressed",
+            drift.additive.len() - 20
+        );
     }
     assert!(
         drift.fatal.is_empty(),

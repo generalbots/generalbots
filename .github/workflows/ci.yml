@@ -13,6 +13,7 @@ name: CI
 #   boteval       guards, unit tests and the evaluation gate (CI-only)
 #   botbook       mdBook rebuild and SUMMARY.md link check
 #   product       always/preview/hidden classification and feature coverage
+#   readiness     one gate over every readiness check + the BotBook scoreboard (#2121)
 #   windows       Windows agent/VM adapter compile check
 #
 # Desktop binaries are built by `.github/workflows/release.yml` on version

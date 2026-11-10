@@ -153,6 +153,10 @@ pub fn get_bot_context_from_secrets(secrets: &dyn SecretsProvider) -> (Uuid, Uui
 }
 
 
+#[cfg(test)]
+#[path = "convert_tests.rs"]
+mod convert_tests;
+
 /// Resolves the caller's (org_id, bot_id) scope from request headers with a
 /// graceful fallback to the global nil scope when the DB is unreachable —
 /// keeps read-only calendar UI fragments working for anonymous sessions.

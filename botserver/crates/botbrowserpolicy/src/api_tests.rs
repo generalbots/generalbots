@@ -113,3 +113,48 @@ fn sse_resolution_requires_some_token() {
     assert!(resolve_user_id_sse(&HeaderMap::new(), "   ").is_err());
     assert!(resolve_user_id_sse(&HeaderMap::new(), "not-a-token").is_err());
 }
+
+fn token_with_email(email: &str) -> String {
+    let payload = format!(
+        r#"{{"sub":"{USER_A}","email":"{email}","exp":{}}}"#,
+        in_an_hour()
+    );
+    hs256(&payload, &process_secret())
+}
+
+#[test]
+fn the_admin_gate_reads_only_a_verified_email_claim() {
+    let admin_email = token_with_email("admin@localhost");
+    assert_eq!(
+        verified_email(&headers_with(&admin_email)).expect("verified"),
+        Some("admin@localhost".to_string())
+    );
+
+    // Verified token without an email claim is not an admin, but is not an
+    // authentication failure either.
+    assert_eq!(
+        verified_email(&headers_with(&valid_token(USER_A))).expect("verified"),
+        None
+    );
+}
+
+#[test]
+fn the_admin_gate_fails_closed_on_an_unverified_email() {
+    // Forged `alg:none` token claiming the dev-admin email — the pre-#2112
+    // bypass into `PUT /api/browser/policy`.
+    let forged = format!(
+        "{}.{}.",
+        b64(br#"{"alg":"none","typ":"JWT"}"#),
+        b64(format!(r#"{{"email":"admin@localhost","exp":{}}}"#, in_an_hour()).as_bytes())
+    );
+    assert!(verified_email(&headers_with(&forged)).is_err());
+
+    // A token signed with another key must not promote itself either.
+    let foreign = hs256(
+        &format!(r#"{{"sub":"{USER_A}","email":"admin@localhost","exp":{}}}"#, in_an_hour()),
+        OTHER_SECRET,
+    );
+    assert!(verified_email(&headers_with(&foreign)).is_err());
+
+    assert!(verified_email(&HeaderMap::new()).is_err());
+}

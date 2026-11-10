@@ -8,6 +8,11 @@ package the runner may not have), the cost model and the budget evaluation.
 Config: ``ops/slo.yaml``. Snapshot: JSON with a ``metrics`` object, one entry per
 SLO metric, either a statistics map (``p50``/``p95``/``p99``/``max``) or a bare
 number when the SLO declares ``stat: value``.
+
+The config is written in the flat ``objective.<id>.<key>`` shape shared with the
+dashboard; ``expand_objectives`` turns it into the budget list the gate
+evaluates (see ``_gate_objective`` for how a ratio target becomes a measurement
+limit).
 """
 
 from __future__ import annotations
@@ -127,6 +132,61 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
     return parsed
 
 
+LATENCY_METRICS = ("latency_histogram", "llm_first_token", "llm_answer")
+
+
+def _gate_objective(identifier: str, fields: dict[str, Any]) -> dict[str, Any]:
+    """Translate one flat objective into the entry the gate evaluates.
+
+    ``ops/slo.yaml`` stores the dashboard view of an objective: the required
+    good ratio in ``target`` and, for latency, the ``threshold_ms`` that ratio
+    is measured against. A snapshot carries measurements, not ratios, so the
+    budget has to be expressed in the unit the metric is published in:
+
+    * a latency objective compares the ``p95`` statistic in milliseconds
+      against ``threshold_ms``;
+    * a rate objective compares a bad-event percentage (``turn.error_pct``,
+      ``ws.unexpected_disconnect_pct``, …) against the error budget
+      ``(1 - target) * 100``.
+
+    ``source`` names the snapshot metric and defaults to the id, so a file
+    without the key still resolves instead of silently passing.
+    """
+    metric_kind = str(fields.get("metric", ""))
+    ratio = fields.get("target")
+    threshold = fields.get("threshold_ms")
+    latency = metric_kind in LATENCY_METRICS
+    if latency and threshold is None:
+        raise ValueError(
+            f"objective {identifier} is a latency objective without threshold_ms; "
+            "a millisecond budget cannot be derived"
+        )
+    if not latency and ratio is None:
+        raise ValueError(
+            f"objective {identifier} is a rate objective without target; "
+            "an error budget cannot be derived"
+        )
+    entry: dict[str, Any] = {
+        "id": identifier,
+        "source": str(fields.get("source") or identifier),
+        "stat": "value",
+        "op": "lte",
+        "profile": "local-mock",
+        "metric": metric_kind,
+    }
+    if latency:
+        entry["stat"] = "p95"
+        entry["unit"] = "ms"
+        entry["target"] = float(threshold)
+    else:
+        entry["unit"] = "%"
+        entry["target"] = round((1.0 - float(ratio)) * 100.0, 6)
+    if ratio is not None:
+        entry["ratio"] = float(ratio)
+    entry.update({key: value for key, value in fields.items() if key != "target"})
+    return entry
+
+
 def expand_objectives(config: dict[str, Any]) -> dict[str, Any]:
     """Normalize the flat ``objective.<id>.<key>`` map into the SLO list.
 
@@ -148,16 +208,12 @@ def expand_objectives(config: dict[str, Any]) -> dict[str, Any]:
     for key, value in flat.items():
         _, identifier, field = key.split(".", 2)
         grouped.setdefault(identifier, {})[field] = value
+    window_days = config.get("window_days")
     slos = []
     for identifier, fields in grouped.items():
-        entry = {
-            "id": identifier,
-            "source": identifier,
-            "stat": "value",
-            "op": "lte",
-            "profile": "local-mock",
-        }
-        entry.update(fields)
+        entry = _gate_objective(identifier, fields)
+        if window_days:
+            entry.setdefault("window", f"{window_days}d")
         slos.append(entry)
     config = dict(config)
     config["slos"] = slos

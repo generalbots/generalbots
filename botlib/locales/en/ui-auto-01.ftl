@@ -7,7 +7,7 @@
 # =============================================================================
 
 auto-8-sources-min = ~8 sources/min
-auto-a-copied-loopback-link = A copied loopback link (
+auto-a-copied-loopback-link = A copied loopback link (<code>127.0.0.1</code>) opens on the recipient's own computer, not yours. Use a LAN address, set a domain, or wait for the free General Bots address before sharing a link outside this machine.
 auto-a-name-provided-by-general-bots-no-domain-needed = A name provided by General Bots, no domain needed
 auto-a-name-you-control-reachable-from-the-internet = A name you control, reachable from the internet
 auto-a1-2-3-backup-recovery = A1.2.3 - Backup & Recovery
@@ -142,7 +142,6 @@ auto-avg-response-time = Avg Response Time
 auto-background = Background
 auto-backup-restoration-test-results = Backup Restoration Test Results
 auto-badges = Badges
-auto-baixar = Baixar
 auto-bank = Bank
 auto-banking-reconciliation = Banking Reconciliation
 auto-bar-chart = Bar Chart

@@ -18,7 +18,7 @@
 //! python3 scripts/gen_integrity_dataset.py --out /tmp/gb-integrity --report
 //!
 //! # 4. run the suite — it loads the dataset, then dumps and restores it
-//! cargo test -p bottest --features integration data_integrity \
+//! cargo test -p bottest --features integration --test integration data_integrity \
 //!   -- --nocapture --test-threads=1
 //! ```
 //!
@@ -34,6 +34,15 @@
 //! round-trip. `common` holds the environment/skip helpers, `dataset` the
 //! manifest probes, `schema` the `botschema` comparison and `restore` the
 //! external-tool wrappers.
+//!
+//! ## Known gap this suite does not cover
+//!
+//! `crm_contacts` is not seeded: two migrations put contradictory foreign keys
+//! on its `org_id` (`6.5.15.1-consolidated/up.sql` -> `organizations(org_id)`,
+//! `6.5.16-branch-id-isolation/up.sql` -> `branches(id)`), so no row can satisfy
+//! both and a seeded restore would fail for a reason unrelated to tenancy.
+//! `tenant_isolation.rs` still exercises the CRM path over HTTP. Fixing the
+//! constraint is a separate issue.
 
 #[macro_use]
 mod common;

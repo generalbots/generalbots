@@ -104,14 +104,27 @@ def self_test(config_path: Path = DEFAULT_CONFIG) -> int:
     local = [slo for slo in config["slos"] if slo.get("profile") == "local-mock"]
 
     def snapshot_at(factor: float, profile: str = "local-mock") -> dict[str, Any]:
-        metrics: dict[str, Any] = {}
+        """Build a snapshot where every objective sits at ``factor`` x its budget.
+
+        Two objectives may read the same snapshot metric (``ws_handshake`` and
+        ``ws_disconnect_rate`` both watch the WebSocket stability rate, and the
+        error objectives share ``turn.error_pct``), so one metric can only carry
+        one value. It gets the value that is worst for the expected verdict:
+        the smallest budget for a run that must pass, the largest for a run that
+        must fail — either way no objective is judged against a friendlier
+        number than its own.
+        """
+        budgets: dict[str, list[tuple[str, float]]] = {}
         for slo in local:
-            value = round(float(slo["target"]) * factor, 6)
-            stat = slo["stat"]
-            if stat == "value":
-                metrics[slo["source"]] = value
-            else:
-                metrics.setdefault(slo["source"], {})[stat] = value
+            budgets.setdefault(str(slo["source"]), []).append(
+                (str(slo["stat"]), float(slo["target"]))
+            )
+        metrics: dict[str, Any] = {}
+        for source, entries in budgets.items():
+            scaled = [round(limit * factor, 6) for _, limit in entries]
+            value = min(scaled) if factor <= 1 else max(scaled)
+            stats = {stat for stat, _ in entries if stat != "value"}
+            metrics[source] = {stat: value for stat in stats} if stats else value
         return {"profile": profile, "metrics": metrics}
 
     with tempfile.TemporaryDirectory(prefix="slo-selftest-") as tmp:

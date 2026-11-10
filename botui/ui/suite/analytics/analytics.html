@@ -76,7 +76,27 @@
         </div>
     </header>
 
-    <div class="analytics-layout">
+    <nav class="analytics-tabs" role="tablist">
+        <button
+            class="analytics-tab active"
+            role="tab"
+            data-tab="product"
+            onclick="showAnalyticsTab('product')"
+        >
+            Product
+        </button>
+        <button
+            class="analytics-tab"
+            role="tab"
+            data-tab="operations"
+            onclick="showAnalyticsTab('operations')"
+        >
+            Operations
+        </button>
+    </nav>
+
+    <section class="analytics-pane active" id="analytics-product-pane">
+        <div class="analytics-layout">
         <!-- Left Panel: Metrics Overview -->
 <div id="analyticsSidebarSlot"></div>
 
@@ -340,12 +360,25 @@
                 <div class="activity-loading">Loading queries...</div>
             </div>
         </aside>
-    </div>
+        </div>
+    </section>
+
+    <section class="analytics-pane" id="analytics-operations-pane">
+        <div id="analyticsOpsSlot">
+            <div class="chart-loading">
+                <div class="spinner"></div>
+                <span>Loading operational panels...</span>
+            </div>
+        </div>
+    </section>
 
     <link rel="stylesheet" href="/suite/analytics/analytics-dashboard.css?v=1" />
 <link rel="stylesheet" href="/suite/analytics/analytics-loading-responsive.css?v=1" />
+    <link rel="stylesheet" href="/suite/analytics/analytics-ops.css?v=1" />
     <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading analytics…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Analytics unavailable</span></div>
 <script src="/suite/analytics/analytics-templates.js?v=1"></script>
+<script src="/suite/analytics/analytics-ops-templates.js?v=1"></script>
+<script src="/suite/analytics/analytics-ops.js?v=1"></script>
 <script src="/suite/analytics/analytics.js?v=2"></script>
 </div>

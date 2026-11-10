@@ -1054,7 +1054,6 @@
   "HARDCODED|Status unavailable|botui/ui/suite/integrations/modules/02_render.js",
   "HARDCODED|Status|botui/ui/suite/minutes/minutes.html",
   "HARDCODED|Status|botui/ui/suite/retail/retail.html",
-  "HARDCODED|Stop all P2P traffic for this installation. Offline mode keeps every connection on|botui/ui/suite/settings/partials/08_shared_links.html",
   "HARDCODED|Stop failed:|botui/ui/suite/meet/voice.js",
   "HARDCODED|Stopped|botui/ui/suite/chat/modules/73_app_frame.js",
   "HARDCODED|Stopping\u2026|botui/ui/suite/chat/modules/71_run_timeline.js",

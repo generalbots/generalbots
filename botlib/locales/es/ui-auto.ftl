@@ -73,7 +73,7 @@ auto-search-users = Buscar usuarios
 auto-schedule-send = Programar envío
 auto-role-name = Nombre del rol
 auto-review = Revisar
-auto-restart = Reiniciar
+auto-restart = ¿Reiniciar <strong id="os-restart-service-name" data-i18n="auto-the-service">el servicio</strong>? Escriba el nombre del servicio para confirmar; el reinicio se registra en el registro de auditoría.
 auto-requested = Solicitado
 auto-req-min = req/min
 auto-reports = Informes
@@ -152,3 +152,24 @@ auto-documents = Documentos
 auto-developer = desarrollador
 auto-department = Departamento
 auto-delete-user = Eliminar usuario
+auto-a-copied-loopback-link = Un enlace de loopback copiado (<code>127.0.0.1</code>) se abre en el equipo del destinatario, no en el suyo. Use una dirección de red local, defina un dominio o espere la dirección gratuita de General Bots antes de compartir un enlace fuera de este equipo.
+auto-this-tier-is-on-by-default-the-local-server-listens-on-all-i = Este nivel está activo por defecto: el servidor local escucha en todas las interfaces. Abra la dirección de red desde otro dispositivo de la misma red. Si el tráfico entre dispositivos está bloqueado, permita el puerto TCP <code id="shared-links-port">8080</code> de entrada en este equipo.
+auto-if-the-local-name-does-not-resolve = Si el nombre <code>.local</code> no se resuelve, use la dirección IPv4 de este equipo (por ejemplo <code>http://192.168.1.20:8080</code>).
+auto-point-a-dns-record-for-example = Apunte un registro DNS (por ejemplo <code>files.example.com</code>) a la dirección pública de este equipo.
+auto-set-the-public-base-url-for-this-installation = Defina la URL base pública de esta instalación: <pre><code>PUBLIC_BASE_URL=https://files.example.com</code></pre> o, en el archivo de producto: <pre><code>public_base_url=https://files.example.com</code></pre>
+auto-not-available-yet-the-desktop-works-offline-so-this-tier-nee = Aún no disponible. El escritorio funciona sin conexión, así que este nivel necesita una zona DNS gratuita y un relé para equipos que no pueden alcanzarse directamente. Se distribuye desactivado con el trabajo <code>botpublic</code> seguido en #1864.
+auto-the-free-account-will-hold-a-name-not-your-files-when-a-mach = La cuenta gratuita guardará un nombre — no sus archivos. Cuando un equipo no pueda alcanzarse directamente, el relé gestionado (<code id="shared-links-relay-host">peer.generalbots.org</code>) conserva solo una copia cifrada del archivo compartido y esa copia caduca. No se requiere configuración manual del relé.
+auto-stop-all-p2p-traffic-for-this-installation = Detiene todo el tráfico P2P de esta instalación. El modo sin conexión mantiene todas las conexiones en <code>127.0.0.1</code>.
+auto-the-relay-endpoint-is-fixed = El endpoint del relé es fijo (<code>peer.generalbots.org</code>). Cambiar esta opción puede requerir reiniciar la aplicación para que surta efecto.
+auto-offline-mode-keeps-every-connection-on = El modo sin conexión mantiene todas las conexiones en <code>127.0.0.1</code> y los enlaces compartidos funcionan solo en su red local.<br />P2P habilita funciones futuras como el relé gratuito de enlaces compartidos y el descubrimiento de pares. Ningún dato sale de este equipo hasta que comparta algo explícitamente.
+auto-this-preference-is-saved-locally-and-takes-effect-after-the = Esta preferencia se guarda localmente y surte efecto al reiniciar la aplicación. El endpoint del relé es fijo (<code id="network-relay-host">peer.generalbots.org</code>); la resolución de pares y del sitio principal siempre lo usa, así que no se requiere configuración manual.
+auto-press = Pulse <kbd>/</kbd> para comandos o empiece a escribir...
+auto-the-page-will-be-live-at = La página estará disponible en <strong><span id="public-profile-url-hint" data-i18n="auto-your-name-generalbots-org">su-nombre.generalbots.org</span></strong> cuando el relé del sitio principal de General Bots esté disponible (#1867).
+auto-the-app-checks = La aplicación consulta <code>github.com/generalbots/generalbots/releases/latest</code>. La instalación siempre es opcional.
+auto-tokens-you-mint-for-calling-the-api-as-yourself = Tokens que genera para llamar a la API en su nombre (<code>gb_…</code>). Las claves de los proveedores de modelo están en la aplicación Integraciones.
+auto-click-new-session-to-begin = Haga clic en "Nueva sesión" para empezar.
+auto-data-points = puntos de datos
+auto-run = ejecución
+auto-tool = herramienta
+auto-download = Descargar
+auto-hours-label = Horas

@@ -314,6 +314,17 @@
 }
 
 /* Runbooks -------------------------------------------------------------- */
+.ops-gate-list {
+    margin: 0;
+    padding-left: 1rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.ops-gate-list strong {
+    color: var(--text-primary);
+}
+
 .ops-runbooks ul {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

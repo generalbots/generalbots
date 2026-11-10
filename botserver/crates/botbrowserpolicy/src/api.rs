@@ -82,14 +82,31 @@ fn resolve_user_id_sse(
     verified_user_id(token)
 }
 
+/// Verified email claim of the caller, used by the admin policy gate.
+///
+/// `Ok(None)` = verified token without an `email` claim (never an admin);
+/// `Err(401)` = the token cannot be verified, so the gate fails closed.
+fn verified_email(headers: &HeaderMap) -> Result<Option<String>, (StatusCode, String)> {
+    let token = bearer_token(headers).ok_or_else(unauthorized)?;
+    let claims = verified_claims(token).ok_or_else(unauthorized)?;
+    Ok(claims.email)
+}
+
 fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, (StatusCode, String)> {
+    // #2112 — the admin decision is made on a **signature-verified** email
+    // claim. The previous path read `email` straight out of the decoded
+    // payload, so a forged `alg:none` token could name `admin@localhost` and
+    // rewrite the browsing policy.
+    let Some(email) = verified_email(headers)? else {
+        return Ok(false);
+    };
     // Canonical platform-admin check (#1387) — same root-org membership
     // model as drive tenant isolation and botcloud admin gates.
     let mut conn = svc.pool().get().map_err(|e| {
         tracing::error!("browser policy admin check: pool unavailable: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
     })?;
-    botsecurity_auth::platform_admin::is_platform_admin(&mut conn, headers).map_err(|e| {
+    botsecurity_auth::platform_admin::is_platform_admin_for_email(&mut conn, &email).map_err(|e| {
         tracing::error!("browser policy admin check query failed: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
     })

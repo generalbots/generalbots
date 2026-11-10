@@ -1,5 +1,6 @@
 mod bus_sink;
 mod inbound;
+mod message_limit;
 mod resume;
 mod run_task;
 mod takeover;
@@ -131,6 +132,10 @@ pub async fn handle_ws(
     let thread_id = bus::thread_id(session_id);
     let (_live_seq, mut bus_rx) = bus::bus().subscribe(&thread_id);
 
+    // IMP-07 — the HTTP limiter stops at the upgrade. Every inbound frame is
+    // metered here so one socket cannot drive an unbounded number of turns.
+    let message_limiter = message_limit::MessageLimiter::new();
+
     loop {
         tokio::select! {
             frame = bus_rx.recv() => {
@@ -171,6 +176,22 @@ pub async fn handle_ws(
             msg = ws_receiver.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
+                        if !message_limiter.allow() {
+                            botlog::safe_warn!(
+                                "WS message rate limit hit: session={session_id}; frame dropped"
+                            );
+                            let notice = serde_json::json!({
+                                "type": "rate_limited",
+                                "session_id": session_id,
+                                "message": "Too many messages. Please slow down.",
+                            });
+                            let _ = ws_sender
+                                .lock()
+                                .await
+                                .send(Message::Text(notice.to_string()))
+                                .await;
+                            continue;
+                        }
                         inbound::handle(inbound::Inbound {
                             ws_sender: &ws_sender,
                             state: &state,
