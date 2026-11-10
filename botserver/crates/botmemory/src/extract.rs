@@ -229,3 +229,7 @@ mod tests {
         assert!(sample_hit(100));
     }
 }
+
+#[cfg(test)]
+#[path = "extract_tests.rs"]
+mod extract_tests;

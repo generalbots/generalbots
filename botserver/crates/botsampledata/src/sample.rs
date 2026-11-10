@@ -218,3 +218,6 @@ struct CountRow {
     #[diesel(sql_type = BigInt)]
     n: i64,
 }
+#[cfg(test)]
+#[path = "sample_tests.rs"]
+mod sample_tests;

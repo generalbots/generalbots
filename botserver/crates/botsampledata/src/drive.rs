@@ -163,3 +163,7 @@ pub async fn seed_drive_objects(
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "drive_tests.rs"]
+mod drive_tests;

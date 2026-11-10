@@ -70,12 +70,7 @@ pub async fn sessions_table(
                 .map(|(id, number, name, email, channel, status, priority, subject, created)| {
                     let customer = name.clone().unwrap_or_else(|| email.clone().unwrap_or_else(|| "Unknown".to_string()));
                     let subj = subject.clone().unwrap_or_else(|| "No subject".to_string());
-                    let status_class = match status.as_str() {
-                        "waiting" => "status-waiting",
-                        "active" => "status-active",
-                        "ended" => "status-ended",
-                        _ => "status-default",
-                    };
+                    let status_class = crate::lifecycle::session_status_class(&status);
                     let priority_badge = match priority {
                         p if *p >= 2 => r##"<span class="badge badge-high">High</span>"##,
                         p if *p == 1 => r##"<span class="badge badge-medium">Medium</span>"##,
@@ -375,12 +370,7 @@ pub async fn agent_status_list(State(config): State<Arc<AttendantConfig>>) -> Ht
             let items: String = agents
                 .iter()
                 .map(|(id, agent_id, status, current, max, last_activity)| {
-                    let status_class = match status.as_str() {
-                        "online" => "status-online",
-                        "busy" => "status-busy",
-                        "break" => "status-break",
-                        _ => "status-offline",
-                    };
+                    let status_class = crate::lifecycle::agent_status_class(&status);
                     let last_time = last_activity.format("%H:%M").to_string();
 
                     format!(

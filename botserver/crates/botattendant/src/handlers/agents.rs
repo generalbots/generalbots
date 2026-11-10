@@ -28,17 +28,9 @@ pub async fn update_agent_status(
         .first(&mut conn)
         .ok();
 
-    let break_started = if req.status == "break" {
-        Some(now)
-    } else {
-        None
-    };
-
-    let available_since = if req.status == "online" {
-        Some(now)
-    } else {
-        None
-    };
+    let stamps = crate::lifecycle::activity_stamps(&req.status, now);
+    let break_started = stamps.break_started_at;
+    let available_since = stamps.available_since;
 
     if existing.is_some() {
         diesel::update(

@@ -27,7 +27,10 @@ impl TaskProgressEvent {
         self.current_step = current;
         self.total_steps = total;
         self.progress = if total > 0 {
-            ((current as u16 * 100) / total as u16) as u8
+            // Clamp so a caller that reports more steps than the total cannot
+            // produce a percentage above 100 (or wrap the u8).
+            let current = u16::from(current.min(total));
+            ((current * 100) / u16::from(total)).min(100) as u8
         } else {
             0
         };

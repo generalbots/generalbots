@@ -157,3 +157,7 @@ pub fn ensure_source(value: &str) -> Result<String, String> {
     }
     Ok(trimmed.to_string())
 }
+
+#[cfg(test)]
+#[path = "models_tests.rs"]
+mod models_tests;

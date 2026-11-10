@@ -150,3 +150,7 @@ pub use default_statement_format::*;
 pub use default_settings::*;
 pub use stats::*;
 pub use generate_report::*;
+
+#[cfg(test)]
+#[path = "pix_id_tests.rs"]
+mod pix_id_tests;

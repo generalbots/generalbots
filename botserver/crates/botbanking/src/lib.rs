@@ -23,7 +23,7 @@ pub use platform::{DeliveryPlatform, PlatformConnector, ConnectorKind, Connector
 pub use transaction::{BankTransaction, TransactionKind, TransactionSide, ReconcileStatus};
 pub use reconcile::{
     Reconciliation, ReconciliationMatch, MatchConfidence, ReconcileError,
-    match_transactions,
+    match_transactions, window_duration,
 };
 pub use billing::{BillingEntry, BillingKind, BillingPeriod};
 pub use dashboard::{BillingDashboard, DashboardSummary, DashboardKpi};

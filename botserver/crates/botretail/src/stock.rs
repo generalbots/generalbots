@@ -37,6 +37,13 @@ impl StockLevel {
     pub fn available(&self) -> i64 {
         self.quantity - self.reserved
     }
+
+    /// True when `requested` units can be fulfilled from the available count.
+    ///
+    /// A negative request is a malformed movement, never a fulfilment.
+    pub fn can_fulfill(&self, requested: i64) -> bool {
+        requested >= 0 && self.available() >= requested
+    }
 }
 
 /// Kind of stock movement.
@@ -90,3 +97,7 @@ mod tests {
         assert_eq!(s.available(), 88);
     }
 }
+
+#[cfg(test)]
+#[path = "stock_tests.rs"]
+mod stock_tests;

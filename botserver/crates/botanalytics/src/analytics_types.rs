@@ -49,8 +49,13 @@ pub struct AnalyticsQuery {
     pub time_range: Option<String>,
 }
 
+/// Threshold below which a magnitude is still rendered with the smaller unit.
+/// It is one rounding step (0.1 unit) below 1_000_000 so 999_999 promotes to
+/// "1.0M" instead of rounding to the misleading "1000.0K".
+const PROMOTION_THRESHOLD: i64 = 999_950;
+
 pub(crate) fn format_number(n: i64) -> String {
-    if n >= 1_000_000 {
+    if n >= PROMOTION_THRESHOLD {
         format!("{:.1}M", n as f64 / 1_000_000.0)
     } else if n >= 1_000 {
         format!("{:.1}K", n as f64 / 1_000.0)
@@ -66,3 +71,7 @@ pub(crate) fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
 }
+
+#[cfg(test)]
+#[path = "analytics_types_tests.rs"]
+mod tests;

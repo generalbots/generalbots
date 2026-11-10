@@ -423,3 +423,7 @@ mod get_content_type;
 
 pub use collect_llm_stream::*;
 pub use get_content_type::*;
+
+#[cfg(test)]
+#[path = "progress_tests.rs"]
+mod progress_tests;

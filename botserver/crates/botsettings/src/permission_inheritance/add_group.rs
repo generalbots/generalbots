@@ -14,16 +14,28 @@ impl GroupHierarchy {
         permissions: Vec<String>,
         parent_group: Option<String>,
     ) {
+        // A child may be declared before its parent; adopt the children that
+        // already point at this name so the tree does not depend on order.
+        let mut child_groups: Vec<String> = self
+            .groups
+            .iter()
+            .filter(|(_, node)| node.parent_group.as_deref() == Some(name))
+            .map(|(child, _)| child.clone())
+            .collect();
+        child_groups.sort();
+
         if let Some(ref parent) = parent_group {
             if let Some(parent_node) = self.groups.get_mut(parent) {
-                parent_node.child_groups.push(name.to_string());
+                if !parent_node.child_groups.iter().any(|c| c == name) {
+                    parent_node.child_groups.push(name.to_string());
+                }
             }
         }
 
         let node = GroupNode {
             permissions: permissions.into_iter().collect(),
             parent_group,
-            child_groups: Vec::new(),
+            child_groups,
         };
         self.groups.insert(name.to_string(), node);
         self.permission_cache.clear();
@@ -78,15 +90,20 @@ impl GroupHierarchy {
 
     pub fn get_ancestors(&self, group_name: &str) -> Vec<String> {
         let mut ancestors = Vec::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        visited.insert(group_name.to_string());
         let mut current = group_name.to_string();
 
         while let Some(group) = self.groups.get(&current) {
-            if let Some(ref parent) = group.parent_group {
-                ancestors.push(parent.clone());
-                current = parent.clone();
-            } else {
+            let Some(parent) = group.parent_group.clone() else {
+                break;
+            };
+            if !visited.insert(parent.clone()) {
+                // Cycle: stop instead of walking it forever.
                 break;
             }
+            ancestors.push(parent.clone());
+            current = parent;
         }
 
         ancestors
@@ -94,13 +111,17 @@ impl GroupHierarchy {
 
     pub fn get_descendants(&self, group_name: &str) -> Vec<String> {
         let mut descendants = Vec::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        visited.insert(group_name.to_string());
         let mut queue = vec![group_name.to_string()];
 
         while let Some(current) = queue.pop() {
             if let Some(group) = self.groups.get(&current) {
                 for child in &group.child_groups {
-                    descendants.push(child.clone());
-                    queue.push(child.clone());
+                    if visited.insert(child.clone()) {
+                        descendants.push(child.clone());
+                        queue.push(child.clone());
+                    }
                 }
             }
         }

@@ -102,11 +102,13 @@ pub async fn dashboard_invitations(State(state): State<Arc<AppState>>) -> Html<S
 /// bumping `updated_at`.
 pub async fn resend_invitation(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new(state.conn.clone());
+    let locale = botcore::i18n::locale_from_headers(&headers);
 
-    match service.resend_invitation(id, "Organization", true).await {
+    match service.resend_invitation(id, "Organization", true, &locale).await {
         Ok(invitation) => Ok(Json(serde_json::json!({
             "success": true,
             "id": invitation.id,
@@ -169,6 +171,7 @@ pub async fn create_invitation(
             invited_by_name: "Admin User",
             message: req.message,
             expires_in_days: 7,
+            locale: botcore::i18n::locale_from_headers(&headers),
         })
         .await
     {
@@ -228,6 +231,7 @@ pub async fn bulk_invite(
             invited_by,
             invited_by_name: "Admin User",
             message: req.message,
+            locale: botcore::i18n::locale_from_headers(&headers),
         })
         .await;
 

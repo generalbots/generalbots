@@ -5,6 +5,8 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::stock::StockLevel;
+
 /// Payment method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PaymentMethod {
@@ -37,6 +39,16 @@ pub struct PosLineItem {
     pub discount: Decimal,
     /// Total for this line (`quantity * unit_price - discount`).
     pub total: Decimal,
+}
+
+impl PosLineItem {
+    /// Total the line must carry: `quantity * unit_price - discount`.
+    ///
+    /// Used to validate a payload that arrives from the terminal, where
+    /// `total` is client-supplied.
+    pub fn computed_total(&self) -> Decimal {
+        self.unit_price * Decimal::from(self.quantity) - self.discount
+    }
 }
 
 /// A single payment in a POS sale.
@@ -90,6 +102,60 @@ impl PosSale {
     pub fn balance(&self) -> Decimal {
         self.gross() - self.paid()
     }
+
+    /// Change owed to the customer, zero when the sale is not overpaid.
+    pub fn change(&self) -> Decimal {
+        (self.paid() - self.gross()).max(Decimal::ZERO)
+    }
+
+    /// Validates the sale before it is finalized.
+    ///
+    /// The sale must carry at least one line and a positive gross total, and
+    /// the payments must cover it. Overpaying is allowed (the difference is
+    /// change); underpaying is not.
+    pub fn validate(&self) -> Result<(), PosError> {
+        let gross = self.gross();
+        if self.lines.is_empty() || gross <= Decimal::ZERO {
+            return Err(PosError::ZeroTotal);
+        }
+        let paid = self.paid();
+        if paid < gross {
+            return Err(PosError::PaymentMismatch { paid, gross });
+        }
+        Ok(())
+    }
+
+    /// Ensures every line can be fulfilled by the given stock levels.
+    ///
+    /// Lines for the same variation are aggregated, reservations are already
+    /// deducted by [`StockLevel::available`], and a variation with no level in
+    /// this branch has nothing on hand.
+    pub fn ensure_stock(&self, levels: &[StockLevel]) -> Result<(), PosError> {
+        let mut requested: Vec<(Uuid, i64)> = Vec::new();
+        for line in &self.lines {
+            match requested
+                .iter_mut()
+                .find(|(variation, _)| *variation == line.variation_id)
+            {
+                Some((_, quantity)) => *quantity += line.quantity,
+                None => requested.push((line.variation_id, line.quantity)),
+            }
+        }
+        for (variation_id, quantity) in requested {
+            if quantity <= 0 {
+                continue;
+            }
+            let available = levels
+                .iter()
+                .find(|level| level.variation_id == variation_id)
+                .map(StockLevel::available)
+                .unwrap_or(0);
+            if available < quantity {
+                return Err(PosError::OutOfStock(variation_id));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Active POS session (open shift).
@@ -114,12 +180,12 @@ pub struct PosSession {
 }
 
 /// Errors raised by the POS engine.
-#[derive(Debug, thiserror::Error, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, thiserror::Error, Serialize, Deserialize)]
 pub enum PosError {
     /// Sale total is zero or negative.
     #[error("sale total must be > 0")]
     ZeroTotal,
-    /// Payment total doesn't match sale total.
+    /// Payments do not cover the sale total.
     #[error("paid {paid} != gross {gross}")]
     PaymentMismatch {
         /// Paid.
@@ -167,3 +233,7 @@ mod tests {
         assert_eq!(sale.balance(), Decimal::ZERO);
     }
 }
+
+#[cfg(test)]
+#[path = "pos_tests.rs"]
+mod pos_tests;

@@ -300,3 +300,7 @@ pub async fn sync_platform(
         "status": "synced"
     })))
 }
+
+#[cfg(test)]
+#[path = "handlers_tests.rs"]
+mod handlers_tests;

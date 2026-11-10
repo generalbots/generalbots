@@ -8,6 +8,25 @@ pub fn rule_score(severity: &str) -> i32 {
     }
 }
 
+/// Score added by a velocity breach.
+pub const VELOCITY_WEIGHT: i32 = 30;
+
+/// Accumulates the signals of one assessment into the clamped 0..=100 score
+/// the classifier consumes.
+///
+/// A blocklist hit is absolute: it sets the score to 100 regardless of the rule
+/// weights, so no combination of rules can outvote a blocked identifier.
+pub fn accumulate(rule_scores: &[i32], blocked: bool, velocity: bool) -> i32 {
+    let mut total: i32 = rule_scores.iter().sum();
+    if blocked {
+        total = 100;
+    }
+    if velocity {
+        total += VELOCITY_WEIGHT;
+    }
+    total.clamp(0, 100)
+}
+
 pub fn classify(score: i32, blocked: bool) -> (String, String) {
     if blocked || score >= 80 {
         ("critical".into(), "block".into())
@@ -54,3 +73,7 @@ mod scoring_tests {
         assert_eq!(classify(5, true), ("critical".into(), "block".into()));
     }
 }
+
+#[cfg(test)]
+#[path = "scoring_aggregate_tests.rs"]
+mod aggregate_tests;

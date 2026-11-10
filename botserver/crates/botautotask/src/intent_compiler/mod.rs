@@ -191,3 +191,7 @@ pub(crate) mod extract_json_object;
 
 pub use compile_prompt::*;
 use extract_json_object::*;
+
+#[cfg(test)]
+#[path = "compile_prompt_tests.rs"]
+mod fallback_tests;

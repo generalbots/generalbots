@@ -232,3 +232,7 @@ mod create_manifest_from_llm_response;
 
 use with_steps::*;
 pub use create_manifest_from_llm_response::*;
+
+#[cfg(test)]
+#[path = "manifest_tests.rs"]
+mod manifest_tests;

@@ -35,25 +35,43 @@ struct CleanedItem {
     pinned: bool,
 }
 
+/// Namespace for the ids of candidates simulated during a dry run. They can
+/// never collide with a stored row (UUID v4) and, unlike a shared nil id, they
+/// keep independent simulated items distinguishable: superseding one item used
+/// to drop every other simulated candidate, so the projection reported
+/// "would create" for items the live run would supersede.
+const SIMULATED_ID_BASE: u128 = 0x5eed_0000_0000_0000_0000_0000_0000_0000;
+
+fn simulated_id(index: u128) -> Uuid {
+    Uuid::from_u128(SIMULATED_ID_BASE | index)
+}
+
 /// Projects import counters without touching the database. Dry-run engine
 /// shared by [`import`]; later items observe earlier simulated inserts.
 pub fn plan_import(mut candidates: Vec<DedupeCandidate>, items: &[MemoryItem]) -> ImportReport {
     let mut report = ImportReport::default();
+    let mut simulated = 0u128;
     for item in items {
         let raw_lowercase = item.content.trim().to_lowercase();
         let normalized = normalize_content(&item.content);
         match decide_dedupe(&candidates, &normalized, &raw_lowercase, item.confidence) {
-            DedupeDecision::Fresh => {
-                report.would_create += 1;
-                candidates.push(DedupeCandidate::build(Uuid::nil(), &item.content, item.confidence, Utc::now()));
-            }
+            DedupeDecision::Fresh => report.would_create += 1,
             DedupeDecision::Supersede { candidate } => {
                 report.superseded += 1;
                 candidates.retain(|existing| existing.id != candidate);
-                candidates.push(DedupeCandidate::build(Uuid::nil(), &item.content, item.confidence, Utc::now()));
             }
-            _ => report.skipped += 1,
+            DedupeDecision::SkipDuplicate { .. } | DedupeDecision::SkipLowerConfidence { .. } => {
+                report.skipped += 1;
+                continue;
+            }
         }
+        simulated += 1;
+        candidates.push(DedupeCandidate::build(
+            simulated_id(simulated),
+            &item.content,
+            item.confidence,
+            Utc::now(),
+        ));
     }
     report
 }
@@ -161,3 +179,7 @@ mod tests {
         assert_eq!(report.created, 0);
     }
 }
+
+#[cfg(test)]
+#[path = "import_tests.rs"]
+mod import_tests;

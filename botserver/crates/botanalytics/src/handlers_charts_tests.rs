@@ -64,7 +64,9 @@ fn fill_adds_a_closed_polygon_under_the_line() {
 
     assert!(html.contains("<polygon"));
     let polygon = coordinates(&html, POLYGON);
-    assert_eq!(polygon.len(), 2);
+    // One point per value plus the two baseline corners that close the area.
+    assert_eq!(polygon.len(), 4);
+    assert_eq!(&polygon[2..], &[(480.0, 200.0), (0.0, 200.0)]);
     assert!(html.contains("480,200 0,200\"/>"));
 }
 

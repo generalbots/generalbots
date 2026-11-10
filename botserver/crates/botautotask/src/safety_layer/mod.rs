@@ -309,3 +309,7 @@ mod predicted_resource_usage;
 mod audit_event_type;
 mod safety_config;
 mod with_config;
+
+#[cfg(test)]
+#[path = "risk_level_tests.rs"]
+mod risk_level_tests;

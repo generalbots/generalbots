@@ -16,6 +16,9 @@ pub struct ChartTypeQuery {
 /// Renders an SVG line/area chart from `values` (raw magnitudes) with labels
 /// shown every 4 hours. `fill` toggles the area fill under the polyline.
 fn render_line_chart(values: &[f64], max: f64, labels: &[String], fill: bool) -> String {
+    // A non-positive scale would turn every coordinate into inf/NaN, which
+    // SVG silently drops; fall back to a unit scale so the chart stays valid.
+    let max = if max.is_finite() && max > 0.0 { max } else { 1.0 };
     let mut html = String::new();
     let _ = write!(html, "<div class=\"chart-container line-chart\">");
     let _ = write!(html, "<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">");
@@ -317,3 +320,7 @@ pub async fn handle_bots_performance(State(pool): State<Arc<DbPool>>) -> impl In
 
     Html(html)
 }
+
+#[cfg(test)]
+#[path = "handlers_charts_tests.rs"]
+mod tests;

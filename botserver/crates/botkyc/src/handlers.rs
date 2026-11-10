@@ -92,11 +92,7 @@ pub async fn list_verifications(headers: HeaderMap) -> Result<Json<Vec<Verificat
         user_id: r.profile_id,
         kind: r.workflow_name,
         status: r.status,
-        documents: r
-            .steps_completed
-            .as_array()
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-            .unwrap_or_default(),
+        documents: crate::lifecycle::documents_from_steps(&r.steps_completed),
         reviewed_by: None,
         created_at: r.started_at,
         completed_at: r.completed_at,
@@ -112,12 +108,8 @@ pub async fn update_verification(
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     // The biometric KYC state machine owns the lifecycle (#1502): unknown
     // statuses are rejected here and terminal cases cannot be reopened.
-    let state = botbiometry::kyc::KycState::from_status(&req.status).ok_or_else(|| {
-        (
-            StatusCode::BAD_REQUEST,
-            format!("Unknown KYC status '{}'", req.status),
-        )
-    })?;
+    let state = crate::lifecycle::resolve_requested(&req.status)
+        .map_err(|error| (StatusCode::BAD_REQUEST, error))?;
     ensure_schema_sync()?;
     let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
@@ -138,17 +130,8 @@ pub async fn update_verification(
         Some(row) => row.status,
         None => return Err((StatusCode::NOT_FOUND, format!("Verification {id} not found"))),
     };
-    if let Some(current_state) = botbiometry::kyc::KycState::from_status(&current) {
-        if current_state.is_terminal() && current_state != state {
-            return Err((
-                StatusCode::CONFLICT,
-                format!(
-                    "KYC case {id} is terminal ({}) and cannot transition to '{}'",
-                    current_state.as_status(),
-                    state.as_status()
-                ),
-            ));
-        }
+    if let Err(error) = crate::lifecycle::check_transition(&current, state) {
+        return Err((StatusCode::CONFLICT, format!("KYC case {id} is {error}")));
     }
     let completed_at = if state.is_terminal() {
         Some(Utc::now())

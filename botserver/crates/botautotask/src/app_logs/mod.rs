@@ -88,3 +88,7 @@ mod app_log_store;
 mod log_generator_info;
 
 pub use log_generator_info::*;
+
+#[cfg(test)]
+#[path = "log_level_tests.rs"]
+mod log_level_tests;

@@ -140,7 +140,16 @@ pub async fn assign_session(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Session not found".to_string()))?;
 
-    let wait_time = (now - session.started_at).num_seconds() as i32;
+    // A closed session is terminal: reassigning it would resurrect a case the
+    // customer already saw as finished.
+    if !crate::lifecycle::accepts_work(&session.status) {
+        return Err((
+            StatusCode::CONFLICT,
+            format!("Session {id} has ended and cannot be assigned"),
+        ));
+    }
+
+    let wait_time = crate::lifecycle::wait_seconds(session.started_at, now);
 
     diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
         .set((
@@ -190,24 +199,30 @@ pub async fn transfer_session(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
 
-    if let Some(to_agent_id) = req.to_agent_id {
-        diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
-            .set((
-                attendant_sessions::agent_id.eq(Some(to_agent_id)),
-                attendant_sessions::transfer_count.eq(session.transfer_count + 1),
-            ))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    } else if let Some(to_queue_id) = req.to_queue_id {
-        diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
-            .set((
-                attendant_sessions::agent_id.eq(None::<Uuid>),
-                attendant_sessions::queue_id.eq(Some(to_queue_id)),
-                attendant_sessions::status.eq("waiting"),
-                attendant_sessions::transfer_count.eq(session.transfer_count + 1),
-            ))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    match crate::lifecycle::transfer_target(req.to_agent_id, req.to_queue_id) {
+        crate::lifecycle::TransferTarget::Agent(to_agent_id) => {
+            diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
+                .set((
+                    attendant_sessions::agent_id.eq(Some(to_agent_id)),
+                    attendant_sessions::transfer_count.eq(session.transfer_count + 1),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        }
+        crate::lifecycle::TransferTarget::Queue(to_queue_id) => {
+            diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
+                .set((
+                    attendant_sessions::agent_id.eq(None::<Uuid>),
+                    attendant_sessions::queue_id.eq(Some(to_queue_id)),
+                    attendant_sessions::status.eq(crate::lifecycle::SessionStatus::Waiting.as_str()),
+                    attendant_sessions::transfer_count.eq(session.transfer_count + 1),
+                ))
+                .execute(&mut conn)
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        }
+        // Neither destination supplied: the transfer is recorded for the audit
+        // trail and the session keeps its current owner.
+        crate::lifecycle::TransferTarget::Unrouted => {}
     }
 
     let updated: AttendantSession = attendant_sessions::table
@@ -232,13 +247,11 @@ pub async fn end_session(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Session not found".to_string()))?;
 
-    let handle_time = session.assigned_at.map(|assigned| {
-        (now - assigned).num_seconds() as i32
-    });
+    let handle_time = crate::lifecycle::handle_seconds(session.assigned_at, now);
 
     diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(id)))
         .set((
-            attendant_sessions::status.eq("ended"),
+            attendant_sessions::status.eq(crate::lifecycle::SessionStatus::Ended.as_str()),
             attendant_sessions::ended_at.eq(Some(now)),
             attendant_sessions::handle_time_seconds.eq(handle_time),
         ))
@@ -310,7 +323,7 @@ pub async fn send_message(
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Session not found".to_string()))?;
 
-    if session.first_response_at.is_none() && !message.is_internal {
+    if crate::lifecycle::stamps_first_response(session.first_response_at, message.is_internal) {
         diesel::update(attendant_sessions::table.filter(attendant_sessions::id.eq(session_id)))
             .set(attendant_sessions::first_response_at.eq(Some(now)))
             .execute(&mut conn)

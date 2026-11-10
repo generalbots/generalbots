@@ -15,3 +15,7 @@ impl FraudAction {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "actions_tests.rs"]
+mod actions_tests;

@@ -122,7 +122,10 @@ fn malformed_jwt_shapes_are_rejected() {
         Err("Invalid JWT payload encoding".to_string())
     );
 
-    let not_json = headers_with("authorization", &jwt_with_payload("not json"));
+    let not_json = headers_with(
+        "authorization",
+        &format!("Bearer {}", jwt_with_payload("not json")),
+    );
     assert!(extract_user_from_session(&not_json)
         .expect_err("invalid JSON")
         .starts_with("Invalid JWT payload JSON:"));

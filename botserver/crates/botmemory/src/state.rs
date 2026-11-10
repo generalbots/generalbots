@@ -39,7 +39,16 @@ impl MemoryService {
     }
 
     pub fn with_sample_pct(mut self, sample_pct: u8) -> Self {
-        self.sample_pct = sample_pct.min(SAMPLE_PCT_MAX);
+        self.sample_pct = clamp_sample_pct(sample_pct);
         self
     }
 }
+
+/// Clamps a configured sampling percentage into the 0–100 range.
+pub fn clamp_sample_pct(sample_pct: u8) -> u8 {
+    sample_pct.min(SAMPLE_PCT_MAX)
+}
+
+#[cfg(test)]
+#[path = "state_tests.rs"]
+mod state_tests;

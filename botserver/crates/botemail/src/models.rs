@@ -344,3 +344,7 @@ pub struct EmailLabelRow {
     #[diesel(sql_type = Varchar)]
     pub color: String,
 }
+
+#[cfg(test)]
+#[path = "models_tests.rs"]
+mod tests;

@@ -419,3 +419,7 @@ async fn post_token_request(url: &str, form: &[(&str, &str)]) -> Result<TokenSet
 
     parsed.into_token_set()
 }
+
+#[cfg(test)]
+#[path = "oauth_tests.rs"]
+mod tests;

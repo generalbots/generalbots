@@ -123,4 +123,8 @@ mod check_access;
 mod create_default_resolver;
 mod with_default_roles;
 
+#[cfg(test)]
+#[path = "permission_inheritance_tests.rs"]
+mod tests;
+
 pub use create_default_resolver::*;

@@ -32,7 +32,7 @@ pub(crate) fn generate_session_number(conn: &mut diesel::PgConnection, branch_id
         .count()
         .get_result(conn)
         .unwrap_or(0);
-    format!("SES-{:06}", count + 1)
+    crate::lifecycle::format_session_number(count)
 }
 
 macro_rules! db_conn {

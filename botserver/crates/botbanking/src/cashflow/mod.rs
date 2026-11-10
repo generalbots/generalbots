@@ -115,3 +115,7 @@ mod cashflow_diagnosis_inner;
 
 pub use resolve_bot_scope::*;
 pub use cashflow_diagnosis_inner::*;
+
+#[cfg(test)]
+#[path = "cashflow_rules_tests.rs"]
+mod cashflow_rules_tests;

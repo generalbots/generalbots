@@ -424,3 +424,7 @@ pub fn export_all(conn: &mut PgConnection, owner: Uuid) -> Result<Vec<UserMemory
 #[cfg(test)]
 #[path = "store_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "store_dedupe_tests.rs"]
+mod dedupe_tests;

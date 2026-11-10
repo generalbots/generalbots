@@ -63,6 +63,47 @@ impl PriceList {
             .min_by_key(|e| e.min_qty)
             .map(|e| e.price)
     }
+
+    /// Unit price for `quantity` units at `tier`: the break with the largest
+    /// `min_qty` that does not exceed the quantity. A quantity below every
+    /// break falls back to the entry with the lowest `min_qty`.
+    pub fn price_for_quantity(
+        &self,
+        variation_id: Uuid,
+        tier: PriceTier,
+        quantity: u32,
+    ) -> Option<Decimal> {
+        let mut applicable: Option<&PriceListEntry> = None;
+        for entry in self
+            .entries
+            .iter()
+            .filter(|e| e.variation_id == variation_id && e.tier == tier)
+        {
+            if entry.min_qty <= quantity {
+                let better = match applicable {
+                    Some(best) => entry.min_qty > best.min_qty,
+                    None => true,
+                };
+                if better {
+                    applicable = Some(entry);
+                }
+            }
+        }
+        match applicable {
+            Some(entry) => Some(entry.price),
+            None => self.price_for(variation_id, tier),
+        }
+    }
+
+    /// True when `date` falls inside the list's effective window (both bounds
+    /// inclusive, open-ended when `effective_until` is absent).
+    pub fn is_effective_on(&self, date: NaiveDate) -> bool {
+        date >= self.effective_from
+            && self
+                .effective_until
+                .map(|until| date <= until)
+                .unwrap_or(true)
+    }
 }
 
 #[cfg(test)]
@@ -99,3 +140,7 @@ mod tests {
         assert_eq!(pl.price_for(v, PriceTier::Wholesale), Some(dec!(12.00)));
     }
 }
+
+#[cfg(test)]
+#[path = "pricing_tests.rs"]
+mod pricing_tests;

@@ -53,7 +53,7 @@ pub struct Reconciliation {
 }
 
 /// Errors raised by the engine.
-#[derive(Debug, thiserror::Error, Serialize, Deserialize)]
+#[derive(Debug, thiserror::Error, PartialEq, Serialize, Deserialize)]
 pub enum ReconcileError {
     /// Window end is before window start.
     #[error("window end {end} precedes start {start}")]
@@ -65,8 +65,19 @@ pub enum ReconcileError {
     },
 }
 
+/// Validates a reconciliation window and returns its duration.
+///
+/// The window is the settlement tolerance used by [`match_transactions`]; an
+/// inverted window would silently match nothing, so it is refused instead.
+pub fn window_duration(start: DateTime<Utc>, end: DateTime<Utc>) -> Result<Duration, ReconcileError> {
+    if end < start {
+        return Err(ReconcileError::InvalidWindow { start, end });
+    }
+    Ok(end - start)
+}
+
 /// Match bank transactions against platform transactions, returning a
-/// list of [`ReconciliationMatch`] and the IDs of unmatched bank txs.
+/// list of [`ReconciliationMatch`] for every bank row that found a settlement.
 pub fn match_transactions(
     bank: &[BankTransaction],
     platform: &[BankTransaction],
@@ -162,3 +173,7 @@ mod tests {
         assert_eq!(m[0].confidence, MatchConfidence::Exact);
     }
 }
+
+#[cfg(test)]
+#[path = "reconcile_tests.rs"]
+mod reconcile_tests;

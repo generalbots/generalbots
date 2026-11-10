@@ -173,3 +173,7 @@ mod tests {
         assert_eq!(assemble_block(&rows, 4), "");
     }
 }
+
+#[cfg(test)]
+#[path = "recall_tests.rs"]
+mod recall_tests;

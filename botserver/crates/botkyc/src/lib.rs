@@ -1,6 +1,7 @@
 pub mod db;
 pub mod intent;
 pub mod handlers;
+pub mod lifecycle;
 pub mod routes;
 pub mod storage;
 

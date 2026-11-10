@@ -364,3 +364,7 @@ mod record_to_objective;
 mod into_response;
 
 pub(crate) use record_to_objective::*;
+
+#[cfg(test)]
+#[path = "goals_types_tests.rs"]
+mod label_tests;

@@ -42,7 +42,7 @@ impl FraudEngine {
         };
 
         let mut triggered = Vec::new();
-        let mut total_score = 0i32;
+        let mut rule_scores = Vec::new();
 
         // 1. Load active rules scoped to the caller's branch
         let rules = rules::load_active_rules(&mut conn, branch);
@@ -50,8 +50,7 @@ impl FraudEngine {
         // 2. Evaluate rules
         for rule in &rules {
             if rules::evaluate_rule(rule, request) {
-                let score = scoring::rule_score(&rule.severity);
-                total_score += score;
+                rule_scores.push(scoring::rule_score(&rule.severity));
                 triggered.push(rule.name.clone());
             }
         }
@@ -59,19 +58,17 @@ impl FraudEngine {
         // 3. Check blocklist
         let blocked = self.check_blocklist(&mut conn, branch, request).unwrap_or(false);
         if blocked {
-            total_score = 100;
             triggered.push("blocklist_match".into());
         }
 
         // 4. Check velocity
         let velo = self.check_velocity(&mut conn, branch, request).unwrap_or(false);
         if velo {
-            total_score += 30;
             triggered.push("velocity_threshold".into());
         }
 
         // 5. Clamp score and determine level
-        let risk_score = total_score.clamp(0, 100);
+        let risk_score = scoring::accumulate(&rule_scores, blocked, velo);
         let (risk_level, action_taken) = scoring::classify(risk_score, blocked);
 
         // 6. Log event
