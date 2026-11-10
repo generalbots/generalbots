@@ -29,14 +29,28 @@ pub fn instr_impl(start: i64, haystack: &str, needle: &str) -> i64 {
         return 0;
     }
 
+    // Positions are character-based, matching LEFT/RIGHT/MID/LEN. Slicing the
+    // string with a byte offset derived from a character position panicked on
+    // any non-ASCII text (`INSTR(2, "ação", "x")`), which would abort the whole
+    // botserver process.
+    let char_count = haystack.chars().count();
     let start_idx = if start < 1 { 0 } else { (start - 1) as usize };
 
-    if start_idx >= haystack.len() {
+    if start_idx >= char_count {
         return 0;
     }
 
-    match haystack[start_idx..].find(needle) {
-        Some(pos) => (start_idx + pos + 1) as i64,
+    let byte_offset: usize = haystack
+        .chars()
+        .take(start_idx)
+        .map(|c| c.len_utf8())
+        .sum();
+
+    match haystack[byte_offset..].find(needle) {
+        Some(byte_pos) => {
+            let char_pos = haystack[byte_offset..byte_offset + byte_pos].chars().count();
+            (start_idx + char_pos + 1) as i64
+        }
         None => 0,
     }
 }
@@ -125,9 +139,11 @@ pub fn upper_keyword(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine:
 }
 
 pub fn len_keyword(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine.register_fn("LEN", |s: &str| -> i64 { s.len() as i64 });
+    // Character count, not byte count: LEFT/RIGHT/MID/INSTR all index by
+    // character, so `LEN("ação")` must be 4 and not the 5 UTF-8 bytes.
+    engine.register_fn("LEN", |s: &str| -> i64 { s.chars().count() as i64 });
 
-    engine.register_fn("len", |s: &str| -> i64 { s.len() as i64 });
+    engine.register_fn("len", |s: &str| -> i64 { s.chars().count() as i64 });
 
     debug!("Registered LEN keyword");
 }
@@ -334,5 +350,40 @@ mod tests {
     fn test_len() {
         assert_eq!("Hello".len(), 5);
         assert_eq!("".len(), 0);
+    }
+
+    #[test]
+    fn test_instr_counts_characters_not_bytes() {
+        // Non-ASCII text used to panic: the start position was treated as a
+        // byte offset into the string.
+        assert_eq!(instr_impl(1, "ação", "ç"), 2);
+        assert_eq!(instr_impl(1, "ação", "o"), 4);
+        assert_eq!(instr_impl(3, "ação", "o"), 4);
+        assert_eq!(instr_impl(2, "ação", "ç"), 2);
+        assert_eq!(instr_impl(1, "日本語テキスト", "語"), 3);
+        assert_eq!(instr_impl(1, "🙂🙃", "🙃"), 2);
+    }
+
+    #[test]
+    fn test_instr_start_bounds() {
+        assert_eq!(instr_impl(0, "abcabc", "a"), 1);
+        assert_eq!(instr_impl(-5, "abcabc", "a"), 1);
+        assert_eq!(instr_impl(4, "abcabc", "a"), 4);
+        assert_eq!(instr_impl(5, "abcabc", "a"), 0);
+        assert_eq!(instr_impl(99, "abcabc", "a"), 0);
+        // A start one past the last character finds nothing.
+        assert_eq!(instr_impl(5, "ação", "o"), 0);
+        assert_eq!(instr_impl(4, "ação", "o"), 4);
+        assert_eq!(instr_impl(5, "ação", "x"), 0);
+    }
+
+    #[test]
+    fn test_len_counts_characters() {
+        let len = |s: &str| s.chars().count() as i64;
+        assert_eq!(len("Hello"), 5);
+        assert_eq!(len("ação"), 4);
+        assert_eq!(len("日本語"), 3);
+        assert_eq!(len("🙂🙃"), 2);
+        assert_eq!(len(""), 0);
     }
 }
