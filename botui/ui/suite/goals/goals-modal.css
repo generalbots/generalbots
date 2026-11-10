@@ -1,0 +1,86 @@
+/* #2032 — the New Objective/check-in fragments are swapped into
+   `#goals-modal`, but nothing styled that host: it rendered as a plain block
+   at the bottom of the app instead of an overlay. The fragment markup already
+   assumes a modal (header + close button + form). */
+#goals-modal:not(:empty) {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+#goals-modal:not(:empty) > * {
+    width: min(42rem, 100%);
+    max-height: 85vh;
+    overflow: auto;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+}
+
+#goals-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+#goals-modal .modal-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+#goals-modal .btn-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#goals-modal .btn-close:hover {
+    color: var(--text-primary);
+}
+
+#goals-modal .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.85rem;
+}
+
+#goals-modal .form-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+#goals-modal .form-row .form-group {
+    flex: 1;
+}
+
+#goals-modal input,
+#goals-modal select,
+#goals-modal textarea {
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+#goals-modal .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}

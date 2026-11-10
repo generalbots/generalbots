@@ -6,12 +6,14 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  const CACHE_VERSION = "v6";
+  // #2087 — the cache key carries the server build version instead of a manual
+  // constant, so a deploy that changes the catalogue invalidates every client
+  // cache without anyone remembering to bump a number.
+  let cacheBuild = "dev";
   const CACHE_TTL_MS = 3600000;
-
-  // IMPORTANT: Increment CACHE_VERSION when translation structure changes
-  // to invalidate all user caches and force fresh API fetches
-  // v2: Invalidated cache to fix placeholder translations after i18n embed fix
+  // Server-provided locale list (the catalogue is the source of truth); the
+  // bundled list is only a first-paint fallback before /api/i18n/locales.
+  let supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
 
   const MINIMAL_FALLBACK = {
     "label-loading": "Loading...",
@@ -33,8 +35,6 @@
       navigator.language || navigator.userLanguage || DEFAULT_LOCALE;
     const shortLang = browserLang.split("-")[0];
 
-    const supportedLocales = ["en", "pt-BR", "es", "zh-CN", "fr", "de", "ja", "ko"];
-
     if (supportedLocales.includes(browserLang)) {
       return browserLang;
     }
@@ -44,7 +44,7 @@
   }
 
   function getCacheKey(locale) {
-    return `gb-i18n-cache-${locale}-${CACHE_VERSION}`;
+    return `gb-i18n-cache-${locale}-${cacheBuild}`;
   }
 
   function getCachedTranslations(locale) {
@@ -316,6 +316,28 @@
     if (isInitialized) {
       console.log("i18n: Already initialized, skipping");
       return;
+    }
+
+    // #2087 — the build version keys the cache and the catalogue owns the
+    // locale list; both are best-effort (offline boot keeps the fallbacks).
+    try {
+      const product = window.productConfig || (await (await fetch("/api/product")).json());
+      if (product && product.version) {
+        cacheBuild = String(product.version);
+      }
+    } catch (e) {
+      /* offline: keep the dev cache key */
+    }
+    try {
+      const response = await fetch("/api/i18n/locales");
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data.locales) && data.locales.length > 0) {
+          supportedLocales = data.locales;
+        }
+      }
+    } catch (e) {
+      /* offline: keep the bundled list */
     }
 
     // #2087 — when this device has no explicit choice, prefer the locale the
