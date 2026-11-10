@@ -58,3 +58,79 @@ objective.ws_handshake.panel: ops-traffic
 alert.fast_burn: 14.4
 alert.medium_burn: 6
 alert.slow_burn: 1
+
+# --- #2115 gate objectives -------------------------------------------------
+# Same flat shape as above (ops_slo.rs reads it without a YAML dependency);
+# scripts/slo_common.py synthesizes the list form from the dotted keys.
+objective.tool_call_p95.metric: latency_histogram
+objective.tool_call_p95.threshold_ms: 3000
+objective.tool_call_p95.target: 0.95
+objective.tool_call_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.tool_call_p95.panel: ops-endpoints
+
+objective.rest_p95.metric: latency_histogram
+objective.rest_p95.threshold_ms: 500
+objective.rest_p95.target: 0.95
+objective.rest_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-deploy-rollback.md
+objective.rest_p95.panel: ops-endpoints
+
+objective.queue_p95.metric: latency_histogram
+objective.queue_p95.threshold_ms: 2500
+objective.queue_p95.target: 0.95
+objective.queue_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.queue_p95.panel: ops-queues
+
+objective.db_p95.metric: latency_histogram
+objective.db_p95.threshold_ms: 100
+objective.db_p95.target: 0.95
+objective.db_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.db_p95.panel: ops-endpoints
+
+objective.cache_p95.metric: latency_histogram
+objective.cache_p95.threshold_ms: 50
+objective.cache_p95.target: 0.95
+objective.cache_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.cache_p95.panel: ops-endpoints
+
+objective.storage_p95.metric: latency_histogram
+objective.storage_p95.threshold_ms: 250
+objective.storage_p95.target: 0.95
+objective.storage_p95.runbook: botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md
+objective.storage_p95.panel: ops-endpoints
+
+objective.ws_disconnect_rate.metric: error_rate
+objective.ws_disconnect_rate.target: 0.995
+objective.ws_disconnect_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-disable-tenant.md
+objective.ws_disconnect_rate.panel: ops-traffic
+
+objective.turn_error_rate.metric: error_rate
+objective.turn_error_rate.target: 0.99
+objective.turn_error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
+objective.turn_error_rate.panel: ops-traffic
+
+objective.provider_error_rate.metric: error_rate
+objective.provider_error_rate.target: 0.98
+objective.provider_error_rate.runbook: botbook/src/10-configuration-deployment/operations/runbook-llm-outage.md
+objective.provider_error_rate.panel: ops-cost
+
+# --- cost model and regression policy (#2115) ------------------------------
+pricing:
+  currency: USD
+  models:
+    mock:
+      input: 0.0
+      output: 0.0
+    gpt-4o-mini:
+      input: 0.15
+      output: 0.60
+    claude-sonnet:
+      input: 3.0
+      output: 15.0
+
+cost_budgets:
+  conversation_usd: 0.01
+  tenant_day_usd: 10.0
+  alert_at_pct: 80
+
+baseline_policy:
+  regression_max_pct: 20

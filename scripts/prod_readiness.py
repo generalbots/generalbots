@@ -34,202 +34,23 @@ import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
 from pathlib import Path
+
+from prod_readiness_gates import (
+    CHILDREN,
+    EPIC,
+    FAIL,
+    GATES,
+    PASS,
+    SECURITY_SCANS,
+    SKIP,
+    Gate,
+    Result,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = "botbook/src/10-configuration-deployment/production-readiness.md"
-EPIC = 2121
 TIMEOUT = 300
-
-PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
-
-# Markers that prove the Security workflow still runs every scan. Used as the
-# offline fallback when the gitleaks binary is not installed in this
-# environment (CI installs it in `security.yml`, not here).
-SECURITY_SCANS = ("cargo-deny", "osv-scanner", "gitleaks", "pip-audit", "syft", "actionlint")
-
-
-@dataclass(frozen=True)
-class Gate:
-    """One readiness check."""
-
-    id: str
-    title: str
-    owner: int
-    proves: str
-    steps: tuple[tuple[str, ...], ...] = ()
-    requires: tuple[str, ...] = ()
-    evidence: tuple[str, ...] = ()
-    min_files: int = 1
-    ok_detail: str = ""
-    fixed_detail: bool = False
-
-
-@dataclass(frozen=True)
-class Result:
-    gate: Gate
-    status: str
-    detail: str
-
-
-GATES: tuple[Gate, ...] = (
-    Gate(
-        id="security-auth",
-        title="JWT claims are signature-verified before they pick a tenant",
-        owner=2112,
-        proves="A forged/`alg=none` token cannot select another tenant's branch",
-        evidence=("bottest/tests/unit/security/*jwt*.rs", "bottest/tests/unit/security/*tenant*.rs"),
-        ok_detail="regression test present (executed by the unit-tests job)",
-    ),
-    Gate(
-        id="security-webhooks",
-        title="WhatsApp/Teams inbound requests prove their origin",
-        owner=2113,
-        proves="An unauthenticated POST cannot create a bot turn",
-        evidence=("bottest/tests/unit/security/*webhook*.rs",),
-        ok_detail="regression test present (executed by the unit-tests job)",
-    ),
-    Gate(
-        id="security-mfa",
-        title="TOTP enrollment and verification share one secret encoding",
-        owner=2114,
-        proves="A code from the QR secret is accepted by the server",
-        evidence=("bottest/tests/unit/security/*mfa*.rs", "bottest/tests/unit/security/*totp*.rs"),
-        ok_detail="regression test present (executed by the unit-tests job)",
-    ),
-    Gate(
-        id="slo-check",
-        title="SLOs are defined, instrumented and gated",
-        owner=2115,
-        proves="A latency/error/cost regression fails instead of shipping silently",
-        steps=(
-            ("python3", "scripts/check_slo.py", "--self-test"),
-            ("python3", "scripts/check_slo.py", "--snapshot", "perf/baselines/local-mock.json"),
-        ),
-        requires=("ops/slo.yaml", "perf/baselines/local-mock.json"),
-    ),
-    Gate(
-        id="ops-runbooks",
-        title="Operational runbooks exist for the on-call surface",
-        owner=2116,
-        proves="Analytics console, error budgets and runbooks are operable, not prose",
-        evidence=("botbook/src/10-configuration-deployment/operations/runbook-*.md",),
-        min_files=6,
-        ok_detail="six runbooks published",
-    ),
-    Gate(
-        id="data-restore",
-        title="Restore drill proves migrations, tenancy and recovery together",
-        owner=2117,
-        proves="A production-like restore boots and stays tenant-isolated",
-        evidence=("scripts/restore_drill.sh", "scripts/restore_drill.py"),
-        ok_detail="restore drill script present",
-    ),
-    Gate(
-        id="release-version",
-        title="One version everywhere, and the tag is applied to the build",
-        owner=2118,
-        proves="A tag and `/api/product.version` cannot disagree",
-        steps=(("python3", "scripts/release_version.py", "--check"), ("python3", "scripts/release_version.py", "selftest")),
-    ),
-    Gate(
-        id="test-guards",
-        title="Unit-suite policy: registered modules, reasons for skips, offline",
-        owner=2119,
-        proves="The offline suite stays hermetic and reviewable",
-        steps=(("python3", "scripts/test_guards.py", "--check"), ("python3", "scripts/test_guards.py", "--self-test")),
-    ),
-    Gate(
-        id="app-contracts",
-        title="Every registry app declares its classification, smoke and API surface",
-        owner=2119,
-        proves="A shipped app is documented and an invented route fails the build",
-        steps=(("python3", "scripts/smoke_app_surfaces.py", "--contracts"),),
-        ok_detail="every registry app classified, smoked and documented",
-        fixed_detail=True,
-    ),
-    Gate(
-        id="flake-policy",
-        title="Flaky tests are registered, owned and inside the quarantine SLA",
-        owner=2119,
-        proves="A flake is time-boxed instead of retried until it passes",
-        steps=(
-            ("python3", "scripts/flake_report.py", "--self-test"),
-            ("python3", "scripts/flake_report.py", "--quarantine-only"),
-        ),
-        ok_detail="no flake outside its SLA",
-        fixed_detail=True,
-    ),
-    Gate(
-        id="coverage-ratchet",
-        title="Coverage ratchet against a committed baseline",
-        owner=2119,
-        proves="A PR cannot lower the covered lines of the crate it touches",
-        steps=(("python3", "scripts/check_coverage.py", "--self-test"),),
-        requires=("issues/coverage/baseline.json",),
-        ok_detail="baseline committed; the ratchet self-test fails on a decrease",
-        fixed_detail=True,
-    ),
-    Gate(
-        id="product-profile",
-        title="Every app is classified always/preview/hidden and its feature compiles",
-        owner=2120,
-        proves="The supported surface is bounded and owned",
-        steps=(
-            ("python3", "scripts/product_profile_check.py"),
-            ("python3", "scripts/app_complexity_budget.py"),
-        ),
-        ok_detail="every app classified, owned and within the complexity budget",
-        fixed_detail=True,
-    ),
-    Gate(
-        id="security-scan",
-        title="Supply-chain and secret scans are wired in CI",
-        owner=EPIC,
-        proves="cargo-deny, OSV, gitleaks, pip-audit, SBOM and actionlint still run",
-        requires=(".gitleaks.toml", "deny.toml", "scripts/osv_allowlist.txt"),
-    ),
-    Gate(
-        id="adequacy-guard",
-        title="AGENTS.md structural rules stay at or below the baseline",
-        owner=1735,
-        proves="No new `unwrap`, `table!` outside botschema, 450+ line file or CDN asset",
-        steps=(("python3", "scripts/adequacy_guard.py", "--baseline", "issues/adequacy/baseline.json"),),
-    ),
-    Gate(
-        id="i18n-lint",
-        title="Fluent catalogs and the keys the UI asks for are consistent",
-        owner=2090,
-        proves="A new user-facing string cannot ship untranslated or unbalanced",
-        steps=(("python3", "scripts/i18n_lint.py", "--check"),),
-        ok_detail="no new catalog violation",
-        fixed_detail=True,
-    ),
-    Gate(
-        id="workflow-pinning",
-        title="Every `uses:` is a commit SHA and no workflow trusts a fork",
-        owner=1726,
-        proves="A retargeted action tag cannot execute with the repository token",
-        steps=(("python3", "scripts/check_workflow_pinning.py"),),
-        ok_detail="every `uses:` is a commit SHA; no workflow trusts a fork",
-        fixed_detail=True,
-    ),
-)
-
-# Child issue -> the gate(s) that prove it. The scoreboard's second table is
-# rendered from this map, so an issue cannot be listed without a gate.
-CHILDREN: tuple[tuple[int, str, tuple[str, ...]], ...] = (
-    (2112, "security(auth): JWT signature", ("security-auth",)),
-    (2113, "security(webhooks): WhatsApp/Teams auth", ("security-webhooks",)),
-    (2114, "security(mfa): TOTP encoding", ("security-mfa",)),
-    (2115, "perf(slo): SLOs and budgets", ("slo-check",)),
-    (2116, "ops(analytics): console, budgets, runbooks", ("ops-runbooks",)),
-    (2117, "data(integrity): migrations, restore, tenancy", ("data-restore",)),
-    (2118, "release(auto-bump): one version", ("release-version",)),
-    (2119, "test(quality): ratchet, contracts, fuzzing", ("test-guards", "app-contracts", "coverage-ratchet", "flake-policy")),
-    (2120, "product(focus): supported matrix", ("product-profile",)),
-)
 
 
 def _last_line(text: str) -> str:
@@ -244,6 +65,11 @@ def _stable(text: str) -> str:
     """Drop wall-clock/file-count noise so the scoreboard cannot drift."""
     text = re.sub(r"\s*\([^()]*\bscanned\b[^()]*\)", "", text)
     return re.sub(r"\s*\(?\bin [\d.]+s\b\)?", "", text).strip()
+
+
+def _sanitize(text: str) -> str:
+    """Keep the scoreboard machine-independent: no absolute checkout paths."""
+    return text.replace(f"{ROOT}/", "").replace(str(ROOT), ".").strip()
 
 
 def _clip(text: str, width: int = 78) -> str:
@@ -263,21 +89,29 @@ def run_commands(gate: Gate, steps: tuple[tuple[str, ...], ...] | None = None) -
             return Result(gate, SKIP, f"cannot run `{' '.join(step)}`: {error}")
         if proc.returncode != 0:
             reason = _last_line(proc.stderr) or _last_line(proc.stdout) or "no output"
-            return Result(gate, FAIL, f"`{' '.join(step)}` exited {proc.returncode}: {reason}")
+            return Result(gate, FAIL, _sanitize(f"`{' '.join(step)}` exited {proc.returncode}: {reason}"))
         if not gate.fixed_detail:
             detail = _last_line(proc.stdout) or detail
     return Result(gate, PASS, detail)
 
 
 def check_evidence(gate: Gate) -> Result:
-    """A gate that is installed by a file landing in the repository."""
-    found = sorted({path for pattern in gate.evidence for path in ROOT.glob(pattern)})
-    if len(found) < gate.min_files:
-        expected = " or ".join(gate.evidence)
-        return Result(gate, SKIP, f"not landed yet — expected {gate.min_files}× {expected}")
-    names = ", ".join(path.relative_to(ROOT).as_posix() for path in found[:3])
-    more = f" (+{len(found) - 3})" if len(found) > 3 else ""
-    return Result(gate, PASS, f"{names}{more}" if names else gate.ok_detail)
+    """A gate installed by a file landing in the repository (every entry must match)."""
+    matched: list[Path] = []
+    missing: list[str] = []
+    for pattern, marker in gate.evidence:
+        hits = sorted(ROOT.glob(pattern))
+        if marker:
+            hits = [path for path in hits if marker in path.read_text(encoding="utf-8", errors="ignore")]
+        if len(hits) < gate.min_files:
+            missing.append(pattern + (f" containing `{marker}`" if marker else ""))
+        else:
+            matched.extend(hits)
+    if missing:
+        return Result(gate, SKIP, _sanitize(f"not landed yet — expected {gate.min_files}× " + " and ".join(missing)))
+    names = ", ".join(path.relative_to(ROOT).as_posix() for path in matched[:2])
+    more = f" (+{len(matched) - 2})" if len(matched) > 2 else ""
+    return Result(gate, PASS, gate.ok_detail or f"{names}{more}")
 
 
 def check_security_scan(gate: Gate) -> Result:
@@ -326,7 +160,8 @@ def tally(results: list[Result]) -> dict[str, int]:
 def print_table(results: list[Result]) -> None:
     counts = tally(results)
     width = max(len(result.gate.id) for result in results)
-    print(f"PRODUCTION READINESS GATE (#{EPIC}) — {len(results)} checks")
+    plural = "" if len(results) == 1 else "s"
+    print(f"PRODUCTION READINESS GATE (#{EPIC}) — {len(results)} check{plural}")
     print()
     print(f"{'STATUS':6}  {'CHECK'.ljust(width)}  {'OWNER':6}  DETAIL")
     print(f"{'-' * 6}  {'-' * width}  {'-' * 6}  {'-' * 78}")
@@ -334,7 +169,7 @@ def print_table(results: list[Result]) -> None:
         owner = f"#{result.gate.owner}"
         print(f"{result.status:6}  {result.gate.id.ljust(width)}  {owner:6}  {_clip(result.detail)}")
     print()
-    print(f"{len(results)} checks: {counts[PASS]} PASS · {counts[FAIL]} FAIL · {counts[SKIP]} SKIP")
+    print(f"{len(results)} check{plural}: {counts[PASS]} PASS · {counts[FAIL]} FAIL · {counts[SKIP]} SKIP")
     if counts[FAIL]:
         print("FAIL is a regression: fix it or land the gate — SKIP is never a pass.")
 

@@ -20,8 +20,8 @@ loc = 585
 
 [apps."analytics"]
 routes = 45
-js_modules = 3
-loc = 2406
+js_modules = 5
+loc = 2993
 
 [apps."attendant"]
 routes = 17
@@ -66,7 +66,7 @@ loc = 1075
 [apps."canvas"]
 routes = 15
 js_modules = 8
-loc = 3025
+loc = 3023
 
 [apps."chat"]
 routes = 30
@@ -271,7 +271,7 @@ loc = 472
 [apps."settings"]
 routes = 153
 js_modules = 23
-loc = 10391
+loc = 10358
 
 [apps."sheet"]
 routes = 61
@@ -351,4 +351,4 @@ loc = 491
 [apps."workspace"]
 routes = 9
 js_modules = 1
-loc = 555
+loc = 552

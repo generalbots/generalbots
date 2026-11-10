@@ -127,6 +127,43 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
     return parsed
 
 
+def expand_objectives(config: dict[str, Any]) -> dict[str, Any]:
+    """Normalize the flat ``objective.<id>.<key>`` map into the SLO list.
+
+    ``ops/slo.yaml`` is shared with ``botanalytics::ops_slo`` (#2116), which
+    reads the flat dotted keys without a YAML dependency. The gate wants the
+    list form, so one file serves both consumers: the list is synthesized from
+    the flat map when ``slos`` is absent.
+    """
+    if isinstance(config.get("slos"), list) and config["slos"]:
+        return config
+    flat = {
+        str(key): value
+        for key, value in config.items()
+        if isinstance(key, str) and key.startswith("objective.")
+    }
+    if not flat:
+        return config
+    grouped: dict[str, dict[str, Any]] = {}
+    for key, value in flat.items():
+        _, identifier, field = key.split(".", 2)
+        grouped.setdefault(identifier, {})[field] = value
+    slos = []
+    for identifier, fields in grouped.items():
+        entry = {
+            "id": identifier,
+            "source": identifier,
+            "stat": "value",
+            "op": "lte",
+            "profile": "local-mock",
+        }
+        entry.update(fields)
+        slos.append(entry)
+    config = dict(config)
+    config["slos"] = slos
+    return config
+
+
 def load_config(path: Path = DEFAULT_CONFIG, force_fallback: bool = False) -> dict[str, Any]:
     text = path.read_text(encoding="utf-8")
     if not force_fallback:
@@ -138,8 +175,8 @@ def load_config(path: Path = DEFAULT_CONFIG, force_fallback: bool = False) -> di
             loaded = yaml.safe_load(text)
             if not isinstance(loaded, dict):
                 raise ValueError("the SLO config must be a mapping at the top level")
-            return loaded
-    return parse_simple_yaml(text)
+            return expand_objectives(loaded)
+    return expand_objectives(parse_simple_yaml(text))
 
 
 # --------------------------------------------------------------------------
