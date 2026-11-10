@@ -8,8 +8,11 @@
 # Product name (replaces "General Bots" throughout the application)
 name=General Bots
 
-# #1811 — This file is the ONLY always/preview/hidden split. The build
-# compiles every app (the `all-apps` Cargo feature is the default).
+# #1811 / #2097 — the build compiles every app (the `all-apps` Cargo feature
+# is the default). The always/preview launcher split itself lives in the app
+# registry (`botserver/src/apps/registry`, field `launcher_visibility`); the
+# two lists below mirror it for this deployment and are checked against it by
+# the `product_apps_line_matches_the_registry_flag` guard test.
 #
 # Active apps (comma-separated list): always visible in every launcher.
 # Core surfaces (about, admin, settings, auth) are always available without
@@ -19,12 +22,13 @@ apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
 # revealed only while Preview mode is on, which the user toggles with the
-# Preview switch in the left sidebar.
-# Every registry app must appear exactly once in `apps`, `preview_apps` or
-# `hidden_apps` (core apps are the only exception).
+# Preview switch in the left sidebar. The registry marks every app that is
+# not in `apps=` as preview-only, so this list documents the 7.0 split; an
+# app missing here is still preview-gated.
+# `hidden_apps` wins over both lists.
 # The Vibe sub-surfaces (db/graph/metrics/members/deploy/metering) are NOT
 # listed here: they are toolwindow views inside the single Vibe app (#1429).
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace,clock
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
 
 # Hidden applications: compiled and routed, but never advertised and refused
 # by the suite shell. #1626 keeps Research out of the default product; the

@@ -302,6 +302,14 @@ impl ProductConfig {
         self.preview_apps.contains(&app.to_lowercase())
     }
 
+    /// Check whether the profile hides an app even when it is compiled and
+    /// routed (#2097: hidden wins over both the `apps=` list and the registry
+    /// launcher split).
+    pub fn is_app_hidden(&self, app: &str) -> bool {
+        let id = app.to_lowercase();
+        self.hidden_apps.contains(&id)
+    }
+
     /// Preview applications, sorted so the catalog and the manifest are stable.
     pub fn get_preview_apps(&self) -> Vec<String> {
         let mut preview: Vec<String> = self.preview_apps.iter().cloned().collect();

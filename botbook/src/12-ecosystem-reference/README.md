@@ -76,18 +76,18 @@ name=Acme Bot Platform
 **Type:** Comma-separated list  
 **Default:** All apps enabled
 
-Specifies which apps are visible in the suite without turning Preview mode on. The shipped configuration lists only the stable surface:
+Specifies which apps are visible in the suite without turning Preview mode on. Since 7.0 (#2097) the split is declared in the app registry (`launcher_visibility` in `botserver/src/apps/registry/`), and `apps=` mirrors it; the shipped configuration lists:
 
 ```ini
-apps=chat,drive,vibe
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
 ```
 
-Applications not listed here are not removed — they are declared under [`preview_apps`](#preview_apps) instead. To promote an app out of Preview mode, move its id from `preview_apps` to `apps`.
+Applications not listed here are not removed — the registry marks them preview-only. To promote an app out of Preview mode, mark it `always_visible` in the registry and add its id to `apps`; the `product_apps_line_matches_the_registry_flag` guard test fails if the two disagree.
 
 **Example — promoting the advanced apps:**
 
 ```ini
-apps=chat,drive,vibe,mail,sheet
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations,mail,calendar
 ```
 
 ### preview_apps
@@ -95,24 +95,21 @@ apps=chat,drive,vibe,mail,sheet
 **Type:** Comma-separated list  
 **Default:** Empty
 
-Applications that are installed and fully usable, but withheld from the launcher and the sidebar until the user turns on the **Preview** switch in the left sidebar (#1348). The shipped configuration declares every application except the three stable ones.
+Applications that are installed and fully usable, but withheld from the launcher and the sidebar until the user turns on the **Preview** switch in the left sidebar (#1348). This list documents the 7.0 split: every registry app that is not in `apps=` is preview-only even when it is missing here, and `hidden_apps` wins over both lists.
 
 ```ini
-apps=chat,drive,vibe
-preview_apps=admin,analytics,attendant,automations,banking,billing,biometry,
-             browser,calendar,campaigns,canvas,compliance,concierge,crm,database,
-             designer,docs,editor,fraud,goals,handoff,hr,integrations,jukebox,kyc,
-             learn,lists,mail,marketing,meet,memory,minutes,monitoring,notes,o365,
-             paper,people,photos,plan,player,pos,products,project,recycle,research,
-             retail,sales,settings,sheet,slides,social,sources,store,tasks,tax,
-             templates,terminal,tickets,timeclock,timer,vdi,video,vision,weather,
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,
+             campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,
+             handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,
+             paper,people,plan,plugins,pos,products,project,recycle,retail,slides,
+             social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,
              workspace
 ```
 
 Rules that matter when editing these lists:
 
 - **Never list the same id in both lists.** A preview app must be absent from `apps`; that absence is what keeps it out of the launcher.
-- **Ids must exist.** They are matched against the catalog in `botserver/src/apps/registry.rs` and the feature map in `botserver/src/apps/mod.rs::is_app_compiled`. An id in neither place is ignored by the launcher.
+- **Ids must exist.** They are matched against the catalog in `botserver/src/apps/registry/` and the feature map in `botserver/src/apps/mod.rs::is_app_compiled`. An id in neither place is ignored by the launcher.
 - **Core surfaces stay visible.** `settings`, `auth` and `admin` are always enabled regardless of these lists.
 - **Preview controls visibility, not installation.** Preview apps keep working; only their launcher entry is withheld.
 

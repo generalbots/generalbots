@@ -75,6 +75,8 @@ const Spotlight = (() => {
     results = [];
     index = 0;
 
+    // #2097 — APPS_REGISTRY is already filtered by the registry launcher
+    // split: preview-only apps are present only while Preview mode is on.
     const apps = window.APPS_REGISTRY || [];
     apps.forEach((a) => {
       const title = window.gbAppTitle ? window.gbAppTitle(a) : a.title;

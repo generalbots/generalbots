@@ -75,8 +75,8 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     var grid = document.createElement("div");
     grid.className = "gb-side-apps-grid";
 
-    // Preview mode (#1348): reveals the applications the product file lists
-    // under `preview_apps`. They are absent from the launcher until this
+    // Preview mode (#1348): reveals the applications the registry marks
+    // preview-only (#2097). They are absent from APPS_REGISTRY until this
     // switch is on, which is what keeps unreleased apps out of the way.
     var previewRow = document.createElement("div");
     previewRow.className = "gb-side-preview";
@@ -109,7 +109,10 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         // #1386c — the rail lists apps the user can open by hand. Every other
         // native surface is a Vibe workbench pane (opened from the Vibe
         // toolbar), so it never shows up as a standalone app here.
-        .filter(function (a) { return a.launcher_default !== false; })
+        // #2097 — `launcher_visibility: "always"` pins an app regardless.
+        .filter(function (a) {
+          return a.launcher_default !== false || a.launcher_visibility === "always";
+        })
         .slice()
         .sort(function (a, b) {
           return String(a.title || a.id).localeCompare(String(b.title || b.id));

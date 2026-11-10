@@ -21,7 +21,13 @@ Every app page carries its status in the title, so you never have to guess:
 
 Preview applications are **installed and working** — they are simply withheld from the launcher and the sidebar until you turn on the **Preview** switch. That switch lives in the left sidebar and is remembered per browser.
 
-In the shipped configuration only Chat, Explorer and Vibe appear by default. Everything else is declared in the `preview_apps` list of the `.product` file; see [Product configuration](../../12-ecosystem-reference/README.md#preview_apps) for how to promote an app.
+In the shipped 7.0 configuration these apps appear **without** Preview mode: Chat,
+Explorer (Drive), Sheets, Player, Calculator, Sticky Notes, Photos, Timer, Weather,
+JukeBox, the Clock widget and Integrations. Every other app is preview-only. The
+split lives in the app registry (`launcher_visibility` in
+`botserver/src/apps/registry`), which the launchers read; the `.product` file
+mirrors it — see [Product configuration](../../12-ecosystem-reference/README.md#preview_apps)
+for how to promote or hide an app.
 
 ---
 

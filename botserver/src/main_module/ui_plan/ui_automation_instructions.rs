@@ -32,18 +32,29 @@ where
 /// contract. Includes the app catalog so the model only references apps
 /// that actually exist in this build.
 pub fn ui_automation_instructions(client_caps: Option<&serde_json::Value>) -> String {
-    // #1691 — advertise only apps that are really available to this session.
-    // `.product` controls the effective set; preview apps join it only while
-    // the client says Preview mode is on.
     let preview_on = client_caps
         .and_then(|caps| caps.get("preview_mode"))
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
+    // #1691 — advertise only apps that are really available to this session.
+    // #2097 — the registry declares the always/preview split; `.product` can
+    // still enable an app explicitly (`apps=`) or withhold it (`hidden_apps`).
     let available = |id: &str| -> bool {
-        botcore::product::PRODUCT_CONFIG
-            .read()
-            .map(|config| config.is_app_enabled(id) || (preview_on && config.is_app_preview(id)))
-            .unwrap_or(false)
+        let Some(config) = botcore::product::PRODUCT_CONFIG.read().ok() else {
+            return crate::apps::registry::is_always_visible(id)
+                || (preview_on && crate::apps::registry::is_preview_only(id));
+        };
+        if config.is_app_hidden(id) {
+            return false;
+        }
+        if config.is_app_enabled(id) {
+            return true;
+        }
+        match crate::apps::registry::launcher_visibility_of(id) {
+            Some(crate::apps::registry::LauncherVisibility::Always) => true,
+            Some(crate::apps::registry::LauncherVisibility::Preview) => preview_on,
+            None => preview_on && config.is_app_preview(id),
+        }
     };
     let (apps, deep_links, seq_hints) = catalog_lines(available);
     format!(

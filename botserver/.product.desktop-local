@@ -2,8 +2,10 @@
 # This file is loaded instead of .product when botserver is compiled
 # with --features desktop-local.
 #
-# #1811 — the desktop bundle embeds every application. This file is the only
-# always/preview/hidden split; it never decides what is compiled.
+# #1811 / #2097 — the desktop bundle embeds every application. The
+# always/preview launcher split lives in the app registry
+# (`botserver/src/apps/registry`, field `launcher_visibility`); the lists
+# below mirror it and are checked by the registry guard test.
 
 name=General Bots
 
@@ -12,8 +14,9 @@ name=General Bots
 apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
 
 # Preview applications: revealed only while Preview mode is on. Every registry
-# app is classified exactly once across apps/preview_apps/hidden_apps.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,desktop,docs,editor,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,terminal,tickets,timeclock,vibe,video,vision,workspace,clock
+# app not in `apps=` is preview-only, so this list documents the 7.0 split;
+# `hidden_apps` wins over both lists.
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
 
 # Hidden: compiled and routed, but never advertised and refused by the suite
 # shell. Research stays out of the desktop product (#1626); `sources` is the

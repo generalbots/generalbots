@@ -8,12 +8,12 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .map(|s| s.to_string());
     let apps = registry::all_apps();
 
-    // #1811 — the product file is the single source of the always/preview/
-    // hidden split. `enabled` comes from `apps`, `preview` from `preview_apps`
-    // and `hidden` from `hidden_apps`; Cargo only decides whether the app
-    // exists. Core surfaces remain available without being listed.
-    let (enabled, preview, hidden): (
-        std::collections::HashSet<String>,
+    // #1811 — `.product` still decides what a deployment enables (`apps`) and
+    // withholds (`hidden_apps`). #2097 moved the always/preview launcher split
+    // into the registry: every entry declares `launcher_visibility`, so the
+    // `preview_apps` list is no longer needed to classify an app (it stays in
+    // the product file and `/api/product` for compatibility).
+    let (enabled, hidden): (
         std::collections::HashSet<String>,
         std::collections::HashSet<String>,
     ) = botcore::product::PRODUCT_CONFIG
@@ -25,8 +25,7 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 .into_iter()
                 .filter(|id| !hidden.contains(id))
                 .collect();
-            let preview = c.get_preview_apps().into_iter().collect();
-            (enabled, preview, hidden)
+            (enabled, hidden)
         })
         .unwrap_or_default();
 
@@ -47,13 +46,16 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .map(|a| {
             let id = a.id.as_str();
             // #1811 — compiled answers "does this binary ship the app?" and is
-            // independent of the product profile. The visibility split lives
-            // entirely in `.product`: apps / preview_apps / hidden_apps.
+            // independent of the product profile. #2097 — the launcher split
+            // now comes from the registry flag, not from `.product`: an
+            // always-visible app is enabled even when `apps=` forgets it, and
+            // every other registry app is preview-only.
             let core = CORE_APPS.contains(&id);
             let compiled = core || is_app_compiled(id);
             let is_hidden = hidden.contains(id);
-            let is_enabled = !is_hidden && (core || enabled.contains(id));
-            let is_preview = !core && !is_hidden && !is_enabled && preview.contains(id);
+            let always = a.is_always_visible();
+            let is_enabled = !is_hidden && (core || always || enabled.contains(id));
+            let is_preview = !core && !is_hidden && !is_enabled;
             // Merge curated commands with the harvested on-the-fly surface.
             let app_derived: Vec<serde_json::Value> = derived
                 .iter()
@@ -87,16 +89,17 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "icon": a.icon,
                 "kind": a.kind,
                 "widget": a.widget,
+                // #2097 — the launcher split, straight from the registry.
+                "launcher_visibility": a.launcher_visibility,
                 // Core surfaces stay pinned so about/admin/settings are
-                // reachable even though they are not in `apps=`. #1811 — an
-                // app the product lists under `apps=` is a standalone app the
-                // owner wants reachable by hand, so it is launcher-visible
-                // too: the start menu and the sidebar rail hide
-                // `launcher_default: false` entries, which previously left
-                // the desktop launcher with the four core surfaces only.
-                // Preview apps keep the registry default (hidden) until
+                // reachable even though they are not in `apps=`. An app the
+                // registry marks always visible (or the product lists under
+                // `apps=`) is a standalone app the owner wants reachable by
+                // hand, so it is launcher-visible too: the start menu and the
+                // sidebar rail hide `launcher_default: false` entries.
+                // Preview-only apps keep the registry default (hidden) until
                 // Preview mode turns them on.
-                "launcher_default": core || enabled.contains(id) || a.launcher_default,
+                "launcher_default": core || always || enabled.contains(id) || a.launcher_default,
                 "enabled": is_enabled,
                 "preview": is_preview,
                 "hidden": is_hidden,

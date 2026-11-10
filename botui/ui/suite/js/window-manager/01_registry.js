@@ -146,11 +146,10 @@ const APPS_REGISTRY = [
     icon: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>' },
 ];
 
-// Preview mode (#1348). Applications listed under `preview_apps` in the
-// `.product` file are withheld from every launcher — the start menu, the apps
-// menu and the sidebar all read APPS_REGISTRY — until the user turns the
-// Preview switch on. The preference is per browser, like the other sidebar
-// switches.
+// Preview mode (#1348). Applications the registry marks `preview` (7.0 list,
+// #2097) are withheld from every launcher — the start menu, the apps menu and
+// the sidebar all read APPS_REGISTRY — until the user turns the Preview switch
+// on. The preference is per browser, like the other sidebar switches.
 var PREVIEW_KEY = "gb-preview-mode";
 var GBPreviewMode = {
   isOn: function () {
@@ -185,10 +184,10 @@ var productTerminalAvailable = null;
 // even when they are not part of the always-on core set (weather, notes,
 // calculator …), because the product owner enabled them on purpose.
 var productAppIds = {};
-
-// #1811 — only core surfaces are hardcoded here. Everything else is classified
-// by `.product`'s `apps` / `preview_apps` / `hidden_apps` lists, which the
-// catalog endpoint mirrors. Mirrors `CORE_APPS` in botserver/src/apps/mod.rs.
+// #1811 / #2097 — only core surfaces are hardcoded here. Everything else is
+// classified by the app registry (`launcher_visibility`), which the catalog
+// endpoint mirrors. `.product` can still enable or hide an app per deployment.
+// Mirrors `CORE_APPS` in botserver/src/apps/mod.rs.
 var CORE_APP_IDS = ["about", "auth", "settings"];
 function isCoreAppId(id) {
   return CORE_APP_IDS.indexOf(id) !== -1;
@@ -196,11 +195,18 @@ function isCoreAppId(id) {
 
 function isPreviewId(id) {
   if (isCoreAppId(id)) return false;
-  if (productPreviewIds[id]) return true;
-  if (!catalogApps) return false;
-  for (var i = 0; i < catalogApps.length; i++) {
-    if (catalogApps[i].id === id && catalogApps[i].preview) return true;
+  // #2097 — the catalog carries the registry's `launcher_visibility`; it is
+  // authoritative and needs no list on this side.
+  if (catalogApps) {
+    for (var i = 0; i < catalogApps.length; i++) {
+      if (catalogApps[i].id !== id) continue;
+      if (catalogApps[i].launcher_visibility === "always") return false;
+      if (catalogApps[i].launcher_visibility === "preview") return true;
+      if (catalogApps[i].preview) return true;
+    }
   }
+  // Offline fallback: the public product endpoint mirrors the same split.
+  if (productPreviewIds[id]) return true;
   return false;
 }
 
@@ -226,6 +232,9 @@ function toRegistryApp(a) {
     // #1289/#1291 — bot and vibe-app tiles deep-link their window (chat bot
     // binding, browser URL); launchFromMenu passes them to openDeepLink.
     deep_link_params: a.deep_link_params || null,
+    // #2097 — the registry declares the launcher split; launchers read this
+    // flag instead of keeping their own always/preview id lists.
+    launcher_visibility: a.launcher_visibility || null,
   };
 }
 
@@ -333,9 +342,10 @@ function refreshAppsCatalog() {
 }
 
 
-// The public product endpoint carries `preview_apps`, so the switch holds
-// preview applications back even when the authenticated catalog cannot
-// answer (anonymous desktop): the embedded registry is all there is then.
+// #2097 — the catalog (`launcher_visibility`) is authoritative; the public
+// product endpoint carries the same split in `preview_apps`/`apps`, so the
+// switch still holds preview applications back when the authenticated catalog
+// cannot answer (anonymous desktop): the embedded registry is all there is.
 (function loadProductPreviewList() {
   fetch("/api/product")
     .then(function (r) { return r.ok ? r.json() : null; })

@@ -147,7 +147,7 @@
         // APPS_REGISTRY is the rebuilt catalog view (#1811); allow apps it
         // surfaces (including preview apps when preview mode is on).
         var inRegistry = (window.APPS_REGISTRY || APPS_REGISTRY).some(function (a) { return a.id === app.id; });
-        if (!enabledApps || enabledApps.has(app.id) || inRegistry || app.preview) {
+        if (!enabledApps || enabledApps.has(app.id) || inRegistry || app.preview || app.launcher_visibility === "always") {
           html += this._appTileHTML(app);
         }
       }.bind(this));
@@ -168,9 +168,11 @@
           // product `apps=` list; their presence in the catalog already IS
           // the server's visibility decision, so exempt them here.
           // Core surfaces show even when not listed in `apps=`; every other
-          // app follows the product file (#1811). Preview apps surfaced by
+          // app follows the registry launcher split (#2097) with `.product`
+          // able to enable one explicitly (#1811). Preview apps surfaced by
           // the rebuilt registry are allowed when preview mode is on.
           if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isCoreAppId(a.id)) return true;
+          if (a.launcher_visibility === "always") return true;
           if (a.preview) return true;
           return enabledApps.has(a.id);
         });
