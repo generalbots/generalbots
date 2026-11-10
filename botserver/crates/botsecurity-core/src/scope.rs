@@ -90,6 +90,28 @@ pub fn email_from_user_id(headers: &HeaderMap, conn: &mut diesel::PgConnection) 
 /// Extracts the server-minted `branch_id` JWT claim. Minted at login from
 /// the user's verified tenant binding (issue #736), it is the authoritative
 /// branch scope; never derived from client input.
+/// Whether the token's header declares a real algorithm.
+///
+/// #2066 — the payload used to be decoded with no look at the header, so a
+/// forged unsecured token (`{"alg":"none"}`) could select any tenant branch
+/// through this helper. An unsecured token can never have been minted by the
+/// server.
+fn header_is_secured(token: &str) -> bool {
+    let Some(header) = token.split('.').next() else {
+        return false;
+    };
+    let Some(decoded) = base64url_decode(header) else {
+        return false;
+    };
+    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
+        return false;
+    };
+    match json.get("alg").and_then(|v| v.as_str()) {
+        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
+        None => false,
+    }
+}
+
 pub fn branch_from_claim(headers: &HeaderMap) -> Option<Uuid> {
     let token = bearer_token(headers)?;
     if !token.contains('.') {
@@ -97,6 +119,9 @@ pub fn branch_from_claim(headers: &HeaderMap) -> Option<Uuid> {
     }
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
+        return None;
+    }
+    if !header_is_secured(token) {
         return None;
     }
     let payload = base64url_decode(parts[1])?;
@@ -209,10 +234,89 @@ mod tests {
     fn branch_from_claim_reads_the_server_minted_branch() {
         use base64::Engine;
         let branch = Uuid::new_v4();
+        // A real token always carries a header; the fixture used to use a
+        // placeholder (`aaa`) that no longer passes the secured-header check.
+        let header = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(r#"{"alg":"HS256","typ":"JWT"}"#);
         let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .encode(format!(r#"{{"branch_id":"{branch}"}}"#));
-        let token = format!("aaa.{payload}.bbb");
+        let token = format!("{header}.{payload}.bbb");
         let headers = header_with(&format!("Bearer {token}"));
         assert_eq!(branch_from_claim(&headers), Some(branch));
+    }
+
+    fn b64url(input: &str) -> String {
+        const TABLE: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let bytes = input.as_bytes();
+        let mut out = String::new();
+        for chunk in bytes.chunks(3) {
+            let b0 = chunk[0] as u32;
+            let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
+            let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
+            let triple = (b0 << 16) | (b1 << 8) | b2;
+            out.push(TABLE[(triple >> 18) as usize & 0x3F] as char);
+            out.push(TABLE[(triple >> 12) as usize & 0x3F] as char);
+            if chunk.len() > 1 {
+                out.push(TABLE[(triple >> 6) as usize & 0x3F] as char);
+            }
+            if chunk.len() > 2 {
+                out.push(TABLE[triple as usize & 0x3F] as char);
+            }
+        }
+        out
+    }
+
+    fn token(header: &str, payload: &str) -> String {
+        format!("{}.{}.sig", b64url(header), b64url(payload))
+    }
+
+    fn headers(auth: &str) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        map.insert("authorization", auth.parse().expect("header"));
+        map
+    }
+
+    #[test]
+    fn an_unsecured_token_cannot_select_a_branch() {
+        // #2066 — a forged alg=none token must not resolve a tenant branch.
+        let branch = Uuid::new_v4();
+        let payload = format!(r#"{{"branch_id":"{branch}"}}"#);
+        let forged = token(r#"{"alg":"none","typ":"JWT"}"#, &payload);
+        assert_eq!(branch_from_claim(&headers(&format!("Bearer {forged}"))), None);
+    }
+
+    #[test]
+    fn an_unsecured_header_in_any_casing_is_refused() {
+        for header in [r#"{"alg":"NONE"}"#, r#"{"alg":"None"}"#, r#"{"alg":" none "}"#] {
+            let encoded = b64url(header);
+            let body = b64url(r#"{"branch_id":"11111111-1111-1111-1111-111111111111"}"#);
+            let forged = format!("{encoded}.{body}.sig");
+            assert!(!header_is_secured(&forged), "{header} must be refused");
+        }
+    }
+
+    #[test]
+    fn a_secured_token_still_resolves_the_branch() {
+        let branch = Uuid::new_v4();
+        let payload = format!(r#"{{"branch_id":"{branch}"}}"#);
+        let secured = token(r#"{"alg":"HS256","typ":"JWT"}"#, &payload);
+        assert_eq!(
+            branch_from_claim(&headers(&format!("Bearer {secured}"))),
+            Some(branch)
+        );
+    }
+
+    #[test]
+    fn a_token_without_an_algorithm_is_refused() {
+        let forged = token(r#"{"typ":"JWT"}"#, r#"{"branch_id":"11111111-1111-1111-1111-111111111111"}"#);
+        assert!(!header_is_secured(&forged));
+    }
+
+    #[test]
+    fn malformed_tokens_never_panic() {
+        for value in ["", "a", "a.b", "!!!.payload.sig", ".."] {
+            assert!(!header_is_secured(value), "{value:?}");
+        }
     }
 }
