@@ -201,12 +201,13 @@ pub async fn list_comments(
 }
 pub async fn get_ticket_stats(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<TicketStats>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let total_tickets: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
@@ -266,12 +267,13 @@ pub async fn get_ticket_stats(
 }
 pub async fn list_overdue_tickets(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<SupportTicket>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = Utc::now();
 
     let tickets: Vec<SupportTicket> = support_tickets::table

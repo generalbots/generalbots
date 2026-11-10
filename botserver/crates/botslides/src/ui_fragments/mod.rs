@@ -14,6 +14,7 @@ use axum::{
 use serde::Deserialize;
 use std::sync::Arc;
 
+use crate::auth::{SlidesUser, SlidesUnauthorized};
 use crate::storage::DriveOps;
 use crate::types::PresentationMetadata;
 
@@ -51,21 +52,21 @@ pub fn empty_fragment(text: &str) -> String {
     botuifragments::ui_fragments::empty_state("sl-empty", text)
 }
 
-/// Decks the sidebar shows: the Drive listing for the single local user.
+/// Decks the sidebar shows: the Drive listing for the verified owner.
 /// The sidebar routes are GETs (hx-get), so they load the metadata here
 /// instead of expecting a JSON request body — registering the Json-taking
 /// render functions directly made every load fail with "Expected request
 /// with Content-Type: application/json" (#1715/#1707).
 async fn sidebar_presentations<D: DriveOps + Send + Sync + 'static>(
     state: &Arc<crate::SlidesState<D>>,
+    user_id: &str,
 ) -> Vec<PresentationMetadata> {
     match state.drive.as_ref() {
-        Some(drive) => crate::storage::list_presentations_from_drive(
-            drive,
-            &crate::storage::get_current_user_id(),
-        )
-        .await
-        .unwrap_or_default(),
+        Some(drive) => {
+            crate::storage::list_presentations_from_drive(drive, user_id)
+                .await
+                .unwrap_or_default()
+        }
         None => Vec::new(),
     }
 }
@@ -77,27 +78,36 @@ struct SidebarQuery {
 
 async fn get_presentation_list<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<crate::SlidesState<D>>>,
-) -> Html<String> {
-    handle_presentation_list_sidebar(Json(sidebar_presentations(&state).await)).await
+    user: SlidesUser,
+) -> Result<Html<String>, SlidesUnauthorized> {
+    Ok(handle_presentation_list_sidebar(Json(
+        sidebar_presentations(&state, user.owner_id()).await,
+    ))
+    .await)
 }
 
 async fn get_search_sidebar<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<crate::SlidesState<D>>>,
+    user: SlidesUser,
     Query(params): Query<SidebarQuery>,
-) -> Html<String> {
+) -> Result<Html<String>, SlidesUnauthorized> {
     let needle = params.q.unwrap_or_default().to_lowercase();
-    let items: Vec<PresentationMetadata> = sidebar_presentations(&state)
+    let items: Vec<PresentationMetadata> = sidebar_presentations(&state, user.owner_id())
         .await
         .into_iter()
         .filter(|item| needle.is_empty() || item.name.to_lowercase().contains(&needle))
         .collect();
-    handle_search_sidebar(Json(items)).await
+    Ok(handle_search_sidebar(Json(items)).await)
 }
 
 async fn get_recent_sidebar<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<crate::SlidesState<D>>>,
-) -> Html<String> {
-    handle_recent_sidebar(Json(sidebar_presentations(&state).await)).await
+    user: SlidesUser,
+) -> Result<Html<String>, SlidesUnauthorized> {
+    Ok(handle_recent_sidebar(Json(
+        sidebar_presentations(&state, user.owner_id()).await,
+    ))
+    .await)
 }
 
 pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Router<std::sync::Arc<crate::SlidesState<D>>> {

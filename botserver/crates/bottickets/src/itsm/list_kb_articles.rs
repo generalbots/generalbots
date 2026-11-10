@@ -1,7 +1,10 @@
 use super::*;
 
-pub(super) async fn list_kb_articles(State(state): State<Arc<TicketsState>>) -> impl IntoResponse {
-    let branch_id = resolve_branch_id(&state);
+pub(super) async fn list_kb_articles(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
 
     let rows: Vec<KbArticleRow> = tokio::task::spawn_blocking(move || {
@@ -57,13 +60,14 @@ pub(super) async fn list_kb_articles(State(state): State<Arc<TicketsState>>) -> 
 }
 pub(super) async fn create_kb_article(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Json(payload): Json<NewKbArticleRequest>,
 ) -> Result<Json<KbArticleRow>, (axum::http::StatusCode, String)> {
     if payload.title.trim().is_empty() {
         return Err((axum::http::StatusCode::BAD_REQUEST, "title is required".to_string()));
     }
 
-    let branch_id = resolve_branch_id(&state);
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
     let id = Uuid::new_v4();
     let title = payload.title.clone();
@@ -112,7 +116,12 @@ pub(super) async fn create_kb_article(
         is_published,
     }))
 }
-pub(super) async fn get_kb_article(State(state): State<Arc<TicketsState>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+pub(super) async fn get_kb_article(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
 
     let row: Option<KbArticleRow> = tokio::task::spawn_blocking(move || {
@@ -139,9 +148,12 @@ pub(super) async fn get_kb_article(State(state): State<Arc<TicketsState>>, Path(
             #[diesel(sql_type = diesel::sql_types::Bool)]
             is_published: bool,
         }
-        diesel::sql_query("SELECT id, title, body, category, tags, is_published FROM ticket_kb_articles WHERE id = $1")
-            .bind::<diesel::sql_types::Uuid, _>(&id)
-            .get_result::<Row>(&mut db_conn)
+        diesel::sql_query(
+            "SELECT id, title, body, category, tags, is_published FROM ticket_kb_articles WHERE id = $1 AND branch_id = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(&id)
+        .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+        .get_result::<Row>(&mut db_conn)
             .ok()
             .map(|r| KbArticleRow {
                 id: r.id,
@@ -162,9 +174,11 @@ pub(super) async fn get_kb_article(State(state): State<Arc<TicketsState>>, Path(
 }
 pub(super) async fn update_kb_article(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(payload): Json<NewKbArticleRequest>,
 ) -> Result<Json<KbArticleRow>, (axum::http::StatusCode, String)> {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
     let title = payload.title.clone();
     let body = payload.body.clone();
@@ -179,16 +193,16 @@ pub(super) async fn update_kb_article(
         tags.clone(),
     );
 
-    tokio::task::spawn_blocking(move || {
+    let updated = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {e}");
-                return;
+                return 0;
             }
         };
-        let _ = diesel::sql_query(
-            "UPDATE ticket_kb_articles SET title = $1, body = $2, category = $3, tags = $4, is_published = $5, updated_at = NOW() WHERE id = $6",
+        diesel::sql_query(
+            "UPDATE ticket_kb_articles SET title = $1, body = $2, category = $3, tags = $4, is_published = $5, updated_at = NOW() WHERE id = $6 AND branch_id = $7",
         )
         .bind::<diesel::sql_types::Text, _>(&title_c)
         .bind::<diesel::sql_types::Text, _>(&body_c)
@@ -196,10 +210,16 @@ pub(super) async fn update_kb_article(
         .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(&tags_c)
         .bind::<diesel::sql_types::Bool, _>(&is_published)
         .bind::<diesel::sql_types::Uuid, _>(&id)
-        .execute(&mut db_conn);
+        .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+        .execute(&mut db_conn)
+        .unwrap_or(0)
     })
     .await
     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Task error: {e}")))?;
+
+    if updated == 0 {
+        return Err((axum::http::StatusCode::NOT_FOUND, "KB article not found".to_string()));
+    }
 
     Ok(Json(KbArticleRow {
         id,
@@ -210,32 +230,46 @@ pub(super) async fn update_kb_article(
         is_published,
     }))
 }
-pub(super) async fn delete_kb_article(State(state): State<Arc<TicketsState>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+pub(super) async fn delete_kb_article(
+    State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let branch_id = resolve_branch_id(&state, &headers);
     let conn = state.pool.clone();
-    match tokio::task::spawn_blocking(move || {
+    let deleted = match tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {e}");
-                return;
+                return 0;
             }
         };
-        let _ = diesel::sql_query("DELETE FROM ticket_kb_articles WHERE id = $1")
+        diesel::sql_query("DELETE FROM ticket_kb_articles WHERE id = $1 AND branch_id = $2")
             .bind::<diesel::sql_types::Uuid, _>(&id)
-            .execute(&mut db_conn);
+            .bind::<diesel::sql_types::Uuid, _>(&branch_id)
+            .execute(&mut db_conn)
+            .unwrap_or(0)
     })
     .await
     {
-        Ok(()) => (),
-        Err(e) => log::error!("Delete KB article task error: {e}"),
+        Ok(count) => count,
+        Err(e) => {
+            log::error!("Delete KB article task error: {e}");
+            0
+        }
+    };
+
+    if deleted == 0 {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
     }
 
     axum::http::StatusCode::NO_CONTENT.into_response()
 }
 
 // UI fragments for the ITSM-style tabs in the tickets app.
-pub(super) async fn render_ci_list(state: &Arc<TicketsState>) -> String {
-    let branch_id = resolve_branch_id(state);
+pub(super) async fn render_ci_list(state: &Arc<TicketsState>, headers: &HeaderMap) -> String {
+    let branch_id = resolve_branch_id(state, headers);
     let conn = state.pool.clone();
 
     let rows = tokio::task::spawn_blocking(move || {

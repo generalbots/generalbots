@@ -1,8 +1,8 @@
 use super::*;
 
 use crate::oauth_identity::{
-    normalize_email, resolve_oauth_identity, EmailOwner, LocalIdentityFacts, OAuthResolution,
-    OAUTH_NO_PASSWORD_HASH,
+    normalize_email, resolve_oauth_identity, EmailOwner, LocalIdentityFacts, NewOAuthAccount,
+    OAuthResolution, OAUTH_NO_PASSWORD_HASH,
 };
 
 /// Result of the callback's identity step.
@@ -65,7 +65,7 @@ pub(super) async fn create_or_get_oauth_user(
             avatar_url: avatar_url.as_deref(),
         };
 
-        let facts = load_identity_facts(db, &provider, &provider_id, email.as_deref())?;
+        let facts = load_identity_facts(&mut *db, &provider, &provider_id, email.as_deref())?;
 
         match resolve_oauth_identity(email.as_deref(), email_verified, &facts) {
             OAuthResolution::Login(user_id) => {
@@ -75,7 +75,7 @@ pub(super) async fn create_or_get_oauth_user(
                 Ok(OAuthLoginOutcome::LoggedIn(user_id))
             }
             OAuthResolution::Adopt(user_id) => {
-                if bind_subject(db, user_id, &link)? {
+                if bind_subject(&mut *db, user_id, &link)? {
                     botlog::safe_debug!(
                         "OAuth adopted password-less account {user_id} for verified email"
                     );
@@ -182,8 +182,10 @@ fn load_identity_facts(
         .map(|row| EmailOwner {
             user_id: row.id,
             is_admin: row.is_admin,
-            has_password: !row.password_hash.is_empty()
-                && row.password_hash != OAUTH_NO_PASSWORD_HASH,
+            // Fail closed: only the explicit OAuth marker means "no local
+            // credential". Any other value — including the empty hash written
+            // by the directory provisioning path — counts as a credential.
+            has_password: row.password_hash != OAUTH_NO_PASSWORD_HASH,
             has_bound_identity: row.has_bound_identity,
         }),
         None => None,
@@ -238,32 +240,10 @@ fn bind_subject(
     Ok(bound == Some(user_id))
 }
 
-/// Builds a unique, readable username for a freshly created OAuth account.
-///
-/// `users.username` is UNIQUE, and provider subjects can share long prefixes
-/// (Discord snowflakes carry a timestamp), so the subject is kept in full
-/// rather than truncated to a few characters.
-fn oauth_username(provider: &str, provider_id: &str, display_name: Option<&str>) -> String {
-    let sanitized: String = display_name
-        .unwrap_or_default()
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
-        .take(20)
-        .collect();
-    let subject: String = provider_id.chars().take(64).collect();
-
-    if sanitized.is_empty() {
-        format!("{provider}_{subject}")
-    } else {
-        format!("{sanitized}_{provider}_{subject}")
-    }
-}
-
 /// Creates the local row for a new OAuth identity.
 ///
-/// The account is never an administrator, and only a provider-verified email
-/// becomes `users.email`; an unverified claim stays in the link row as
-/// metadata so it can never win an email-based lookup elsewhere.
+/// The account is never an administrator and never takes an unverified email
+/// as its address — see [`NewOAuthAccount`].
 fn insert_oauth_user(
     db: &mut diesel::PgConnection,
     provider: &str,
@@ -274,21 +254,17 @@ fn insert_oauth_user(
     use crate::schema::users;
     use diesel::prelude::*;
 
+    let account = NewOAuthAccount::for_subject(provider, provider_id, verified_email, display_name);
     let user_id = Uuid::new_v4();
-    let username = oauth_username(provider, provider_id, display_name);
-    let email = match verified_email {
-        Some(address) => address.to_string(),
-        None => format!("{username}@oauth.local"),
-    };
 
     diesel::insert_into(users::dsl::users)
         .values((
             users::dsl::id.eq(user_id),
-            users::dsl::username.eq(&username),
-            users::dsl::email.eq(&email),
+            users::dsl::username.eq(&account.username),
+            users::dsl::email.eq(&account.email),
             users::dsl::password_hash.eq(OAUTH_NO_PASSWORD_HASH),
             users::dsl::is_active.eq(true),
-            users::dsl::is_admin.eq(false),
+            users::dsl::is_admin.eq(account.is_admin),
             users::dsl::created_at.eq(diesel::dsl::now),
             users::dsl::updated_at.eq(diesel::dsl::now),
         ))

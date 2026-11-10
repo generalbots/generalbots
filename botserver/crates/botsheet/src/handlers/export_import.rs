@@ -15,6 +15,7 @@ use axum::{
     response::Html,
     Json,
 };
+use botsecurity_core::upload_policy::{self, UploadClass};
 use std::sync::Arc;
 
 /// One content-type header for the download arms; the xlsx arm adds its
@@ -201,7 +202,18 @@ pub async fn handle_import_sheet(
         )
     })?;
 
-    let mut sheet = import_spreadsheet_bytes(&bytes, &filename, &user_id).map_err(|e| {
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::SpreadsheetImport,
+        &filename,
+        &content_type,
+        &bytes,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+    };
+
+    let mut sheet = import_spreadsheet_bytes(&bytes, &upload.filename, &user_id).map_err(|e| {
         (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": e })),

@@ -100,9 +100,7 @@ impl RedirectPolicy {
             return None;
         }
         // The authority ends at the first path/query/fragment delimiter.
-        let authority_end = rest
-            .find(['/', '?', '#'])
-            .unwrap_or(rest.len());
+        let authority_end = rest.find(is_url_delimiter).unwrap_or(rest.len());
         let authority = &rest[..authority_end];
         // Credentials in the authority (`https://allowed@evil`) and empty
         // authorities are refused outright.
@@ -123,10 +121,15 @@ pub fn safe_redirect_target(raw: Option<&str>) -> String {
     RedirectPolicy::default().sanitize(raw)
 }
 
+/// Characters that end the authority component of a URL.
+fn is_url_delimiter(c: char) -> bool {
+    matches!(c, '/' | '?' | '#')
+}
+
 /// Extracts the `host[:port]` from an absolute URL, lowercased.
 fn host_of(url: &str) -> Option<String> {
     let (_, rest) = url.split_once("://")?;
-    let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+    let end = rest.find(is_url_delimiter).unwrap_or(rest.len());
     let authority = &rest[..end];
     if authority.is_empty() || authority.contains('@') {
         return None;

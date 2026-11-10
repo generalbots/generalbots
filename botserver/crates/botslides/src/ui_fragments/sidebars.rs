@@ -1,6 +1,7 @@
 use super::{empty_fragment, html_escape, render_metadata_card};
 use botuifragments::ui_fragments::{sidebar_shell, sidebar_shell_plain};
 use axum::{extract::{Query, State}, response::Html, Json};
+use crate::auth::{SlidesUser, SlidesUnauthorized};
 use crate::types::{Presentation, PresentationMetadata, Slide};
 use crate::SlidesState;
 
@@ -63,24 +64,25 @@ pub async fn handle_recent_sidebar(Json(items): Json<Vec<PresentationMetadata>>)
 /// only the id; the full Presentation is loaded from Drive here).
 pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
     State(state): State<std::sync::Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Query(params): Query<std::collections::HashMap<String, String>>,
-) -> Html<String> {
+) -> Result<Html<String>, SlidesUnauthorized> {
     let pid = params.get("id").cloned().unwrap_or_default();
     if pid.is_empty() {
-        return Html(super::err_fragment("id ausente"));
+        return Ok(Html(super::err_fragment("id ausente")));
     }
-    let user_id = crate::storage::get_current_user_id();
+    let user_id = user.owner_id();
     let Some(drive) = state.drive.as_ref() else {
-        return Html(super::err_fragment("Drive indisponível"));
+        return Ok(Html(super::err_fragment("Drive indisponível")));
     };
     let requested = params
         .get("slide_index")
         .or_else(|| params.get("slide"))
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(0);
-    match crate::storage::load_presentation_by_id(drive, &user_id, &pid).await {
-        Ok(pres) => Html(render_presentation_view(&pres, requested)),
-        Err(e) => Html(super::err_fragment(&e)),
+    match crate::storage::load_presentation_by_id(drive, user_id, &pid).await {
+        Ok(pres) => Ok(Html(render_presentation_view(&pres, requested))),
+        Err(e) => Ok(Html(super::err_fragment(&e))),
     }
 }
 
@@ -89,10 +91,11 @@ pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
 /// instead of failing JSON deserialization with 400.
 pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
     State(state): State<std::sync::Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(payload): Json<serde_json::Value>,
-) -> Html<String> {
+) -> Result<Html<String>, SlidesUnauthorized> {
     if let Ok(pres) = serde_json::from_value::<Presentation>(payload.clone()) {
-        return handle_presentation_view(Json(pres)).await;
+        return Ok(handle_presentation_view(Json(pres)).await);
     }
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or_default();
     let requested = payload
@@ -100,8 +103,8 @@ pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
         .or_else(|| payload.get("slide"))
         .and_then(|value| value.as_u64())
         .unwrap_or(0) as usize;
-    let pres = super::get_bridge::load_or_blank(&state, id).await;
-    Html(render_presentation_view(&pres, requested))
+    let pres = super::get_bridge::load_or_blank(&state, user.owner_id(), id).await;
+    Ok(Html(render_presentation_view(&pres, requested)))
 }
 
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {

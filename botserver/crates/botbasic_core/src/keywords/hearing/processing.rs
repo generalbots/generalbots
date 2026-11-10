@@ -7,6 +7,31 @@ use uuid::Uuid;
 use super::types::InputType;
 use super::validators::validate_input;
 
+use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
+
+/// Downloads an attachment URL that arrived with a channel message.
+///
+/// #2131 — the URL is caller-supplied, so the shared SSRF guard decides what
+/// may be fetched: public http(s) only, redirects re-validated per hop, and a
+/// byte cap so a huge attachment cannot exhaust memory.
+async fn download_attachment(url: &str) -> Result<Vec<u8>, String> {
+    let policy = FetchPolicy::default()
+        .with_timeout(std::time::Duration::from_secs(60))
+        .with_max_bytes(32 * 1024 * 1024);
+    let response = fetch_user_url(url, &policy).await.map_err(|e| {
+        log::warn!(
+            "hearing: refused attachment URL ({}): {}",
+            e.kind().as_str(),
+            e.detail()
+        );
+        e.to_string()
+    })?;
+    if !response.is_success() {
+        return Err(format!("attachment URL answered HTTP {}", response.status));
+    }
+    Ok(response.body)
+}
+
 pub async fn process_hear_input(
     state: &Arc<dyn BasicRuntime>,
     session_id: Uuid,
@@ -146,14 +171,7 @@ pub async fn process_qrcode(
 
     let client = reqwest::Client::new();
 
-    let image_data = client
-        .get(image_url)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download image: {}", e))?
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to fetch image: {e}"))?;
+    let image_data = download_attachment(image_url).await?;
 
     // botmodels declares `file: UploadFile = File(...)`, so this must be
     // multipart. Sending a raw octet-stream body returned 422.
@@ -201,14 +219,7 @@ pub async fn process_audio_to_text(
 
     let client = reqwest::Client::new();
 
-    let audio_data = client
-        .get(audio_url)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download audio: {}", e))?
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read audio: {e}"))?;
+    let audio_data = download_attachment(audio_url).await?;
 
     // botmodels exposes /api/speech/totext (no hyphen) and expects multipart.
     let part = reqwest::multipart::Part::bytes(audio_data.to_vec())
@@ -256,14 +267,7 @@ pub async fn process_video_description(
 
     let client = reqwest::Client::new();
 
-    let video_data = client
-        .get(video_url)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download video: {}", e))?
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to fetch video: {e}"))?;
+    let video_data = download_attachment(video_url).await?;
 
     let response = client
         .post(format!("{botmodels_url}/api/vision/describe-video"))

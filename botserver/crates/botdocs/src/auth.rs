@@ -51,18 +51,22 @@ impl DocUser {
     /// shared prefix.
     pub fn verified(id: impl Into<String>, display_name: impl Into<String>) -> Option<Self> {
         let id = id.into().trim().to_string();
-        if id.is_empty() || is_legacy_owner(&id) || sanitize_owner(&id).is_empty() {
+        let segment = sanitize_owner(&id);
+        // An id that sanitises to separators only would build a prefix no
+        // verified principal can own, so it is rejected like an empty one.
+        if id.is_empty()
+            || is_legacy_owner(&id)
+            || !segment.chars().any(char::is_alphanumeric)
+        {
             return None;
         }
         let display_name = display_name.into().trim().to_string();
-        Some(Self {
-            id,
-            display_name: if display_name.is_empty() {
-                id.clone()
-            } else {
-                display_name
-            },
-        })
+        let display_name = if display_name.is_empty() {
+            id.clone()
+        } else {
+            display_name
+        };
+        Some(Self { id, display_name })
     }
 
     /// The verified owner id used as the namespace segment.

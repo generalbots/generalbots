@@ -55,6 +55,7 @@ WRAPPER_DEF = re.compile(r"\bfn\s+\w*saas_jwt_secret\s*\(")
 PLACEHOLDERS = ("dev-secret-key-change-in-production", "change-me-in-production")
 ENV_READS = ('var("SAAS_JWT_SECRET")', 'var("JWT_SECRET")')
 CONFIG_KEY_READ = 'get("saas_jwt_secret")'
+POLICY_OVERRIDE = ("jwt_secret::resolve_secret(", "jwt_secret::resolve_with(", "JwtSecretPolicy")
 SHARED_RESOLVER = ("verified_jwt::resolve_saas_jwt_secret", "verified_jwt::verify_saas_jwt")
 CONSUMERS = {
     "botserver/src": "botserver routes",
@@ -70,6 +71,7 @@ RULES = (
     "no-wrapper-resolver",
     "no-hardcoded-default",
     "no-second-env-read",
+    "no-policy-override",
     "consumers-share-it",
 )
 
@@ -135,6 +137,14 @@ def scan_text(relative: Path, text: str) -> list[str]:
             "single-resolver: reads the saas_jwt_secret config key directly; the "
             f"only reader is {CANONICAL}"
         )
+
+    if not canonical and not test_file:
+        for pattern in POLICY_OVERRIDE:
+            if pattern in text:
+                violations.append(
+                    f"no-policy-override: uses `{pattern}` outside the canonical "
+                    "module; the build policy must come from JwtSecretPolicy::from_env"
+                )
 
     return violations
 
@@ -205,6 +215,7 @@ def self_test() -> int:
     expect("no-hardcoded-default", "botserver/src/x.rs", 'let s = "dev-secret-key-change-in-production-minimum-32-chars";')
     expect("no-second-env-read", "botserver/src/x.rs", 'let s = std::env::var("SAAS_JWT_SECRET");')
     expect("single-resolver", "botserver/src/x.rs", 'json.get("saas_jwt_secret")')
+    expect("no-policy-override", "botserver/src/x.rs", "let s = jwt_secret::resolve_with(inputs, policy, persist);")
 
     canonical = (
         "pub const DEV_FALLBACK_SECRET: &str = \"dev-secret-key-change-in-production-minimum-32-chars\";\n"
@@ -212,7 +223,7 @@ def self_test() -> int:
     )
     expect("single-resolver", CANONICAL, canonical, should_fire=False)
     expect("no-hardcoded-default", CANONICAL, canonical, should_fire=False)
-
+    expect("no-policy-override", CANONICAL, "let s = resolve_with(i, p, f);", should_fire=False)
     test_file = 'let s = std::env::var("JWT_SECRET"); // dev-secret-key-change-in-production'
     expect("no-hardcoded-default", "botserver/crates/x/src/y_tests.rs", test_file, should_fire=False)
     expect("no-second-env-read", "botserver/crates/x/src/y_tests.rs", test_file, should_fire=False)

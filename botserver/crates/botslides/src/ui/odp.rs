@@ -119,7 +119,7 @@ mod odp_tests {
     use crate::types::Presentation;
 
     fn deck() -> Presentation {
-        crate::storage::create_new_presentation()
+        crate::storage::create_new_presentation("test-owner")
     }
 
     #[test]

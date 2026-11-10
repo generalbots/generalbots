@@ -148,8 +148,13 @@ pub async fn domain_auth(
         Ok(_email) => {
             if params.contains_key("token") {
                 // Login callback: mint the domain cookie, then land on the app.
+                // #2130 — the domain is a validated bare FQDN (see
+                // `ProjectDomains::validate_domain`: no scheme, no `//`, no
+                // whitespace), so `https://{domain}/` cannot be turned into an
+                // open redirect. The cookie is `Secure` so a plaintext hop can
+                // never carry it.
                 let cookie = format!(
-                    "{COOKIE_NAME}={tok}; Path=/; Domain={domain}; HttpOnly; SameSite=Lax; Max-Age={COOKIE_MAX_AGE}"
+                    "{COOKIE_NAME}={tok}; Path=/; Domain={domain}; HttpOnly; Secure; SameSite=Lax; Max-Age={COOKIE_MAX_AGE}"
                 );
                 let mut resp = Redirect::to(&format!("https://{domain}/")).into_response();
                 if let Ok(cv) = header::HeaderValue::from_str(&cookie) {

@@ -3,6 +3,7 @@ use crate::state::SheetState;
 use crate::types::{
     NamedRange, NamedRangesExportResponse, NamedRangesImportResponse,
 };
+use botsecurity_core::upload_policy::{self, UploadClass};
 use axum::{
     body::Bytes,
     extract::{Extension, Query, State},
@@ -68,6 +69,7 @@ pub async fn handle_export_named_ranges_csv(
 pub async fn handle_import_named_ranges_csv(
     State(state): State<Arc<SheetState>>,
     user: Option<Extension<SheetUser>>,
+    headers: axum::http::HeaderMap,
     Query(params): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Result<Json<NamedRangesImportResponse>, (StatusCode, Json<Value>)> {
@@ -86,6 +88,17 @@ pub async fn handle_import_named_ranges_csv(
     let mut sheet = session.sheet.write().await;
     if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
         return Err((StatusCode::FORBIDDEN, Json(json!({ "error": e }))));
+    }
+
+    // #2132 — a CSV import is an upload: the payload must be the text it
+    // claims to be, not markup or a binary disguised as `.csv`.
+    if let Err(error) = upload_policy::validate_upload(
+        UploadClass::SpreadsheetImport,
+        "named-ranges.csv",
+        "text/csv",
+        &body,
+    ) {
+        return Err(upload_policy::rejection_json(&error, &headers));
     }
 
     let csv = String::from_utf8_lossy(&body).to_string();

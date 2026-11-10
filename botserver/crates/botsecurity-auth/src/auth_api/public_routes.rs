@@ -106,7 +106,12 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.capability("/api/files/public/:token");
     routes.capability("/api/terminal/ws");
     routes.capability("/api/marketing/track/open/:token");
-    // Click tracking redirects to an arbitrary destination held in the tail.
+    // Email click tracking (#2139): the destination is a signed query
+    // parameter (`u`/`e`/`s`), so the only place this route redirects to is a
+    // URL the server signed into the sent email. The legacy path shape
+    // (`…/click/:id/<destination>`) is declared so an old link answers an
+    // explicit 400 instead of being widened into a namespace.
+    routes.capability("/api/marketing/track/click/:id");
     routes.capability("/api/marketing/track/click/:id/*");
     // Caddy forward-auth: the proxy calls it without a token; the handler
     // validates the domain cookie/JWT itself.
@@ -143,16 +148,27 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.webhook(Method::GET, "/auth/callback");
 
     // ── Peer network (machine callers, shared GB_PEER_TOKEN) ────────────────
-    // Peers hold no user session; each handler enforces GB_PEER_NETWORK and
-    // the optional shared token itself (#1864).
+    // Peers hold no user session. #2141 — only the machine-to-machine routes
+    // are listed here, and every one of them requires the shared token: when
+    // GB_PEER_TOKEN is unset they fail closed (503) instead of accepting
+    // anonymous payloads. `enable`/`disable` are admin controls and stay
+    // authenticated (admin session), so they are deliberately absent.
     routes.read("/api/peer/status");
     routes.read("/api/peer/home-site");
     routes.read("/api/peer/payloads");
     routes.webhook(Method::POST, "/api/peer/register");
     routes.webhook(Method::POST, "/api/peer/heartbeat");
-    routes.webhook(Method::POST, "/api/peer/enable");
-    routes.webhook(Method::POST, "/api/peer/disable");
     routes.webhook(Method::POST, "/api/peer/payloads");
+
+    // ── Chat and progress WebSockets ────────────────────────────────────────
+    // A browser WebSocket cannot set an Authorization header; the handlers
+    // resolve the optional `?token=` and the bot's public flag themselves.
+    // Only these four exact sockets are admitted — `/ws/logs`, `/ws/sheet/:id`,
+    // `/ws/docs/:id`, `/ws/plan/:id` stay authenticated (see the deny list).
+    routes.read("/ws");
+    routes.read("/ws/:bot_name");
+    routes.read("/ws/task-progress");
+    routes.read("/ws/task-progress/:task_id");
 
     // ── Static asset trees (the one legitimate prefix) ──────────────────────
     // Only file-like paths (a dotted final segment) match, so a server route
@@ -165,6 +181,25 @@ pub fn platform_public_routes() -> Vec<PublicRoute> {
     routes.read("/favicon.ico");
     routes.read("/robots.txt");
 
+    routes.finish()
+}
+
+/// Routes that must require a session even though a broader public pattern
+/// (a `:param` or an asset tree) would match them.
+///
+/// Deny wins, so this list can only remove access — a new route added under a
+/// public pattern stays authenticated until someone adds it here or the
+/// pattern is narrowed.
+#[must_use]
+pub fn platform_private_routes() -> Vec<PublicRoute> {
+    let mut routes = RouteList::new();
+    // `/ws/:bot_name` admits public-bot chat; the monitoring log stream shares
+    // that shape and has no handler-level gate.
+    routes.deny(Method::GET, "/ws/logs");
+    // `/api/i18n/:locale` serves translation catalogues; the caller-scoped
+    // preference endpoint shares that shape and already answers 401, but the
+    // transport gate must not treat it as anonymous.
+    routes.deny(Method::GET, "/api/i18n/preference");
     routes.finish()
 }
 
@@ -215,6 +250,11 @@ impl RouteList {
         self.push(PublicRoute::asset(pattern));
     }
 
+    /// Declares a route that always requires a session.
+    fn deny(&mut self, method: Method, pattern: &str) {
+        self.push(PublicRoute::deny(method, pattern));
+    }
+
     fn push(&mut self, route: Result<PublicRoute, AuthConfigError>) {
         match route {
             Ok(route) => self.routes.push(route),
@@ -233,11 +273,14 @@ impl RouteList {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth_api::config::AuthConfig;
 
+    /// The same policy the middleware receives: allow list + deny list.
     fn is_public(method: Method, path: &str) -> bool {
-        platform_public_routes()
-            .iter()
-            .any(|route| route.matches(&method, path))
+        AuthConfig::default()
+            .with_public_routes(platform_public_routes())
+            .with_private_routes(platform_private_routes())
+            .is_public_route(&method, path)
     }
 
     #[test]
@@ -264,6 +307,17 @@ mod tests {
         assert!(!is_public(Method::PUT, "/api/products/items/:id"));
         assert!(!is_public(Method::DELETE, "/api/products/items/:id"));
         assert!(!is_public(Method::POST, "/api/products/items/x/stock"));
+        assert!(!is_public(Method::PUT, "/api/products/items/x/stock"));
+        // Every other products write stays authenticated too (#2128): the
+        // legacy `/api/products/items` prefix entry opened the whole namespace.
+        assert!(!is_public(Method::POST, "/api/products/services"));
+        assert!(!is_public(Method::PUT, "/api/products/services/x"));
+        assert!(!is_public(Method::DELETE, "/api/products/services/x"));
+        assert!(!is_public(Method::POST, "/api/products/categories"));
+        assert!(!is_public(Method::POST, "/api/products/price-lists"));
+        assert!(!is_public(Method::POST, "/api/products/inventory/adjust"));
+        assert!(!is_public(Method::POST, "/api/products/inventory/build"));
+        assert!(!is_public(Method::POST, "/api/products/services/x/tax"));
         assert!(!is_public(Method::POST, "/api/sheet/save"));
         assert!(!is_public(Method::POST, "/api/cloud/store/purchase"));
         assert!(!is_public(Method::POST, "/api/auth/directory-config"));
@@ -297,6 +351,27 @@ mod tests {
     }
 
     #[test]
+    fn email_tracking_routes_are_anonymous_only_in_their_declared_shapes() {
+        // A mail client cannot send a bearer token, so the pixel and the click
+        // redirect stay anonymous (#2139) — but only in the declared shapes.
+        assert!(is_public(Method::GET, "/api/marketing/track/open/abc"));
+        let click = "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11";
+        assert!(is_public(Method::GET, click));
+        // The legacy path shape must still reach the handler so it can answer
+        // an explicit 400 instead of redirecting.
+        assert!(is_public(
+            Method::GET,
+            "/api/marketing/track/click/6f1f6f9a-0d1a-4c02-9a53-2f7f4b0c1d11/https://evil.example"
+        ));
+        // Nothing else under the prefix is public, and no write is.
+        assert!(!is_public(Method::GET, "/api/marketing/track/open"));
+        assert!(!is_public(Method::GET, "/api/marketing/track/click"));
+        assert!(!is_public(Method::GET, "/api/marketing/track/open/abc/extra"));
+        assert!(!is_public(Method::GET, "/api/marketing/campaigns"));
+        assert!(!is_public(Method::POST, click));
+    }
+
+    #[test]
     fn a_head_request_follows_its_get_declaration() {
         assert!(is_public(Method::HEAD, "/health"));
         assert!(is_public(Method::HEAD, "/suite/desktop.html"));
@@ -313,10 +388,11 @@ mod tests {
 
     #[test]
     fn every_declaration_is_valid() {
-        // `platform_public_routes` drops invalid declarations; an empty or
-        // short list means a declaration was silently refused.
+        // `platform_public_routes` drops invalid declarations; a short list
+        // means a declaration was silently refused.
         let routes = platform_public_routes();
-        assert!(routes.len() > 40, "declarations were refused: {}", routes.len());
+        let count = routes.len();
+        assert!(count > 40, "declarations were refused: {count}");
         for route in &routes {
             assert!(route.pattern.starts_with('/'));
             assert!(route.access.allows_method(&route.method));

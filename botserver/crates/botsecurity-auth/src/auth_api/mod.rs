@@ -26,7 +26,7 @@ pub mod types;
 // Re-export commonly used types at the module level
 pub use config::{AuthConfig, AuthConfigError, PublicAccess, PublicRoute};
 pub use error::AuthError;
-pub use public_routes::platform_public_routes;
+pub use public_routes::{platform_private_routes, platform_public_routes};
 pub use middleware::{
     admin_only_middleware, auth_middleware, auth_middleware_with_providers,
     bot_operator_middleware, bot_owner_middleware, bot_scope_middleware,

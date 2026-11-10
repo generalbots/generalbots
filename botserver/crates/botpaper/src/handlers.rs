@@ -4,14 +4,14 @@ use crate::PAPER_LIST;
 use crate::PAPER_NEW;
 use axum::{
     extract::{Path, Query, State},
-    http::HeaderMap,
+    http::StatusCode,
     response::{Html, IntoResponse},
     Json,
 };
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::auth::get_current_user;
+use super::auth::PaperUser;
 use super::models::SaveRequest;
 use super::storage::{
     delete_document_from_drive, list_documents_from_drive, load_document_from_drive,
@@ -24,15 +24,10 @@ use super::utils::{
 
 pub async fn handle_new_document(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
+    let user_id = user_identifier.clone();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Untitled".to_string();
@@ -66,15 +61,9 @@ pub async fn handle_new_document(
 
 pub async fn handle_list_documents(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let documents = match list_documents_from_drive(&state, &user_identifier).await {
         Ok(docs) => docs,
@@ -118,16 +107,10 @@ pub async fn handle_list_documents(
 
 pub async fn handle_search_documents(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<super::models::SearchQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let query = params.q.unwrap_or_default().to_lowercase();
 
@@ -166,39 +149,36 @@ pub async fn handle_search_documents(
 
 pub async fn handle_get_document(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Path(id): Path<String>,
-) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+) -> Result<Html<String>, (StatusCode, Html<String>)> {
+    let user_identifier = user.owner_id().to_string();
 
     match load_document_from_drive(&state, &user_identifier, &id).await {
-        Ok(Some(doc)) => Html(format_document_content(&doc.title, &doc.content)),
-        Ok(None) => Html(format_document_content("Untitled", "")),
+        Ok(Some(doc)) => Ok(Html(format_document_content(&doc.title, &doc.content))),
+        // A document that is not under the caller's prefix is a 404 — it used
+        // to render an empty editor, which looked like a successful open of
+        // somebody else's (or a deleted) document (#2137).
+        Ok(None) => Err((
+            StatusCode::NOT_FOUND,
+            Html(format_error("Document not found")),
+        )),
         Err(e) => {
             log::error!("Failed to load document {}: {}", id, e);
-            Html(format_document_content("Untitled", ""))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format_error("Failed to load document")),
+            ))
         }
     }
 }
 
 pub async fn handle_save_document(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Json(payload): Json<SaveRequest>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = payload.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
@@ -228,16 +208,10 @@ pub async fn handle_save_document(
 
 pub async fn handle_paper_import(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Json(payload): Json<SaveRequest>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = payload.title.unwrap_or_else(|| "Imported from Research".to_string());
@@ -269,16 +243,10 @@ pub async fn handle_paper_import(
 
 pub async fn handle_autosave(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Json(payload): Json<SaveRequest>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(String::new());
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = payload.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
@@ -295,28 +263,29 @@ pub async fn handle_autosave(
 
 pub async fn handle_delete_document(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Path(id): Path<String>,
-) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(format_error("Authentication required"));
-        }
-    };
+) -> Result<Html<String>, (StatusCode, Html<String>)> {
+    let user_identifier = user.owner_id().to_string();
 
     match delete_document_from_drive(&state, &user_identifier, &id).await {
         Ok(()) => {
             log::info!("Document deleted: {}", id);
-            Html(format!(
+            Ok(Html(format!(
                 "<div class=\"delete-success\" hx-trigger=\"load\" hx-get=\"{}\" hx-target=\"#paper-list\" hx-swap=\"innerHTML\"></div>",
                 PAPER_LIST
-            ))
+            )))
         }
+        Err(e) if e == "Document not found" => Err((
+            StatusCode::NOT_FOUND,
+            Html(format_error("Document not found")),
+        )),
         Err(e) => {
             log::error!("Failed to delete document {}: {}", id, e);
-            Html(format_error("Failed to delete document"))
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format_error("Failed to delete document")),
+            ))
         }
     }
 }

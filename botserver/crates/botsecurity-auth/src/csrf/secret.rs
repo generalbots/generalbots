@@ -81,7 +81,10 @@ impl fmt::Debug for CsrfSecret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("CsrfSecret")
             .field("source", &self.source)
-            .field("bytes", &format_args!("<redacted {} bytes>", self.bytes.len()))
+            .field(
+                "bytes",
+                &format_args!("<redacted {} bytes>", self.bytes.len()),
+            )
             .finish()
     }
 }
@@ -95,9 +98,9 @@ pub enum CsrfSecretError {
          or Vault secret/gbo/system/security csrf_secret"
     )]
     MissingInProduction,
-    #[error("{source} CSRF secret is {length} bytes; at least {minimum} are required")]
+    #[error("{origin} CSRF secret is {length} bytes; at least {minimum} are required")]
     TooShort {
-        source: &'static str,
+        origin: &'static str,
         length: usize,
         minimum: usize,
     },
@@ -116,14 +119,17 @@ pub fn resolve_secret(
     vault: Option<&str>,
     production: bool,
 ) -> Result<CsrfSecret, CsrfSecretError> {
-    let configured = [(env, CsrfSecretSource::Env), (vault, CsrfSecretSource::Vault)]
-        .into_iter()
-        .find_map(|(value, source)| {
-            value
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(|value| (value, source))
-        });
+    let configured = [
+        (env, CsrfSecretSource::Env),
+        (vault, CsrfSecretSource::Vault),
+    ]
+    .into_iter()
+    .find_map(|(value, source)| {
+        value
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| (value, source))
+    });
 
     if let Some((value, source)) = configured {
         if value.len() < MIN_SECRET_BYTES {
@@ -187,7 +193,11 @@ mod tests {
 
         assert_eq!(first.source(), CsrfSecretSource::Ephemeral);
         assert_eq!(first.bytes().len(), MIN_SECRET_BYTES);
-        assert_ne!(first.bytes(), second.bytes(), "each process boot gets its own");
+        assert_ne!(
+            first.bytes(),
+            second.bytes(),
+            "each process boot gets its own"
+        );
         assert_ne!(first.bytes(), LEGACY_PUBLIC_SECRET.as_bytes());
     }
 
@@ -197,7 +207,7 @@ mod tests {
         assert!(matches!(
             error,
             CsrfSecretError::TooShort {
-                source: "env",
+                origin: "env",
                 length: 9,
                 minimum: MIN_SECRET_BYTES
             }

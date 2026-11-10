@@ -8,10 +8,7 @@
 use super::*;
 
 fn service() -> SynchronizeService {
-    SynchronizeService {
-        http_client: reqwest::Client::new(),
-        base_url: None,
-    }
+    SynchronizeService { base_url: None }
 }
 
 fn config(transform: Option<TransformConfig>) -> SynchronizeConfig {

@@ -168,6 +168,9 @@ pub(super) async fn merge_office_sub_routes(
     {
         *sub_router = sub_router.clone().merge(
             crate::paper::configure_paper_routes()
+                .layer(axum::middleware::from_fn(
+                    crate::paper::user_middleware::paper_user_middleware,
+                ))
                 .with_state(super::feature_routers::make_paper_state(app_state)),
         );
     }

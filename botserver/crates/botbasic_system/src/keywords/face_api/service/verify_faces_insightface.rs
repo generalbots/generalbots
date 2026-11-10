@@ -130,17 +130,28 @@ impl FaceApiService {
                 Err(FaceApiError::InvalidInput(format!("Variable image source '{}' not supported in this context", var)))
             }
             ImageSource::Url(url) => {
-                let client = reqwest::Client::new();
-                let response = client
-                    .get(url)
-                    .send()
+                // #2131 — the face API accepts an image URL from the script;
+                // fetch it through the shared SSRF guard.
+                let policy = botsecurity::validation::FetchPolicy::default()
+                    .with_timeout(std::time::Duration::from_secs(30))
+                    .with_max_bytes(16 * 1024 * 1024);
+                let response = botsecurity::validation::fetch_user_url(url, &policy)
                     .await
-                    .map_err(|e| FaceApiError::NetworkError(e.to_string()))?;
-                let bytes = response
-                    .bytes()
-                    .await
-                    .map_err(|e| FaceApiError::NetworkError(e.to_string()))?;
-                Ok(bytes.to_vec())
+                    .map_err(|e| {
+                        log::warn!(
+                            "face_api: refused image URL ({}): {}",
+                            e.kind().as_str(),
+                            e.detail()
+                        );
+                        FaceApiError::NetworkError(e.to_string())
+                    })?;
+                if !response.is_success() {
+                    return Err(FaceApiError::NetworkError(format!(
+                        "image URL answered HTTP {}",
+                        response.status
+                    )));
+                }
+                Ok(response.body)
             }
             ImageSource::Base64(data) => {
                 use base64::Engine;

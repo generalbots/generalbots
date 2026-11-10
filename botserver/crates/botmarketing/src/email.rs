@@ -123,7 +123,10 @@ fn tracked_destination(
     {
         return None;
     }
-    click_sign::build_click_url(base_url, record, destination, expires_at, key)
+    // An `href` attribute escapes `&` as `&amp;`; the redirect must carry the
+    // URL the browser would have navigated to, not the HTML-escaped spelling.
+    let destination = destination.replace("&amp;", "&");
+    click_sign::build_click_url(base_url, record, &destination, expires_at, key)
 }
 
 pub async fn send_campaign_email(
@@ -352,3 +355,7 @@ pub async fn send_email_api(
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     }
 }
+
+#[cfg(test)]
+#[path = "email_tracking_link_tests.rs"]
+mod tracking_link_tests;

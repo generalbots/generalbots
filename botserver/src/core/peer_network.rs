@@ -16,7 +16,7 @@
 //! | `GB_PEER_ADVERTISE_ADDR` | Optional address relayed to other peers |
 //! | `GB_PEER_HEARTBEAT_TTL_SECS` | Peer expiry, default 90 seconds |
 //! | `GB_PEER_DATA_DIR` | Directory for `node.json` |
-//! | `GB_PEER_TOKEN` | Optional shared bearer token for machine callers |
+//! | `GB_PEER_TOKEN` | Shared node token; **required** for any `/api/peer/*` call (#2141) |
 //! | `GB_PEER_SIGNING_KEY` | Home-site signing key; falls back to the node id |
 //!
 //! #1968 — Vault is the canonical source for a deployed node:
@@ -361,6 +361,12 @@ pub fn log_startup_configuration() {
             "absent"
         },
     );
+    if network.enabled() && network.token().is_none() {
+        log::warn!(
+            "peer network is enabled without a shared token: every /api/peer endpoint \
+             returns 503 until GB_PEER_TOKEN or Vault secret/{SECRET_PATH} token is set (#2141)"
+        );
+    }
     log::debug!("peer network config sources: {:?}", network.config_sources());
 }
 

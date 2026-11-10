@@ -1,4 +1,4 @@
-pub(crate) use axum::{ extract::{Path, Query, State}, response::Html, routing::get, Router, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::HeaderMap, response::Html, routing::get, Router, };
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use serde::Deserialize;

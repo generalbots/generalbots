@@ -8,6 +8,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use botsecurity_core::upload_policy::{self, UploadClass};
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -170,6 +171,16 @@ pub async fn import_leads_csv(
         serde_json::from_str(&body)
             .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid JSON rows: {e}")))?
     } else {
+        // #2132 — a CSV import is an upload: the payload must be the text it
+        // claims to be, not markup or a binary disguised as `.csv`.
+        if let Err(error) = upload_policy::validate_upload(
+            UploadClass::SpreadsheetImport,
+            "leads.csv",
+            content_type,
+            body.as_bytes(),
+        ) {
+            return Err(upload_policy::rejection_message(&error, &headers));
+        }
         parse_leads_csv(&body)?
     };
 

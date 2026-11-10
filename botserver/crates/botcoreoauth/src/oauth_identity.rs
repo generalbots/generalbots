@@ -24,7 +24,8 @@ pub struct EmailOwner {
     pub user_id: Uuid,
     /// `users.is_admin` — an administrator is never auto-linked.
     pub is_admin: bool,
-    /// `false` when the row was created by an OAuth flow (no password set).
+    /// `false` only for rows carrying the OAuth no-password marker; any other
+    /// row is treated as having a credential of its own.
     pub has_password: bool,
     /// `true` when some provider identity is already bound to the account.
     /// Adopting such an account would stack a second identity on it, so it is
@@ -76,6 +77,8 @@ pub fn normalize_email(raw: Option<&str>) -> Option<String> {
 ///   email as verified. Such an account has no other credential, so nobody can
 ///   be deprived of access by the adoption.
 /// * Administrators are never adopted automatically, verified email or not.
+/// * An account that already carries a provider identity is never re-bound by
+///   another one; that requires the explicit link flow.
 pub fn resolve_oauth_identity(
     email: Option<&str>,
     email_verified: bool,
@@ -114,4 +117,57 @@ pub fn resolve_oauth_identity(
     }
 
     OAuthResolution::Adopt(owner.user_id)
+}
+
+/// The local row a new OAuth identity is provisioned with.
+///
+/// Kept pure so the "never an administrator" and "never store an unverified
+/// email" rules are testable without a database.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewOAuthAccount {
+    pub username: String,
+    pub email: String,
+    pub is_admin: bool,
+}
+
+impl NewOAuthAccount {
+    /// Builds the row for a provider identity that has no local account yet.
+    ///
+    /// `users.username` is UNIQUE and provider subjects can share long prefixes
+    /// (Discord snowflakes carry a timestamp), so the subject is kept nearly in
+    /// full instead of being truncated to a few characters. Only a
+    /// provider-verified email may become `users.email`; anything else gets a
+    /// placeholder so an unverified claim can never win an email lookup
+    /// elsewhere in the system.
+    pub fn for_subject(
+        provider: &str,
+        provider_id: &str,
+        verified_email: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Self {
+        let sanitized: String = display_name
+            .unwrap_or_default()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+            .take(20)
+            .collect();
+        let subject: String = provider_id.chars().take(64).collect();
+
+        let username = if sanitized.is_empty() {
+            format!("{provider}_{subject}")
+        } else {
+            format!("{sanitized}_{provider}_{subject}")
+        };
+
+        let email = match verified_email {
+            Some(address) => address.to_string(),
+            None => format!("{username}@oauth.local"),
+        };
+
+        Self {
+            username,
+            email,
+            is_admin: false,
+        }
+    }
 }

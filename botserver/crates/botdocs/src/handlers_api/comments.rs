@@ -35,7 +35,7 @@ pub async fn handle_add_comment(
     let comment = DocumentComment {
         id: uuid::Uuid::new_v4().to_string(),
         author_id: user_id.clone(),
-        author_name: "User".to_string(),
+        author_name: user.display_name().to_string(),
         content: req.content,
         position: req.position,
         length: req.length,
@@ -87,7 +87,7 @@ pub async fn handle_reply_comment(
                 let reply = CommentReply {
                     id: uuid::Uuid::new_v4().to_string(),
                     author_id: user_id.clone(),
-                    author_name: "User".to_string(),
+                    author_name: user.display_name().to_string(),
                     content: req.content.clone(),
                     created_at: Utc::now(),
                 };

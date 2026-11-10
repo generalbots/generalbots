@@ -9,49 +9,10 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::handlers::db_conn;
 use crate::models::*;
 use crate::schema::*;
-use crate::handlers::db_conn;
-
-/// Maximum accepted attachment size (25 MiB).
-const MAX_ATTACHMENT_BYTES: usize = 25 * 1024 * 1024;
-
-/// Content types allowed for conversation attachments (type limit).
-/// Everything else is rejected to keep the channel surface safe.
-const ALLOWED_CONTENT_TYPES: &[&str] = &[
-    // Images
-    "image/png",
-    "image/jpeg",
-    "image/gif",
-    "image/webp",
-    "image/svg+xml",
-    // Documents
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain",
-    "text/csv",
-    "text/markdown",
-    // Archives / audio / video
-    "application/zip",
-    "application/gzip",
-    "audio/mpeg",
-    "audio/ogg",
-    "audio/wav",
-    "video/mp4",
-    "video/webm",
-];
-
-/// Media types are case-insensitive (RFC 9110 §8.3), so the comparison
-/// normalizes instead of trusting the client's casing.
-fn content_type_allowed(content_type: &str) -> bool {
-    let normalized = content_type.trim().to_ascii_lowercase();
-    ALLOWED_CONTENT_TYPES.contains(&normalized.as_str())
-}
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 /// Returns true when the content type is an image (rendered inline with a
 /// preview in the message thread).
@@ -71,8 +32,14 @@ fn is_image(content_type: &str) -> bool {
 pub async fn upload_attachment(
     State(config): State<Arc<crate::AttendantConfig>>,
     Path(session_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<AttachmentMeta>, (StatusCode, String)> {
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::ChatAttachment, &headers) {
+        return Err(upload_policy::rejection_message(&error, &headers));
+    }
+
     {
         let mut conn = db_conn!(config);
         let exists: i64 = attendant_sessions::table
@@ -115,15 +82,17 @@ pub async fn upload_attachment(
     let content_type = content_type.unwrap_or_else(|| "application/octet-stream".to_string());
     let data = data.ok_or_else(|| (StatusCode::BAD_REQUEST, "Empty file payload".to_string()))?;
 
-    if data.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "Empty file".to_string()));
-    }
-    if data.len() > MAX_ATTACHMENT_BYTES {
-        return Err((StatusCode::PAYLOAD_TOO_LARGE, "File exceeds 25 MiB limit".to_string()));
-    }
-    if !content_type_allowed(&content_type) {
-        return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "File type not allowed".to_string()));
-    }
+    // #2132 — size, filename, extension allowlist and magic bytes, one gate.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::ChatAttachment,
+        &name,
+        &content_type,
+        &data,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return Err(upload_policy::rejection_message(&error, &headers)),
+    };
+    let name = upload.filename;
 
     let id = Uuid::new_v4();
     let size_bytes = data.len() as i64;
@@ -179,6 +148,11 @@ pub async fn download_attachment(
     response
         .headers_mut()
         .insert(header::CONTENT_LENGTH, HeaderValue::from_str(&row.size_bytes.to_string()).unwrap_or_else(|_| HeaderValue::from_static("0")));
+    // #2132 — never let a stored upload be sniffed into an active type.
+    response.headers_mut().insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
     Ok(response)
 }
 

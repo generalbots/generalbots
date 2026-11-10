@@ -2,9 +2,23 @@ use super::*;
 
 /// Redirects back to the Settings page (accounts section) preserving the
 /// result via query params.
+///
+/// The browser-binding nonce cookie is expired on the way out: the flow is
+/// over, whether it succeeded or not (#2130).
 pub(super) fn redirect_to_settings(query: &str) -> Response {
     let base = base_url();
-    Redirect::temporary(&format!("{base}/settings?section=accounts&{query}")).into_response()
+    let mut response = Redirect::temporary(&format!(
+        "{base}/settings?section=accounts&{query}"
+    ))
+    .into_response();
+    if let Some(clear) = botcoreoauth::cookies::clear_nonce_cookie(
+        botcoreoauth::cookies::LINK_NONCE_PATH,
+    ) {
+        response
+            .headers_mut()
+            .append(axum::http::header::SET_COOKIE, clear);
+    }
+    response
 }
 /// Persists the OAuth access/refresh tokens in Vault under
 /// `secret/gbo/oauth/{user_id}/{provider}`. Only non-sensitive metadata is

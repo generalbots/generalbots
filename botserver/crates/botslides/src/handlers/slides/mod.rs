@@ -14,7 +14,7 @@ macro_rules! load_pres {
                 // the first mutation; without this fallback every element,
                 // slide and notes call on a fresh deck returned 404.
                 Err(_) if requested_id == "current" => {
-                    $crate::ui_fragments::get_bridge::blank_presentation()
+                    $crate::ui_fragments::get_bridge::blank_presentation($user_id)
                 }
                 Err(e) => {
                     return Err((

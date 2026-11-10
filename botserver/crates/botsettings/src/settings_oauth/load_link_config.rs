@@ -126,7 +126,22 @@ pub async fn oauth_connect(
     let oauth_state = OAuthState::new(provider, None)
         .for_user(&user_id.to_string())
         .with_pkce();
-    let state_encoded = oauth_state.encode();
+    // #2130 — the state is signed (tamper-proof), bound to this browser by a
+    // nonce cookie and single-use, exactly like the login flow. The `user_id`
+    // inside is only trusted because the MAC covers it.
+    let signer = botcoreoauth::server_signer();
+    let state_encoded = match signer.sign(&oauth_state) {
+        Ok(encoded) => encoded,
+        Err(e) => {
+            botlog::safe_error!("Failed to sign the OAuth link state: {e}");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Could not start the account link" })),
+            )
+                .into_response();
+        }
+    };
+    botcoreoauth::nonce_store::issue(&oauth_state.nonce, botcoreoauth::state::now_secs());
     let auth_url = provider.build_auth_url(
         &config,
         &state_encoded,
@@ -137,7 +152,26 @@ pub async fn oauth_connect(
     // JSON response: the frontend performs the top-level navigation so the
     // browser lands on the provider's authorization page with the token in
     // hand (HTMX cannot carry the bearer header on a plain redirect).
-    Json(serde_json::json!({ "redirect_url": auth_url })).into_response()
+    let mut response = Json(serde_json::json!({ "redirect_url": auth_url })).into_response();
+    match botcoreoauth::cookies::nonce_cookie(
+        &oauth_state.nonce,
+        botcoreoauth::cookies::LINK_NONCE_PATH,
+    ) {
+        Some(cookie) => {
+            response
+                .headers_mut()
+                .append(axum::http::header::SET_COOKIE, cookie);
+            response
+        }
+        None => {
+            botlog::safe_error!("Failed to build the OAuth link nonce cookie");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Could not start the account link" })),
+            )
+                .into_response()
+        }
+    }
 }
 /// GET /api/oauth/{provider}/callback
 ///
@@ -147,6 +181,7 @@ pub async fn oauth_connect(
 pub async fn oauth_callback(
     State(state): State<Arc<AppState>>,
     Path(provider_name): Path<String>,
+    headers: axum::http::HeaderMap,
     Query(params): Query<CallbackParams>,
 ) -> Response {
     if let Some(error) = &params.error {
@@ -168,20 +203,31 @@ pub async fn oauth_callback(
     let Some(state_param) = &params.state else {
         return redirect_to_settings("error=missing_state");
     };
-    let Some(oauth_state) = OAuthState::decode(state_param) else {
-        log::warn!("Failed to decode OAuth state parameter");
-        return redirect_to_settings("error=invalid_state");
+    // #2130 — the MAC is verified before any field is read; a forged or
+    // tampered state never reaches the identity code below.
+    let oauth_state = match botcoreoauth::server_signer().verify(state_param) {
+        Ok(oauth_state) => oauth_state,
+        Err(botcoreoauth::StateError::Expired) => {
+            log::warn!("OAuth state expired for provider {provider}");
+            return redirect_to_settings("error=state_expired");
+        }
+        Err(e) => {
+            log::warn!("OAuth state refused for provider {provider}: {e}");
+            return redirect_to_settings("error=invalid_state");
+        }
     };
-    if oauth_state.is_expired() {
-        log::warn!("OAuth state expired for provider {provider}");
-        return redirect_to_settings("error=state_expired");
-    }
     if oauth_state.provider != provider {
         log::warn!(
             "OAuth provider mismatch: URL {provider}, state {}",
             oauth_state.provider
         );
         return redirect_to_settings("error=provider_mismatch");
+    }
+    // #2130 — the callback must arrive in the browser that started the flow,
+    // and the state must not be reused.
+    if let Err(e) = botcoreoauth::consume_bound_nonce(&headers, &oauth_state.nonce) {
+        log::warn!("OAuth link callback refused for provider {provider}: {e}");
+        return redirect_to_settings("error=invalid_state");
     }
     let Some(bound_user) = &oauth_state.user_id else {
         log::warn!("OAuth callback without a bound user (login flow used linking callback)");

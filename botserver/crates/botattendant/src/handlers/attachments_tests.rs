@@ -1,60 +1,53 @@
-//! Attachment guards: the type allow-list, the filename sanitizer and the
-//! extension fallback.
+//! Attachment guards (#2132): the shared upload policy replaced the local
+//! content-type list, so these tests pin the endpoint contract onto it.
 
-use super::{content_type_allowed, detect_from_extension, is_image, sanitize_filename};
+use super::*;
+
+const PNG: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
 
 #[test]
-fn every_documented_type_is_accepted() {
-    for content_type in [
-        "image/png",
-        "image/jpeg",
-        "image/gif",
-        "image/webp",
-        "image/svg+xml",
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-powerpoint",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "text/plain",
-        "text/csv",
-        "text/markdown",
-        "application/zip",
-        "application/gzip",
-        "audio/mpeg",
-        "audio/ogg",
-        "audio/wav",
-        "video/mp4",
-        "video/webm",
+fn every_documented_type_is_accepted_by_the_shared_policy() {
+    let limits = upload_policy::limits_for(UploadClass::ChatAttachment);
+
+    for extension in [
+        "png", "jpg", "jpeg", "gif", "webp", "pdf", "docx", "xlsx", "pptx", "doc", "xls", "ppt",
+        "csv", "txt", "md", "zip", "gz", "mp3", "wav", "ogg", "mp4", "webm",
     ] {
-        assert!(content_type_allowed(content_type), "{content_type}");
+        assert!(limits.allows_extension(extension), "{extension}");
+        assert!(
+            upload_policy::mime_for_extension(extension).is_some(),
+            "{extension} has no declared type"
+        );
     }
 }
 
 #[test]
 fn executable_and_markup_types_are_refused() {
-    for content_type in [
-        "application/x-msdownload",
-        "application/x-sh",
-        "application/octet-stream",
-        "text/html",
-        "text/javascript",
-        "image/svg",
-        "",
-        " ",
-    ] {
-        assert!(!content_type_allowed(content_type), "{content_type}");
+    for name in ["payload.html", "logo.svg", "shell.php", "setup.exe", "run.sh"] {
+        let error = upload_policy::validate_upload(UploadClass::ChatAttachment, name, "", PNG)
+            .expect_err("an unsafe attachment type must be refused");
+        assert!(
+            matches!(
+                error,
+                upload_policy::UploadError::ExtensionNotAllowed { .. }
+                    | upload_policy::UploadError::ExtensionBlocked { .. }
+            ),
+            "{name}: {error:?}"
+        );
     }
 }
 
 #[test]
 fn the_allow_list_ignores_client_casing_and_padding() {
-    assert!(content_type_allowed("IMAGE/PNG"));
-    assert!(content_type_allowed("Application/PDF"));
-    assert!(content_type_allowed(" text/csv "));
-    assert!(!content_type_allowed("TEXT/HTML"));
+    for declared in ["IMAGE/PNG", " image/png ", "image/png; charset=binary"] {
+        let upload = upload_policy::validate_upload(
+            UploadClass::ChatAttachment,
+            "photo.png",
+            declared,
+            PNG,
+        );
+        assert!(upload.is_ok(), "{declared}: {upload:?}");
+    }
 }
 
 #[test]
@@ -159,9 +152,11 @@ fn an_unknown_or_absent_extension_has_no_fallback() {
 }
 
 #[test]
-fn every_detected_type_passes_the_allow_list() {
+fn every_detected_type_is_on_the_policy_allow_list() {
+    let limits = upload_policy::limits_for(UploadClass::ChatAttachment);
+
     for name in ["a.png", "a.pdf", "a.docx", "a.csv", "a.mp4", "a.zip"] {
-        let content_type = detect_from_extension(name).expect("detected");
-        assert!(content_type_allowed(&content_type), "{name}");
+        let extension = name.rsplit('.').next().expect("extension");
+        assert!(limits.allows_extension(extension), "{name}");
     }
 }

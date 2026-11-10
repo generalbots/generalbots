@@ -24,6 +24,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use hmac::{Hmac, Mac};
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
@@ -38,7 +39,10 @@ const TOKEN_VERSION: &str = "v1";
 /// Environment variable holding the state signing secret.
 const SECRET_ENV: &str = "OAUTH_STATE_SECRET";
 /// Vault paths consulted (in order) when the env var is absent.
-const SECRET_VAULT_PATHS: [&str; 2] = ["gbo/oauth-state", "gbo/jwt"];
+const SECRET_VAULT_PATHS: [&str; 2] = [
+    botcoresecrets::paths::SecretPaths::OAUTH_STATE,
+    botcoresecrets::paths::SecretPaths::JWT,
+];
 /// Field name read from the Vault secret.
 const SECRET_VAULT_FIELD: &str = "secret";
 /// Bound on the Vault lookup so a slow/unsealed Vault cannot stall a login.
@@ -118,7 +122,8 @@ impl OAuthState {
 
     /// Expiry check against an explicit clock, so tests are deterministic.
     pub fn is_expired_at(&self, now: i64) -> bool {
-        now - self.created_at > STATE_TTL_SECS || self.created_at - now > FUTURE_SKEW_SECS
+        now.saturating_sub(self.created_at) > STATE_TTL_SECS
+            || self.created_at.saturating_sub(now) > FUTURE_SKEW_SECS
     }
 }
 
@@ -248,7 +253,7 @@ fn resolve_server_signer() -> StateSigner {
     }
 
     let mut random = [0u8; 32];
-    rand::RngCore::fill_bytes(&mut rand::rng(), &mut random);
+    rand::rng().fill_bytes(&mut random);
     log::warn!(
         "No OAuth state secret configured ({SECRET_ENV} or Vault {SECRET_VAULT_PATHS:?}): \
          signing OAuth state with an ephemeral key — pending flows are dropped on restart"
@@ -318,6 +323,6 @@ pub fn now_secs() -> i64 {
 /// 32 random bytes, base64url-encoded: the browser-binding nonce.
 pub fn generate_nonce() -> String {
     let mut bytes = [0u8; 32];
-    rand::RngCore::fill_bytes(&mut rand::rng(), &mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     URL_SAFE_NO_PAD.encode(bytes)
 }

@@ -17,6 +17,7 @@ use axum::response::{Html, IntoResponse, Response};
 use axum::Json;
 
 use super::html_escape;
+use crate::auth::{SlidesUser, SlidesUnauthorized};
 use crate::storage::DriveOps;
 use crate::types::Presentation;
 use crate::SlidesState;
@@ -90,12 +91,12 @@ fn to_json(mut params: Params) -> Json<serde_json::Value> {
 
 /// The deck an empty session starts from: the rest of the app addresses it
 /// as `current` (saves and canvas operations use that literal id).
-pub(crate) fn blank_presentation() -> Presentation {
+pub(crate) fn blank_presentation(owner_id: &str) -> Presentation {
     let theme = crate::utils::create_default_theme();
     Presentation {
         id: "current".to_string(),
         name: "Untitled Presentation".to_string(),
-        owner_id: crate::storage::get_current_user_id(),
+        owner_id: owner_id.to_string(),
         slides: vec![crate::utils::create_blank_slide(&theme)],
         theme,
         created_at: chrono::Utc::now(),
@@ -108,18 +109,19 @@ pub(crate) fn blank_presentation() -> Presentation {
 /// Resolves the deck for a fragment load: `new`/empty never touches Drive,
 /// any other id loads from Drive and falls back to a blank deck on miss
 /// (a missing `gbo` bucket on a fresh install must not break the shell).
-pub(super) async fn load_or_blank<D: DriveOps>(state: &Arc<SlidesState<D>>, id: &str) -> Presentation {
+pub(super) async fn load_or_blank<D: DriveOps>(
+    state: &Arc<SlidesState<D>>,
+    user_id: &str,
+    id: &str,
+) -> Presentation {
     if id.is_empty() || id == "new" {
-        return blank_presentation();
+        return blank_presentation(user_id);
     }
-    let user_id = crate::storage::get_current_user_id();
     match state.drive.as_ref() {
-        Some(drive) => {
-            crate::storage::load_presentation_by_id(drive, &user_id, id)
-                .await
-                .unwrap_or_else(|_| blank_presentation())
-        }
-        None => blank_presentation(),
+        Some(drive) => crate::storage::load_presentation_by_id(drive, user_id, id)
+            .await
+            .unwrap_or_else(|_| blank_presentation(user_id)),
+        None => blank_presentation(user_id),
     }
 }
 
@@ -164,15 +166,17 @@ fn thumbnails_html(pres: &Presentation) -> Html<String> {
 /// GET /suite/slides/*path — see module docs.
 pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Path(path): Path<String>,
     Query(params): Query<Params>,
-) -> Response {
+) -> Result<Response, SlidesUnauthorized> {
     // The wildcard route takes precedence over the /suite static mount, so the
     // app shell and its assets would otherwise be answered with a fragment
     // ("route not found") instead of the file (#1715).
     if let Some(asset) = serve_ui_asset(&path).await {
-        return asset;
+        return Ok(asset);
     }
+    let user_id = user.owner_id();
     let query = params.clone();
     let json = to_json(params);
     let html = match path.as_str() {
@@ -183,21 +187,18 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
                 .or_else(|| query.get("slide"))
                 .and_then(|value| value.parse::<usize>().ok())
                 .unwrap_or(0);
-            let pres = load_or_blank(&state, &id).await;
+            let pres = load_or_blank(&state, user_id, &id).await;
             Html(super::sidebars::render_presentation_view(&pres, requested))
         }
         "fragments/slide-thumbnails" => {
             let id = query.get("id").cloned().unwrap_or_default();
-            let pres = load_or_blank(&state, &id).await;
+            let pres = load_or_blank(&state, user_id, &id).await;
             thumbnails_html(&pres)
         }
         "fragments/presentation-list" => {
             let items = match state.drive.as_ref() {
                 Some(drive) => {
-                    crate::storage::list_presentations_from_drive(
-                        drive,
-                        &crate::storage::get_current_user_id(),
-                    )
+                    crate::storage::list_presentations_from_drive(drive, user_id)
                     .await
                     .unwrap_or_default()
                 }
@@ -208,7 +209,7 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         // "+ Nova": an unsaved deck addressed as `current`, rendered inline
         // instead of dumping the JSON of /api/slides/new into the canvas.
         "fragments/new" => {
-            super::sidebars::handle_presentation_view(Json(blank_presentation())).await
+            super::sidebars::handle_presentation_view(Json(blank_presentation(user_id))).await
         }
         "fragments/themes" => super::themes::handle_theme_picker(json).await,
         "fragments/sorter" => {
@@ -229,5 +230,5 @@ pub async fn get_bridge<D: DriveOps + Send + Sync + 'static>(
         "forms/export" => super::toolbar::handle_export_form(json).await,
         _ => Html(super::err_fragment(&format!("route not found: {path}"))),
     };
-    html.into_response()
+    Ok(html.into_response())
 }

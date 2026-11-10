@@ -1,6 +1,7 @@
 //! Slide-level operations: add, delete, duplicate, reorder and notes.
 
-use crate::storage::{create_slide_with_layout, get_current_user_id, DriveOps};
+use crate::auth::SlidesUser;
+use crate::storage::{create_slide_with_layout, DriveOps};
 use crate::types::{
     AddSlideRequest, DeleteSlideRequest, DuplicateSlideRequest, ReorderSlidesRequest, SaveResponse,
     UpdateSlideNotesRequest,
@@ -15,9 +16,10 @@ use uuid::Uuid;
 
 pub async fn handle_add_slide<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<AddSlideRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     let new_slide = create_slide_with_layout(&req.layout, &presentation.theme);
@@ -44,9 +46,10 @@ pub async fn handle_add_slide<D: DriveOps>(
 
 pub async fn handle_delete_slide<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<DeleteSlideRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {
@@ -69,9 +72,10 @@ pub async fn handle_delete_slide<D: DriveOps>(
 
 pub async fn handle_duplicate_slide<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<DuplicateSlideRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {
@@ -96,9 +100,10 @@ pub async fn handle_duplicate_slide<D: DriveOps>(
 
 pub async fn handle_reorder_slides<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<ReorderSlidesRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_order.len() != presentation.slides.len() {
@@ -127,9 +132,10 @@ pub async fn handle_reorder_slides<D: DriveOps>(
 
 pub async fn handle_update_slide_notes<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<UpdateSlideNotesRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {

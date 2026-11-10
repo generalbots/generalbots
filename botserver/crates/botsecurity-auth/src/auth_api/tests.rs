@@ -178,6 +178,18 @@ fn an_asset_tree_never_exposes_a_server_route() {
 }
 
 #[test]
+fn a_private_declaration_wins_over_a_public_pattern() {
+    // `/ws/:bot_name` admits public-bot chat; the log stream shares the shape
+    // and must not be swept in.
+    let config = AuthConfig::default()
+        .with_public_route(PublicRoute::read(Method::GET, "/ws/:bot_name").expect("valid route"))
+        .with_private_route(PublicRoute::deny(Method::GET, "/ws/logs").expect("valid route"));
+
+    assert!(config.is_public_route(&Method::GET, "/ws/acme"));
+    assert!(!config.is_public_route(&Method::GET, "/ws/logs"));
+}
+
+#[test]
 fn test_auth_error_responses() {
     assert_eq!(
         AuthError::MissingToken.status_code(),

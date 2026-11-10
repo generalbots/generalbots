@@ -16,6 +16,7 @@ use axum::{extract::State, http::StatusCode, Extension, Json};
 use base64::Engine;
 use botcore::shared::state::AppState;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
+use botsecurity_core::upload_policy::{self, UploadClass};
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -108,6 +109,7 @@ fn decode_content(content: &str) -> Result<Vec<u8>, ApiError> {
 pub async fn upload_file(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Json(body): Json<UploadBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let provider = parse_provider(&body.provider)?;
@@ -121,6 +123,15 @@ pub async fn upload_file(
     if content.len() > MAX_UPLOAD_BYTES {
         return Err(upload_error(UploadError::TooLarge(content.len())));
     }
+
+    // #2132 — the declared type and the bytes must agree with the name before
+    // anything leaves for the provider.
+    let declared = body.mime_type.as_deref().unwrap_or_default();
+    let upload = upload_policy::validate_upload(UploadClass::Drive, &body.name, declared, &content)
+        .map_err(|error| {
+            log::warn!("external drive upload refused: {}", error.log_detail());
+            upload_policy::rejection_json(&error, &headers)
+        })?;
 
     let branch_id = caller_branch(&state, &user)?;
     let (connection, granted) = {
@@ -146,8 +157,8 @@ pub async fn upload_file(
     let request = UploadRequest {
         provider,
         path: body.path.unwrap_or_default(),
-        name: body.name.trim().to_string(),
-        mime_type: body.mime_type.unwrap_or_default(),
+        name: upload.filename,
+        mime_type: upload.mime,
         content,
         replace_remote_id: body.replace_remote_id,
         parent_id: body.folder_id,

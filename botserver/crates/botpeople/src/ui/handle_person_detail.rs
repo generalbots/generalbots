@@ -2,15 +2,20 @@ use super::*;
 
 pub(super) async fn handle_person_detail(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Html<String> {
     let pool = state.pool.clone();
+    let get_default_bot = state.get_default_bot.clone();
 
     let result: Option<PersonDetailRow> = tokio::task::spawn_blocking(move || -> Option<PersonDetailRow> {
         let mut conn = pool.get().ok()?;
+        let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+            .unwrap_or_else(|| get_default_bot(&mut conn));
 
         people::table
-            .find(id)
+            .filter(people::id.eq(id))
+            .filter(people::branch_id.eq(branch_id))
             .select((
                 people::id,
                 people::first_name,

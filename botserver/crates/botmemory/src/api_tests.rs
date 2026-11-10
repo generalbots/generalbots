@@ -36,7 +36,7 @@ fn sign_with(claims: serde_json::Value, secret: &str) -> String {
 
 /// A token signed with the secret the process verifies against.
 fn token(claims: serde_json::Value) -> String {
-    sign_with(claims, &resolve_saas_jwt_secret())
+    sign_with(claims, &resolve_saas_jwt_secret().expect("saas jwt secret"))
 }
 
 fn live_claims() -> serde_json::Value {

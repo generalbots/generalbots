@@ -92,9 +92,23 @@ pub async fn handle_get_report(
 }
 pub async fn handle_upload_evidence(
     State(_pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
+    // #2132 — refuse an oversized body before it is buffered.
+    botsecurity_core::upload_policy::check_declared_length(
+        botsecurity_core::upload_policy::UploadClass::Evidence,
+        &headers,
+    )
+    .map_err(|error| {
+        ComplianceError::Validation(
+            botsecurity_core::upload_policy::rejection_message(&error, &headers).1,
+        )
+    })?;
+
     let mut file_name = String::new();
+    let mut content_type = String::new();
+    let mut file_bytes: Vec<u8> = Vec::new();
     let mut category = String::new();
     let mut file_size = 0usize;
 
@@ -103,8 +117,10 @@ pub async fn handle_upload_evidence(
         match name.as_str() {
             "file" => {
                 file_name = field.file_name().unwrap_or("unknown").to_string();
+                content_type = field.content_type().map(str::to_string).unwrap_or_default();
                 let data = field.bytes().await.map_err(|e| ComplianceError::Internal(e.to_string()))?;
                 file_size = data.len();
+                file_bytes = data.to_vec();
             }
             "category" => {
                 category = field.text().await.map_err(|e| ComplianceError::Internal(e.to_string()))?;
@@ -112,6 +128,20 @@ pub async fn handle_upload_evidence(
             _ => {}
         }
     }
+
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = botsecurity_core::upload_policy::validate_upload(
+        botsecurity_core::upload_policy::UploadClass::Evidence,
+        &file_name,
+        &content_type,
+        &file_bytes,
+    )
+    .map_err(|error| {
+        ComplianceError::Validation(
+            botsecurity_core::upload_policy::rejection_message(&error, &headers).1,
+        )
+    })?;
+    let file_name = upload.filename;
 
     let evidence_id = Uuid::new_v4();
 

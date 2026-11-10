@@ -1,24 +1,21 @@
 use crate::state::PaperState;
 use axum::{
     extract::{Query, State},
-    http::HeaderMap,
     response::{Html, IntoResponse},
 };
 use std::sync::Arc;
 
-use super::auth::get_current_user;
+use super::auth::PaperUser;
 use super::models::ExportQuery;
 use super::storage::load_document_from_drive;
-use super::utils::{format_error, html_escape, markdown_to_html, strip_markdown};
+use super::utils::{html_escape, markdown_to_html, strip_markdown};
 
 pub async fn handle_export_pdf(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
-        return Html(format_error("Authentication required"));
-    };
+    let user_identifier = user.owner_id().to_string();
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(_doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
@@ -31,12 +28,10 @@ pub async fn handle_export_pdf(
 
 pub async fn handle_export_docx(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
-        return Html(format_error("Authentication required"));
-    };
+    let user_identifier = user.owner_id().to_string();
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(_doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
@@ -49,12 +44,10 @@ pub async fn handle_export_docx(
 
 pub async fn handle_export_md(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
-        return Html(format_error("Authentication required"));
-    };
+    let user_identifier = user.owner_id().to_string();
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
@@ -86,12 +79,10 @@ pub async fn handle_export_md(
 
 pub async fn handle_export_html(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
-        return Html(format_error("Authentication required"));
-    };
+    let user_identifier = user.owner_id().to_string();
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
@@ -129,12 +120,10 @@ pub async fn handle_export_html(
 
 pub async fn handle_export_txt(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
-        return Html(format_error("Authentication required"));
-    };
+    let user_identifier = user.owner_id().to_string();
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {

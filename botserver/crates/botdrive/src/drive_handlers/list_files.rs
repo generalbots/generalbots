@@ -322,11 +322,26 @@ pub async fn download_file_binary(
         (axum::http::header::CONTENT_TYPE, mime.to_string()),
         (
             axum::http::header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", file_name),
+            attachment_disposition(&file_name),
         ),
         (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
+        (
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            "nosniff".to_string(),
+        ),
     ];
     Ok((headers, data).into_response())
+}
+
+/// `Content-Disposition` value with the client name stripped of characters
+/// that would break the quoted string (a `"` closes it early, CR/LF inject a
+/// header). #2132.
+fn attachment_disposition(file_name: &str) -> String {
+    let safe: String = file_name
+        .chars()
+        .filter(|c| !matches!(c, '"' | '\\' | '\r' | '\n' | '\0'))
+        .collect();
+    format!("attachment; filename=\"{safe}\"")
 }
 /// #1306 — raw file bytes served INLINE (no Content-Disposition attachment),
 /// so apps like the Photo Editor can load Drive images into a canvas with
@@ -369,13 +384,39 @@ pub async fn download_file_inline(
         .to_string();
     let mime = guess_mime(&file_name);
 
-    use axum::response::IntoResponse;
-    let headers = [
-        (axum::http::header::CONTENT_TYPE, mime.to_string()),
-        (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
-        (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
-    ];
-    Ok((headers, data).into_response())
+    // #2132 — inline serving is only safe for types the browser renders as
+    // passive media. HTML, SVG and scripts are downgraded to an opaque
+    // attachment so an upload can never execute on the suite origin.
+    let inline_ok = matches!(
+        mime,
+        "image/png" | "image/jpeg" | "image/gif" | "image/webp" | "application/pdf"
+    );
+    let content_type = if inline_ok {
+        mime
+    } else {
+        "application/octet-stream"
+    };
+
+    let mut response = axum::response::Response::new(axum::body::Body::from(data));
+    let headers = response.headers_mut();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static(content_type),
+    );
+    headers.insert(
+        axum::http::header::CACHE_CONTROL,
+        axum::http::HeaderValue::from_static("no-store"),
+    );
+    headers.insert(
+        axum::http::header::X_CONTENT_TYPE_OPTIONS,
+        axum::http::HeaderValue::from_static("nosniff"),
+    );
+    if !inline_ok {
+        if let Ok(value) = axum::http::HeaderValue::from_str(&attachment_disposition(&file_name)) {
+            headers.insert(axum::http::header::CONTENT_DISPOSITION, value);
+        }
+    }
+    Ok(response)
 }
 pub(super) fn guess_mime(file_name: &str) -> &'static str {
     let ext = file_name

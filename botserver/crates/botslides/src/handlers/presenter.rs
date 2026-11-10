@@ -1,4 +1,5 @@
-use crate::storage::{get_current_user_id, load_presentation_by_id, DriveOps};
+use crate::storage::{load_presentation_by_id, DriveOps};
+use crate::auth::SlidesUser;
 use crate::types::{
     EndPresenterRequest, PresenterNotesResponse, PresenterSession, PresenterSessionResponse,
     StartPresenterRequest, UpdatePresenterRequest,
@@ -17,9 +18,10 @@ static PRESENTER_SESSIONS: LazyLock<RwLock<HashMap<String, PresenterSession>>> =
 
 pub async fn handle_start_presenter<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<StartPresenterRequest>,
 ) -> Result<Json<PresenterSessionResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (
@@ -134,6 +136,7 @@ pub async fn handle_end_presenter<D: DriveOps>(
 
 pub async fn handle_get_presenter_notes<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PresenterNotesResponse>, (StatusCode, Json<serde_json::Value>)> {
     let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
@@ -141,7 +144,7 @@ pub async fn handle_get_presenter_notes<D: DriveOps>(
         .get("slide_index")
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (

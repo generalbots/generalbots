@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 pub async fn share_calendar(
         headers: axum::http::HeaderMap,
@@ -46,9 +47,14 @@ pub async fn share_calendar(
         Ok::<_, StatusCode>(())
     })
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "calendar import failed".to_string(),
+        )
+    })?;
 
-    result?;
+    result.map_err(|status| (status, "calendar import failed".to_string()))?;
     Ok(Json(share))
 }
 
@@ -96,7 +102,18 @@ pub async fn import_ical(
     State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
     Path(calendar_id): Path<Uuid>,
     body: String,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // #2132 — an iCal document is an upload: the payload must be the calendar
+    // text it claims to be, not markup or an executable disguised as `.ics`.
+    if let Err(error) = upload_policy::validate_upload(
+        UploadClass::CalendarImport,
+        "import.ics",
+        "text/calendar",
+        body.as_bytes(),
+    ) {
+        return Err(upload_policy::rejection_message(&error, &headers));
+    }
+
     let pool = state.clone();
     let scope = write_scope_from_headers(&state, &headers);
     let (org_id, bot_id, branch_id) = (scope.org_id, scope.bot_id, scope.branch_id);

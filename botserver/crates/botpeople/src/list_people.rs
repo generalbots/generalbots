@@ -11,7 +11,7 @@ pub async fn list_people(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -62,21 +62,20 @@ pub async fn get_person(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let person: Person = people::table
-        .filter(people::id.eq(id))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let person: Person = scoped_person(id, branch_id)
         .first(&mut conn)
         .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
+    // Nested resources stay inside the same branch: a manager, report, team or
+    // skill from another tenant is never returned (#2138).
     let manager: Option<Person> = person
         .manager_id
-        .and_then(|mid| {
-            people::table
-                .filter(people::id.eq(mid))
-                .first(&mut conn)
-                .ok()
-        });
+        .and_then(|mid| scoped_person(mid, branch_id).first(&mut conn).ok());
 
     let direct_reports: Vec<Person> = people::table
+        .filter(people::branch_id.eq(branch_id))
         .filter(people::manager_id.eq(id))
         .filter(people::is_active.eq(true))
         .order(people::first_name.asc())
@@ -93,6 +92,7 @@ pub async fn get_person(
         vec![]
     } else {
         people_teams::table
+            .filter(people_teams::branch_id.eq(branch_id))
             .filter(people_teams::id.eq_any(&team_ids))
             .load(&mut conn)
             .unwrap_or_default()
@@ -108,6 +108,7 @@ pub async fn get_person(
         vec![]
     } else {
         people_skills::table
+            .filter(people_skills::branch_id.eq(branch_id))
             .filter(people_skills::id.eq_any(&skill_ids))
             .load(&mut conn)
             .unwrap_or_default()
@@ -133,71 +134,76 @@ pub async fn update_person(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let now = Utc::now();
 
-    diesel::update(people::table.filter(people::id.eq(id)))
+    // 404 before any write: a person from another branch is not addressable.
+    let _existing: Person = scoped_person(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+
+    diesel::update(scoped_person(id, branch_id))
         .set(people::updated_at.eq(now))
         .execute(&mut conn)
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if let Some(first_name) = req.first_name {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::first_name.eq(first_name))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(last_name) = req.last_name {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::last_name.eq(last_name))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(email) = req.email {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::email.eq(email))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(job_title) = req.job_title {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::job_title.eq(job_title))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(department) = req.department {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::department.eq(department))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(manager_id) = req.manager_id {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::manager_id.eq(Some(manager_id)))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(is_active) = req.is_active {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::is_active.eq(is_active))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(skills) = req.skills {
-        diesel::update(people::table.filter(people::id.eq(id)))
+        diesel::update(scoped_person(id, branch_id))
             .set(people::skills.eq(skills))
             .execute(&mut conn)
             .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
-    let person: Person = people::table
-        .filter(people::id.eq(id))
+    let person: Person = scoped_person(id, branch_id)
         .first(&mut conn)
         .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
@@ -214,9 +220,19 @@ pub async fn delete_person(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    diesel::delete(people::table.filter(people::id.eq(id)))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let deleted = diesel::delete(scoped_person(id, branch_id))
         .execute(&mut conn)
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    if deleted == 0 {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-person-not-found",
+        ));
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -231,7 +247,16 @@ pub async fn get_direct_reports(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // The manager must exist in the caller's branch; a foreign id is 404 and
+    // never reveals whether it has reports.
+    let _manager: Person = scoped_person(id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+
     let reports: Vec<Person> = people::table
+        .filter(people::branch_id.eq(branch_id))
         .filter(people::manager_id.eq(id))
         .filter(people::is_active.eq(true))
         .order(people::first_name.asc())
@@ -251,7 +276,7 @@ pub async fn create_team(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -289,7 +314,7 @@ pub async fn list_teams(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let teams: Vec<Team> = people_teams::table
         .filter(people_teams::branch_id.eq(branch_id))

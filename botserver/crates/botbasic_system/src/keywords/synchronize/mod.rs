@@ -142,7 +142,6 @@ pub struct SyncJob {
 }
 
 pub struct SynchronizeService {
-    http_client: reqwest::Client,
     base_url: Option<String>,
 }
 

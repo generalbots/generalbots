@@ -1,7 +1,6 @@
 use crate::state::PaperState;
 use axum::{
     extract::State,
-    http::HeaderMap,
     response::{Html, IntoResponse},
 };
 use chrono::Utc;
@@ -9,29 +8,23 @@ use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::auth::get_current_user;
+use super::auth::PaperUser;
 use super::handlers::handle_new_document;
 use super::storage::save_document_to_drive;
 use super::utils::format_document_content;
 
 pub async fn handle_template_blank(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    handle_new_document(State(state), headers).await
+    handle_new_document(State(state), user).await
 }
 
 pub async fn handle_template_meeting(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(super::utils::format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Meeting Notes".to_string();
@@ -54,15 +47,9 @@ pub async fn handle_template_meeting(
 
 pub async fn handle_template_todo(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(super::utils::format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "To-Do List".to_string();
@@ -82,15 +69,9 @@ pub async fn handle_template_todo(
 
 pub async fn handle_template_research(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(super::utils::format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Research Notes".to_string();
@@ -113,15 +94,9 @@ pub async fn handle_template_research(
 
 pub async fn handle_template_report(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(super::utils::format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Report".to_string();
@@ -151,15 +126,9 @@ pub async fn handle_template_report(
 
 pub async fn handle_template_letter(
     State(state): State<Arc<PaperState>>,
-    headers: HeaderMap,
+    user: PaperUser,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(e) => {
-            log::error!("Auth error: {}", e);
-            return Html(super::utils::format_error("Authentication required"));
-        }
-    };
+    let user_identifier = user.owner_id().to_string();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Letter".to_string();

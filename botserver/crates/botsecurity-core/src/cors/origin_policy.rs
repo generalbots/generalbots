@@ -15,9 +15,10 @@
 //! `Access-Control-Allow-Credentials: true` — is gone.
 //!
 //! The development escape hatch is `CORS_ALLOW_ANY_ORIGIN=1`. It is off unless
-//! explicitly set, it only accepts format-valid origins, and it always refuses
-//! credentials, so the classic "reflected origin + cookies" attack stays closed
-//! even when the override is left enabled by mistake.
+//! explicitly set, it is ignored when `BOTSERVER_ENV=production`, it only
+//! accepts format-valid origins, and it always refuses credentials, so the
+//! classic "reflected origin + cookies" attack stays closed even when the
+//! override is left enabled by mistake.
 
 use super::*;
 use tower_http::cors::AllowCredentials;
@@ -38,8 +39,9 @@ pub enum OriginPolicy {
     AnyNoCredentials,
 }
 
-/// True when the documented development override is enabled.
-pub fn allow_any_origin_override() -> bool {
+/// True when the operator asked for the development override, regardless of
+/// which environment the process runs in.
+pub fn any_origin_override_requested() -> bool {
     match std::env::var(CORS_ALLOW_ANY_ORIGIN_ENV) {
         Ok(value) => matches!(
             value.trim().to_ascii_lowercase().as_str(),
@@ -47,6 +49,18 @@ pub fn allow_any_origin_override() -> bool {
         ),
         Err(_) => false,
     }
+}
+
+/// True when the documented development override is enabled.
+///
+/// Production (`BOTSERVER_ENV=production`) never honours it: a misconfigured
+/// deployment fails closed instead of opening the API to every website.
+pub fn allow_any_origin_override() -> bool {
+    if crate::jwt_secret::is_production_env() {
+        return false;
+    }
+
+    any_origin_override_requested()
 }
 
 /// Normalise a configured origin list: trim entries, drop empties, drop
@@ -106,10 +120,19 @@ pub fn resolve_origin_policy(configured: &[String]) -> OriginPolicy {
 /// development override.
 pub(super) fn log_origin_policy(policy: &OriginPolicy, context: &str) {
     match policy {
-        OriginPolicy::Deny => info!(
-            "{context}: no CORS origin configured — cross-origin access disabled \
-             (same-origin only); set cors-allowed-origins to allow explicit origins"
-        ),
+        OriginPolicy::Deny => {
+            info!(
+                "{context}: no CORS origin configured — cross-origin access disabled \
+                 (same-origin only); set cors-allowed-origins to allow explicit origins"
+            );
+
+            if any_origin_override_requested() && crate::jwt_secret::is_production_env() {
+                tracing::warn!(
+                    "{context}: {CORS_ALLOW_ANY_ORIGIN_ENV} is set but ignored — \
+                     production must fail closed"
+                );
+            }
+        }
         OriginPolicy::Allowlist(origins) => info!(
             "{context}: CORS restricted to {} configured origin(s)",
             origins.len()

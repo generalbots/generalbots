@@ -8,6 +8,7 @@ use crate::storage::convert_docx_to_html;
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
 use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
+use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use crate::auth::DocUser;
@@ -35,6 +36,18 @@ pub async fn handle_import_document(
             Json(serde_json::json!({ "error": "No file uploaded" })),
         )
     })?;
+
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::DocumentImport,
+        &filename,
+        &content_type,
+        &bytes,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+    };
+    let filename = upload.filename;
 
     let format = detect_import_format(&filename, &bytes);
     let content = match format.as_str() {

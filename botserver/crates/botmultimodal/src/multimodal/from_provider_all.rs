@@ -186,9 +186,10 @@ impl BotModelsClient {
         let url = format!("{}/api/vision/describe", self.config.base_url());
         trace!("Describing image at {}: {}", url, image_url_or_path);
 
-        let image_data = if image_url_or_path.starts_with("http") {
-            let response = self.client.get(image_url_or_path).send().await?;
-            response.bytes().await?.to_vec()
+        let image_data = if image_url_or_path.starts_with("http://")
+            || image_url_or_path.starts_with("https://")
+        {
+            fetch_media_bytes(image_url_or_path, MEDIA_MAX_BYTES).await?
         } else {
             tokio::fs::read(image_url_or_path).await?
         };
@@ -236,9 +237,10 @@ impl BotModelsClient {
         );
         trace!("Describing video at {}: {}", url, video_url_or_path);
 
-        let video_data = if video_url_or_path.starts_with("http") {
-            let response = self.client.get(video_url_or_path).send().await?;
-            response.bytes().await?.to_vec()
+        let video_data = if video_url_or_path.starts_with("http://")
+            || video_url_or_path.starts_with("https://")
+        {
+            fetch_media_bytes(video_url_or_path, MEDIA_MAX_BYTES).await?
         } else {
             tokio::fs::read(video_url_or_path).await?
         };

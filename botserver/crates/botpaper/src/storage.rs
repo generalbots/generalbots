@@ -1,3 +1,18 @@
+//! Document persistence.
+//!
+//! **Storage boundary (#2137).** A document lives at
+//! `users/{owner}/papers/current/{id}.md` (or
+//! `users/{owner}/papers/named/{title}/…` for a named copy) inside the bot's
+//! Drive bucket (`PaperState::bucket_name`). `{owner}` is the verified user id
+//! from [`crate::auth::PaperUser`], so the bucket is the tenant boundary and
+//! the user prefix is the owner boundary; neither comes from a header.
+//!
+//! **Legacy data.** Documents written before #2137 live under
+//! `users/anonymous@local/papers/` (the old shared account) and, for callers
+//! that sent a session header, under `users/{email}/papers/`. No verified
+//! identity resolves to either key, so both prefixes are quarantined in place:
+//! still on Drive, no longer served to any caller.
+
 use crate::state::PaperState;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
@@ -181,13 +196,26 @@ pub async fn delete_document_from_drive(
 ) -> Result<(), String> {
     let base_path = get_user_papers_path(user_identifier);
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
-    let _ = (state.s3_delete)(&state.bucket_name, &current_path).await;
-
     let named_prefix = format!("{}/named/{}/", base_path, doc_id);
-    if let Ok(keys) = (state.s3_list)(&state.bucket_name, &named_prefix).await {
-        for key in keys {
-            let _ = (state.s3_delete)(&state.bucket_name, &key).await;
-        }
+
+    // Only a document that exists under the caller's own prefix can be
+    // deleted: a missing id (including another user's document) is reported
+    // as "not found" instead of a silent success (#2137).
+    let current_exists = (state.s3_get)(&state.bucket_name, &current_path)
+        .await
+        .is_ok();
+    let named_keys = (state.s3_list)(&state.bucket_name, &named_prefix)
+        .await
+        .unwrap_or_default();
+    if !current_exists && named_keys.is_empty() {
+        return Err("Document not found".to_string());
+    }
+
+    if current_exists {
+        let _ = (state.s3_delete)(&state.bucket_name, &current_path).await;
+    }
+    for key in named_keys {
+        let _ = (state.s3_delete)(&state.bucket_name, &key).await;
     }
 
     Ok(())

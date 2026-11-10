@@ -62,3 +62,21 @@ fn the_display_name_defaults_to_the_id() {
     let resolved = DocUser::verified("user-a", "   ").expect("a verified id owns a namespace");
     assert_eq!(resolved.display_name(), "user-a");
 }
+
+/// The IDOR guarantee of #2135: a document id is only addressable inside the
+/// namespace of the caller who owns it, so knowing (or guessing) another user's
+/// document id never reaches their object.
+#[test]
+fn another_users_document_id_never_resolves_inside_my_namespace() {
+    let doc_id = "9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c";
+    let mine = user("user-a");
+    let theirs = user("user-b");
+
+    let my_object = format!("{}/{doc_id}.html", mine.docs_path());
+    let their_object = format!("{}/{doc_id}.html", theirs.docs_path());
+
+    assert_ne!(my_object, their_object);
+    assert!(my_object.starts_with(&format!("{}/", mine.docs_path())));
+    assert!(!my_object.starts_with(&format!("{}/", theirs.docs_path())));
+    assert!(!their_object.starts_with(&format!("{}/", mine.docs_path())));
+}

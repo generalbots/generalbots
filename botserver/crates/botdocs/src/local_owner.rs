@@ -61,7 +61,9 @@ pub fn resolve_from_config(config_path: &Path) -> String {
 /// Whether `value` may be used as a Docs owner segment.
 pub fn is_usable_owner(value: &str) -> bool {
     let trimmed = value.trim();
-    !trimmed.is_empty() && !is_legacy_owner(trimmed) && !sanitize_owner(trimmed).is_empty()
+    !trimmed.is_empty()
+        && !is_legacy_owner(trimmed)
+        && sanitize_owner(trimmed).chars().any(char::is_alphanumeric)
 }
 
 fn read_persisted(config_path: &Path) -> Option<String> {

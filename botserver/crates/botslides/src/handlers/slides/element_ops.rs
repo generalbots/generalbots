@@ -1,8 +1,9 @@
 //! Element operations: add, update (including animations) and delete.
 
 use super::wire::{presentation_id_of, slide_index_of, wire_element};
+use crate::auth::SlidesUser;
 use crate::collaboration::broadcast_slide_change;
-use crate::storage::{get_current_user_id, DriveOps};
+use crate::storage::DriveOps;
 use crate::types::{DeleteElementRequest, SaveResponse};
 use crate::SlidesState;
 use axum::extract::State;
@@ -13,11 +14,12 @@ use std::sync::Arc;
 
 pub async fn handle_add_element<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let presentation_id = presentation_id_of(&payload);
     let slide_index = slide_index_of(&payload);
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &presentation_id);
 
     if slide_index >= presentation.slides.len() {
@@ -80,11 +82,12 @@ pub async fn handle_add_element<D: DriveOps>(
 
 pub async fn handle_update_element<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let presentation_id = presentation_id_of(&payload);
     let slide_index = slide_index_of(&payload);
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &presentation_id);
 
     if slide_index >= presentation.slides.len() {
@@ -213,9 +216,10 @@ pub async fn handle_update_element<D: DriveOps>(
 
 pub async fn handle_delete_element<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<DeleteElementRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {

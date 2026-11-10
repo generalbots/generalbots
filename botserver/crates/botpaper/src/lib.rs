@@ -11,7 +11,7 @@ pub mod templates;
 pub mod utils;
 
 pub use models::*;
-pub use auth::get_current_user;
+pub use auth::{PaperUser, PaperUnauthorized};
 pub use storage::{
     delete_document_from_drive, list_documents_from_drive, load_document_from_drive,
     save_document_to_drive,

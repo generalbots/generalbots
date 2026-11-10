@@ -88,7 +88,7 @@ pub(crate) mod test_support {
 
     /// The secret this process verifies with.
     pub(crate) fn process_secret() -> String {
-        botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+        botsecurity_core::verified_jwt::resolve_saas_jwt_secret().expect("saas jwt secret")
     }
 
     /// A valid token for this process, carrying `sub` and a live `exp`.

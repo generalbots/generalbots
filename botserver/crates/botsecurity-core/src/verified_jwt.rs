@@ -232,7 +232,7 @@ fn uuid_claim(payload: &serde_json::Value, name: &str) -> Option<Uuid> {
 /// verifier alike — resolves the same value and a public fallback cannot be
 /// reintroduced by a copy.
 pub use crate::jwt_secret::{
-    resolve_saas_jwt_secret, JwtSecret, JwtSecretError, JwtSecretPolicy, JwtSecretSource,
+    resolve_saas_jwt_secret, JwtSecret, JwtSecretError, JwtSecretSource,
 };
 
 /// Verifies a token against the server's SaaS JWT secret.

@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 /// Resolve the default bot id for the current deployment. `knowledge_sources`
 /// and `knowledge_chunks` scope by `bot_id`, so every read must filter by it to
@@ -25,10 +26,17 @@ pub(super) fn resolve_bot_id(pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionM
 }
 pub async fn handle_upload_document(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     mut multipart: Multipart,
-) -> impl IntoResponse {
+) -> axum::response::Response {
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::KnowledgeBase, &headers) {
+        return upload_policy::rejection_json(&error, &headers).into_response();
+    }
+
     let mut file_name = String::new();
     let mut file_data: Vec<u8> = Vec::new();
+    let mut content_type = String::new();
     let mut collection = "default".to_string();
 
     while let Ok(Some(field)) = multipart.next_field().await {
@@ -37,6 +45,7 @@ pub async fn handle_upload_document(
         match name.as_str() {
             "file" => {
                 file_name = field.file_name().unwrap_or("unknown").to_string();
+                content_type = field.content_type().map(str::to_string).unwrap_or_default();
                 if let Ok(data) = field.bytes().await {
                     file_data = data.to_vec();
                 }
@@ -56,8 +65,21 @@ pub async fn handle_upload_document(
             source_id: None,
             message: "No file provided".to_string(),
             chunks_created: None,
-        });
+        })
+        .into_response();
     }
+
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::KnowledgeBase,
+        &file_name,
+        &content_type,
+        &file_data,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return upload_policy::rejection_json(&error, &headers).into_response(),
+    };
+    let file_name = upload.filename;
 
     let extension = file_name.rsplit('.').next().unwrap_or("txt").to_lowercase();
     let source_type = SourceType::from(extension.as_str());
@@ -71,7 +93,8 @@ pub async fn handle_upload_document(
                 source_id: None,
                 message: format!("Failed to extract text: {}", e),
                 chunks_created: None,
-            });
+            })
+            .into_response();
         }
     };
 
@@ -164,19 +187,22 @@ pub async fn handle_upload_document(
                 ),
                 chunks_created: Some(chunk_count),
             })
+            .into_response()
         }
         Ok(Err(e)) => Json(UploadResponse {
             success: false,
             source_id: None,
             message: e,
             chunks_created: None,
-        }),
+        })
+        .into_response(),
         Err(e) => Json(UploadResponse {
             success: false,
             source_id: None,
             message: format!("Task error: {}", e),
             chunks_created: None,
-        }),
+        })
+        .into_response(),
     }
 }
 pub async fn handle_list_sources(

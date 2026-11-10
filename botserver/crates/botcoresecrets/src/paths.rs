@@ -10,6 +10,10 @@ impl SecretPaths {
     pub const LLM: &'static str = "gbo/llm";
     pub const ENCRYPTION: &'static str = "gbo/encryption";
     pub const JWT: &'static str = "gbo/jwt";
+    /// Signing key for OAuth `state` tokens (#2130): field `secret`. When
+    /// absent, the OAuth flow falls back to `JWT` and then to an ephemeral
+    /// per-process key.
+    pub const OAUTH_STATE: &'static str = "gbo/oauth-state";
     pub const MEET: &'static str = "gbo/meet";
     pub const ALM: &'static str = "gbo/alm";
     pub const VECTORDB: &'static str = "gbo/vectordb";

@@ -24,6 +24,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(5);
 /// thing: Vault did not supply a value.
 pub fn secret_sync(path: &str) -> Option<BTreeMap<String, String>> {
     let manager = SecretsManager::get_clone().ok()?;
+    let read_path = path.to_string();
+    let log_path = path.to_string();
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -32,13 +34,13 @@ pub fn secret_sync(path: &str) -> Option<BTreeMap<String, String>> {
         let result = match rt {
             Ok(rt) => rt.block_on(async move {
                 manager
-                    .get_secret(path)
+                    .get_secret(&read_path)
                     .await
                     .ok()
                     .map(|secrets| secrets.into_iter().collect::<BTreeMap<_, _>>())
             }),
             Err(error) => {
-                log::warn!("secret {path}: could not start Vault runtime: {error}");
+                log::warn!("secret {log_path}: could not start Vault runtime: {error}");
                 None
             }
         };

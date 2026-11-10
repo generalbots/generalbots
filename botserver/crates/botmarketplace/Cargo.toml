@@ -21,8 +21,7 @@ uuid = { workspace = true, features = ["serde", "v4", "v5"] }
 botsecurity = { workspace = true }
 
 [dev-dependencies]
-# Token minting for the auth tests: the verifier is shared with the server, so
-# the tests sign with the secret it resolves rather than a fixture.
+# HS256 token minting for the auth tests (valid, tampered, alg:none, unsigned).
 base64 = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }

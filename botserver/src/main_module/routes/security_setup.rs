@@ -75,12 +75,17 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> Result<SecurityCompone
         // plain read route. The old prefix chain made every route added under
         // `/api/auth`, `/api/products/items` and `/api/sheet` public by
         // accident (#2127, #2128).
-        let public_routes = botsecurity_auth::auth_api::platform_public_routes();
+        let public_routes = crate::security::auth::platform_public_routes();
+        let private_routes = crate::security::auth::platform_private_routes();
         info!(
-            "Anonymous allowlist: {} explicit (method, path) routes",
-            public_routes.len()
+            "Anonymous allowlist: {} explicit (method, path) routes, {} always-authenticated exceptions",
+            public_routes.len(),
+            private_routes.len()
         );
-        Arc::new(cfg.with_public_routes(public_routes))
+        Arc::new(
+            cfg.with_public_routes(public_routes)
+                .with_private_routes(private_routes),
+        )
     };
 
     // #2140 — one resolver for the whole workspace. Resolution fails closed in

@@ -301,12 +301,53 @@ def rust_syntax(tmp: Path) -> Case:
     return case
 
 
+def jwt_secret(tmp: Path) -> Case:
+    """Resolver gate: a second `*saas_jwt_secret` copy must fail."""
+    case = Case("jwt-secret")
+    root = tmp / "tree"
+    canonical = root / "botserver" / "crates" / "botsecurity-core" / "src" / "jwt_secret.rs"
+    canonical.parent.mkdir(parents=True)
+    canonical.write_text(
+        'pub const DEV_FALLBACK_SECRET: &str = "dev-secret-key-change-in-production-minimum-32-chars";\n'
+        "pub fn resolve_saas_jwt_secret() -> Result<String, JwtSecretError> {\n"
+        '    let _ = std::env::var("JWT_SECRET");\n'
+        "    Ok(String::new())\n}\n",
+        encoding="utf-8",
+    )
+    consumer = root / "botserver" / "src" / "lib.rs"
+    consumer.parent.mkdir(parents=True)
+    consumer.write_text(
+        "fn token() -> String {\n"
+        "    botsecurity_core::verified_jwt::resolve_saas_jwt_secret().unwrap_or_default()\n}\n",
+        encoding="utf-8",
+    )
+    vibe = root / "botserver" / "crates" / "botvibe" / "src" / "domain_auth.rs"
+    vibe.parent.mkdir(parents=True)
+    vibe.write_text(
+        "fn secret() -> String {\n"
+        "    botsecurity_core::verified_jwt::resolve_saas_jwt_secret().unwrap_or_default()\n}\n",
+        encoding="utf-8",
+    )
+    env = {"GB_JWT_SECRET_ROOT": str(root)}
+    case.expect("single resolver", CLEAN, _gate("check_jwt_secret.py", ["--check"], env=env))
+    vibe.write_text(
+        "pub fn saas_jwt_secret() -> String {\n"
+        '    std::env::var("SAAS_JWT_SECRET").unwrap_or_else(|_| '
+        '"dev-secret-key-change-in-production-minimum-32-chars".to_string())\n}\n',
+        encoding="utf-8",
+    )
+    case.expect("duplicate resolver", VIOLATION, _gate("check_jwt_secret.py", ["--check"], env=env))
+    case.expect("self-test", CLEAN, _gate("check_jwt_secret.py", ["--self-test"]))
+    return case
+
+
 SELFTESTS = {
     "adequacy": adequacy,
     "app-budget": app_budget,
     "component-checksums": component_checksums,
     "gb7-desktop-features": gb7_desktop,
     "i18n-lint": i18n_lint,
+    "jwt-secret": jwt_secret,
     "osv-allowlist": osv_allowlist,
     "product-profile": product_profile,
     "rust-syntax": rust_syntax,

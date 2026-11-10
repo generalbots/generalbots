@@ -56,7 +56,7 @@ pub async fn list_products(
     State(state): State<Arc<ProductsState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<Product>>, ApiError> {
+) -> Result<Json<Vec<serde_json::Value>>, ApiError> {
     let locale = locale_from_headers(&headers);
     let mut conn = state
         .pool
@@ -87,7 +87,8 @@ pub async fn list_products(
         .into_boxed();
 
     if !has_token {
-        q = q.filter(products::is_public.eq(true));
+        q = q.filter(products::is_public.eq(true))
+            .filter(products::is_active.eq(true));
     }
 
     if let Some(is_active) = query.is_active {
@@ -119,7 +120,31 @@ pub async fn list_products(
         .load(&mut conn)
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    Ok(Json(prods))
+    // Anonymous storefront callers get display fields only (issue #2128):
+    // cost, stock and the internal scope ids never leave the server. The
+    // authenticated products app keeps the full row.
+    if !has_token {
+        return Ok(Json(prods.iter().map(public_product).collect()));
+    }
+
+    Ok(Json(prods.iter().map(|product| serde_json::json!(product)).collect()))
+}
+
+/// Display-only projection of a catalogue row served to anonymous callers.
+pub(crate) fn public_product(product: &Product) -> serde_json::Value {
+    serde_json::json!({
+        "sku": product.sku,
+        "name": product.name,
+        "description": product.description,
+        "category": product.category,
+        "product_type": product.product_type,
+        "price": product.price,
+        "currency": product.currency,
+        "unit": product.unit,
+        "images": product.images,
+        "attributes": product.attributes,
+        "is_active": product.is_active,
+    })
 }
 pub async fn get_product(
     State(state): State<Arc<ProductsState>>,
@@ -134,8 +159,7 @@ pub async fn get_product(
 
     // Object-level authorization (issue #734): a product may only be read by
     // a caller whose workspace branch owns it.
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
 
     let product: Product = products::table
         .filter(products::id.eq(id))
@@ -164,8 +188,7 @@ pub async fn update_product(
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Object-level authorization: only the owning branch may modify a product.
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
     let now = Utc::now();
 
     diesel::update(products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))))
@@ -235,8 +258,7 @@ pub async fn delete_product(
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Object-level authorization: only the owning branch may delete a product.
-    let branch_id = crate::scope::branch_from_jwt_pool(&headers, &state.pool)
-        .ok_or_else(|| api_error(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing"))?;
+    let branch_id = verified_branch(&headers, &state.pool).ok_or_else(|| unauthorized(&locale))?;
 
     let deleted = diesel::delete(
         products::table.filter(products::id.eq(id).and(products::branch_id.eq(branch_id))),

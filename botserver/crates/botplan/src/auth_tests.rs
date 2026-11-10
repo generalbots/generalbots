@@ -193,7 +193,8 @@ fn the_socket_refuses_an_anonymous_upgrade() {
 fn the_socket_refuses_a_guest_on_a_private_plan() {
     let plan = plan(OWNER, &[], Some(BRANCH));
     let guest_token = token(live_claims(STRANGER, Some(BRANCH)));
-    let refusal = authorize_ws(&plan, Some(&guest_token), &HeaderMap::new()).expect_err("guest");
+    let refusal = authorize_ws(&plan, Some(guest_token.as_str()), &HeaderMap::new())
+        .expect_err("guest");
     assert_eq!(refusal, PlanError::NotFound);
     assert_eq!(refusal.status(), StatusCode::NOT_FOUND);
 }
@@ -202,7 +203,8 @@ fn the_socket_refuses_a_guest_on_a_private_plan() {
 fn the_socket_accepts_the_verified_owner_by_query_token_or_header() {
     let plan = plan(OWNER, &[], Some(BRANCH));
     let owner_token = token(live_claims(OWNER, Some(BRANCH)));
-    let by_query = authorize_ws(&plan, Some(&owner_token), &HeaderMap::new()).expect("query token");
+    let by_query =
+        authorize_ws(&plan, Some(owner_token.as_str()), &HeaderMap::new()).expect("query token");
     assert_eq!(by_query.user_id, OWNER);
     let by_header = authorize_ws(&plan, None, &headers_for(OWNER, Some(BRANCH))).expect("header");
     assert_eq!(by_header.user_id, OWNER);

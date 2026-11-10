@@ -11,7 +11,7 @@ pub async fn list_time_off(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -37,10 +37,12 @@ pub async fn approve_time_off(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
     let now = Utc::now();
     let status = if req.approved { "approved" } else { "rejected" };
 
-    diesel::update(people_time_off::table.filter(people_time_off::id.eq(id)))
+    let updated = diesel::update(scoped_time_off(id, branch_id))
         .set((
             people_time_off::status.eq(status),
             people_time_off::approved_at.eq(Some(now)),
@@ -50,8 +52,15 @@ pub async fn approve_time_off(
         .execute(&mut conn)
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let time_off: TimeOff = people_time_off::table
-        .filter(people_time_off::id.eq(id))
+    if updated == 0 {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-time-off-not-found",
+        ));
+    }
+
+    let time_off: TimeOff = scoped_time_off(id, branch_id)
         .first(&mut conn)
         .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-time-off-not-found"))?;
 
@@ -67,7 +76,7 @@ pub async fn get_people_stats(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let total_people: i64 = people::table
         .filter(people::branch_id.eq(branch_id))

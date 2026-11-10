@@ -6,7 +6,7 @@ pub(crate) use crate::state::{now_secs, server_signer, StateError};
 pub(crate) use crate::{OAuthProvider, OAuthState, OAuthUserInfo};
 pub(crate) use crate::providers::{get_enabled_providers, load_oauth_config};
 pub(crate) use anyhow::anyhow;
-pub(crate) use axum::{ extract::{Path, Query, State}, http::{header, HeaderMap, HeaderValue, StatusCode}, response::{Html, IntoResponse, Redirect, Response}, routing::get, Json, Router, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::{header, HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect, Response}, routing::get, Json, Router, };
 pub(crate) use log::{debug, info, warn};
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::collections::HashMap;

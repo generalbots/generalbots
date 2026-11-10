@@ -8,6 +8,7 @@ pub mod routes;
 pub mod schema;
 pub mod state;
 
+// GitHub email ownership lookup (#2134).
 mod github_email;
 
 pub use binding::{consume_bound_nonce, BindingError};

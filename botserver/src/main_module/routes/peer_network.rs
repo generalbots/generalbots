@@ -2,9 +2,19 @@
 //!
 //! The registry itself lives in [`crate::core::peer_network`]; this module only
 //! authenticates machine callers and translates registry errors to JSON/HTTP.
-//! When `GB_PEER_NETWORK` is off every handler still answers, but registration
-//! and heartbeat return `403 peer_network_disabled` and status carries no node
-//! identity.
+//!
+//! #2141 — authentication is mandatory on every route:
+//!
+//! | Route | Credential |
+//! |---|---|
+//! | `register`, `heartbeat`, `payloads`, `home-site` | shared node token |
+//! | `status` | shared node token or an admin session |
+//! | `enable`, `disable` | admin session (normal auth, not in the anonymous list) |
+//!
+//! With no token configured the machine routes fail closed with
+//! `503 peer_network_unconfigured`; there is no anonymous path. When
+//! `GB_PEER_NETWORK` is off, registration/heartbeat answer `403
+//! peer_network_disabled` and status carries no node identity.
 
 use axum::{
     extract::{Extension, Json, Query},
@@ -40,10 +50,7 @@ pub fn configure_peer_routes() -> Router<Arc<AppState>> {
 ///
 /// #2141 — control surface: a peer token or an admin session. It is never
 /// anonymous, so node identity is not disclosed to unauthenticated callers.
-pub async fn status(
-    headers: HeaderMap,
-    user: Option<Extension<AuthenticatedUser>>,
-) -> Response {
+pub async fn status(headers: HeaderMap, user: Option<Extension<AuthenticatedUser>>) -> Response {
     let network = peer_network::global();
     let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize_control(&headers, network, user.as_deref()) {
@@ -79,10 +86,7 @@ pub async fn heartbeat(headers: HeaderMap, Json(request): Json<HeartbeatRequest>
 }
 
 /// `POST /api/peer/enable` — turn the peer network on at runtime.
-pub async fn enable(
-    headers: HeaderMap,
-    user: Option<Extension<AuthenticatedUser>>,
-) -> Response {
+pub async fn enable(headers: HeaderMap, user: Option<Extension<AuthenticatedUser>>) -> Response {
     let network = peer_network::global();
     let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize_control(&headers, network, user.as_deref()) {
@@ -106,10 +110,7 @@ fn persist_mode(mode: &str) {
 }
 
 /// `POST /api/peer/disable` — stop all P2P traffic at runtime.
-pub async fn disable(
-    headers: HeaderMap,
-    user: Option<Extension<AuthenticatedUser>>,
-) -> Response {
+pub async fn disable(headers: HeaderMap, user: Option<Extension<AuthenticatedUser>>) -> Response {
     let network = peer_network::global();
     let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize_control(&headers, network, user.as_deref()) {
@@ -232,28 +233,40 @@ fn authorize_machine(headers: &HeaderMap, network: &PeerNetwork) -> Result<(), P
 /// Control callers (`status`, `enable`, `disable`).
 ///
 /// A peer token authenticates a machine caller; otherwise the request must
-/// carry an administrator session. With no token configured and no admin
-/// identity the call is refused as unconfigured — never accepted.
+/// carry an administrator session (or be the single local desktop owner). With
+/// no token configured and no such identity the call is refused as
+/// unconfigured — never accepted.
 fn authorize_control(
     headers: &HeaderMap,
     network: &PeerNetwork,
     user: Option<&AuthenticatedUser>,
 ) -> Result<(), PeerError> {
     let token_configured = network.token().is_some();
-    let token_accepted = network
-        .token()
-        .is_some_and(|expected| supplied_peer_token(headers).is_some_and(|value| peer_token_matches(value, expected)));
+    let token_accepted = network.token().is_some_and(|expected| {
+        supplied_peer_token(headers).is_some_and(|value| peer_token_matches(value, expected))
+    });
 
     if token_accepted {
         return Ok(());
     }
 
     match user {
-        Some(user) if user.is_admin() => Ok(()),
+        Some(user) if can_control(user) => Ok(()),
         Some(_) => Err(PeerError::Forbidden),
         None if token_configured => Err(PeerError::Unauthorized),
         None => Err(PeerError::Unconfigured),
     }
+}
+
+/// Who may flip the peer node: an administrator, or the single local owner of a
+/// desktop install (`no_security=true`), which the auth middleware marks with
+/// `desktop_local=true` in the principal's metadata.
+fn can_control(user: &AuthenticatedUser) -> bool {
+    user.is_admin()
+        || user
+            .metadata
+            .get("desktop_local")
+            .is_some_and(|value| value == "true")
 }
 
 /// The peer credential, from `X-Peer-Token` or `Authorization: Bearer`.
@@ -321,125 +334,4 @@ fn error_response(locale: &botcore::i18n::Locale, error: PeerError) -> Response 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::security::auth_api::types::Role;
-
-    const PEER_TOKEN: &str = "peer-node-token-with-enough-entropy";
-
-    fn disabled_network_with_token(token: Option<&str>) -> PeerNetwork {
-        let mut config = peer_network::PeerConfig::disabled();
-        config.token = token.map(str::to_string);
-        PeerNetwork::new(config)
-    }
-
-    fn headers_with(value: &str) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, value.parse().expect("header"));
-        headers
-    }
-
-    fn peer_headers(value: &str) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert("x-peer-token", value.parse().expect("header"));
-        headers
-    }
-
-    fn admin() -> AuthenticatedUser {
-        AuthenticatedUser::new(uuid::Uuid::new_v4(), "root".to_string()).with_role(Role::Admin)
-    }
-
-    fn regular_user() -> AuthenticatedUser {
-        AuthenticatedUser::new(uuid::Uuid::new_v4(), "alice".to_string())
-    }
-
-    /// #2141 — the old behaviour (`token = None` ⇒ allow) is gone: an
-    /// unconfigured peer network fails closed instead of accepting payloads.
-    #[test]
-    fn unconfigured_peer_network_is_not_open() {
-        let network = disabled_network_with_token(None);
-
-        assert_eq!(
-            authorize_machine(&HeaderMap::new(), &network),
-            Err(PeerError::Unconfigured)
-        );
-        assert_eq!(
-            authorize_machine(&peer_headers(PEER_TOKEN), &network),
-            Err(PeerError::Unconfigured)
-        );
-        assert_eq!(
-            authorize_control(&HeaderMap::new(), &network, None),
-            Err(PeerError::Unconfigured)
-        );
-    }
-
-    /// A machine call without the shared token is 401, never a silent pass.
-    #[test]
-    fn an_unauthenticated_peer_call_is_rejected() {
-        let network = disabled_network_with_token(Some(PEER_TOKEN));
-
-        assert_eq!(
-            authorize_machine(&HeaderMap::new(), &network),
-            Err(PeerError::Unauthorized)
-        );
-        assert_eq!(
-            authorize_machine(&headers_with("Bearer wrong"), &network),
-            Err(PeerError::Unauthorized)
-        );
-        assert_eq!(
-            authorize_machine(&headers_with(&format!("Bearer {PEER_TOKEN}")), &network),
-            Ok(())
-        );
-        assert_eq!(
-            authorize_machine(&peer_headers(PEER_TOKEN), &network),
-            Ok(())
-        );
-    }
-
-    /// `status`/`enable`/`disable` accept a peer token or an admin session;
-    /// a plain authenticated user is forbidden.
-    #[test]
-    fn control_routes_require_an_admin_without_a_peer_token() {
-        let network = disabled_network_with_token(None);
-        assert_eq!(
-            authorize_control(&HeaderMap::new(), &network, Some(&regular_user())),
-            Err(PeerError::Forbidden)
-        );
-        assert_eq!(
-            authorize_control(&HeaderMap::new(), &network, Some(&admin())),
-            Ok(())
-        );
-
-        let network = disabled_network_with_token(Some(PEER_TOKEN));
-        assert_eq!(
-            authorize_control(&peer_headers(PEER_TOKEN), &network, None),
-            Ok(())
-        );
-        assert_eq!(
-            authorize_control(&HeaderMap::new(), &network, Some(&admin())),
-            Ok(())
-        );
-        assert_eq!(
-            authorize_control(&HeaderMap::new(), &network, None),
-            Err(PeerError::Unauthorized)
-        );
-    }
-
-    /// A JWT in `Authorization` is not a peer credential: only the configured
-    /// token opens a machine route.
-    #[test]
-    fn a_user_token_is_not_a_peer_token() {
-        let network = disabled_network_with_token(Some(PEER_TOKEN));
-        assert_eq!(
-            authorize_machine(&headers_with("Bearer eyJhbGciOiJIUzI1NiJ9.e30.sig"), &network),
-            Err(PeerError::Unauthorized)
-        );
-    }
-
-    #[test]
-    fn peer_token_comparison_is_length_safe() {
-        assert!(peer_token_matches("same", "same"));
-        assert!(!peer_token_matches("same", "samf"));
-        assert!(!peer_token_matches("short", "longer"));
-    }
-}
+mod peer_network_tests;

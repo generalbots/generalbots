@@ -2,15 +2,7 @@ use super::*;
 
 impl SynchronizeService {
     pub fn new(_pool: DbPool) -> Self {
-        let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .unwrap_or_default();
-
-        Self {
-            http_client,
-            base_url: None,
-        }
+        Self { base_url: None }
     }
 
     pub fn with_base_url(mut self, base_url: String) -> Self {
@@ -148,34 +140,42 @@ impl SynchronizeService {
     ) -> Result<Vec<Value>, SynchronizeError> {
         let url = self.build_url(config, page, limit)?;
 
-        let mut request = self.http_client.get(&url);
-
+        // #2131 — SYNCHRONIZE reads from a caller-configured endpoint, so the
+        // request goes through the shared SSRF guard (public http(s) only,
+        // per-hop redirect checks, body cap). Configured headers are attached
+        // by the policy, never interpreted as a URL.
+        let mut policy = botsecurity::validation::FetchPolicy::default()
+            .with_timeout(std::time::Duration::from_secs(30))
+            .with_max_bytes(16 * 1024 * 1024);
         if let Some(headers) = &config.headers {
             for (key, value) in headers {
-                request = request.header(key, value);
+                policy = policy.with_header(key.clone(), value.clone());
             }
         }
 
-        let response = request
-            .send()
+        let response = botsecurity::validation::fetch_user_url(&url, &policy)
             .await
-            .map_err(|e| SynchronizeError::FetchFailed(e.to_string()))?;
+            .map_err(|e| {
+                log::warn!(
+                    "SYNCHRONIZE: refused URL ({}): {}",
+                    e.kind().as_str(),
+                    e.detail()
+                );
+                SynchronizeError::FetchFailed(e.to_string())
+            })?;
 
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        if response.status == 429 {
             return Err(SynchronizeError::RateLimited);
         }
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(SynchronizeError::FetchFailed(format!(
                 "HTTP {} from {}",
-                response.status(),
-                url
+                response.status, url
             )));
         }
 
-        let body: Value = response
-            .json()
-            .await
+        let body: Value = serde_json::from_slice(&response.body)
             .map_err(|e| SynchronizeError::ParseFailed(e.to_string()))?;
 
         let records = self.extract_records(&body)?;

@@ -42,29 +42,9 @@ pub(super) async fn oauth_callback(
 
     let oauth_state = match server_signer().verify(state_param) {
         Ok(oauth_state) => oauth_state,
-        Err(StateError::BadSignature) => {
-            warn!("OAuth callback rejected: state signature mismatch");
-            return error_page(
-                StatusCode::FORBIDDEN,
-                "Invalid State",
-                "The login state was not issued by this server.",
-            );
-        }
-        Err(StateError::Expired) => {
-            warn!("OAuth state expired");
-            return error_page(
-                StatusCode::BAD_REQUEST,
-                "Session Expired",
-                "The login took too long. Please start again.",
-            );
-        }
-        Err(StateError::Malformed) => {
-            warn!("Failed to decode OAuth state parameter");
-            return error_page(
-                StatusCode::BAD_REQUEST,
-                "Invalid State",
-                "The login state is malformed.",
-            );
+        Err(error) => {
+            warn!("OAuth callback rejected: {error}");
+            return state_rejection_page(error);
         }
     };
 
@@ -212,6 +192,31 @@ pub(super) async fn oauth_callback(
     }
 }
 
+/// Maps a state verification failure to the response the browser receives.
+///
+/// A signature mismatch is a forgery attempt (`403`); a malformed or expired
+/// token is a broken/abandoned flow (`400`). Neither ever reaches the identity
+/// code.
+fn state_rejection_page(error: StateError) -> Response {
+    match error {
+        StateError::BadSignature => error_page(
+            StatusCode::FORBIDDEN,
+            "Invalid State",
+            "The login state was not issued by this server.",
+        ),
+        StateError::Expired => error_page(
+            StatusCode::BAD_REQUEST,
+            "Session Expired",
+            "The login took too long. Please start again.",
+        ),
+        StateError::Malformed => error_page(
+            StatusCode::BAD_REQUEST,
+            "Invalid State",
+            "The login state is malformed.",
+        ),
+    }
+}
+
 /// Rejects a state that this browser did not start, and one that was already
 /// used. Returns the response to send when the flow must abort.
 ///
@@ -230,5 +235,29 @@ fn reject_foreign_state(headers: &HeaderMap, oauth_state: &OAuthState) -> Option
                  Please start again.",
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_forged_state_is_a_403_and_a_broken_one_is_a_400() {
+        // A bad MAC is an authenticity failure: forbidden, never a login.
+        assert_eq!(
+            state_rejection_page(StateError::BadSignature).status(),
+            StatusCode::FORBIDDEN
+        );
+        // Expired/malformed tokens are a stale or broken flow, not an attack
+        // signature: bad request.
+        assert_eq!(
+            state_rejection_page(StateError::Expired).status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            state_rejection_page(StateError::Malformed).status(),
+            StatusCode::BAD_REQUEST
+        );
     }
 }

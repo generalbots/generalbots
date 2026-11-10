@@ -17,6 +17,7 @@ use crate::requests::CsvImportReport;
 use crate::schema::crm_contacts;
 use super::csv_parse::{csv_opt, normalise_email};
 use crate::scope::{branch_from_jwt, email_from_jwt};
+use botsecurity_core::upload_policy::{self, UploadClass};
 use crate::CrateState;
 
 fn get_bot_context(state: &CrateState) -> Uuid {
@@ -106,6 +107,16 @@ pub async fn import_contacts_csv(
         serde_json::from_str(&body)
             .map_err(|e| (StatusCode::BAD_REQUEST, format!("invalid JSON rows: {e}")))?
     } else {
+        // #2132 — a CSV import is an upload: the payload must be the text it
+        // claims to be, not markup or a binary disguised as `.csv`.
+        if let Err(error) = upload_policy::validate_upload(
+            UploadClass::SpreadsheetImport,
+            "contacts.csv",
+            content_type,
+            body.as_bytes(),
+        ) {
+            return Err(upload_policy::rejection_message(&error, &headers));
+        }
         parse_contacts_csv(&body)?
     };
 

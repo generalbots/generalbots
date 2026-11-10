@@ -82,7 +82,7 @@ fn control_characters_and_whitespace_are_rejected() {
 #[test]
 fn overlong_targets_are_rejected() {
     let long = format!("/{}", "a".repeat(3000));
-    assert_eq!(safe_redirect_target(Some(&long)), DEFAULT_REDIRECT);
+    assert_eq!(safe_redirect_target(Some(long.as_str())), DEFAULT_REDIRECT);
 }
 
 #[test]

@@ -16,7 +16,6 @@
 //! verifies a signature/shared secret.
 
 use axum::http::Method;
-use std::fmt;
 
 /// Why a route is reachable without a session.
 ///
@@ -43,6 +42,9 @@ pub enum PublicAccess {
     /// handler verifies a signature, a shared secret or a signed state value
     /// before acting (`VerifiedWebhook` is a promise the route keeps).
     VerifiedWebhook,
+    /// Never public. Used for the deny list: a route that a broader public
+    /// pattern would otherwise match (e.g. `/ws/logs` under `/ws/:bot_name`).
+    AlwaysAuthenticated,
 }
 
 impl PublicAccess {
@@ -61,7 +63,7 @@ impl PublicAccess {
         match self {
             Self::AnonymousRead | Self::Capability => is_read_method(method),
             Self::Asset => method == Method::GET || method == Method::HEAD,
-            Self::CredentialEntry | Self::VerifiedWebhook => true,
+            Self::CredentialEntry | Self::VerifiedWebhook | Self::AlwaysAuthenticated => true,
         }
     }
 
@@ -72,6 +74,7 @@ impl PublicAccess {
             Self::Capability => "capability token",
             Self::CredentialEntry => "credential entry",
             Self::VerifiedWebhook => "verified webhook",
+            Self::AlwaysAuthenticated => "always authenticated",
         }
     }
 }
@@ -79,7 +82,7 @@ impl PublicAccess {
 fn is_read_method(method: &Method) -> bool {
     // OPTIONS is included because a CORS preflight never carries credentials
     // and changes no state.
-    matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS)
+    method == Method::GET || method == Method::HEAD || method == Method::OPTIONS
 }
 
 /// A single public route: one HTTP method, one path shape, one reason.
@@ -153,6 +156,12 @@ impl PublicRoute {
         pattern: impl Into<String>,
     ) -> Result<Self, AuthConfigError> {
         Self::new(method, pattern, PublicAccess::VerifiedWebhook)
+    }
+
+    /// A route that must always require a session, even when a broader public
+    /// pattern matches it.
+    pub fn deny(method: Method, pattern: impl Into<String>) -> Result<Self, AuthConfigError> {
+        Self::new(method, pattern, PublicAccess::AlwaysAuthenticated)
     }
 
     /// Whether this declaration admits the request.
@@ -285,12 +294,6 @@ pub enum AuthConfigError {
     },
 }
 
-impl fmt::Display for PublicAccess {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.label())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct AuthConfig {
     pub require_auth: bool,
@@ -301,6 +304,9 @@ pub struct AuthConfig {
     /// Exact (method, path) routes reachable without a session. Empty by
     /// default: every path is authenticated unless the deployment declares it.
     pub public_routes: Vec<PublicRoute>,
+    /// Routes that always require a session, even when a broader public
+    /// declaration (a parameter or an asset tree) would match. Deny wins.
+    pub private_routes: Vec<PublicRoute>,
     pub bot_id_header: String,
     pub org_id_header: String,
     pub internal_token: Option<String>,
@@ -318,6 +324,7 @@ impl Default for AuthConfig {
             // Secure by default (#2133): no route is anonymous until the
             // deployment declares it with an explicit method and path.
             public_routes: Vec::new(),
+            private_routes: Vec::new(),
             bot_id_header: "X-Bot-ID".to_string(),
             org_id_header: "X-Organization-ID".to_string(),
             internal_token: None,
@@ -376,9 +383,34 @@ impl AuthConfig {
         self
     }
 
+    /// Replaces the always-authenticated exceptions.
+    #[must_use]
+    pub fn with_private_routes(mut self, routes: Vec<PublicRoute>) -> Self {
+        self.private_routes = routes;
+        self
+    }
+
+    /// Adds one route that always requires a session, even when a broader
+    /// public declaration would match.
+    #[must_use]
+    pub fn with_private_route(mut self, route: PublicRoute) -> Self {
+        self.private_routes.push(route);
+        self
+    }
+
     /// Whether `method path` was explicitly declared public.
+    ///
+    /// A private declaration always wins over a public one, so a parameter or
+    /// asset-tree pattern can never absorb a sensitive sibling route.
     #[must_use]
     pub fn is_public_route(&self, method: &Method, path: &str) -> bool {
+        if self
+            .private_routes
+            .iter()
+            .any(|route| route.matches(method, path))
+        {
+            return false;
+        }
         self.public_routes
             .iter()
             .any(|route| route.matches(method, path))

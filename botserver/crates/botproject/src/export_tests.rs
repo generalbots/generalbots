@@ -156,15 +156,13 @@ fn xml_export_escapes_names_and_marks_a_milestone() {
 #[test]
 fn xml_export_links_dependencies_by_uid_and_scales_the_lag() {
     let project = project();
-    let mut first = task(project.id, "Design", 2);
-    let second_seed = 3u8;
-    let mut second = task(project.id, "Build", second_seed);
+    let first = task(project.id, "Design", 2);
+    let mut second = task(project.id, "Build", 3);
     second.dependencies = vec![TaskDependency {
         predecessor_id: first.id,
         dependency_type: DependencyType::StartToStart,
         lag_days: 2,
     }];
-    first.dependencies = Vec::new();
 
     let xml = export_ms_project_xml(&project, &[first, second], &[], &[]);
 
@@ -176,9 +174,8 @@ fn xml_export_links_dependencies_by_uid_and_scales_the_lag() {
 #[test]
 fn xml_export_round_trips_through_the_importer() {
     let project = project();
-    let mut design = task(project.id, "Design", 2);
+    let design = task(project.id, "Design", 2);
     let build = task(project.id, "Build", 3);
-    design.dependencies = Vec::new();
     let resource = resource(project.id);
     let assignment = ResourceAssignment {
         id: Uuid::from_u128(9),
@@ -191,12 +188,7 @@ fn xml_export_round_trips_through_the_importer() {
         cost: 960.0,
     };
 
-    let xml = export_ms_project_xml(
-        &project,
-        &[design.clone(), build],
-        &[resource],
-        &[assignment],
-    );
+    let xml = export_ms_project_xml(&project, &[design, build], &[resource], &[assignment]);
     let imported = ProjectImportService::new()
         .import(xml.as_bytes(), ImportOptions::default())
         .expect("the exporter's own output must import");

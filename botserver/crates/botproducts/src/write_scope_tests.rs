@@ -13,6 +13,19 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use std::sync::OnceLock;
+
+/// The secret the process verifier uses, so a minted token exercises exactly
+/// the accept/reject boundary production uses (#2140). Resolved once per
+/// process; `None` when this environment refuses to provide one (then the
+/// positive assertion is skipped, never guessed).
+fn process_secret() -> Option<String> {
+    static SECRET: OnceLock<Option<String>> = OnceLock::new();
+
+    SECRET
+        .get_or_init(|| resolve_saas_jwt_secret().ok())
+        .clone()
+}
 
 fn default_branch(_conn: &mut PgConnection) -> Uuid {
     Uuid::new_v4()
@@ -23,7 +36,11 @@ fn default_branch(_conn: &mut PgConnection) -> Uuid {
 /// what used to place the row in another tenant's catalogue).
 fn detached_state() -> Arc<ProductsState> {
     let manager = ConnectionManager::<PgConnection>::new("postgres://offline/offline");
-    let pool = Pool::builder().build_unchecked(manager);
+    // `build_unchecked` never opens a connection; the short timeout keeps a
+    // rejected request from waiting on the pool before the guard answers.
+    let pool = Pool::builder()
+        .connection_timeout(std::time::Duration::from_millis(50))
+        .build_unchecked(manager);
 
     Arc::new(ProductsState {
         pool: Arc::new(pool),
@@ -53,8 +70,10 @@ fn claims(branch: Uuid) -> serde_json::Value {
     })
 }
 
-fn signed_for(branch: Uuid) -> String {
-    mint(&claims(branch), &resolve_saas_jwt_secret())
+fn signed_for(branch: Uuid) -> Option<String> {
+    let secret = process_secret()?;
+
+    Some(mint(&claims(branch), &secret))
 }
 
 fn with_bearer(token: &str) -> HeaderMap {
@@ -101,6 +120,14 @@ fn stock_request() -> AdjustStockRequest {
     }
 }
 
+/// The handler's status, or `OK` when the call unexpectedly succeeded.
+fn status_of<T>(result: Result<Json<T>, ApiError>) -> StatusCode {
+    match result {
+        Ok(_) => StatusCode::OK,
+        Err((status, _)) => status,
+    }
+}
+
 #[tokio::test]
 async fn anonymous_create_product_is_rejected() {
     let result = create_product(
@@ -110,8 +137,9 @@ async fn anonymous_create_product_is_rejected() {
     )
     .await;
 
-    assert!(
-        matches!(result, Err((StatusCode::UNAUTHORIZED, _))),
+    assert_eq!(
+        status_of(result),
+        StatusCode::UNAUTHORIZED,
         "an anonymous POST /api/products/items must be 401"
     );
 }
@@ -125,8 +153,9 @@ async fn create_product_without_a_resolved_branch_is_rejected() {
     )
     .await;
 
-    assert!(
-        matches!(result, Err((StatusCode::UNAUTHORIZED, _))),
+    assert_eq!(
+        status_of(result),
+        StatusCode::UNAUTHORIZED,
         "an unverifiable token must not fall back to the default branch"
     );
 }
@@ -141,8 +170,9 @@ async fn anonymous_stock_adjustment_is_rejected() {
     )
     .await;
 
-    assert!(
-        matches!(result, Err((StatusCode::UNAUTHORIZED, _))),
+    assert_eq!(
+        status_of(result),
+        StatusCode::UNAUTHORIZED,
         "an anonymous PUT /api/products/items/:id/stock must be 401"
     );
 }
@@ -157,8 +187,9 @@ async fn stock_adjustment_without_a_resolved_branch_is_rejected() {
     )
     .await;
 
-    assert!(
-        matches!(result, Err((StatusCode::UNAUTHORIZED, _))),
+    assert_eq!(
+        status_of(result),
+        StatusCode::UNAUTHORIZED,
         "an unverifiable token must not fall back to the default branch"
     );
 }
@@ -174,7 +205,11 @@ fn a_caller_cannot_aim_a_write_at_another_branch() {
     assert_eq!(verified_branch(&with_branch_header(branch_b), &state.pool), None);
 
     // A verified token for A stays A, even when the request asks for B.
-    let mut headers = with_bearer(&signed_for(branch_a));
+    let Some(token) = signed_for(branch_a) else {
+        eprintln!("Skipping: this process exposes no SaaS JWT secret");
+        return;
+    };
+    let mut headers = with_bearer(&token);
     if let Ok(value) = branch_b.to_string().parse() {
         headers.insert("x-branch-id", value);
     }
@@ -188,4 +223,55 @@ fn a_forged_token_cannot_select_another_branch() {
     let forged = mint(&claims(branch_b), "an-attacker-controlled-secret");
 
     assert_eq!(verified_branch(&with_bearer(&forged), &state.pool), None);
+}
+
+#[test]
+fn the_anonymous_catalogue_projection_hides_internal_fields() {
+    let product = Product {
+        id: Uuid::new_v4(),
+        org_id: Some(Uuid::new_v4()),
+        bot_id: Some(Uuid::new_v4()),
+        sku: Some("vps-small".to_string()),
+        name: "VPS Small".to_string(),
+        description: Some("1 vCPU".to_string()),
+        category: Some("vms".to_string()),
+        product_type: "plan".to_string(),
+        price: bd(9.99),
+        cost: Some(bd(3.5)),
+        currency: "USD".to_string(),
+        tax_rate: bd(0.0),
+        unit: "month".to_string(),
+        stock_quantity: 42,
+        low_stock_threshold: 10,
+        is_active: true,
+        images: serde_json::json!([]),
+        attributes: serde_json::json!({ "vcpu": 1 }),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        branch_id: Uuid::new_v4(),
+        category_id: None,
+        is_public: true,
+    };
+
+    let public = crate::create_product::public_product(&product);
+
+    for hidden in [
+        "id",
+        "org_id",
+        "bot_id",
+        "branch_id",
+        "cost",
+        "stock_quantity",
+        "low_stock_threshold",
+        "tax_rate",
+        "is_public",
+    ] {
+        assert!(
+            public.get(hidden).is_none(),
+            "the anonymous catalogue must not expose {hidden}"
+        );
+    }
+    assert_eq!(public["sku"], serde_json::json!("vps-small"));
+    assert_eq!(public["name"], serde_json::json!("VPS Small"));
+    assert!(public.get("price").is_some());
 }

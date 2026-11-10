@@ -31,7 +31,7 @@ fn sign_with(claims: serde_json::Value, secret: &str) -> String {
 }
 
 fn token(claims: serde_json::Value) -> String {
-    sign_with(claims, &resolve_saas_jwt_secret())
+    sign_with(claims, &resolve_saas_jwt_secret().expect("saas jwt secret"))
 }
 
 fn claims() -> serde_json::Value {

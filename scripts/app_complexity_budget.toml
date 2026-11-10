@@ -226,7 +226,7 @@ loc = 674
 [apps."plan"]
 routes = 0
 js_modules = 4
-loc = 965
+loc = 1016
 
 [apps."player"]
 routes = 0
@@ -271,7 +271,7 @@ loc = 472
 [apps."settings"]
 routes = 52
 js_modules = 23
-loc = 10337
+loc = 10348
 
 [apps."sheet"]
 routes = 0

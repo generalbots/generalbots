@@ -47,9 +47,10 @@ pub async fn handle_list_presentations<D: DriveOps>(
 
 pub async fn handle_search_presentations<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<Vec<PresentationMetadata>>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
 let presentations = match &state.drive {
     Some(drive) => list_presentations_from_drive(drive, &user_id)
@@ -73,9 +74,10 @@ let presentations = match &state.drive {
 
 pub async fn handle_load_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Query(query): Query<LoadQuery>,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (
@@ -106,9 +108,10 @@ fn sibling_pptx_path(path: &str) -> String {
 
 pub async fn handle_save_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<SavePresentationRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let presentation_id = req
         .id
         .filter(|id| !id.is_empty())
@@ -125,7 +128,7 @@ pub async fn handle_save_presentation<D: DriveOps>(
         None => None,
     }
     .unwrap_or_else(|| {
-        let mut fresh = create_new_presentation();
+        let mut fresh = create_new_presentation(&user_id);
         fresh.id = presentation_id.clone();
         fresh
     });
@@ -218,9 +221,10 @@ pub async fn handle_save_presentation<D: DriveOps>(
 
 pub async fn handle_delete_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<LoadQuery>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let id = req
         .id
         .as_deref()
@@ -235,8 +239,15 @@ pub async fn handle_delete_presentation<D: DriveOps>(
 
     if let Some(drive) = &state.drive {
         if let Err(e) = delete_presentation_from_drive(drive, &user_id, id).await {
+            // A missing id (including another user's deck) is a 404, not a
+            // silent success (#2137).
+            let status = if e == "Presentation not found" {
+                StatusCode::NOT_FOUND
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
             return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
+                status,
                 Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
             ));
         }
@@ -251,9 +262,10 @@ pub async fn handle_delete_presentation<D: DriveOps>(
 
 pub async fn handle_get_presentation_by_id<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Path(presentation_id): Path<String>,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (

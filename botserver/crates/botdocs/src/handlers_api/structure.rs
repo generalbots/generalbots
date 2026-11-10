@@ -1,5 +1,5 @@
 use crate::state::DocState;
-use crate::storage::{load_document_from_drive};
+use crate::storage::load_document_from_drive;
 use crate::types::{GetOutlineRequest, OutlineItem, OutlineResponse};
 use crate::utils::strip_html;
 use axum::{extract::State, http::StatusCode, Json};

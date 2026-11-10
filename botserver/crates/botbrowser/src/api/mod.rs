@@ -8,28 +8,12 @@ pub(crate) use axum::{
     Router,
 };
 pub(crate) use serde::{Deserialize, Serialize};
-pub(crate) use std::net::IpAddr;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::Mutex;
 
 #[derive(Deserialize)]
 pub struct ProxyParams {
     pub url: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn private_ip_detection() {
-        assert!(is_private_ip("127.0.0.1".parse().unwrap()));
-        assert!(is_private_ip("192.168.1.1".parse().unwrap()));
-        assert!(is_private_ip("10.0.0.1".parse().unwrap()));
-        assert!(is_private_ip("::1".parse().unwrap()));
-        assert!(!is_private_ip("8.8.8.8".parse().unwrap()));
-        assert!(!is_private_ip("93.184.216.34".parse().unwrap()));
-    }
 }
 
 #[derive(Deserialize)]

@@ -43,6 +43,9 @@ pub struct FetchPolicy {
     pub max_redirects: usize,
     /// `User-Agent` header sent with every hop.
     pub user_agent: String,
+    /// Extra request headers (API tokens, `Accept`, …). Set only from
+    /// server-side configuration, never from caller input.
+    pub headers: Vec<(String, String)>,
 }
 
 impl Default for FetchPolicy {
@@ -52,6 +55,7 @@ impl Default for FetchPolicy {
             timeout: Duration::from_secs(20),
             max_redirects: 5,
             user_agent: DEFAULT_USER_AGENT.to_string(),
+            headers: Vec::new(),
         }
     }
 }
@@ -69,6 +73,12 @@ impl FetchPolicy {
 
     pub fn with_user_agent(mut self, user_agent: impl Into<String>) -> Self {
         self.user_agent = user_agent.into();
+        self
+    }
+
+    /// Adds one request header. Values come from server-side configuration.
+    pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.push((name.into(), value.into()));
         self
     }
 }
@@ -140,11 +150,22 @@ fn is_redirect(status: u16) -> bool {
 }
 
 fn build_client(policy: &FetchPolicy) -> Result<reqwest::Client, SsrfError> {
+    let mut headers = reqwest::header::HeaderMap::new();
+    for (name, value) in &policy.headers {
+        let header_name = reqwest::header::HeaderName::from_bytes(name.as_bytes()).map_err(|e| {
+            SsrfError::new(SsrfErrorKind::Transport, format!("invalid header name: {e}"))
+        })?;
+        let header_value = reqwest::header::HeaderValue::from_str(value).map_err(|e| {
+            SsrfError::new(SsrfErrorKind::Transport, format!("invalid header value: {e}"))
+        })?;
+        headers.insert(header_name, header_value);
+    }
     reqwest::Client::builder()
         // Every hop goes through this module: no automatic redirects.
         .redirect(reqwest::redirect::Policy::none())
         .timeout(policy.timeout)
         .user_agent(policy.user_agent.clone())
+        .default_headers(headers)
         .build()
         .map_err(|e| SsrfError::new(SsrfErrorKind::Transport, format!("http client: {e}")))
 }

@@ -1,4 +1,5 @@
 use super::*;
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 pub async fn get_timeline(
     State(service): State<Arc<ProjectService>>,
@@ -180,14 +181,21 @@ pub async fn list_assignments(
 pub async fn import_project(
     State(service): State<Arc<ProjectService>>,
     Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<crate::import::ImportResult>, ApiError> {
     if user.user_id.is_nil() {
         return Err(forbidden());
     }
 
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::ProjectImport, &headers) {
+        return Err(upload_policy::rejection_json(&error, &headers));
+    }
+
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut filename = "import.xml".to_string();
+    let mut content_type = String::new();
     let mut explicit_format: Option<String> = None;
 
     while let Ok(Some(field)) = multipart.next_field().await {
@@ -196,6 +204,7 @@ pub async fn import_project(
                 if let Some(name) = field.file_name() {
                     filename = name.to_string();
                 }
+                content_type = field.content_type().map(str::to_string).unwrap_or_default();
                 match field.bytes().await {
                     Ok(bytes) => file_bytes = Some(bytes.to_vec()),
                     Err(e) => return Err(bad_request(&format!("Failed to read file: {e}"))),
@@ -211,6 +220,18 @@ pub async fn import_project(
     }
 
     let bytes = file_bytes.ok_or_else(|| bad_request("No file uploaded"))?;
+
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::ProjectImport,
+        &filename,
+        &content_type,
+        &bytes,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+    };
+    let filename = upload.filename;
 
     let format = match explicit_format.as_deref().map(str::to_lowercase).as_deref() {
         Some("xml") | Some("ms_project_xml") => ImportFormat::MsProjectXml,

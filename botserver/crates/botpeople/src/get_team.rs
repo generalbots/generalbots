@@ -11,8 +11,9 @@ pub async fn get_team(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let team: Team = people_teams::table
-        .filter(people_teams::id.eq(id))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let team: Team = scoped_team(id, branch_id)
         .first(&mut conn)
         .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-team-not-found"))?;
 
@@ -22,10 +23,12 @@ pub async fn get_team(
         .load(&mut conn)
         .unwrap_or_default();
 
+    // Members and leader stay inside the team's branch (#2138).
     let members: Vec<Person> = if member_ids.is_empty() {
         vec![]
     } else {
         people::table
+            .filter(people::branch_id.eq(branch_id))
             .filter(people::id.eq_any(&member_ids))
             .load(&mut conn)
             .unwrap_or_default()
@@ -33,12 +36,7 @@ pub async fn get_team(
 
     let leader: Option<Person> = team
         .leader_id
-        .and_then(|lid| {
-            people::table
-                .filter(people::id.eq(lid))
-                .first(&mut conn)
-                .ok()
-        });
+        .and_then(|lid| scoped_person(lid, branch_id).first(&mut conn).ok());
 
     Ok(Json(TeamWithMembers {
         team,
@@ -57,6 +55,16 @@ pub async fn add_team_member(
         .pool
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // Both ends of the membership must belong to the caller's branch.
+    let _team: Team = scoped_team(team_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-team-not-found"))?;
+    let _person: Person = scoped_person(req.person_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -88,6 +96,12 @@ pub async fn remove_team_member(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let _team: Team = scoped_team(team_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-team-not-found"))?;
+
     diesel::delete(
         people_team_members::table
             .filter(people_team_members::team_id.eq(team_id))
@@ -109,9 +123,19 @@ pub async fn delete_team(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    diesel::delete(people_teams::table.filter(people_teams::id.eq(id)))
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    let deleted = diesel::delete(scoped_team(id, branch_id))
         .execute(&mut conn)
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    if deleted == 0 {
+        return Err(api_error(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-team-not-found",
+        ));
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -126,7 +150,7 @@ pub async fn create_department(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -164,7 +188,7 @@ pub async fn list_departments(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let depts: Vec<Department> = people_departments::table
         .filter(people_departments::branch_id.eq(branch_id))
@@ -185,7 +209,7 @@ pub async fn list_skills(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
 
     let skills: Vec<Skill> = people_skills::table
         .filter(people_skills::branch_id.eq(branch_id))
@@ -207,7 +231,7 @@ pub async fn create_skill(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -243,6 +267,13 @@ pub async fn add_person_skill(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
+
+    // A skill may only be attached to a person of the caller's branch.
+    let _person: Person = scoped_person(person_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
+
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -275,9 +306,14 @@ pub async fn create_time_off(
         .get()
         .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let id = Uuid::new_v4();
     let now = Utc::now();
+
+    // A request may only be filed for a person of the caller's branch.
+    let _person: Person = scoped_person(req.person_id, branch_id)
+        .first(&mut conn)
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
     let start_date = NaiveDate::parse_from_str(&req.start_date, "%Y-%m-%d")
         .map_err(|_| api_error(&locale, StatusCode::BAD_REQUEST, "error-people-invalid-start-date"))?;

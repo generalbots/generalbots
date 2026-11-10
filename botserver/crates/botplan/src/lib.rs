@@ -153,6 +153,10 @@ mod get_store;
 mod handlers;
 mod routes;
 
+#[cfg(test)]
+#[path = "test_support_tests.rs"]
+pub(crate) mod test_support;
+
 pub use auth::*;
 pub use default_status::*;
 pub use get_store::*;

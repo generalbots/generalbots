@@ -80,26 +80,28 @@ impl ApiToolGenerator {
                 .map_err(|e| format!("Failed to read local spec file: {}", e));
         }
 
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-
-        let response = client
-            .get(spec_url)
-            .header("Accept", "application/json")
-            .send()
+        // #2131 — the spec URL comes from the API tool configuration (an admin
+        // or an LLM-written tool definition), so it is fetched through the
+        // shared SSRF guard.
+        let policy = botsecurity::validation::FetchPolicy::default()
+            .with_timeout(std::time::Duration::from_secs(30))
+            .with_max_bytes(8 * 1024 * 1024);
+        let response = botsecurity::validation::fetch_user_url(spec_url, &policy)
             .await
-            .map_err(|e| format!("Failed to fetch spec: {}", e))?;
+            .map_err(|e| {
+                log::warn!(
+                    "api_tool_generator: refused spec URL ({}): {}",
+                    e.kind().as_str(),
+                    e.detail()
+                );
+                format!("Failed to fetch spec: {e}")
+            })?;
 
-        if !response.status().is_success() {
-            return Err(format!("Failed to fetch spec: HTTP {}", response.status()));
+        if !response.is_success() {
+            return Err(format!("Failed to fetch spec: HTTP {}", response.status));
         }
 
-        response
-            .text()
-            .await
-            .map_err(|e| format!("Failed to read spec body: {}", e))
+        Ok(response.text())
     }
 
     pub(super) fn extract_endpoints(spec: &OpenAPISpec) -> Result<Vec<GeneratedEndpoint>, String> {

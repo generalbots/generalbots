@@ -10,26 +10,42 @@
 //! other accounts. Before #2135 every request — anonymous included — resolved to
 //! the constant `default-user`.
 
-use axum::{
-    body::Body,
-    extract::State,
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
 use botdocs::auth::DocUser;
 use std::sync::Arc;
 
 /// Injects the verified [`DocUser`] for the request.
 ///
 /// `local_owner` is the per-install id resolved once at boot (see
-/// [`super::local_owner`]); it is only used for the single-user desktop profile.
+/// [`super::install_owner`]); it is only used for the single-user desktop
+/// profile.
+#[cfg(feature = "security")]
 pub async fn docs_user_middleware(
     State(local_owner): State<Arc<str>>,
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
-    if let Some(doc_user) = resolve_doc_user(&request, &local_owner) {
+    let doc_user = {
+        let principal = request
+            .extensions()
+            .get::<crate::security::auth::AuthenticatedUser>();
+        resolve_doc_user(principal, &local_owner)
+    };
+    if let Some(doc_user) = doc_user {
+        request.extensions_mut().insert(doc_user);
+    }
+    next.run(request).await
+}
+
+/// Without the security feature there are no accounts, so the process is the
+/// single-user desktop profile and owns its per-install namespace.
+#[cfg(not(feature = "security"))]
+pub async fn docs_user_middleware(
+    State(local_owner): State<Arc<str>>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Response {
+    if let Some(doc_user) = DocUser::verified(local_owner.to_string(), "local".to_string()) {
         request.extensions_mut().insert(doc_user);
     }
     next.run(request).await
@@ -39,31 +55,25 @@ pub async fn docs_user_middleware(
 ///
 /// Two principals can own documents:
 ///
-/// * an authenticated directory user — the namespace is the user id;
+/// * an authenticated directory user — the namespace is the verified user id;
 /// * the single-user desktop principal — the namespace is the per-install id,
 ///   never the global `default-user`.
 ///
 /// Everything else (anonymous, service, bot) gets no Docs namespace.
 #[cfg(feature = "security")]
-fn resolve_doc_user(request: &Request<Body>, local_owner: &str) -> Option<DocUser> {
-    let user = request
-        .extensions()
-        .get::<crate::security::auth::AuthenticatedUser>()?;
-    if user.is_authenticated() {
-        return DocUser::verified(user.user_id.to_string(), user.username.clone());
+fn resolve_doc_user(
+    principal: Option<&crate::security::auth::AuthenticatedUser>,
+    local_owner: &str,
+) -> Option<DocUser> {
+    let principal = principal?;
+    if principal.is_authenticated() {
+        return DocUser::verified(principal.user_id.to_string(), principal.username.clone());
     }
     // Inserted only when the product file sets `no_security` (require_auth=false).
-    if user.metadata.contains_key("desktop_local") {
-        return DocUser::verified(local_owner.to_string(), user.username.clone());
+    if principal.metadata.contains_key("desktop_local") {
+        return DocUser::verified(local_owner.to_string(), principal.username.clone());
     }
     None
-}
-
-/// Without the security feature there are no accounts, so the process is the
-/// single-user desktop profile and owns its per-install namespace.
-#[cfg(not(feature = "security"))]
-fn resolve_doc_user(_request: &Request<Body>, local_owner: &str) -> Option<DocUser> {
-    DocUser::verified(local_owner.to_string(), "local".to_string())
 }
 
 #[cfg(all(test, feature = "security"))]

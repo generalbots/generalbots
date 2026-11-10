@@ -16,7 +16,7 @@ use sha2::Sha256;
 use uuid::Uuid;
 
 fn secret() -> String {
-    resolve_saas_jwt_secret()
+    resolve_saas_jwt_secret().expect("saas jwt secret")
 }
 
 /// Mints an HS256 token the way the login path and `api.exec` do.

@@ -1,7 +1,5 @@
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -55,22 +53,4 @@ pub struct AiRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportQuery {
     pub id: Option<String>,
-}
-
-#[derive(Debug, QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct UserRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub email: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub username: String,
-}
-
-#[derive(Debug, QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct UserIdRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub user_id: Uuid,
 }

@@ -125,6 +125,16 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
         summary: "registered in crates/botplan/src/lib.rs",
     },
     ApiEndpoint {
+        method: "POST",
+        path: "/api/plan",
+        summary: "server-minted plan id, owner from the verified caller (botplan)",
+    },
+    ApiEndpoint {
+        method: "DELETE",
+        path: "/api/plan/:plan_id",
+        summary: "owner-only plan delete (botplan)",
+    },
+    ApiEndpoint {
         method: "GET",
         path: "/api/plan/:plan_id/typing",
         summary: "registered in crates/botplan/src/lib.rs",

@@ -300,6 +300,7 @@ def scan(
     routes = discover_routes(root)
     allowlist = load_allowlist(root / allowlist_path)
     violations: list[Violation] = []
+    used_allowlist: set[str] = set()
     body_cache: dict[str, dict[str, str]] = {}
 
     known_routes = {route for webhook in inventory for route in webhook.routes}
@@ -327,8 +328,8 @@ def scan(
                 continue
             if _has_verifier(body, bodies):
                 continue
-            key = f"{route.path}"
-            if key in allowlist:
+            if route.path in allowlist:
+                used_allowlist.add(route.path)
                 continue
             violations.append(
                 Violation(
@@ -374,7 +375,7 @@ def scan(
                 )
 
     for key in allowlist:
-        if not any(key == violation.path for violation in violations):
+        if key not in used_allowlist:
             violations.append(
                 Violation(
                     "stale-allowlist",

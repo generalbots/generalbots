@@ -173,57 +173,65 @@ def definition_index(root: Path) -> dict[str, list[Path]]:
     return index
 
 
-def resolve_builder(root: Path, serving: Path, served: str, depth: int = 0) -> list[Path]:
-    """Files that build the router passed to `axum::serve` in `serving`."""
-    if depth > 4:
-        return []
-    text = code_before_tests(serving.read_text(encoding="utf-8", errors="replace"))
-    assign = re.compile(r"let\s+(?:mut\s+)?%s\s*=\s*(.+?);" % re.escape(served), re.S)
-    match = assign.search(text)
-    if not match:
-        # `listen(app, port)` receives the finished router; the main listener is
-        # validated by the explicit layer checks instead.
-        return []
-    rhs = match.group(1)
-    if "apply_middleware(" in rhs:
-        return []
-    calls = [name for name in CALLED.findall(rhs) if name not in COMBINATORS]
-    if not calls:
-        # `let service = gateway_router.into_make_service...()` -- follow the
-        # variable back to the `let` that built the router.
-        lead = IDENT.match(rhs.strip())
-        if lead and lead.group(0) != served:
-            return resolve_builder(root, serving, lead.group(0), depth + 1)
-        return [serving]
-    index = definition_index(root)
-    candidates: list[Path] = []
-    for name in calls:
-        for path in index.get(name, []):
-            if path not in candidates:
-                candidates.append(path)
-    if serving in candidates:
-        # Built here and only wrapped by another call, e.g.
-        # `with_security_headers(router().with_state(state), ..)`.
-        return [serving]
-    if not candidates:
-        return [serving]
-    if "::" in rhs:
-        segments = [
-            segment
-            for segment in rhs.split("(")[0].split("::")
-            if segment not in {"crate", "super", "self"}
-        ]
-        hint = segments[-2] if len(segments) >= 2 else ""
-        narrowed = [path for path in candidates if hint and hint in path.as_posix()]
-        if narrowed:
-            return narrowed
-    return candidates
+LET_RE = re.compile(r"let\s+(?:mut\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?);", re.S)
+
+
+def _binding_before(text: str, name: str, limit: int):
+    """The last `let <name> = ...` that starts before `limit` (shadowing aware)."""
+    found = None
+    for match in LET_RE.finditer(text, 0, limit):
+        if match.group(1) == name:
+            found = match
+    return found
+
+
+def _wrapped_identifier(expr: str) -> str | None:
+    """The value a wrapper call wraps: `f(inner, ..)` or `inner.method()`."""
+    receiver = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*\.", expr)
+    if receiver:
+        return receiver.group(1)
+    argument = re.search(r"[A-Za-z_][A-Za-z0-9_:]*\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*[,)]", expr)
+    return argument.group(1) if argument else None
+
+
+def _collect_router_files(
+    root: Path,
+    text: str,
+    expr: str,
+    limit: int,
+    depth: int,
+    surface: set[Path],
+    out: set[Path],
+) -> None:
+    """Walks the `let` chain of a served expression, keeping surface files.
+
+    A router is usually wrapped before it is served
+    (`with_security_headers(configure_gateway_routes(..), ..)`), so the outermost
+    call is resolved to its definition and the value it wraps is followed back
+    to the `let` that produced it. Only files that can register routes are
+    kept, which bounds the walk.
+    """
+    if depth > 6:
+        return
+    calls = [name for name in CALLED.findall(expr) if name not in COMBINATORS]
+    if calls:
+        for path in definition_index(root).get(calls[0], []):
+            if path.resolve() in surface:
+                out.add(path)
+    wrapped = _wrapped_identifier(expr)
+    if not wrapped:
+        return
+    binding = _binding_before(text, wrapped, limit)
+    if binding is None:
+        return
+    _collect_router_files(root, text, binding.group(2), binding.start(), depth + 1, surface, out)
 
 
 def standalone_router_files(root: Path) -> set[Path]:
     """Router-builder files served by a listener other than the main one."""
-    standalone: set[Path] = set()
+    surface = {path.resolve() for path in route_surface(root)}
     main = (root / MAIN_SERVE).resolve()
+    standalone: set[Path] = set()
     for path in rust_files(root):
         text = code_before_tests(path.read_text(encoding="utf-8", errors="replace"))
         if "axum::serve(" not in text:
@@ -232,9 +240,18 @@ def standalone_router_files(root: Path) -> set[Path]:
             served = IDENT.match(call.group(1).strip())
             if not served:
                 continue
-            for builder in resolve_builder(root, path, served.group(0)):
-                if builder.resolve() != main:
-                    standalone.add(builder)
+            binding = _binding_before(text, served.group(0), call.start())
+            if binding is None:
+                # `listen(app, port)` receives the finished router: the main
+                # listener, validated by the explicit layer checks.
+                continue
+            if "apply_middleware(" in binding.group(2):
+                continue
+            found: set[Path] = set()
+            _collect_router_files(
+                root, text, binding.group(2), binding.start(), 0, surface, found
+            )
+            standalone |= {item for item in found if item.resolve() != main}
     return standalone
 
 

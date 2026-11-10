@@ -62,8 +62,15 @@ FETCH_CALL = re.compile(
 
 FN_START = re.compile(r"^(?P<indent>\s*)(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+\w+")
 
-LITERAL_URL = re.compile(r'^\s*(?:b)?"https?://')
-FORMAT_PREFIX = re.compile(r'^\s*(?:format|concat)!\s*\(\s*(?:b)?"https?://')
+LITERAL_URL = re.compile(r'^\s*&?\s*(?:b)?"https?://')
+FORMAT_PREFIX = re.compile(r'^\s*&?\s*(?:format|concat)!\s*\(\s*(?:b)?"https?://')
+NON_URL_LITERAL = re.compile(r'^\s*&?\s*"[^"]*"\s*$')
+
+# The guard's own implementation obviously calls the client directly.
+GUARD_IMPL = {
+    "botserver/crates/botsecurity-core/src/validation/ssrf_fetch.rs",
+    "botserver/crates/botsecurity-core/src/validation/ssrf_guard.rs",
+}
 
 
 @dataclass
@@ -140,8 +147,27 @@ def enclosing_function(lines: list[str], line_index: int) -> tuple[str, int, int
     return (name, start, end)
 
 
+def variable_is_fixed(body: str, argument: str) -> bool:
+    """True when `argument` names a local whose last assignment is a fixed URL."""
+    name = argument.strip().lstrip("&").strip()
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+        return False
+    pattern = re.compile(
+        rf"let\s+(?:mut\s+)?{re.escape(name)}(?:\s*:\s*[^=]+)?\s*=\s*([^;]+);"
+    )
+    return any(
+        LITERAL_URL.match(rhs) or FORMAT_PREFIX.match(rhs)
+        for rhs in pattern.findall(body)
+    )
+
+
 def classify(argument: str, body: str) -> str:
     if LITERAL_URL.match(argument) or FORMAT_PREFIX.match(argument):
+        return "fixed"
+    if NON_URL_LITERAL.match(argument):
+        # `config.get("client_id")` on a JSON map is not an HTTP fetch.
+        return "not-a-fetch"
+    if variable_is_fixed(body, argument):
         return "fixed"
     if any(marker in body for marker in GUARD_MARKERS):
         return "guarded"
@@ -187,8 +213,13 @@ def read_allowlist(root: Path) -> list[tuple[str, str]]:
 def collect(root: Path) -> list[Site]:
     sites: list[Site] = []
     for relative in rust_files(root):
+        posix = relative.as_posix()
+        if posix in GUARD_IMPL:
+            continue
         text = (root / relative).read_text(encoding="utf-8", errors="replace")
-        sites.extend(scan_text(relative.as_posix(), text))
+        sites.extend(
+            site for site in scan_text(posix, text) if site.status != "not-a-fetch"
+        )
     return sites
 
 
@@ -275,13 +306,22 @@ def self_test() -> int:
 
     format_prefix = scan_text(
         "botserver/src/w.rs",
-        'async fn probe() {\n'
-        '    let u = format!("https://api.example.com/{}", id);\n'
-        "    let r = client.get(&u).send().await;\n"
+        "async fn probe(id: &str) {\n"
+        '    let r = client.get(&format!("https://api.example.com/{}", id)).send().await;\n'
         "}\n",
     )
     if any(site.status == "violation" for site in format_prefix):
         print("self-test: fixed-host format! flagged", file=sys.stderr)
+        failures += 1
+
+    not_a_fetch = scan_text(
+        "botserver/src/v.rs",
+        "fn read(config: &serde_json::Value) {\n"
+        '    let id = config.get("client_id");\n'
+        "}\n",
+    )
+    if any(site.status != "not-a-fetch" for site in not_a_fetch):
+        print("self-test: JSON map .get() flagged as a fetch", file=sys.stderr)
         failures += 1
 
     if failures:

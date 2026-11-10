@@ -4,6 +4,7 @@ pub use botsecurity::*;
 pub use botsecurity_core::response_error::ResponseError;
 
 pub mod code_scan_fixes;
+pub mod office_owner;
 pub mod rbac_role_resolver;
 pub mod user_role;
 

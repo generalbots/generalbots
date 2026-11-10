@@ -1,6 +1,7 @@
 //! Theme, master and transition operations.
 
-use crate::storage::{get_current_user_id, DriveOps};
+use crate::auth::SlidesUser;
+use crate::storage::DriveOps;
 use crate::types::{
     ApplyThemeRequest, ApplyTransitionToAllRequest, RemoveTransitionRequest, SaveResponse,
     SetTransitionRequest, TransitionConfig,
@@ -14,9 +15,10 @@ use std::sync::Arc;
 
 pub async fn handle_apply_theme<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<ApplyThemeRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     // The master picker posts to the same route; it changes each slide's
@@ -55,9 +57,10 @@ pub async fn handle_apply_theme<D: DriveOps>(
 
 pub async fn handle_set_transition<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<SetTransitionRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {
@@ -89,9 +92,10 @@ pub async fn handle_set_transition<D: DriveOps>(
 
 pub async fn handle_apply_transition_to_all<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<ApplyTransitionToAllRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     for slide in presentation.slides.iter_mut() {
@@ -109,9 +113,10 @@ pub async fn handle_apply_transition_to_all<D: DriveOps>(
 
 pub async fn handle_remove_transition<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<RemoveTransitionRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     let mut presentation = load_pres!(state, &user_id, &req.presentation_id);
 
     if req.slide_index >= presentation.slides.len() {

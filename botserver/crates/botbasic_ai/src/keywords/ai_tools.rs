@@ -217,8 +217,26 @@ async fn perform_ocr(image_path: &str) -> Result<String, Box<dyn std::error::Err
     let botmodels_url =
         std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "".to_string());
     let client = reqwest::Client::new();
-    let image_data = if image_path.starts_with("http") {
-        client.get(image_path).send().await?.bytes().await?.to_vec()
+    // #2131 — OCR accepts an image URL from the script; download it through
+    // the shared SSRF guard instead of fetching whatever it names.
+    let image_data = if image_path.starts_with("http://") || image_path.starts_with("https://") {
+        let policy = botsecurity::validation::FetchPolicy::default()
+            .with_timeout(std::time::Duration::from_secs(60))
+            .with_max_bytes(32 * 1024 * 1024);
+        let response = botsecurity::validation::fetch_user_url(image_path, &policy)
+            .await
+            .map_err(|e| {
+                log::warn!(
+                    "OCR: refused image URL ({}): {}",
+                    e.kind().as_str(),
+                    e.detail()
+                );
+                Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        if !response.is_success() {
+            return Err(format!("image URL answered HTTP {}", response.status).into());
+        }
+        response.body
     } else {
         std::fs::read(image_path)?
     };

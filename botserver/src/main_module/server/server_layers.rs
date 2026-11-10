@@ -194,7 +194,13 @@ pub(super) fn add_slides_routes(r: Router, s: &Arc<AppState>) -> Router {
             (uuid::Uuid::nil(), name)
         }),
     });
-    r.merge(crate::slides::routes::configure_slides_routes().with_state(state))
+    r.merge(
+        crate::slides::routes::configure_slides_routes()
+            .layer(axum::middleware::from_fn(
+                crate::slides::user_middleware::slides_user_middleware,
+            ))
+            .with_state(state),
+    )
 }
 #[cfg(feature = "plan")]
 pub(super) fn add_plan_routes(r: Router, s: &Arc<AppState>) -> Router {

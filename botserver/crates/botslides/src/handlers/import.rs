@@ -1,7 +1,8 @@
 use crate::storage::{
-    get_current_user_id, load_presentation_pptx, save_presentation_pptx,
+    load_presentation_pptx, save_presentation_pptx,
     save_presentation_to_drive, DriveOps,
 };
+use crate::auth::SlidesUser;
 use crate::types::Presentation;
 use crate::utils::{create_default_theme, slides_from_markdown};
 use crate::SlidesState;
@@ -10,6 +11,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use botsecurity_core::upload_policy::{self, UploadClass};
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -28,6 +30,7 @@ fn stable_source_id(bucket: &str, path: &str) -> String {
 
 pub async fn handle_import_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     mut multipart: axum::extract::Multipart,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
     let mut file_bytes: Option<Vec<u8>> = None;
@@ -61,6 +64,18 @@ pub async fn handle_import_presentation<D: DriveOps>(
             Json(serde_json::json!({ "error": "No file uploaded" })),
         )
     })?;
+
+    // #2132 — the extension, the declared type and the magic bytes must agree.
+    let upload = match upload_policy::validate_upload(
+        UploadClass::PresentationImport,
+        &filename,
+        &content_type,
+        &bytes,
+    ) {
+        Ok(upload) => upload,
+        Err(error) => return Err(upload_policy::rejection_json(&error, &headers)),
+    };
+    let filename = upload.filename;
 
     let ext = filename
         .rsplit('.')
@@ -115,7 +130,7 @@ pub async fn handle_import_presentation<D: DriveOps>(
         .unwrap_or(&filename)
         .to_string();
 
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
     // Stable per-source identity: opening the same Drive object twice must
     // not create a duplicate deck (and must keep edits made in the first).
     let source_id = if source_bucket.is_empty() || source_path.is_empty() {

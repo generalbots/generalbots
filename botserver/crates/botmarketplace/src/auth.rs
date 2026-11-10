@@ -135,17 +135,26 @@ pub fn jwt_email(headers: &HeaderMap) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    //! The verification boundary, exercised with a known key.
+    //!
+    //! The process SaaS secret is resolved from configuration and is not a test
+    //! fixture, so these tests mint tokens with an explicit secret and check
+    //! the same function production uses ([`verify_saas_jwt`] is
+    //! `verify_hs256_jwt` over the resolved secret). The rejection cases go
+    //! through [`jwt_is_admin`]/[`jwt_claims`] as well, because a forged token
+    //! is refused whatever secret the process resolved.
+
     use super::*;
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-    use botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret;
+    use botsecurity::botsecurity_core::verified_jwt::verify_hs256_jwt;
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
     use std::time::Duration;
 
-    /// Signs a token the way the login flow does, with the secret the verifier
-    /// resolves in this process.
-    fn sign(signing_input: &str) -> String {
-        let secret = resolve_saas_jwt_secret();
+    const SECRET: &str = "marketplace-auth-test-secret-0123456789abcdef";
+    const OTHER_SECRET: &str = "a-key-the-server-never-minted-with-9876543210";
+
+    fn sign(signing_input: &str, secret: &str) -> String {
         let mut mac = match Hmac::<Sha256>::new_from_slice(secret.as_bytes()) {
             Ok(mac) => mac,
             Err(_) => return String::new(),
@@ -154,18 +163,18 @@ mod tests {
         URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
     }
 
-    fn token_with_header(header: &str, payload: &str) -> String {
+    fn token_with_header(header: &str, payload: &str, secret: &str) -> String {
         let signing_input = format!(
             "{}.{}",
             URL_SAFE_NO_PAD.encode(header.as_bytes()),
             URL_SAFE_NO_PAD.encode(payload.as_bytes())
         );
-        let signature = sign(&signing_input);
+        let signature = sign(&signing_input, secret);
         format!("{signing_input}.{signature}")
     }
 
-    fn token(payload: &serde_json::Value) -> String {
-        token_with_header(r#"{"alg":"HS256","typ":"JWT"}"#, &payload.to_string())
+    fn token(payload: &serde_json::Value, secret: &str) -> String {
+        token_with_header(r#"{"alg":"HS256","typ":"JWT"}"#, &payload.to_string(), secret)
     }
 
     fn bearer(token: &str) -> HeaderMap {
@@ -195,33 +204,35 @@ mod tests {
             "sub": Uuid::new_v4().to_string(),
             "email": "admin@example.com",
             "role": role,
+            "org_id": Uuid::new_v4().to_string(),
             "exp": in_an_hour(),
         })
     }
 
     #[test]
     fn a_valid_admin_token_is_accepted() {
-        let headers = bearer(&token(&claims("admin")));
-        assert_eq!(
-            jwt_claims(&headers).map(|c| c.roles),
-            Some(vec!["admin".to_string()])
-        );
-        assert!(jwt_is_admin(&headers, &offline_pool()));
+        let signed = token(&claims("admin"), SECRET);
+        let claims = verify_hs256_jwt(&signed, SECRET).expect("a correctly signed admin token");
+
+        assert_eq!(claims.roles, vec!["admin".to_string()]);
+        assert!(claims_are_admin(&claims, &offline_pool()));
     }
 
     #[test]
     fn a_valid_non_admin_token_is_not_admin() {
-        let headers = bearer(&token(&claims("user")));
-        assert!(jwt_claims(&headers).is_some());
-        assert!(!jwt_is_admin(&headers, &offline_pool()));
+        let signed = token(&claims("user"), SECRET);
+        let claims = verify_hs256_jwt(&signed, SECRET).expect("a correctly signed token");
+        assert!(!claims_are_admin(&claims, &offline_pool()));
     }
 
     #[test]
     fn a_tampered_payload_is_rejected() {
-        let valid = token(&claims("user"));
+        let valid = token(&claims("user"), SECRET);
         let parts: Vec<&str> = valid.split('.').collect();
         let forged = URL_SAFE_NO_PAD.encode(claims("admin").to_string().as_bytes());
         let tampered = format!("{}.{}.{}", parts[0], forged, parts[2]);
+
+        assert!(verify_hs256_jwt(&tampered, SECRET).is_err());
 
         let headers = bearer(&tampered);
         assert!(jwt_claims(&headers).is_none());
@@ -233,8 +244,14 @@ mod tests {
 
     #[test]
     fn an_alg_none_token_is_rejected() {
-        // Signed-looking `alg: none` header: refused before any claim is read.
-        let forged = token_with_header(r#"{"alg":"none","typ":"JWT"}"#, &claims("admin").to_string());
+        // A `none` header over an admin payload, carrying a real signature:
+        // the algorithm is refused before any claim is read.
+        let forged = token_with_header(
+            r#"{"alg":"none","typ":"JWT"}"#,
+            &claims("admin").to_string(),
+            SECRET,
+        );
+        assert!(verify_hs256_jwt(&forged, SECRET).is_err());
         let headers = bearer(&forged);
         assert!(jwt_claims(&headers).is_none());
         assert!(!jwt_is_admin(&headers, &offline_pool()));
@@ -256,6 +273,7 @@ mod tests {
         let header = URL_SAFE_NO_PAD.encode(br#"{"alg":"HS256","typ":"JWT"}"#);
 
         for unsigned in [format!("{header}.{payload}"), format!("{header}.{payload}.")] {
+            assert!(verify_hs256_jwt(&unsigned, SECRET).is_err());
             let headers = bearer(&unsigned);
             assert!(jwt_claims(&headers).is_none(), "{unsigned}");
             assert!(!jwt_is_admin(&headers, &offline_pool()), "{unsigned}");
@@ -264,20 +282,8 @@ mod tests {
 
     #[test]
     fn a_token_signed_with_another_key_is_rejected() {
-        let mut mac = match Hmac::<Sha256>::new_from_slice(b"not-the-saas-secret-0123456789") {
-            Ok(mac) => mac,
-            Err(_) => return,
-        };
-        let signing_input = format!(
-            "{}.{}",
-            URL_SAFE_NO_PAD.encode(br#"{"alg":"HS256","typ":"JWT"}"#),
-            URL_SAFE_NO_PAD.encode(claims("admin").to_string().as_bytes())
-        );
-        mac.update(signing_input.as_bytes());
-        let foreign = format!(
-            "{signing_input}.{}",
-            URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
-        );
+        let foreign = token(&claims("admin"), OTHER_SECRET);
+        assert!(verify_hs256_jwt(&foreign, SECRET).is_err());
 
         let headers = bearer(&foreign);
         assert!(jwt_claims(&headers).is_none());
@@ -301,9 +307,10 @@ mod tests {
             "sub": Uuid::new_v4().to_string(),
             "exp": in_an_hour(),
         });
-        let headers = bearer(&token(&payload));
-        assert!(jwt_claims(&headers).is_some());
-        assert!(jwt_claims(&headers).map(|c| c.roles.is_empty()).unwrap_or(false));
-        assert!(!jwt_is_admin(&headers, &offline_pool()));
+        let signed = token(&payload, SECRET);
+        let claims = verify_hs256_jwt(&signed, SECRET).expect("a correctly signed token");
+        assert!(claims.roles.is_empty());
+        // No role claim and no reachable RBAC store: not an administrator.
+        assert!(!claims_are_admin(&claims, &offline_pool()));
     }
 }

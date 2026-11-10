@@ -1,4 +1,5 @@
-use crate::storage::{get_current_user_id, load_presentation_by_id, DriveOps};
+use crate::storage::{load_presentation_by_id, DriveOps};
+use crate::auth::SlidesUser;
 use crate::types::ExportRequest;
 use crate::ui::{export_to_html, export_to_json, export_to_markdown, export_to_odp, export_to_svg};
 use crate::SlidesState;
@@ -12,9 +13,10 @@ use std::sync::Arc;
 
 pub async fn handle_export_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<ExportRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (

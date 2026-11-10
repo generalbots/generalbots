@@ -10,12 +10,19 @@ use crate::requests::*;
 use crate::responses::*;
 use crate::routes::AppState;
 use crate::safe_error::SafeErrorResponse;
+use botsecurity_core::upload_policy::{self, UploadClass};
 
 pub async fn upload_media(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
     mut multipart: axum::extract::Multipart,
 ) -> impl IntoResponse {
+    // #2132 — refuse an oversized body before it is buffered.
+    if let Err(error) = upload_policy::check_declared_length(UploadClass::VideoMedia, &headers) {
+        return upload_policy::rejection_json(&error, &headers);
+    }
+
     let engine = VideoEngine::new(state.conn.clone());
     let _ = engine;
     let upload_dir =
@@ -37,10 +44,10 @@ pub async fn upload_media(
             .map(|s| s.to_string())
             .unwrap_or_else(|| format!("{}.mp4", Uuid::new_v4()));
 
-        let content_type = field
-            .content_type()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "video/mp4".to_string());
+        // No declared type is not a claim: the extension decides (an omitted
+        // Content-Type must not be forced to `video/mp4`, or a poster image
+        // would be refused as a mismatch).
+        let content_type = field.content_type().map(|s| s.to_string()).unwrap_or_default();
 
         let data = match field.bytes().await {
             Ok(d) => d,
@@ -53,8 +60,22 @@ pub async fn upload_media(
             }
         };
 
+        // #2132 — size, filename, extension allowlist and magic bytes.
+        let upload = match upload_policy::validate_upload(
+            UploadClass::VideoMedia,
+            &file_name,
+            &content_type,
+            &data,
+        ) {
+            Ok(upload) => upload,
+            Err(error) => {
+                log::warn!("video upload refused: {}", error.log_detail());
+                return upload_policy::rejection_json(&error, &headers);
+            }
+        };
+
         let file_size = data.len() as u64;
-        let safe_name = format!("{}_{}", project_id, sanitize_filename(&file_name));
+        let safe_name = format!("{}_{}", project_id, sanitize_filename(&upload.filename));
         let file_path = format!("{}/{}", upload_dir, safe_name);
         // Containment barrier: canonicalize the destination and prove it stays
         // inside the upload directory before writing.
@@ -96,7 +117,7 @@ pub async fn upload_media(
                 file_url,
                 file_name: safe_name,
                 file_size,
-                mime_type: content_type,
+                mime_type: upload.mime,
             })),
         );
     }

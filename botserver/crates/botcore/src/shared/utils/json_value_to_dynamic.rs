@@ -37,60 +37,60 @@ pub fn to_array(value: Dynamic) -> Array {
 }
 #[cfg(feature = "progress-bars")]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
+    use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
     use std::time::Duration;
     let url = url.to_string();
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
-        let client = Client::builder()
-            .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
-            .connect_timeout(Duration::from_secs(30))
-            .read_timeout(Duration::from_secs(300))
-            .pool_idle_timeout(Duration::from_secs(90))
-            .tcp_keepalive(Duration::from_secs(60))
-            .build()?;
-        let response = client.get(&url).send().await?;
-        if response.status().is_success() {
-            let total_size = response.content_length().unwrap_or(0);
-            let pb = ProgressBar::new(total_size);
-            pb.set_style(ProgressStyle::default_bar()
-                .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .unwrap_or(ProgressStyle::default_bar())
-                .progress_chars("#>-"));
-            pb.set_message(format!("Downloading {}", url));
-            let mut file = TokioFile::create(&output_path).await?;
-            let bytes = response.bytes().await?;
-            file.write_all(&bytes).await?;
-            pb.set_position(bytes.len() as u64);
-            pb.finish_with_message(format!("Downloaded {}", output_path));
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
+        // #2131 — the URL is caller-supplied: guarded fetch with a size cap.
+        let policy = FetchPolicy::default()
+            .with_timeout(Duration::from_secs(300))
+            .with_user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+            .with_max_bytes(256 * 1024 * 1024);
+        let response = fetch_user_url(&url, &policy).await?;
+        if !response.is_success() {
+            return Err(anyhow::anyhow!("HTTP {}: {}", response.status, url));
         }
+        if response.truncated {
+            return Err(anyhow::anyhow!("download exceeds the size cap"));
+        }
+        let total_size = response.body.len() as u64;
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap_or(ProgressStyle::default_bar())
+            .progress_chars("#>-"));
+        pb.set_message(format!("Downloading {}", url));
+        let mut file = TokioFile::create(&output_path).await?;
+        file.write_all(&response.body).await?;
+        pb.set_position(total_size);
+        pb.finish_with_message(format!("Downloaded {}", output_path));
+        Ok(())
     });
     download_handle.await?
 }
 #[cfg(not(feature = "progress-bars"))]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
+    use botsecurity_core::validation::{fetch_user_url, FetchPolicy};
     use std::time::Duration;
     let url = url.to_string();
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
-        let client = Client::builder()
-            .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
-            .connect_timeout(Duration::from_secs(30))
-            .read_timeout(Duration::from_secs(300))
-            .pool_idle_timeout(Duration::from_secs(90))
-            .tcp_keepalive(Duration::from_secs(60))
-            .build()?;
-        let response = client.get(&url).send().await?;
-        if response.status().is_success() {
-            let mut file = TokioFile::create(&output_path).await?;
-            let bytes = response.bytes().await?;
-            file.write_all(&bytes).await?;
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
+        // #2131 — the URL is caller-supplied: guarded fetch with a size cap.
+        let policy = FetchPolicy::default()
+            .with_timeout(Duration::from_secs(300))
+            .with_user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+            .with_max_bytes(256 * 1024 * 1024);
+        let response = fetch_user_url(&url, &policy).await?;
+        if !response.is_success() {
+            return Err(anyhow::anyhow!("HTTP {}: {}", response.status, url));
         }
+        if response.truncated {
+            return Err(anyhow::anyhow!("download exceeds the size cap"));
+        }
+        let mut file = TokioFile::create(&output_path).await?;
+        file.write_all(&response.body).await?;
+        Ok(())
     });
     download_handle.await?
 }

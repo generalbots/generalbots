@@ -4,18 +4,10 @@ use super::*;
 use crate::security::auth::AuthenticatedUser;
 use uuid::Uuid;
 
-fn request_with(user: Option<AuthenticatedUser>) -> Request<Body> {
-    let mut request = Request::builder()
-        .body(Body::empty())
-        .expect("a request can be built without headers");
-    if let Some(user) = user {
-        request.extensions_mut().insert(user);
-    }
-    request
-}
+const INSTALL: &str = "local-install-a";
 
-fn verified(user: &AuthenticatedUser) -> Option<DocUser> {
-    resolve_doc_user(&request_with(Some(user.clone())), "local-install-a")
+fn verified(principal: &AuthenticatedUser) -> Option<DocUser> {
+    resolve_doc_user(Some(principal), INSTALL)
 }
 
 #[test]
@@ -25,8 +17,7 @@ fn anonymous_gets_no_docs_namespace() {
 
 #[test]
 fn missing_principal_gets_no_docs_namespace() {
-    let request = request_with(None);
-    assert!(resolve_doc_user(&request, "local-install-a").is_none());
+    assert!(resolve_doc_user(None, INSTALL).is_none());
 }
 
 #[test]
@@ -48,15 +39,15 @@ fn desktop_local_uses_the_per_install_id() {
 
 #[test]
 fn two_installs_get_different_namespaces() {
-    let request = request_with(Some(AuthenticatedUser::desktop_local()));
-    let first = resolve_doc_user(&request, "local-install-a").expect("desktop owner");
-    let second = resolve_doc_user(&request, "local-install-b").expect("desktop owner");
+    let principal = AuthenticatedUser::desktop_local();
+    let first = resolve_doc_user(Some(&principal), "local-install-a").expect("desktop owner");
+    let second = resolve_doc_user(Some(&principal), "local-install-b").expect("desktop owner");
     assert_ne!(first.docs_path(), second.docs_path());
 }
 
 #[test]
 fn the_legacy_owner_is_never_accepted_as_an_install_id() {
-    let request = request_with(Some(AuthenticatedUser::desktop_local()));
-    assert!(resolve_doc_user(&request, "default-user").is_none());
-    assert!(resolve_doc_user(&request, " Default-User ").is_none());
+    let principal = AuthenticatedUser::desktop_local();
+    assert!(resolve_doc_user(Some(&principal), "default-user").is_none());
+    assert!(resolve_doc_user(Some(&principal), " Default-User ").is_none());
 }

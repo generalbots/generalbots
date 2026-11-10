@@ -133,7 +133,16 @@ fn resolve_signing_key() -> String {
             return secret;
         }
     }
-    let base = botsecurity_core::verified_jwt::resolve_saas_jwt_secret();
+    let base = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+        Ok(secret) => secret,
+        Err(error) => {
+            // #2140 — no SaaS secret means no derived tracking key. An empty
+            // key makes `sign`/`verify` fail closed instead of signing with a
+            // key everybody knows.
+            log::error!("marketing tracking key unavailable: {error}");
+            return String::new();
+        }
+    };
     match hmac_sha256(base.as_bytes(), KEY_DERIVATION_LABEL) {
         Some(digest) => hex::encode(digest),
         None => String::new(),
@@ -165,6 +174,11 @@ fn canonical_message(record: &TrackingRecord, destination: &str, expires_at: i64
 
 /// Hex HMAC-SHA256 signature over the canonical message.
 pub fn sign(key: &str, record: &TrackingRecord, destination: &str, expires_at: i64) -> String {
+    if key.is_empty() {
+        // Fail closed (#2140): an empty HMAC key is public knowledge, so a
+        // signature over it proves nothing. `verify` rejects the empty string.
+        return String::new();
+    }
     let message = canonical_message(record, destination, expires_at);
     hmac_sha256(key.as_bytes(), message.as_bytes())
         .map(hex::encode)

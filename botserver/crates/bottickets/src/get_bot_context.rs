@@ -48,7 +48,7 @@ pub(super) fn decode_create_ticket(
 }
 pub async fn create_ticket(
     State(state): State<Arc<TicketsState>>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     body: axum::body::Bytes,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
     let req = decode_create_ticket(&headers, &body)?;
@@ -56,7 +56,7 @@ pub async fn create_ticket(
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let id = Uuid::new_v4();
     let now = Utc::now();
     let ticket_number = generate_ticket_number(&mut conn, branch_id);
@@ -105,13 +105,14 @@ pub async fn create_ticket(
 }
 pub async fn list_tickets(
     State(state): State<Arc<TicketsState>>,
+    headers: HeaderMap,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<SupportTicket>>, (StatusCode, String)> {
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
 
-    let branch_id = get_bot_context(&state);
+    let branch_id = tenant_branch(&state, &headers, &mut conn);
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 

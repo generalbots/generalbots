@@ -78,6 +78,8 @@ pub enum UploadClass {
     VideoMedia,
     /// Avatar / branding image upload.
     Image,
+    /// Calendar import (`/api/calendar/:id/import`).
+    CalendarImport,
 }
 
 /// Size and extension budget for one [`UploadClass`].
@@ -104,7 +106,6 @@ static DRIVE_LIMITS: UploadLimits = UploadLimits {
         "csv", "txt", "md", "markdown", "json", "xml", "rtf", "mp4", "m4v", "mov", "webm",
         "mkv", "avi", "mp3", "wav", "ogg", "oga", "m4a", "flac", "log", "yaml", "yml", "toml",
         "ini", "sql", "rs", "ts", "css", "py", "bas", "ast", "bin", "dat", "html", "htm",
-        "svg",
     ],
 };
 
@@ -169,6 +170,12 @@ static VIDEO_LIMITS: UploadLimits = UploadLimits {
     ],
 };
 
+static CALENDAR_LIMITS: UploadLimits = UploadLimits {
+    max_bytes: 10 * 1024 * 1024,
+    max_filename_len: 180,
+    extensions: &["ics", "ical"],
+};
+
 static IMAGE_LIMITS: UploadLimits = UploadLimits {
     max_bytes: 10 * 1024 * 1024,
     max_filename_len: 120,
@@ -189,6 +196,7 @@ pub fn limits_for(class: UploadClass) -> &'static UploadLimits {
         UploadClass::Evidence => &EVIDENCE_LIMITS,
         UploadClass::VideoMedia => &VIDEO_LIMITS,
         UploadClass::Image => &IMAGE_LIMITS,
+        UploadClass::CalendarImport => &CALENDAR_LIMITS,
     }
 }
 
@@ -329,6 +337,7 @@ pub fn mime_for_extension(extension: &str) -> Option<&'static str> {
         "rtf" => "application/rtf",
         "html" | "htm" => "text/html",
         "svg" => "image/svg+xml",
+        "ics" | "ical" => "text/calendar",
         "yaml" | "yml" | "toml" | "ini" | "sql" | "rs" | "ts" | "css" | "py" => "text/plain",
         "mp4" | "m4v" => "video/mp4",
         "mov" => "video/quicktime",
@@ -567,6 +576,7 @@ pub fn extension_for_mime(mime: &str) -> Option<&'static str> {
         "text/xml" | "application/xml" => "xml",
         "application/json" => "json",
         "application/rtf" => "rtf",
+        "text/calendar" => "ics",
         "video/mp4" => "mp4",
         "video/webm" => "webm",
         "video/x-matroska" => "mkv",

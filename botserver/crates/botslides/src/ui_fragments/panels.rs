@@ -1,4 +1,5 @@
 use super::{empty_fragment, html_escape};
+use crate::auth::{SlidesUser, SlidesUnauthorized};
 use axum::{extract::State, response::Html, Json};
 use std::sync::Arc;
 use crate::types::Slide;
@@ -81,8 +82,9 @@ pub async fn handle_presenter_panel(Json(payload): Json<serde_json::Value>) -> H
 
 pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(payload): Json<serde_json::Value>,
-) -> Html<String> {
+) -> Result<Html<String>, SlidesUnauthorized> {
     let pid = payload
         .get("presentation_id")
         .or_else(|| payload.get("id"))
@@ -93,11 +95,11 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
     )
     .unwrap_or_default();
     if slides.is_empty() {
-        let pres = super::get_bridge::load_or_blank(&state, pid).await;
+        let pres = super::get_bridge::load_or_blank(&state, user.owner_id(), pid).await;
         slides = pres.slides;
     }
     if slides.is_empty() {
-        return Html(empty_fragment("Nenhum slide para ordenar."));
+        return Ok(Html(empty_fragment("Nenhum slide para ordenar.")));
     }
     let mut html = format!(
         r##"<div class="sl-panel" id="slide-sorter-panel" data-presentation-id="{pid}" style="padding:16px;">
@@ -139,5 +141,5 @@ pub async fn handle_slide_sorter<D: crate::storage::DriveOps>(
 </div>
 </div>"##,
     );
-    Html(html)
+    Ok(Html(html))
 }

@@ -38,13 +38,40 @@ fn resolve_channel_bot_id(pool: &botcore::shared::utils::DbPool, name: &str) -> 
         }
     };
 
-    diesel::sql_query("SELECT id FROM bots WHERE name = $1 LIMIT 1")
-        .bind::<diesel::sql_types::Text, _>(name)
+    // An empty handle means "the deployment's default bot". The Instagram
+    // webhook carries no bot identity, so its authenticity gate must read the
+    // same bot configuration the outbound adapter does (#2142); before this
+    // fallback the empty handle resolved to nothing and every config read
+    // returned the empty string.
+    let found = if name.is_empty() {
+        diesel::sql_query(
+            "SELECT id FROM bots WHERE is_default_for_branch = TRUE \
+             ORDER BY created_at ASC LIMIT 1",
+        )
         .get_result::<ChannelBotIdRow>(&mut conn)
         .optional()
-        .ok()
-        .flatten()
-        .map(|row| row.id)
+        .and_then(|default_bot| {
+            if default_bot.is_some() {
+                return Ok(default_bot);
+            }
+            diesel::sql_query("SELECT id FROM bots ORDER BY created_at ASC LIMIT 1")
+                .get_result::<ChannelBotIdRow>(&mut conn)
+                .optional()
+        })
+    } else {
+        diesel::sql_query("SELECT id FROM bots WHERE name = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Text, _>(name)
+            .get_result::<ChannelBotIdRow>(&mut conn)
+            .optional()
+    };
+
+    match found {
+        Ok(row) => row.map(|row| row.id),
+        Err(e) => {
+            tracing::warn!("channel bot lookup failed for '{name}': {e}");
+            None
+        }
+    }
 }
 
 /// Vault-first bot configuration reader for the messaging channel routers.

@@ -4,8 +4,8 @@
 //! cross-origin access". A foreign `Origin` must never receive
 //! `Access-Control-Allow-Origin`, credentials are only announced for an
 //! explicitly allowlisted origin, a `*` entry never widens the allowlist, and
-//! the `CORS_ALLOW_ANY_ORIGIN=1` development override stays off by default and
-//! always refuses credentials.
+//! the `CORS_ALLOW_ANY_ORIGIN=1` development override stays off by default,
+//! is ignored in production and always refuses credentials.
 
 use super::*;
 use axum::{body::Body, http::Request, routing::get, Router};
@@ -22,6 +22,8 @@ static CORS_STATE_LOCK: Mutex<()> = Mutex::new(());
 /// on drop.
 struct CorsState {
     _guard: MutexGuard<'static, ()>,
+    prior_environment: Option<String>,
+    prior_override: Option<String>,
 }
 
 impl CorsState {
@@ -31,10 +33,18 @@ impl CorsState {
             Err(poisoned) => poisoned.into_inner(),
         };
 
+        let prior_environment = std::env::var(crate::jwt_secret::ENVIRONMENT_ENV).ok();
+        let prior_override = std::env::var(CORS_ALLOW_ANY_ORIGIN_ENV).ok();
+
         std::env::remove_var(CORS_ALLOW_ANY_ORIGIN_ENV);
+        std::env::remove_var(crate::jwt_secret::ENVIRONMENT_ENV);
         set_cors_allowed_origins(origins.iter().map(|origin| origin.to_string()).collect());
 
-        Self { _guard: guard }
+        Self {
+            _guard: guard,
+            prior_environment,
+            prior_override,
+        }
     }
 
     fn enable_any_origin_override(&self) {
@@ -44,8 +54,19 @@ impl CorsState {
 
 impl Drop for CorsState {
     fn drop(&mut self) {
-        std::env::remove_var(CORS_ALLOW_ANY_ORIGIN_ENV);
+        restore_env(
+            crate::jwt_secret::ENVIRONMENT_ENV,
+            self.prior_environment.take(),
+        );
+        restore_env(CORS_ALLOW_ANY_ORIGIN_ENV, self.prior_override.take());
         set_cors_allowed_origins(Vec::new());
+    }
+}
+
+fn restore_env(name: &str, value: Option<String>) {
+    match value {
+        Some(value) => std::env::set_var(name, value),
+        None => std::env::remove_var(name),
     }
 }
 
@@ -241,6 +262,23 @@ fn dev_override_is_off_by_default() -> TestResult {
     );
 
     std::env::remove_var(CORS_ALLOW_ANY_ORIGIN_ENV);
+    assert_eq!(resolve_origin_policy(&empty), OriginPolicy::Deny);
+    Ok(())
+}
+
+#[test]
+fn production_ignores_the_any_origin_override() -> TestResult {
+    let _state = CorsState::with_origins(&[]);
+    let empty: Vec<String> = Vec::new();
+
+    std::env::set_var(CORS_ALLOW_ANY_ORIGIN_ENV, "1");
+    std::env::set_var(crate::jwt_secret::ENVIRONMENT_ENV, "production");
+
+    assert!(any_origin_override_requested());
+    assert!(
+        !allow_any_origin_override(),
+        "production must fail closed even with the dev switch set"
+    );
     assert_eq!(resolve_origin_policy(&empty), OriginPolicy::Deny);
     Ok(())
 }

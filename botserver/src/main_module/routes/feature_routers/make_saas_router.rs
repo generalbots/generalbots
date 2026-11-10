@@ -72,7 +72,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     // local `j("saas_jwt_secret")` read that used to live below was a second
     // resolver with a public fallback; without a secret the SaaS routes are not
     // mounted at all (fail closed).
-    let jwt_secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
+    let saas_jwt_secret = match botsecurity_core::verified_jwt::resolve_saas_jwt_secret() {
         Ok(secret) => secret,
         Err(error) => {
             tracing::error!("SaaS routes disabled: {error}");
@@ -128,7 +128,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                         }
                         (
                             j("saas_base_url").unwrap_or_default(),
-                            jwt_secret.clone(),
+                            saas_jwt_secret.clone(),
                             j("bot_templates_dir")
                                 .unwrap_or_else(|| "work/templates/bots".to_string()),
                             j("mc_path")
@@ -145,7 +145,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                     }
                     Err(_) => (
                         String::new(),
-                        jwt_secret.clone(),
+                        saas_jwt_secret.clone(),
                         "work/templates/bots".to_string(),
                         "/tmp/mc".to_string(),
                         "local".to_string(),
@@ -158,7 +158,7 @@ pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
             }
             Err(_) => (
                 String::new(),
-                crate::main_module::directory_setup::resolve_saas_jwt_secret(),
+                saas_jwt_secret.clone(),
                 "work/templates/bots".to_string(),
                 "/tmp/mc".to_string(),
                 "local".to_string(),

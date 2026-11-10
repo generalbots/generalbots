@@ -77,17 +77,28 @@ pub async fn execute_download(
     url: &str,
     local_path: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(url)
-        .send()
+    // #2131 — `DOWNLOAD <url>` takes the URL from the bot script: shared guard.
+    let policy = botsecurity::validation::FetchPolicy::default()
+        .with_timeout(std::time::Duration::from_secs(60))
+        .with_max_bytes(64 * 1024 * 1024);
+    let response = botsecurity::validation::fetch_user_url(url, &policy)
         .await
-        .map_err(|e| format!("Download failed: {e}"))?;
+        .map_err(|e| {
+            log::warn!(
+                "DOWNLOAD: refused URL ({}): {}",
+                e.kind().as_str(),
+                e.detail()
+            );
+            Box::new(e) as Box<dyn Error + Send + Sync>
+        })?;
+    if !response.is_success() {
+        return Err(format!("Download failed: HTTP {}", response.status).into());
+    }
 
-    let content = response.bytes().await?;
+    let content = response.body;
 
     execute_write(state, user, local_path, &String::from_utf8_lossy(&content)).await?;
 
-    trace!("DOWNLOAD successful: {url} -> {local_path}");
+    trace!("DOWNLOAD successful -> {local_path}");
     Ok(local_path.to_string())
 }

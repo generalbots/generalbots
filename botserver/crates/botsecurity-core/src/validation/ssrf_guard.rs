@@ -196,7 +196,9 @@ pub fn is_blocked_address(addr: IpAddr) -> bool {
 
 /// Normalises a hostname for policy checks: lower-case, no trailing dot.
 fn normalise_host(host: &str) -> String {
-    host.trim_end_matches('.').to_ascii_lowercase()
+    host.trim_matches(|c| c == '[' || c == ']')
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
 }
 
 /// Rejects hosts written as a number the URL parser might normalise to a

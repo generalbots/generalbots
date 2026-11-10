@@ -114,7 +114,7 @@ mod tests {
     /// Mints an HS256 token the way cloud login does, signed with the secret
     /// the verifier resolves in this process.
     fn bearer(payload: serde_json::Value) -> String {
-        let secret = botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret();
+        let secret = botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret().expect("saas jwt secret");
         let header = b64url(br#"{"alg":"HS256","typ":"JWT"}"#);
         let body = b64url(payload.to_string().as_bytes());
         let signing_input = format!("{header}.{body}");

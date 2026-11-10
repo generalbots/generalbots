@@ -2,7 +2,8 @@
 //! email string alone.
 
 use crate::oauth_identity::{
-    normalize_email, resolve_oauth_identity, EmailOwner, LocalIdentityFacts, OAuthResolution,
+    normalize_email, resolve_oauth_identity, EmailOwner, LocalIdentityFacts, NewOAuthAccount,
+    OAuthResolution,
 };
 use uuid::Uuid;
 
@@ -202,4 +203,44 @@ fn case_differences_do_not_bypass_the_email_owner_check() {
         resolution,
         OAuthResolution::LinkRequired { .. }
     ));
+}
+
+#[test]
+fn a_created_account_is_never_an_administrator() {
+    let account = NewOAuthAccount::for_subject(
+        "github",
+        "42",
+        Some("user@example.com"),
+        Some("Octo Cat"),
+    );
+
+    assert!(!account.is_admin);
+    assert_eq!(account.email, "user@example.com");
+}
+
+#[test]
+fn a_created_account_never_stores_an_unverified_email() {
+    let account = NewOAuthAccount::for_subject("discord", "123", None, Some("someone"));
+
+    assert!(!account.email.is_empty());
+    assert!(account.email.ends_with("@oauth.local"));
+    assert!(!account.email.contains("victim"));
+}
+
+#[test]
+fn usernames_keep_the_full_provider_subject() {
+    // Discord snowflakes share long prefixes; truncating the subject to a few
+    // characters would collide on `users.username` (UNIQUE).
+    let first = NewOAuthAccount::for_subject("discord", "123456789012345678", None, Some("same"));
+    let second = NewOAuthAccount::for_subject("discord", "123456789012345679", None, Some("same"));
+
+    assert_ne!(first.username, second.username);
+    assert!(first.username.contains("123456789012345678"));
+}
+
+#[test]
+fn a_nameless_identity_still_gets_a_stable_username() {
+    let account = NewOAuthAccount::for_subject("google", "109876543210", None, None);
+
+    assert_eq!(account.username, "google_109876543210");
 }

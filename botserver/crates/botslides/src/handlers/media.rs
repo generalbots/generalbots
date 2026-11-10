@@ -1,4 +1,5 @@
-use crate::storage::{get_current_user_id, load_presentation_by_id, DriveOps};
+use crate::storage::{load_presentation_by_id, DriveOps};
+use crate::auth::SlidesUser;
 use crate::types::{
     AddMediaRequest, DeleteMediaRequest, ListMediaResponse, MediaElement, UpdateMediaRequest,
 };
@@ -14,9 +15,10 @@ use std::sync::Arc;
 
 pub async fn handle_add_media<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<AddMediaRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (
@@ -97,9 +99,10 @@ pub async fn handle_add_media<D: DriveOps>(
 
 pub async fn handle_update_media<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<UpdateMediaRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (
@@ -165,9 +168,10 @@ pub async fn handle_update_media<D: DriveOps>(
 
 pub async fn handle_delete_media<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Json(req): Json<DeleteMediaRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (
@@ -211,6 +215,7 @@ pub async fn handle_delete_media<D: DriveOps>(
 
 pub async fn handle_list_media<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<ListMediaResponse>, (StatusCode, Json<serde_json::Value>)> {
     let presentation_id = params.get("presentation_id").cloned().unwrap_or_default();
@@ -218,7 +223,7 @@ pub async fn handle_list_media<D: DriveOps>(
         .get("slide_index")
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
-    let user_id = get_current_user_id();
+    let user_id = user.owner_id().to_string();
 
     let drive = state.drive.as_ref().ok_or_else(|| {
         (

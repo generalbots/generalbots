@@ -113,6 +113,9 @@ pub struct BotModelsClient {
 
 mod from_provider;
 mod image_generator_config;
+mod media_fetch;
 mod video_generator_config;
 mod from_provider_all;
 mod speech_to_text;
+
+pub(crate) use media_fetch::{fetch_media_bytes, MEDIA_MAX_BYTES};

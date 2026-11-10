@@ -80,6 +80,22 @@ GATES: tuple[Gate, ...] = (
         ok_detail="regression tests present (executed by the unit-tests job)",
     ),
     Gate(
+        id="webhook-auth",
+        title="Every inbound channel webhook fails closed when its secret is unset",
+        owner=2142,
+        proves="An unset or wrong secret refuses the delivery; no channel accepts unsigned POSTs",
+        steps=(
+            ("python3", "scripts/check_webhook_auth.py", "--self-test"),
+            ("python3", "scripts/check_webhook_auth.py"),
+        ),
+        evidence=(
+            ("botserver/crates/bottelegram/src/webhook_gate_tests.rs", "fn an_unconfigured_secret_fails_closed"),
+            ("botserver/crates/botinstagram/src/auth_tests.rs", "fn an_unconfigured_app_secret_fails_closed"),
+        ),
+        ok_detail="every inbound route verified (or allowlisted); unset secrets refuse deliveries",
+        fixed_detail=True,
+    ),
+    Gate(
         id="security-mfa",
         title="TOTP enrollment and verification share one secret encoding",
         owner=2114,
@@ -226,6 +242,7 @@ GATES: tuple[Gate, ...] = (
 CHILDREN: tuple[tuple[int, str, tuple[str, ...]], ...] = (
     (2112, "security(auth): JWT signature", ("security-auth",)),
     (2113, "security(webhooks): WhatsApp/Teams auth", ("security-webhooks",)),
+    (2142, "security(webhooks): fail closed when the secret is unset", ("webhook-auth",)),
     (2114, "security(mfa): TOTP encoding", ("security-mfa",)),
     (2115, "perf(slo): SLOs and budgets", ("slo-check",)),
     (2116, "ops(analytics): console, budgets, runbooks", ("ops-runbooks",)),

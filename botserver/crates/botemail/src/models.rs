@@ -273,10 +273,11 @@ pub fn stable_user_uuid(raw: &str) -> Uuid {
 /// Never falls back to `Uuid::nil()` for an authenticated request: if the
 /// identity cannot be resolved this fails so callers can reject the request.
 pub fn extract_user_from_session(headers: &HeaderMap) -> Result<Uuid, String> {
-    extract_user_with_secret(
-        headers,
-        &botsecurity_core::verified_jwt::resolve_saas_jwt_secret(),
-    )
+    // #2140 — one resolver; a missing secret fails closed instead of verifying
+    // with a public constant.
+    let secret = botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
+        .map_err(|error| format!("saas jwt secret unavailable: {error}"))?;
+    extract_user_with_secret(headers, &secret)
 }
 
 /// Identity resolution with an explicit signing secret, so tests can verify
