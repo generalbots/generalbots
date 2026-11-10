@@ -184,3 +184,12 @@ channel-error-webhook = 웹훅 확인 실패
 channel-error-permission = 권한이 부족합니다.
 channel-error-not-found = 채널을 찾을 수 없습니다
 channel-error-already-exists = 채널이 이미 구성되었습니다.
+
+channel-reply-processing-failed = 죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.
+channel-telegram-photo-received = [사진 수신됨]
+channel-telegram-document-received = [문서 수신됨]
+channel-telegram-voice-received = [음성 메시지 수신됨]
+channel-telegram-audio-received = [오디오 수신됨]
+channel-telegram-video-received = [동영상 수신됨]
+channel-telegram-location-received = [위치: { $latitude }, { $longitude }]
+channel-telegram-contact-received = [연락처: { $name } { $phone }]

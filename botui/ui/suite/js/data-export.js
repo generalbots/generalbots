@@ -5,6 +5,17 @@
 "use strict";
 
 (function () {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function collectLocalStorageData() {
     var data = {};
     for (var i = 0; i < localStorage.length; i++) {
@@ -70,7 +81,7 @@
     URL.revokeObjectURL(url);
 
     if (typeof showNotification === "function") {
-      showNotification("Backup exported successfully", "success");
+      showNotification(T("dataexport-exported", "Backup exported successfully"), "success");
     }
   }
 
@@ -144,7 +155,8 @@
       if (!file) return;
       if (file.size > MAX_TOTAL_BYTES) {
         if (typeof showNotification === "function") {
-          showNotification("Backup rejected: the file is larger than 4 MB", "error");
+          showNotification(T("dataexport-too-large",
+            "Backup rejected: the file is larger than 4 MB"), "error");
         }
         return;
       }
@@ -156,7 +168,8 @@
           applyBackup(clean);
         } catch (e) {
           if (typeof showNotification === "function") {
-            showNotification("Invalid backup file: " + e.message, "error");
+            showNotification(T("dataexport-invalid", "Invalid backup file: " + e.message,
+              { error: e.message }), "error");
           }
         }
       };
@@ -171,14 +184,16 @@
     var keys = Object.keys(clean.values);
     if (!keys.length) {
       if (typeof showNotification === "function") {
-        showNotification("This backup contains no restorable settings", "error");
+        showNotification(T("dataexport-nothing",
+          "This backup contains no restorable settings"), "error");
       }
       return;
     }
-    if (!confirm(
-      "This will restore " + keys.length + " setting(s) from the backup of " +
-      (clean.exported_at || "unknown date") + ". Credentials and session tokens are never imported. Continue?",
-    )) return;
+    var when = clean.exported_at || T("dataexport-unknown-date", "unknown date");
+    if (!confirm(T("dataexport-restore-confirm",
+      "This will restore " + keys.length + " setting(s) from the backup of " + when +
+      ". Credentials and session tokens are never imported. Continue?",
+      { count: keys.length, date: when }))) return;
 
     var count = 0;
     keys.forEach(function (key) {
@@ -190,10 +205,13 @@
       }
     });
 
-    var message = "Backup restored (" + count + " items).";
-    if (clean.rejected > 0) message += " " + clean.rejected + " entry(ies) rejected by the allowlist.";
+    var message = T("dataexport-restored", "Backup restored (" + count + " items).", { count: count });
+    if (clean.rejected > 0) {
+      message += " " + T("dataexport-rejected", clean.rejected + " entry(ies) rejected by the allowlist.",
+        { count: clean.rejected });
+    }
     if (typeof showNotification === "function") {
-      showNotification(message + " Reloading...", "success");
+      showNotification(message + " " + T("dataexport-reloading", "Reloading..."), "success");
     }
     setTimeout(function () { window.location.reload(); }, 2000);
   }
@@ -205,12 +223,17 @@
     modal.id = "export-modal";
     modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
     modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:440px;padding:24px;">'
-      + '<h3 style="margin:0 0 16px;color:#f8fafc;">Data Export &amp; Backup</h3>'
-      + '<p style="color:#94a3b8;font-size:14px;margin-bottom:20px;">Export all your data including chat history, memory, drive metadata, and settings as a JSON backup file.</p>'
+      + '<h3 style="margin:0 0 16px;color:#f8fafc;">' +
+        esc(T("dataexport-title", "Data Export & Backup")) + '</h3>'
+      + '<p style="color:#94a3b8;font-size:14px;margin-bottom:20px;">' +
+        esc(T("dataexport-desc", "Export all your data including chat history, memory, drive metadata, and settings as a JSON backup file.")) + '</p>'
       + '<div style="display:flex;flex-direction:column;gap:10px;">'
-      + '<button onclick="GBDataExport.exportAll();document.getElementById(\'export-modal\').remove()" style="background:#3b82f6;border:none;border-radius:8px;color:#fff;padding:12px;cursor:pointer;font-weight:500;font-size:14px;">Export All Data</button>'
-      + '<button onclick="GBDataExport.importBackup();document.getElementById(\'export-modal\').remove()" style="background:#334155;border:none;border-radius:8px;color:#f8fafc;padding:12px;cursor:pointer;font-size:14px;">Import Backup</button>'
-      + '<button onclick="document.getElementById(\'export-modal\').remove()" style="background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;padding:12px;cursor:pointer;font-size:14px;">Cancel</button>'
+      + '<button onclick="GBDataExport.exportAll();document.getElementById(\'export-modal\').remove()" style="background:#3b82f6;border:none;border-radius:8px;color:#fff;padding:12px;cursor:pointer;font-weight:500;font-size:14px;">' +
+        esc(T("dataexport-export-all", "Export All Data")) + '</button>'
+      + '<button onclick="GBDataExport.importBackup();document.getElementById(\'export-modal\').remove()" style="background:#334155;border:none;border-radius:8px;color:#f8fafc;padding:12px;cursor:pointer;font-size:14px;">' +
+        esc(T("dataexport-import", "Import Backup")) + '</button>'
+      + '<button onclick="document.getElementById(\'export-modal\').remove()" style="background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;padding:12px;cursor:pointer;font-size:14px;">' +
+        esc(T("action-cancel", "Cancel")) + '</button>'
       + '</div></div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);

@@ -244,6 +244,21 @@ chromium-browser --kiosk --app=http://localhost:9000/embedded/
 - Keyboard navigation (Enter sends, Esc clears)
 - Auto reconnection
 
+## Error messages and localization (#2095)
+
+The mobile shell authors very few strings, and each one is a rejected promise the
+webview shows to a person. They are keyed in `src/error_codes.rs`:
+
+| Key | English text | Rendered where |
+|-----|--------------|----------------|
+| `botdevice-send-network` | Could not reach the assistant: {error} | `invoke("send_to_bot")` rejects → botui error toast |
+| `botdevice-send-response` | The assistant returned an unreadable response: {error} | same |
+
+`error_codes::text(key, &[("error", &detail)])` returns the English message; an
+unknown key returns the key itself so a missing entry is visible in a bug report
+instead of showing an empty error. Brand strings (`BotOS`, `General Bots`) and
+`get_device_info` values are not translated.
+
 ## Features
 
 - 🏠 **Launcher Mode**: Replaces home screen

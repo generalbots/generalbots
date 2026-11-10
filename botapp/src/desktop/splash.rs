@@ -7,6 +7,7 @@
 use log::{info, warn};
 use serde_json::json;
 use std::time::{Duration, Instant};
+use super::i18n;
 use tauri::{Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 /// Shows the splash window, creating it on demand when the configured window is
@@ -99,23 +100,23 @@ pub fn watch_boot_ready(app: &tauri::AppHandle) {
             if let Some(main) = handle.get_webview_window("main") {
                 if !saw_main {
                     saw_main = true;
-                    push_progress(&splash, 70, "Loading interface…");
+                    push_progress(&splash, 70, &i18n::t("splash-loading-interface"));
                 }
                 if let Ok(url) = main.url() {
                     if url.as_str().contains(BOOT_READY_FRAGMENT) {
                         info!("splash: boot-ready fragment seen; closing");
-                        push_progress(&splash, 100, "Ready");
+                        push_progress(&splash, 100, &i18n::t("splash-ready"));
                         std::thread::sleep(Duration::from_millis(120));
                         hide(&handle);
                         return;
                     }
                 }
             } else if !saw_main {
-                push_progress(&splash, 15, "Starting services…");
+                push_progress(&splash, 15, &i18n::t("splash-starting-services"));
             }
             if Instant::now() >= deadline {
                 warn!("splash: boot-ready fragment never arrived; hiding the splash");
-                push_progress(&splash, 100, "Opening workspace…");
+                push_progress(&splash, 100, &i18n::t("splash-opening-workspace"));
                 std::thread::sleep(Duration::from_millis(120));
                 hide(&handle);
                 return;

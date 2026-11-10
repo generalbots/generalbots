@@ -59,6 +59,52 @@ BotApp adds these native capabilities to botui:
 
 ---
 
+## Native strings and localization (#2095)
+
+The tray menu, the splash status line and the native dialogs render outside the
+webview, so they cannot use `window.gbT` / the Fluent catalogue in
+`botlib/locales`. They read a small JSON catalogue instead:
+
+```
+botapp/i18n/en.json      # source of truth — every key lives here
+botapp/i18n/pt-BR.json   # translated values, identical key set
+botapp/i18n/es.json
+```
+
+`src/desktop/i18n.rs` embeds those files with `include_str!` (no i18n crate, no
+runtime file lookup, no network) and exposes:
+
+| Function | Purpose |
+|----------|---------|
+| `i18n::t("tray-new-chat")` | Native string in the process locale |
+| `i18n::t_args("download-failed", &[("error", &e.to_string())])` | Same, with `{name}` placeholders |
+| `i18n::locale()` | The resolved locale (`pt-BR`, `es`, `en`) |
+
+**Locale resolution:** `GB_LOCALE` (the app override, same value as the
+`gb-locale` web preference) → `LC_ALL` → `LANG` → `en`. Regional tags are
+normalised (`pt_BR.UTF-8` → `pt-BR`) and a bare language picks the first
+catalogue of that language (`pt` → `pt-BR`, `es-MX` → `es`). An unknown locale,
+or a key missing from a translation, falls back to English per key — a label is
+never empty and never renders a raw key.
+
+**Adding a locale:** copy `i18n/en.json` to `i18n/<locale>.json`, translate the
+values only (keys are the contract), add the file to `CATALOGUES` in
+`src/desktop/i18n.rs`, and run `cargo test -p botapp i18n` — the
+`every_key_exists_in_every_catalogue` test fails on a missing key.
+
+**Where the strings render:** tray menu + tooltip (`src/desktop/tray/mod.rs`),
+splash progress (`src/desktop/splash.rs`), the Save dialog title and download
+errors (`src/desktop/download.rs`), wizard setup progress and errors
+(`src/desktop/wizard/**`), and Drive sync errors (`src/desktop/sync.rs`).
+
+**Not localizable here:** `productName`, window titles and the installer
+`shortDescription`/`longDescription` in `tauri*.conf.json` are bundle metadata —
+one build carries one value, so they stay in the brand language (English).
+The setup *wizard content* itself is HTML and lives in `botui/ui/wizard/i18n/`
+(8 locale dictionaries), not in this catalogue.
+
+---
+
 ## Project Structure
 
 ```

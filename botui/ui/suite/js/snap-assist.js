@@ -16,6 +16,17 @@
 window.GBSnapAssist = window.GBSnapAssist || {};
 
 (function (mod) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   var ghost = null;
   var dragState = null;
   var EDGE = 12; // pixels from the screen edge that trigger snapping
@@ -43,6 +54,11 @@ window.GBSnapAssist = window.GBSnapAssist || {};
 
   var picker = null;
 
+  function snapBtn(layout, label) {
+    return '<button data-layout="' + layout + '" title="' +
+      esc(T("snap-layout-" + layout, label)) + '"></button>';
+  }
+
   function openPicker(id, anchorEl) {
     closePicker();
     var app = (window.APPS_REGISTRY || []).find(function (a) { return a.id === id; });
@@ -51,20 +67,21 @@ window.GBSnapAssist = window.GBSnapAssist || {};
     picker.className = "gb-snap-picker";
     picker.setAttribute("role", "menu");
     picker.innerHTML =
-      '<div class="gb-snap-picker-title">Snap "' + title + '"</div>' +
+      '<div class="gb-snap-picker-title">' +
+      esc(T("snap-title", 'Snap "' + title + '"', { app: title })) + '</div>' +
       '<div class="gb-snap-picker-grid">' +
-      '<button data-layout="top-left" title="Top left"></button>' +
-      '<button data-layout="top" title="Top half"></button>' +
-      '<button data-layout="top-right" title="Top right"></button>' +
-      '<button data-layout="left" title="Left half"></button>' +
-      '<button data-layout="full" title="Maximize"></button>' +
-      '<button data-layout="right" title="Right half"></button>' +
-      '<button data-layout="bottom-left" title="Bottom left"></button>' +
-      '<button data-layout="bottom" title="Bottom half"></button>' +
-      '<button data-layout="bottom-right" title="Bottom right"></button>' +
-      '<button data-layout="third-left" title="Left third"></button>' +
-      '<button data-layout="two-thirds" title="Two thirds"></button>' +
-      '<button data-layout="third-right" title="Right third"></button>' +
+      snapBtn("top-left", "Top left") +
+      snapBtn("top", "Top half") +
+      snapBtn("top-right", "Top right") +
+      snapBtn("left", "Left half") +
+      snapBtn("full", "Maximize") +
+      snapBtn("right", "Right half") +
+      snapBtn("bottom-left", "Bottom left") +
+      snapBtn("bottom", "Bottom half") +
+      snapBtn("bottom-right", "Bottom right") +
+      snapBtn("third-left", "Left third") +
+      snapBtn("two-thirds", "Two thirds") +
+      snapBtn("third-right", "Right third") +
       "</div>";
     var rect = anchorEl.getBoundingClientRect();
     picker.style.left = Math.min(rect.left, window.innerWidth - 220) + "px";

@@ -184,3 +184,12 @@ channel-error-webhook = Webhook 验证失败
 channel-error-permission = 权限不足
 channel-error-not-found = 找不到频道
 channel-error-already-exists = 通道已配置
+
+channel-reply-processing-failed = 抱歉,处理您的消息时出错。请重试。
+channel-telegram-photo-received = [已收到照片]
+channel-telegram-document-received = [已收到文档]
+channel-telegram-voice-received = [已收到语音消息]
+channel-telegram-audio-received = [已收到音频]
+channel-telegram-video-received = [已收到视频]
+channel-telegram-location-received = [位置:{ $latitude }, { $longitude }]
+channel-telegram-contact-received = [联系人:{ $name } { $phone }]

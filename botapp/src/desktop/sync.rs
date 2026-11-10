@@ -88,7 +88,7 @@ pub fn start_sync(window: Window, config: Option<SyncConfig>) -> Result<SyncStat
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if process_guard.is_some() {
-            return Err("Sync already running".to_string());
+            return Err(crate::desktop::i18n::t("sync-already-running"));
         }
     }
 

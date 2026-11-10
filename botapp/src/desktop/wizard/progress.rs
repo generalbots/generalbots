@@ -41,13 +41,19 @@ fn components() -> Vec<ComponentSpec> {
         .collect()
 }
 
-pub(crate) fn context() -> WizardContext {
-    let progress = read_progress();
-    let resume_step = if progress.step > 0 && !marker_path().exists() {
-        Some(progress.step)
+/// Resumes at the persisted step only while the stack is still uninitialised:
+/// a completed install (marker present) always starts from the beginning.
+fn resume_step(step: u8, marker_exists: bool) -> Option<u8> {
+    if step > 0 && !marker_exists {
+        Some(step)
     } else {
         None
-    };
+    }
+}
+
+pub(crate) fn context() -> WizardContext {
+    let progress = read_progress();
+    let resume_step = resume_step(progress.step, marker_path().exists());
     WizardContext {
         desktop_mode: is_desktop_mode(),
         first_run: is_first_run(),
@@ -62,5 +68,39 @@ pub(crate) fn context() -> WizardContext {
         resume_step,
         completed_components: progress.completed,
         components: components(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{components, resume_step};
+    use crate::desktop::wizard::COMPONENTS;
+
+    #[test]
+    fn a_saved_step_only_resumes_on_an_uninitialised_stack() {
+        assert_eq!(resume_step(5, false), Some(5));
+        assert_eq!(resume_step(1, false), Some(1));
+        // A completed install starts over even if the marker file is stale.
+        assert_eq!(resume_step(5, true), None);
+        // Step zero means nothing was saved.
+        assert_eq!(resume_step(0, false), None);
+    }
+
+    #[test]
+    fn component_specs_mirror_the_canonical_order() {
+        let specs = components();
+        assert_eq!(specs.len(), COMPONENTS.len());
+        for (spec, (id, label, optional)) in specs.iter().zip(COMPONENTS.iter()) {
+            assert_eq!(spec.id, *id);
+            assert_eq!(spec.label, *label);
+            assert_eq!(spec.optional, *optional);
+        }
+        // Only the model runtime and the media service are optional.
+        let optional: Vec<&str> = specs
+            .iter()
+            .filter(|spec| spec.optional)
+            .map(|spec| spec.id.as_str())
+            .collect();
+        assert_eq!(optional, vec!["llm", "botmodels"]);
     }
 }

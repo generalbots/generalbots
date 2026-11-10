@@ -125,3 +125,5 @@ notification-filter-mentions = 言及
 notification-filter-tasks = タスク
 notification-filter-messages = メッセージ
 notification-filter-system = システム
+
+notification-digest-subject = General Bots の週次ダイジェスト

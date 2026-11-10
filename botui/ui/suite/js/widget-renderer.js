@@ -7,6 +7,17 @@
 
 (function () {
   if (window.GBWidgetRenderer) return;
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
 
   var MIN_W = 220;
   var MIN_H = 140;
@@ -70,7 +81,8 @@
         if (window.htmx) htmx.process(body);
       })
       .catch(function () {
-        body.innerHTML = '<div class="gb-widget-error">Widget failed to load</div>';
+        body.innerHTML = '<div class="gb-widget-error">' +
+          T("widget-load-failed", "Widget failed to load") + '</div>';
       });
   }
 
@@ -115,7 +127,8 @@
     if (partial) {
       loadPartial(body, partial);
     } else {
-      body.innerHTML = '<div class="gb-widget-error">No widget source configured</div>';
+      body.innerHTML = '<div class="gb-widget-error">' +
+        T("widget-no-source", "No widget source configured") + '</div>';
     }
   }
 
@@ -128,10 +141,14 @@
       "</span>" +
       '<span class="gb-widget-title"></span>' +
       '<span class="gb-widget-actions">' +
-      '<button class="gb-widget-btn" data-action="refresh" title="Refresh">⟳</button>' +
-      '<button class="gb-widget-btn" data-action="window" title="Open windowed">▣</button>' +
-      '<button class="gb-widget-btn" data-action="pin" title="Pin to launcher">📌</button>' +
-      '<button class="gb-widget-btn" data-action="close" title="Remove">✕</button>' +
+      '<button class="gb-widget-btn" data-action="refresh" title="' +
+        esc(T("action-refresh", "Refresh")) + '">⟳</button>' +
+      '<button class="gb-widget-btn" data-action="window" title="' +
+        esc(T("widget-open-windowed", "Open windowed")) + '">▣</button>' +
+      '<button class="gb-widget-btn" data-action="pin" title="' +
+        esc(T("widget-pin-launcher", "Pin to launcher")) + '">📌</button>' +
+      '<button class="gb-widget-btn" data-action="close" title="' +
+        esc(T("action-remove", "Remove")) + '">✕</button>' +
       "</span>";
     head.querySelector(".gb-widget-title").textContent = inst.title;
     head

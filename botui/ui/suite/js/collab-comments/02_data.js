@@ -7,10 +7,12 @@
   var req = N.req;
   var node = N.node;
   var esc = N.esc;
+  var T = N.T;
   var HEARTBEAT_MS = N.HEARTBEAT_MS;
   function load() {
     if (!S.listEl || !state.resourceId) return;
-    S.listEl.innerHTML = '<div class="gbc-loading">Loading comments\u2026</div>';
+    S.listEl.innerHTML = '<div class="gbc-loading">' +
+      esc(T("comments-loading", "Loading comments…")) + '</div>';
     var qs = "/comments?resource_type=" + encodeURIComponent(state.resourceType) + "&resource_id=" + encodeURIComponent(state.resourceId);
     if (state.includeChildren) qs += "&include_children=true";
     req(qs)
@@ -31,7 +33,12 @@
           return true;
         });
         if (!visible.length) {
-          S.listEl.innerHTML = '<div class="gbc-empty">No ' + (state.filter === "resolved" ? "resolved" : "open") + ' comments. Use @name to mention someone.</div>';
+          S.listEl.innerHTML = '<div class="gbc-empty">' +
+            esc(state.filter === "resolved"
+              ? T("comments-empty-resolved",
+                "No resolved comments. Use @name to mention someone.")
+              : T("comments-empty-open",
+                "No open comments. Use @name to mention someone.")) + '</div>';
         } else {
           visible.forEach(function (c) { S.listEl.appendChild(node(c, false)); });
         }
@@ -39,7 +46,9 @@
         loadPresence();
       })
       .catch(function (e) {
-        S.listEl.innerHTML = '<div class="gbc-error">Failed to load comments: ' + esc(e.message) + "</div>";
+        S.listEl.innerHTML = '<div class="gbc-error">' +
+          esc(T("comments-load-failed", "Failed to load comments: " + e.message,
+            { error: e.message })) + "</div>";
       });
   }
 
@@ -93,26 +102,41 @@
     addComment(body, null)
       .then(function () {
         load();
-        if (window.GBCollabA11y) window.GBCollabA11y.announce("Comment added");
+        if (window.GBCollabA11y) {
+          window.GBCollabA11y.announce(T("comments-added", "Comment added"));
+        }
       })
-      .catch(function (e) { notify("Comment failed: " + e.message, "error"); });
+      .catch(function (e) {
+        notify(T("comments-post-failed", "Comment failed: " + e.message, { error: e.message }), "error");
+      });
   }
 
   function react(commentId, emoji) {
     req("/comments/" + commentId + "/reactions", { method: "POST", body: JSON.stringify({ emoji: emoji }) })
       .then(load)
-      .catch(function (e) { notify("Reaction failed: " + e.message, "error"); });
+      .catch(function (e) {
+        notify(T("comments-reaction-failed", "Reaction failed: " + e.message, { error: e.message }), "error");
+      });
   }
 
   function del(commentId) {
     var remove = function () {
       req("/comments/" + commentId, { method: "DELETE" })
         .then(load)
-        .catch(function (e) { notify("Delete failed: " + e.message, "error"); });
+        .catch(function (e) {
+          notify(T("comments-delete-failed", "Delete failed: " + e.message, { error: e.message }), "error");
+        });
     };
     if (window.WindowManager && window.WindowManager.confirmFloating) {
-      window.WindowManager.confirmFloating("Delete comment", "Delete this comment?", remove, null, "Delete");
-    } else if ((window.GBModal||{confirm:confirm}).confirm("Delete this comment?")) {
+      window.WindowManager.confirmFloating(
+        T("comments-delete-title", "Delete comment"),
+        T("comments-delete-confirm", "Delete this comment?"),
+        remove,
+        null,
+        T("action-delete", "Delete")
+      );
+    } else if ((window.GBModal || { confirm: confirm }).confirm(
+      T("comments-delete-confirm", "Delete this comment?"))) {
       remove();
     }
   }
@@ -120,12 +144,20 @@
   function reply(commentId) {
     var done = function (body) {
       if (!body) return;
-      addComment(body.trim(), commentId).then(load).catch(function (e) { notify("Reply failed: " + e.message, "error"); });
+      addComment(body.trim(), commentId).then(load).catch(function (e) {
+        notify(T("comments-reply-failed", "Reply failed: " + e.message, { error: e.message }), "error");
+      });
     };
     if (window.WindowManager && window.WindowManager.promptFloating) {
-      window.WindowManager.promptFloating("Reply", "Reply to comment:", "", done);
+      window.WindowManager.promptFloating(
+        T("comments-reply-title", "Reply"),
+        T("comments-reply-prompt", "Reply to comment:"),
+        "",
+        done
+      );
     } else {
-      done((window.GBModal||{prompt:prompt}).prompt("Reply to comment:"));
+      done((window.GBModal || { prompt: prompt }).prompt(
+        T("comments-reply-prompt", "Reply to comment:")));
     }
   }
 
@@ -133,9 +165,15 @@
     req("/comments/" + commentId + "/resolve", { method: "POST", body: JSON.stringify({ resolved: resolved }) })
       .then(function () {
         load();
-        if (window.GBCollabA11y) window.GBCollabA11y.announce(resolved ? "Comment resolved" : "Comment reopened");
+        if (window.GBCollabA11y) {
+          window.GBCollabA11y.announce(resolved
+            ? T("comments-resolved-announce", "Comment resolved")
+            : T("comments-reopened-announce", "Comment reopened"));
+        }
       })
-      .catch(function (e) { notify("Resolve failed: " + e.message, "error"); });
+      .catch(function (e) {
+        notify(T("comments-resolve-failed", "Resolve failed: " + e.message, { error: e.message }), "error");
+      });
   }
 
   function markRead() {

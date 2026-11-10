@@ -125,3 +125,5 @@ notification-filter-mentions = 提及
 notification-filter-tasks = 任务
 notification-filter-messages = 留言
 notification-filter-system = 系统
+
+notification-digest-subject = 您的 General Bots 每周摘要

@@ -13,6 +13,7 @@ mod terminate;
 use super::{
     progress_path, FinishRequest, ProgressMarker, ProvisionRequest, ProvisionStatus, WizardState,
 };
+use crate::desktop::i18n;
 use crate::desktop::sidecar::Sidecar;
 use components::{progress, run_components, start_assistant};
 use draft::{apply_integrations, save_draft};
@@ -26,7 +27,7 @@ pub async fn provision(
     request: ProvisionRequest,
 ) -> Result<(), String> {
     if state.provisioning.swap(true, Ordering::SeqCst) {
-        return Err("Setup is already running.".to_string());
+        return Err(i18n::t("setup-already-running"));
     }
     state.cancelled.store(false, Ordering::SeqCst);
     if let Ok(mut progress) = state.progress.lock() {

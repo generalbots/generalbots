@@ -6,6 +6,17 @@
    to rename it (floating input, no modal). */
 
 const WorkspaceTabs = (() => {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   const STORAGE_KEY = "gb-workspace-tabs";
   const TABBAR_ID = "gb-workspace-tabbar";
 
@@ -16,7 +27,10 @@ const WorkspaceTabs = (() => {
     } catch (e) {
       /* fall through to default */
     }
-    return { tabs: [{ id: "ws-" + Date.now(), name: "Main", windows: [] }], active: 0 };
+    return {
+      tabs: [{ id: "ws-" + Date.now(), name: T("wstabs-default-main", "Main"), windows: [] }],
+      active: 0,
+    };
   }
 
   function save(state) {
@@ -50,10 +64,12 @@ const WorkspaceTabs = (() => {
       html +=
         '<div class="gb-ws-tab' + (i === state.active ? " active" : "") + '" data-i="' + i + '">' +
         '<span class="gb-ws-tab-name"></span>' +
-        '<span class="gb-ws-tab-x" title="Close tab">\u00d7</span>' +
+        '<span class="gb-ws-tab-x" title="' +
+          esc(T("wstabs-close-tab", "Close tab")) + '">\u00d7</span>' +
         "</div>";
     });
-    html += '<button class="gb-ws-tab-add" title="New workspace tab">+</button>';
+    html += '<button class="gb-ws-tab-add" title="' +
+      esc(T("wstabs-new-tab", "New workspace tab")) + '">+</button>';
     bar.innerHTML = html;
     state.tabs.forEach((tab, i) => {
       const node = bar.querySelector('[data-i="' + i + '"]');
@@ -75,7 +91,12 @@ const WorkspaceTabs = (() => {
   }
 
   function addTab(state) {
-    const tab = { id: "ws-" + Date.now(), name: "Workspace " + (state.tabs.length + 1), windows: [] };
+    const n = state.tabs.length + 1;
+    const tab = {
+      id: "ws-" + Date.now(),
+      name: T("wstabs-default-name", "Workspace " + n, { n: n }),
+      windows: [],
+    };
     state.tabs.push(tab);
     state.active = state.tabs.length - 1;
     save(state);
@@ -100,9 +121,15 @@ const WorkspaceTabs = (() => {
       }
     };
     if (window.WindowManager && window.WindowManager.promptFloating) {
-      window.WindowManager.promptFloating("Rename workspace", "Workspace name:", tab.name, done);
+      window.WindowManager.promptFloating(
+        T("wstabs-rename-title", "Rename workspace"),
+        T("wstabs-name-prompt", "Workspace name:"),
+        tab.name,
+        done
+      );
     } else {
-      done((window.GBModal||{prompt:prompt}).prompt("Workspace name:", tab.name));
+      done((window.GBModal || { prompt: prompt }).prompt(
+        T("wstabs-name-prompt", "Workspace name:"), tab.name));
     }
   }
 

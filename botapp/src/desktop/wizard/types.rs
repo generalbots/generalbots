@@ -166,3 +166,88 @@ pub struct FinishRequest {
     #[serde(default)]
     pub skip_all_agentic_work: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        ComponentSpec, FinishRequest, ModelRequest, NetworkDraft, ProgressEvent, ProvisionRequest,
+        WorkspaceDraft,
+    };
+
+    #[test]
+    fn an_empty_model_request_has_empty_fields() {
+        let request: ModelRequest = serde_json::from_str("{}").expect("defaults apply");
+        assert!(request.mode.is_empty());
+        assert!(request.provider.is_empty());
+        assert!(request.endpoint.is_empty());
+        assert!(request.model.is_empty());
+        assert!(request.api_key.is_empty());
+    }
+
+    #[test]
+    fn a_minimal_provision_request_fills_every_section() {
+        let request: ProvisionRequest = serde_json::from_str("{}").expect("defaults apply");
+        assert!(request.model.mode.is_empty());
+        assert!(request.workspace.path.is_empty());
+        assert!(request.services.is_empty());
+        assert!(request.display_name.is_empty());
+        // Agent work is opted out of, never silently opted in.
+        assert!(!request.skip_all_agentic_work);
+    }
+
+    #[test]
+    fn the_network_mode_defaults_to_an_empty_choice() {
+        let draft: NetworkDraft = serde_json::from_str("{}").expect("defaults apply");
+        assert!(draft.mode.is_empty());
+        let chosen: NetworkDraft = serde_json::from_str(r#"{"mode":"p2p"}"#).expect("valid");
+        assert_eq!(chosen.mode, "p2p");
+    }
+
+    #[test]
+    fn a_finish_request_carries_the_administrator_and_network_choice() {
+        let request: FinishRequest = serde_json::from_str(
+            r#"{"admin":{"email":"a@b.c","password":"s"},"network":{"mode":"p2p"}}"#,
+        )
+        .expect("valid payload");
+        assert_eq!(request.admin.email, "a@b.c");
+        assert_eq!(request.network.mode, "p2p");
+        assert!(request.workspace.size.is_empty());
+        assert!(request.services.is_empty());
+    }
+
+    #[test]
+    fn a_workspace_draft_keeps_its_size() {
+        let draft: WorkspaceDraft =
+            serde_json::from_str(r#"{"path":"/data/ws","size":"50 GB"}"#).expect("valid");
+        assert_eq!(draft.path, "/data/ws");
+        assert_eq!(draft.size, "50 GB");
+    }
+
+    #[test]
+    fn a_progress_event_round_trips_for_the_polling_client() {
+        let event = ProgressEvent {
+            id: "vault".to_string(),
+            state: "ready".to_string(),
+            message: "Local vault is ready".to_string(),
+            elapsed_ms: 1500,
+        };
+        let raw = serde_json::to_string(&event).expect("serialize");
+        let back: ProgressEvent = serde_json::from_str(&raw).expect("deserialize");
+        assert_eq!(back.id, "vault");
+        assert_eq!(back.state, "ready");
+        assert_eq!(back.elapsed_ms, 1500);
+    }
+
+    #[test]
+    fn a_component_spec_serializes_the_keys_the_page_reads() {
+        let spec = ComponentSpec {
+            id: "llm".to_string(),
+            label: "Local model runtime".to_string(),
+            optional: true,
+        };
+        let value = serde_json::to_value(&spec).expect("serialize");
+        assert_eq!(value["id"], serde_json::json!("llm"));
+        assert_eq!(value["optional"], serde_json::json!(true));
+        assert_eq!(value["label"], serde_json::json!("Local model runtime"));
+    }
+}

@@ -303,7 +303,7 @@ pub async fn check(app: &tauri::AppHandle) -> HostCheckResult {
             );
             result.status = "unknown".to_string();
             result.message =
-                format!("The host check could not run: {reason}. Setup continues without it.");
+                crate::desktop::i18n::t_args("setup-host-check-failed", &[("reason", &reason)]);
             result
         }
     }

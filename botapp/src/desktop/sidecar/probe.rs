@@ -147,6 +147,39 @@ pub(super) fn terminate_pid(_pid: u32) -> bool {
     false
 }
 
+/// What `Sidecar::start` should do once the three liveness probes have run.
+///
+/// The decision is pure so the idempotent-start rules (#2023) can be tested
+/// without spawning a process or binding a port.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum StartDecision {
+    /// This app already owns a live child.
+    ReuseChild,
+    /// Another assistant answers `/api/product`; attach to it.
+    AttachApi,
+    /// Something holds the port but is still booting; attach and wait.
+    AttachPort,
+    /// Nothing is listening: spawn the sidecar.
+    Spawn,
+}
+
+/// Chooses the start action from the probe results, most specific first.
+pub(super) fn decide_start(
+    child_running: bool,
+    api_answering: bool,
+    port_open: bool,
+) -> StartDecision {
+    if child_running {
+        StartDecision::ReuseChild
+    } else if api_answering {
+        StartDecision::AttachApi
+    } else if port_open {
+        StartDecision::AttachPort
+    } else {
+        StartDecision::Spawn
+    }
+}
+
 /// Parses the status line of an HTTP response.
 fn http_status_is_success(response: &str) -> bool {
     let Some(status_line) = response.lines().next() else {
@@ -225,5 +258,26 @@ mod tests {
         assert!(!http_status_is_success("HTTP/1.1 404 Not Found\r\n"));
         assert!(!http_status_is_success(""));
         assert!(!http_status_is_success("not http at all"));
+    }
+
+    #[test]
+    fn an_owned_child_is_always_reused() {
+        assert_eq!(decide_start(true, false, false), StartDecision::ReuseChild);
+        assert_eq!(decide_start(true, true, true), StartDecision::ReuseChild);
+        assert_eq!(decide_start(true, true, false), StartDecision::ReuseChild);
+    }
+
+    #[test]
+    fn a_foreign_assistant_is_attached_never_duplicated() {
+        assert_eq!(decide_start(false, true, false), StartDecision::AttachApi);
+        assert_eq!(decide_start(false, true, true), StartDecision::AttachApi);
+        // The port is held but the API does not answer yet: still attach, a
+        // second listener would fail to bind.
+        assert_eq!(decide_start(false, false, true), StartDecision::AttachPort);
+    }
+
+    #[test]
+    fn only_a_free_port_spawns_a_sidecar() {
+        assert_eq!(decide_start(false, false, false), StartDecision::Spawn);
     }
 }

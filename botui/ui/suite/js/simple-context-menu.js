@@ -6,6 +6,12 @@
 /* ============================================ */
 (function () {
   "use strict";
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
 
   var menu = null;
 
@@ -110,7 +116,8 @@
     var q = getSelectionText();
     if (!q) {
       try {
-        q = (window.GBModal||{prompt:prompt}).prompt("Search DuckDuckGo:");
+        q = (window.GBModal || { prompt: prompt }).prompt(
+          T("ctxmenu-search-prompt", "Search DuckDuckGo:"));
       } catch (err) {
         q = "";
       }
@@ -123,7 +130,8 @@
     var q = getSelectionText();
     if (!q) {
       try {
-        q = (window.GBModal||{prompt:prompt}).prompt("Wikipedia definition:");
+        q = (window.GBModal || { prompt: prompt }).prompt(
+          T("ctxmenu-wikipedia-prompt", "Wikipedia definition:"));
       } catch (err) {
         q = "";
       }
@@ -141,12 +149,12 @@
 
     var items = [
       { label: "Cut", action: doCut },
-      { label: "Copy", action: doCopy },
-      { label: "Paste", action: doPaste },
-      { label: "Select all", action: doSelectAll },
+      { label: T("action-copy", "Copy"), action: doCopy },
+      { label: T("action-paste", "Paste"), action: doPaste },
+      { label: T("action-select-all", "Select all"), action: doSelectAll },
       { separator: true },
-      { label: "Search DuckDuckGo", action: searchDuckDuckGo },
-      { label: "Wikipedia definition", action: wikipediaDefinition },
+      { label: T("ctxmenu-search", "Search DuckDuckGo"), action: searchDuckDuckGo },
+      { label: T("ctxmenu-wikipedia", "Wikipedia definition"), action: wikipediaDefinition },
     ];
 
     items.forEach(function (item) {

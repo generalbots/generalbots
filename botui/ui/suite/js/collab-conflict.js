@@ -20,6 +20,12 @@
  * Auth: Bearer JWT from localStorage/sessionStorage (gb-access-token).
  */
 (function (window) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   var CSS_ID = "gb-conflict-css";
   var POLL_MS = 15000;
   var state = { resourceType: null, resourceId: null, timer: null, currentVersion: 0 };
@@ -78,7 +84,8 @@
       .then(function (res) {
         return res.json().catch(function () { return { error: res.statusText }; })
           .then(function (body) {
-            if (!res.ok) throw new Error(body.error || "Request failed (" + res.status + ")");
+            if (!res.ok) throw new Error(body.error ||
+              T("conflict-request-failed", "Request failed (" + res.status + ")", { status: res.status }));
             return body;
           });
       });
@@ -97,9 +104,9 @@
     banner.setAttribute("aria-live", "polite");
     banner.innerHTML =
       '<div class="gbc-head">' +
-      '<span>Conflicting edits</span>' +
+      '<span>' + esc(T("conflict-title", "Conflicting edits")) + '</span>' +
       '<span class="gbc-count"></span>' +
-      '<button class="gbc-close" title="Dismiss">×</button>' +
+      '<button class="gbc-close" title="' + esc(T("conflict-dismiss", "Dismiss")) + '">×</button>' +
       '</div>' +
       '<div class="gbc-list"></div>';
     document.body.appendChild(banner);
@@ -123,11 +130,14 @@
         ? JSON.stringify(c.payload) : String(c.payload || "");
       return '<div class="gbc-item" data-id="' + esc(c.id) + '">' +
         '<div><span class="gbc-who">' + actorBadge(c.actor_type) + ' ' + esc(c.actor_name || c.actor_id) + '</span>' +
-        ' edited concurrently (' + esc(c.op_type) + ')</div>' +
+        ' ' + esc(T("conflict-edited-concurrently",
+          "edited concurrently (" + c.op_type + ")", { op: c.op_type })) + '</div>' +
         '<div class="gbc-meta">' + esc(payload.slice(0, 120)) + '</div>' +
         '<div class="gbc-actions">' +
-        '<button class="gbc-keep" data-res="accept-server">Keep server version</button>' +
-        '<button data-res="accept-client">Keep my change</button>' +
+        '<button class="gbc-keep" data-res="accept-server">' +
+          esc(T("conflict-keep-server", "Keep server version")) + '</button>' +
+        '<button data-res="accept-client">' +
+          esc(T("conflict-keep-mine", "Keep my change")) + '</button>' +
         '</div>' +
         '</div>';
     }).join("");
@@ -164,7 +174,9 @@
   }
 
   function submitOp(opType, baseVersion, payload, actorType) {
-    if (!state.resourceType || !state.resourceId) return Promise.reject(new Error("Conflict watch not started"));
+    if (!state.resourceType || !state.resourceId) {
+      return Promise.reject(new Error(T("conflict-not-started", "Conflict watch not started")));
+    }
     return api("/api/collab/ops", {
       method: "POST",
       body: JSON.stringify({

@@ -16,6 +16,46 @@ fn use_dev_server() -> bool {
     cfg!(debug_assertions) && !cfg!(feature = "custom-protocol")
 }
 
+/// Design size of the wizard window and the margin kept around it.
+const WIZARD_WIDTH: f64 = 1040.0;
+const WIZARD_HEIGHT: f64 = 700.0;
+const WIZARD_MARGIN: f64 = 80.0;
+const WIZARD_MIN_WIDTH: f64 = 640.0;
+const WIZARD_MIN_HEIGHT: f64 = 480.0;
+
+/// Logical size of a display described in physical pixels.
+fn logical_size(width: u32, height: u32, scale: f64) -> (f64, f64) {
+    let scale = if scale > 0.0 { scale } else { 1.0 };
+    (f64::from(width) / scale, f64::from(height) / scale)
+}
+
+/// Wizard window size: the design size, shrunk to leave a margin on a smaller
+/// display. A display smaller than the minimum keeps the minimum so the
+/// builder never receives a zero or negative size.
+fn wizard_size(available_width: f64, available_height: f64) -> (f64, f64) {
+    if !available_width.is_finite() || !available_height.is_finite() {
+        return (WIZARD_WIDTH, WIZARD_HEIGHT);
+    }
+    (
+        (available_width - WIZARD_MARGIN).clamp(WIZARD_MIN_WIDTH, WIZARD_WIDTH),
+        (available_height - WIZARD_MARGIN).clamp(WIZARD_MIN_HEIGHT, WIZARD_HEIGHT),
+    )
+}
+
+/// The assistant window size for a display of `available_width` x
+/// `available_height` (logical pixels). The configured 1200x800 does not fit a
+/// 1366x768 laptop once the panel and decorations are drawn, and a window
+/// taller than the screen hides the composer and the send button.
+fn fitted_size(available_width: f64, available_height: f64) -> (f64, f64) {
+    if !available_width.is_finite() || !available_height.is_finite() {
+        return (1200.0, 800.0);
+    }
+    (
+        1200.0_f64.min(available_width - 40.0).max(900.0),
+        800.0_f64.min(available_height - 80.0).max(560.0),
+    )
+}
+
 /// Creates the wizard window and keeps the main window hidden.
 pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window("wizard") {
@@ -24,18 +64,14 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    let mut width = 1040.0_f64;
-    let mut height = 700.0_f64;
+    let (mut width, mut height) = (WIZARD_WIDTH, WIZARD_HEIGHT);
     if let Ok(Some(monitor)) = app.primary_monitor() {
-        let scale = if monitor.scale_factor() > 0.0 {
-            monitor.scale_factor()
-        } else {
-            1.0
-        };
-        let available_width = f64::from(monitor.size().width) / scale;
-        let available_height = f64::from(monitor.size().height) / scale;
-        width = width.min(available_width - 80.0);
-        height = height.min(available_height - 80.0);
+        let (available_width, available_height) = logical_size(
+            monitor.size().width,
+            monitor.size().height,
+            monitor.scale_factor(),
+        );
+        (width, height) = wizard_size(available_width, available_height);
     }
 
     // In development the wizard is served by botui (devUrl). WebKit may cache
@@ -249,22 +285,55 @@ fn fit_to_screen(window: &tauri::WebviewWindow) {
             _ => return,
         },
     };
-    let scale = if monitor.scale_factor() > 0.0 {
-        monitor.scale_factor()
-    } else {
-        1.0
-    };
-    let available_width = f64::from(monitor.size().width) / scale;
-    let available_height = f64::from(monitor.size().height) / scale;
-    let width = 1200.0_f64.min(available_width - 40.0).max(900.0);
-    let height = 800.0_f64.min(available_height - 80.0).max(560.0);
-    if width <= 0.0 || height <= 0.0 {
-        return;
-    }
+    let (available_width, available_height) = logical_size(
+        monitor.size().width,
+        monitor.size().height,
+        monitor.scale_factor(),
+    );
+    let (width, height) = fitted_size(available_width, available_height);
     if let Err(e) = window.set_size(tauri::LogicalSize::new(width, height)) {
         warn!("could not fit the assistant window to the screen: {e}");
     }
     if let Err(e) = window.center() {
         warn!("could not centre the assistant window: {e}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{fitted_size, logical_size, wizard_size};
+
+    #[test]
+    fn physical_pixels_are_divided_by_the_scale_factor() {
+        assert_eq!(logical_size(1920, 1080, 2.0), (960.0, 540.0));
+        assert_eq!(logical_size(1920, 1080, 1.0), (1920.0, 1080.0));
+        // A zero or negative factor is not a usable scale; treat it as 1:1.
+        assert_eq!(logical_size(1920, 1080, 0.0), (1920.0, 1080.0));
+        assert_eq!(logical_size(1920, 1080, -1.0), (1920.0, 1080.0));
+    }
+
+    #[test]
+    fn the_wizard_keeps_its_design_size_on_a_large_display() {
+        assert_eq!(wizard_size(2560.0, 1440.0), (1040.0, 700.0));
+    }
+
+    #[test]
+    fn the_wizard_shrinks_to_leave_a_margin_but_never_below_the_minimum() {
+        // 1366x768: 80px margin leaves 1286x688, so only the height shrinks.
+        assert_eq!(wizard_size(1366.0, 768.0), (1040.0, 688.0));
+        // A tiny display keeps the minimum instead of a negative size.
+        assert_eq!(wizard_size(320.0, 240.0), (640.0, 480.0));
+        assert_eq!(wizard_size(0.0, 0.0), (640.0, 480.0));
+        assert_eq!(wizard_size(f64::NAN, 800.0), (1040.0, 700.0));
+    }
+
+    #[test]
+    fn the_assistant_window_fits_the_display() {
+        assert_eq!(fitted_size(3840.0, 2160.0), (1200.0, 800.0));
+        // 1366x768 laptop: the panel leaves 688 logical pixels of height.
+        assert_eq!(fitted_size(1366.0, 768.0), (1200.0, 688.0));
+        // 1024x600 netbook: both dimensions are clamped to the minimum.
+        assert_eq!(fitted_size(1024.0, 600.0), (984.0, 560.0));
+        assert_eq!(fitted_size(f64::NAN, f64::INFINITY), (1200.0, 800.0));
     }
 }

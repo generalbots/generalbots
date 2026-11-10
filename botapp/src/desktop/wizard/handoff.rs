@@ -14,6 +14,17 @@ fn write_admin_credentials(request: &FinishRequest) -> Result<(), String> {
     write_admin_credentials_draft(&request.admin)
 }
 
+/// Defaults the administrator user id to `local-{email}` when the wizard did
+/// not assign one.
+fn resolve_user_id(user_id: &str, email: &str) -> String {
+    let user_id = user_id.trim();
+    if user_id.is_empty() {
+        format!("local-{}", email.trim())
+    } else {
+        user_id.to_string()
+    }
+}
+
 /// Writes the administrator account from the wizard draft. The accounts step
 /// runs before Finish, so it saves the same file early and signs in with it.
 pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), String> {
@@ -22,11 +33,7 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     }
     let dir = stack_path().join("conf").join("directory");
     std::fs::create_dir_all(&dir).map_err(|e| format!("create directory config: {e}"))?;
-    let user_id = if admin.user_id.trim().is_empty() {
-        format!("local-{}", admin.email.trim())
-    } else {
-        admin.user_id.clone()
-    };
+    let user_id = resolve_user_id(&admin.user_id, &admin.email);
     let payload = serde_json::json!({
         "email": admin.email.trim(),
         "password": admin.password,
@@ -52,6 +59,45 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     Ok(())
 }
 
+/// The network mode persisted to the stack `.env`: only `p2p` is opt-in,
+/// anything else falls back to the offline default.
+fn network_mode(requested: &str) -> &'static str {
+    if requested == "p2p" {
+        "p2p"
+    } else {
+        "offline"
+    }
+}
+
+/// Sets `key=value` in a `.env` body, replacing an existing assignment in
+/// place and appending when the key is new.
+///
+/// The appended line is always preceded by a newline: concatenating it onto a
+/// file whose last line has no terminator would glue two assignments together.
+fn merge_env_line(existing: &str, key: &str, value: &str) -> String {
+    let new_line = format!("{key}={value}");
+    let prefix = format!("{key}=");
+    if existing.lines().any(|line| line.starts_with(&prefix)) {
+        let lines: Vec<&str> = existing
+            .lines()
+            .map(|line| {
+                if line.starts_with(&prefix) {
+                    new_line.as_str()
+                } else {
+                    line
+                }
+            })
+            .collect();
+        format!("{}\n", lines.join("\n"))
+    } else if existing.is_empty() {
+        format!("{new_line}\n")
+    } else if existing.ends_with('\n') {
+        format!("{existing}{new_line}\n")
+    } else {
+        format!("{existing}\n{new_line}\n")
+    }
+}
+
 /// Writes `GB_NETWORK_MODE=<mode>` to the stack `.env`, creating or updating
 /// the existing file. #1865 — this is the file botserver loads at boot
 /// (`{BOTSERVER_STACK_PATH}/.env`); the previous `conf/.env` path was never
@@ -60,26 +106,8 @@ fn write_network_mode(mode: &str) -> Result<(), String> {
     let dir = stack_path();
     std::fs::create_dir_all(&dir).map_err(|e| format!("create stack dir for .env: {e}"))?;
     let env_path = dir.join(".env");
-    let key = "GB_NETWORK_MODE";
-    let new_line = format!("{key}={mode}");
     let existing = std::fs::read_to_string(&env_path).unwrap_or_default();
-    let updated = if existing.lines().any(|l| l.starts_with(&format!("{key}="))) {
-        let lines: Vec<String> = existing
-            .lines()
-            .map(|l| {
-                if l.starts_with(&format!("{key}=")) {
-                    new_line.clone()
-                } else {
-                    l.to_string()
-                }
-            })
-            .collect();
-        lines.join("\n") + "\n"
-    } else if existing.is_empty() {
-        format!("{new_line}\n")
-    } else {
-        format!("{existing}{new_line}\n")
-    };
+    let updated = merge_env_line(&existing, "GB_NETWORK_MODE", mode);
     std::fs::write(&env_path, &updated)
         .map_err(|e| format!("write network mode to .env: {e}"))?;
     #[cfg(unix)]
@@ -102,7 +130,7 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
     write_admin_credentials(request)?;
 
     // Persist the network mode chosen on the wizard Network step.
-    let network_mode = if request.network.mode == "p2p" { "p2p" } else { "offline" };
+    let network_mode = network_mode(&request.network.mode);
     if let Err(e) = write_network_mode(network_mode) {
         warn!("wizard: could not persist network mode: {e}");
     }
@@ -126,4 +154,63 @@ pub fn handoff(app: &tauri::AppHandle, request: &FinishRequest) -> Result<(), St
     }
     info!("first-run wizard completed; suite handed off");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{merge_env_line, network_mode, resolve_user_id};
+
+    #[test]
+    fn only_p2p_is_an_opt_in_network_mode() {
+        assert_eq!(network_mode("p2p"), "p2p");
+        assert_eq!(network_mode("offline"), "offline");
+        // Anything unrecognised (empty, older drafts, typos) stays offline.
+        assert_eq!(network_mode(""), "offline");
+        assert_eq!(network_mode("P2P"), "offline");
+        assert_eq!(network_mode("online"), "offline");
+    }
+
+    #[test]
+    fn a_missing_env_file_gets_the_assignment() {
+        assert_eq!(
+            merge_env_line("", "GB_NETWORK_MODE", "p2p"),
+            "GB_NETWORK_MODE=p2p\n"
+        );
+    }
+
+    #[test]
+    fn an_existing_assignment_is_replaced_in_place() {
+        let updated = merge_env_line("A=1\nGB_NETWORK_MODE=offline\nB=2\n", "GB_NETWORK_MODE", "p2p");
+        assert_eq!(updated, "A=1\nGB_NETWORK_MODE=p2p\nB=2\n");
+    }
+
+    #[test]
+    fn a_new_key_is_appended_on_its_own_line() {
+        // The last line has no terminator: gluing the assignment onto it would
+        // produce a single unreadable `B=2GB_NETWORK_MODE=p2p` line.
+        let updated = merge_env_line("A=1\nB=2", "GB_NETWORK_MODE", "offline");
+        assert_eq!(updated, "A=1\nB=2\nGB_NETWORK_MODE=offline\n");
+        assert!(updated.lines().all(|line| line.contains('=')));
+        assert_eq!(updated.lines().count(), 3);
+    }
+
+    #[test]
+    fn a_terminated_file_is_appended_without_a_blank_line() {
+        let updated = merge_env_line("A=1\n", "GB_NETWORK_MODE", "p2p");
+        assert_eq!(updated, "A=1\nGB_NETWORK_MODE=p2p\n");
+    }
+
+    #[test]
+    fn a_prefixed_key_is_not_mistaken_for_the_same_key() {
+        let updated = merge_env_line("GB_NETWORK_MODE_OLD=1\n", "GB_NETWORK_MODE", "p2p");
+        assert_eq!(updated, "GB_NETWORK_MODE_OLD=1\nGB_NETWORK_MODE=p2p\n");
+    }
+
+    #[test]
+    fn the_administrator_id_defaults_to_the_email() {
+        assert_eq!(resolve_user_id("", " admin@example.com "), "local-admin@example.com");
+        assert_eq!(resolve_user_id("   ", "a@b.c"), "local-a@b.c");
+        assert_eq!(resolve_user_id(" 42 ", "a@b.c"), "42");
+        assert_eq!(resolve_user_id("local-x@y.z", "a@b.c"), "local-x@y.z");
+    }
 }

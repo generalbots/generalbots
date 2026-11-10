@@ -11,6 +11,12 @@
  *   close()                                     — close it
  */
 (function (window) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   var CSS_ID = "gb-collab-share-css";
   var overlay = null;
   var state = { resourceType: null, resourceId: null, title: "Share" };
@@ -74,6 +80,10 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
+  function roleLabel(role) {
+    return T("role-" + role, role);
+  }
+
   function token() {
     try {
       return localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
@@ -88,7 +98,8 @@
       .then(function (res) {
         return res.json().catch(function () { return { error: res.statusText }; })
           .then(function (body) {
-            if (!res.ok) throw new Error(body.error || "Request failed (" + res.status + ")");
+            if (!res.ok) throw new Error(body.error ||
+              T("share-request-failed", "Request failed (" + res.status + ")", { status: res.status }));
             return body;
           });
       });
@@ -148,13 +159,16 @@
     }
     box.style.display = "block";
     box.innerHTML =
-      "<strong>Shared links are not reachable yet</strong>" +
-      "This installation is only reachable on localhost, so a link here opens nowhere. " +
-      "Set up one of these first: enable <b>P2P</b> in Settings → Network, or point " +
-      "<b>Shared Links</b> at your own domain." +
+      "<strong>" + esc(T("share-warning-title", "Shared links are not reachable yet")) + "</strong>" +
+      esc(T("share-warning-body",
+        "This installation is only reachable on localhost, so a link here opens nowhere. " +
+        "Set up one of these first: enable P2P in Settings → Network, or point " +
+        "Shared Links at your own domain.")) +
       '<div class="gbs-warning-actions">' +
-      '<button type="button" data-settings="shared-links">Open Shared Links</button>' +
-      '<button type="button" data-settings="network">Open Network</button>' +
+      '<button type="button" data-settings="shared-links">' +
+      esc(T("share-open-shared-links", "Open Shared Links")) + "</button>" +
+      '<button type="button" data-settings="network">' +
+      esc(T("share-open-network", "Open Network")) + "</button>" +
       "</div>";
     box.querySelectorAll("[data-settings]").forEach(function (btn) {
       btn.addEventListener("click", openSettings);
@@ -167,38 +181,42 @@
     overlay = document.createElement("div");
     overlay.id = "gb-share-overlay";
     overlay.innerHTML =
-      '<div id="gb-share-dialog" role="dialog" aria-modal="true" aria-label="Share">' +
+      '<div id="gb-share-dialog" role="dialog" aria-modal="true" aria-label="' +
+        esc(T("action-share", "Share")) + '">' +
         '<div class="gbs-header">' +
-          '<span class="gbs-title">Share</span>' +
-          '<button class="gbs-close" title="Close">×</button>' +
+          '<span class="gbs-title">' + esc(T("action-share", "Share")) + '</span>' +
+          '<button class="gbs-close" title="' + esc(T("action-close", "Close")) + '">×</button>' +
         '</div>' +
         '<div class="gbs-body">' +
           '<div class="gbs-warning" id="gbs-config-warning" role="status"></div>' +
-          '<div class="gbs-section">Invite people</div>' +
+          '<div class="gbs-section">' + esc(T("share-invite-people", "Invite people")) + '</div>' +
           '<div class="gbs-row">' +
             '<input id="gbs-email" type="email" placeholder="name@example.com" />' +
             '<select id="gbs-role">' +
-              '<option value="editor">Editor</option>' +
-              '<option value="commenter">Commenter</option>' +
-              '<option value="viewer">Viewer</option>' +
+              '<option value="editor">' + esc(roleLabel("editor")) + '</option>' +
+              '<option value="commenter">' + esc(roleLabel("commenter")) + '</option>' +
+              '<option value="viewer">' + esc(roleLabel("viewer")) + '</option>' +
             '</select>' +
-            '<button class="gbs-btn" id="gbs-add">Add</button>' +
+            '<button class="gbs-btn" id="gbs-add">' + esc(T("action-add", "Add")) + '</button>' +
           '</div>' +
           '<div id="gbs-list"></div>' +
-          '<div class="gbs-section">Anyone with the link</div>' +
+          '<div class="gbs-section">' + esc(T("share-anyone-with-link", "Anyone with the link")) + '</div>' +
           '<div class="gbs-row">' +
             '<select id="gbs-link-role">' +
-              '<option value="viewer">Viewer</option>' +
-              '<option value="commenter">Commenter</option>' +
-              '<option value="editor">Editor</option>' +
+              '<option value="viewer">' + esc(roleLabel("viewer")) + '</option>' +
+              '<option value="commenter">' + esc(roleLabel("commenter")) + '</option>' +
+              '<option value="editor">' + esc(roleLabel("editor")) + '</option>' +
             '</select>' +
-            '<button class="gbs-btn gbs-ghost" id="gbs-create-link">Create link</button>' +
+            '<button class="gbs-btn gbs-ghost" id="gbs-create-link">' +
+              esc(T("share-create-link", "Create link")) + '</button>' +
           '</div>' +
           '<div id="gbs-links"></div>' +
-          '<div class="gbs-section">Transfer ownership</div>' +
+          '<div class="gbs-section">' + esc(T("share-transfer-ownership", "Transfer ownership")) + '</div>' +
           '<div class="gbs-row">' +
-            '<input id="gbs-new-owner" type="email" placeholder="new owner email" />' +
-            '<button class="gbs-btn gbs-ghost" id="gbs-transfer">Transfer</button>' +
+            '<input id="gbs-new-owner" type="email" placeholder="' +
+              esc(T("share-new-owner-placeholder", "new owner email")) + '" />' +
+            '<button class="gbs-btn gbs-ghost" id="gbs-transfer">' +
+              esc(T("share-transfer", "Transfer")) + '</button>' +
           '</div>' +
           '<div class="gbs-error" id="gbs-error" style="display:none;"></div>' +
         '</div>' +
@@ -230,11 +248,14 @@
           var isOwner = g.role === "owner";
           return '<div class="gbs-item">' +
             '<span class="gbs-item-name">' + esc(g.grantee_id) + '</span>' +
-            '<span class="gbs-item-role">' + esc(g.role) + (isOwner ? " · owner" : "") + '</span>' +
+            '<span class="gbs-item-role">' + esc(roleLabel(g.role)) +
+              (isOwner ? esc(T("share-owner-suffix", " · owner")) : "") + '</span>' +
             (isOwner ? "" : '<button class="gbs-item-remove" data-gtype="' + esc(g.grantee_type) +
-              '" data-gid="' + esc(g.grantee_id) + '" title="Remove">×</button>') +
+              '" data-gid="' + esc(g.grantee_id) + '" title="' +
+              esc(T("action-remove", "Remove")) + '">×</button>') +
             '</div>';
-        }).join("") || '<div class="gbs-hint">No people added yet.</div>';
+        }).join("") || '<div class="gbs-hint">' +
+          esc(T("share-no-people", "No people added yet.")) + '</div>';
         list.querySelectorAll(".gbs-item-remove").forEach(function (btn) {
           btn.addEventListener("click", function () {
             revoke(btn.getAttribute("data-gtype"), btn.getAttribute("data-gid"));
@@ -253,15 +274,18 @@
             encodeURIComponent(state.resourceId) + "?link=" + l.token;
           return '<div class="gbs-link">' +
             '<span class="gbs-link-text">' + esc(url) + '</span>' +
-            '<button class="gbs-btn gbs-ghost" data-copy="' + esc(url) + '">Copy</button>' +
-            '<button class="gbs-item-remove" data-revoke="' + esc(l.token) + '" title="Revoke">×</button>' +
+            '<button class="gbs-btn gbs-ghost" data-copy="' + esc(url) + '">' +
+              esc(T("action-copy", "Copy")) + '</button>' +
+            '<button class="gbs-item-remove" data-revoke="' + esc(l.token) + '" title="' +
+              esc(T("share-revoke", "Revoke")) + '">×</button>' +
             '</div>';
-        }).join("") || '<div class="gbs-hint">No public link yet.</div>';
+        }).join("") || '<div class="gbs-hint">' +
+          esc(T("share-no-links", "No public link yet.")) + '</div>';
         list.querySelectorAll("[data-copy]").forEach(function (btn) {
           btn.addEventListener("click", function () {
             try {
               navigator.clipboard.writeText(btn.getAttribute("data-copy"));
-              btn.textContent = "Copied";
+              btn.textContent = T("share-copied", "Copied");
             } catch (_) {}
           });
         });
@@ -275,7 +299,7 @@
   function addGrant() {
     var email = document.getElementById("gbs-email").value.trim();
     var role = document.getElementById("gbs-role").value;
-    if (!email) { err("Enter an email"); return; }
+    if (!email) { err(T("share-enter-email", "Enter an email")); return; }
     api("/api/collab/permissions", {
       method: "POST",
       body: JSON.stringify({
@@ -311,7 +335,8 @@
     var cfg = sharingConfig();
     if (!cfg.viable) {
       renderSharingWarning();
-      err("Set up P2P or your own domain before creating a shared link.");
+      err(T("share-needs-base",
+        "Set up P2P or your own domain before creating a shared link."));
       return;
     }
     var role = document.getElementById("gbs-link-role").value;
@@ -335,7 +360,7 @@
 
   function transfer() {
     var email = document.getElementById("gbs-new-owner").value.trim();
-    if (!email) { err("Enter the new owner's email"); return; }
+    if (!email) { err(T("share-enter-new-owner", "Enter the new owner's email")); return; }
     api("/api/collab/permissions/transfer", {
       method: "POST",
       body: JSON.stringify({
@@ -354,7 +379,7 @@
   function open(opts) {
     state.resourceType = opts.resourceType;
     state.resourceId = opts.resourceId;
-    state.title = opts.title || "Share";
+    state.title = opts.title || T("action-share", "Share");
     var ov = build();
     ov.querySelector(".gbs-title").textContent = state.title;
     ov.classList.add("gbs-open");

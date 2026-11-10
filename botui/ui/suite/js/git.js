@@ -1,3 +1,9 @@
+// #2095 — user-visible strings resolve through the shared catalogue
+// (window.gbT) with the authored English text as fallback.
+function gbt(key, fallback, params) {
+  return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
+
 const botCoderGit = {
     status: [],
     branches: [],
@@ -10,7 +16,10 @@ const botCoderGit = {
     refreshStatus: async function() {
         try {
             const list = document.getElementById('gitChangesList');
-            if (list) list.innerHTML = '<div class="botcoder-loading">Loading status...</div>';
+            if (list) {
+                list.innerHTML = '<div class="botcoder-loading">' +
+                    gbt("git-loading-status", "Loading status...") + '</div>';
+            }
 
             const resp = await fetch('/api/git/status');
             if (resp.ok) {
@@ -40,7 +49,8 @@ const botCoderGit = {
         count.textContent = this.status.length;
 
         if (this.status.length === 0) {
-            list.innerHTML = '<div class="botcoder-empty">No changes</div>';
+            list.innerHTML = '<div class="botcoder-empty">' +
+                gbt("git-no-changes", "No changes") + '</div>';
             return;
         }
 
@@ -77,7 +87,7 @@ const botCoderGit = {
     },
 
     newBranch: async function() {
-        const name = prompt("New branch name:");
+        const name = prompt(gbt("git-new-branch-prompt", "New branch name:"));
         if (name) {
             await fetch(`/api/git/branch/${name}`, { method: 'POST' });
             this.refreshBranches();
@@ -96,7 +106,8 @@ const botCoderGit = {
         const viewer = document.getElementById('gitDiffViewer');
         if (!viewer) return;
 
-        viewer.innerHTML = '<div class="botcoder-loading">Loading diff...</div>';
+        viewer.innerHTML = '<div class="botcoder-loading">' +
+            gbt("git-loading-diff", "Loading diff...") + '</div>';
         
         try {
             const resp = await fetch(`/api/git/diff/${encodeURIComponent(file)}`);
@@ -107,7 +118,8 @@ const botCoderGit = {
                 viewer.innerHTML = `<pre class="git-diff-pre"><code>--- a/${file}\n+++ b/${file}\n@@ -1,3 +1,4 @@\n // Sample diff\n+ // Added line\n- // Removed line</code></pre>`;
             }
         } catch (e) {
-            viewer.innerHTML = '<div class="botcoder-error">Failed to load diff</div>';
+            viewer.innerHTML = '<div class="botcoder-error">' +
+                gbt("git-diff-failed", "Failed to load diff") + '</div>';
         }
     },
 
@@ -116,14 +128,14 @@ const botCoderGit = {
         const msg = msgInput ? msgInput.value.trim() : '';
 
         if (!msg) {
-            alert('Please enter a commit message');
+            alert(gbt("git-commit-message-required", "Please enter a commit message"));
             return;
         }
 
         try {
             const btn = document.querySelector('.botcoder-btn-primary');
             const originalText = btn.textContent;
-            btn.textContent = 'Pushing...';
+            btn.textContent = gbt("git-pushing", "Pushing...");
             btn.disabled = true;
 
             await fetch('/api/git/commit', {
@@ -139,10 +151,10 @@ const botCoderGit = {
             
             if (msgInput) msgInput.value = '';
             this.refreshStatus();
-            alert('Committed and pushed successfully');
+            alert(gbt("git-committed", "Committed and pushed successfully"));
             
         } catch (e) {
-            alert('Git operation failed');
+            alert(gbt("git-failed", "Git operation failed"));
         }
     }
 };

@@ -125,3 +125,5 @@ notification-filter-mentions = 언급
 notification-filter-tasks = 작업
 notification-filter-messages = 메시지
 notification-filter-system = 시스템
+
+notification-digest-subject = General Bots 주간 요약

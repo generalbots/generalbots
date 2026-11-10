@@ -12,6 +12,17 @@
 window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
 (function (mod) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   var STORAGE_KEY = "gb-desktops";
   var state = { desktops: [], current: 0 };
   var strip = null;
@@ -30,7 +41,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
         return;
       }
     } catch (e) { /* fall through */ }
-    state.desktops = [{ id: "desk-1", name: "Desktop 1" }];
+    state.desktops = [{ id: "desk-1", name: T("vdesk-default-name", "Desktop 1", { n: 1 }) }];
     state.current = 0;
   }
 
@@ -145,7 +156,11 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
   function addDesktop(name) {
     var n = state.desktops.length + 1;
-    state.desktops.push({ id: "desk-" + Date.now(), name: name || ("Desktop " + n), windows: [] });
+    state.desktops.push({
+      id: "desk-" + Date.now(),
+      name: name || T("vdesk-default-name", "Desktop " + n, { n: n }),
+      windows: [],
+    });
     state.current = state.desktops.length - 1;
     persist();
     applyVisibility();
@@ -190,8 +205,11 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
   function renderStrip() {
     if (!strip) return;
     strip.innerHTML =
-      '<div class="gb-desktops-strip-title">Virtual Desktops</div>' +
-      '<div class="gb-desktops-strip-add" title="New desktop">+ New desktop</div>' +
+      '<div class="gb-desktops-strip-title">' +
+        esc(T("vdesk-title", "Virtual Desktops")) + '</div>' +
+      '<div class="gb-desktops-strip-add" title="' +
+        esc(T("vdesk-new", "New desktop")) + '">+ ' +
+        esc(T("vdesk-new", "New desktop")) + '</div>' +
       '<div class="gb-desktops-strip-list"></div>';
     var list = strip.querySelector(".gb-desktops-strip-list");
     state.desktops.forEach(function (d, i) {
@@ -199,7 +217,8 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
       item.className = "gb-desktop-chip" + (i === state.current ? " active" : "");
       item.innerHTML =
         '<span class="gb-desktop-chip-name"></span>' +
-        '<span class="gb-desktop-chip-x" title="Remove">\u00d7</span>';
+        '<span class="gb-desktop-chip-x" title="' +
+          esc(T("action-remove", "Remove")) + '">\u00d7</span>';
       item.querySelector(".gb-desktop-chip-name").textContent = d.name;
       item.querySelector(".gb-desktop-chip-name").addEventListener("dblclick", function () {
         var doRename = function (name) {
@@ -207,9 +226,15 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
           renderStrip();
         };
         if (window.WindowManager && window.WindowManager.promptFloating) {
-          window.WindowManager.promptFloating("Rename desktop", "Desktop name:", d.name, doRename);
+          window.WindowManager.promptFloating(
+            T("vdesk-rename-title", "Rename desktop"),
+            T("vdesk-name-prompt", "Desktop name:"),
+            d.name,
+            doRename
+          );
         } else {
-          doRename((window.GBModal||{prompt:prompt}).prompt("Desktop name:", d.name));
+          doRename((window.GBModal || { prompt: prompt }).prompt(
+            T("vdesk-name-prompt", "Desktop name:"), d.name));
         }
       });
       item.addEventListener("click", function (e) {
@@ -290,13 +315,16 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
     };
     if (window.WindowManager && window.WindowManager.confirmFloating) {
       window.WindowManager.confirmFloating(
-        "Restore session",
-        "Reopen the " + ids.length + " window(s) from your last session on this desktop?",
+        T("vdesk-restore-title", "Restore session"),
+        T("vdesk-restore-body",
+          "Reopen the " + ids.length + " window(s) from your last session on this desktop?",
+          { count: ids.length }),
         doRestore,
         null,
-        "Restore"
+        T("action-restore", "Restore")
       );
-    } else if ((window.GBModal||{confirm:confirm}).confirm("Restore your last session (" + ids.length + " window(s))?")) {
+    } else if ((window.GBModal || { confirm: confirm }).confirm(T("vdesk-restore-body-short",
+      "Restore your last session (" + ids.length + " window(s))?", { count: ids.length }))) {
       doRestore();
     }
   }

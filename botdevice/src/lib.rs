@@ -1,3 +1,5 @@
+mod error_codes;
+
 #[cfg(target_os = "android")]
 fn init_logger() {
     android_logger::init_once(
@@ -30,9 +32,12 @@ async fn send_to_bot(message: String, server_url: String) -> Result<String, Stri
         .json(&serde_json::json!({ "text": message }))
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| error_codes::text(error_codes::SEND_NETWORK, &[("error", &e.to_string())]))?;
 
-    response.text().await.map_err(|e| e.to_string())
+    response
+        .text()
+        .await
+        .map_err(|e| error_codes::text(error_codes::SEND_RESPONSE, &[("error", &e.to_string())]))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

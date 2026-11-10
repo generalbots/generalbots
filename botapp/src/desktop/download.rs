@@ -8,6 +8,7 @@
 
 use std::path::PathBuf;
 
+use super::i18n;
 use tauri_plugin_dialog::DialogExt;
 
 /// Upper bound for one download. Office documents and conversation archives
@@ -53,47 +54,47 @@ pub async fn save_download(
     let payload = match (url, bytes) {
         (Some(url), None) => {
             let parsed = reqwest::Url::parse(url.trim())
-                .map_err(|e| format!("invalid download URL: {e}"))?;
+                .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?;
             if !matches!(parsed.scheme(), "http" | "https") {
-                return Err("only http(s) downloads are supported".to_string());
+                return Err(i18n::t("download-unsupported-scheme"));
             }
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(120))
                 .build()
-                .map_err(|e| format!("HTTP client: {e}"))?;
+                .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?;
             let response = client
                 .get(parsed)
                 .send()
                 .await
-                .map_err(|e| format!("download failed: {e}"))?;
+                .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?;
             let status = response.status();
             if !status.is_success() {
-                return Err(format!("download failed: HTTP {status}"));
+                return Err(i18n::t_args("download-failed", &[("error", &format!("HTTP {status}"))]));
             }
             if let Some(length) = response.content_length() {
                 if length > MAX_DOWNLOAD_BYTES as u64 {
-                    return Err("the file is too large to save".to_string());
+                    return Err(i18n::t("download-too-large"));
                 }
             }
             response
                 .bytes()
                 .await
-                .map_err(|e| format!("download failed: {e}"))?
+                .map_err(|e| i18n::t_args("download-failed", &[("error", &e.to_string())]))?
                 .to_vec()
         }
         (None, Some(bytes)) => {
             if bytes.len() > MAX_DOWNLOAD_BYTES {
-                return Err("the file is too large to save".to_string());
+                return Err(i18n::t("download-too-large"));
             }
             bytes
         }
-        _ => return Err("provide either a download URL or the file bytes".to_string()),
+        _ => return Err(i18n::t("download-provide-source")),
     };
 
     let Some(target) = app
         .dialog()
         .file()
-        .set_title("Save file")
+        .set_title(i18n::t("dialog-save-file"))
         .set_file_name(safe_file_name(&file_name))
         .blocking_save_file()
     else {
@@ -101,9 +102,14 @@ pub async fn save_download(
     };
     let path: PathBuf = target
         .into_path()
-        .map_err(|e| format!("invalid destination: {e}"))?;
+        .map_err(|e| i18n::t_args("download-invalid-destination", &[("error", &e.to_string())]))?;
     tokio::fs::write(&path, payload)
         .await
-        .map_err(|e| format!("could not write {}: {e}", path.display()))?;
+        .map_err(|e| {
+            i18n::t_args(
+                "download-write-failed",
+                &[("path", &path.display().to_string()), ("error", &e.to_string())],
+            )
+        })?;
     Ok(Some(path.to_string_lossy().to_string()))
 }

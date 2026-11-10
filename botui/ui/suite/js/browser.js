@@ -1,4 +1,10 @@
 let currentSessionId = null;
+// #2095 — user-visible strings resolve through the shared catalogue
+// (window.gbT) with the authored English text as fallback.
+function gbt(key, fallback, params) {
+  return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
+
 let isRecording = false;
 let recordedActions = [];
 
@@ -20,10 +26,10 @@ async function initBrowser() {
         currentSessionId = data.id;
         document.getElementById('browserCanvas').innerHTML = `
             <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color: var(--text-muted);">
-                Browser session ${currentSessionId.substring(0,8)} active.
+                ${gbt("browser-session-active", "Browser session " + currentSessionId.substring(0,8) + " active.", { id: currentSessionId.substring(0,8) })}
             </div>`;
     } catch(e) {
-        alert("Failed to initialize browser");
+        alert(gbt("browser-init-failed", "Failed to initialize browser"));
     }
 }
 
@@ -44,7 +50,7 @@ async function executeAction(actionType, payload) {
 
 async function toggleRecording() {
     if (!currentSessionId) {
-        alert("Please initialize browser first");
+        alert(gbt("browser-init-first", "Please initialize browser first"));
         return;
     }
 
@@ -103,14 +109,15 @@ async function captureScreenshot() {
         // We'd render this to the gallery
         const gallery = document.getElementById('browserGallery');
         if (gallery) {
-            gallery.innerHTML = '<div class="screenshot-thumb">Capture</div>' + gallery.innerHTML;
+            gallery.innerHTML = '<div class="screenshot-thumb">' +
+                gbt("browser-capture", "Capture") + '</div>' + gallery.innerHTML;
         }
     } catch(e) {}
 }
 
 async function exportTest() {
     if (!currentSessionId) {
-        alert("No active session");
+        alert(gbt("browser-no-session", "No active session"));
         return;
     }
     try {
@@ -124,7 +131,7 @@ async function exportTest() {
         a.download = `test-${Date.now()}.spec.js`;
         a.click();
     } catch(e) {
-        alert("Export failed");
+        alert(gbt("browser-export-failed", "Export failed"));
     }
 }
 
@@ -133,7 +140,8 @@ function updateTimeline() {
     if (!timeline) return;
     
     if (recordedActions.length === 0) {
-        timeline.innerHTML = '<div class="botcoder-empty">No actions recorded</div>';
+        timeline.innerHTML = '<div class="botcoder-empty">' +
+            gbt("browser-no-actions", "No actions recorded") + '</div>';
         return;
     }
 

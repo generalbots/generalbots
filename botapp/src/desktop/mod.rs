@@ -2,6 +2,7 @@
 pub mod activity;
 pub mod download;
 pub mod drive;
+pub mod i18n;
 pub mod payload;
 pub mod safe_command;
 #[cfg(feature = "desktop-local")]

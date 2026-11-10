@@ -107,14 +107,14 @@ impl TrayManager {
             );
 
             let new_chat =
-                match MenuItem::with_id(app, menu::NEW_CHAT_ID, "New Chat", true, None::<&str>) {
+                match MenuItem::with_id(app, menu::NEW_CHAT_ID, crate::desktop::i18n::t("tray-new-chat"), true, None::<&str>) {
                     Ok(item) => item,
                     Err(e) => {
                         log::error!("Failed to create tray New Chat item: {e}");
                         return;
                     }
                 };
-            let files = match MenuItem::with_id(app, menu::FILES_ID, "Files", true, None::<&str>) {
+            let files = match MenuItem::with_id(app, menu::FILES_ID, crate::desktop::i18n::t("tray-files"), true, None::<&str>) {
                 Ok(item) => item,
                 Err(e) => {
                     log::error!("Failed to create tray Files item: {e}");
@@ -122,7 +122,7 @@ impl TrayManager {
                 }
             };
             let drive_sync =
-                match MenuItem::with_id(app, menu::SYNC_ID, "Drive Sync…", true, None::<&str>) {
+                match MenuItem::with_id(app, menu::SYNC_ID, crate::desktop::i18n::t("tray-drive-sync"), true, None::<&str>) {
                     Ok(item) => item,
                     Err(e) => {
                         log::error!("Failed to create tray Drive Sync item: {e}");
@@ -130,21 +130,21 @@ impl TrayManager {
                     }
                 };
             let settings =
-                match MenuItem::with_id(app, menu::SETTINGS_ID, "Settings", true, None::<&str>) {
+                match MenuItem::with_id(app, menu::SETTINGS_ID, crate::desktop::i18n::t("tray-settings"), true, None::<&str>) {
                     Ok(item) => item,
                     Err(e) => {
                         log::error!("Failed to create tray Settings item: {e}");
                         return;
                     }
                 };
-            let about = match MenuItem::with_id(app, menu::ABOUT_ID, "About", true, None::<&str>) {
+            let about = match MenuItem::with_id(app, menu::ABOUT_ID, crate::desktop::i18n::t("tray-about"), true, None::<&str>) {
                 Ok(item) => item,
                 Err(e) => {
                     log::error!("Failed to create tray About item: {e}");
                     return;
                 }
             };
-            let quit = match MenuItem::with_id(app, menu::QUIT_ID, "Quit", true, None::<&str>) {
+            let quit = match MenuItem::with_id(app, menu::QUIT_ID, crate::desktop::i18n::t("tray-quit"), true, None::<&str>) {
                 Ok(item) => item,
                 Err(e) => {
                     log::error!("Failed to create tray Quit item: {e}");
@@ -193,7 +193,7 @@ impl TrayManager {
 
             let tray_builder = TrayIconBuilder::with_id("main")
                 .menu(&tray_menu)
-                .tooltip("General Bots")
+                .tooltip(crate::desktop::i18n::t("tray-tooltip"))
                 .icon(icon)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {

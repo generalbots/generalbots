@@ -184,3 +184,12 @@ channel-error-webhook = Webhook 検証に失敗しました
 channel-error-permission = 権限が不十分です
 channel-error-not-found = チャンネルが見つかりません
 channel-error-already-exists = チャネルはすでに構成されています
+
+channel-reply-processing-failed = 申し訳ありません。メッセージの処理中にエラーが発生しました。もう一度お試しください。
+channel-telegram-photo-received = [写真を受信しました]
+channel-telegram-document-received = [ドキュメントを受信しました]
+channel-telegram-voice-received = [ボイスメッセージを受信しました]
+channel-telegram-audio-received = [音声を受信しました]
+channel-telegram-video-received = [動画を受信しました]
+channel-telegram-location-received = [位置情報: { $latitude }, { $longitude }]
+channel-telegram-contact-received = [連絡先: { $name } { $phone }]

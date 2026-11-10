@@ -183,6 +183,69 @@ sync through the `localeChanged` listener.
 
 ---
 
+## The desktop shell: suite JS, tray, splash and native dialogs
+
+The desktop edition has two translation layers, and which one applies depends on
+**where the string is painted**.
+
+| Surface | Painted by | Catalogue |
+|---------|-----------|-----------|
+| Suite apps, window chrome, toasts, dialogs built in JS | the webview (HTML/JS) | `botlib/locales/<locale>/*.ftl` via `window.gbT` |
+| Tray menu, splash status line, native Save dialog, setup errors | the OS (Rust, `botapp`) | `botapp/i18n/<locale>.json` |
+| Setup wizard *content* | the webview (`botui/ui/wizard/`) | `botui/ui/wizard/i18n/<locale>.js` (8 dictionaries) |
+
+### Suite JS: always go through `window.gbT`
+
+A shared module never hardcodes a user-visible literal — it calls the alias with
+the authored English text as the fallback, so a missing catalogue entry still
+renders a sentence instead of a raw key:
+
+```javascript
+function T(key, fallback, params) {
+  return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
+
+btn.textContent = T("share-create-link", "Create link");
+```
+
+Keys are kebab-case and prefixed by the surface (`share-`, `activity-`,
+`versions-`, `comments-`, `snap-`, `vdesk-`, `dataexport-`, …); generic verbs
+reuse the shared `action-*` family (`action-close`, `action-copy`,
+`action-restore`) so one translation covers every app. New keys go in
+`botlib/locales/en/desktop.ftl` plus the matching `pt-BR`/`es` files — the
+catalogue is merged per locale, so the file name only groups entries.
+
+### Native strings: `botapp/i18n/*.json`
+
+`botapp` cannot reach the Fluent catalogue (it renders before the webview and
+outside its origin), so `botapp/src/desktop/i18n.rs` embeds one small JSON file
+per locale with `include_str!` — no i18n crate, no runtime file lookup:
+
+```rust
+i18n::t("tray-new-chat")                                    // "New Chat"
+i18n::t_args("download-failed", &[("error", &e.to_string())])
+```
+
+Resolution is `GB_LOCALE` (the app override, same value as `gb-locale`) →
+`LC_ALL` → `LANG` → `en`; regional tags are normalised (`pt_BR.UTF-8` →
+`pt-BR`) and a missing key falls back to English per key. Adding a locale is
+copying `botapp/i18n/en.json`, translating the values, and listing the file in
+`CATALOGUES` — the `every_key_exists_in_every_catalogue` test fails on a gap.
+
+Bundle metadata (`productName`, window titles, the installer
+`shortDescription`/`longDescription`) is **not** translatable: one build carries
+one value, so it stays in the brand language.
+
+### Content that is not UI
+
+Bot prompts (`PROMPT-<CHANNEL>.md`), template `start.bas` suggestions and skill
+instructions are content, not chrome: the prompt carries the language contract
+("answer in the user's language") and the model does the translating at answer
+time. See [What is deliberately not localized](./README.md#what-is-deliberately-not-localized-yet)
+and `bottemplates/README.md`.
+
+---
+
 ## See also
 
 - [Localization (i18n)](./README.md) — catalogue and tooling

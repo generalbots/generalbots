@@ -4,12 +4,14 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
 mod bootlog;
+mod paths;
 mod probe;
 
-use bootlog::{file_inode, write_boot_banner};
+use bootlog::{file_inode, log_was_recreated, write_boot_banner};
 use probe::{
-    api_is_answering, clear_pid, pid_is_alive, pid_looks_like_botserver, port_is_open, record_pid,
-    recorded_pid, terminate_pid, API_PRODUCT_URL, SIDECAR_PORT,
+    api_is_answering, clear_pid, decide_start, pid_is_alive, pid_looks_like_botserver,
+    port_is_open, record_pid, recorded_pid, terminate_pid, StartDecision, API_PRODUCT_URL,
+    SIDECAR_PORT,
 };
 
 /// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
@@ -51,35 +53,17 @@ impl Sidecar {
     }
 
     pub(crate) fn botserver_path() -> PathBuf {
-        if let Ok(p) = std::env::var("BOTSERVER_BIN") {
-            return PathBuf::from(p);
-        }
-
-        let exe = std::env::current_exe().unwrap_or_default();
-        let dir = exe.parent().unwrap_or_else(|| std::path::Path::new("."));
-
-        #[cfg(target_os = "windows")]
-        let name = "botserver.exe";
-        #[cfg(not(target_os = "windows"))]
-        let name = "botserver";
-
-        let beside = dir.join(name);
-        if beside.exists() {
-            return beside;
-        }
-        // #1633 — the self-extracting build has no sibling binary: the payload
-        // extracted botserver into the per-user stack.
-        Self::stack_path().join(name)
+        let explicit = std::env::var("BOTSERVER_BIN").ok();
+        let beside = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|dir| dir.join(paths::BINARY_NAME)))
+            .filter(|path| path.exists());
+        paths::resolve_binary(explicit.as_deref(), beside, &Self::stack_path())
     }
 
     pub(crate) fn stack_path() -> PathBuf {
-        if let Ok(p) = std::env::var("BOTSERVER_STACK_PATH") {
-            return PathBuf::from(p);
-        }
-        dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("generalbots")
-            .join("stack")
+        let explicit = std::env::var("BOTSERVER_STACK_PATH").ok();
+        paths::resolve_stack(explicit.as_deref(), dirs::data_local_dir())
     }
 
     #[cfg(target_os = "windows")]
@@ -123,19 +107,25 @@ impl Sidecar {
         // startup sidecar and the wizard's `start_assistant`), and a sidecar
         // from a previous app run can still own port 8080. Attach in every one
         // of those cases instead of booting a duplicate assistant.
-        if self.is_running() {
-            info!("botserver sidecar is already running; reusing the live process");
-            return Ok(());
-        }
-        if api_is_answering() {
-            info!("an assistant is already serving {API_PRODUCT_URL}; attaching to it");
-            return Ok(());
-        }
-        if port_is_open() {
-            info!(
-                "port {SIDECAR_PORT} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
-            );
-            return Ok(());
+        let child_running = self.is_running();
+        let api_answering = !child_running && api_is_answering();
+        let port_open = !child_running && !api_answering && port_is_open();
+        match decide_start(child_running, api_answering, port_open) {
+            StartDecision::ReuseChild => {
+                info!("botserver sidecar is already running; reusing the live process");
+                return Ok(());
+            }
+            StartDecision::AttachApi => {
+                info!("an assistant is already serving {API_PRODUCT_URL}; attaching to it");
+                return Ok(());
+            }
+            StartDecision::AttachPort => {
+                info!(
+                    "port {SIDECAR_PORT} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
+                );
+                return Ok(());
+            }
+            StartDecision::Spawn => {}
         }
 
         let path = Self::botserver_path();
@@ -300,13 +290,11 @@ impl Sidecar {
         // line from this sidecar is lost in an unlinked file. Say so loudly;
         // the launcher keeps a stable inode by opening in append mode, so a
         // mismatch is a real bug rather than a normal rotation.
-        if let (Some(before), Some(after)) = (opened_inode, file_inode(&log_path)) {
-            if before != after {
-                warn!(
-                    "sidecar log {} was re-created after the sidecar opened it — output is going to an orphaned file; never truncate this path while the sidecar runs",
-                    log_path.display()
-                );
-            }
+        if log_was_recreated(opened_inode, file_inode(&log_path)) {
+            warn!(
+                "sidecar log {} was re-created after the sidecar opened it — output is going to an orphaned file; never truncate this path while the sidecar runs",
+                log_path.display()
+            );
         }
         let pid = child.id();
         match self.inner.child.lock() {

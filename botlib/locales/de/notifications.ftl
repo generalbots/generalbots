@@ -125,3 +125,5 @@ notification-filter-mentions = Erwähnungen
 notification-filter-tasks = Aufgaben
 notification-filter-messages = Nachrichten
 notification-filter-system = System
+
+notification-digest-subject = Ihre wöchentliche General-Bots-Zusammenfassung

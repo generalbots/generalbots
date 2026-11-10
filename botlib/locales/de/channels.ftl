@@ -184,3 +184,12 @@ channel-error-webhook = Die Webhook-Überprüfung ist fehlgeschlagen
 channel-error-permission = Unzureichende Berechtigungen
 channel-error-not-found = Kanal nicht gefunden
 channel-error-already-exists = Kanal bereits konfiguriert
+
+channel-reply-processing-failed = Entschuldigung, bei der Verarbeitung Ihrer Nachricht ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.
+channel-telegram-photo-received = [Foto erhalten]
+channel-telegram-document-received = [Dokument erhalten]
+channel-telegram-voice-received = [Sprachnachricht erhalten]
+channel-telegram-audio-received = [Audio erhalten]
+channel-telegram-video-received = [Video erhalten]
+channel-telegram-location-received = [Standort: { $latitude }, { $longitude }]
+channel-telegram-contact-received = [Kontakt: { $name } { $phone }]

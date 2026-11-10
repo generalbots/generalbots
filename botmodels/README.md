@@ -340,6 +340,41 @@ TALK caption
 
 ---
 
+## Error messages and localization (#2095)
+
+Every message this service authors for a person is defined once, under a stable
+kebab-case key, in `src/utils/error_codes.py`:
+
+```python
+from src.utils.error_codes import text, detail
+
+text("botmodels-speech-empty-upload")                    # "Empty audio upload"
+text("botmodels-scoring-failed", error=str(exc))         # "Scoring failed: ..."
+detail("botmodels-auth-invalid-key")                     # {"code": ..., "message": ...}
+```
+
+`text()` returns the English message and the routes keep putting it in the
+FastAPI `detail` field, so the wire format is unchanged
+(`{"detail": "Empty audio upload"}`). `detail()` is the structured form
+(`{"code": "botmodels-...", "message": "..."}`) for routes that want clients to
+translate by key instead of by sentence.
+
+**Where the strings are rendered:** `botserver`'s BotModels client reads
+`detail` and surfaces it as the `error` field of its own JSON response (or as
+chat tool output), which the web suite shows through `window.gbT` when a
+translated string exists — otherwise the English text is displayed as-is. The
+matching Fluent namespace, when a locale file lands, is
+`botlib/locales/<locale>/errors.ftl`.
+
+**Keys today:** `botmodels-auth-{missing,invalid}-key`,
+`botmodels-speech-{empty-upload,audio-too-large,no-audio,realtime-unavailable,backend-failed}`,
+`botmodels-scoring-{failed,batch-failed}`,
+`botmodels-music-{invalid-job,backend-failed}`. Pass-through messages that come
+from a model backend or an exception (`str(exc)`) are wrapped in the matching
+`*-backend-failed` key so the user always sees a labelled sentence.
+
+---
+
 ## Architecture
 
 <a href="../.github/svg/diagram-botmodels.svg"><img src="../.github/svg/diagram-botmodels.svg" alt="botserver in Rust calls botmodels in Python over HTTPS: BASIC keywords IMAGE, VIDEO, AUDIO and SEE map to AI models such as Stable Diffusion, Zeroscope, TTS and BLIP2, with config read from CSV and results written as files" width="900"></a>

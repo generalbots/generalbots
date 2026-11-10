@@ -21,28 +21,38 @@
   var heartbeat = N.heartbeat;
   var stopHeartbeat = N.stopHeartbeat;
   var req = N.req;
+  var esc = N.esc;
+  var T = N.T;
   function build() {
     if (S.panel) return;
     ensureCss();
     S.panel = document.createElement("div");
     S.panel.id = "gb-comments-panel";
     S.panel.setAttribute("role", "dialog");
-    S.panel.setAttribute("aria-label", "Comments");
+    S.panel.setAttribute("aria-label", T("comments-title", "Comments"));
     S.panel.innerHTML =
       '<div class="gbc-header">' +
-        '<span class="gbc-title" id="gbc-title">Comments</span>' +
+        '<span class="gbc-title" id="gbc-title">' +
+          esc(T("comments-title", "Comments")) + '</span>' +
         '<span class="gbc-presence" id="gbc-presence"></span>' +
-        '<button class="gbc-close" onclick="GBCollabComments.close()" title="Close">\u00D7</button>' +
+        '<button class="gbc-close" onclick="GBCollabComments.close()" title="' +
+          esc(T("action-close", "Close")) + '">\u00D7</button>' +
       "</div>" +
       '<div class="gbc-filter" id="gbc-filter">' +
-        '<button class="gbc-filter-btn active" data-filter="open">Open</button>' +
-        '<button class="gbc-filter-btn" data-filter="all">All</button>' +
-        '<button class="gbc-filter-btn" data-filter="resolved">Resolved</button>' +
+        '<button class="gbc-filter-btn active" data-filter="open">' +
+          esc(T("comments-filter-open", "Open")) + '</button>' +
+        '<button class="gbc-filter-btn" data-filter="all">' +
+          esc(T("comments-filter-all", "All")) + '</button>' +
+        '<button class="gbc-filter-btn" data-filter="resolved">' +
+          esc(T("comments-filter-resolved", "Resolved")) + '</button>' +
       "</div>" +
       '<div class="gbc-list" id="gbc-list"></div>' +
       '<div class="gbc-input-row">' +
-        '<input class="gbc-input" id="gbc-input" type="text" placeholder="Add a comment\u2026 use @name to mention" autocomplete="off" />' +
-        '<button class="gbc-send" onclick="GBCollabComments.post()">Post</button>' +
+        '<input class="gbc-input" id="gbc-input" type="text" placeholder="' +
+          esc(T("comments-input-placeholder", "Add a comment… use @name to mention")) +
+          '" autocomplete="off" />' +
+        '<button class="gbc-send" onclick="GBCollabComments.post()">' +
+          esc(T("comments-post", "Post")) + '</button>' +
       "</div>";
     document.body.appendChild(S.panel);
     S.listEl = document.getElementById("gbc-list");
@@ -121,7 +131,7 @@
     build();
     state.resourceType = opts.resourceType || null;
     state.resourceId = opts.resourceId || null;
-    state.title = opts.title || "Comments";
+    state.title = opts.title || T("comments-title", "Comments");
     state.notify = opts.notify || null;
     state.includeChildren = !!opts.includeChildren;
     state.filter = "open";
@@ -146,11 +156,16 @@
     build();
     var btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = opts.label || "\uD83D\uDCAC Comments";
+    btn.textContent = opts.label || ("\uD83D\uDCAC " + T("comments-title", "Comments"));
     btn.className = "gbc-mount-btn";
     btn.style.cssText = "background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer;";
     btn.addEventListener("click", function () {
-      open({ resourceType: opts.resourceType, resourceId: opts.resourceId(), title: opts.title || "Comments", notify: opts.notify });
+      open({
+        resourceType: opts.resourceType,
+        resourceId: opts.resourceId(),
+        title: opts.title || T("comments-title", "Comments"),
+        notify: opts.notify,
+      });
     });
     container.appendChild(btn);
     return btn;
@@ -194,8 +209,10 @@
         var newest = items[0];
         if (newest && newest.id !== lastMentionId) {
           lastMentionId = newest.id;
+          var who = newest.author_name || T("comments-someone", "someone");
           window.GBCollabA11y.announce(
-            "You were mentioned in a comment by " + (newest.author_name || "someone"),
+            T("comments-mention-announce",
+              "You were mentioned in a comment by " + who, { author: who }),
             true
           );
         }

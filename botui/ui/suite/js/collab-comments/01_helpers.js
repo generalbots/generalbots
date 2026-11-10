@@ -17,6 +17,12 @@
  */
 (function (window, document) {
   "use strict";
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   var N = (document.__gb_mod_collab_comments = {});
   N.s = { panel: null, listEl: null, inputEl: null, presenceEl: null,
     heartbeatTimer: null, typingSent: false, badgeRefreshFn: null, mentionBox: null,
@@ -94,7 +100,8 @@
       .then(function (res) {
         return res.json().catch(function () { return { error: res.statusText }; })
           .then(function (body) {
-            if (!res.ok) throw new Error(body.error || "Request failed (" + res.status + ")");
+            if (!res.ok) throw new Error(body.error ||
+              T("comments-request-failed", "Request failed (" + res.status + ")", { status: res.status }));
             return body;
           });
       });
@@ -136,11 +143,14 @@
     var n = document.createElement("div");
     n.className = "gbc-item" + (isReply ? " gbc-reply" : "") + (comment.resolved ? " gbc-resolved" : "");
     var resolvedChip = comment.resolved
-      ? '<span class="gbc-resolved-chip">✓ Resolved</span>'
+      ? '<span class="gbc-resolved-chip">✓ ' +
+        esc(T("comments-resolved-chip", "Resolved")) + '</span>'
       : "";
     var resolveBtn = isReply ? "" :
       '<span class="gbc-resolve-btn" data-comment="' + esc(comment.id) + '" data-resolved="' + (comment.resolved ? "1" : "0") + '">' +
-        (comment.resolved ? "Reopen" : "Resolve") + "</span>";
+        (comment.resolved
+          ? T("comments-reopen", "Reopen")
+          : T("comments-resolve", "Resolve")) + "</span>";
     n.innerHTML =
       '<div class="gbc-meta"><span class="gbc-author">' + esc(comment.author_name || comment.author_id) + "</span>" +
       anchorBadge(comment) + resolvedChip +
@@ -151,9 +161,11 @@
           return '<span class="gbc-react" data-comment="' + esc(comment.id) + '" data-emoji="' + e + '">' + e + "</span>";
         }).join("") +
         chips(comment) +
-        '<span class="gbc-reply-btn" data-comment="' + esc(comment.id) + '">Reply</span>' +
+        '<span class="gbc-reply-btn" data-comment="' + esc(comment.id) + '">' +
+          esc(T("action-reply", "Reply")) + '</span>' +
         resolveBtn +
-        '<span class="gbc-del" data-comment="' + esc(comment.id) + '">Delete</span>' +
+        '<span class="gbc-del" data-comment="' + esc(comment.id) + '">' +
+          esc(T("action-delete", "Delete")) + '</span>' +
       "</div>";
     if (comment.replies && comment.replies.length) {
       var wrap = document.createElement("div");
@@ -165,6 +177,7 @@
   }
 
 
+  N.T = T;
   N.CSS_ID = CSS_ID;
   N.HEARTBEAT_MS = HEARTBEAT_MS;
   N.state = state;

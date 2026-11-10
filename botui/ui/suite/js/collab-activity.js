@@ -16,6 +16,12 @@
  * sends it as a Bearer header; every endpoint is authenticated server-side.
  */
 (function (window) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   var CSS_ID = "gb-collab-activity-css";
   var PAGE_SIZE = 50;
   var panel = null;
@@ -80,7 +86,8 @@
       .then(function (res) {
         return res.json().catch(function () { return { error: res.statusText }; })
           .then(function (body) {
-            if (!res.ok) throw new Error(body.error || "Request failed (" + res.status + ")");
+            if (!res.ok) throw new Error(body.error ||
+              T("activity-request-failed", "Request failed (" + res.status + ")", { status: res.status }));
             return body;
           });
       });
@@ -96,13 +103,14 @@
     restore: "#84cc16", transfer: "#f97316"
   };
 
+  var ACTION_LABELS = {
+    create: "created", edit: "edited", comment: "commented on", delete: "deleted",
+    resolve: "resolved a comment on", reopen: "reopened a comment on",
+    reaction: "reacted to", share: "shared", restore: "restored", transfer: "transferred"
+  };
+
   function actionLabel(action) {
-    var labels = {
-      create: "created", edit: "edited", comment: "commented on", delete: "deleted",
-      resolve: "resolved a comment on", reopen: "reopened a comment on",
-      reaction: "reacted to", share: "shared", restore: "restored", transfer: "transferred"
-    };
-    return labels[action] || action;
+    return T("activity-action-" + action, ACTION_LABELS[action] || action);
   }
 
   function rowHtml(item) {
@@ -121,14 +129,15 @@
     panel = document.createElement("div");
     panel.id = "gb-activity-panel";
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "Activity");
+    panel.setAttribute("aria-label", T("activity-title", "Activity"));
     panel.innerHTML =
       '<div class="gba-header">' +
       '<span class="gba-title">' + esc(state.title) + '</span>' +
-      '<button class="gba-close" title="Close">×</button>' +
+      '<button class="gba-close" title="' + esc(T("action-close", "Close")) + '">×</button>' +
       '</div>' +
       '<div class="gba-list"></div>' +
-      '<div style="padding:0 14px 14px;"><button class="gba-more" style="display:none;">Load more</button></div>';
+      '<div style="padding:0 14px 14px;"><button class="gba-more" style="display:none;">' +
+      esc(T("activity-load-more", "Load more")) + '</button></div>';
     document.body.appendChild(panel);
     listEl = panel.querySelector(".gba-list");
     moreBtn = panel.querySelector(".gba-more");
@@ -143,7 +152,8 @@
       "&limit=" + PAGE_SIZE;
     if (state.before) q += "&before=" + encodeURIComponent(state.before);
     if (!append) {
-      listEl.innerHTML = '<div class="gba-loading">Loading…</div>';
+      listEl.innerHTML = '<div class="gba-loading">' +
+        esc(T("activity-loading", "Loading…")) + '</div>';
       moreBtn.style.display = "none";
     }
     api("/api/activity?" + q)
@@ -151,7 +161,8 @@
         if (!append) listEl.innerHTML = "";
         if (!items.length) {
           state.done = true;
-          if (!append) listEl.innerHTML = '<div class="gba-empty">No activity yet</div>';
+          if (!append) listEl.innerHTML = '<div class="gba-empty">' +
+            esc(T("activity-empty", "No activity yet")) + '</div>';
           moreBtn.style.display = "none";
           return;
         }
@@ -169,7 +180,7 @@
   function open(opts) {
     state.resourceType = opts.resourceType;
     state.resourceId = opts.resourceId;
-    state.title = opts.title || "Activity";
+    state.title = opts.title || T("activity-title", "Activity");
     state.before = null;
     state.done = false;
     var p = build();

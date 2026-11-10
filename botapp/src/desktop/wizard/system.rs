@@ -283,7 +283,7 @@ pub fn open_folder(app: &tauri::AppHandle, kind: &str) -> Result<(), String> {
     std::fs::create_dir_all(&path).ok();
     app.opener()
         .open_path(path.to_string_lossy().to_string(), None::<&str>)
-        .map_err(|e| format!("could not open the folder: {e}"))
+        .map_err(|e| crate::desktop::i18n::t_args("folder-open-failed", &[("error", &e.to_string())]))
 }
 
 const ALLOWED_URLS: &[&str] = &[
@@ -295,11 +295,11 @@ const ALLOWED_URLS: &[&str] = &[
 pub fn open_url(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     if !ALLOWED_URLS.contains(&url) {
-        return Err("That address is not part of the guided setup.".to_string());
+        return Err(crate::desktop::i18n::t("setup-url-not-allowed"));
     }
     app.opener()
         .open_url(url, None::<&str>)
-        .map_err(|e| format!("could not open the browser: {e}"))
+        .map_err(|e| crate::desktop::i18n::t_args("browser-open-failed", &[("error", &e.to_string())]))
 }
 
 pub fn pick_folder(app: &tauri::AppHandle) -> Option<String> {

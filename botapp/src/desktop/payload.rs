@@ -279,3 +279,78 @@ mod tests {
         format!("{nanos}")
     }
 }
+
+#[cfg(test)]
+mod trailer_tests {
+    use super::{read_trailer, Trailer, MAGIC, TRAILER_LEN};
+
+    fn fixture(name: &str, bytes: &[u8]) -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let path = std::env::temp_dir().join(format!("gb7-{name}-{nanos}"));
+        std::fs::write(&path, bytes).expect("write fixture");
+        path
+    }
+
+    fn trailer_bytes(offset: u64, length: u64, sha: [u8; 32]) -> Vec<u8> {
+        let mut bytes = MAGIC.to_vec();
+        bytes.extend_from_slice(&offset.to_le_bytes());
+        bytes.extend_from_slice(&length.to_le_bytes());
+        bytes.extend_from_slice(&sha);
+        bytes
+    }
+
+    #[test]
+    fn a_file_shorter_than_the_trailer_is_a_plain_build() {
+        let path = fixture("short", b"tiny");
+        assert!(read_trailer(&path).expect("read").is_none());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_foreign_trailer_magic_is_ignored() {
+        let mut bytes = b"executable".to_vec();
+        bytes.extend_from_slice(&[0u8; TRAILER_LEN as usize]);
+        let path = fixture("foreign", &bytes);
+        assert!(read_trailer(&path).expect("read").is_none());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn a_trailer_pointing_outside_the_file_is_an_error() {
+        let mut bytes = b"executable".to_vec();
+        // offset + length run past the trailer's own start.
+        bytes.extend_from_slice(&trailer_bytes(10_000, 10_000, [0u8; 32]));
+        let path = fixture("outside", &bytes);
+        assert!(read_trailer(&path).is_err());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn an_overflowing_range_is_an_error_not_a_panic() {
+        let mut bytes = b"executable".to_vec();
+        bytes.extend_from_slice(&trailer_bytes(u64::MAX, 2, [0u8; 32]));
+        let path = fixture("overflow", &bytes);
+        assert!(read_trailer(&path).is_err());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn the_digest_is_rendered_as_lowercase_hex() {
+        let mut sha = [0u8; 32];
+        sha[0] = 0xab;
+        sha[31] = 0x01;
+        let trailer = Trailer {
+            offset: 0,
+            length: 0,
+            sha256: sha,
+        };
+        let hex = trailer.sha_hex();
+        assert_eq!(hex.len(), 64);
+        assert!(hex.starts_with("ab"));
+        assert!(hex.ends_with("01"));
+        assert_eq!(hex, hex.to_lowercase());
+    }
+}

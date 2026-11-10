@@ -13,12 +13,16 @@ from ....services.music_service import (
     get_music_service,
 )
 from ...dependencies import verify_api_key
+from ....utils.error_codes import text as error_text
 
 router = APIRouter(prefix="/music", tags=["Music"])
 
 
 def service_error(exc: MusicServiceError) -> HTTPException:
-    return HTTPException(status_code=502, detail=str(exc))
+    return HTTPException(
+        status_code=502,
+        detail=error_text("botmodels-music-backend-failed", error=exc),
+    )
 
 
 @router.get("/health")
@@ -59,7 +63,10 @@ async def music_job_status(
     service: MusicService = Depends(get_music_service),
 ):
     if not job_id or len(job_id) > 160:
-        raise HTTPException(status_code=400, detail="Invalid job identifier")
+        raise HTTPException(
+            status_code=400,
+            detail=error_text("botmodels-music-invalid-job"),
+        )
     try:
         return MusicJobStatus(**(await service.status(job_id)))
     except MusicServiceError as exc:

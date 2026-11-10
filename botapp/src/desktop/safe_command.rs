@@ -202,3 +202,74 @@ mod tests {
         assert!(cmd.arg("a && b").is_err());
     }
 }
+
+#[cfg(test)]
+mod argument_tests {
+    use super::{validate_argument, SafeCommand, SafeCommandError};
+
+    #[test]
+    fn the_allowlist_matches_the_program_not_the_path() {
+        assert!(SafeCommand::new("/usr/bin/rclone").is_ok());
+        assert!(SafeCommand::new("/usr/local/bin/notify-send").is_ok());
+        // A path to a program that is not allowlisted is still refused.
+        assert!(matches!(
+            SafeCommand::new("/bin/sh"),
+            Err(SafeCommandError::CommandNotAllowed(_))
+        ));
+        assert!(SafeCommand::new("curl").is_err());
+        assert!(SafeCommand::new("").is_err());
+    }
+
+    #[test]
+    fn empty_and_oversized_arguments_are_refused() {
+        assert!(matches!(
+            validate_argument(""),
+            Err(SafeCommandError::InvalidArgument(_))
+        ));
+        let long = "a".repeat(4097);
+        assert!(matches!(
+            validate_argument(&long),
+            Err(SafeCommandError::InvalidArgument(_))
+        ));
+        // Exactly at the limit is still accepted.
+        assert!(validate_argument(&"a".repeat(4096)).is_ok());
+    }
+
+    #[test]
+    fn every_shell_metacharacter_is_refused() {
+        for raw in [";", "|", "&", "$", "`", "(", ")", "{", "}", "<", ">"] {
+            assert!(
+                matches!(
+                    validate_argument(raw),
+                    Err(SafeCommandError::ShellInjectionAttempt(_))
+                ),
+                "argument {raw:?} must be refused"
+            );
+        }
+        assert!(validate_argument("line\nbreak").is_err());
+        assert!(validate_argument("carriage\rreturn").is_err());
+        assert!(validate_argument("nul\0byte").is_err());
+    }
+
+    #[test]
+    fn ordinary_paths_and_names_are_accepted() {
+        for accepted in [
+            "sync",
+            "/home/user/General Bots",
+            "remote:bucket/path",
+            "--exclude=*.tmp",
+            "relatório final.pdf",
+        ] {
+            assert!(
+                validate_argument(accepted).is_ok(),
+                "argument {accepted:?} must be accepted"
+            );
+        }
+    }
+
+    #[test]
+    fn an_invalid_argument_never_reaches_the_command() {
+        let refused = SafeCommand::new("rclone").and_then(|command| command.arg("a; rm -rf /"));
+        assert!(refused.is_err());
+    }
+}

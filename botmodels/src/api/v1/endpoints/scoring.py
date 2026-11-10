@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ....core.logging import get_logger
+from ....utils.error_codes import text as error_text
 from ...dependencies import verify_api_key
 from ....services.scoring.engine import (
     ENGINE_VERSION,
@@ -85,7 +86,10 @@ async def calculate_lead_score(
 
     except Exception as e:
         logger.error("Lead scoring failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Scoring failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=error_text("botmodels-scoring-failed", error=str(e)),
+        )
 
 
 @router.post("/batch", response_model=BatchScoreResponse)
@@ -132,7 +136,10 @@ async def batch_score_leads(
 
     except Exception as e:
         logger.error("Batch scoring failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Batch scoring failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=error_text("botmodels-scoring-batch-failed", error=str(e)),
+        )
 
 
 @router.get("/model-info", response_model=ModelInfoResponse)

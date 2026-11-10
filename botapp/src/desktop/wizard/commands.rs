@@ -95,7 +95,7 @@ pub fn wizard_provision_status(state: tauri::State<'_, WizardState>) -> super::P
 #[tauri::command]
 pub fn wizard_reset_stack(confirmation: String, state: tauri::State<'_, WizardState>) -> Result<(), String> {
     if state.provisioning.load(std::sync::atomic::Ordering::SeqCst) {
-        return Err("Cancel the running setup before resetting the stack.".to_string());
+        return Err(crate::desktop::i18n::t("setup-cancel-before-reset"));
     }
     system::reset_stack(&confirmation)
 }

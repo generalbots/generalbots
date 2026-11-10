@@ -13,6 +13,7 @@ from ....schemas.generation import (
     SpeechToTextResponse,
 )
 from ....services.errors import BotModelsError
+from ....utils.error_codes import text as error_text
 from ....services.realtime_audio_service import get_realtime_audio_service
 from ....services.speech_service import get_speech_service
 from ...dependencies import verify_api_key
@@ -63,11 +64,14 @@ def _write_temp(data: bytes, suffix: str) -> Path:
 async def _read_audio(file: UploadFile) -> bytes:
     data = await file.read()
     if not data:
-        raise HTTPException(status_code=400, detail="Empty audio upload")
+        raise HTTPException(status_code=400, detail=error_text("botmodels-speech-empty-upload"))
     if len(data) > MAX_AUDIO_BYTES:
         raise HTTPException(
             status_code=413,
-            detail=f"Audio upload exceeds {MAX_AUDIO_BYTES // (1024 * 1024)} MiB",
+            detail=error_text(
+                "botmodels-speech-audio-too-large",
+                mib=MAX_AUDIO_BYTES // (1024 * 1024),
+            ),
         )
     return data
 
@@ -91,11 +95,17 @@ async def generate_speech(
             language=request.language,
         )
     except BotModelsError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=503,
+            detail=error_text("botmodels-speech-backend-failed", error=exc),
+        ) from exc
 
     audio = result.get("audio")
     if not audio:
-        raise HTTPException(status_code=502, detail="Speech backend returned no audio")
+        raise HTTPException(
+            status_code=502,
+            detail=error_text("botmodels-speech-no-audio"),
+        )
 
     suffix = _suffix_from_magic(audio)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -128,7 +138,10 @@ async def speech_to_text(
     try:
         result = await service.transcribe_audio(str(path))
     except BotModelsError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=503,
+            detail=error_text("botmodels-speech-backend-failed", error=exc),
+        ) from exc
     finally:
         path.unlink(missing_ok=True)
 
@@ -150,7 +163,10 @@ async def detect_language(
     try:
         result = await service.detect_language(str(path))
     except BotModelsError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=503,
+            detail=error_text("botmodels-speech-backend-failed", error=exc),
+        ) from exc
     finally:
         path.unlink(missing_ok=True)
     return result
@@ -170,5 +186,10 @@ async def realtime_audio(
     audio_data = await _read_audio(file)
     result = await service.process_audio(audio_data)
     if result.get("status") == "error":
-        raise HTTPException(status_code=503, detail=result.get("error", "realtime audio unavailable"))
+        raise HTTPException(
+            status_code=503,
+            detail=result.get(
+                "error", error_text("botmodels-speech-realtime-unavailable")
+            ),
+        )
     return result

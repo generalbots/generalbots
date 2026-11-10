@@ -15,6 +15,12 @@
  * app can replace its editor and re-save (never called automatically).
  */
 (function (window) {
+  // #2095 — user-visible strings resolve through the shared catalogue
+  // (window.gbT) with the authored English text as fallback.
+  function T(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+  }
+
   var CSS_ID = "gb-collab-versions-css";
   var panel = null;
   var listEl = null;
@@ -78,7 +84,8 @@
       .then(function (res) {
         return res.json().catch(function () { return { error: res.statusText }; })
           .then(function (body) {
-            if (!res.ok) throw new Error(body.error || "Request failed (" + res.status + ")");
+            if (!res.ok) throw new Error(body.error ||
+              T("versions-request-failed", "Request failed (" + res.status + ")", { status: res.status }));
             return body;
           });
       });
@@ -100,11 +107,11 @@
     panel = document.createElement("div");
     panel.id = "gb-versions-panel";
     panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-label", "Version history");
+    panel.setAttribute("aria-label", T("versions-title", "Version history"));
     panel.innerHTML =
       '<div class="gbv-header">' +
       '<span class="gbv-title">' + esc(state.title) + '</span>' +
-      '<button class="gbv-close" title="Close">×</button>' +
+      '<button class="gbv-close" title="' + esc(T("action-close", "Close")) + '">×</button>' +
       '</div>' +
       '<div class="gbv-list"></div>';
     document.body.appendChild(panel);
@@ -114,26 +121,31 @@
   }
 
   function load() {
-    listEl.innerHTML = '<div class="gbv-loading">Loading…</div>';
+    listEl.innerHTML = '<div class="gbv-loading">' + esc(T("versions-loading", "Loading…")) + '</div>';
     api("/api/collab/versions?resource_type=" + encodeURIComponent(state.resourceType) +
         "&resource_id=" + encodeURIComponent(state.resourceId) + "&limit=100")
       .then(function (items) {
         if (!items.length) {
-          listEl.innerHTML = '<div class="gbv-empty">No versions yet — the first save creates one.</div>';
+          listEl.innerHTML = '<div class="gbv-empty">' +
+            esc(T("versions-empty", "No versions yet — the first save creates one.")) + '</div>';
           return;
         }
         var html = items.map(function (v, i) {
           var isCurrent = i === 0;
-          var label = v.name ? esc(v.name) : ("Version " + (items.length - i));
-          var currentTag = isCurrent ? '<span style="color:#3b82f6;font-size:11px;font-weight:600;"> (current)</span>' : "";
+          var n = items.length - i;
+          var label = v.name ? esc(v.name) : esc(T("versions-version-n", "Version " + n, { n: n }));
+          var currentTag = isCurrent ? '<span style="color:#3b82f6;font-size:11px;font-weight:600;"> ' +
+            esc(T("versions-current-tag", "(current)")) + '</span>' : "";
           return '<div class="gbv-item' + (isCurrent ? " gbv-current" : "") + '">' +
             '<div class="gbv-name">' + label + currentTag + '</div>' +
             '<div class="gbv-meta"><span class="gbv-who">' + esc(v.actor_name || v.actor_id) + '</span> · ' +
             esc(timeFmt(v.created_at)) + ' · ' + sizeFmt(v.size) + '</div>' +
             '<span class="gbv-hash">#' + esc(v.content_hash.slice(0, 12)) + '</span>' +
             '<div class="gbv-actions">' +
-            '<button class="gbv-btn" data-act="name" data-id="' + esc(v.id) + '">Name…</button>' +
-            (isCurrent ? "" : '<button class="gbv-btn gbv-primary" data-act="restore" data-id="' + esc(v.id) + '">Restore</button>') +
+            '<button class="gbv-btn" data-act="name" data-id="' + esc(v.id) + '">' +
+              esc(T("versions-name", "Name…")) + '</button>' +
+            (isCurrent ? "" : '<button class="gbv-btn gbv-primary" data-act="restore" data-id="' +
+              esc(v.id) + '">' + esc(T("action-restore", "Restore")) + '</button>') +
             '</div>' +
             '</div>';
         }).join("");
@@ -159,24 +171,28 @@
           if (typeof state.onRestore === "function") state.onRestore(detail.content);
           load();
         })
-        .catch(function (e) { notifyError("Restore failed: " + e.message); });
+        .catch(function (e) {
+          notifyError(T("versions-restore-failed", "Restore failed: " + e.message, { error: e.message }));
+        });
     };
     if (window.WindowManager && window.WindowManager.confirmFloating) {
       window.WindowManager.confirmFloating(
-        "Restore version",
-        "Restore this version? A new current version will be created — nothing is lost.",
+        T("versions-restore-dialog-title", "Restore version"),
+        T("versions-restore-confirm",
+          "Restore this version? A new current version will be created — nothing is lost."),
         restore,
         null,
-        "Restore"
+        T("action-restore", "Restore")
       );
-    } else if ((window.GBModal||{confirm:confirm}).confirm("Restore this version? A new current version will be created — nothing is lost.")) {
+    } else if ((window.GBModal || { confirm: confirm }).confirm(T("versions-restore-confirm",
+      "Restore this version? A new current version will be created — nothing is lost."))) {
       restore();
     }
   }
 
   function notifyError(msg) {
     if (window.GBToasts && window.GBToasts.show) {
-      window.GBToasts.show("Version history", msg, "error");
+      window.GBToasts.show(T("versions-title", "Version history"), msg, "error");
     } else {
       console.error(msg);
     }
@@ -192,19 +208,27 @@
         body: JSON.stringify({ name: name })
       })
         .then(function () { load(); })
-        .catch(function (e) { notifyError("Rename failed: " + e.message); });
+        .catch(function (e) {
+          notifyError(T("versions-rename-failed", "Rename failed: " + e.message, { error: e.message }));
+        });
     };
     if (window.WindowManager && window.WindowManager.promptFloating) {
-      window.WindowManager.promptFloating("Name version", "Name this version (e.g. \"v2 — approved\"):", "", done);
+      window.WindowManager.promptFloating(
+        T("versions-name-dialog-title", "Name version"),
+        T("versions-name-prompt", 'Name this version (e.g. "v2 — approved"):'),
+        "",
+        done
+      );
     } else {
-      done((window.GBModal||{prompt:prompt}).prompt("Name this version (e.g. \"v2 — approved\"):", ""));
+      done((window.GBModal || { prompt: prompt }).prompt(
+        T("versions-name-prompt", 'Name this version (e.g. "v2 — approved"):'), ""));
     }
   }
 
   function open(opts) {
     state.resourceType = opts.resourceType;
     state.resourceId = opts.resourceId;
-    state.title = opts.title || "Version history";
+    state.title = opts.title || T("versions-title", "Version history");
     state.onRestore = opts.onRestore || null;
     var p = build();
     p.querySelector(".gbv-title").textContent = state.title;

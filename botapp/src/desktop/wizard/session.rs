@@ -19,6 +19,28 @@ fn desktop_session_path() -> PathBuf {
         .join("desktop-session.json")
 }
 
+/// The token cached in `desktop-session.json`, when the file still holds one.
+fn cached_token(raw: &str) -> Option<String> {
+    let json: serde_json::Value = serde_json::from_str(raw).ok()?;
+    json.get("access_token")
+        .and_then(|value| value.as_str())
+        .filter(|token| !token.is_empty())
+        .map(str::to_string)
+}
+
+/// The access token of a successful `/api/auth/login` answer.
+fn token_from_body(body: &serde_json::Value) -> Option<String> {
+    body.get("access_token")
+        .and_then(|value| value.as_str())
+        .filter(|token| !token.is_empty())
+        .map(str::to_string)
+}
+
+/// Whether the stored administrator credentials can be used to sign in.
+fn credentials_usable(email: &str, password: &str) -> bool {
+    !email.trim().is_empty() && !password.is_empty()
+}
+
 /// Mints a real suite session for the wizard administrator.
 ///
 /// The desktop edition has no browser login hop between the wizard and the
@@ -34,12 +56,8 @@ fn desktop_session_path() -> PathBuf {
 pub async fn mint_desktop_session() -> Option<String> {
     // 1) Reuse a previously minted token if present.
     if let Ok(raw) = std::fs::read_to_string(desktop_session_path()) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
-            if let Some(token) = json.get("access_token").and_then(|v| v.as_str()) {
-                if !token.is_empty() {
-                    return Some(token.to_string());
-                }
-            }
+        if let Some(token) = cached_token(&raw) {
+            return Some(token);
         }
     }
 
@@ -51,7 +69,7 @@ pub async fn mint_desktop_session() -> Option<String> {
 
     let raw = std::fs::read_to_string(admin_credentials_path()).ok()?;
     let credentials: Credentials = serde_json::from_str(&raw).ok()?;
-    if credentials.email.trim().is_empty() || credentials.password.is_empty() {
+    if !credentials_usable(&credentials.email, &credentials.password) {
         return None;
     }
 
@@ -77,11 +95,7 @@ pub async fn mint_desktop_session() -> Option<String> {
         return None;
     }
     let body: serde_json::Value = response.json().await.ok()?;
-    let token = body
-        .get("access_token")
-        .and_then(|value| value.as_str())
-        .filter(|t| !t.is_empty())
-        .map(str::to_string)?;
+    let token = token_from_body(&body)?;
 
     // Persist the token for future boots.
     let _ = std::fs::write(
@@ -126,4 +140,61 @@ pub(super) fn suite_url_with_token(mut url: tauri::Url, token: Option<&str>) -> 
         url.query_pairs_mut().append_pair("token", token);
     }
     url
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cached_token, credentials_usable, suite_url_with_token, token_from_body};
+    use serde_json::json;
+
+    #[test]
+    fn a_cached_token_is_reused_only_when_present() {
+        assert_eq!(
+            cached_token(r#"{"access_token":"abc"}"#),
+            Some("abc".to_string())
+        );
+        assert_eq!(cached_token(r#"{"access_token":""}"#), None);
+        assert_eq!(cached_token(r#"{"other":"abc"}"#), None);
+        assert_eq!(cached_token(r#"{"access_token":42}"#), None);
+        assert_eq!(cached_token("not json"), None);
+    }
+
+    #[test]
+    fn a_login_answer_needs_a_non_empty_access_token() {
+        assert_eq!(
+            token_from_body(&json!({"access_token": "tok"})),
+            Some("tok".to_string())
+        );
+        assert_eq!(token_from_body(&json!({"access_token": ""})), None);
+        assert_eq!(token_from_body(&json!({"token": "tok"})), None);
+        assert_eq!(token_from_body(&json!({})), None);
+    }
+
+    #[test]
+    fn both_credential_fields_are_required() {
+        assert!(credentials_usable("admin@example.com", "secret"));
+        assert!(credentials_usable("  admin@example.com  ", "secret"));
+        assert!(!credentials_usable("", "secret"));
+        assert!(!credentials_usable("   ", "secret"));
+        assert!(!credentials_usable("admin@example.com", ""));
+    }
+
+    #[test]
+    fn the_token_is_appended_without_dropping_the_existing_query() {
+        let url = tauri::Url::parse("http://127.0.0.1:8080/suite/desktop.html?app=chat")
+            .expect("a valid fixture URL");
+        let with_token = suite_url_with_token(url, Some("tok en"));
+        assert_eq!(
+            with_token.as_str(),
+            "http://127.0.0.1:8080/suite/desktop.html?app=chat&token=tok+en"
+        );
+
+        let url = tauri::Url::parse("http://127.0.0.1:8080/suite/desktop.html")
+            .expect("a valid fixture URL");
+        let without = suite_url_with_token(url, None);
+        assert_eq!(
+            without.as_str(),
+            "http://127.0.0.1:8080/suite/desktop.html"
+        );
+    }
 }

@@ -33,16 +33,37 @@ pub fn migrate_legacy_data_dir() {
     }
 }
 
-fn migrate_root(new_dir: &Path) {
-    if new_dir.exists() {
-        return; // the renamed build already owns its data; nothing to carry over
+/// What the migration does for one data root.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Migration {
+    /// The renamed build already owns its folder; nothing to carry over.
+    SkipTargetExists,
+    /// Fresh install: there is no legacy folder.
+    SkipNoLegacy,
+    /// Move (or copy) the legacy folder into place.
+    Migrate,
+}
+
+/// Decides the action for one root from the two folder facts.
+fn plan_migration(new_dir_exists: bool, legacy_is_dir: bool) -> Migration {
+    if new_dir_exists {
+        Migration::SkipTargetExists
+    } else if legacy_is_dir {
+        Migration::Migrate
+    } else {
+        Migration::SkipNoLegacy
     }
-    let Some(parent) = new_dir.parent() else {
-        return;
+}
+
+fn migrate_root(new_dir: &Path) {
+    let legacy_dir = match new_dir.parent() {
+        Some(parent) => parent.join(LEGACY_IDENTIFIER),
+        None => return,
     };
-    let legacy_dir = parent.join(LEGACY_IDENTIFIER);
-    if !legacy_dir.is_dir() {
-        return; // fresh install under the new identifier
+    match plan_migration(new_dir.exists(), legacy_dir.is_dir()) {
+        Migration::SkipTargetExists => return,
+        Migration::SkipNoLegacy => return,
+        Migration::Migrate => {}
     }
     if std::fs::rename(&legacy_dir, new_dir).is_ok() {
         log::info!(
@@ -78,4 +99,29 @@ fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{plan_migration, Migration, LEGACY_IDENTIFIER};
+
+    #[test]
+    fn the_legacy_identifier_is_the_old_bundle_id() {
+        assert_eq!(LEGACY_IDENTIFIER, "br.com.pragmatismo.botapp");
+    }
+
+    #[test]
+    fn an_existing_target_is_never_touched() {
+        // The renamed build already owns its data, even if a legacy folder
+        // lingers next to it.
+        assert_eq!(plan_migration(true, true), Migration::SkipTargetExists);
+        assert_eq!(plan_migration(true, false), Migration::SkipTargetExists);
+    }
+
+    #[test]
+    fn only_a_real_legacy_folder_is_migrated() {
+        assert_eq!(plan_migration(false, true), Migration::Migrate);
+        // A fresh install has nothing to carry over.
+        assert_eq!(plan_migration(false, false), Migration::SkipNoLegacy);
+    }
 }

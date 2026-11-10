@@ -13,9 +13,42 @@ use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
+use crate::desktop::i18n;
 use crate::desktop::sidecar::Sidecar;
 
 const API_PRODUCT: &str = "http://127.0.0.1:8080/api/product";
+
+/// Cap for the forwarded stderr text, and how much of the tail is kept.
+const STDERR_MAX_BYTES: usize = 8000;
+const STDERR_KEEP_BYTES: usize = 6000;
+
+/// Keeps the tail of `buffer` bounded, never splitting a UTF-8 character.
+///
+/// The provisioner can emit non-ASCII paths and messages; slicing at a raw
+/// byte offset panics on a multi-byte boundary.
+fn trim_stderr_tail(buffer: &mut String) {
+    if buffer.len() <= STDERR_MAX_BYTES {
+        return;
+    }
+    let mut cut = buffer.len() - STDERR_KEEP_BYTES;
+    while cut < buffer.len() && !buffer.is_char_boundary(cut) {
+        cut += 1;
+    }
+    *buffer = buffer[cut..].to_string();
+}
+
+/// Parses one line of the provisioner's stdout. Only `GBWIZARD:`-prefixed JSON
+/// progress events are structured; everything else is plain log output.
+fn parse_progress_line(line: &str) -> Option<ProgressEvent> {
+    let payload = line.strip_prefix("GBWIZARD:")?;
+    serde_json::from_str(payload).ok()
+}
+
+/// `components` ready is the provisioner's terminal event; a `failed` event
+/// ends the run too.
+fn is_terminal(event: &ProgressEvent) -> bool {
+    event.state == "failed" || (event.id == "components" && event.state == "ready")
+}
 
 fn emit(app: &tauri::AppHandle, state: &WizardState, event: ProgressEvent) {
     if let Ok(mut progress) = state.progress.lock() {
@@ -94,7 +127,6 @@ pub(super) async fn run_components(
         .env("BOTSERVER_STACK_PATH", &stack)
         .env("BOTSERVER_INSTALLERS_PATH", &installers)
         .env("GB_WIZARD_WORKSPACE", &workspace)
-        .env("GB_WIZARD_MODEL_MODE", &request.model.mode)
         // The provisioner only saves a non-local model when it knows the mode;
         // without this the free/hosted choice was silently dropped and the
         // assistant kept answering with the bundled local model.
@@ -148,10 +180,7 @@ pub(super) async fn run_components(
                 if let Ok(mut buffer) = stderr_clone.lock() {
                     buffer.push_str(&line);
                     buffer.push('\n');
-                    if buffer.len() > 8000 {
-                        let keep = buffer.len() - 6000;
-                        *buffer = buffer[keep..].to_string();
-                    }
+                    trim_stderr_tail(&mut buffer);
                 }
             }
         });
@@ -167,8 +196,8 @@ pub(super) async fn run_components(
             if state.cancelled.load(Ordering::SeqCst) {
                 break;
             }
-            let Some(payload) = line.strip_prefix("GBWIZARD:") else {
-                if !line.trim().is_empty() {
+            let Some(event) = parse_progress_line(&line) else {
+                if !line.starts_with("GBWIZARD:") && !line.trim().is_empty() {
                     if let Ok(mut file) = std::fs::OpenOptions::new()
                         .create(true)
                         .append(true)
@@ -177,9 +206,6 @@ pub(super) async fn run_components(
                         let _ = writeln!(file, "{line}");
                     }
                 }
-                continue;
-            };
-            let Ok(event) = serde_json::from_str::<ProgressEvent>(payload) else {
                 continue;
             };
             if event.state == "ready" {
@@ -192,14 +218,12 @@ pub(super) async fn run_components(
             if event.state == "failed" {
                 failure = Some(event.message.clone());
             }
-            // `components` ready is the provisioner's terminal event and a
-            // `failed` event ends the run. On Windows the services it starts
-            // with `start /B` (vault, postgres, minio, qdrant, zitadel) inherit
-            // this stdout pipe and keep it open after the provisioner exits, so
-            // waiting for EOF blocks forever and the wizard stays at
-            // "Assistant service pending" (7 of 8, 88%).
-            let terminal =
-                event.state == "failed" || (event.id == "components" && event.state == "ready");
+            // On Windows the services the provisioner starts with `start /B`
+            // (vault, postgres, minio, qdrant, zitadel) inherit this stdout
+            // pipe and keep it open after the provisioner exits, so waiting for
+            // EOF blocks forever and the wizard stays at "Assistant service
+            // pending" (7 of 8, 88%). The terminal event ends the read instead.
+            let terminal = is_terminal(&event);
             emit(app, state, event);
             if terminal {
                 break;
@@ -223,7 +247,7 @@ pub(super) async fn run_components(
     }
 
     if state.cancelled.load(Ordering::SeqCst) {
-        return Err("Setup was cancelled. Partial data will be reused next time.".to_string());
+        return Err(i18n::t("setup-cancelled"));
     }
     if let Some(status) = status {
         if !status.success() {
@@ -233,12 +257,13 @@ pub(super) async fn run_components(
                 .unwrap_or_default();
             let reason = failure.unwrap_or_else(|| {
                 if details.is_empty() {
-                    "A setup component failed. Open the log folder for details.".to_string()
+                    i18n::t("setup-component-failed-hint")
                 } else {
+                    let fallback = i18n::t("setup-component-failed");
                     details
                         .lines()
                         .last()
-                        .unwrap_or("A setup component failed.")
+                        .unwrap_or(fallback.as_str())
                         .to_string()
                 }
             });
@@ -266,7 +291,7 @@ pub(super) async fn start_assistant(
         state,
         "botserver",
         "starting",
-        "Starting the assistant service…",
+        &i18n::t("setup-starting-assistant"),
         0,
     );
     let resource_dir = app.path().resource_dir().ok();
@@ -309,7 +334,7 @@ pub(super) async fn start_assistant(
                 state,
                 "botserver",
                 "starting",
-                "Finalizing sign-in (one restart)…",
+                &i18n::t("setup-finalizing-sign-in"),
                 0,
             );
             sidecar.stop();
@@ -341,7 +366,7 @@ pub(super) async fn start_assistant(
         state,
         "botserver",
         "starting",
-        "Starting the assistant service again…",
+        &i18n::t("setup-restarting-assistant"),
         0,
     );
     sidecar.stop();
@@ -365,5 +390,56 @@ pub(super) async fn start_assistant(
         let reason = "The assistant did not answer in time. Open the log folder for details.";
         progress(app, state, "botserver", "failed", reason, 0);
         Err(reason.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_terminal, parse_progress_line, trim_stderr_tail, STDERR_MAX_BYTES};
+
+    #[test]
+    fn only_gbwizard_json_lines_are_progress_events() {
+        let line = r#"GBWIZARD:{"id":"vault","state":"ready","message":"ok","elapsed_ms":12}"#;
+        let event = parse_progress_line(line).expect("structured progress line");
+        assert_eq!(event.id, "vault");
+        assert_eq!(event.state, "ready");
+        assert_eq!(event.elapsed_ms, 12);
+
+        assert!(parse_progress_line("starting vault...").is_none());
+        assert!(parse_progress_line("GBWIZARD:{not json}").is_none());
+        assert!(parse_progress_line("GBWIZARD:").is_none());
+        assert!(parse_progress_line("").is_none());
+    }
+
+    #[test]
+    fn only_the_final_event_ends_the_run() {
+        let event = |id: &str, state: &str| super::ProgressEvent {
+            id: id.to_string(),
+            state: state.to_string(),
+            message: String::new(),
+            elapsed_ms: 0,
+        };
+        assert!(is_terminal(&event("components", "ready")));
+        assert!(is_terminal(&event("vault", "failed")));
+        assert!(!is_terminal(&event("vault", "ready")));
+        assert!(!is_terminal(&event("components", "starting")));
+        assert!(!is_terminal(&event("botserver", "ready")));
+    }
+
+    #[test]
+    fn the_stderr_tail_never_splits_a_character() {
+        let mut short = String::from("ok\n");
+        trim_stderr_tail(&mut short);
+        assert_eq!(short, "ok\n");
+
+        // A one-byte prefix plus 5000 two-byte characters: the raw byte cut
+        // lands in the middle of a character, so it has to move forward.
+        let mut buffer = format!("a{}", "é".repeat(5000));
+        let before = buffer.len();
+        assert!(before > STDERR_MAX_BYTES);
+        trim_stderr_tail(&mut buffer);
+        assert!(buffer.len() <= STDERR_MAX_BYTES);
+        assert!(buffer.chars().all(|c| c == 'é'));
+        assert!(!buffer.is_empty());
     }
 }
