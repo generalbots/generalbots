@@ -35,8 +35,11 @@
     install: "gb-auto-update-install",
   };
 
+  // #2103 — `/api/product` is the only source of the product version. The
+  // meta tag (when a page sets one) and Tauri are fallbacks for a desktop that
+  // has not reached the API yet; the number is never a literal in this file.
   var currentVersion =
-    (document.querySelector('meta[name="gb-version"]') || {}).content || "0.0.0";
+    (document.querySelector('meta[name="gb-version"]') || {}).content || "";
   var lastInfo = null;
 
   function isDesktop() {
@@ -381,7 +384,25 @@
     keys: KEYS,
   };
 
+  function readProductVersion() {
+    if (typeof fetch !== "function") return;
+    fetch("/api/product", { cache: "no-store" })
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (product) {
+        if (!product || !product.version) return;
+        currentVersion = String(product.version);
+        window.GBUpdate.version = currentVersion;
+        renderSettings();
+      })
+      .catch(function () {
+        /* offline: Settings shows "Unknown" until the API answers */
+      });
+  }
+
   readAppVersion();
+  readProductVersion();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", scheduleStartupCheck);
   } else {

@@ -12,8 +12,8 @@ use uuid::Uuid;
 use super::advance::{advance, load_run};
 use super::runner::spawn_goal_runner;
 use super::types::{
-    api_error, run_json, user_from_headers, ApiError, CreateBody, KrValues, ResumeRow, RunRow,
-    RUN_COLUMNS, RUN_FROM,
+    api_error, api_error_key, run_json, user_from_headers, ApiError, CreateBody, KrValues,
+    ResumeRow, RunRow, RUN_COLUMNS, RUN_FROM,
 };
 use crate::core::bot::runs::goal_runner::{clamp_interval, MAX_CHECKPOINTS};
 
@@ -98,6 +98,7 @@ pub(super) async fn pause(
     headers: HeaderMap,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
@@ -111,7 +112,13 @@ pub(super) async fn pause(
     )
     .bind::<diesel::sql_types::Text, _>(&id)
     .get_result::<RunRow>(&mut conn)
-    .map_err(|_| api_error(StatusCode::BAD_REQUEST, "goal run is not running"))?;
+    .map_err(|_| {
+        api_error_key(
+            &locale,
+            StatusCode::BAD_REQUEST,
+            "error-goal-run-not-running",
+        )
+    })?;
     Ok(Json(json!({ "run": run_json(&run) })))
 }
 
@@ -123,6 +130,7 @@ pub(super) async fn resume(
     headers: HeaderMap,
 ) -> Result<Json<Value>, ApiError> {
     let _user = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
@@ -136,7 +144,13 @@ pub(super) async fn resume(
     )
     .bind::<diesel::sql_types::Text, _>(&id)
     .get_result::<ResumeRow>(&mut conn)
-    .map_err(|_| api_error(StatusCode::BAD_REQUEST, "goal run is not paused"))?;
+    .map_err(|_| {
+        api_error_key(
+            &locale,
+            StatusCode::BAD_REQUEST,
+            "error-goal-run-not-paused",
+        )
+    })?;
     let interval = clamp_interval(u64::try_from(resumed.interval_seconds.max(0)).unwrap_or(60));
     let done = u32::try_from(resumed.checkpoints).unwrap_or(MAX_CHECKPOINTS);
     let budget = MAX_CHECKPOINTS.saturating_sub(done);

@@ -78,8 +78,13 @@
             if (data.type === "connected") return;
             MC.clearTabAck(t);
             if (data.event) return; // run events route elsewhere
+            // #2098 — progress frames keep this tab's turn alive (step/tool
+            // label), scoped to the tab's own pane.
+            if (window.GBTurn) {
+              try { GBTurn.observe(data, { tabId: t.id, pane: t.pane }); }
+              catch (e) { /* progress is best-effort */ }
+            }
             if (data.message_type === 2) {
-              if (typeof window.clearChatPending === "function") window.clearChatPending();
               handleBotFrame(t, data);
             }
             // The stock socket executes UI plans in chat-websocket.js; a
@@ -196,11 +201,18 @@
     // the active one its pane IS #messages, so appendToContainer lands in
     // the visible surface; background tabs render into their parked pane.
     if (data.is_complete) {
+      // #2098 — the turn for THIS tab ends here: the progress element is
+      // removed only after the final bubble is appended, and a duplicate/late
+      // completion from the previous turn cannot end the live one.
+      if (window.GBTurn) {
+        GBTurn.complete(data, { tabId: t.id, pane: t.pane });
+      }
       // The send path shows a thinking indicator as soon as Enter is pressed;
       // a parallel tab's completion never cleared it, so the dots stayed next
       // to the finished answer.
       var indicator = t.pane && t.pane.querySelector && t.pane.querySelector("#thinking-indicator");
       if (indicator) indicator.remove();
+      if (typeof window.clearChatPending === "function") window.clearChatPending();
       // Drop the live-streaming placeholder, if any.
       if (t.streamingEl && t.streamingEl.nodeType) {
         t.streamingEl.remove();
@@ -237,6 +249,9 @@
       bumpUnread(t);
       MC.schedulePersist();
     } else if ((data.content && data.content.trim()) || data.reasoning) {
+      // Visible content in this tab: the bubble is the progress element now,
+      // the turn stays open until the completion frame (#2098).
+      if (window.GBTurn) GBTurn.visible({ tabId: t.id, pane: t.pane });
       t.streamingContent = (t.streamingContent || "") + (data.content || "");
       // Active + mounted: live-stream into the visible pane (Claude-Code-
       // style parallel agents must stream in their own tab, not appear all

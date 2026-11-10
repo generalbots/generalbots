@@ -79,6 +79,14 @@ pub fn get_product_config_json() -> serde_json::Value {
     // Get compiled features from our new module
     let compiled = crate::features::COMPILED_FEATURES;
 
+    // #2103 — one version for every surface. The release workflow injects the
+    // tag as `BOTSERVER_BUILD_VERSION`; a local build falls back to the
+    // workspace version. Commit and date travel with it so a bug report can
+    // identify the exact binary.
+    let version = super::build_info::version();
+    let commit = super::build_info::commit();
+    let build_date = super::build_info::build_date();
+
     // Get current config
     let config = PRODUCT_CONFIG.read().ok();
 
@@ -115,7 +123,9 @@ pub fn get_product_config_json() -> serde_json::Value {
             "apps": effective_apps,
             "preview_apps": c.get_preview_apps(),
             "compiled_features": compiled,
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": version,
+            "commit": commit,
+            "build_date": build_date,
             "theme": c.theme,
             "logo": c.logo,
             "favicon": c.favicon,
@@ -136,7 +146,9 @@ pub fn get_product_config_json() -> serde_json::Value {
             "apps": compiled, // If no config, show all compiled
             "preview_apps": Vec::<String>::new(),
             "compiled_features": compiled,
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": version,
+            "commit": commit,
+            "build_date": build_date,
             "theme": "sentient",
             "search_enabled": false,
             "menu_launcher_enabled": false,

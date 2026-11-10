@@ -140,33 +140,56 @@ fn save(jobs: &[SyncJob]) -> Result<(), String> {
 }
 
 /// A sync folder must be an absolute, existing directory with no `..`.
-fn clean_dir(input: &str, field: &str) -> Result<PathBuf, String> {
+///
+/// `field_key` names the folder in the response language (#2094), so the
+/// message is localized while the caller keeps its own label.
+fn clean_dir(
+    locale: &botcore::i18n::Locale,
+    input: &str,
+    field_key: &str,
+) -> Result<PathBuf, String> {
+    let field = botcore::i18n::t(locale, field_key);
     let trimmed = input.trim();
     if trimmed.is_empty() {
-        return Err(format!("{field} is required"));
+        return Err(botcore::i18n::t_args(
+            locale,
+            "error-drive-sync-field-required",
+            &[("field", field.as_str())],
+        ));
     }
     let path = PathBuf::from(trimmed);
     if !path.is_absolute() {
-        return Err(format!("{field} must be an absolute path"));
+        return Err(botcore::i18n::t_args(
+            locale,
+            "error-drive-sync-field-absolute",
+            &[("field", field.as_str())],
+        ));
     }
     if path.components().any(|c| matches!(c, Component::ParentDir)) {
-        return Err(format!("{field} must not contain '..'"));
+        return Err(botcore::i18n::t_args(
+            locale,
+            "error-drive-sync-field-parent",
+            &[("field", field.as_str())],
+        ));
     }
     if !path.is_dir() {
-        return Err(format!(
-            "{field} is not a folder on this machine: {}",
-            path.display()
+        return Err(botcore::i18n::t_args(
+            locale,
+            "error-drive-sync-field-not-folder",
+            &[
+                ("field", field.as_str()),
+                ("path", path.display().to_string().as_str()),
+            ],
         ));
     }
     Ok(path)
 }
 
-fn run_job_blocking(id: &str) -> Result<SyncJob, String> {
+fn run_job_blocking(locale: &botcore::i18n::Locale, id: &str) -> Result<SyncJob, String> {
     let mut jobs = load();
-    let index = jobs
-        .iter()
-        .position(|job| job.id == id)
-        .ok_or_else(|| format!("sync job {id} not found"))?;
+    let index = jobs.iter().position(|job| job.id == id).ok_or_else(|| {
+        botcore::i18n::t_args(locale, "error-drive-sync-job-not-found", &[("id", id)])
+    })?;
     let mut job = jobs[index].clone();
     let outcome = rsync_engine::perform(&mut job);
     if let Err(error) = &outcome {
@@ -179,23 +202,33 @@ fn run_job_blocking(id: &str) -> Result<SyncJob, String> {
     outcome.map(|()| job)
 }
 
-fn resolve_blocking(id: &str, path: &str, resolution: &str) -> Result<SyncJob, String> {
+fn resolve_blocking(
+    locale: &botcore::i18n::Locale,
+    id: &str,
+    path: &str,
+    resolution: &str,
+) -> Result<SyncJob, String> {
     let mut jobs = load();
-    let index = jobs
-        .iter()
-        .position(|job| job.id == id)
-        .ok_or_else(|| format!("sync job {id} not found"))?;
+    let index = jobs.iter().position(|job| job.id == id).ok_or_else(|| {
+        botcore::i18n::t_args(locale, "error-drive-sync-job-not-found", &[("id", id)])
+    })?;
     let mut job = jobs[index].clone();
-    let local = clean_dir(&job.local_path, "local folder")?;
-    let drive = clean_dir(&job.drive_path, "Drive folder")?;
+    let local = clean_dir(locale, &job.local_path, "error-drive-sync-field-local-folder")?;
+    let drive = clean_dir(locale, &job.drive_path, "error-drive-sync-field-drive-folder")?;
     let relative = path.trim_start_matches("./").trim_start_matches('/');
     if relative.is_empty() {
-        return Err("a conflict path is required".to_string());
+        return Err(botcore::i18n::t(
+            locale,
+            "error-drive-sync-conflict-path-required",
+        ));
     }
     let local_target = local.join(relative);
     let drive_target = drive.join(relative);
     if !local_target.starts_with(&local) || !drive_target.starts_with(&drive) {
-        return Err("the conflict path escapes its sync folder".to_string());
+        return Err(botcore::i18n::t(
+            locale,
+            "error-drive-sync-conflict-path-escape",
+        ));
     }
     match resolution {
         "local" => {
@@ -272,7 +305,12 @@ pub fn start_scheduler() {
                     }
                     let id = job.id.clone();
                     let name = job.name.clone();
-                    let joined = tokio::task::spawn_blocking(move || run_job_blocking(&id)).await;
+                    // Background tick: no request, so the process default (en)
+                    // is the only locale available (#2094).
+                    let joined = tokio::task::spawn_blocking(move || {
+                        run_job_blocking(&botcore::i18n::Locale::default(), &id)
+                    })
+                    .await;
                     match joined {
                         Ok(Ok(done)) => log::info!(
                             "drive sync: scheduled run of '{}' finished ({})",

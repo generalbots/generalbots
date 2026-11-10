@@ -42,8 +42,16 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   var messages = document.getElementById("messages");
   if (!messages) return;
   if (sender === "bot") {
-    if (typeof window.clearChatPending === "function") window.clearChatPending();
-    if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
+    // #2098 — an empty bot frame (thinking/status, tool boundary) must not
+    // hide the progress element. Only visible content advances the turn; the
+    // turn itself is closed by the completion frame in processMessage.
+    var hasVisibleAnswer = (content && content.trim() !== "") ||
+      (reasoning && reasoning.trim() !== "");
+    if (hasVisibleAnswer) {
+      if (typeof window.clearChatPending === "function") window.clearChatPending();
+      if (window.GBTurn) GBTurn.visible();
+      else if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
+    }
   }
   // Capture the user's position BEFORE the new bubble changes scrollHeight.
   // Measuring after the append made a long reply look like "user scrolled up"

@@ -34,6 +34,10 @@ pub fn custom_profile(envelope: &Envelope) -> Option<&str> {
 }
 
 #[cfg(test)]
+#[path = "agui_tests.rs"]
+mod agui_tests;
+
+#[cfg(test)]
 mod tests {
     use chrono::Utc;
 

@@ -101,63 +101,17 @@ function followLiveEdge(maxMs) {
   requestAnimationFrame(step);
 }
 
-// #1797 — thinking state: an animated icon plus elapsed seconds so a slow
-// provider never looks frozen. The timer is module-scoped so hide()/show()
-// cannot leak intervals across turns or bot switches.
-var gbThinkingTimer = null;
-var gbThinkingStartedAt = 0;
-
-function gbUpdateThinkingElapsed() {
-  var el = document.querySelector("#thinking-indicator .thinking-elapsed");
-  if (!el) return;
-  var seconds = Math.max(0, Math.floor((Date.now() - gbThinkingStartedAt) / 1000));
-  el.textContent = seconds + "s";
+// #1797 / #2098 — thinking state. The visible element and its elapsed timer
+// are owned by the turn state machine (chat-turn-state.js): visibility follows
+// the turn state (queued → thinking → tool → streaming → done/error) instead of
+// ad-hoc show/hide calls, and every turn is keyed by tab id. These two names
+// stay as the compatibility surface older modules call.
+function showThinkingIndicator(opts) {
+  if (window.GBTurn) window.GBTurn.start("", opts);
 }
 
-function gbStartThinkingTimer(div, startedAt) {
-  gbThinkingStartedAt = startedAt || Date.now();
-  if (gbThinkingTimer) clearInterval(gbThinkingTimer);
-  gbUpdateThinkingElapsed();
-  gbThinkingTimer = setInterval(function () {
-    if (!div.isConnected) {
-      clearInterval(gbThinkingTimer);
-      gbThinkingTimer = null;
-      return;
-    }
-    gbUpdateThinkingElapsed();
-  }, 1000);
-}
-
-function showThinkingIndicator() {
-  var existing = document.getElementById("thinking-indicator");
-  if (existing) {
-    if (!gbThinkingTimer) gbStartThinkingTimer(existing, gbThinkingStartedAt || Date.now());
-    return;
-  }
-  var messages = document.getElementById("messages");
-  if (!messages) return;
-  var div = document.createElement("div");
-  div.id = "thinking-indicator";
-  div.className = "message bot";
-  div.innerHTML = '<div class="message-content bot-message"><div class="thinking-indicator" role="status" aria-live="polite">' +
-    '<span class="thinking-spinner" aria-hidden="true"></span>' +
-    '<span class="thinking-label">Thinking</span>' +
-    '<span class="thinking-elapsed" aria-hidden="true">0s</span>' +
-    '</div></div>';
-  messages.appendChild(div);
-  gbStartThinkingTimer(div, Date.now());
-  scrollToBottom(true);
-  if (typeof scheduleScrollbarMarkers === "function") scheduleScrollbarMarkers();
-}
-
-function hideThinkingIndicator() {
-  if (gbThinkingTimer) {
-    clearInterval(gbThinkingTimer);
-    gbThinkingTimer = null;
-  }
-  gbThinkingStartedAt = 0;
-  var el = document.getElementById("thinking-indicator");
-  if (el) el.remove();
+function hideThinkingIndicator(opts) {
+  if (window.GBTurn) window.GBTurn.forceHide(opts);
 }
 
 /* #1797 — conversation markers along the right edge of the transcript.

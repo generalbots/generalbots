@@ -171,6 +171,10 @@ fn derive_event_id(envelope: &Envelope) -> Result<String, PipelineError> {
 }
 
 #[cfg(test)]
+#[path = "pipeline_tests.rs"]
+mod pipeline_tests;
+
+#[cfg(test)]
 mod tests {
     use std::sync::Arc;
 

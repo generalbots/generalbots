@@ -78,6 +78,10 @@ impl std::fmt::Display for RunState {
 }
 
 #[cfg(test)]
+#[path = "state_tests.rs"]
+mod state_tests;
+
+#[cfg(test)]
 mod tests {
     use super::RunState;
 

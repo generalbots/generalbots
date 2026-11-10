@@ -21,7 +21,12 @@ function armChatPending(text) {
   ChatState.pendingResponseAt = Date.now();
   ChatState.pendingText = text || "";
   ChatState.responseWatchdog = setTimeout(function () {
-    if (!ChatState.pendingResponseAt || ChatState.isStreaming) return;
+    if (!ChatState.pendingResponseAt) return;
+    // #2098 — the watchdog keeps the SAME progress element and says why the
+    // wait is long; it never only updates the status bar (which the next frame
+    // wiped, leaving the chat looking frozen).
+    if (window.GBTurn && GBTurn.slow()) return;
+    if (ChatState.isStreaming) return;
     if (typeof setChatStatus === "function") {
       setChatStatus("Waiting for the model… the provider may be busy.");
     }
@@ -86,8 +91,10 @@ function sendMessage(messageContent, extra) {
   if (content && fileNames) display += "\n\n📎 " + fileNames;
   addMessage("user", display);
   // Immediate feedback: the provider may take seconds (or minutes) before the
-  // first thinking frame, and the chat used to look frozen after Enter.
-  if (typeof showThinkingIndicator === "function") showThinkingIndicator();
+  // first thinking frame, and the chat used to look frozen after Enter. The
+  // turn state machine keeps this element until the final answer (#2098).
+  if (window.GBTurn) GBTurn.start(content || fileNames);
+  else if (typeof showThinkingIndicator === "function") showThinkingIndicator();
   // Sending always returns the view to the live edge.
   ChatState.isUserScrolling = false;
   ChatState.isUserAtBottom = true;

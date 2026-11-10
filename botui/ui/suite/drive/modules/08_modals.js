@@ -1,7 +1,4 @@
-/* Drive Module v2.0 — 08 Modals: preview, share links and sharing */
-"use strict";
-
-/* Drive Module v2.0 — 08 Modals: preview, editor, share, new-bot */
+/* Drive Module v2.0 — 08 Modals: share links and sharing */
 "use strict";
 
 /**
@@ -61,108 +58,6 @@ function sanitizeHtml(html) {
   });
 
   return html;
-}
-
-// Office documents (docx/xlsx/pptx) arrive as a server-rendered, escaped
-// HTML fragment: render it on a white page inside the usual preview shell.
-function showOfficePreviewModal(fileName, html) {
-    var modal = document.getElementById("preview-modal");
-    if (modal) modal.remove();
-    modal = document.createElement("div");
-    modal.id = "preview-modal";
-    modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(8px);";
-    const container = document.createElement("div");
-    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 82%; max-width: 980px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;";
-    const header = document.createElement("div");
-    header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #334155;";
-    header.innerHTML = '<h3 style="margin:0; color:#f8fafc; font-size:1.125rem;">Preview: ' + escapeHtml(fileName) + '</h3>';
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "\u00D7";
-    closeBtn.style.cssText = "background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1; padding: 0; margin: 0;";
-    closeBtn.onclick = function() { modal.remove(); };
-    header.appendChild(closeBtn);
-    const body = document.createElement("div");
-    body.style.cssText = "padding: 20px; overflow: auto; flex-grow: 1; background: #0f172a;";
-    body.innerHTML = html;
-    container.appendChild(header);
-    container.appendChild(body);
-    modal.appendChild(container);
-    document.body.appendChild(modal);
-}
-
-function showPreviewModal(fileName, ext, blob) {
-    var modal = document.getElementById("preview-modal");
-    if (modal) modal.remove();
-    modal = document.createElement("div");
-    modal.id = "preview-modal";
-    modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(8px);";
-    const container = document.createElement("div");
-    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 80%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;";
-    const header = document.createElement("div");
-    header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #334155;";
-    header.innerHTML = '<h3 style="margin:0; color:#f8fafc; font-size:1.125rem;">Preview: ' + escapeHtml(fileName) + '</h3>';
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "\u00D7";
-    closeBtn.style.cssText = "background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1; padding: 0; margin: 0;";
-    var objectUrl;
-    closeBtn.onclick = function() { modal.remove(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
-    header.appendChild(closeBtn);
-    const body = document.createElement("div");
-    body.style.cssText = "padding: 24px; overflow-y: auto; flex-grow: 1; display: flex; align-items: center; justify-content: center; background: #0f172a;";
-    objectUrl = URL.createObjectURL(blob);
-    var previewEl;
-    if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "svg"].indexOf(ext) !== -1) {
-        previewEl = document.createElement("img");
-        previewEl.src = objectUrl;
-        previewEl.style.cssText = "max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px;";
-    } else if (ext === "pdf") {
-        previewEl = document.createElement("iframe");
-        previewEl.src = objectUrl;
-        previewEl.style.cssText = "width:100%; height:70vh; border:none; border-radius:4px;";
-    } else if (["mp4", "webm", "mov", "m4v", "mkv", "avi", "ogv"].indexOf(ext) !== -1) {
-        previewEl = document.createElement("video");
-        previewEl.src = objectUrl;
-        previewEl.controls = true;
-        previewEl.autoplay = true;
-        previewEl.style.cssText = "max-width:100%; max-height:70vh; border-radius:4px;";
-    } else if (["mp3", "wav", "ogg", "oga", "m4a", "flac"].indexOf(ext) !== -1) {
-        previewEl = document.createElement("audio");
-        previewEl.src = objectUrl;
-        previewEl.controls = true;
-        previewEl.autoplay = true;
-        previewEl.style.cssText = "width:100%; max-width:500px;";
-    } else if (ext === "md" && typeof marked !== "undefined") {
-        previewEl = document.createElement("div");
-        previewEl.style.cssText = "color:#f8fafc; font-size:14px; width:100%; max-height:70vh; overflow-y:auto; padding:16px; line-height:1.6;";
-        blob.text().then(function(t) { previewEl.innerHTML = sanitizeHtml(marked.parse(t.substring(0, 50000))); }).catch(function() { previewEl.textContent = "Preview not available."; });
-    } else if (ext === "csv") {
-        previewEl = document.createElement("div");
-        previewEl.style.cssText = "color:#f8fafc; width:100%; max-height:70vh; overflow:auto;";
-        blob.text().then(function(t) {
-            var rows = t.substring(0, 30000).split("\n").filter(function(r) { return r.trim(); });
-            var html = '<table style="border-collapse:collapse;width:100%;font-size:13px;">';
-            rows.forEach(function(row, i) {
-                var cells = row.split(",");
-                var tag = i === 0 ? "th" : "td";
-                html += "<tr>" + cells.map(function(c) { return "<" + tag + ' style="border:1px solid #334155;padding:6px 10px;text-align:left;">' + escapeHtml(c.trim()) + "</" + tag + ">"; }).join("") + "</tr>";
-            });
-            html += "</table>";
-            previewEl.innerHTML = html;
-        }).catch(function() { previewEl.textContent = "Preview not available."; });
-    } else if (ext === "json") {
-        previewEl = document.createElement("pre");
-        previewEl.style.cssText = "color:#f8fafc; font-family:monospace; font-size:13px; white-space:pre-wrap; width:100%; max-height:70vh; overflow-y:auto; margin:0;";
-        blob.text().then(function(t) { try { previewEl.textContent = JSON.stringify(JSON.parse(t), null, 2); } catch (e) { previewEl.textContent = t.substring(0, 10000); } }).catch(function() { previewEl.textContent = "Preview not available."; });
-    } else {
-        previewEl = document.createElement("pre");
-        previewEl.style.cssText = "color:#f8fafc; font-family:monospace; font-size:14px; white-space:pre-wrap; width:100%; max-height:70vh; overflow-y:auto; margin:0;";
-        blob.text().then(function(t) { previewEl.textContent = t.substring(0, 10000); }).catch(function() { previewEl.textContent = "Preview not available for this file type."; });
-    }
-    body.appendChild(previewEl);
-    container.appendChild(header);
-    container.appendChild(body);
-    modal.appendChild(container);
-    document.body.appendChild(modal);
 }
 
 // ── Public share link (real, token-based, revocable) ────────────────────

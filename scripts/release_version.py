@@ -19,6 +19,12 @@ Commands
     Write one version into every file that carries it: ``Cargo.toml``,
     ``Cargo.lock`` (workspace members only), ``botapp/tauri.conf.json`` and the
     README version badge.  ``v`` prefixes are accepted on the command line.
+``check`` / ``--check``
+    Fail (exit 1) when any version-bearing file disagrees with ``Cargo.toml``.
+    CI runs this so a hand-edited version cannot reach a release (#2103).
+``selftest``
+    Exercise ``sync`` and ``check`` against a throw-away tree: a simulated tag
+    ``v9.8.7`` must land as ``9.8.7`` in every file.
 
 The script only uses the Python standard library so the release workflow does
 not need Node, npm or a semantic-release installation.
@@ -71,13 +77,27 @@ def workspace_version(cargo_toml: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())  # type: ignore[return-value]
 
 
-def workspace_member_names(cargo_toml: str) -> set[str]:
+def workspace_member_paths(cargo_toml: str) -> list[str]:
     match = re.search(r"(?ms)^members\s*=\s*\[(.*?)\]", cargo_toml)
     if not match:
         raise SystemExit("Cargo.toml has no [workspace] members list")
+    return [member.rstrip("/") for member in re.findall(r'"([^"]+)"', match.group(1))]
+
+
+def versioned_members(root: Path, cargo_toml: str) -> set[str]:
+    """Members whose version is inherited from ``[workspace.package]``.
+
+    A member that declares its own ``version = "0.1.0"`` keeps it; rewriting
+    that entry in ``Cargo.lock`` would make the lockfile disagree with its
+    manifest and break the next ``cargo build``.
+    """
     names: set[str] = set()
-    for member in re.findall(r'"([^"]+)"', match.group(1)):
-        names.add(member.rstrip("/").split("/")[-1])
+    for member in workspace_member_paths(cargo_toml):
+        manifest = root / member / "Cargo.toml"
+        if not manifest.is_file():
+            continue
+        if re.search(r"(?m)^\s*version\.workspace\s*=\s*true", read_text(manifest)):
+            names.add(member.split("/")[-1])
     return names
 
 
@@ -205,6 +225,113 @@ def command_next(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_check(args: argparse.Namespace) -> int:
+    root = repo_root(args.root)
+    cargo = read_text(root / "Cargo.toml")
+    expected = workspace_version(cargo)
+    drift = drifted_files(root, cargo, expected)
+    if drift:
+        for path in drift:
+            print(f"version drift: {path} disagrees with Cargo.toml", file=sys.stderr)
+        print(
+            "run: python3 scripts/release_version.py sync "
+            + ".".join(str(part) for part in expected),
+            file=sys.stderr,
+        )
+        return 1
+    print("versions agree: " + ".".join(str(part) for part in expected))
+    return 0
+
+
+def drifted_files(
+    root: Path, cargo: str, expected: tuple[int, int, int]
+) -> list[str]:
+    """Every version-bearing file whose content would change on ``sync``."""
+    drift: list[str] = []
+    lock_path = root / "Cargo.lock"
+    if lock_path.exists():
+        lock = read_text(lock_path)
+        members = versioned_members(root, cargo)
+        if update_cargo_lock(lock, members, expected) != lock:
+            drift.append("Cargo.lock")
+    tauri_path = root / "botapp" / "tauri.conf.json"
+    if tauri_path.exists():
+        tauri = read_text(tauri_path)
+        if update_tauri_config(tauri, expected) != tauri:
+            drift.append("botapp/tauri.conf.json")
+    readme_path = root / "README.md"
+    if readme_path.exists():
+        readme = read_text(readme_path)
+        if update_readme_badge(readme, expected) != readme:
+            drift.append("README.md")
+    return drift
+
+
+def command_selftest(args: argparse.Namespace) -> int:
+    """Simulate a ``v9.8.7`` tag in a temporary tree (no repository writes)."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "botapp").mkdir()
+        (root / "Cargo.toml").write_text(
+            '[workspace]\nmembers = ["botapp"]\n\n'
+            '[workspace.package]\nversion = "0.1.0"\n',
+            encoding="utf-8",
+        )
+        (root / "Cargo.lock").write_text(
+            '[[package]]\nname = "botapp"\nversion = "0.1.0"\n\n'
+            '[[package]]\nname = "serde"\nversion = "1.0.0"\n',
+            encoding="utf-8",
+        )
+        (root / "botapp" / "tauri.conf.json").write_text(
+            '{\n  "version": "0.1.0"\n}\n', encoding="utf-8"
+        )
+        (root / "botapp" / "Cargo.toml").write_text(
+            '[package]\nname = "botapp"\nversion.workspace = true\n',
+            encoding="utf-8",
+        )
+        (root / "README.md").write_text(
+            "[![Version](https://img.shields.io/badge/version-0.1.0-informational)](x)\n",
+            encoding="utf-8",
+        )
+
+        sync_args = argparse.Namespace(root=str(root), version="v9.8.7")
+        if command_sync(sync_args) != 0:
+            print("selftest: sync failed", file=sys.stderr)
+            return 1
+
+        expected = "9.8.7"
+        checks = {
+            "Cargo.toml": read_text(root / "Cargo.toml"),
+            "Cargo.lock": read_text(root / "Cargo.lock"),
+            "botapp/tauri.conf.json": read_text(root / "botapp" / "tauri.conf.json"),
+            "README.md": read_text(root / "README.md"),
+        }
+        for path, text in checks.items():
+            if expected not in text:
+                print(f"selftest: {path} did not receive {expected}", file=sys.stderr)
+                return 1
+        # A dependency version must survive the sync untouched.
+        if 'name = "serde"\nversion = "1.0.0"' not in checks["Cargo.lock"]:
+            print("selftest: sync rewrote a non-workspace dependency", file=sys.stderr)
+            return 1
+
+        if command_check(argparse.Namespace(root=str(root))) != 0:
+            print("selftest: check rejected a synced tree", file=sys.stderr)
+            return 1
+
+        # Drift must be detected: hand-edit the Tauri config back.
+        tauri = root / "botapp" / "tauri.conf.json"
+        tauri.write_text('{\n  "version": "9.8.6"\n}\n', encoding="utf-8")
+        if command_check(argparse.Namespace(root=str(root))) == 0:
+            print("selftest: check missed version drift", file=sys.stderr)
+            return 1
+
+    print("selftest: ok (v9.8.7 -> 9.8.7, drift detected)")
+    return 0
+
+
 def command_sync(args: argparse.Namespace) -> int:
     root = repo_root(args.root)
     new = parse_version(args.version)
@@ -222,7 +349,7 @@ def command_sync(args: argparse.Namespace) -> int:
     if lock_path.exists():
         write_text(
             lock_path,
-            update_cargo_lock(read_text(lock_path), workspace_member_names(cargo), new),
+            update_cargo_lock(read_text(lock_path), versioned_members(root, cargo), new),
         )
 
     tauri_path = root / "botapp" / "tauri.conf.json"
@@ -243,7 +370,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--root",
         help="repository root (defaults to the parent of this script)",
     )
-    sub = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="fail when a version-bearing file disagrees with Cargo.toml",
+    )
+    sub = parser.add_subparsers(dest="command")
 
     current = sub.add_parser("current", help="print the workspace version")
     current.set_defaults(func=command_current)
@@ -257,12 +389,24 @@ def build_parser() -> argparse.ArgumentParser:
     sync = sub.add_parser("sync", help="write a version into every version file")
     sync.add_argument("version")
     sync.set_defaults(func=command_sync)
+
+    check = sub.add_parser("check", help="verify every version file agrees")
+    check.set_defaults(func=command_check)
+
+    selftest = sub.add_parser("selftest", help="simulate a tag in a temporary tree")
+    selftest.set_defaults(func=command_selftest)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return args.func(args)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.check:
+        return command_check(args)
+    func = getattr(args, "func", None)
+    if func is None:
+        parser.error("choose a command: current, next, sync, check, selftest")
+    return func(args)
 
 
 if __name__ == "__main__":

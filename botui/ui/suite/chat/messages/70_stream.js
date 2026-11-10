@@ -67,16 +67,36 @@ function finalizeStreaming() {
   ChatState.streamingBuffer = "";
 }
 
+/* #2098 — one place ends a turn: the indicator is removed only after the
+ * final bubble is in the transcript, and the pending watchdog is cleared with
+ * it. `completed` carries the answer actually rendered (the frame can be an
+ * empty completion that reuses the accumulated stream). */
+function gbFinishTurn(data, completed) {
+  if (window.GBTurn) {
+    GBTurn.complete(data, {
+      content: completed ? completed.content : "",
+      reasoning: completed ? completed.reasoning : "",
+    });
+  } else if (typeof hideThinkingIndicator === "function") {
+    hideThinkingIndicator();
+  }
+  if (typeof window.clearChatPending === "function") window.clearChatPending();
+}
+
 function processMessage(data) {
   if (data.thinking) {
-    if (!ChatState.isStreaming) {
-      showThinkingIndicator();
-    }
+    // A thinking/keepalive frame keeps the progress element alive; it never
+    // hides it (#2098).
+    if (window.GBTurn) GBTurn.thinking();
+    else if (!ChatState.isStreaming) showThinkingIndicator();
     gbChatStatus({ state: "running", text: gbChatStatusText("status-thinking", "Thinking…") });
     return;
   }
 
   if (data.is_complete) {
+    // A late completion from the previous turn (or from another conversation)
+    // must not end the live one.
+    if (window.GBTurn && GBTurn.stale(data)) return;
     // Capture the accumulated stream before finalizeStreaming() clears it.
     // Completion frames often carry only reasoning; dropping the accumulated
     // content left a "Thinking" bubble with no visible answer (the persisted
@@ -86,7 +106,14 @@ function processMessage(data) {
         ? data.content
         : (ChatState.currentStreamingContent || "");
     var finalReasoning = data.reasoning || ChatState.currentReasoning || "";
-    hideThinkingIndicator();
+    var hasAnswer = (finalContent && finalContent.trim() !== "") ||
+      (finalReasoning && finalReasoning.trim() !== "");
+    if (!hasAnswer && !ChatState.isStreaming) {
+      // An empty completion (tool boundary, retry in flight) is not the end of
+      // the turn: keep the progress element instead of going blank.
+      if (window.GBTurn) GBTurn.thinking();
+      return;
+    }
     if (ChatState.isStreaming) {
       finalizeStreaming();
     }
@@ -103,20 +130,22 @@ function processMessage(data) {
       // Retries can land several seconds apart; a new user turn clears this
       // marker, so a long window only suppresses the server's own duplicates.
       Date.now() - previous.at < 60000;
-    if (!duplicateCompletion) {
-      if (completed.content) {
-        addMessage("bot", completed.content, null, finalReasoning);
-        if (TTSState.autoSpeak) speakText(completed.content);
-      } else if (completed.reasoning && completed.reasoning.trim() !== "") {
-        addMessage("bot", "", null, completed.reasoning);
-        if (TTSState.autoSpeak) speakText(completed.reasoning);
-      }
-      ChatState.lastCompletedTurn = {
-        content: completed.content,
-        reasoning: completed.reasoning,
-        at: Date.now(),
-      };
+    if (duplicateCompletion) {
+      gbFinishTurn(data, completed);
+      return;
     }
+    if (completed.content) {
+      addMessage("bot", completed.content, null, finalReasoning);
+      if (TTSState.autoSpeak) speakText(completed.content);
+    } else if (completed.reasoning && completed.reasoning.trim() !== "") {
+      addMessage("bot", "", null, completed.reasoning);
+      if (TTSState.autoSpeak) speakText(completed.reasoning);
+    }
+    ChatState.lastCompletedTurn = {
+      content: completed.content,
+      reasoning: completed.reasoning,
+      at: Date.now(),
+    };
     // The final bubble can be rendered by a pane renderer that skips the
     // addMessage hydration; re-run it on the visible last bot turn so raw
     // `[name](vmfile:...)` text always becomes attachment cards.
@@ -130,6 +159,7 @@ function processMessage(data) {
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
     gbChatStatus({ state: "ready" });
+    gbFinishTurn(data, completed);
     // Consumers that react to a finished turn (voice/full-duplex, proactivity)
     // must fire once, on completion — not on the first streaming chunk.
     try {
@@ -146,6 +176,9 @@ function processMessage(data) {
       renderBotSwitchers(data.switchers, "tab-default");
     }
   } else if ((data.content && data.content.trim() !== "") || (data.reasoning && data.reasoning.trim() !== "")) {
+    // First visible content: the turn is streaming and the bubble replaces the
+    // spinner, but the turn stays open until the completion frame (#2098).
+    if (window.GBTurn) GBTurn.visible();
     if (!ChatState.isStreaming) {
       ChatState.isStreaming = true;
       ChatState.streamingMessageId = "streaming-" + Date.now();

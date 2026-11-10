@@ -198,6 +198,11 @@ function dialChatSocket(seq) {
         if (typeof setChatStatus === "function") setChatStatus(data.text || "");
         return;
       }
+      // #2098 — the server accepted our cancel; the turn is over.
+      if (data.type === "run_cancelled") {
+        if (window.GBTurn) GBTurn.forceHide();
+        return;
+      }
       if (data.type === "gb.steering_queued") {
         notifySteering(data.message || "Queued for the next step.");
         return;
@@ -206,6 +211,13 @@ function dialChatSocket(seq) {
       if (data.type === "gb.steer") {
         notifySteering("Steering: " + (data.message || ""));
         return;
+      }
+      // #2098 — one turn state machine owns the progress element: keepalive
+      // frames keep it alive, step/tool frames label it ("Running search…"),
+      // and only the completion frame ends the turn. This runs before the
+      // timeline so a timeline exception can never strand the indicator.
+      if (window.GBTurn) {
+        try { GBTurn.observe(data); } catch (e) { console.warn("[WS] turn state failed:", e); }
       }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
       if (data.seq) {
@@ -272,12 +284,11 @@ function dialChatSocket(seq) {
       }
 
       if (data.message_type === MessageType.BOT_RESPONSE) {
-        // #2084 — any assistant frame ends the wait: the pending timer and the
-        // "Waiting for the model…" status must not survive a reply that was
-        // deduped (or rendered by a pane) and therefore never called
-        // addMessage(), which is what used to clear them.
-        if (typeof window.clearChatPending === "function") window.clearChatPending();
-        if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
+        // #2084/#2098 — the pending timer and the "Waiting for the model…"
+        // status are cleared by the turn state machine: an assistant frame
+        // that carries no content (thinking, tool boundary, retry) must keep
+        // the progress element, and only the completion frame ends the turn.
+        if (window.GBTurn) GBTurn.touch();
         var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
         processMessage(data);

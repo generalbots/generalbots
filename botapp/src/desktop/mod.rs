@@ -11,6 +11,8 @@ pub mod splash;
 pub mod sync;
 pub mod tray;
 pub mod update;
+#[cfg(target_os = "linux")]
+pub mod webkit_permissions;
 #[cfg(feature = "desktop-local")]
 pub mod wizard;
 

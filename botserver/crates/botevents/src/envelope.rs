@@ -157,6 +157,10 @@ impl Envelope {
 }
 
 #[cfg(test)]
+#[path = "envelope_tests.rs"]
+mod envelope_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{EventSource, PendingEvent};
     use crate::events::EventType;

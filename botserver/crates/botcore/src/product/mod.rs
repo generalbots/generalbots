@@ -218,6 +218,7 @@ theme=dark
     }
 }
 
+pub mod build_info;
 mod get_product_name;
 mod load;
 

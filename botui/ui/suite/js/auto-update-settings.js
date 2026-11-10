@@ -55,6 +55,13 @@
     status.textContent = text || "";
   }
 
+  // #2103 — the version comes from /api/product (window.GBUpdate.version).
+  // A build without a resolvable version shows "Unknown", never a literal.
+  function formatVersion(value) {
+    var text = value ? String(value).trim().replace(/^v/i, "") : "";
+    return text ? "v" + text : "Unknown";
+  }
+
   function render(info, error) {
     if (error) {
       setStatus(error, true);
@@ -80,14 +87,14 @@
       }
     } else {
       setStatus(
-        "You are running the latest version (v" +
-          String(info.current_version || GB.version) +
+        "You are running the latest version (" +
+          formatVersion(info.current_version || GB.version) +
           ")."
       );
     }
 
     var current = document.getElementById("updates-current-version");
-    if (current) current.textContent = "v" + String(info.current_version || GB.version);
+    if (current) current.textContent = formatVersion(info.current_version || GB.version);
     var checked = document.getElementById("updates-last-check");
     if (checked) {
       checked.textContent = formatDate(info.checked_at || lastCheckAt());
@@ -107,7 +114,7 @@
     if (install) install.checked = GB.autoInstallEnabled();
 
     var current = document.getElementById("updates-current-version");
-    if (current) current.textContent = "v" + String(GB.version || "0.0.0");
+    if (current) current.textContent = formatVersion(GB.version);
     var checked = document.getElementById("updates-last-check");
     if (checked) {
       var timestamp = lastCheckAt();

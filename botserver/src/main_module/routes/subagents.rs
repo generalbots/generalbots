@@ -27,15 +27,29 @@ fn api_error(status: StatusCode, message: &str) -> ApiError {
     (status, Json(json!({ "error": message })))
 }
 
+/// Localized API error (#2094) — `code` stays machine-readable.
+fn api_error_key(
+    locale: &botcore::i18n::Locale,
+    status: StatusCode,
+    key: &str,
+) -> ApiError {
+    (status, Json(botcore::i18n::error_body(locale, key)))
+}
+
 fn user_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
+    let locale = botcore::i18n::locale_from_headers(headers);
     let token = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
-        .ok_or_else(|| api_error(StatusCode::UNAUTHORIZED, "missing token"))?;
+        .ok_or_else(|| {
+            api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-missing")
+        })?;
     let (claims_user, _roles) =
         crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-            .ok_or_else(|| api_error(StatusCode::UNAUTHORIZED, "invalid token"))?;
+            .ok_or_else(|| {
+                api_error_key(&locale, StatusCode::UNAUTHORIZED, "error-auth-token-invalid")
+            })?;
     Ok(crate::security::user_role::derive_stable_user_uuid(
         &claims_user,
     ))
@@ -92,6 +106,7 @@ async fn create(
     Json(body): Json<CreateBody>,
 ) -> Result<Json<Value>, ApiError> {
     let caller = user_from_headers(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let tasks: Vec<(String, String)> = body
         .tasks
         .iter()
@@ -149,9 +164,10 @@ async fn create(
     // last two in the other order sent the API key as the model name, so every
     // sub-agent failed with `404 model_not_found` (#1709).
     let Some((llm, key, model)) = provider else {
-        return Err(api_error(
+        return Err(api_error_key(
+            &locale,
             StatusCode::SERVICE_UNAVAILABLE,
-            "no LLM provider is configured for sub-agents",
+            "error-subagent-no-llm",
         ));
     };
 

@@ -9,11 +9,36 @@ use uuid::Uuid;
 use crate::core::bot::ws::handler::verify_path_within_workdir;
 use botcore::shared::utils::current_org_id;
 
+/// #2095 — the response-language contract every chat prompt carries.
+///
+/// It lives in the prompt assembly path (not only in the shipped templates) so
+/// a custom bot that authored its own `PROMPT.md` still answers in the language
+/// the user wrote. The wording matches `bottemplates/README.md` and the shipped
+/// `PROMPT-*.md` files, and the block is skipped when the authored prompt
+/// already states it (no duplicated instructions).
+pub const RESPONSE_LANGUAGE_INSTRUCTION: &str = "Always answer in the user's language. If the user writes in Portuguese, answer in Portuguese; if Japanese, answer in Japanese. Keep code, commands, identifiers and file paths unchanged.";
+
 pub fn load_system_prompt(bot_name: &str) -> String {
     load_system_prompt_for_channel(bot_name, "web")
 }
 
+/// Loads the bot's authored prompt and appends the response-language contract.
 pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
+    with_response_language_contract(load_bot_prompt_for_channel(bot_name, channel))
+}
+
+/// Appends [`RESPONSE_LANGUAGE_INSTRUCTION`] unless the prompt already has it.
+#[must_use]
+pub fn with_response_language_contract(prompt: String) -> String {
+    if prompt.contains(RESPONSE_LANGUAGE_INSTRUCTION) {
+        return prompt;
+    }
+    format!("{prompt}\n\n## Language\n\n{RESPONSE_LANGUAGE_INSTRUCTION}")
+}
+
+/// Reads the authored prompt for `channel`; the contract is added by
+/// [`load_system_prompt_for_channel`] so every early return gets it.
+fn load_bot_prompt_for_channel(bot_name: &str, channel: &str) -> String {
     let work_dir = botcore::shared::utils::get_work_path();
     let org_id = current_org_id();
     let nil_uuid = uuid::Uuid::nil();
@@ -475,4 +500,52 @@ pub async fn run_start_bas_on_connect(
 
     send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id, bot_name).await;
     true
+}
+
+#[cfg(test)]
+mod response_language_tests {
+    use super::{
+        load_system_prompt_for_channel, with_response_language_contract,
+        RESPONSE_LANGUAGE_INSTRUCTION,
+    };
+
+    /// A bot with no authored prompt (the custom-bot case the issue calls out)
+    /// must still be told to answer in the user's language.
+    #[test]
+    fn fallback_prompt_carries_the_language_contract() {
+        let prompt = load_system_prompt_for_channel("bot-without-prompt-2095", "web");
+        assert!(prompt.contains("You are a helpful assistant"));
+        assert!(prompt.contains(RESPONSE_LANGUAGE_INSTRUCTION));
+        assert!(prompt.contains("## Language"));
+    }
+
+    /// Every channel resolves through the same wrapper, so the contract is not
+    /// a web-only behaviour.
+    #[test]
+    fn every_channel_gets_the_contract() {
+        for channel in ["web", "whatsapp", "telegram", "msteams"] {
+            let prompt = load_system_prompt_for_channel("bot-without-prompt-2095", channel);
+            assert!(
+                prompt.contains(RESPONSE_LANGUAGE_INSTRUCTION),
+                "channel {channel}"
+            );
+        }
+    }
+
+    /// A prompt that already states the rule (the shipped templates) keeps its
+    /// own wording and is not given a second, conflicting copy.
+    #[test]
+    fn authored_contract_is_not_duplicated() {
+        let authored = format!("## Language\n\n{RESPONSE_LANGUAGE_INSTRUCTION}");
+        let prompt = with_response_language_contract(authored.clone());
+        assert_eq!(prompt, authored);
+        assert_eq!(prompt.matches(RESPONSE_LANGUAGE_INSTRUCTION).count(), 1);
+    }
+
+    #[test]
+    fn plain_prompt_gets_one_contract_appended() {
+        let prompt = with_response_language_contract("You are a bot.".to_string());
+        assert!(prompt.starts_with("You are a bot.\n\n## Language\n\n"));
+        assert_eq!(prompt.matches(RESPONSE_LANGUAGE_INSTRUCTION).count(), 1);
+    }
 }

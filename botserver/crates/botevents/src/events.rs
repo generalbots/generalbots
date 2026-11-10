@@ -301,6 +301,10 @@ pub fn to_data<T: Serialize>(payload: &T) -> Value {
 }
 
 #[cfg(test)]
+#[path = "events_tests.rs"]
+mod events_tests;
+
+#[cfg(test)]
 mod tests {
     use super::EventType;
 

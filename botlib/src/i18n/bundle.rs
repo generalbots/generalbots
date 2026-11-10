@@ -156,6 +156,20 @@ impl I18nBundle {
         }
     }
 
+    /// Whether `key` is a catalogue message id (#2095).
+    ///
+    /// Callers that treat an authored string as a *key* (suggestion labels,
+    /// switcher labels) must translate it only when the catalogue defines it;
+    /// a plain label like `Marcar consulta` stays as authored. Membership is
+    /// checked against the fallback (English) bundle, which is the
+    /// authoritative key set.
+    #[must_use]
+    pub fn has_message(&self, key: &str) -> bool {
+        self.bundles
+            .get(&self.fallback.to_string())
+            .is_some_and(|bundle| bundle.get_message(key).is_some())
+    }
+
     pub fn available_locales(&self) -> Vec<String> {
         self.available.iter().map(ToString::to_string).collect()
     }

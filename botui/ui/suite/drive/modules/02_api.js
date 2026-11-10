@@ -175,7 +175,7 @@ async function previewFile(path, bucket) {
         });
         if (!response.ok) throw new Error("HTTP " + response.status);
         const blob = await response.blob();
-        showPreviewModal(fileName, ext, blob);
+        showPreviewModal(fileName, ext, blob, path);
     } catch (err) {
         showNotification("Preview failed: " + err.message, "error");
     }

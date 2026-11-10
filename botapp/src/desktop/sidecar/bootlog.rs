@@ -26,7 +26,7 @@ pub(super) fn write_boot_banner(file: &std::fs::File, path: &Path) {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs())
         .unwrap_or(0);
-    let banner = boot_banner(stamp, env!("CARGO_PKG_VERSION"), path);
+    let banner = boot_banner(stamp, &crate::build_info::version(), path);
     let mut handle = file;
     if let Err(e) = writeln!(handle, "{banner}") {
         warn!("could not write the sidecar boot banner: {e}");

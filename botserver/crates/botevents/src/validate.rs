@@ -285,6 +285,10 @@ fn require_one_of(
 }
 
 #[cfg(test)]
+#[path = "validate_tests.rs"]
+mod validate_tests;
+
+#[cfg(test)]
 mod tests {
     use chrono::Utc;
     use serde_json::json;

@@ -32,14 +32,28 @@ pub struct SaveOutputRequest {
 
 type ApiError = (StatusCode, Json<Value>);
 
-fn err(code: StatusCode, message: &str) -> ApiError {
-    (code, Json(json!({ "error": message })))
+/// Localized API error (#2094): `code` stays machine-readable, `error` keeps
+/// carrying the human-readable text for clients that never read `message`.
+fn err(locale: &botcore::i18n::Locale, code: StatusCode, key: &str) -> ApiError {
+    (code, Json(botcore::i18n::error_body(locale, key)))
+}
+
+fn token_from(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
 }
 
 /// The bot a session belongs to, only when the caller owns that session.
 /// Column types differ across deployments (uuid vs text), so both sides are
 /// compared and returned as text and parsed here.
-fn session_bot(state: &AppState, session_id: Uuid, user_id: Uuid) -> Result<Uuid, ApiError> {
+fn session_bot(
+    locale: &botcore::i18n::Locale,
+    state: &AppState,
+    session_id: Uuid,
+    user_id: Uuid,
+) -> Result<Uuid, ApiError> {
     use diesel::sql_types::Text;
     #[derive(diesel::QueryableByName)]
     struct Row {
@@ -48,10 +62,13 @@ fn session_bot(state: &AppState, session_id: Uuid, user_id: Uuid) -> Result<Uuid
         #[diesel(sql_type = Text)]
         user_id: String,
     }
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|_| err(StatusCode::SERVICE_UNAVAILABLE, "database unavailable"))?;
+    let mut conn = state.conn.get().map_err(|_| {
+        err(
+            locale,
+            StatusCode::SERVICE_UNAVAILABLE,
+            "error-agent-drive-database-unavailable",
+        )
+    })?;
     let row: Option<Row> = diesel::sql_query(
         "SELECT bot_id::text AS bot_id, user_id::text AS user_id \
          FROM user_sessions WHERE id::text = $1 LIMIT 1",
@@ -61,19 +78,40 @@ fn session_bot(state: &AppState, session_id: Uuid, user_id: Uuid) -> Result<Uuid
     .optional()
     .map_err(|e| {
         log::error!("agent drive: session lookup failed: {e}");
-        err(StatusCode::INTERNAL_SERVER_ERROR, "lookup failed")
+        err(
+            locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-agent-drive-lookup-failed",
+        )
     })?;
-    let row = row.ok_or_else(|| err(StatusCode::NOT_FOUND, "conversation not found"))?;
-    let owner = Uuid::parse_str(row.user_id.trim())
-        .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "bad session owner"))?;
+    let row = row.ok_or_else(|| {
+        err(
+            locale,
+            StatusCode::NOT_FOUND,
+            "error-agent-drive-conversation-not-found",
+        )
+    })?;
+    let owner = Uuid::parse_str(row.user_id.trim()).map_err(|_| {
+        err(
+            locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-agent-drive-bad-owner",
+        )
+    })?;
     if owner != user_id {
         return Err(err(
+            locale,
             StatusCode::FORBIDDEN,
-            "conversation belongs to another user",
+            "error-agent-drive-forbidden",
         ));
     }
-    Uuid::parse_str(row.bot_id.trim())
-        .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "bad session bot"))
+    Uuid::parse_str(row.bot_id.trim()).map_err(|_| {
+        err(
+            locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-agent-drive-bad-bot",
+        )
+    })
 }
 
 fn safe_name(raw: &str) -> String {
@@ -94,20 +132,39 @@ pub async fn save_output(
     headers: HeaderMap,
     Json(req): Json<SaveOutputRequest>,
 ) -> Result<Json<Value>, ApiError> {
-    let token = headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|value| value.strip_prefix("Bearer "))
-        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "missing token"))?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let token = token_from(&headers).ok_or_else(|| {
+        err(
+            &locale,
+            StatusCode::UNAUTHORIZED,
+            "error-auth-token-missing",
+        )
+    })?;
     let (claims_user, _) = crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "invalid token"))?;
+        .ok_or_else(|| {
+            err(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-invalid",
+            )
+        })?;
     let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
-    let bot_uuid = session_bot(&state, req.conversation_id, user_id)?;
+    let bot_uuid = session_bot(&locale, &state, req.conversation_id, user_id)?;
     let available = agent_vm_hook::list_session_folder(user_id, req.conversation_id, "output")
         .await
-        .ok_or_else(|| err(StatusCode::CONFLICT, "workspace is not running"))?;
+        .ok_or_else(|| {
+            err(
+                &locale,
+                StatusCode::CONFLICT,
+                "error-agent-drive-workspace-stopped",
+            )
+        })?;
     if available.is_empty() {
-        return Err(err(StatusCode::NOT_FOUND, "no files in output/"));
+        return Err(err(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-agent-drive-no-files",
+        ));
     }
     let wanted: Vec<String> = req.files.iter().map(|f| safe_name(f)).collect();
     let selected: Vec<String> = available
@@ -116,7 +173,11 @@ pub async fn save_output(
         .filter(|name| wanted.is_empty() || wanted.contains(name))
         .collect();
     if selected.is_empty() {
-        return Err(err(StatusCode::NOT_FOUND, "named files are not in output/"));
+        return Err(err(
+            &locale,
+            StatusCode::NOT_FOUND,
+            "error-agent-drive-named-files-missing",
+        ));
     }
 
     let folder = match req.folder.as_deref().map(drive_bridge::slug) {
@@ -141,8 +202,9 @@ pub async fn save_output(
 
     if saved.is_empty() {
         return Err(err(
+            &locale,
             StatusCode::INTERNAL_SERVER_ERROR,
-            "could not save any file to Drive",
+            "error-agent-drive-save-failed",
         ));
     }
     Ok(Json(json!({
@@ -162,36 +224,64 @@ pub async fn share_output(
     headers: HeaderMap,
     Json(req): Json<ShareOutputRequest>,
 ) -> Result<Json<Value>, ApiError> {
-    let token = headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|value| value.strip_prefix("Bearer "))
-        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "missing token"))?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let token = token_from(&headers).ok_or_else(|| {
+        err(
+            &locale,
+            StatusCode::UNAUTHORIZED,
+            "error-auth-token-missing",
+        )
+    })?;
     let (claims_user, _) = crate::main_module::routes::anonymous_auth::resolve_token_user(token)
-        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "invalid token"))?;
+        .ok_or_else(|| {
+            err(
+                &locale,
+                StatusCode::UNAUTHORIZED,
+                "error-auth-token-invalid",
+            )
+        })?;
     let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
-    let bot_uuid = session_bot(&state, req.conversation_id, user_id)?;
+    let bot_uuid = session_bot(&locale, &state, req.conversation_id, user_id)?;
     let name = safe_name(&req.file);
     let bytes =
         agent_vm_hook::read_session_file(user_id, req.conversation_id, &format!("output/{name}"))
             .await
-            .map_err(|_| err(StatusCode::NOT_FOUND, "file not found in output/"))?;
+            .map_err(|_| {
+                err(
+                    &locale,
+                    StatusCode::NOT_FOUND,
+                    "error-agent-drive-file-missing",
+                )
+            })?;
 
     let folder = drive_bridge::conversation_title(&state, req.conversation_id).await;
     let stored = drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes)
         .await
-        .ok_or_else(|| err(StatusCode::INTERNAL_SERVER_ERROR, "could not save to Drive"))?;
-    let (bucket, key) = stored
-        .split_once('/')
-        .ok_or_else(|| err(StatusCode::INTERNAL_SERVER_ERROR, "bad drive path"))?;
+        .ok_or_else(|| {
+            err(
+                &locale,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "error-agent-drive-save-one-failed",
+            )
+        })?;
+    let (bucket, key) = stored.split_once('/').ok_or_else(|| {
+        err(
+            &locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-agent-drive-bad-path",
+        )
+    })?;
 
     use diesel::sql_types::Text;
     let share_token = Uuid::new_v4().simple().to_string();
     let expires = chrono::Utc::now() + chrono::Duration::days(7);
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|_| err(StatusCode::SERVICE_UNAVAILABLE, "database unavailable"))?;
+    let mut conn = state.conn.get().map_err(|_| {
+        err(
+            &locale,
+            StatusCode::SERVICE_UNAVAILABLE,
+            "error-agent-drive-database-unavailable",
+        )
+    })?;
     diesel::sql_query(
         "INSERT INTO drive_public_links (owner_id, bucket, path, key, scope, share_token, expires_at) \
          VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -206,7 +296,11 @@ pub async fn share_output(
     .execute(&mut conn)
     .map_err(|e| {
         log::error!("agent drive: share link insert failed: {e}");
-        err(StatusCode::INTERNAL_SERVER_ERROR, "could not create link")
+        err(
+            &locale,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "error-agent-drive-link-failed",
+        )
     })?;
 
     Ok(Json(json!({

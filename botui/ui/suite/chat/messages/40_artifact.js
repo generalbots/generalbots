@@ -12,23 +12,18 @@ function renderInlineArtifact(html, titleOverride) {
   expand.type = "button";
   expand.className = "gb-inline-artifact-btn";
   expand.textContent = "Expand";
+  expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
-    box.classList.toggle("expanded");
-    var expanded = box.classList.contains("expanded");
-    expand.textContent = expanded ? "Collapse" : "Expand";
-    if (expanded) {
-      box.style.position = "sticky";
-      box.style.top = "0";
-      box.style.zIndex = "4";
-      box.style.width = "100%";
-      box.style.maxWidth = "100%";
-    } else {
-      box.style.position = "";
-      box.style.top = "";
-      box.style.zIndex = "";
-      box.style.width = "";
-      box.style.maxWidth = "";
+    // #2099 — expand opens the artifact over the whole pane; the bubble's 80%
+    // cap no longer applies because the box leaves `.message`.
+    if (window.GBArtifactOverlay) {
+      window.GBArtifactOverlay.toggle(box, expand, {
+        label: title.textContent || "Preview",
+      });
+      return;
     }
+    box.classList.toggle("expanded");
+    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
   });
   head.appendChild(expand);
   var frame = document.createElement("iframe");
@@ -93,23 +88,15 @@ function toggleUserAttachmentPreview(chip, name) {
   expand.type = "button";
   expand.className = "gb-attachment-inline-btn";
   expand.textContent = "Expand";
+  expand.setAttribute("aria-expanded", "false");
   expand.addEventListener("click", function () {
-    box.classList.toggle("expanded");
-    var expanded = box.classList.contains("expanded");
-    expand.textContent = expanded ? "Collapse" : "Expand";
-    if (expanded) {
-      box.style.position = "sticky";
-      box.style.top = "0";
-      box.style.zIndex = "4";
-      box.style.width = "100%";
-      box.style.maxWidth = "100%";
-    } else {
-      box.style.position = "";
-      box.style.top = "";
-      box.style.zIndex = "";
-      box.style.width = "";
-      box.style.maxWidth = "";
+    // #2099 — same modal layer as the other inline previews.
+    if (window.GBArtifactOverlay) {
+      window.GBArtifactOverlay.toggle(box, expand, { label: name });
+      return;
     }
+    box.classList.toggle("expanded");
+    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
   });
   head.appendChild(expand);
 
@@ -118,7 +105,10 @@ function toggleUserAttachmentPreview(chip, name) {
   close.className = "gb-attachment-inline-btn";
   close.setAttribute("aria-label", "Close preview");
   close.textContent = "×";
-  close.addEventListener("click", function () { box.remove(); });
+  close.addEventListener("click", function () {
+    if (window.GBArtifactOverlay) window.GBArtifactOverlay.close(box);
+    box.remove();
+  });
   head.appendChild(close);
 
   var body = document.createElement("div");

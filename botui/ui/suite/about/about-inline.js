@@ -6,9 +6,25 @@ async function loadAboutData() {
         const response = await fetch('/api/product');
         const config = await response.json();
         
-        // Update version info
+        // Update version info — /api/product is the only source (#2103). When
+        // it is unreachable the page keeps "Unknown" instead of a stale number.
         const versionEl = document.getElementById('about-version');
-        if (versionEl) versionEl.textContent = config.version || '6.1.0';
+        if (versionEl) versionEl.textContent = config.version || 'Unknown';
+
+        const buildEl = document.getElementById('about-build');
+        if (buildEl) {
+            const details = [];
+            if (config.build_date && config.build_date !== 'unknown') {
+                details.push('Built ' + config.build_date);
+            }
+            if (config.commit && config.commit !== 'unknown') {
+                details.push('commit ' + config.commit);
+            }
+            if (details.length) {
+                buildEl.textContent = details.join(' · ');
+                buildEl.hidden = false;
+            }
+        }
         
         // Update product name
         const nameEl = document.getElementById('about-product-name');

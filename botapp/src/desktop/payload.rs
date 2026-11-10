@@ -190,7 +190,7 @@ pub fn extract_if_present() -> Result<Option<PathBuf>> {
 pub fn handle_cli() -> Option<i32> {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--version") {
-        println!("generalbots {}", env!("CARGO_PKG_VERSION"));
+        println!("generalbots {}", crate::build_info::version());
         return Some(0);
     }
     if args.iter().any(|arg| arg == "--verify") {

@@ -14,6 +14,10 @@ pub(super) async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
 
+    // #2094 — the CLI language comes from `--lang`/`LANG`; log lines stay
+    // English, only the text printed for the operator is translated.
+    main_module::cli_locale::init_from_args(&args);
+
     crate::main_module::handle_security_command(&args).await;
 
     // First-run wizard (desktop-local): provision the bundled components in

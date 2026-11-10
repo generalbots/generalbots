@@ -310,6 +310,15 @@
             mountFrame(host);
         });
         host.card.querySelector(".gb-app-btn:nth-of-type(2)").addEventListener("click", function () {
+            // #2099 — expand into the shared modal layer so an MCP app is not
+            // clamped to the transcript column either.
+            var expandBtn = host.card.querySelector(".gb-app-btn:nth-of-type(2)");
+            if (window.GBArtifactOverlay) {
+                window.GBArtifactOverlay.toggle(host.card, expandBtn, {
+                    label: safeTitle(payload.title),
+                });
+                return;
+            }
             host.card.classList.toggle("expanded");
         });
         host.card.querySelector(".gb-app-btn:nth-of-type(3)").addEventListener("click", function () {

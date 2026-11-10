@@ -152,6 +152,10 @@ fn masking_rules() -> &'static [(Regex, &'static str)] {
 }
 
 #[cfg(test)]
+#[path = "redact_tests.rs"]
+mod redact_tests;
+
+#[cfg(test)]
 mod tests {
     use serde_json::json;
 

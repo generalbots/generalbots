@@ -17,7 +17,11 @@ use serde::{Deserialize, Serialize};
 const RELEASES_API: &str = "https://api.github.com/repos/generalbots/generalbots/releases/latest";
 const RELEASES_PAGE: &str = "https://github.com/generalbots/generalbots/releases";
 const RELEASE_URL_PREFIX: &str = "https://github.com/generalbots/generalbots/releases";
-const USER_AGENT: &str = concat!("GeneralBots-Desktop/", env!("CARGO_PKG_VERSION"));
+
+/// User agent for the release check, carrying the real build version (#2103).
+fn user_agent() -> String {
+    format!("GeneralBots-Desktop/{}", crate::build_info::version())
+}
 
 /// GitHub's release payload (only the fields the desktop needs).
 #[derive(Debug, Deserialize)]
@@ -221,7 +225,7 @@ fn release_from_github(release: GitHubRelease) -> Result<ReleaseInfo, String> {
         return Err("The latest GitHub release has no tag.".to_string());
     }
 
-    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let current_version = crate::build_info::version();
     let latest_version = release
         .tag_name
         .trim()
@@ -268,7 +272,7 @@ pub async fn check_latest_release() -> Result<ReleaseInfo, String> {
 
     let mut request = client
         .get(RELEASES_API)
-        .header(reqwest::header::USER_AGENT, USER_AGENT)
+        .header(reqwest::header::USER_AGENT, user_agent())
         .header(reqwest::header::ACCEPT, "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28");
 

@@ -12,6 +12,11 @@
  * user perceived as a frozen app. Every request now runs under a watchdog and
  * degrades to the native capture input, and the dialog is always dismissable
  * (buttons, overlay click, Escape).
+ *
+ * #2106 — a resolved stream is not a picture: WebKitGTK can also leave
+ * `video.play()` pending forever, so readiness is now taken from the frames
+ * (`77_camera_preview.js`) under its own deadline. Either the shutter becomes
+ * usable or the dialog hands the user to the system picker — never "Waiting…".
  */
 "use strict";
 
@@ -20,6 +25,12 @@
   var overlay = null;
   var requestSeq = 0;
   var WATCHDOG_MS = 10000;
+  // The play phase needs its own deadline: the getUserMedia watchdog above is
+  // already cleared by the time a stream arrives.
+  var PLAY_WATCHDOG_MS = 6000;
+  var DIAGNOSTIC_MS = 2000;
+  var FRAME_POLL_MS = 250;
+  var cancelFrameWatch = null;
 
   function tr(key, fallback) {
     if (window.i18n && typeof window.i18n.t === "function") {
@@ -49,6 +60,8 @@
     // Invalidate any in-flight request so a late stream is released instead of
     // leaking a camera that the user already dismissed.
     requestSeq += 1;
+    if (cancelFrameWatch) cancelFrameWatch();
+    cancelFrameWatch = null;
     stopStream();
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     overlay = null;
@@ -129,6 +142,39 @@
     if (status) status.textContent = text;
   }
 
+  function setShutterEnabled(enabled) {
+    if (!overlay) return;
+    var shutter = overlay.querySelector(".gb-camera-shutter");
+    if (shutter) shutter.disabled = !enabled;
+  }
+
+  function videoReady(video) {
+    if (window.GBCameraPreview && typeof GBCameraPreview.videoReady === "function") {
+      return GBCameraPreview.videoReady(video);
+    }
+    return !!video && video.videoWidth > 0 && video.videoHeight > 0;
+  }
+
+  /// Camera state for the "still waiting" diagnostic (#2106): a granted
+  /// permission with no frames looks very different from having no device.
+  function describeDevices() {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.enumerateDevices !== "function") {
+      return Promise.resolve("");
+    }
+    return navigator.mediaDevices
+      .enumerateDevices()
+      .then(function (devices) {
+        var cameras = devices.filter(function (device) {
+          return device.kind === "videoinput";
+        });
+        if (!cameras.length) return tr("chat-camera-no-device", "no video device");
+        return cameras[0].label || tr("chat-camera-device", "video device");
+      })
+      .catch(function () {
+        return "";
+      });
+  }
+
   function buildPreview() {
     overlay = document.createElement("div");
     overlay.id = "gbCamera";
@@ -199,6 +245,55 @@
     });
   }
 
+  /// Starts the preview and decides readiness from the frames, never from
+  /// `video.play()`: WebKitGTK can leave that promise pending forever even
+  /// though the element already holds a capturable frame (#2106).
+  ///
+  /// Resolves `true` when the shutter may be used, `false` when no frame
+  /// arrived before the play watchdog — the caller then hands the user to the
+  /// system picker instead of leaving a black modal on "Waiting…".
+  function startPreview(video, token) {
+    var diagnostic = setTimeout(function () {
+      if (token !== requestSeq || !overlay) return;
+      describeDevices().then(function (detail) {
+        if (token !== requestSeq || !overlay) return;
+        var message = tr(
+          "chat-camera-waiting-frames",
+          "Permission granted; waiting for video frames",
+        );
+        setStatus(detail ? message + " — " + detail + "…" : message + "…");
+      });
+    }, DIAGNOSTIC_MS);
+
+    var played = typeof video.play === "function" ? video.play() : Promise.resolve();
+    // A blocked autoplay rejects; a stalled pipeline stays pending. Neither
+    // says anything about whether frames are decodable, so both are ignored.
+    Promise.resolve(played).catch(function () { /* autoplay blocked */ });
+
+    var watcher =
+      window.GBCameraPreview && typeof GBCameraPreview.watch === "function"
+        ? GBCameraPreview.watch(video, { timeoutMs: PLAY_WATCHDOG_MS, pollMs: FRAME_POLL_MS })
+        : null;
+    if (!watcher) {
+      clearTimeout(diagnostic);
+      return Promise.resolve(videoReady(video));
+    }
+    cancelFrameWatch = watcher.cancel;
+    return watcher.promise.then(function (ready) {
+      clearTimeout(diagnostic);
+      cancelFrameWatch = null;
+      if (token !== requestSeq || !overlay) return false;
+      if (!ready) return false;
+      setShutterEnabled(true);
+      setStatus(
+        video.paused
+          ? tr("chat-camera-started", "Camera started — tap Take photo.")
+          : tr("chat-camera-ready", "Camera ready. Take the photo or cancel."),
+      );
+      return true;
+    });
+  }
+
   function open() {
     if (overlay) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -214,17 +309,29 @@
           mediaStream.getTracks().forEach(function (track) { track.stop(); });
           return;
         }
+        if (typeof mediaStream.getVideoTracks === "function" && mediaStream.getVideoTracks().length === 0) {
+          // A grant without a video track can never produce a photo.
+          mediaStream.getTracks().forEach(function (track) { track.stop(); });
+          close();
+          useFallbackInput(tr("chat-camera-missing", "No camera was found on this device."));
+          return;
+        }
         stream = mediaStream;
         video.srcObject = mediaStream;
-        var played = typeof video.play === "function" ? video.play() : Promise.resolve();
-        return Promise.resolve(played)
-          .catch(function () { /* autoplay policy: the frame is still capturable */ })
-          .then(function () {
-            if (token !== requestSeq || !overlay) return;
-            var shutter = overlay.querySelector(".gb-camera-shutter");
-            if (shutter) shutter.disabled = false;
-            setStatus(tr("chat-camera-ready", "Camera ready. Take the photo or cancel."));
-          });
+        return startPreview(video, token);
+      })
+      .then(function (ready) {
+        if (ready !== false) return;
+        if (token !== requestSeq || !overlay) return;
+        // No frame arrived: the WebView pipeline is dead for this device. Drop
+        // the black modal and offer the native picker with the reason.
+        close();
+        useFallbackInput(
+          tr(
+            "chat-camera-no-frames",
+            "The camera preview did not start. Choose a photo from the system picker instead.",
+          ),
+        );
       })
       .catch(function (error) {
         if (token !== requestSeq) return;

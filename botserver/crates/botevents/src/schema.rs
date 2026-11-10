@@ -89,6 +89,10 @@ pub fn write_schema(path: &std::path::Path) -> std::io::Result<()> {
 }
 
 #[cfg(test)]
+#[path = "schema_tests.rs"]
+mod schema_tests;
+
+#[cfg(test)]
 mod tests {
     use super::envelope_schema;
     use crate::events::EventType;

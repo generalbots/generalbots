@@ -11,8 +11,8 @@ use uuid::Uuid;
 use super::store::{conversation_bot, load_all_rows, load_rows};
 use super::types::{next_run_for, respond, AutotaskRow, CreateAutotaskRequest, NewAutotask};
 use super::{
-    api_error, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED, STATUS_PENDING,
-    STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
+    api_error, api_error_key, resolve_user, workspace, ApiError, STATUS_FAILED, STATUS_ORPHANED,
+    STATUS_PENDING, STATUS_RUNNING, STATUS_SCHEDULED, STATUS_STOPPED,
 };
 use botschema::conversation_autotasks as table;
 
@@ -158,6 +158,7 @@ pub async fn cancel(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
@@ -168,7 +169,9 @@ pub async fn cancel(
         .first::<AutotaskRow>(&mut conn)
         .optional()
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "autotask not found"))?;
+        .ok_or_else(|| {
+            api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found")
+        })?;
     drop(conn);
 
     let removal_error = workspace::remove(&row).await;
@@ -195,6 +198,7 @@ pub async fn delete(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    let locale = botcore::i18n::locale_from_headers(&headers);
     let mut conn = state
         .conn
         .get()
@@ -205,7 +209,9 @@ pub async fn delete(
         .first::<AutotaskRow>(&mut conn)
         .optional()
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?
-        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "autotask not found"))?;
+        .ok_or_else(|| {
+            api_error_key(&locale, StatusCode::NOT_FOUND, "error-autotask-not-found")
+        })?;
     drop(conn);
 
     let _ = workspace::remove(&row).await;

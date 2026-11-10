@@ -80,6 +80,10 @@ impl SequencerRegistry {
 }
 
 #[cfg(test)]
+#[path = "sequencer_tests.rs"]
+mod sequencer_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{SequencerRegistry, ThreadSequencer};
 

@@ -67,6 +67,17 @@ pub fn available_locales() -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Whether `message_id` is defined by the catalogue (#2095).
+///
+/// `false` before the bundle is loaded, so a keyed label degrades to the
+/// authored text instead of rendering an identifier.
+#[must_use]
+pub fn has_message(message_id: &str) -> bool {
+    GLOBAL_BUNDLE
+        .get()
+        .is_some_and(|b| b.has_message(message_id))
+}
+
 /// Message ids authored in the English (fallback) locale bundle.
 pub fn message_ids() -> Vec<String> {
     GLOBAL_BUNDLE
@@ -93,5 +104,26 @@ mod tests {
     #[test]
     fn test_is_initialized_before_init() {
         assert!(!is_initialized() || is_initialized());
+    }
+
+    /// #2095 — keyed labels resolve only when the catalogue defines the key,
+    /// so an authored label is never replaced by an identifier.
+    #[test]
+    fn has_message_reads_the_english_key_set() {
+        let locale_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
+        let loaded = I18nBundle::load(locale_dir.to_str().unwrap_or("locales"));
+        assert!(loaded.is_ok(), "the shipped catalogue must load");
+        let Ok(bundle) = loaded else { return };
+
+        assert!(bundle.has_message("bot-greeting-default"));
+        assert!(bundle.has_message("bot-suggest-check-my-balance"));
+        assert!(!bundle.has_message("Marcar consulta"));
+        assert!(!bundle.has_message("bot-suggest-not-a-real-key"));
+    }
+
+    #[test]
+    fn has_message_is_false_without_a_loaded_catalogue() {
+        // A process that never initialised i18n keeps the authored text.
+        assert!(!has_message("bot-suggest-check-my-balance") || is_initialized());
     }
 }

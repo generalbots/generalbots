@@ -38,8 +38,9 @@ pub fn configure_peer_routes() -> Router<Arc<AppState>> {
 /// `GET /api/peer/status` — this node's identity and the live peer table.
 pub async fn status(headers: HeaderMap) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     Json(network.status()).into_response()
 }
@@ -47,32 +48,35 @@ pub async fn status(headers: HeaderMap) -> Response {
 /// `POST /api/peer/register` — announce a peer for the first time.
 pub async fn register(headers: HeaderMap, Json(request): Json<RegisterRequest>) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     match network.register(request) {
         Ok(peer) => (StatusCode::OK, Json(json!({ "ok": true, "peer": peer }))).into_response(),
-        Err(error) => error_response(error),
+        Err(error) => error_response(&locale, error),
     }
 }
 
 /// `POST /api/peer/heartbeat` — refresh an existing registration.
 pub async fn heartbeat(headers: HeaderMap, Json(request): Json<HeartbeatRequest>) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     match network.heartbeat(request) {
         Ok(peer) => (StatusCode::OK, Json(json!({ "ok": true, "peer": peer }))).into_response(),
-        Err(error) => error_response(error),
+        Err(error) => error_response(&locale, error),
     }
 }
 
 /// `POST /api/peer/enable` — turn the peer network on at runtime.
 pub async fn enable(headers: HeaderMap) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     network.enable();
     persist_mode("p2p");
@@ -90,8 +94,9 @@ fn persist_mode(mode: &str) {
 /// `POST /api/peer/disable` — stop all P2P traffic at runtime.
 pub async fn disable(headers: HeaderMap) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     network.disable();
     persist_mode("offline");
@@ -106,8 +111,9 @@ struct PeerPayloadQuery {
 /// `POST /api/peer/payloads` — enqueue an encrypted payload for a peer.
 pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload>) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     if !network.enabled() {
         return error_response(PeerError::Disabled);
@@ -116,7 +122,14 @@ pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload
         Ok(payload) => (StatusCode::OK, Json(json!({ "ok": true, "payload": payload }))).into_response(),
         Err(message) => (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(json!({ "error": "payload_store_full", "message": message })),
+            Json(json!({
+                "error": "payload_store_full",
+                "message": botcore::i18n::t_args(
+                    &locale,
+                    "error-peer-network-payload-store-full",
+                    &[("message", message.as_str())],
+                ),
+            })),
         )
             .into_response(),
     }
@@ -125,8 +138,9 @@ pub async fn enqueue_payload(headers: HeaderMap, Json(request): Json<PeerPayload
 /// `GET /api/peer/payloads?recipient=<uuid>` — pending payloads for a recipient.
 pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQuery>) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     if !network.enabled() {
         return error_response(PeerError::Disabled);
@@ -134,7 +148,10 @@ pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQu
     let Some(recipient) = query.recipient else {
         return (
             StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "missing_recipient", "message": "recipient query parameter is required" })),
+            Json(json!({
+                "error": "missing_recipient",
+                "message": botcore::i18n::t(&locale, "error-peer-network-recipient-required"),
+            })),
         )
             .into_response();
     };
@@ -145,8 +162,9 @@ pub async fn list_payloads(headers: HeaderMap, Query(query): Query<PeerPayloadQu
 /// `GET /api/peer/home-site` — the signed home site for this node (if P2P).
 pub async fn home_site(headers: HeaderMap) -> Response {
     let network = peer_network::global();
+    let locale = botcore::i18n::locale_from_headers(&headers);
     if let Err(error) = authorize(&headers, network) {
-        return error_response(error);
+        return error_response(&locale, error);
     }
     if !network.enabled() {
         return error_response(PeerError::Disabled);
@@ -207,7 +225,7 @@ fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
     difference == 0
 }
 
-fn error_response(error: PeerError) -> Response {
+fn error_response(locale: &botcore::i18n::Locale, error: PeerError) -> Response {
     let status = match &error {
         PeerError::Disabled => StatusCode::FORBIDDEN,
         PeerError::Unauthorized => StatusCode::UNAUTHORIZED,
@@ -222,11 +240,23 @@ fn error_response(error: PeerError) -> Response {
         PeerError::UnknownNode(_) => "unknown_peer",
         PeerError::RegistryFull => "peer_registry_full",
     };
+    // #2094 — `error` keeps the stable machine code, `message` is localized.
+    let (key, detail) = match &error {
+        PeerError::Disabled => ("error-peer-network-disabled", None),
+        PeerError::Unauthorized => ("error-peer-network-unauthorized", None),
+        PeerError::Invalid(message) => ("error-peer-network-invalid", Some(message.clone())),
+        PeerError::UnknownNode(id) => ("error-peer-network-unknown-node", Some(id.to_string())),
+        PeerError::RegistryFull => ("error-peer-network-registry-full", None),
+    };
+    let message = match detail {
+        Some(detail) => botcore::i18n::t_args(locale, key, &[("message", detail.as_str())]),
+        None => botcore::i18n::t(locale, key),
+    };
     (
         status,
         Json(json!({
             "error": code,
-            "message": error.to_string(),
+            "message": message,
         })),
     )
         .into_response()

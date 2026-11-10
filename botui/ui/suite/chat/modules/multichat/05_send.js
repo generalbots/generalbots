@@ -74,7 +74,17 @@
       window.armChatPending(text || (file && file.name) || "");
     }
     MC.appendToContainer(t.pane, "user", display);
-    if (typeof showThinkingIndicator === "function") showThinkingIndicator();
+    // #2098 — the progress element belongs to THIS tab's pane and lives until
+    // the tab's completion frame, so a slow agent never looks dead.
+    if (window.GBTurn) {
+      GBTurn.start(text || (file && file.name) || "", {
+        tabId: t.id,
+        pane: t.pane,
+        sessionId: t.sessionId,
+      });
+    } else if (typeof showThinkingIndicator === "function") {
+      showThinkingIndicator();
+    }
     MC.pushScrollback(t, "user", display);
     MC.schedulePersist();
     var payload = {

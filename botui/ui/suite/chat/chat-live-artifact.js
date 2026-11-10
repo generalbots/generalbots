@@ -306,9 +306,15 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     expand.type = "button";
     expand.className = "gb-attachment-inline-btn";
     expand.textContent = "Expand";
-    // Expanded previews widen to the conversation width and stay pinned to the
-    // top of the scrolling transcript instead of scrolling away.
+    expand.setAttribute("aria-expanded", "false");
+    // #2099 — expanding opens the preview in a modal layer instead of only
+    // growing it inside the 80% bubble. The box itself is portaled, so the
+    // streaming renderer keeps writing into the same node.
     expand.addEventListener("click", function () {
+      if (window.GBArtifactOverlay) {
+        window.GBArtifactOverlay.toggle(box, expand, { label: "Live preview" });
+        return;
+      }
       box.classList.toggle("expanded");
       expand.textContent = box.classList.contains("expanded")
         ? "Collapse" : "Expand";
@@ -326,6 +332,10 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
       root: null, frame: null, applied: {}, containers: {}, parts: 0,
     };
     container.appendChild(box);
+    // #2099 — the box can be portaled into the expand overlay, leaving the
+    // message; keep a handle so the streaming render reuses it instead of
+    // building a second preview inside the bubble.
+    container.__gbLiveBox = box;
     return box;
   }
 
@@ -333,8 +343,17 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     if (!container) return;
     var block = lastBlock(content);
     var box = container.querySelector(".gb-live-artifact");
+    if (!box && container.__gbLiveBox && container.__gbLiveBox.isConnected) {
+      box = container.__gbLiveBox;
+    }
     if (!block) {
-      if (box) box.remove();
+      if (box) {
+        if (window.GBArtifactOverlay && window.GBArtifactOverlay.isOpen(box)) {
+          window.GBArtifactOverlay.close(box);
+        }
+        box.remove();
+        if (container.__gbLiveBox === box) container.__gbLiveBox = null;
+      }
       return;
     }
     if (!box) box = build(container);

@@ -3,6 +3,7 @@
 use log::info;
 use tauri::Manager;
 
+mod build_info;
 mod desktop;
 
 #[cfg(feature = "desktop-local")]
@@ -194,58 +195,12 @@ fn start_sidecar_and_show(app: &tauri::App) {
     });
 }
 
-/// Grants the local app access to the microphone and camera on WebKitGTK.
-///
-/// wry keeps WebKitGTK's MediaStream/WebRTC settings disabled by default, and
-/// WebKitGTK never shows a browser-style permission prompt. Without both the
-/// settings and the permission-request handler, `getUserMedia()` rejects with
-/// `NotAllowedError` and the chat mic/camera/live-voice buttons always fail.
-#[cfg(target_os = "linux")]
-fn grant_webkit_permissions<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
-    use webkit2gtk::glib::prelude::Cast;
-    use webkit2gtk::{
-        PermissionRequestExt, SettingsExt, UserMediaPermissionRequest,
-        UserMediaPermissionRequestExt, WebViewExt,
-    };
-
-    tauri::plugin::Builder::new("generalbots-webkit-permissions")
-        .on_webview_ready(|webview| {
-            let _ = webview.with_webview(|platform| {
-                let wk = platform.inner();
-
-                if let Some(settings) = wk.settings() {
-                    settings.set_enable_media_stream(true);
-                    // Enabling WebRTC also enables MediaStream; keep both
-                    // explicit so live voice and Meet keep working even if
-                    // WebKit changes one of the defaults.
-                    settings.set_enable_webrtc(true);
-                }
-
-                wk.connect_permission_request(|_wv, request| {
-                    let Some(media) = request.downcast_ref::<UserMediaPermissionRequest>() else {
-                        // Leave geolocation, notifications and other requests
-                        // to their own handlers.
-                        return false;
-                    };
-
-                    if media.is_for_audio_device() || media.is_for_video_device() {
-                        media.allow();
-                    } else {
-                        media.deny();
-                    }
-                    true
-                });
-            });
-        })
-        .build()
-}
-
 fn main() {
     if let Some(code) = desktop::payload::handle_cli() {
         std::process::exit(code);
     }
     botlib::logging::init_compact_logger("info");
-    let version = env!("CARGO_PKG_VERSION");
+    let version = build_info::version();
     info!("BotApp {version} starting...");
 
     // #1870 — carry the WebKit profile (localStorage, cache) from the legacy
@@ -261,7 +216,7 @@ fn main() {
         .plugin(tauri_plugin_opener::init());
 
     #[cfg(target_os = "linux")]
-    let builder = builder.plugin(grant_webkit_permissions());
+    let builder = builder.plugin(desktop::webkit_permissions::plugin());
 
     let builder = builder.manage(tray_manager).manage(service_monitor);
 
