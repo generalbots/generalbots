@@ -1,44 +1,16 @@
 use log::{info, warn};
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
-/// Writes the timestamped boot banner into the sidecar log (#1895).
-///
-/// The banner is the proof that the file being read is the file this boot is
-/// writing: a log without a banner for the running process is stale.
-fn write_boot_banner(file: &std::fs::File, path: &Path) {
-    let stamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|elapsed| elapsed.as_secs())
-        .unwrap_or(0);
-    let mut handle = file;
-    if let Err(e) = writeln!(
-        handle,
-        "\n=== generalbots sidecar boot (unix {stamp}, app {}) log={} ===",
-        env!("CARGO_PKG_VERSION"),
-        path.display()
-    ) {
-        warn!("could not write the sidecar boot banner: {e}");
-    }
-    if let Err(e) = handle.flush() {
-        warn!("could not flush the sidecar boot banner: {e}");
-    }
-}
+mod bootlog;
+mod probe;
 
-/// Inode of `path`, used to detect a log file re-created under the sidecar.
-#[cfg(unix)]
-fn file_inode(path: &Path) -> Option<u64> {
-    use std::os::unix::fs::MetadataExt;
-    std::fs::metadata(path).ok().map(|meta| meta.ino())
-}
-
-/// Windows has no inode to compare; the banner still proves freshness.
-#[cfg(not(unix))]
-fn file_inode(_path: &Path) -> Option<u64> {
-    None
-}
+use bootlog::{file_inode, write_boot_banner};
+use probe::{
+    api_is_answering, clear_pid, pid_is_alive, pid_looks_like_botserver, port_is_open, record_pid,
+    recorded_pid, terminate_pid, API_PRODUCT_URL, SIDECAR_PORT,
+};
 
 /// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
 /// of [`Sidecar`] (for example a temporary taken from Tauri's managed state)
@@ -57,6 +29,8 @@ impl Drop for SidecarInner {
             info!("Stopping botserver sidecar (pid {})...", child.id());
             let _ = child.kill();
             let _ = child.wait();
+            // The pid file described this child; the assistant is gone now.
+            clear_pid();
             info!("botserver sidecar stopped");
         }
     }
@@ -145,6 +119,25 @@ impl Sidecar {
     }
 
     pub fn start(&self, resource_dir: Option<PathBuf>) -> anyhow::Result<()> {
+        // #2023 — idempotent start. Two spawners race on first boot (the app's
+        // startup sidecar and the wizard's `start_assistant`), and a sidecar
+        // from a previous app run can still own port 8080. Attach in every one
+        // of those cases instead of booting a duplicate assistant.
+        if self.is_running() {
+            info!("botserver sidecar is already running; reusing the live process");
+            return Ok(());
+        }
+        if api_is_answering() {
+            info!("an assistant is already serving {API_PRODUCT_URL}; attaching to it");
+            return Ok(());
+        }
+        if port_is_open() {
+            info!(
+                "port {SIDECAR_PORT} is already held by an assistant that is still booting; attaching to it instead of starting a second one"
+            );
+            return Ok(());
+        }
+
         let path = Self::botserver_path();
         if !path.exists() {
             return Err(anyhow::anyhow!("botserver not found at {}", path.display()));
@@ -315,6 +308,7 @@ impl Sidecar {
                 );
             }
         }
+        let pid = child.id();
         match self.inner.child.lock() {
             Ok(mut slot) => *slot = Some(child),
             Err(poisoned) => {
@@ -322,6 +316,7 @@ impl Sidecar {
                 *poisoned.into_inner() = Some(child);
             }
         }
+        record_pid(pid);
         Ok(())
     }
 
@@ -364,20 +359,58 @@ impl Sidecar {
         }
     }
 
+    /// Stops the assistant, whether this app spawned it or not.
+    ///
+    /// #2023 — the wizard's one intentional restart (first boot: the auth
+    /// service needs `directory_config.json`, which only exists after the first
+    /// boot) must be able to replace an assistant this handle does not own —
+    /// one left by a previous app run, or one attached to through the
+    /// idempotent `start`.
     pub fn stop(&self) {
-        let mut slot = match self.inner.child.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => {
-                warn!("sidecar handle mutex was poisoned while stopping; recovering it");
-                poisoned.into_inner()
+        let mut stopped = false;
+        {
+            let mut slot = match self.inner.child.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => {
+                    warn!("sidecar handle mutex was poisoned while stopping; recovering it");
+                    poisoned.into_inner()
+                }
+            };
+            if let Some(mut child) = slot.take() {
+                info!("Stopping botserver sidecar (pid {})...", child.id());
+                let _ = child.kill();
+                let _ = child.wait();
+                stopped = true;
             }
-        };
-        if let Some(mut child) = slot.take() {
-            info!("Stopping botserver sidecar (pid {})...", child.id());
-            let _ = child.kill();
-            let _ = child.wait();
-            info!("botserver sidecar stopped");
         }
+
+        let recorded = if stopped { None } else { recorded_pid() };
+        if let Some(pid) = recorded {
+            // Only signal the recorded pid while something actually holds the
+            // sidecar port: a recycled pid must never be killed.
+            if port_is_open() && pid_is_alive(pid) && pid_looks_like_botserver(pid) {
+                info!("Stopping the attached botserver sidecar (pid {pid})...");
+                stopped = terminate_pid(pid);
+            } else {
+                info!(
+                    "recorded sidecar pid {pid} is not serving port {SIDECAR_PORT}; nothing to stop"
+                );
+            }
+        }
+
+        clear_pid();
+        if !stopped {
+            return;
+        }
+        // Wait (bounded) for the socket to be released so an immediate `start`
+        // can bind instead of attaching to the process being torn down.
+        for _ in 0..15 {
+            if !port_is_open() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+        info!("botserver sidecar stopped");
     }
 
     pub fn is_running(&self) -> bool {
@@ -401,3 +434,4 @@ impl Sidecar {
         }
     }
 }
+

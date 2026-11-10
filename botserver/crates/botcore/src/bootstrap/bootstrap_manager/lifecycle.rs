@@ -149,7 +149,7 @@ impl BootstrapManager {
                 let name = *name;
                 let check_fn = *check_fn;
                 let max_wait = *max_wait;
-                handles.push(tokio::task::spawn_blocking(move || {
+                let handle = tokio::task::spawn_blocking(move || {
                     let start = std::time::Instant::now();
                     for _ in 0..max_wait {
                         if check_fn() {
@@ -164,10 +164,58 @@ impl BootstrapManager {
                         name, max_wait
                     );
                     false
-                }));
+                });
+                handles.push((name, max_wait, handle));
             }
-            for h in handles {
-                h.await.ok();
+            let mut unreachable: Vec<(&'static str, u32)> = Vec::new();
+            for (name, max_wait, handle) in handles {
+                match handle.await {
+                    Ok(true) => {}
+                    Ok(false) => unreachable.push((name, max_wait)),
+                    Err(e) => {
+                        warn!("{} readiness wait failed: {}", name, e);
+                        unreachable.push((name, max_wait));
+                    }
+                }
+            }
+
+            // #2022 — the cache's own process check can report "already
+            // running" while the process no longer serves port 6379 (an
+            // orphaned Windows child keeps its image name). `pm.start` then
+            // skips the start and the readiness window expires for nothing.
+            // Only the cache is recovered here: it answers in under a second
+            // when healthy, so a full failed window proves the process is
+            // stale rather than merely slow.
+            for (name, max_wait) in unreachable {
+                if name != "cache" || !pm.is_running(name) {
+                    continue;
+                }
+                if !kill_component_processes(name) {
+                    continue;
+                }
+                warn!(
+                    "{} reported a running process that never answered; restarting it once",
+                    name
+                );
+                sleep(Duration::from_millis(700)).await;
+                match pm.start(name) {
+                    Ok(_) => {
+                        let mut ready = false;
+                        for _ in 0..max_wait {
+                            if cache_health_check() {
+                                ready = true;
+                                break;
+                            }
+                            sleep(Duration::from_secs(1)).await;
+                        }
+                        if ready {
+                            info!("{} recovered after the stale process was replaced", name);
+                        } else {
+                            warn!("{} still does not answer after the restart", name);
+                        }
+                    }
+                    Err(e) => warn!("could not restart {}: {}", name, e),
+                }
             }
         }
 

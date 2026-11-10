@@ -32,6 +32,40 @@ pub fn get_processes_to_kill() -> Vec<(String, Vec<&'static str>)> {
     ]
 }
 
+/// Process patterns that belong to a component, per platform.
+///
+/// Used to clear a process that exists but no longer serves its port: the
+/// component's own process check then reports "already running", the start is
+/// skipped, and the readiness probe waits out its whole window (#2022). On Unix
+/// the pattern is the stack path, so a cache installed elsewhere on the machine
+/// is never touched; Windows `taskkill /IM` only accepts image names.
+pub fn component_process_patterns(component: &str) -> Vec<String> {
+    if component != "cache" {
+        return Vec::new();
+    }
+    if cfg!(target_os = "windows") {
+        vec![
+            "redis-server.exe".to_string(),
+            "valkey-server.exe".to_string(),
+        ]
+    } else {
+        vec![format!("{}/bin/cache", get_stack_path())]
+    }
+}
+
+/// Kills every process of a component whose name is known. Returns whether any
+/// name was handled, so the caller can log an accurate recovery message.
+pub fn kill_component_processes(component: &str) -> bool {
+    let patterns = component_process_patterns(component);
+    if patterns.is_empty() {
+        return false;
+    }
+    for pattern in &patterns {
+        safe_pkill(&[pattern.as_str()], &["-9", "-f"]);
+    }
+    true
+}
+
 /// Kill processes by name safely (platform-aware)
 pub fn safe_pkill(pattern: &[&str], extra_args: &[&str]) {
     let result = kill_process(pattern, extra_args);

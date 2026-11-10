@@ -270,27 +270,28 @@ pub(super) async fn start_assistant(
         0,
     );
     let resource_dir = app.path().resource_dir().ok();
-    // #2023 — `Sidecar::start` already runs at app startup, and the wizard used
-    // to stop + start it again on every run (an ~80 s duplicate boot whose only
-    // purpose is the first-boot auth re-init below). Capture whether the
-    // identity-provider config predates this start: if it does, the assistant
-    // booted with it and the wizard must attach, not respawn.
+    // #2023 — `Sidecar::start` is idempotent: it reuses a live child, attaches
+    // to an assistant that already answers `/api/product`, and refuses to open a
+    // second listener when port 8080 is taken. Calling it here can therefore
+    // never duplicate the app-startup sidecar (the double boot this issue
+    // reports). The only restart the wizard performs is the explicit one below.
     let directory_config = stack_path().join("conf/system/directory_config.json");
+    // Capture whether the identity-provider config predates this start: if it
+    // does, the running assistant booted with it and must be reused as is.
     let config_before_start = directory_config.exists();
 
-    if !sidecar.is_running() {
-        sidecar
-            .start(resource_dir.clone())
-            .map_err(|e| format!("could not start the assistant: {e}"))?;
-    }
+    sidecar
+        .start(resource_dir.clone())
+        .map_err(|e| format!("could not start the assistant: {e}"))?;
     // A cold first boot runs migrations, seeds the vault and starts every
     // service; 120 s was too tight and the wizard declared the assistant dead
     // while it was still starting.
     if Sidecar::wait_for_api(API_PRODUCT, 300).await {
         // The identity provider's OAuth client is created by the assistant
         // during its first boot. Until that file exists the auth service cannot
-        // initialise and the suite's sign-in answers 500. Only that case needs
-        // the one restart: a boot that already had the file must be reused.
+        // initialise and the suite's sign-in answers 500. This is the single
+        // intentional restart: it happens only on a first boot, only when this
+        // run's assistant created the file, and the UI is told about it.
         let mut appeared = config_before_start;
         for _ in 0..150 {
             if appeared {
@@ -300,7 +301,17 @@ pub(super) async fn start_assistant(
             appeared = directory_config.exists();
         }
         if appeared && !config_before_start {
-            log::info!("directory config is ready; restarting the assistant once");
+            log::info!(
+                "first boot created the directory config; restarting the assistant once so the auth service loads it"
+            );
+            progress(
+                app,
+                state,
+                "botserver",
+                "starting",
+                "Finalizing sign-in (one restart)…",
+                0,
+            );
             sidecar.stop();
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             if let Err(e) = sidecar.start(resource_dir.clone()) {
