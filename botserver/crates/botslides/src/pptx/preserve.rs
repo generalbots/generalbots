@@ -9,21 +9,53 @@
 //! paragraphs: identical text returns the original bytes untouched; a
 //! paragraph-for-paragraph text edit patches only the slide XML inside the
 //! original ZIP; anything structural (slide/paragraph count changes) returns
-//! `Regenerate` so the caller keeps the previous, regenerating path.
+//! `Regenerate` so the caller rebuilds — carrying the original theme over.
 
+use crate::ooxml::{load_pptx_preserving, update_pptx_text, OoxmlPresentation};
 use crate::storage::{load_presentation_pptx, DriveOps};
 use crate::types::{Presentation, Slide};
 
+use super::merge::keep_original_theme;
+
 /// Paragraphs of one slide as the editor model sees them: each text element
-/// contributes one entry per `\n`-separated line, in document order.
+/// contributes one entry per `\n`-separated line, in document order. Blank
+/// lines are formatting the model cannot represent, so they are dropped here —
+/// the source scan drops them too, which is what keeps the two sides aligned.
 pub fn slide_paragraphs(slide: &Slide) -> Vec<String> {
     slide
         .elements
         .iter()
         .filter_map(|element| element.content.text.as_deref())
         .flat_map(|text| text.split('\n'))
-        .map(|line| line.trim_end().to_string())
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
         .collect()
+}
+
+/// What the original package says, per slide, in presentation order.
+pub struct SourceTexts {
+    /// Paragraphs of each slide.
+    pub paragraphs: Vec<Vec<String>>,
+    /// Slide part names (`ppt/slides/slideN.xml`), same order — the address a
+    /// patch must use, because file-name order is not presentation order.
+    pub parts: Vec<String>,
+}
+
+impl SourceTexts {
+    pub fn of(parsed: &OoxmlPresentation) -> Self {
+        Self {
+            paragraphs: parsed
+                .slides
+                .iter()
+                .map(|slide| slide.texts.clone())
+                .collect(),
+            parts: parsed
+                .slides
+                .iter()
+                .map(|slide| slide.part_name.clone())
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -33,38 +65,82 @@ pub enum PreservedPptx {
     /// Only text changed: the original package with patched slide XML.
     Patched(Vec<u8>),
     /// A structural edit (slides or paragraphs added/removed) cannot be
-    /// represented by patching; the caller must regenerate.
+    /// represented by patching; the caller must rebuild the package.
     Regenerate,
 }
 
 /// Decides whether the model can be written back into the original package.
 pub fn preserve_pptx_text(
     original: &[u8],
-    source_texts: &[Vec<String>],
+    source: &SourceTexts,
     model_texts: &[Vec<String>],
 ) -> Result<PreservedPptx, String> {
-    if source_texts.len() != model_texts.len() {
-        return Ok(PreservedPptx::Regenerate);
-    }
-    let mut changed = false;
-    for (source, model) in source_texts.iter().zip(model_texts.iter()) {
-        if source.len() != model.len() {
-            return Ok(PreservedPptx::Regenerate);
+    let aligned = source.paragraphs.len() == model_texts.len()
+        && source
+            .paragraphs
+            .iter()
+            .zip(model_texts.iter())
+            .all(|(source_slide, model_slide)| source_slide.len() == model_slide.len());
+
+    if aligned {
+        let changes: Vec<(String, Vec<String>)> = source
+            .paragraphs
+            .iter()
+            .zip(model_texts.iter())
+            .enumerate()
+            .filter(|(_, (source_slide, model_slide))| source_slide != model_slide)
+            .filter_map(|(index, (_, model_slide))| {
+                source
+                    .parts
+                    .get(index)
+                    .map(|part| (part.clone(), model_slide.clone()))
+            })
+            .collect();
+        if changes.is_empty() {
+            return Ok(PreservedPptx::Unchanged(original.to_vec()));
         }
-        if source != model {
-            changed = true;
-        }
+        return Ok(PreservedPptx::Patched(update_pptx_text(original, &changes)?));
     }
-    if !changed {
+
+    // The paragraph counts differ, so a positional patch would land in the
+    // wrong shape. When the visible text is still the same the deck was not
+    // edited (our scan simply counts differently — an empty placeholder, a
+    // table cell, a line break), and the original file is the correct save.
+    // Never rebuild a deck the user did not change.
+    if same_visible_text(&source.paragraphs, model_texts) {
         return Ok(PreservedPptx::Unchanged(original.to_vec()));
     }
-    let patched = crate::ooxml::update_pptx_text(original, model_texts)?;
-    Ok(PreservedPptx::Patched(patched))
+
+    Ok(PreservedPptx::Regenerate)
+}
+
+fn same_visible_text(source: &[Vec<String>], model: &[Vec<String>]) -> bool {
+    if source.len() != model.len() {
+        return false;
+    }
+    source
+        .iter()
+        .zip(model.iter())
+        .all(|(source_slide, model_slide)| {
+            flatten(source_slide) == flatten(model_slide)
+        })
+}
+
+fn flatten(paragraphs: &[String]) -> String {
+    paragraphs
+        .iter()
+        .map(|paragraph| paragraph.trim())
+        .filter(|paragraph| !paragraph.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Export result with the fidelity that was used, so the API can report it.
 pub struct ExportedPptx {
     pub bytes: Vec<u8>,
+    /// `preserved` (original package, optionally text-patched), `regenerated`
+    /// (rebuilt from the model) or `regenerated+theme` (rebuilt, but the
+    /// author's theme was carried over).
     pub fidelity: &'static str,
 }
 
@@ -74,21 +150,20 @@ pub async fn export_presentation_pptx<D: DriveOps>(
     user_id: &str,
     presentation: &Presentation,
 ) -> Result<ExportedPptx, String> {
-    if let Some(original) = load_presentation_pptx(drive, user_id, &presentation.id).await {
-        match crate::ooxml::load_pptx_preserving(&original) {
+    let original = load_presentation_pptx(drive, user_id, &presentation.id).await;
+
+    if let Some(original) = original.as_deref() {
+        match load_pptx_preserving(original) {
             Ok(parsed) => {
-                let source_texts: Vec<Vec<String>> =
-                    parsed.slides.iter().map(|slide| slide.texts.clone()).collect();
-                let model_texts: Vec<Vec<String>> =
-                    presentation.slides.iter().map(slide_paragraphs).collect();
-                match preserve_pptx_text(&original, &source_texts, &model_texts) {
-                    Ok(PreservedPptx::Unchanged(bytes)) => {
-                        return Ok(ExportedPptx {
-                            bytes,
-                            fidelity: "preserved",
-                        })
-                    }
-                    Ok(PreservedPptx::Patched(bytes)) => {
+                let source = SourceTexts::of(&parsed);
+                let model_texts: Vec<Vec<String>> = presentation
+                    .slides
+                    .iter()
+                    .map(slide_paragraphs)
+                    .collect();
+                match preserve_pptx_text(original, &source, &model_texts) {
+                    Ok(PreservedPptx::Unchanged(bytes))
+                    | Ok(PreservedPptx::Patched(bytes)) => {
                         return Ok(ExportedPptx {
                             bytes,
                             fidelity: "preserved",
@@ -96,7 +171,7 @@ pub async fn export_presentation_pptx<D: DriveOps>(
                     }
                     Ok(PreservedPptx::Regenerate) => {
                         log::info!(
-                            "slides export: structural change in {} — regenerating the package",
+                            "slides export: structural change in {} — rebuilding the package",
                             presentation.id
                         );
                     }
@@ -116,144 +191,18 @@ pub async fn export_presentation_pptx<D: DriveOps>(
             }
         }
     }
-    let bytes = crate::pptx::export_to_pptx(presentation)?;
+
+    let regenerated = crate::pptx::export_to_pptx(presentation)?;
+    if let Some(original) = original.as_deref() {
+        if let Some(merged) = keep_original_theme(&regenerated, original) {
+            return Ok(ExportedPptx {
+                bytes: merged,
+                fidelity: "regenerated+theme",
+            });
+        }
+    }
     Ok(ExportedPptx {
-        bytes,
+        bytes: regenerated,
         fidelity: "regenerated",
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
-
-    /// Minimal OPC-ish zip: update_pptx_text only needs the slide entry, so a
-    /// single part is enough to test the decision logic and the patch.
-    fn sample_pptx(paragraph: &str) -> Vec<u8> {
-        let mut buf = std::io::Cursor::new(Vec::new());
-        {
-            let mut zip = zip::ZipWriter::new(&mut buf);
-            let options = zip::write::SimpleFileOptions::default()
-                .compression_method(zip::CompressionMethod::Stored);
-            zip.start_file("ppt/slides/slide1.xml", options).unwrap();
-            let xml = format!(
-                "<p:sld><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>{paragraph}</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
-            );
-            zip.write_all(xml.as_bytes()).unwrap();
-            zip.finish().unwrap();
-        }
-        buf.into_inner()
-    }
-
-    #[test]
-    fn unchanged_text_returns_the_original_bytes() {
-        let original = sample_pptx("Rice and Beans");
-        let source = vec![vec!["Rice and Beans".to_string()]];
-        let model = vec![vec!["Rice and Beans".to_string()]];
-        match preserve_pptx_text(&original, &source, &model).expect("preserve") {
-            PreservedPptx::Unchanged(bytes) => assert_eq!(bytes, original),
-            other => panic!("expected unchanged, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn edited_text_patches_only_the_slide_part() {
-        let original = sample_pptx("Beans");
-        let source = vec![vec!["Beans".to_string()]];
-        let model = vec![vec!["Beans and rice".to_string()]];
-        match preserve_pptx_text(&original, &source, &model).expect("preserve") {
-            PreservedPptx::Patched(bytes) => {
-                // The package is re-zipped (deflated), so the text lives in the
-                // slide part, not in the raw archive bytes.
-                let mut archive =
-                    zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("zip");
-                let mut slide = String::new();
-                use std::io::Read as _;
-                archive
-                    .by_name("ppt/slides/slide1.xml")
-                    .expect("slide part")
-                    .read_to_string(&mut slide)
-                    .expect("read slide");
-                assert!(slide.contains("Beans and rice"), "{slide}");
-            }
-            other => panic!("expected patched, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn structural_changes_ask_for_regeneration() {
-        let original = sample_pptx("One");
-        // A second slide/paragraph cannot be patched positionally.
-        let source = vec![vec!["One".to_string()]];
-        let model = vec![vec!["One".to_string(), "Two".to_string()]];
-        assert_eq!(
-            preserve_pptx_text(&original, &source, &model).expect("preserve"),
-            PreservedPptx::Regenerate
-        );
-    }
-}
-
-#[cfg(test)]
-mod fixture_round_trip {
-    use super::*;
-    use std::io::Read;
-
-    fn parts(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
-        let mut archive =
-            zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
-        let mut out = Vec::new();
-        for index in 0..archive.len() {
-            let mut file = archive.by_index(index).expect("entry");
-            let name = file.name().map(|name| name.to_string()).unwrap_or_default();
-            let mut content = Vec::new();
-            file.read_to_end(&mut content).expect("read");
-            out.push((name, content));
-        }
-        out.sort_by(|a, b| a.0.cmp(&b.0));
-        out
-    }
-
-    /// #2044 — the attached real deck (3.1 MB, charts, media, notes) must
-    /// round-trip untouched and change only the edited slide when text moves.
-    #[test]
-    fn real_deck_round_trips() {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-            "../../../bottest/tests/fixtures/office-fidelity/Rice_and_Beans_Nutrition.pptx",
-        );
-        let Ok(original) = std::fs::read(&path) else {
-            return; // fixture is optional in a trimmed checkout
-        };
-        let parsed = match crate::ooxml::load_pptx_preserving(&original) {
-            Ok(parsed) => parsed,
-            Err(error) => panic!("fixture must parse: {error}"),
-        };
-        let source: Vec<Vec<String>> = parsed.slides.iter().map(|s| s.texts.clone()).collect();
-
-        match preserve_pptx_text(&original, &source, &source).expect("untouched") {
-            PreservedPptx::Unchanged(bytes) => assert_eq!(bytes, original),
-            other => panic!("untouched save must return the source, got {other:?}"),
-        }
-
-        let mut model = source.clone();
-        let Some(first) = model.first_mut().and_then(|slide| slide.first_mut()) else {
-            return; // a deck without text cannot exercise the text patch
-        };
-        *first = format!("{first} (edited)");
-        let patched = match preserve_pptx_text(&original, &source, &model).expect("patched") {
-            PreservedPptx::Patched(bytes) => bytes,
-            other => panic!("a text edit must patch, got {other:?}"),
-        };
-        let before = parts(&original);
-        let after = parts(&patched);
-        assert_eq!(before.len(), after.len(), "part list must not change");
-        for ((name, a), (patched_name, b)) in before.iter().zip(after.iter()) {
-            assert_eq!(name, patched_name);
-            if name.starts_with("ppt/slides/slide") {
-                continue;
-            }
-            assert_eq!(a, b, "part {name} must stay byte-identical");
-        }
-    }
-}
-

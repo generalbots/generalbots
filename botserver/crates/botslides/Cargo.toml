@@ -25,5 +25,4 @@ once_cell = { workspace = true }
 rand = { workspace = true }
 base64 = { workspace = true }
 diesel = { workspace = true, features = ["r2d2", "postgres"] }
-ooxmlsdk = { workspace = true, features = ["parts"] }
 zip = { workspace = true }
