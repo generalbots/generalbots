@@ -314,3 +314,55 @@ pub struct CollaborationSession {
     pub selection: Vec<Uuid>,
     pub connected_at: DateTime<Utc>,
 }
+
+#[cfg(test)]
+mod element_type_tests {
+    use super::*;
+
+    const ALL: [ElementType; 10] = [
+        ElementType::Rectangle,
+        ElementType::Ellipse,
+        ElementType::Line,
+        ElementType::Arrow,
+        ElementType::FreehandPath,
+        ElementType::Text,
+        ElementType::Image,
+        ElementType::Sticky,
+        ElementType::Frame,
+        ElementType::Connector,
+    ];
+
+    #[test]
+    fn every_element_type_round_trips_through_its_label() {
+        for element in ALL {
+            let label = element.as_str();
+            assert_eq!(
+                ElementType::from_label(label).as_str(),
+                label,
+                "{label} must round-trip"
+            );
+        }
+    }
+
+    #[test]
+    fn labels_are_snake_case_and_unique() {
+        let mut seen = std::collections::HashSet::new();
+        for element in ALL {
+            let label = element.as_str();
+            assert!(
+                label.chars().all(|c| c.is_ascii_lowercase() || c == '_'),
+                "{label} must be snake_case"
+            );
+            assert!(seen.insert(label), "{label} must be unique");
+        }
+        assert_eq!(seen.len(), ALL.len());
+    }
+
+    #[test]
+    fn an_unknown_label_falls_back_to_a_rectangle() {
+        assert_eq!(ElementType::from_label("circle").as_str(), "rectangle");
+        assert_eq!(ElementType::from_label("").as_str(), "rectangle");
+        // The fallback is deliberate, so a corrupt row still renders something.
+        assert_eq!(ElementType::from_label("RECTANGLE").as_str(), "rectangle");
+    }
+}
