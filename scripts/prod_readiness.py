@@ -150,12 +150,26 @@ GATES: tuple[Gate, ...] = (
         fixed_detail=True,
     ),
     Gate(
+        id="flake-policy",
+        title="Flaky tests are registered, owned and inside the quarantine SLA",
+        owner=2119,
+        proves="A flake is time-boxed instead of retried until it passes",
+        steps=(
+            ("python3", "scripts/flake_report.py", "--self-test"),
+            ("python3", "scripts/flake_report.py", "--quarantine-only"),
+        ),
+        ok_detail="no flake outside its SLA",
+        fixed_detail=True,
+    ),
+    Gate(
         id="coverage-ratchet",
         title="Coverage ratchet against a committed baseline",
         owner=2119,
         proves="A PR cannot lower the covered lines of the crate it touches",
-        evidence=("coverage/baseline.json",),
-        ok_detail="baseline committed; ratchet runs per touched crate",
+        steps=(("python3", "scripts/check_coverage.py", "--self-test"),),
+        requires=("issues/coverage/baseline.json",),
+        ok_detail="baseline committed; the ratchet self-test fails on a decrease",
+        fixed_detail=True,
     ),
     Gate(
         id="product-profile",
@@ -213,7 +227,7 @@ CHILDREN: tuple[tuple[int, str, tuple[str, ...]], ...] = (
     (2116, "ops(analytics): console, budgets, runbooks", ("ops-runbooks",)),
     (2117, "data(integrity): migrations, restore, tenancy", ("data-restore",)),
     (2118, "release(auto-bump): one version", ("release-version",)),
-    (2119, "test(quality): ratchet, contracts, fuzzing", ("test-guards", "app-contracts", "coverage-ratchet")),
+    (2119, "test(quality): ratchet, contracts, fuzzing", ("test-guards", "app-contracts", "coverage-ratchet", "flake-policy")),
     (2120, "product(focus): supported matrix", ("product-profile",)),
 )
 

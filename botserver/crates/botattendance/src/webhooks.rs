@@ -264,7 +264,10 @@ pub async fn test_webhook(
         data: serde_json::json!({ "message": "This is a test webhook" }),
     };
     let payload_json = serde_json::to_string(&payload)
-        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        .map_err(|e| {
+            log::warn!("webhook test payload could not be serialized: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        })?;
     let client = reqwest::Client::new();
     let mut request = client.post(&webhook.webhook_url);
     if let Some(ref secret) = webhook.secret_key {

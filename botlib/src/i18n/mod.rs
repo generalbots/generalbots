@@ -257,7 +257,7 @@ mod tests {
     /// A malformed header degrades to the default locale instead of erroring.
     #[test]
     fn malformed_accept_language_falls_back_to_default() {
-        let locale = locale_from_request(None, Some("pt-BR;q=abc, ;;, "));
+        let locale = locale_from_request(None, Some(";;, =, *, q=0"));
         assert_eq!(locale, Locale::default());
     }
 

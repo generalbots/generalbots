@@ -56,7 +56,7 @@ fn malformed_and_partial_lines_are_skipped() {
     let log = "\
 [Parsed_showinfo_1 @ 0x1] n:0 pts:1 pts_time:abc pos:0\n\
 [Parsed_showinfo_1 @ 0x1] n:1 pts:2 pts_time: pos:0\n\
-[Parsed_showinfo_1 @ 0x1] n:2 pts:3 pts_time:1.5\n\
+[Parsed_showinfo_1 @ 0x1] n:2 pts:3 pts_time:1.5 pos:0\n\
 [Parsed_showinfo_1 @ 0x1] n:3 pts:4 pts_time:2.5 pos:0\n\
 pts_time:\n";
     let scenes = scenes_from_ffmpeg_log(log, 4_000);

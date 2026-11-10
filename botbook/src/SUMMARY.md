@@ -680,6 +680,7 @@
    - [Sources Sync Strategy](./10-configuration-deployment/sources-sync-strategy.md)
    - [Microsoft Teams Channel Configuration](./10-configuration-deployment/teams-channel.md)
    - [WhatsApp Channel Configuration](./10-configuration-deployment/whatsapp-channel.md)
+   - [Production Readiness Gate](./10-configuration-deployment/production-readiness.md)
 
 ---
 
