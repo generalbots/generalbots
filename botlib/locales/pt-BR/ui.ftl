@@ -1954,3 +1954,441 @@ language-search-placeholder = Pesquisar idiomas…
 settings-profile-title = Configurações de Perfil
 
 settings-security-title = Configurações de Segurança
+
+# ============================================================================
+# Office & business apps (#2091 #2092)
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Products
+# -----------------------------------------------------------------------------
+common-no = Não
+common-yes = Sim
+products-billing-cycle = Ciclo de Cobrança
+products-billing-type = Tipo de Cobrança *
+products-cat-all = Todas as Categorias
+products-cat-consulting = Consultoria
+products-cat-development = Desenvolvimento
+products-cat-hardware = Hardware
+products-cat-implementation = Implantação
+products-cat-maintenance = Manutenção
+products-cat-other = Outros
+products-cat-software = Software
+products-cat-subscription = Assinatura
+products-cat-support = Suporte
+products-cat-training = Treinamento
+products-col-actions = Ações
+products-col-currency = Moeda
+products-col-default = Padrão
+products-col-description = Descrição
+products-col-items = Itens
+products-col-name = Nome
+products-col-price = Preço
+products-col-status = Status
+products-col-type = Tipo
+products-col-unit = Unidade
+products-col-valid-from = Válido de
+products-col-valid-to = Válido até
+products-create = Criar Produto
+products-create-service = Criar Serviço
+products-currency-all = Todas as Moedas
+products-cycle-annually = Anual
+products-cycle-monthly = Mensal
+products-cycle-quarterly = Trimestral
+products-description = Descrição
+products-image = Imagem do Produto
+products-max-hours = Horas Máx. (estimativa)
+products-min-hours = Horas Mín.
+products-name = Nome do Produto *
+products-new = Novo Produto
+products-pricelist-create = Criar Tabela de Preços
+products-pricelist-currency = Moeda
+products-pricelist-description = Descrição
+products-pricelist-markup = Margem Padrão %
+products-pricelist-name = Nome da Tabela de Preços *
+products-pricelist-type = Tipo de Tabela de Preços
+products-pricelist-type-contract = Contrato
+products-pricelist-type-promotional = Promocional
+products-pricelist-type-standard = Padrão
+products-pricelist-valid-from = Válido de
+products-pricelist-valid-until = Válido até
+products-search-placeholder = Pesquisar produtos, serviços...
+products-select-category = Selecione a categoria...
+products-select-type = Selecione o tipo...
+products-service-name = Nome do Serviço *
+products-status = Status
+products-status-active = Ativo
+products-status-all = Todos
+products-status-inactive = Inativo
+products-taxable = Tributável
+products-trial-days = Período de Teste (dias)
+products-type-all = Todos os Tipos
+products-type-fixed = Preço Fixo
+products-type-hourly = Valor por Hora
+products-type-recurring = Recorrente (Assinatura)
+products-unit-day = Por Dia
+products-unit-hour = Hora
+products-unit-license = Licença
+products-unit-month = Mês
+products-unit-project = Por Projeto
+products-unit-seat = Usuário
+products-unit-unit = Unidade
+products-unit-year = Ano
+products-upload-image = Clique para enviar imagem
+
+# -----------------------------------------------------------------------------
+# Billing & ERP
+# -----------------------------------------------------------------------------
+billing-account = Conta *
+billing-col-account = Conta
+billing-col-actions = Ações
+billing-col-amount = Valor
+billing-col-date = Data
+billing-col-invoice = Fatura
+billing-col-method = Método
+billing-col-opportunity = Oportunidade
+billing-col-payment-id = ID do Pagamento
+billing-col-quote-number = Orçamento nº
+billing-col-status = Status
+billing-col-valid-until = Válido até
+billing-contact = Contato
+billing-create-send = Criar e Enviar
+billing-currency = Moeda
+billing-details = Detalhes da Fatura
+billing-discount-fixed = Valor Fixo
+billing-discount-none = Sem Desconto
+billing-discount-percent = Percentual (%)
+billing-discount-type = Tipo de Desconto
+billing-discount-value = Valor do Desconto
+billing-invoice-amount = Valor da Fatura
+billing-invoice-date = Data da Fatura *
+billing-invoice-details = Detalhes da Fatura
+billing-item-description = Descrição
+billing-item-price = Preço
+billing-item-qty = Qtd
+billing-item-total = Total
+billing-method-all = Todos os Métodos
+billing-method-bank = Transferência Bancária
+billing-method-boleto = Boleto
+billing-method-card = Cartão de Crédito
+billing-method-cash = Dinheiro
+billing-method-check = Cheque
+billing-method-other = Outro
+billing-method-pix = PIX
+billing-opportunity = Oportunidade
+billing-payment-date = Data do Pagamento *
+billing-payment-details = Detalhes do Pagamento
+billing-payment-method = Forma de Pagamento *
+billing-quote-accepted = Aceito
+billing-quote-all = Todos os Orçamentos
+billing-quote-date = Data do Orçamento *
+billing-quote-details = Detalhes do Orçamento
+billing-quote-draft = Rascunho
+billing-quote-expired = Expirado
+billing-quote-name = Nome do Orçamento
+billing-quote-rejected = Rejeitado
+billing-quote-sent = Enviado
+billing-record = Registrar Pagamento
+billing-reference = Número de Referência
+billing-save-draft = Salvar como Rascunho
+billing-search-placeholder = Pesquisar faturas, orçamentos...
+billing-select-account = Selecione a conta...
+billing-select-contact = Selecione o contato...
+billing-select-invoice = Selecione a fatura...
+billing-select-method = Selecione o método...
+billing-select-opportunity = Selecione a oportunidade...
+billing-terms = Termos e Condições
+billing-terms-immediate = Pagamento Imediato
+billing-terms-net15 = 15 dias
+billing-terms-net30 = 30 dias
+billing-terms-net45 = 45 dias
+billing-terms-net60 = 60 dias
+billing-valid-until = Válido até *
+erp-gl = Razão
+erp-inventory = Estoque
+erp-procurement = Compras
+
+# -----------------------------------------------------------------------------
+# CRM
+# -----------------------------------------------------------------------------
+crm-add-lead = Adicionar Lead
+crm-audit-title = Trilha de Auditoria
+crm-campaigns = Campanhas
+crm-col-account = Conta
+crm-col-actions = Ações
+crm-col-city = Cidade
+crm-col-close = Fechamento Previsto
+crm-col-close-date = Fechamento Previsto
+crm-col-contact = Contato
+crm-col-contacts = Negócios
+crm-col-customer = Cliente
+crm-col-delivery = Entrega
+crm-col-email = E-mail
+crm-col-industry = Setor
+crm-col-items = Itens
+crm-col-name = Nome
+crm-col-number = Número
+crm-col-owner = Responsável
+crm-col-phone = Telefone
+crm-col-probability = Probabilidade
+crm-col-revenue = Receita Anual
+crm-col-source = Origem
+crm-col-stage = Etapa
+crm-col-status = Status
+crm-col-title = Cargo
+crm-col-total = Total
+crm-col-valid-until = Válido até
+crm-col-value = Valor
+crm-create-lead = Criar Contato
+crm-currency = Moeda
+crm-deals = Negócios
+crm-estimated-value = Valor Estimado
+crm-filter-all = Todos
+crm-filter-lost = Perdido
+crm-filter-negotiation = Negociação
+crm-filter-new = Novo
+crm-filter-proposal = Proposta
+crm-filter-qualified = Qualificado
+crm-filter-won = Ganho
+crm-first-name = Nome
+crm-job-title = Cargo
+crm-last-name = Sobrenome
+crm-loading = Carregando…
+crm-new = Novo
+crm-new-deal = Novo Negócio
+crm-notes = Anotações
+crm-orders = Pedidos
+crm-quotes = Orçamentos e Pedidos
+crm-search-placeholder-deals = Pesquisar negócios, contas...
+crm-source-cold-call = Ligação Fria
+crm-source-email = Campanha de E-mail
+crm-source-event = Evento/Conferência
+crm-source-linkedin = LinkedIn
+crm-source-other = Outro
+crm-source-partner = Parceiro
+crm-source-referral = Indicação
+crm-source-website = Site
+crm-this-month = Ganho Este Mês
+crm-total-value = Valor Total do Pipeline
+
+# -----------------------------------------------------------------------------
+# Dashboards
+# -----------------------------------------------------------------------------
+dashboards-add-data-source = Adicionar Fonte de Dados
+dashboards-add-source = Adicionar Fonte de Dados
+dashboards-add-widget = Adicionar Widget
+dashboards-all-sources = Todas as Fontes de Dados
+dashboards-analyzing = Analisando seus dados...
+dashboards-api-key = Chave da API
+dashboards-api-url = URL da API
+dashboards-apis = APIs
+dashboards-ask-data = Pergunte sobre seus dados
+dashboards-blank = Em Branco
+dashboards-charts = Gráficos
+dashboards-connection-string = String de Conexão
+dashboards-content = Conteúdo
+dashboards-create = Novo Painel
+dashboards-create-title = Criar Novo Painel
+dashboards-custom-range = Período Personalizado
+dashboards-data-display = Exibição de Dados
+dashboards-data-sources = Fontes de Dados
+dashboards-database = Banco de Dados
+dashboards-databases = Bancos de Dados
+dashboards-description = Descrição
+dashboards-description-placeholder = Descreva o que este painel mostra...
+dashboards-file-url = URL ou Caminho do Arquivo
+dashboards-files = Arquivos
+dashboards-filter-all = Todos os Painéis
+dashboards-filter-finance = Financeiro
+dashboards-filter-hr = RH
+dashboards-filter-marketing = Marketing
+dashboards-filter-operations = Operações
+dashboards-filter-sales = Vendas
+dashboards-filters = Filtros
+dashboards-host = Host
+dashboards-internal = Interno
+dashboards-last-30d = Últimos 30 Dias
+dashboards-last-7d = Últimos 7 Dias
+dashboards-last-90d = Últimos 90 Dias
+dashboards-last-year = Último Ano
+dashboards-layout = Layout
+dashboards-layout-12col = 12 Colunas
+dashboards-layout-4col = 4 Colunas
+dashboards-layout-6col = 6 Colunas
+dashboards-marketing-template = Marketing
+dashboards-my-dashboards = Meus Painéis
+dashboards-name = Nome
+dashboards-name-placeholder = Meu Painel
+dashboards-operations-template = Operações
+dashboards-password = Senha
+dashboards-port = Porta
+dashboards-public = Tornar painel público
+dashboards-query-placeholder = ex.: Mostre as vendas por região no último trimestre...
+dashboards-sales-template = Vendas
+dashboards-search-placeholder = Pesquisar painéis...
+dashboards-select-type = Selecione o tipo...
+dashboards-shared = Compartilhados Comigo
+dashboards-source-description = Descrição
+dashboards-source-description-placeholder = Descrição opcional...
+dashboards-source-name = Nome
+dashboards-source-name-placeholder = Meu Banco de Dados
+dashboards-source-type = Tipo
+dashboards-start-from = Começar de
+dashboards-tags = Tags
+dashboards-tags-placeholder = vendas, marketing
+dashboards-templates = Modelos
+dashboards-test-connection = Testar Conexão
+dashboards-title = Painéis
+dashboards-today = Hoje
+dashboards-use-ssl = Usar SSL
+dashboards-username = Usuário
+dashboards-warehouses = Armazéns de Dados na Nuvem
+
+# -----------------------------------------------------------------------------
+# Analytics & campaigns
+# -----------------------------------------------------------------------------
+analytics-aging-report = Relatório de Aging
+analytics-ai-resolution = Taxa de Resolução por IA
+analytics-billing-reports = Relatórios de Cobrança
+analytics-cases-category = Casos por Categoria
+analytics-cases-priority = Casos Abertos por Prioridade
+analytics-crm-reports = Relatórios de CRM
+analytics-lead-conversion = Taxa de Conversão de Leads
+analytics-monthly-revenue = Receita Mensal
+analytics-payment-history = Histórico de Pagamentos
+analytics-resolution-time = Tempo de Resolução (Média)
+analytics-revenue-summary = Resumo de Receita
+analytics-sales-forecast = Previsão de Vendas
+analytics-sales-pipeline = Pipeline de Vendas
+analytics-support-reports = Relatórios de Suporte
+analytics-won-lost = Análise Ganhos/Perdidos
+campaign-new = Nova Campanha
+campaigns-all = Monitorar
+campaigns-lists = Listas
+campaigns-templates = Modelos
+campaigns-title = Estúdio de Campanhas
+
+# -----------------------------------------------------------------------------
+# Canvas, templates, projects
+# -----------------------------------------------------------------------------
+canvas-clear = Limpar Tela
+canvas-collaborate = Compartilhar
+canvas-export = Exportar
+canvas-export-title = Exportar Tela
+canvas-redo = Refazer (Ctrl+Y)
+canvas-undo = Desfazer (Ctrl+Z)
+templates-title = Modelos de Mensagem
+project-critical-path = Mostrar Caminho Crítico
+project-milestones = Mostrar Marcos
+project-title = Projetos
+
+# -----------------------------------------------------------------------------
+# Sheet
+# -----------------------------------------------------------------------------
+sheet-print = Imprimir
+sheet-bold = Negrito
+sheet-italic = Itálico
+sheet-underline = Sublinhado
+sheet-strikethrough = Tachado
+sheet-merge-cells = Mesclar Células
+sheet-pivot-table = Tabela Dinâmica
+sheet-ai-assistant = Assistente de IA
+sheet-insert-chart = Inserir Gráfico
+sheet-custom-format = Formato Numérico Personalizado
+sheet-find-replace = Localizar e Substituir
+sheet-data-validation = Validação de Dados
+sheet-advanced-ranges = Ações Avançadas
+sheet-array-formulas = Fórmulas de Matriz
+sheet-charts = Gráficos
+sheet-comments = Comentários
+sheet-conditional-format = Formatação Condicional
+sheet-external-links = Links Externos
+sheet-files = Arquivos
+sheet-named-ranges = Intervalos Nomeados
+sheet-none = Nenhuma planilha ainda. Crie uma para começar.
+sheet-panels = Painéis
+sheet-protection = Proteção
+sheet-validations = Validações
+sheet-tab-add = Nova planilha
+sheet-tab-delete = Excluir planilha
+sheet-tab-confirm-delete = Excluir planilha {name}?
+sheet-tab-rename-prompt = Novo nome da planilha:
+sheet-invalid-value = Valor inválido
+sheet-loading = Carregando...
+sheet-panel-load-error = Erro ao carregar o painel.
+sheet-sidebar-load-error = Erro ao carregar planilhas.
+sheet-sidebar-load-first = Carregue uma planilha primeiro.
+sheet-my-sheets = Minhas Planilhas
+sheet-new = + Nova
+sheet-sheets-count = {count} planilha(s)
+sheet-untitled = Planilha sem título
+
+# ============================================================================
+# Docs & CRM runtime strings (#2091 #2092)
+# ============================================================================
+
+docs-export-replacements = Substituições aplicadas: {count}
+docs-compare-ids-required = Os dois IDs de documento são obrigatórios.
+docs-compare-running = Comparando…
+docs-compare-no-differences = Nenhuma diferença encontrada.
+docs-compare-failed = Falha na comparação: {error}
+docs-page-count = {count} página(s)
+docs-word-count = {count} palavra(s)
+docs-opened-from-drive = Aberto do Drive
+docs-open-from-drive-failed = Falha ao abrir do Drive: {error}
+docs-comment = Comentar
+docs-references = Referências
+docs-status-online = conectado
+docs-status-offline = desconectado
+crm-quotes-empty = Nenhum orçamento ainda
+crm-quotes-error = Não foi possível carregar os orçamentos.
+crm-orders-empty = Nenhum pedido ainda
+crm-orders-error = Não foi possível carregar os pedidos.
+
+# ============================================================================
+# Tasks, canvas, slides & paper runtime strings (#2091)
+# ============================================================================
+
+tasks-status-complete = Concluído
+tasks-status-running = Em execução
+tasks-status-awaiting = Aguardando
+tasks-status-paused = Pausado
+tasks-status-blocked = Bloqueado
+canvas-clear-confirm = Limpar todos os elementos?
+canvas-saved = Salvo
+canvas-saved-local = Salvo (local)
+canvas-share-copied = Link de compartilhamento copiado
+canvas-share-link = Link de compartilhamento: {url}
+slides-delete-confirm = Excluir esta apresentação?
+slides-deleted = Apresentação excluída
+slides-delete-failed = Falha ao excluir: {error}
+slides-saving = Salvando…
+slides-save-failed = Falha ao salvar: {error}
+paper-synced = Sincronizado
+paper-error = Erro
+paper-clear-confirm = Tem certeza de que deseja apagar todas as notas?
+paper-empty-warning = Escreva algumas notas primeiro!
+paper-no-actions = Nenhuma ação selecionada!
+
+# ============================================================================
+# Project runtime strings (#2092)
+# ============================================================================
+
+project-empty-tasks = Nenhuma tarefa neste projeto
+project-empty-tasks-found = Nenhuma tarefa encontrada
+project-empty-tasks-short = Sem tarefas
+project-select-project-resources = Selecione um projeto para ver os recursos
+project-resources-failed = Falha ao carregar os recursos
+project-resources-empty = Nenhum recurso atribuído a este projeto
+project-resources-error = Erro ao carregar os recursos
+project-task-not-found = Tarefa não encontrada
+project-dependency-add-failed = Falha ao adicionar a dependência
+project-dependency-remove-failed = Falha ao remover a dependência
+project-error = Erro: {error}
+project-import-failed = Falha na importação: {error}
+project-select-project-first = Selecione um projeto primeiro
+project-export-failed = Falha na exportação: {error}
+project-name-required = Informe um nome de projeto
+project-create-failed = Falha ao criar o projeto: {error}
+project-task-name-required = Informe um nome de tarefa
+project-create-task-failed = Falha ao criar a tarefa

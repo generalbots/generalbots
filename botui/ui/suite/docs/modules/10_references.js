@@ -28,7 +28,7 @@
     section.className = "docs-references";
     section.contentEditable = "false";
     var h = document.createElement("h4");
-    h.textContent = "References";
+    h.textContent = docsT("docs-references", "References");
     section.appendChild(h);
     list = document.createElement("ol");
     section.appendChild(list);

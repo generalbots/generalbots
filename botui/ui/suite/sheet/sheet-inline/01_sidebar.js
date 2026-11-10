@@ -1,6 +1,6 @@
 /* Load sidebar dynamically from JSON API and render as HTML */
 function _t(key, fallback, params) {
-    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, params);
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, fallback, params);
     var text = fallback || key;
     if (params) {
         Object.keys(params).forEach(function (p) { text = text.split('{' + p + '}').join(params[p]); });
@@ -36,18 +36,18 @@ function loadSidebar() {
     if (!el) return;
     fetch('/api/sheet/list').then(function(r){ return r.json(); }).then(function(items){
         if (!items || items.length === 0) {
-            el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sidebar.none', 'No spreadsheets yet. Create one to start.') + '</div>';
+            el.innerHTML = '<div class="ss-empty-hint" style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sheet-none', 'No spreadsheets yet. Create one to start.') + '</div>';
             return;
         }
-        var html = '<div class="ss-sidebar" id="sheet-list-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, #334155);"><h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:14px;">' + _t('sidebar.my_sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sidebar.new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
+        var html = '<div class="ss-sidebar" id="sheet-list-sidebar"><div class="ss-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--sheet-border, #334155);"><h3 style="margin:0;color:var(--sheet-fg, #f8fafc);font-size:14px;">' + _t('sheet-my-sheets', 'My Sheets') + '</h3><button class="btn-icon" onclick="newSheet()" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">' + _t('sheet-new', '+ New') + '</button></div><div class="ss-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">';
         for (var i = 0; i < items.length; i++) {
             var m = items[i];
-            html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid var(--sheet-border, #334155);border-radius:6px;background:var(--sheet-bg-elevated, #1e293b);cursor:pointer;"><div style="font-weight:600;color:var(--sheet-fg, #f8fafc);">' + escHtml(m.name) + '</div><div style="font-size:12px;color:var(--sheet-muted, #94a3b8);margin-top:4px;">' + _t('sidebar.sheets_count', '{0} sheet(s)', { '0': m.worksheet_count || 0 }) + '</div></div>';
+            html += '<div class="ss-metadata-card" onclick="loadSheet(\'' + m.id + '\')" style="padding:12px;border:1px solid var(--sheet-border, #334155);border-radius:6px;background:var(--sheet-bg-elevated, #1e293b);cursor:pointer;"><div style="font-weight:600;color:var(--sheet-fg, #f8fafc);">' + escHtml(m.name) + '</div><div style="font-size:12px;color:var(--sheet-muted, #94a3b8);margin-top:4px;">' + _t('sheet-sheets-count', '{0} sheet(s)', { count: m.worksheet_count || 0 }) + '</div></div>';
         }
         html += '</div></div>';
         el.innerHTML = html;
     }).catch(function(){
-        el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sidebar.load_error', 'Error loading sheets.') + '</div>';
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--sheet-muted, #94a3b8);font-style:italic;">' + _t('sheet-sidebar-load-error', 'Error loading sheets.') + '</div>';
     });
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -55,7 +55,7 @@ function openSheetPanel(panel) {
     var sheet = window.__LOADED_SHEET;
     if (!sheet) {
         var host = document.getElementById('sheet-content');
-        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sidebar.load_first', 'Load a spreadsheet first.') + '</div>';
+        if (host) host.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-sidebar-load-first', 'Load a spreadsheet first.') + '</div>';
         return;
     }
     var panelHost = document.getElementById('sheet-content');
@@ -64,7 +64,7 @@ function openSheetPanel(panel) {
     // copy showed stale protection/chart state after every mutation.
     if (window.GBSheetRefreshPanel) {
         window.GBSheetRefreshPanel(panel).catch(function () {
-            panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('panel.load_error', 'Error loading panel.') + '</div>';
+            panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>';
         });
         return;
     }
@@ -73,7 +73,7 @@ function openSheetPanel(panel) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sheet)
     }).then(function(r){ return r.text(); }).then(function(html){ panelHost.innerHTML = html; })
-    .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('panel.load_error', 'Error loading panel.') + '</div>'; });
+    .catch(function(){ panelHost.innerHTML = '<div style="padding:20px;color:#f87171;text-align:center;">' + _t('sheet-panel-load-error', 'Error loading panel.') + '</div>'; });
 }
 function loadSheet(id) {
     window.__SHEET_INITIAL_ID = id;
@@ -82,7 +82,7 @@ function loadSheet(id) {
     try { sessionStorage.setItem("sheet_active_index", "0"); } catch (_) {}
     document.dispatchEvent(new CustomEvent("gb-sheet-tab", { detail: { index: 0 }, bubbles: true }));
     var host = document.getElementById('sheet-content');
-    if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('common.loading', 'Loading...') + '</div>';
+    if (host) host.innerHTML = '<div style="padding:20px;color:var(--sheet-muted, #94a3b8);text-align:center;">' + _t('sheet-loading', 'Loading...') + '</div>';
     // Load the worksheet tabs HTML from server, then init VirtualGrid
     fetch('/api/sheet/load?id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(sheet){
         window.__LOADED_SHEET = sheet;

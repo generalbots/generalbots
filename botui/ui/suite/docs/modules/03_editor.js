@@ -9,11 +9,18 @@ function updatePageCount() {
   var el = document.getElementById("pageCount");
   if (!el) return;
   var article = getActiveArticle();
-  if (!article) { el.textContent = "1 page"; return; }
+  if (!article) {
+    el.textContent = docsT("docs-page-count", "1 page", { count: 1 });
+    return;
+  }
   var h = article.scrollHeight;
   var pageH = 1056;
   var count = Math.max(1, Math.ceil(h / pageH));
-  el.textContent = count + " page" + (count !== 1 ? "s" : "");
+  el.textContent = docsT(
+    "docs-page-count",
+    count + " page" + (count !== 1 ? "s" : ""),
+    { count: count },
+  );
 }
 
 function attachEditorHandlers(host) {

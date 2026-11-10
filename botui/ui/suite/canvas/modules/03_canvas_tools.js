@@ -76,7 +76,7 @@
     }
 
     C.clearCanvas = function clearCanvas() {
-        if (C.elements.length && (window.GBModal||{confirm:confirm}).confirm("Clear all elements?")) {
+        if (C.elements.length && (window.GBModal||{confirm:confirm}).confirm((window.gbT ? window.gbT("canvas-clear-confirm", "Clear all elements?") : "Clear all elements?"))) {
             C.elements = [];
             C.selectedElement = null;
             C.saveHistory();
@@ -225,7 +225,7 @@
         const input = document.getElementById("canvas-name");
         if (input && name) input.value = name;
         const status = document.getElementById("save-status");
-        if (status) status.textContent = "Saved";
+        if (status) status.textContent = (window.gbT ? window.gbT("canvas-saved", "Saved") : "Saved");
     }
 
 })();

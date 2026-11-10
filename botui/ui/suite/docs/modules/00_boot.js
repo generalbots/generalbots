@@ -70,7 +70,11 @@
         if (stats) {
           var text = String(doc.content || "").replace(/<[^>]*>/g, " ");
           var words = text.trim().split(/\s+/).filter(Boolean).length;
-          stats.textContent = words + (words === 1 ? " word" : " words");
+          stats.textContent = docsT(
+            "docs-word-count",
+            words + (words === 1 ? " word" : " words"),
+            { count: words },
+          );
         }
       });
   }

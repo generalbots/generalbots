@@ -53,12 +53,20 @@ function loadDriveFileIntoEditor() {
       }
       var scope2 = document.querySelector('[id^="window-body-docs"]') || document;
       var statusEl = scope2.querySelector('#saveStatus');
-      if (statusEl) statusEl.textContent = 'Opened from Drive';
+      if (statusEl) {
+        statusEl.textContent = docsT('docs-opened-from-drive', 'Opened from Drive');
+      }
     })
     .catch(function (err) {
       var scope3 = document.querySelector('[id^="window-body-docs"]') || document;
       var statusEl = scope3.querySelector('#saveStatus');
-      if (statusEl) statusEl.textContent = 'Failed to open from Drive: ' + err.message;
+      if (statusEl) {
+        statusEl.textContent = docsT(
+          'docs-open-from-drive-failed',
+          'Failed to open from Drive: ' + err.message,
+          { error: err.message },
+        );
+      }
     });
 }
 

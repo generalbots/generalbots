@@ -171,7 +171,7 @@ document.addEventListener("click", function (e) {
 // Delete button resolves through here. The list fragment refreshes in place
 // (scoped to this app window — #sidebar-files also exists in the docs app).
 function deletePresentation(id) {
-  if (!id || !(window.GBModal||{confirm:confirm}).confirm("Delete this presentation?")) return;
+  if (!id || !(window.GBModal||{confirm:confirm}).confirm((window.gbT ? window.gbT("slides-delete-confirm", "Delete this presentation?") : "Delete this presentation?"))) return;
   fetch("/api/slides/delete", {
     method: "POST",
     headers: Object.assign(
@@ -199,12 +199,16 @@ function deletePresentation(id) {
         window.__SLIDES_PRESENTATION_ID = null;
       }
       var status = scope.querySelector("#saveStatus");
-      if (status) status.textContent = "Presentation deleted";
+      if (status) status.textContent = (window.gbT ? window.gbT("slides-deleted", "Presentation deleted") : "Presentation deleted");
     })
     .catch(function (err) {
       var scope = document.querySelector('[id^="window-body-slides"]') || document;
       var status = scope.querySelector("#saveStatus");
-      if (status) status.textContent = "Delete failed: " + err.message;
+      if (status) {
+        status.textContent = window.gbT
+          ? window.gbT("slides-delete-failed", "Delete failed: {error}", { error: err.message })
+          : "Delete failed: " + err.message;
+      }
     });
 }
 window.deletePresentation = deletePresentation;

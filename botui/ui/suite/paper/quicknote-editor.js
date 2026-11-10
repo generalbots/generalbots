@@ -223,17 +223,17 @@ function updateSyncStatus(status) {
 
     if (status === 'syncing') {
         syncStatus.classList.add('syncing');
-        statusText.textContent = 'Saving...';
+        statusText.textContent = (window.gbT ? window.gbT("paper-saving", "Saving...") : "Saving...");
     } else if (status === 'synced') {
-        statusText.textContent = 'Synced';
+        statusText.textContent = (window.gbT ? window.gbT("paper-synced", "Synced") : "Synced");
     } else if (status === 'error') {
         syncStatus.classList.add('error');
-        statusText.textContent = 'Error';
+        statusText.textContent = (window.gbT ? window.gbT("paper-error", "Error") : "Error");
     }
 }
 
 function clearNote() {
-    if (noteContent.innerText.trim() && !confirm('Are you sure you want to clear all notes?')) {
+    if (noteContent.innerText.trim() && !confirm((window.gbT ? window.gbT("paper-clear-confirm", "Are you sure you want to clear all notes?") : "Are you sure you want to clear all notes?"))) {
         return;
     }
 
@@ -257,7 +257,7 @@ function processNotes() {
     const content = noteContent.innerText.trim();
 
     if (!content) {
-        alert('Please write some notes first!');
+        alert((window.gbT ? window.gbT("paper-empty-warning", "Please write some notes first!") : "Please write some notes first!"));
         return;
     }
 
@@ -422,7 +422,7 @@ function executeAllActions() {
     const checkboxes = document.querySelectorAll('.result-checkbox:checked');
 
     if (checkboxes.length === 0) {
-        alert('No actions selected!');
+        alert((window.gbT ? window.gbT("paper-no-actions", "No actions selected!") : "No actions selected!"));
         return;
     }
 

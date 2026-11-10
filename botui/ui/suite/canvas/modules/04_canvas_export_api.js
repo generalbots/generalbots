@@ -151,7 +151,7 @@
 
     C.saveCanvas = function saveCanvas() {
         const status = document.getElementById("save-status");
-        if (status) status.textContent = "Saved ✓";
+        if (status) status.textContent = (window.gbT ? window.gbT("canvas-saved", "Saved ✓") : "Saved ✓");
         C.doExport();
     }
 
@@ -161,13 +161,17 @@
             navigator.clipboard
                 .writeText(url)
                 .then(function () {
-                    (window.GBModal||{alert:alert}).alert("Share link copied to clipboard");
+                    (window.GBModal||{alert:alert}).alert((window.gbT ? window.gbT("canvas-share-copied", "Share link copied to clipboard") : "Share link copied to clipboard"));
                 })
                 .catch(function () {
-                    (window.GBModal||{alert:alert}).alert("Share link: " + url);
+                    (window.GBModal||{alert:alert}).alert(window.gbT
+            ? window.gbT("canvas-share-link", "Share link: {url}", { url: url })
+            : "Share link: " + url);
                 });
         } catch (ignore) {
-            (window.GBModal||{alert:alert}).alert("Share link: " + url);
+            (window.GBModal||{alert:alert}).alert(window.gbT
+            ? window.gbT("canvas-share-link", "Share link: {url}", { url: url })
+            : "Share link: " + url);
         }
     }
 

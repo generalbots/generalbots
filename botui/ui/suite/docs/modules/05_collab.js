@@ -12,10 +12,10 @@ function initCollab() {
     collaboratorsEl: document.getElementById("collaborators"),
     typingEl: typingEl,
     onConnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
+      if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = docsT("docs-status-online", "online"); }
     },
     onDisconnect: function () {
-      if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
+      if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = docsT("docs-status-offline", "offline"); }
       if (window.DocsPresence) window.DocsPresence.clearAll();
     },
     onMessage: function (msg) {

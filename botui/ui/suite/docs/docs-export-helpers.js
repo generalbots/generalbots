@@ -230,7 +230,13 @@ function GBDocsFindReplace(event) {
         }
     });
     var output = form.querySelector("#find-replace-results");
-    if (output) output.textContent = count + " replacement(s) applied.";
+    if (output) {
+        output.textContent = docsT(
+            "docs-export-replacements",
+            count + " replacement(s) applied.",
+            { count: count },
+        );
+    }
     if (typeof scheduleSave === "function" && article.dataset && article.dataset.docId) {
         scheduleSave(article.dataset.docId, article.innerHTML);
     }
@@ -267,7 +273,10 @@ function GBDocsCompare(event) {
     var output = form.querySelector("#compare-result");
     if (!output) return false;
     if (!original || !modified) {
-        output.textContent = "Both document ids are required.";
+        output.textContent = docsT(
+            "docs-compare-ids-required",
+            "Both document ids are required.",
+        );
         return false;
     }
     var token = (typeof getGBAccessToken === "function" && getGBAccessToken()) ||
@@ -275,7 +284,7 @@ function GBDocsCompare(event) {
         window.sessionStorage.getItem("gb-access-token") || "";
     var headers = { "Content-Type": "application/json" };
     if (token) headers.Authorization = "Bearer " + token;
-    output.textContent = "Comparing…";
+    output.textContent = docsT("docs-compare-running", "Comparing…");
     fetch("/api/docs/compare", {
         method: "POST",
         headers: headers,
@@ -294,7 +303,9 @@ function GBDocsCompare(event) {
                 (summary.insertions || 0) + " / −" + (summary.deletions || 0) +
                 " / ~" + (summary.modifications || 0) + "</div>";
             if (!differences.length) {
-                html += '<div style="padding:8px;color:#94a3b8;">No differences found.</div>';
+                html += '<div style="padding:8px;color:#94a3b8;">' +
+                    docsT("docs-compare-no-differences", "No differences found.") +
+                    "</div>";
             } else {
                 html += '<div style="max-height:40vh;overflow:auto;">';
                 differences.slice(0, 200).forEach(function (diff) {
@@ -312,7 +323,11 @@ function GBDocsCompare(event) {
             output.innerHTML = html;
         })
         .catch(function (error) {
-            output.textContent = "Compare failed: " + error.message;
+            output.textContent = docsT(
+                "docs-compare-failed",
+                "Compare failed: " + error.message,
+                { error: error.message },
+            );
         });
     return false;
 }

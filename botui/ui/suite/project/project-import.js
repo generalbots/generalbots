@@ -10,10 +10,10 @@ async function removeDependency(taskId, predecessorId) {
             await loadProjectData(currentProjectId);
             showTaskDetail(taskId);
         } else {
-            alert('Failed to remove dependency');
+            alert(projectT('project-dependency-remove-failed', 'Failed to remove dependency'));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
@@ -60,20 +60,20 @@ async function handleImportFile(input) {
             }
         } else {
             const err = await resp.json().catch(() => ({}));
-            alert('Import failed: ' + (err.error || resp.status));
+            alert(projectT('project-import-failed', 'Import failed: ' + (err.error || resp.status), { error: err.error || resp.status }));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
 async function exportProject(format) {
-    if (!currentProjectId) { alert('Select a project first'); return; }
+    if (!currentProjectId) { alert(projectT('project-select-project-first', 'Select a project first')); return; }
     const fmt = format || 'xml';
     try {
         const resp = await fetch(`/api/projects/${currentProjectId}/export?format=${fmt}`);
         if (!resp.ok) {
-            alert('Export failed: ' + resp.status);
+            alert(projectT('project-export-failed', 'Export failed: ' + resp.status, { error: resp.status }));
             return;
         }
         const blob = await resp.blob();
@@ -87,7 +87,7 @@ async function exportProject(format) {
         a.remove();
         URL.revokeObjectURL(url);
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
@@ -131,7 +131,7 @@ function closeProjectModal() {
 
 async function createProjectFromForm() {
     const name = document.getElementById('new-project-name').value.trim();
-    if (!name) { alert('Please enter a project name'); return; }
+    if (!name) { alert(projectT('project-name-required', 'Please enter a project name')); return; }
 
     const start = document.getElementById('new-project-start').value
         || new Date().toISOString().slice(0, 10);
@@ -152,16 +152,16 @@ async function createProjectFromForm() {
             closeProjectModal();
             loadProjectList();
         } else {
-            alert('Failed to create project: ' + resp.status);
+            alert(projectT('project-create-failed', 'Failed to create project: ' + resp.status, { error: resp.status }));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 
 async function createTask() {
     const name = document.getElementById('new-task-name').value.trim();
-    if (!name) { alert('Please enter a task name'); return; }
+    if (!name) { alert(projectT('project-task-name-required', 'Please enter a task name')); return; }
 
     const start = document.getElementById('new-task-start').value
         || new Date().toISOString().slice(0, 10);
@@ -189,10 +189,10 @@ async function createTask() {
             closeNewTaskForm();
             loadProjectData(currentProjectId);
         } else {
-            alert('Failed to create task');
+            alert(projectT('project-create-task-failed', 'Failed to create task'));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }
 

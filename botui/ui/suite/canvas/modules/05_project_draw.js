@@ -112,7 +112,7 @@
             })
             .catch(function () {
                 var status = document.getElementById("save-status");
-                if (status) status.textContent = "Saved (local)";
+                if (status) status.textContent = (window.gbT ? window.gbT("canvas-saved-local", "Saved (local)") : "Saved (local)");
             });
     }
 

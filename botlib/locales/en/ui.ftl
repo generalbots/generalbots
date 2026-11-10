@@ -2026,3 +2026,441 @@ language-search-placeholder = Search languages…
 settings-profile-title = Profile Settings
 
 settings-security-title = Security Settings
+
+# ============================================================================
+# Office & business apps (#2091 #2092)
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Products
+# -----------------------------------------------------------------------------
+common-no = No
+common-yes = Yes
+products-billing-cycle = Billing Cycle
+products-billing-type = Billing Type *
+products-cat-all = All Categories
+products-cat-consulting = Consulting
+products-cat-development = Development
+products-cat-hardware = Hardware
+products-cat-implementation = Implementation
+products-cat-maintenance = Maintenance
+products-cat-other = Other
+products-cat-software = Software
+products-cat-subscription = Subscription
+products-cat-support = Support
+products-cat-training = Training
+products-col-actions = Actions
+products-col-currency = Currency
+products-col-default = Default
+products-col-description = Description
+products-col-items = Items
+products-col-name = Name
+products-col-price = Price
+products-col-status = Status
+products-col-type = Type
+products-col-unit = Unit
+products-col-valid-from = Valid From
+products-col-valid-to = Valid To
+products-create = Create Product
+products-create-service = Create Service
+products-currency-all = All Currencies
+products-cycle-annually = Annually
+products-cycle-monthly = Monthly
+products-cycle-quarterly = Quarterly
+products-description = Description
+products-image = Product Image
+products-max-hours = Max. Hours (estimate)
+products-min-hours = Min. Hours
+products-name = Product Name *
+products-new = New Product
+products-pricelist-create = Create Price List
+products-pricelist-currency = Currency
+products-pricelist-description = Description
+products-pricelist-markup = Default Markup %
+products-pricelist-name = Price List Name *
+products-pricelist-type = Price List Type
+products-pricelist-type-contract = Contract
+products-pricelist-type-promotional = Promotional
+products-pricelist-type-standard = Standard
+products-pricelist-valid-from = Valid From
+products-pricelist-valid-until = Valid Until
+products-search-placeholder = Search products, services...
+products-select-category = Select category...
+products-select-type = Select type...
+products-service-name = Service Name *
+products-status = Status
+products-status-active = Active
+products-status-all = All
+products-status-inactive = Inactive
+products-taxable = Taxable
+products-trial-days = Trial Period (days)
+products-type-all = All Types
+products-type-fixed = Fixed Price
+products-type-hourly = Hourly Rate
+products-type-recurring = Recurring (Subscription)
+products-unit-day = Per Day
+products-unit-hour = Hour
+products-unit-license = License
+products-unit-month = Month
+products-unit-project = Per Project
+products-unit-seat = Seat
+products-unit-unit = Unit
+products-unit-year = Year
+products-upload-image = Click to upload image
+
+# -----------------------------------------------------------------------------
+# Billing & ERP
+# -----------------------------------------------------------------------------
+billing-account = Account *
+billing-col-account = Account
+billing-col-actions = Actions
+billing-col-amount = Amount
+billing-col-date = Date
+billing-col-invoice = Invoice
+billing-col-method = Method
+billing-col-opportunity = Opportunity
+billing-col-payment-id = Payment ID
+billing-col-quote-number = Quote #
+billing-col-status = Status
+billing-col-valid-until = Valid Until
+billing-contact = Contact
+billing-create-send = Create & Send
+billing-currency = Currency
+billing-details = Invoice Details
+billing-discount-fixed = Fixed Amount
+billing-discount-none = No Discount
+billing-discount-percent = Percentage (%)
+billing-discount-type = Discount Type
+billing-discount-value = Discount Value
+billing-invoice-amount = Invoice Amount
+billing-invoice-date = Invoice Date *
+billing-invoice-details = Invoice Details
+billing-item-description = Description
+billing-item-price = Price
+billing-item-qty = Qty
+billing-item-total = Total
+billing-method-all = All Methods
+billing-method-bank = Bank Transfer
+billing-method-boleto = Boleto
+billing-method-card = Credit Card
+billing-method-cash = Cash
+billing-method-check = Check
+billing-method-other = Other
+billing-method-pix = PIX
+billing-opportunity = Opportunity
+billing-payment-date = Payment Date *
+billing-payment-details = Payment Details
+billing-payment-method = Payment Method *
+billing-quote-accepted = Accepted
+billing-quote-all = All Quotes
+billing-quote-date = Quote Date *
+billing-quote-details = Quote Details
+billing-quote-draft = Draft
+billing-quote-expired = Expired
+billing-quote-name = Quote Name
+billing-quote-rejected = Rejected
+billing-quote-sent = Sent
+billing-record = Record Payment
+billing-reference = Reference Number
+billing-save-draft = Save as Draft
+billing-search-placeholder = Search invoices, quotes...
+billing-select-account = Select account...
+billing-select-contact = Select contact...
+billing-select-invoice = Select invoice...
+billing-select-method = Select method...
+billing-select-opportunity = Select opportunity...
+billing-terms = Terms & Conditions
+billing-terms-immediate = Due on Receipt
+billing-terms-net15 = Net 15
+billing-terms-net30 = Net 30
+billing-terms-net45 = Net 45
+billing-terms-net60 = Net 60
+billing-valid-until = Valid Until *
+erp-gl = GL
+erp-inventory = Inventory
+erp-procurement = Procurement
+
+# -----------------------------------------------------------------------------
+# CRM
+# -----------------------------------------------------------------------------
+crm-add-lead = Add Lead
+crm-audit-title = Audit trail
+crm-campaigns = Campaigns
+crm-col-account = Account
+crm-col-actions = Actions
+crm-col-city = City
+crm-col-close = Expected Close
+crm-col-close-date = Expected Close
+crm-col-contact = Contact
+crm-col-contacts = Deals
+crm-col-customer = Customer
+crm-col-delivery = Delivery
+crm-col-email = Email
+crm-col-industry = Industry
+crm-col-items = Items
+crm-col-name = Name
+crm-col-number = Number
+crm-col-owner = Owner
+crm-col-phone = Phone
+crm-col-probability = Probability
+crm-col-revenue = Annual Revenue
+crm-col-source = Source
+crm-col-stage = Stage
+crm-col-status = Status
+crm-col-title = Title
+crm-col-total = Total
+crm-col-valid-until = Valid until
+crm-col-value = Value
+crm-create-lead = Create Contact
+crm-currency = Currency
+crm-deals = Deals
+crm-estimated-value = Estimated Value
+crm-filter-all = All
+crm-filter-lost = Lost
+crm-filter-negotiation = Negotiation
+crm-filter-new = New
+crm-filter-proposal = Proposal
+crm-filter-qualified = Qualified
+crm-filter-won = Won
+crm-first-name = First Name
+crm-job-title = Job Title
+crm-last-name = Last Name
+crm-loading = Loading…
+crm-new = New
+crm-new-deal = New Deal
+crm-notes = Notes
+crm-orders = Orders
+crm-quotes = Quotes & Orders
+crm-search-placeholder-deals = Search deals, accounts...
+crm-source-cold-call = Cold Call
+crm-source-email = Email Campaign
+crm-source-event = Event/Conference
+crm-source-linkedin = LinkedIn
+crm-source-other = Other
+crm-source-partner = Partner
+crm-source-referral = Referral
+crm-source-website = Website
+crm-this-month = Won This Month
+crm-total-value = Total Pipeline Value
+
+# -----------------------------------------------------------------------------
+# Dashboards
+# -----------------------------------------------------------------------------
+dashboards-add-data-source = Add Data Source
+dashboards-add-source = Add Data Source
+dashboards-add-widget = Add Widget
+dashboards-all-sources = All Data Sources
+dashboards-analyzing = Analyzing your data...
+dashboards-api-key = API Key
+dashboards-api-url = API URL
+dashboards-apis = APIs
+dashboards-ask-data = Ask about your data
+dashboards-blank = Blank
+dashboards-charts = Charts
+dashboards-connection-string = Connection String
+dashboards-content = Content
+dashboards-create = New Dashboard
+dashboards-create-title = Create New Dashboard
+dashboards-custom-range = Custom Range
+dashboards-data-display = Data Display
+dashboards-data-sources = Data Sources
+dashboards-database = Database
+dashboards-databases = Databases
+dashboards-description = Description
+dashboards-description-placeholder = Describe what this dashboard shows...
+dashboards-file-url = File URL or Path
+dashboards-files = Files
+dashboards-filter-all = All Dashboards
+dashboards-filter-finance = Finance
+dashboards-filter-hr = HR
+dashboards-filter-marketing = Marketing
+dashboards-filter-operations = Operations
+dashboards-filter-sales = Sales
+dashboards-filters = Filters
+dashboards-host = Host
+dashboards-internal = Internal
+dashboards-last-30d = Last 30 Days
+dashboards-last-7d = Last 7 Days
+dashboards-last-90d = Last 90 Days
+dashboards-last-year = Last Year
+dashboards-layout = Layout
+dashboards-layout-12col = 12 Columns
+dashboards-layout-4col = 4 Columns
+dashboards-layout-6col = 6 Columns
+dashboards-marketing-template = Marketing
+dashboards-my-dashboards = My Dashboards
+dashboards-name = Name
+dashboards-name-placeholder = My Dashboard
+dashboards-operations-template = Operations
+dashboards-password = Password
+dashboards-port = Port
+dashboards-public = Make dashboard public
+dashboards-query-placeholder = e.g., Show me sales by region for last quarter...
+dashboards-sales-template = Sales
+dashboards-search-placeholder = Search dashboards...
+dashboards-select-type = Select type...
+dashboards-shared = Shared With Me
+dashboards-source-description = Description
+dashboards-source-description-placeholder = Optional description...
+dashboards-source-name = Name
+dashboards-source-name-placeholder = My Database
+dashboards-source-type = Type
+dashboards-start-from = Start from
+dashboards-tags = Tags
+dashboards-tags-placeholder = sales, marketing
+dashboards-templates = Templates
+dashboards-test-connection = Test Connection
+dashboards-title = Dashboards
+dashboards-today = Today
+dashboards-use-ssl = Use SSL
+dashboards-username = Username
+dashboards-warehouses = Cloud Data Warehouses
+
+# -----------------------------------------------------------------------------
+# Analytics & campaigns
+# -----------------------------------------------------------------------------
+analytics-aging-report = Aging Report
+analytics-ai-resolution = AI Resolution Rate
+analytics-billing-reports = Billing Reports
+analytics-cases-category = Cases by Category
+analytics-cases-priority = Open Cases by Priority
+analytics-crm-reports = CRM Reports
+analytics-lead-conversion = Lead Conversion Rate
+analytics-monthly-revenue = Monthly Revenue
+analytics-payment-history = Payment History
+analytics-resolution-time = Resolution Time (Avg)
+analytics-revenue-summary = Revenue Summary
+analytics-sales-forecast = Sales Forecast
+analytics-sales-pipeline = Sales Pipeline
+analytics-support-reports = Support Reports
+analytics-won-lost = Won/Lost Analysis
+campaign-new = New Campaign
+campaigns-all = Monitor
+campaigns-lists = Lists
+campaigns-templates = Templates
+campaigns-title = Campaign Studio
+
+# -----------------------------------------------------------------------------
+# Canvas, templates, projects
+# -----------------------------------------------------------------------------
+canvas-clear = Clear Canvas
+canvas-collaborate = Share
+canvas-export = Export
+canvas-export-title = Export Canvas
+canvas-redo = Redo (Ctrl+Y)
+canvas-undo = Undo (Ctrl+Z)
+templates-title = Message Templates
+project-critical-path = Show Critical Path
+project-milestones = Show Milestones
+project-title = Projects
+
+# -----------------------------------------------------------------------------
+# Sheet
+# -----------------------------------------------------------------------------
+sheet-print = Print
+sheet-bold = Bold
+sheet-italic = Italic
+sheet-underline = Underline
+sheet-strikethrough = Strikethrough
+sheet-merge-cells = Merge Cells
+sheet-pivot-table = Pivot Table
+sheet-ai-assistant = AI Assistant
+sheet-insert-chart = Insert Chart
+sheet-custom-format = Custom Number Format
+sheet-find-replace = Find & Replace
+sheet-data-validation = Data Validation
+sheet-advanced-ranges = Advanced Actions
+sheet-array-formulas = Array Formulas
+sheet-charts = Charts
+sheet-comments = Comments
+sheet-conditional-format = Conditional Formatting
+sheet-external-links = External Links
+sheet-files = Files
+sheet-named-ranges = Named Ranges
+sheet-none = No spreadsheets yet. Create one to start.
+sheet-panels = Panels
+sheet-protection = Protection
+sheet-validations = Validations
+sheet-tab-add = New worksheet
+sheet-tab-delete = Delete worksheet
+sheet-tab-confirm-delete = Delete worksheet {name}?
+sheet-tab-rename-prompt = New worksheet name:
+sheet-invalid-value = Invalid value
+sheet-loading = Loading...
+sheet-panel-load-error = Error loading panel.
+sheet-sidebar-load-error = Error loading sheets.
+sheet-sidebar-load-first = Load a spreadsheet first.
+sheet-my-sheets = My Sheets
+sheet-new = + New
+sheet-sheets-count = {count} sheet(s)
+sheet-untitled = Untitled Spreadsheet
+
+# ============================================================================
+# Docs & CRM runtime strings (#2091 #2092)
+# ============================================================================
+
+docs-export-replacements = Replacements applied: {count}
+docs-compare-ids-required = Both document ids are required.
+docs-compare-running = Comparing…
+docs-compare-no-differences = No differences found.
+docs-compare-failed = Compare failed: {error}
+docs-page-count = {count} page(s)
+docs-word-count = {count} word(s)
+docs-opened-from-drive = Opened from Drive
+docs-open-from-drive-failed = Failed to open from Drive: {error}
+docs-comment = Comment
+docs-references = References
+docs-status-online = online
+docs-status-offline = offline
+crm-quotes-empty = No quotes yet
+crm-quotes-error = Could not load quotes.
+crm-orders-empty = No orders yet
+crm-orders-error = Could not load orders.
+
+# ============================================================================
+# Tasks, canvas, slides & paper runtime strings (#2091)
+# ============================================================================
+
+tasks-status-complete = Complete
+tasks-status-running = Running
+tasks-status-awaiting = Awaiting
+tasks-status-paused = Paused
+tasks-status-blocked = Blocked
+canvas-clear-confirm = Clear all elements?
+canvas-saved = Saved
+canvas-saved-local = Saved (local)
+canvas-share-copied = Share link copied to clipboard
+canvas-share-link = Share link: {url}
+slides-delete-confirm = Delete this presentation?
+slides-deleted = Presentation deleted
+slides-delete-failed = Delete failed: {error}
+slides-saving = Saving…
+slides-save-failed = Save failed: {error}
+paper-synced = Synced
+paper-error = Error
+paper-clear-confirm = Are you sure you want to clear all notes?
+paper-empty-warning = Please write some notes first!
+paper-no-actions = No actions selected!
+
+# ============================================================================
+# Project runtime strings (#2092)
+# ============================================================================
+
+project-empty-tasks = No tasks in this project
+project-empty-tasks-found = No tasks found
+project-empty-tasks-short = No tasks
+project-select-project-resources = Select a project to view resources
+project-resources-failed = Failed to load resources
+project-resources-empty = No resources assigned to this project
+project-resources-error = Error loading resources
+project-task-not-found = Task not found
+project-dependency-add-failed = Failed to add dependency
+project-dependency-remove-failed = Failed to remove dependency
+project-error = Error: {error}
+project-import-failed = Import failed: {error}
+project-select-project-first = Select a project first
+project-export-failed = Export failed: {error}
+project-name-required = Please enter a project name
+project-create-failed = Failed to create project: {error}
+project-task-name-required = Please enter a task name
+project-create-task-failed = Failed to create task

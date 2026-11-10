@@ -37,7 +37,7 @@
     pending = { start: start, end: end };
     chip = document.createElement("button");
     chip.type = "button";
-    chip.textContent = "\uD83D\uDCAC Comment";
+    chip.textContent = "\uD83D\uDCAC " + docsT("docs-comment", "Comment");
     chip.className = "docs-comment-chip";
     chip.style.cssText =
       "position:fixed;z-index:70;background:#3b82f6;color:#fff;border:none;border-radius:999px;" +

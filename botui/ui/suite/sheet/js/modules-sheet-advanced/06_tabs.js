@@ -18,7 +18,7 @@
   }
 
   function t(key, fallback, params) {
-    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, params);
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, fallback, params);
     let text = fallback || key;
     if (params) {
       Object.keys(params).forEach(function (p) {
@@ -53,7 +53,7 @@
     addBtn.type = "button";
     addBtn.className = "ss-tab-add";
     addBtn.textContent = "+";
-    addBtn.title = t("tabs.add", "New worksheet");
+    addBtn.title = t("sheet-tab-add", "New worksheet");
     addBtn.addEventListener("click", addWorksheetClient);
     tb.appendChild(addBtn);
     if (!sheet || !sheet.worksheets || !sheet.worksheets.length) return;
@@ -69,7 +69,7 @@
       del.type = "button";
       del.className = "ss-tab-del";
       del.textContent = "×";
-      del.title = t("tabs.delete", "Delete worksheet");
+      del.title = t("sheet-tab-delete", "Delete worksheet");
       del.addEventListener("click", function (e) { e.stopPropagation(); deleteWorksheetClient(i); });
       tab.appendChild(del);
       tab.addEventListener("click", function () { switchWorksheetClient(i); });
@@ -128,7 +128,7 @@
   function deleteWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || sheet.worksheets.length <= 1) return;
-    if (!(window.GBModal||{confirm:confirm}).confirm(t("tabs.confirm_delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
+    if (!(window.GBModal||{confirm:confirm}).confirm(t("sheet-tab-confirm-delete", "Delete worksheet {name}?", { name: sheet.worksheets[i].name }))) return;
     api().deleteWorksheet(i).then(function () {
       reloadSheetAfterMutation().then(function (fresh) {
         // The captured `sheet` still has the pre-delete length, so the bounds
@@ -145,7 +145,7 @@
   function renameWorksheetClient(i) {
     const sheet = window.__LOADED_SHEET;
     if (!sheet || !sheet.worksheets || !sheet.worksheets[i]) return;
-    const name = (window.GBModal||{prompt:prompt}).prompt(t("tabs.rename_prompt", "New worksheet name:"), sheet.worksheets[i].name);
+    const name = (window.GBModal||{prompt:prompt}).prompt(t("sheet-tab-rename-prompt", "New worksheet name:"), sheet.worksheets[i].name);
     if (!name || !name.trim()) return;
     api().renameWorksheet(i, name.trim()).then(function () {
       sheet.worksheets[i].name = name.trim();

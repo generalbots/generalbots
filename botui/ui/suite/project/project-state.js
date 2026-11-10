@@ -4,6 +4,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("project");
 // "Identifier has already been declared" on the second injection.
 var currentView = 'gantt';
 var currentZoom = 'week';
+// #2092 — user-facing strings go through the shared catalogue; the English
+// literal stays as the authored fallback.
+function projectT(key, fallback, params) {
+    return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
+
 var currentProjectId = null;
 var currentProjectData = null;
 var taskNameCache = {};
@@ -193,7 +199,7 @@ function renderGanttTable(tasks) {
     if (!body) return;
 
     if (!tasks || tasks.length === 0) {
-        body.innerHTML = '<div class="empty-state-inline">No tasks in this project</div>';
+        body.innerHTML = '<div class="empty-state-inline">' + projectT('project-empty-tasks', 'No tasks in this project') + '</div>';
         return;
     }
 
@@ -221,7 +227,7 @@ function renderListView(tasks) {
     if (!container) return;
 
     if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">No tasks found</div>';
+        container.innerHTML = '<div class="empty-state-inline">' + projectT('project-empty-tasks-found', 'No tasks found') + '</div>';
         return;
     }
 
@@ -258,7 +264,7 @@ function renderBoardColumn(containerId, tasks) {
     if (!container) return;
 
     if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<div class="empty-card"><p>No tasks</p></div>';
+        container.innerHTML = '<div class="empty-card"><p>' + projectT('project-empty-tasks-short', 'No tasks') + '</p></div>';
         return;
     }
 
@@ -280,7 +286,7 @@ function renderTimelineView(tasks) {
     if (!container) return;
 
     if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<div class="empty-state-inline">No tasks in this project</div>';
+        container.innerHTML = '<div class="empty-state-inline">' + projectT('project-empty-tasks', 'No tasks in this project') + '</div>';
         return;
     }
 
@@ -308,18 +314,18 @@ async function renderResourceView() {
     const container = document.getElementById('resource-container');
     if (!container) return;
     if (!currentProjectId) {
-        container.innerHTML = '<div class="empty-state-inline">Select a project to view resources</div>';
+        container.innerHTML = '<div class="empty-state-inline">' + projectT('project-select-project-resources', 'Select a project to view resources') + '</div>';
         return;
     }
     try {
         const resp = await fetch(`/api/projects/${currentProjectId}/resources`);
         if (!resp.ok) {
-            container.innerHTML = '<div class="empty-state-inline">Failed to load resources</div>';
+            container.innerHTML = '<div class="empty-state-inline">' + projectT('project-resources-failed', 'Failed to load resources') + '</div>';
             return;
         }
         const resources = await resp.json();
         if (!resources || resources.length === 0) {
-            container.innerHTML = '<div class="empty-state-inline">No resources assigned to this project</div>';
+            container.innerHTML = '<div class="empty-state-inline">' + projectT('project-resources-empty', 'No resources assigned to this project') + '</div>';
             return;
         }
         let html = '<table class="task-list-table resource-table"><thead><tr><th>Name</th><th>Type</th><th>Email</th><th>Max Units</th><th>Rate</th></tr></thead><tbody>';
@@ -340,7 +346,7 @@ async function renderResourceView() {
         html += '</tbody></table>';
         container.innerHTML = html;
     } catch (e) {
-        container.innerHTML = '<div class="empty-state-inline">Error loading resources</div>';
+        container.innerHTML = '<div class="empty-state-inline">' + projectT('project-resources-error', 'Error loading resources') + '</div>';
     }
 }
 
@@ -350,7 +356,7 @@ function showTaskDetail(taskId) {
 
     const task = currentTasks.find((t) => t.id === taskId);
     if (!task) {
-        panel.innerHTML = '<p class="empty-message">Task not found</p>';
+        panel.innerHTML = '<p class="empty-message">' + projectT('project-task-not-found', 'Task not found') + '</p>';
         return;
     }
 
@@ -428,9 +434,9 @@ async function addDependency(taskId) {
             await loadProjectData(currentProjectId);
             showTaskDetail(taskId);
         } else {
-            alert('Failed to add dependency');
+            alert(projectT('project-dependency-add-failed', 'Failed to add dependency'));
         }
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(projectT('project-error', 'Error: ' + e.message, { error: e.message }));
     }
 }

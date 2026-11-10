@@ -18,19 +18,33 @@
         });
     }
 
-    function money(value) {
+    function t(key, fallback) {
+        return window.gbT ? window.gbT(key, fallback) : fallback;
+    }
+
+    // #2092 — money and dates follow the active locale; the currency comes
+    // from the record (ISO payloads stay untouched).
+    function money(value, currency) {
         var n = parseFloat(value);
         if (!isFinite(n)) return '-';
-        try {
-            return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-        } catch (e) {
-            return n.toFixed(2);
+        if (window.i18n && window.i18n.formatCurrency) {
+            return esc(window.i18n.formatCurrency(n, currency || 'USD'));
         }
+        return esc(n.toFixed(2));
     }
 
     function day(value) {
-        var text = value == null ? '' : String(value);
-        return text ? esc(text.slice(0, 10)) : '-';
+        if (value == null || value === '') return '-';
+        if (window.i18n && window.i18n.formatDate) {
+            return esc(
+                window.i18n.formatDate(value, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                }),
+            );
+        }
+        return esc(String(value).slice(0, 10));
     }
 
     function items(data) {
@@ -69,22 +83,22 @@
     function load() {
         if (loaded) return;
         loaded = true;
-        loadOne('/api/sales/quotes', 'crm-quotes-body', 'No quotes yet', 'Could not load quotes.', 6, function (q) {
+        loadOne('/api/sales/quotes', 'crm-quotes-body', t('crm-quotes-empty', 'No quotes yet'), t('crm-quotes-error', 'Could not load quotes.'), 6, function (q) {
             return '<tr>' +
                 '<td>' + esc(q.quote_number || q.id) + '</td>' +
                 '<td>' + esc(q.title || '-') + '</td>' +
                 '<td>' + esc(q.customer || '-') + '</td>' +
-                '<td>' + money(q.amount) + '</td>' +
+                '<td>' + money(q.amount, q.currency) + '</td>' +
                 '<td>' + day(q.valid_until) + '</td>' +
                 '<td>' + esc(q.status || 'draft') + '</td>' +
                 '</tr>';
         });
-        loadOne('/api/sales/orders', 'crm-orders-body', 'No orders yet', 'Could not load orders.', 6, function (o) {
+        loadOne('/api/sales/orders', 'crm-orders-body', t('crm-orders-empty', 'No orders yet'), t('crm-orders-error', 'Could not load orders.'), 6, function (o) {
             return '<tr>' +
                 '<td>' + esc(o.order_number || o.id) + '</td>' +
                 '<td>' + esc(o.customer || '-') + '</td>' +
                 '<td>' + esc(o.items != null ? o.items : '-') + '</td>' +
-                '<td>' + money(o.total) + '</td>' +
+                '<td>' + money(o.total, o.currency) + '</td>' +
                 '<td>' + esc(o.status || 'pending') + '</td>' +
                 '<td>' + day(o.delivery) + '</td>' +
                 '</tr>';

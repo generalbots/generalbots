@@ -20,7 +20,7 @@
   }
 
   function t(key, fallback) {
-    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key);
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, fallback);
     return fallback || key;
   }
 
@@ -77,7 +77,7 @@
     const rule = validationForCell(row, col);
     if (!rule) return { valid: true, message: null };
     const valid = validateCellValue(value, rule);
-    return { valid: valid, message: valid ? null : (rule.error_message || t("toast.invalid_value", "Invalid value")) };
+    return { valid: valid, message: valid ? null : (rule.error_message || t("sheet-invalid-value", "Invalid value")) };
   }
 
   function num(v) {

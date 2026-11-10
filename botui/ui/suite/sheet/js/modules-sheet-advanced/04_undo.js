@@ -16,7 +16,7 @@
   }
 
   function t(key, fallback) {
-    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key);
+    if (window.SheetI18n && window.SheetI18n.t) return window.SheetI18n.t(key, fallback);
     return fallback || key;
   }
 
@@ -167,7 +167,7 @@
       if (!suspended && !strVal.startsWith("=") && key && window.SheetCore && window.SheetCore.validateEdit) {
         const check = window.SheetCore.validateEdit(p.row, p.col, strVal);
         if (!check.valid) {
-          showToast(check.message || t("toast.invalid_value", "Invalid value"));
+          showToast(check.message || t("sheet-invalid-value", "Invalid value"));
           if (grid() && key) {
             const node = grid().bodyInner.querySelector('[data-row="' + p.row + '"][data-col="' + p.col + '"]');
             if (node) {

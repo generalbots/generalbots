@@ -62,7 +62,7 @@
     });
     var status = root.querySelector("#slide-sorter-status");
     if (button) button.disabled = true;
-    if (status) status.textContent = "Salvando…";
+    if (status) status.textContent = (window.gbT ? window.gbT("slides-saving", "Saving…") : "Saving…");
     fetch("/api/slides/slide/reorder", {
       method: "POST",
       headers: authHeaders(),
@@ -79,7 +79,11 @@
       })
       .catch(function (error) {
         if (button) button.disabled = false;
-        if (status) status.textContent = "Falha ao salvar: " + error.message;
+        if (status) {
+        status.textContent = window.gbT
+          ? window.gbT("slides-save-failed", "Save failed: {error}", { error: error.message })
+          : "Save failed: " + error.message;
+      }
       });
   }
 

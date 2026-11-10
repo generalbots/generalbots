@@ -385,7 +385,9 @@ function addTaskCardToList(taskId, title, status) {
   }
 
   const statusClass = status || "running";
-  const statusText = formatStatus(status) || "Running";
+  const statusText =
+    formatStatus(status) ||
+    (window.gbT ? window.gbT("tasks-status-running", "Running") : "Running");
 
   const cardHtml = `
     <div class="task-card ${statusClass}" data-task-id="${taskId}" onclick="selectTask('${taskId}')">

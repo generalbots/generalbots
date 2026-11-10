@@ -287,13 +287,17 @@ function debounce(func, wait) {
   };
 }
 
+function tStatus(key, fallback) {
+  return window.gbT ? window.gbT(key, fallback) : fallback;
+}
+
 function formatStatus(status) {
   const statusMap = {
-    complete: "Complete",
-    running: "Running",
-    awaiting: "Awaiting",
-    paused: "Paused",
-    blocked: "Blocked",
+    complete: tStatus("tasks-status-complete", "Complete"),
+    running: tStatus("tasks-status-running", "Running"),
+    awaiting: tStatus("tasks-status-awaiting", "Awaiting"),
+    paused: tStatus("tasks-status-paused", "Paused"),
+    blocked: tStatus("tasks-status-blocked", "Blocked"),
   };
   return statusMap[status] || status;
 }
