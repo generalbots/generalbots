@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "issue": 2119,
+    "tool": "cargo-llvm-cov",
+    "note": "Ratchet baseline: scripts/check_coverage.py fails when a crate measures below these values. Raise with --record-baseline; the writer never lowers a value.",
+    "seeded_from": "coverage-exclusions.toml [floors.*] — every entry starts at its floor and CI raises it as crates are measured",
+    "how_to_raise": "python3 scripts/check_coverage.py --crate <crate> --json coverage/<crate>.json --record-baseline"
+  },
+  "crates": {
+    "botbasic_types": {
+      "lines": 30.0,
+      "functions": 30.0,
+      "branches": 20.0
+    },
+    "botdocs": {
+      "lines": 20.0,
+      "functions": 20.0,
+      "branches": 15.0
+    },
+    "botlib": {
+      "lines": 10.0,
+      "functions": 10.0,
+      "branches": 5.0
+    },
+    "botlog": {
+      "lines": 50.0,
+      "functions": 50.0,
+      "branches": 40.0
+    },
+    "botsheet": {
+      "lines": 15.0,
+      "functions": 15.0,
+      "branches": 10.0
+    },
+    "botslides": {
+      "lines": 15.0,
+      "functions": 15.0,
+      "branches": 10.0
+    },
+    "bottest": {
+      "lines": 10.0,
+      "functions": 10.0,
+      "branches": 5.0
+    }
+  }
+}

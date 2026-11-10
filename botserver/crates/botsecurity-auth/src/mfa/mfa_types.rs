@@ -1,9 +1,10 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-use uuid::Uuid;
 use tracing::warn;
+use uuid::Uuid;
+
+use super::mfa_totp::TotpSecret;
 
 pub const TOTP_DIGITS: u32 = 6;
 pub const TOTP_PERIOD: u64 = 30;
@@ -98,18 +99,12 @@ impl TotpAlgorithm {
     }
 }
 
-use sha2::Digest;
-
-impl TotpAlgorithm {
-    pub fn digest(data: &[u8]) -> sha2::digest::Output<Sha256> {
-        Sha256::digest(data)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TotpEnrollment {
     pub user_id: Uuid,
-    pub secret: String,
+    /// Canonical base32 secret (see [`super::mfa_totp`]); the same string the
+    /// QR code carries, so the authenticator and the verifier share one key.
+    pub secret: TotpSecret,
     pub issuer: String,
     pub account_name: String,
     pub algorithm: TotpAlgorithm,
@@ -123,7 +118,7 @@ impl TotpEnrollment {
     pub fn new(user_id: Uuid, account_name: &str, config: &MfaConfig) -> Self {
         Self {
             user_id,
-            secret: super::mfa_helpers::generate_totp_secret(),
+            secret: super::mfa_totp::generate_totp_secret(),
             issuer: config.totp_issuer.clone(),
             account_name: account_name.to_string(),
             algorithm: config.totp_algorithm,
@@ -134,10 +129,12 @@ impl TotpEnrollment {
         }
     }
 
+    /// `otpauth://` URI for the enrollment QR code. The `secret` parameter is
+    /// the canonical base32 form of the raw key — never base32 of hex text.
     pub fn to_uri(&self) -> String {
         let encoded_issuer = urlencoding::encode(&self.issuer);
         let encoded_account = urlencoding::encode(&self.account_name);
-        let encoded_secret = super::mfa_helpers::base32_encode_totp_secret(&self.secret);
+        let encoded_secret = self.secret_base32();
 
         format!(
             "otpauth://totp/{encoded_issuer}:{encoded_account}?secret={encoded_secret}&issuer={encoded_issuer}&algorithm={}&digits={}&period={}",
@@ -147,8 +144,9 @@ impl TotpEnrollment {
         )
     }
 
+    /// The exact string an authenticator scans out of the QR code.
     pub fn secret_base32(&self) -> String {
-        super::mfa_helpers::base32_encode_totp_secret(&self.secret)
+        self.secret.to_base32()
     }
 }
 

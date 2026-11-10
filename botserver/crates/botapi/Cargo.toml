@@ -6,7 +6,9 @@ license = "MIT"
 
 [features]
 default = []
-terminal = []
+# `terminal` compiles `botapi::terminal`, which reaches the container runtime
+# through `botsecurity::command_guard::SafeCommand` (#2126).
+terminal = ["dep:botsecurity"]
 
 [dependencies]
 botlog = { workspace = true }

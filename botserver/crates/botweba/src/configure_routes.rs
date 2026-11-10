@@ -1,4 +1,8 @@
 use super::*;
+use crate::csp::{document_response, embed_response, embed_shell};
+use axum::http::StatusCode;
+use axum::response::Response;
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 pub fn configure_routes(state: Arc<WebaState>) -> Router {
     Router::new()
@@ -13,7 +17,26 @@ pub fn configure_routes(state: Arc<WebaState>) -> Router {
         .route("/apps/:id/preview", get(preview_app))
         .route("/render/:slug", get(render_app))
         .route("/render/:slug/*path", get(render_page))
+        // Isolated presentation surface: the suite embeds this instead of the
+        // rendered document, so the app always runs in a sandboxed iframe.
+        .route("/embed/:slug", get(embed_app))
+        .route("/embed/:slug/*path", get(embed_page))
         .with_state(state)
+}
+/// A published document is handed to every visitor, so publishing is an
+/// administrative act. A single-user desktop install has no directory account:
+/// the local OS user owns the instance and keeps the ability to publish.
+pub(crate) fn authorize_publisher(user: &AuthenticatedUser) -> Result<(), StatusCode> {
+    if user.is_admin()
+        || user
+            .metadata
+            .get("desktop_local")
+            .is_some_and(|value| value == "true")
+    {
+        Ok(())
+    } else {
+        Err(StatusCode::FORBIDDEN)
+    }
 }
 pub(super) async fn list_apps(
     State(state): State<Arc<WebaState>>,
@@ -78,9 +101,20 @@ pub(super) async fn get_app(
 }
 pub(super) async fn update_app(
     State(state): State<Arc<WebaState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateAppRequest>,
 ) -> Result<Json<WebApp>, axum::http::StatusCode> {
+    // Flipping an app to `published` through the update endpoint must not be a
+    // way around the publish gate (#2124).
+    if req
+        .status
+        .as_ref()
+        .is_some_and(|status| matches!(status, WebAppStatus::Published))
+    {
+        authorize_publisher(&user)?;
+    }
+
     let mut apps = state.apps.write().await;
 
     let app = apps.get_mut(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
@@ -213,8 +247,11 @@ pub(super) async fn delete_page(
 }
 pub(super) async fn publish_app(
     State(state): State<Arc<WebaState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<WebApp>, axum::http::StatusCode> {
+    authorize_publisher(&user)?;
+
     let mut apps = state.apps.write().await;
     let app = apps.get_mut(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
 
@@ -222,69 +259,4 @@ pub(super) async fn publish_app(
     app.updated_at = chrono::Utc::now();
 
     Ok(Json(app.clone()))
-}
-pub(super) async fn preview_app(
-    State(state): State<Arc<WebaState>>,
-    Path(id): Path<Uuid>,
-) -> Result<Html<String>, axum::http::StatusCode> {
-    let apps = state.apps.read().await;
-    let app = apps.get(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
-
-    let pages = state.pages.read().await;
-    let index_page = pages.values().find(|p| p.app_id == id && p.is_index);
-
-    let content = index_page
-        .map(|p| p.content.clone())
-        .unwrap_or_else(|| "<p>No content yet</p>".to_string());
-
-    let html = render_html(app, &content);
-    Ok(Html(html))
-}
-pub(super) async fn render_app(
-    State(state): State<Arc<WebaState>>,
-    Path(slug): Path<String>,
-) -> Result<impl IntoResponse, axum::http::StatusCode> {
-    let apps = state.apps.read().await;
-    let app = apps
-        .values()
-        .find(|a| a.slug == slug && matches!(a.status, WebAppStatus::Published))
-        .ok_or(axum::http::StatusCode::NOT_FOUND)?
-        .clone();
-    drop(apps);
-
-    let pages = state.pages.read().await;
-    let index_page = pages.values().find(|p| p.app_id == app.id && p.is_index);
-
-    let content = index_page
-        .map(|p| p.content.clone())
-        .unwrap_or_else(|| "<p>Page not found</p>".to_string());
-
-    let html = render_html(&app, &content);
-    Ok(Html(html))
-}
-pub(super) async fn render_page(
-    State(state): State<Arc<WebaState>>,
-    Path((slug, path)): Path<(String, String)>,
-) -> Result<impl IntoResponse, axum::http::StatusCode> {
-    let apps = state.apps.read().await;
-    let app = apps
-        .values()
-        .find(|a| a.slug == slug && matches!(a.status, WebAppStatus::Published))
-        .ok_or(axum::http::StatusCode::NOT_FOUND)?
-        .clone();
-    drop(apps);
-
-    let normalized_path = format!("/{}", path.trim_start_matches('/'));
-
-    let pages = state.pages.read().await;
-    let page = pages
-        .values()
-        .find(|p| p.app_id == app.id && p.path == normalized_path);
-
-    let content = page
-        .map(|p| p.content.clone())
-        .unwrap_or_else(|| "<p>Page not found</p>".to_string());
-
-    let html = render_html(&app, &content);
-    Ok(Html(html))
 }

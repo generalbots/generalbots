@@ -19,6 +19,7 @@ pub mod security_monitoring;
 pub mod sql_guard;
 pub mod tenant;
 pub mod validation;
+pub mod verified_jwt;
 pub mod webhook;
 
 use uuid::Uuid;

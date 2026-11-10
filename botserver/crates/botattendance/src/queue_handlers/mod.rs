@@ -1,3 +1,4 @@
+pub(crate) use crate::errors::{api_error, api_error_db, locale_from_headers, ApiError};
 pub(crate) use crate::models::UserSession;
 pub(crate) use crate::queue_csv;
 pub(crate) use crate::queue_types::*;
@@ -6,7 +7,7 @@ pub(crate) use crate::schema::message_history;
 pub(crate) use crate::schema::bots;
 pub(crate) use crate::schema::users;
 pub(crate) use crate::AttendanceConfig;
-pub(crate) use axum::{ extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Json, };
 pub(crate) use chrono::Utc;
 pub(crate) use diesel::prelude::*;
 pub(crate) use log::{warn, info};

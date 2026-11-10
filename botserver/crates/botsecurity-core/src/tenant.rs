@@ -1,9 +1,16 @@
 //! Tenant-scope resolution for multi-tenant data isolation (issue #734).
 //!
 //! All reads and writes of branch-scoped tables MUST be constrained to the
-//! caller's tenant. The tenant is resolved exclusively from the server-minted
-//! JWT claims (`branch_id` is the workspace branch, `org_id` the `.gborg`
-//! tenant), never from client-supplied params or headers.
+//! caller's tenant. The tenant is resolved exclusively from **verified**
+//! server-minted JWT claims (`branch_id` is the workspace branch, `org_id` the
+//! `.gborg` tenant), never from client-supplied params or headers.
+//!
+//! #2112 — these helpers used to base64url-decode the payload segment and
+//! return whatever `branch_id` it contained. Nothing checked the signature, so
+//! a token signed with any key (or none at all) selected another tenant's
+//! branch. Every claim now comes from [`crate::verified_jwt::VerifiedJwt`],
+//! which is only produced after the HS256 signature is checked in constant
+//! time against the configured SaaS secret and the expiry is validated.
 //!
 //! Handlers receive a `HeaderMap` and use one of the `*_from_claims` helpers
 //! to obtain the authoritative tenant, then apply `branch_id = ?` in queries.
@@ -12,28 +19,7 @@ use axum::http::HeaderMap;
 use base64::Engine as _;
 use uuid::Uuid;
 
-/// Minimal URL-safe base64 decoder (JWT payload decoding).
-/// Returns `None` on invalid input so a malformed header never aborts a
-/// request or panics in a production path (AGENTS.md).
-pub fn base64url_decode(input: &str) -> Option<Vec<u8>> {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &b in input.as_bytes() {
-        let v = {
-            let i = TABLE.iter().position(|&x| x == b)?;
-            i as u32
-        };
-        buf = (buf << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-        }
-    }
-    Some(out)
-}
+use crate::verified_jwt::{verify_saas_jwt, VerifiedJwt};
 
 /// Extracts the caller's token from an `Authorization` header value.
 ///
@@ -76,115 +62,53 @@ pub fn token_from_authorization(auth: &str) -> Option<String> {
     Some(token.to_string())
 }
 
-/// Decodes and validates the JWT header segment.
+/// Verifies the request token and returns its claims.
 ///
-/// #2066 — the payload was decoded with no look at the header, so a forged
-/// unsecured token (`{"alg":"none"}`) supplied whatever `branch_id` it liked
-/// and every caller treated it as authoritative. An unsecured token can never
-/// have been minted by the server, so it is refused outright.
-fn jwt_header_is_secured(token: &str) -> bool {
-    let Some(header_segment) = token.split('.').next() else {
-        return false;
-    };
-    let Some(decoded) = base64url_decode(header_segment.trim_end_matches('=')) else {
-        return false;
-    };
-    let Ok(header) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
-        return false;
-    };
-    match header.get("alg").and_then(|v| v.as_str()) {
-        // `none` (any casing) means "no signature"; HS/RS/ES/PS algorithms are
-        // verified on the normal authentication path before a handler runs.
-        // An empty algorithm is not a signature either.
-        Some(alg) => {
-            let alg = alg.trim();
-            !alg.is_empty() && !alg.eq_ignore_ascii_case("none")
-        }
-        None => false,
-    }
-}
-
-/// Extracts the JWT payload object (middle segment) from the Authorization
-/// header, for either the `Bearer` or the `Basic` transport. Invalid tokens
-/// yield `None`.
-fn jwt_payload(headers: &HeaderMap) -> Option<serde_json::Value> {
+/// This is the only path that may produce tenant claims: an unsigned,
+/// tampered, wrong-key, non-HS256 or expired token yields `None`, and the
+/// caller falls back to its crate default instead of trusting the payload.
+fn verified_claims(headers: &HeaderMap) -> Option<VerifiedJwt> {
     let auth = headers
         .get("authorization")
         .or_else(|| headers.get("Authorization"))?
         .to_str()
         .ok()?;
     let token = token_from_authorization(auth)?;
-    if !token.contains('.') {
-        return None;
+    match verify_saas_jwt(&token) {
+        Ok(claims) => Some(claims),
+        Err(reason) => {
+            log::debug!("tenant claims refused: {reason}");
+            None
+        }
     }
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    if parts.iter().any(|part| part.is_empty()) {
-        return None;
-    }
-    if !jwt_header_is_secured(&token) {
-        return None;
-    }
-    let payload = base64url_decode(parts[1].trim_end_matches('='))?;
-    serde_json::from_slice(&payload).ok()
 }
 
-/// Returns the server-minted `branch_id` claim, the authoritative tenant
+/// Returns the verified `branch_id` claim, the authoritative tenant
 /// workspace branch. Never derived from client input.
 pub fn branch_from_claims(headers: &HeaderMap) -> Option<Uuid> {
-    jwt_payload(headers)?
-        .get("branch_id")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Uuid::parse_str(s).ok())
+    verified_claims(headers)?.branch_id
 }
 
-/// Returns the owning tenant organization id from the JWT claims.
+/// Returns the owning tenant organization id from the verified JWT claims.
 pub fn org_from_claims(headers: &HeaderMap) -> Option<Uuid> {
-    let payload = jwt_payload(headers)?;
-    payload
-        .get("org_id")
-        .or_else(|| payload.get("organization_id"))
-        .and_then(|v| v.as_str())
-        .and_then(|s| Uuid::parse_str(s).ok())
+    verified_claims(headers)?.org_id
 }
 
-/// Returns the `sub` (user id) from the JWT claims.
+/// Returns the verified `sub` (user id) from the JWT claims.
 pub fn user_id_from_claims(headers: &HeaderMap) -> Option<String> {
-    jwt_payload(headers)?
-        .get("sub")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    Some(verified_claims(headers)?.sub)
 }
 
-/// Returns the `sub` claim from a raw token string. Needed by transports
-/// that cannot set headers (SSE via EventSource passes `?token=`).
+/// Returns the verified `sub` claim from a raw token string. Needed by
+/// transports that cannot set headers (SSE via EventSource passes `?token=`).
 pub fn user_id_from_claims_subject(token: &str) -> Option<String> {
     let token = token.strip_prefix("Bearer ").unwrap_or(token);
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    // Same header gate as `jwt_payload`: a forged `alg=none` token must not
-    // supply the subject that scopes an SSE stream.
-    if !jwt_header_is_secured(token) {
-        return None;
-    }
-    let payload = base64url_decode(parts[1].trim_end_matches('='))?;
-    serde_json::from_slice::<serde_json::Value>(&payload)
-        .ok()?
-        .get("sub")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    Some(verify_saas_jwt(token.trim()).ok()?.sub)
 }
 
-/// Returns the email claim from the JWT, if present.
+/// Returns the verified email claim from the JWT, if present.
 pub fn email_from_claims(headers: &HeaderMap) -> Option<String> {
-    jwt_payload(headers)?
-        .get("email")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
+    verified_claims(headers)?.email
 }
 
 /// Resolves the user's workspace branch from their org membership binding
@@ -247,33 +171,8 @@ mod tenant_adversarial_tests;
 #[cfg(test)]
 mod tenant_claim_tests {
     use super::*;
+    use crate::verified_jwt::test_support::{signed, tenant_claims};
     use axum::http::{HeaderMap, HeaderValue};
-
-    fn b64(input: &str) -> String {
-        const TABLE: &[u8; 64] =
-            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-        let bytes = input.as_bytes();
-        let mut out = String::new();
-        for chunk in bytes.chunks(3) {
-            let b0 = chunk[0] as u32;
-            let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
-            let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
-            let triple = (b0 << 16) | (b1 << 8) | b2;
-            out.push(TABLE[(triple >> 18) as usize & 0x3F] as char);
-            out.push(TABLE[(triple >> 12) as usize & 0x3F] as char);
-            if chunk.len() > 1 {
-                out.push(TABLE[(triple >> 6) as usize & 0x3F] as char);
-            }
-            if chunk.len() > 2 {
-                out.push(TABLE[triple as usize & 0x3F] as char);
-            }
-        }
-        out
-    }
-
-    fn token(header: &str, payload: &str) -> String {
-        format!("{}.{}.{}", b64(header), b64(payload), "signature")
-    }
 
     fn headers(auth: &str) -> HeaderMap {
         let mut map = HeaderMap::new();
@@ -281,50 +180,36 @@ mod tenant_claim_tests {
         map
     }
 
-    const SECURED: &str = r#"{"alg":"HS256","typ":"JWT"}"#;
-    const UNSECURED: &str = r#"{"alg":"none","typ":"JWT"}"#;
-    const CLAIMS: &str = r#"{"branch_id":"11111111-1111-1111-1111-111111111111","org_id":"22222222-2222-2222-2222-222222222222","sub":"user-1"}"#;
+    const BRANCH: &str = "11111111-1111-1111-1111-111111111111";
+    const ORG: &str = "22222222-2222-2222-2222-222222222222";
 
     #[test]
-    fn a_secured_token_yields_every_claim() {
-        let map = headers(&format!("Bearer {}", token(SECURED, CLAIMS)));
+    fn a_signed_token_yields_every_claim() {
+        let jwt = signed(&tenant_claims(BRANCH, ORG, "user-1", "u@example.com"));
+        let map = headers(&format!("Bearer {jwt}"));
         assert_eq!(
             branch_from_claims(&map),
-            Some(Uuid::parse_str("11111111-1111-1111-1111-111111111111").expect("uuid"))
+            Some(Uuid::parse_str(BRANCH).expect("uuid"))
         );
         assert_eq!(
             org_from_claims(&map),
-            Some(Uuid::parse_str("22222222-2222-2222-2222-222222222222").expect("uuid"))
+            Some(Uuid::parse_str(ORG).expect("uuid"))
         );
         assert_eq!(user_id_from_claims(&map).as_deref(), Some("user-1"));
-    }
-
-    #[test]
-    fn a_forged_alg_none_token_is_refused() {
-        // #2066 — an unsecured token must not select a tenant branch.
-        let map = headers(&format!("Bearer {}", token(UNSECURED, CLAIMS)));
-        assert_eq!(branch_from_claims(&map), None);
-        assert_eq!(org_from_claims(&map), None);
-        assert_eq!(user_id_from_claims(&map), None);
-    }
-
-    #[test]
-    fn an_alg_none_header_in_any_casing_is_refused() {
-        for header in [r#"{"alg":"NONE"}"#, r#"{"alg":"None"}"#, r#"{"alg":" none "}"#] {
-            let map = headers(&format!("Bearer {}", token(header, CLAIMS)));
-            assert_eq!(branch_from_claims(&map), None, "{header} must be refused");
-        }
-    }
-
-    #[test]
-    fn a_token_without_an_algorithm_is_refused() {
-        let map = headers(&format!("Bearer {}", token(r#"{"typ":"JWT"}"#, CLAIMS)));
-        assert_eq!(branch_from_claims(&map), None);
+        assert_eq!(email_from_claims(&map).as_deref(), Some("u@example.com"));
     }
 
     #[test]
     fn malformed_authorization_headers_never_panic() {
-        for auth in ["", "Bearer", "Bearer ", "Basic !!!notbase64", "garbage", "a.b"] {
+        for auth in [
+            "",
+            "Bearer",
+            "Bearer ",
+            "Basic !!!notbase64",
+            "garbage",
+            "a.b",
+            "Bearer a.b.c",
+        ] {
             let map = headers(auth);
             assert_eq!(branch_from_claims(&map), None, "{auth:?} must be refused");
         }
@@ -333,7 +218,7 @@ mod tenant_claim_tests {
 
     #[test]
     fn basic_transport_carries_the_token_in_the_password_field() {
-        let jwt = token(SECURED, CLAIMS);
+        let jwt = signed(&tenant_claims(BRANCH, ORG, "user-1", "u@example.com"));
         let credentials = format!("ignored:{jwt}");
         let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
         let map = headers(&format!("Basic {encoded}"));
@@ -357,21 +242,5 @@ mod tenant_claim_tests {
             token_from_authorization(&format!("Basic {encoded}")).as_deref(),
             Some("tok")
         );
-    }
-
-    #[test]
-    fn a_claim_that_is_not_a_uuid_is_ignored() {
-        let payload = r#"{"branch_id":"not-a-uuid","org_id":42}"#;
-        let map = headers(&format!("Bearer {}", token(SECURED, payload)));
-        assert_eq!(branch_from_claims(&map), None);
-        assert_eq!(org_from_claims(&map), None);
-    }
-
-    #[test]
-    fn base64url_decode_round_trips_ascii() {
-        let encoded = b64("hello world");
-        let decoded = base64url_decode(&encoded).expect("decode");
-        assert_eq!(String::from_utf8(decoded).expect("utf8"), "hello world");
-        assert!(base64url_decode("!!!").is_none());
     }
 }

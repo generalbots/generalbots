@@ -4,10 +4,12 @@ pub async fn list_time_off(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<TimeOff>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Vec<TimeOff>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
@@ -19,18 +21,21 @@ pub async fn list_time_off(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(time_offs))
 }
 pub async fn approve_time_off(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<ApproveTimeOffRequest>,
-) -> Result<Json<TimeOff>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<TimeOff>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let now = Utc::now();
     let status = if req.approved { "approved" } else { "rejected" };
@@ -43,22 +48,24 @@ pub async fn approve_time_off(
             people_time_off::updated_at.eq(now),
         ))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let time_off: TimeOff = people_time_off::table
         .filter(people_time_off::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Time off request not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-time-off-not-found"))?;
 
     Ok(Json(time_off))
 }
 pub async fn get_people_stats(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
-) -> Result<Json<PeopleStats>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<PeopleStats>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 

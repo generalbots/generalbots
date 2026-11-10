@@ -6,6 +6,8 @@
 
 use serde::Serialize;
 
+pub use ownership::{ownership_of, AppOwnership, AppStatus, OWNERSHIP, UNOWNED};
+
 /// Launch surface of an application. Widgets additionally declare a
 /// [`WidgetSpec`] so the desktop can render them as live tiles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -55,6 +57,10 @@ pub struct AppDefinition {
     pub kind: AppKind,
     /// Whether launchers list this app always or only in Preview mode.
     pub launcher_visibility: LauncherVisibility,
+    /// Owning team (#2120), e.g. `desktop` or `office`. Never empty.
+    pub owner: &'static str,
+    /// Support status declared by the supported matrix (#2120).
+    pub status: AppStatus,
     /// Widget render spec for `kind == Widget` (and for apps that expose one).
     pub widget: Option<WidgetSpec>,
     /// Vibe-published apps may opt in to auto-pin on the launcher (#1160).
@@ -101,6 +107,12 @@ fn definition(spec: AppSpec, kind: AppKind, widget: Option<WidgetSpec>) -> AppDe
         keywords,
         icon,
     } = spec;
+    // #2120 — owner and status come from the matrix projection. A missing row
+    // is never silent: the runtime logs it and the guard test fails the build.
+    let ownership = ownership_of(id);
+    if ownership.is_none() {
+        log::error!("app registry: `{id}` has no row in the supported matrix; treated as preview-only (#2120)");
+    }
     AppDefinition {
         id: id.to_string(),
         title: title.to_string(),
@@ -112,6 +124,8 @@ fn definition(spec: AppSpec, kind: AppKind, widget: Option<WidgetSpec>) -> AppDe
         icon: icon.to_string(),
         kind,
         launcher_visibility: LauncherVisibility::Preview,
+        owner: ownership.map(|entry| entry.owner).unwrap_or(UNOWNED),
+        status: ownership.map(|entry| entry.status).unwrap_or(AppStatus::Preview),
         widget,
         launcher_default: false,
     }
@@ -188,6 +202,10 @@ pub fn all_apps() -> Vec<AppDefinition> {
 
 mod entries;
 mod entries_extra;
+mod ownership;
+
+#[cfg(test)]
+mod ownership_guard_tests;
 
 #[cfg(test)]
 mod launcher_split_guard_tests {

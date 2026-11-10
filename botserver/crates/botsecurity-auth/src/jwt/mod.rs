@@ -7,6 +7,9 @@ pub mod jwt_types;
 pub mod jwt_manager;
 pub mod jwt_utils;
 
+#[cfg(test)]
+mod hardening_tests;
+
 pub use jwt_utils::extract_bearer_token;
 
 // Re-export the public types at the module root for convenience

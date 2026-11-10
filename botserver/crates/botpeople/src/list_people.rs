@@ -4,10 +4,12 @@ pub async fn list_people(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<Person>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Vec<Person>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
@@ -45,22 +47,25 @@ pub async fn list_people(
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(persons))
 }
 pub async fn get_person(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<PersonWithDetails>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<PersonWithDetails>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let person: Person = people::table
         .filter(people::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Person not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
     let manager: Option<Person> = person
         .manager_id
@@ -118,111 +123,120 @@ pub async fn get_person(
 }
 pub async fn update_person(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdatePersonRequest>,
-) -> Result<Json<Person>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Person>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let now = Utc::now();
 
     diesel::update(people::table.filter(people::id.eq(id)))
         .set(people::updated_at.eq(now))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if let Some(first_name) = req.first_name {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::first_name.eq(first_name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(last_name) = req.last_name {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::last_name.eq(last_name))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(email) = req.email {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::email.eq(email))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(job_title) = req.job_title {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::job_title.eq(job_title))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(department) = req.department {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::department.eq(department))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(manager_id) = req.manager_id {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::manager_id.eq(Some(manager_id)))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(is_active) = req.is_active {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::is_active.eq(is_active))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     if let Some(skills) = req.skills {
         diesel::update(people::table.filter(people::id.eq(id)))
             .set(people::skills.eq(skills))
             .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
 
     let person: Person = people::table
         .filter(people::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Person not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-person-not-found"))?;
 
     Ok(Json(person))
 }
 pub async fn delete_person(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<StatusCode, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     diesel::delete(people::table.filter(people::id.eq(id)))
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
 pub async fn get_direct_reports(
     State(state): State<Arc<PeopleState>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<Vec<Person>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Vec<Person>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let reports: Vec<Person> = people::table
         .filter(people::manager_id.eq(id))
         .filter(people::is_active.eq(true))
         .order(people::first_name.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(reports))
 }
@@ -230,10 +244,12 @@ pub async fn create_team(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
     Json(req): Json<CreateTeamRequest>,
-) -> Result<Json<Team>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Team>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let id = Uuid::new_v4();
@@ -259,17 +275,19 @@ pub async fn create_team(
     diesel::insert_into(people_teams::table)
         .values(&team)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(team))
 }
 pub async fn list_teams(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
-) -> Result<Json<Vec<Team>>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Vec<Team>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
@@ -278,7 +296,7 @@ pub async fn list_teams(
         .filter(people_teams::is_active.eq(true))
         .order(people_teams::name.asc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(teams))
 }

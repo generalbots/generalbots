@@ -1,0 +1,17 @@
+# Container-runtime gate (#2126) — shrink-only allowlist.
+#
+# Format: <rule>:<path>   [# reason]
+# Rules:  runtime-lxc  = spawns lxc/lxd/lxc-execute
+#         direct-incus = spawns incus without SafeCommand
+#
+# Every line is pre-existing debt from before the gate existed. Delete a line
+# as soon as the file migrates to `incus` through SafeCommand: the gate reports
+# a stale entry, so this file can only get shorter.
+
+runtime-lxc:botserver/crates/botbasic_ai/src/keywords/code_sandbox/execute_file.rs
+runtime-lxc:botserver/crates/botcore/src/package_manager/facade/safe_lxc.rs
+runtime-lxc:botserver/crates/botcorepkg/src/facade_container.rs
+runtime-lxc:botserver/crates/botcorepkg/src/facade_download/download.rs
+runtime-lxc:botserver/crates/botsecurity-protection/src/protection/caddy_hardener.rs
+runtime-lxc:botserver/crates/botsecurity-protection/src/protection/dns_hardener.rs
+runtime-lxc:botserver/crates/botsecurity-protection/src/protection/fail2ban.rs

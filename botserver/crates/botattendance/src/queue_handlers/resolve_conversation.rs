@@ -2,8 +2,10 @@ use super::*;
 
 pub async fn resolve_conversation(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
     let session_id = payload.get("session_id").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::nil);
     botlog::safe_info!("Resolving session {}", session_id);
     let result = tokio::task::spawn_blocking({
@@ -33,14 +35,22 @@ pub async fn resolve_conversation(
         Ok(Ok(())) => (StatusCode::OK, Json(serde_json::json!({
             "success": true, "session_id": session_id, "resolved_at": Utc::now().to_rfc3339()
         }))),
-        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::resolve_conversation", None)}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"success": false, "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::resolve_conversation", None)}))),
+        Ok(Err(e)) => {
+            log::warn!("resolve_conversation failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-db-unavailable")
+        }
+        Err(e) => {
+            log::warn!("resolve_conversation task failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        }
     }
 }
 pub async fn get_insights(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Path(session_id): Path<Uuid>,
 ) -> impl IntoResponse {
+    let locale = locale_from_headers(&headers);
     botlog::safe_info!("Getting insights for session {}", session_id);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
@@ -94,18 +104,27 @@ pub async fn get_insights(
     .await;
     match result {
         Ok(Ok(insights)) => (StatusCode::OK, Json(insights)),
-        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::resolve_conversation", None)}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botattendance::queue_handlers::resolve_conversation", None)}))),
+        Ok(Err(e)) => {
+            log::warn!("get_insights failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-db-unavailable")
+        }
+        Err(e) => {
+            log::warn!("get_insights task failed: {e}");
+            api_error(&locale, StatusCode::INTERNAL_SERVER_ERROR, "error-http-500")
+        }
     }
 }
 pub async fn get_kanban(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Query(query): Query<KanbanQuery>,
-) -> Result<Json<KanbanBoard>, (StatusCode, String)> {
+) -> Result<Json<KanbanBoard>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let inner_locale = locale.clone();
     let pool = config.pool.clone();
     let get_default_bot = config.get_default_bot.clone();
     tokio::task::spawn_blocking(move || {
-        let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+        let mut conn = pool.get().map_err(|e| api_error_db(&inner_locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
         let resolved_bot_id = query.bot_id.unwrap_or_else(|| {
             
             get_default_bot(&mut conn)
@@ -114,7 +133,7 @@ pub async fn get_kanban(
             .filter(user_sessions::bot_id.eq(resolved_bot_id))
             .filter(user_sessions::context_data.contains(serde_json::json!({"status": ""})))
             .load(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+            .map_err(|e| api_error_db(&inner_locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
         let mut new_items = Vec::new();
         let mut waiting_items = Vec::new();
         let mut active_items = Vec::new();
@@ -164,9 +183,9 @@ pub async fn get_kanban(
             KanbanColumn { id: "pending_customer".to_string(), title: "Pending Customer".to_string(), items: pending_customer_items },
             KanbanColumn { id: "resolved".to_string(), title: "Resolved".to_string(), items: resolved_items },
         ];
-        Ok::<KanbanBoard, (StatusCode, String)>(KanbanBoard { columns })
+        Ok::<KanbanBoard, ApiError>(KanbanBoard { columns })
     })
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Task error: {e}")))?
+    .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?
     .map(Json)
 }

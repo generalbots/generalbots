@@ -40,9 +40,15 @@ impl InventoryRequestKind {
 }
 
 /// Parses a numeric argument coming from a BASIC script, falling back to
-/// `default` when the expression is not a number.
+/// `default` when the expression is not a finite number. `NaN`/`inf` parse as
+/// `f64` but are not amounts: letting them through would store a quantity that
+/// no comparison or total can ever match.
 pub fn parse_amount(raw: &str, default: f64) -> f64 {
-    raw.trim().parse::<f64>().unwrap_or(default)
+    raw.trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|value| value.is_finite())
+        .unwrap_or(default)
 }
 
 /// An inventory/POS command ready to be dispatched.
@@ -238,3 +244,7 @@ mod tests {
         assert_eq!(json["opening_amount"], 100.0);
     }
 }
+
+#[cfg(test)]
+#[path = "intent_tests.rs"]
+mod intent_tests;

@@ -12,6 +12,10 @@
 pub mod mfa_types;
 pub mod mfa_manager;
 pub mod mfa_helpers;
+pub mod mfa_totp;
+
+#[cfg(test)]
+mod totp_tests;
 
 pub use mfa_types::MfaMethod;
 pub use mfa_types::MfaStatus;
@@ -26,7 +30,18 @@ pub use mfa_types::OtpChallenge;
 
 pub use mfa_manager::MfaManager;
 
-pub use mfa_helpers::generate_totp_secret;
+pub use mfa_totp::TotpSecret;
+pub use mfa_totp::generate_totp_secret;
+pub use mfa_totp::generate_totp_code;
+pub use mfa_totp::generate_totp_code_at;
+pub use mfa_totp::generate_hotp;
+pub use mfa_totp::verify_totp;
+pub use mfa_totp::verify_totp_at;
+pub use mfa_totp::verify_totp_full;
+pub use mfa_totp::base32_encode_bytes;
+pub use mfa_totp::base32_decode;
+pub use mfa_totp::unix_now;
+
 pub use mfa_helpers::generate_challenge;
 pub use mfa_helpers::generate_recovery_code;
 pub use mfa_helpers::generate_otp_code;
@@ -35,9 +50,6 @@ pub use mfa_helpers::verify_recovery_code;
 pub use mfa_helpers::hash_otp_code;
 pub use mfa_helpers::verify_otp_code;
 pub use mfa_helpers::constant_time_compare;
-pub use mfa_helpers::base32_encode;
-pub use mfa_helpers::verify_totp;
-pub use mfa_helpers::generate_totp_code;
 pub use mfa_helpers::mask_destination;
 
 #[cfg(test)]
@@ -51,7 +63,7 @@ mod tests {
         let enrollment = TotpEnrollment::new(user_id, "test@example.com", &config);
 
         assert_eq!(enrollment.user_id, user_id);
-        assert!(!enrollment.secret.is_empty());
+        assert!(!enrollment.secret_base32().is_empty());
         assert!(!enrollment.verified);
     }
 
@@ -180,76 +192,5 @@ mod tests {
         assert!(constant_time_compare("abc123", "abc123"));
         assert!(!constant_time_compare("abc123", "abc124"));
         assert!(!constant_time_compare("abc", "abcd"));
-    }
-
-    #[test]
-    fn test_base32_encode() {
-        let encoded = base32_encode("test");
-        assert!(!encoded.is_empty());
-        assert!(encoded.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()));
-    }
-
-    /// #2066 — the QR used to encode base32 of the *hex text* while the
-    /// verifier hex-decoded it, so enrollment could never succeed. RFC 4648's
-    /// base32 of the RFC 6238 key pins the bytes an authenticator will use.
-    #[test]
-    fn the_qr_secret_is_base32_of_the_raw_key() {
-        // "12345678901234567890" (the RFC 6238 key) as ASCII bytes.
-        let raw = b"12345678901234567890";
-        assert_eq!(
-            super::mfa_helpers::base32_encode_bytes(raw),
-            "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-        );
-
-        // A hex-encoded secret of the same bytes must yield the same base32.
-        let hex_secret = hex::encode(raw);
-        assert_eq!(
-            super::mfa_helpers::base32_encode_totp_secret(&hex_secret),
-            "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-        );
-
-        // And it must differ from base32 of the hex text itself (the old bug).
-        assert_ne!(
-            super::mfa_helpers::base32_encode_totp_secret(&hex_secret),
-            super::mfa_helpers::base32_encode(&hex_secret)
-        );
-    }
-
-    #[test]
-    fn a_non_hex_secret_falls_back_without_panicking() {
-        let encoded = super::mfa_helpers::base32_encode_totp_secret("not-hex!");
-        assert!(!encoded.is_empty());
-    }
-
-    #[test]
-    fn totp_codes_are_six_digits_and_change_with_the_counter() {
-        let secret = hex::encode(b"12345678901234567890");
-        let first = super::mfa_helpers::generate_totp_code(&secret, 1).expect("code");
-        let again = super::mfa_helpers::generate_totp_code(&secret, 1).expect("code");
-        let later = super::mfa_helpers::generate_totp_code(&secret, 2).expect("code");
-
-        assert_eq!(first, again, "the same counter must give the same code");
-        assert_eq!(first.len(), 6);
-        assert!(first.chars().all(|c| c.is_ascii_digit()));
-        assert_ne!(first, later, "a new counter must give a new code");
-    }
-
-    #[test]
-    fn an_invalid_hex_secret_is_an_error_not_a_panic() {
-        assert!(super::mfa_helpers::generate_totp_code("zz", 1).is_err());
-    }
-
-    #[test]
-    fn verify_accepts_the_code_for_the_current_period() {
-        let secret = hex::encode(b"12345678901234567890");
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("clock")
-            .as_secs();
-        let period = 30u64;
-        let code = super::mfa_helpers::generate_totp_code(&secret, now / period).expect("code");
-
-        assert!(super::mfa_helpers::verify_totp(&secret, &code, period));
-        assert!(!super::mfa_helpers::verify_totp(&secret, "000000", period));
     }
 }

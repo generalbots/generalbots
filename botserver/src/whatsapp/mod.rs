@@ -164,6 +164,14 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
         .and_then(|m| m.get("whatsapp_verify_token").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-verify-token"))
         .unwrap_or_default();
+    // Meta signs every delivery with the app secret. The webhook gate fails
+    // closed without it (#2113), so it is resolved through the same Vault-first
+    // path as the other credentials: `whatsapp_app_secret` in the per-bot
+    // Vault entry, `whatsapp-app-secret` in config.csv.
+    let cfg_app_secret = vault_wa.as_ref()
+        .and_then(|m| m.get("whatsapp_app_secret").cloned())
+        .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-app-secret"))
+        .unwrap_or_default();
     let cfg_business_account_id = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_business_account_id").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-business-account-id"))
@@ -226,6 +234,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
 
     let sc_vt = cfg_verify_token.clone();
     let sc_ak = cfg_api_key.clone();
+    let sc_as = cfg_app_secret.clone();
 
     let wa_state = Arc::new(WhatsAppState {
         pool: pool.clone(),
@@ -260,6 +269,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
                 match key {
                     "whatsapp_verify_token" => Ok(sc_vt.clone()),
                     "whatsapp_api_key" => Ok(sc_ak.clone()),
+                    "whatsapp_app_secret" => Ok(sc_as.clone()),
                     _ => Err(format!("Secret key '{}' not found", key)),
                 }
             })

@@ -27,9 +27,11 @@ mod org_chart_entry;
 mod list_people;
 mod get_team;
 mod list_time_off;
+mod errors;
 
 pub use get_default_bot_fn::*;
 pub use org_chart_entry::*;
 pub use list_people::*;
 pub use get_team::*;
 pub use list_time_off::*;
+pub use errors::*;

@@ -1,4 +1,5 @@
 pub mod drive;
+pub mod errors;
 pub mod keyword_services;
 pub mod llm_types;
 pub mod llm_parser;

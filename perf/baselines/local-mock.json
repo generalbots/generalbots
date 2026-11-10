@@ -1,0 +1,30 @@
+{
+  "_comment": "Provisional SLO baseline (#2115). Numbers are the ratified targets scaled to a mock-profile run; the nightly load/soak job replaces this file through a reviewed pull request once 7 days of real measurements exist. See ops/slo.yaml and botbook/src/11-hardware-scaling/slo.md.",
+  "profile": "local-mock",
+  "status": "provisional",
+  "measured_at": "2026-11-10T00:00:00Z",
+  "window_days": 7,
+  "metrics": {
+    "chat.first_token_ms": { "p50": 480, "p95": 1400, "p99": 2600 },
+    "chat.complete_ms": { "p50": 6200, "p95": 11000, "p99": 21000 },
+    "chat.tool_call_ms": { "p50": 700, "p95": 1600, "p99": 3400 },
+    "rest.api_ms": { "p50": 60, "p95": 180, "p99": 420 },
+    "queue.wait_ms": { "p50": 90, "p95": 320, "p99": 700 },
+    "ws.unexpected_disconnect_pct": 0.21,
+    "turn.error_pct": 0.42,
+    "llm.provider_error_pct": 0.9,
+    "llm.provider_retry_pct": 1.4,
+    "dep.db_ms": { "p50": 6, "p95": 18, "p99": 44 },
+    "dep.cache_ms": { "p50": 0.8, "p95": 3.1, "p99": 7.5 },
+    "dep.drive_ms": { "p50": 12, "p95": 42, "p99": 88 },
+    "cost.tenant_day_usd": 1.92,
+    "soak.rss_growth_pct": 3.4,
+    "soak.fd_growth_pct": 1.2
+  },
+  "cost": {
+    "model": "gpt-4o-mini",
+    "conversations": 400,
+    "tokens_in": 800000,
+    "tokens_out": 120000
+  }
+}

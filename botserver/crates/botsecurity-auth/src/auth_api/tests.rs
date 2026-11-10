@@ -325,3 +325,47 @@ fn unknown_session_token_is_rejected() {
     let result = super::auth_api_utils::validate_session_sync("gb_not-in-the-session-store");
     assert!(matches!(result, Err(AuthError::SessionExpired)));
 }
+
+/// #2122 — `X-User-ID` is caller-supplied, so it must never authenticate a
+/// request. Only a verified API key, bearer/JWT or session may do that.
+#[test]
+fn an_x_user_id_header_alone_is_rejected() {
+    let config = AuthConfig::default();
+    let request = axum::http::Request::builder()
+        .uri("/api/crm/contacts")
+        .header("X-User-ID", "6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+        .body(axum::body::Body::empty())
+        .expect("request builds");
+
+    let error = super::auth_api_utils::extract_user_from_request(&request, &config)
+        .expect_err("X-User-ID must not authenticate");
+    assert!(matches!(error, AuthError::MissingToken));
+    assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
+
+    // The structured view used by the provider chain must not surface it either.
+    let extracted = super::auth_api_utils::ExtractedAuthData::from_request(&request, &config);
+    assert!(extracted.api_key.is_none());
+    assert!(extracted.bearer_token.is_none());
+    assert!(extracted.query_token.is_none());
+    assert!(extracted.session_id.is_none());
+}
+
+/// #2122 — the provider chain returns `MissingToken` (→ 401) for a request
+/// whose only "credential" is the `X-User-ID` header.
+#[tokio::test]
+async fn the_provider_chain_rejects_an_x_user_id_header_alone() {
+    let config = AuthConfig::default();
+    let registry = crate::auth_provider::AuthProviderRegistry::new();
+    let request = axum::http::Request::builder()
+        .uri("/api/crm/contacts")
+        .header("X-User-ID", "6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+        .body(axum::body::Body::empty())
+        .expect("request builds");
+
+    let extracted = super::auth_api_utils::ExtractedAuthData::from_request(&request, &config);
+    let error = super::authenticate_with_extracted_data(extracted, &config, &registry)
+        .await
+        .expect_err("X-User-ID must not authenticate");
+    assert!(matches!(error, AuthError::MissingToken));
+    assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
+}

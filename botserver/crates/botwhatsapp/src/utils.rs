@@ -118,7 +118,15 @@ pub fn split_long_message(text: &str) -> Vec<String> {
 /// delivery. The digest is compared in constant time: the hex form is public
 /// through the header, and a byte-wise `==` leaks how many leading characters
 /// were guessed.
-pub fn verify_webhook_signature(body: &str, signature: &str, app_secret: &str) -> bool {
+///
+/// `body` accepts either the raw request bytes or a `&str`, so a caller that
+/// holds the `Bytes` extractor does not have to transcode the payload first —
+/// a lossy UTF-8 conversion would change the bytes the digest covers.
+pub fn verify_webhook_signature<B: AsRef<[u8]>>(
+    body: B,
+    signature: &str,
+    app_secret: &str,
+) -> bool {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
 
@@ -138,7 +146,7 @@ pub fn verify_webhook_signature(body: &str, signature: &str, app_secret: &str) -
             return false;
         }
     };
-    mac.update(body.as_bytes());
+    mac.update(body.as_ref());
     let computed = hex::encode(mac.finalize().into_bytes());
 
     // Meta always sends lowercase hex; an uppercase digest is not the same

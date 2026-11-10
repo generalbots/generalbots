@@ -1,19 +1,14 @@
-use rand::Rng;
-use sha2::{Sha256, Digest};
-use hex;
-use anyhow::anyhow;
-use hmac::{Hmac, Mac};
-use sha2::digest::KeyInit;
-use crate::mfa::mfa_types::MfaMethod;
-use crate::mfa::mfa_types::TOTP_DIGITS;
-use crate::mfa::mfa_types::TOTP_SECRET_LENGTH;
-use crate::mfa::mfa_types::RECOVERY_CODE_LENGTH;
+//! Non-TOTP MFA helpers: challenges, recovery codes, e-mail/SMS OTP and
+//! constant-time comparison.
+//!
+//! TOTP lives in [`super::mfa_totp`] — one canonical secret type shared by the
+//! QR code and the verifier (#2114).
 
-pub fn generate_totp_secret() -> String {
-    let mut rng = rand::rng();
-    let secret: Vec<u8> = (0..TOTP_SECRET_LENGTH).map(|_| rng.random()).collect();
-    hex::encode(secret)
-}
+use rand::Rng;
+use sha2::{Digest, Sha256};
+
+use crate::mfa::mfa_types::MfaMethod;
+use crate::mfa::mfa_types::RECOVERY_CODE_LENGTH;
 
 pub fn generate_challenge() -> Vec<u8> {
     let mut rng = rand::rng();
@@ -70,99 +65,6 @@ pub fn constant_time_compare(a: &str, b: &str) -> bool {
     result == 0
 }
 
-/// RFC 4648 base32 over raw bytes.
-///
-/// #2066 — the TOTP secret is stored hex-encoded, and `generate_totp_code`
-/// hex-decodes it before using it as the HMAC key. The QR code used to
-/// base32-encode the *hex string* instead of those raw bytes, so an
-/// authenticator derived a different key than the server verifies and
-/// enrollment could never succeed.
-pub fn base32_encode_bytes(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let mut result = String::new();
-
-    let mut buffer: u64 = 0;
-    let mut bits_left = 0;
-
-    for &byte in bytes {
-        buffer = (buffer << 8) | (byte as u64);
-        bits_left += 8;
-
-        while bits_left >= 5 {
-            bits_left -= 5;
-            let index = ((buffer >> bits_left) & 0x1F) as usize;
-            result.push(ALPHABET[index] as char);
-        }
-    }
-
-    if bits_left > 0 {
-        let index = ((buffer << (5 - bits_left)) & 0x1F) as usize;
-        result.push(ALPHABET[index] as char);
-    }
-
-    result
-}
-
-/// Base32 over the UTF-8 bytes of a string (kept for existing callers).
-pub fn base32_encode(data: &str) -> String {
-    base32_encode_bytes(data.as_bytes())
-}
-
-/// Base32 of the raw key behind a hex-encoded TOTP secret, which is what an
-/// authenticator expects in an `otpauth://` URI. Falls back to the hex text
-/// when the secret is not valid hex, so a malformed row cannot panic.
-pub fn base32_encode_totp_secret(secret: &str) -> String {
-    match hex::decode(secret) {
-        Ok(bytes) => base32_encode_bytes(&bytes),
-        Err(_) => base32_encode(secret),
-    }
-}
-
-pub fn verify_totp(secret: &str, code: &str, period: u64) -> bool {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-
-    let counter = now / period;
-
-    for offset in [-1i64, 0, 1] {
-        let check_counter = (counter as i64 + offset) as u64;
-        if let Ok(expected) = generate_totp_code(secret, check_counter) {
-            if constant_time_compare(&expected, code) {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-pub fn generate_totp_code(secret: &str, counter: u64) -> anyhow::Result<String> {
-    let secret_bytes = hex::decode(secret).map_err(|e| anyhow!("Invalid secret: {e}"))?;
-
-    let mut mac = <HmacSha256 as KeyInit>::new_from_slice(&secret_bytes)
-        .map_err(|e| anyhow!("HMAC error: {e}"))?;
-
-    mac.update(&counter.to_be_bytes());
-    let result = mac.finalize().into_bytes();
-
-    let offset = (result[result.len() - 1] & 0x0F) as usize;
-    if offset + 4 > result.len() {
-        return Err(anyhow!("Invalid HMAC result length"));
-    }
-    let code = u32::from_be_bytes([
-        result[offset] & 0x7F,
-        result[offset + 1],
-        result[offset + 2],
-        result[offset + 3],
-    ]);
-
-    let otp = code % 10u32.pow(TOTP_DIGITS);
-    Ok(format!("{:0width$}", otp, width = TOTP_DIGITS as usize))
-}
-
-
 pub fn mask_destination(destination: &str, method: MfaMethod) -> String {
     match method {
         MfaMethod::EmailOtp => {
@@ -172,22 +74,23 @@ pub fn mask_destination(destination: &str, method: MfaMethod) -> String {
                 if local.len() <= 2 {
                     format!("{}***{}", &local[..1], domain)
                 } else {
-                    format!("{}***{}{}", &local[..2], &local[local.len()-1..], domain)
+                    format!("{}***{}{}", &local[..2], &local[local.len() - 1..], domain)
                 }
             } else {
                 "***@***".into()
             }
         }
         MfaMethod::SmsOtp => {
-            let digits: String = destination.chars().filter(|c| c.is_ascii_digit()).collect();
+            let digits: String = destination
+                .chars()
+                .filter(|c| c.is_ascii_digit())
+                .collect();
             if digits.len() <= 4 {
                 "***".into()
             } else {
-                format!("***{}", &digits[digits.len()-4..])
+                format!("***{}", &digits[digits.len() - 4..])
             }
         }
         _ => "***".into(),
     }
 }
-
-type HmacSha256 = Hmac<Sha256>;

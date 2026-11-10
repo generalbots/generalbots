@@ -118,26 +118,44 @@ const BODY_DIGEST: &str = "sha256=b6978b21c4467654c466607663db9b43fae44b71083568
 const SECRET: &str = "test-app-secret";
 
 #[test]
-fn an_unconfigured_secret_accepts_unsigned_deliveries() {
-    // Documented default: installations that never configured the app secret
-    // keep working after the upgrade.
-    assert!(signature_gate("", None, BODY));
-    assert!(signature_gate("   ", None, BODY));
-    assert!(signature_gate("", Some("garbage"), BODY));
+fn an_unconfigured_secret_fails_closed() {
+    // Regression (#2113): an empty secret used to accept every delivery, so
+    // any caller could post a forged activity and reach the bot.
+    assert_eq!(authorize_delivery("", None, BODY.as_bytes()), DeliveryAuth::Unconfigured);
+    assert_eq!(authorize_delivery("   ", None, BODY.as_bytes()), DeliveryAuth::Unconfigured);
+    assert_eq!(
+        authorize_delivery("", Some(BODY_DIGEST), BODY.as_bytes()),
+        DeliveryAuth::Unconfigured
+    );
 }
 
 #[test]
 fn a_configured_secret_requires_a_valid_signature() {
-    assert!(signature_gate(SECRET, Some(BODY_DIGEST), BODY));
-    assert!(!signature_gate(SECRET, None, BODY));
-    assert!(!signature_gate(SECRET, Some(""), BODY));
-    assert!(!signature_gate(SECRET, Some("sha256=deadbeef"), BODY));
-    assert!(!signature_gate(SECRET, Some(BODY_DIGEST), "tampered"));
+    assert_eq!(
+        authorize_delivery(SECRET, Some(BODY_DIGEST), BODY.as_bytes()),
+        DeliveryAuth::Verified
+    );
+    assert_eq!(authorize_delivery(SECRET, None, BODY.as_bytes()), DeliveryAuth::Mismatch);
+    assert_eq!(
+        authorize_delivery(SECRET, Some(""), BODY.as_bytes()),
+        DeliveryAuth::Mismatch
+    );
+    assert_eq!(
+        authorize_delivery(SECRET, Some("sha256=deadbeef"), BODY.as_bytes()),
+        DeliveryAuth::Mismatch
+    );
+    assert_eq!(
+        authorize_delivery(SECRET, Some(BODY_DIGEST), b"tampered"),
+        DeliveryAuth::Mismatch
+    );
 }
 
 #[test]
 fn the_gate_trims_the_configured_secret() {
-    assert!(signature_gate(&format!(" {SECRET} "), Some(BODY_DIGEST), BODY));
+    assert_eq!(
+        authorize_delivery(&format!(" {SECRET} "), Some(BODY_DIGEST), BODY.as_bytes()),
+        DeliveryAuth::Verified
+    );
 }
 
 // ------------------------------------------- WA-8 inbound normalization

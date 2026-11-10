@@ -25,9 +25,9 @@ use crate::utils::{extract_message_text, verify_webhook_signature};
 /// app secret is configured.
 const SIGNATURE_HEADER: &str = "x-hub-signature-256";
 
-/// Bot config key holding the Meta app secret. When it is absent or empty the
-/// endpoint accepts unsigned deliveries — the behaviour of every installation
-/// that has not configured the secret yet.
+/// Bot config key holding the Meta app secret. It is the key an installation
+/// must configure to receive deliveries at all: without it the endpoint fails
+/// closed, because accepting unsigned POSTs lets anyone drive a bot session.
 const APP_SECRET_KEY: &str = "whatsapp_app_secret";
 
 /// Message ids remembered for redelivery suppression.
@@ -114,15 +114,35 @@ pub(crate) fn verify_challenge(
     }
 }
 
-/// Decides whether a delivery is authentic. An unconfigured secret keeps the
-/// documented "accept unsigned" default; a configured one requires a valid
-/// `X-Hub-Signature-256` over the raw body.
-pub(crate) fn signature_gate(app_secret: &str, signature: Option<&str>, body: &str) -> bool {
+/// Outcome of the inbound authenticity gate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DeliveryAuth {
+    /// The signature matches the raw body: the delivery came from Meta.
+    Verified,
+    /// `X-Hub-Signature-256` is absent or does not match the raw body.
+    Mismatch,
+    /// No app secret is configured, so no delivery can be proven authentic.
+    Unconfigured,
+}
+
+/// Decides whether a delivery is authentic. The gate fails closed: an
+/// unconfigured secret used to accept every POST, which let any caller drive a
+/// bot session; now it refuses them and the operator has to configure
+/// `whatsapp_app_secret` (Vault) or `whatsapp-app-secret` (config.csv).
+pub(crate) fn authorize_delivery(
+    app_secret: &str,
+    signature: Option<&str>,
+    body: &[u8],
+) -> DeliveryAuth {
     let secret = app_secret.trim();
     if secret.is_empty() {
-        return true;
+        return DeliveryAuth::Unconfigured;
     }
-    verify_webhook_signature(body, signature.unwrap_or_default(), secret)
+    if verify_webhook_signature(body, signature.unwrap_or_default(), secret) {
+        DeliveryAuth::Verified
+    } else {
+        DeliveryAuth::Mismatch
+    }
 }
 
 /// Flattens the nested webhook envelope into one turn per processable message.
@@ -210,10 +230,18 @@ pub async fn handle_webhook(
         .get(SIGNATURE_HEADER)
         .and_then(|value| value.to_str().ok());
 
-    let raw_body = String::from_utf8_lossy(&body);
-    if !signature_gate(&app_secret, signature, &raw_body) {
-        log::warn!("WhatsApp webhook delivery rejected: {SIGNATURE_HEADER} missing or mismatched");
-        return (StatusCode::UNAUTHORIZED, "Invalid signature").into_response();
+    match authorize_delivery(&app_secret, signature, &body) {
+        DeliveryAuth::Verified => {}
+        DeliveryAuth::Mismatch => {
+            log::warn!("WhatsApp webhook delivery rejected: {SIGNATURE_HEADER} missing or mismatched");
+            return (StatusCode::FORBIDDEN, "Invalid signature").into_response();
+        }
+        DeliveryAuth::Unconfigured => {
+            log::warn!(
+                "WhatsApp webhook delivery rejected: no app secret configured (set {APP_SECRET_KEY})"
+            );
+            return (StatusCode::FORBIDDEN, "Webhook signature not configured").into_response();
+        }
     }
 
     let payload: WhatsAppWebhookPayload = match serde_json::from_slice(&body) {

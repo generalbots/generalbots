@@ -1,0 +1,354 @@
+# Per-app complexity budget (#2120).
+#
+# Ceilings, not snapshots: a metric may stay equal or fall, never rise.
+# A PR that grows one of them must justify the new ceiling here (owner
+# note) or split/delete code. Re-baseline with --update.
+#
+# routes     REST endpoints owned through ENDPOINT_PREFIX_APPS
+# js_modules JavaScript files under botui/ui/suite/<app>/
+# loc        lines of UI code (JS/HTML/CSS) of the app surface
+
+[defaults]
+routes = 153
+js_modules = 74
+loc = 27938
+
+[apps."about"]
+routes = 0
+js_modules = 1
+loc = 585
+
+[apps."analytics"]
+routes = 45
+js_modules = 3
+loc = 2406
+
+[apps."attendant"]
+routes = 17
+js_modules = 7
+loc = 3462
+
+[apps."automations"]
+routes = 9
+js_modules = 2
+loc = 1127
+
+[apps."banking"]
+routes = 9
+js_modules = 5
+loc = 956
+
+[apps."billing"]
+routes = 27
+js_modules = 1
+loc = 1699
+
+[apps."browser"]
+routes = 17
+js_modules = 3
+loc = 1100
+
+[apps."calculator"]
+routes = 0
+js_modules = 4
+loc = 871
+
+[apps."calendar"]
+routes = 7
+js_modules = 3
+loc = 3256
+
+[apps."campaigns"]
+routes = 2
+js_modules = 1
+loc = 1075
+
+[apps."canvas"]
+routes = 15
+js_modules = 8
+loc = 3025
+
+[apps."chat"]
+routes = 30
+js_modules = 74
+loc = 21896
+
+[apps."clock"]
+routes = 0
+js_modules = 1
+loc = 596
+
+[apps."clock-widget"]
+routes = 0
+js_modules = 0
+loc = 0
+
+[apps."compliance"]
+routes = 30
+js_modules = 1
+loc = 907
+
+[apps."concierge"]
+routes = 0
+js_modules = 1
+loc = 221
+
+[apps."crm"]
+routes = 62
+js_modules = 5
+loc = 3114
+
+[apps."database"]
+routes = 11
+js_modules = 5
+loc = 1395
+
+[apps."designer"]
+routes = 0
+js_modules = 20
+loc = 5719
+
+[apps."desktop"]
+routes = 4
+js_modules = 62
+loc = 27938
+
+[apps."docs"]
+routes = 57
+js_modules = 18
+loc = 2660
+
+[apps."drive"]
+routes = 26
+js_modules = 30
+loc = 9553
+
+[apps."editor"]
+routes = 8
+js_modules = 5
+loc = 1255
+
+[apps."fraud"]
+routes = 8
+js_modules = 1
+loc = 941
+
+[apps."goals"]
+routes = 11
+js_modules = 7
+loc = 1947
+
+[apps."handoff"]
+routes = 5
+js_modules = 5
+loc = 791
+
+[apps."hr"]
+routes = 4
+js_modules = 6
+loc = 1291
+
+[apps."integrations"]
+routes = 7
+js_modules = 10
+loc = 4447
+
+[apps."jukebox"]
+routes = 6
+js_modules = 1
+loc = 603
+
+[apps."kyc"]
+routes = 5
+js_modules = 1
+loc = 377
+
+[apps."learn"]
+routes = 12
+js_modules = 1
+loc = 1633
+
+[apps."lists"]
+routes = 0
+js_modules = 1
+loc = 560
+
+[apps."mail"]
+routes = 36
+js_modules = 6
+loc = 4145
+
+[apps."meet"]
+routes = 13
+js_modules = 10
+loc = 2555
+
+[apps."memory"]
+routes = 0
+js_modules = 2
+loc = 722
+
+[apps."minutes"]
+routes = 11
+js_modules = 1
+loc = 340
+
+[apps."monitoring"]
+routes = 50
+js_modules = 7
+loc = 8110
+
+[apps."notes"]
+routes = 0
+js_modules = 1
+loc = 195
+
+[apps."o365"]
+routes = 16
+js_modules = 1
+loc = 405
+
+[apps."paper"]
+routes = 0
+js_modules = 4
+loc = 3628
+
+[apps."people"]
+routes = 14
+js_modules = 4
+loc = 1862
+
+[apps."photos"]
+routes = 0
+js_modules = 2
+loc = 674
+
+[apps."plan"]
+routes = 7
+js_modules = 4
+loc = 965
+
+[apps."player"]
+routes = 4
+js_modules = 3
+loc = 1812
+
+[apps."plugins"]
+routes = 0
+js_modules = 0
+loc = 84
+
+[apps."pos"]
+routes = 5
+js_modules = 1
+loc = 290
+
+[apps."products"]
+routes = 34
+js_modules = 0
+loc = 1545
+
+[apps."project"]
+routes = 6
+js_modules = 3
+loc = 2274
+
+[apps."recycle"]
+routes = 0
+js_modules = 1
+loc = 203
+
+[apps."research"]
+routes = 6
+js_modules = 2
+loc = 2540
+
+[apps."retail"]
+routes = 5
+js_modules = 1
+loc = 472
+
+[apps."settings"]
+routes = 153
+js_modules = 23
+loc = 10391
+
+[apps."sheet"]
+routes = 61
+js_modules = 34
+loc = 7799
+
+[apps."slides"]
+routes = 39
+js_modules = 10
+loc = 2233
+
+[apps."social"]
+routes = 18
+js_modules = 1
+loc = 1260
+
+[apps."store"]
+routes = 35
+js_modules = 1
+loc = 372
+
+[apps."tasks"]
+routes = 3
+js_modules = 23
+loc = 17364
+
+[apps."tax"]
+routes = 11
+js_modules = 1
+loc = 884
+
+[apps."templates"]
+routes = 4
+js_modules = 1
+loc = 513
+
+[apps."terminal"]
+routes = 0
+js_modules = 2
+loc = 688
+
+[apps."tickets"]
+routes = 26
+js_modules = 1
+loc = 1657
+
+[apps."timeclock"]
+routes = 31
+js_modules = 1
+loc = 271
+
+[apps."timer"]
+routes = 0
+js_modules = 1
+loc = 214
+
+[apps."vibe"]
+routes = 31
+js_modules = 64
+loc = 14156
+
+[apps."video"]
+routes = 34
+js_modules = 1
+loc = 597
+
+[apps."vision"]
+routes = 2
+js_modules = 1
+loc = 496
+
+[apps."weather"]
+routes = 0
+js_modules = 1
+loc = 491
+
+[apps."workspace"]
+routes = 9
+js_modules = 1
+loc = 555

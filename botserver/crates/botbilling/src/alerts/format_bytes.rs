@@ -86,3 +86,7 @@ pub async fn register_default_handlers(manager: &AlertManager) {
         .register_handler(Arc::new(WebhookNotificationHandler::new()))
         .await;
 }
+
+#[cfg(test)]
+#[path = "format_tests.rs"]
+mod format_tests;

@@ -9,6 +9,7 @@ repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 axum = { workspace = true, features = ["macros"] }
+botsecurity-auth = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

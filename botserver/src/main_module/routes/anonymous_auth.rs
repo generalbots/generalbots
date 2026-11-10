@@ -136,18 +136,12 @@ fn repair_poisoned_identity(
     // resolved from the session cache/DB. Both carry the verified email, and
     // both must repair a guest row — otherwise an admin chat keeps the
     // workspace locked as guest_*@anonymous.local after a restart.
+    //
+    // #2123 — the JWT email comes from `cloud_jwt_session_user`, which checks
+    // the HMAC signature and `exp` first. A raw payload decode here let a
+    // forged token rewrite any guest row's identity.
     let email = if token.split('.').count() == 3 {
-        let parts: Vec<&str> = token.split('.').collect();
-        let Some(payload) = base64_url_decode_impl(parts[1]) else {
-            return;
-        };
-        let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&payload) else {
-            return;
-        };
-        payload
-            .get("email")
-            .and_then(|v| v.as_str())
-            .map(|value| value.to_string())
+        cloud_jwt_session_user(token).map(|user| user.email)
     } else {
         session_identity(token).map(|user| user.email)
     };

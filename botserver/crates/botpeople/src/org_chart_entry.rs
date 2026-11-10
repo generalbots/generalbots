@@ -224,10 +224,12 @@ pub async fn create_person(
     State(state): State<Arc<PeopleState>>,
     headers: HeaderMap,
     Json(req): Json<CreatePersonRequest>,
-) -> Result<Json<Person>, (StatusCode, String)> {
-    let mut conn = state.pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+) -> Result<Json<Person>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
         .unwrap_or_else(|| get_bot_context(&state));
@@ -275,7 +277,7 @@ pub async fn create_person(
     diesel::insert_into(people::table)
         .values(&person)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(person))
 }

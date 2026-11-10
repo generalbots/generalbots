@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Html,
-    Json,
+    Extension, Json,
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use diesel::RunQueryDsl;
@@ -13,6 +13,7 @@ use botcore::organization_invitations::{
     BulkInviteParams, CreateInvitationParams, InvitationRole, InvitationService,
 };
 use botcore::shared::state::AppState;
+use botsecurity::auth::AuthenticatedUser;
 
 use super::get_conn;
 
@@ -139,10 +140,12 @@ pub async fn revoke_invitation(
 }
 
 /// Creates a single invitation (org-scoped) through the real service. The
-/// inviter is resolved from the `x-user-id` header so the persisted
-/// `invited_by` column points at a real user.
+/// inviter is the **verified** caller identity from the auth middleware
+/// extension (#2122), so the persisted `invited_by` column points at a real
+/// user and cannot be spoofed with a header.
 pub async fn create_invitation(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     headers: axum::http::HeaderMap,
     Json(req): Json<AdminCreateInvitationRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
@@ -158,7 +161,7 @@ pub async fn create_invitation(
         }
     };
 
-    let invited_by = resolve_admin_user(&headers);
+    let invited_by = resolve_admin_user(&user);
 
     match service
         .create_invitation(CreateInvitationParams {
@@ -190,6 +193,7 @@ pub async fn create_invitation(
 /// Bulk-invites a list of emails through the real service.
 pub async fn bulk_invite(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     headers: axum::http::HeaderMap,
     Json(req): Json<AdminBulkInviteRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
@@ -219,7 +223,7 @@ pub async fn bulk_invite(
         ));
     }
 
-    let invited_by = resolve_admin_user(&headers);
+    let invited_by = resolve_admin_user(&user);
 
     let response = service
         .bulk_invite(BulkInviteParams {
@@ -308,12 +312,16 @@ pub struct AdminBulkInviteRequest {
     message: Option<String>,
 }
 
-fn resolve_admin_user(headers: &axum::http::HeaderMap) -> Uuid {
-    headers
-        .get("x-user-id")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .unwrap_or_else(Uuid::nil)
+/// The inviter recorded on the invitation is the verified principal inserted
+/// by the auth middleware. An unauthenticated (anonymous) caller resolves to
+/// the nil UUID, which the service treats as "no inviter" — the header
+/// `X-User-ID` is never consulted (#2122).
+fn resolve_admin_user(user: &AuthenticatedUser) -> Uuid {
+    if user.is_authenticated() {
+        user.user_id
+    } else {
+        Uuid::nil()
+    }
 }
 
 fn relative_time(time: DateTime<Utc>) -> String {

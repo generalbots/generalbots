@@ -19,38 +19,16 @@ use axum::http::HeaderMap;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-/// Minimal URL-safe base64 decoder (JWT payloads). Returns `None` on invalid
-/// input so a malformed header never aborts a request.
-fn base64url_decode(input: &str) -> Option<Vec<u8>> {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &b in input.as_bytes() {
-        let v = {
-            let i = TABLE.iter().position(|&x| x == b)?;
-            i as u32
-        };
-        buf = (buf << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-        }
-    }
-    Some(out)
-}
+use crate::verified_jwt::verify_saas_jwt;
 
-/// Extracts the `email` claim from a Bearer JWT Authorization header.
+/// Extracts the `email` claim from a **verified** Bearer JWT.
+///
+/// #2112 — the payload used to be decoded on its own, so a forged token could
+/// present any email and have it resolved to another tenant's CRM contact. The
+/// signature is now checked against the configured SaaS secret first.
 pub fn email_from_jwt(headers: &HeaderMap) -> Option<String> {
     let token = bearer_token(headers)?;
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload = base64url_decode(parts[1])?;
-    let json: serde_json::Value = serde_json::from_slice(&payload).ok()?;
-    json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string())
+    verify_saas_jwt(token).ok()?.email
 }
 
 /// Extracts the user email from an opaque suite session token (`gb_*`).
@@ -65,70 +43,17 @@ pub fn email_from_session(headers: &HeaderMap) -> Option<String> {
     crate::lookup_session_cache(token).map(|u| u.email)
 }
 
-/// Resolves a suite user's email from the `X-User-ID` header used by the
-/// chat/WhatsApp loopback executor (`api.exec`). The loopback hop carries no
-/// Authorization header, so the account is identified by id only; its email
-/// comes from the `users` table.
-pub fn email_from_user_id(headers: &HeaderMap, conn: &mut diesel::PgConnection) -> Option<String> {
-    use diesel::sql_types::{Text, Uuid as SqlUuid};
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = Text)]
-        email: String,
-    }
-    let uid = headers.get("x-user-id")?.to_str().ok()?;
-    let uid = uuid::Uuid::parse_str(uid).ok()?;
-    diesel::sql_query("SELECT email FROM users WHERE id = $1 LIMIT 1")
-        .bind::<SqlUuid, _>(uid)
-        .get_result::<Row>(conn)
-        .optional()
-        .ok()
-        .flatten()
-        .map(|r| r.email)
-}
-
 /// Extracts the server-minted `branch_id` JWT claim. Minted at login from
 /// the user's verified tenant binding (issue #736), it is the authoritative
 /// branch scope; never derived from client input.
-/// Whether the token's header declares a real algorithm.
 ///
-/// #2066 — the payload used to be decoded with no look at the header, so a
-/// forged unsecured token (`{"alg":"none"}`) could select any tenant branch
-/// through this helper. An unsecured token can never have been minted by the
-/// server.
-fn header_is_secured(token: &str) -> bool {
-    let Some(header) = token.split('.').next() else {
-        return false;
-    };
-    let Some(decoded) = base64url_decode(header) else {
-        return false;
-    };
-    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
-        return false;
-    };
-    match json.get("alg").and_then(|v| v.as_str()) {
-        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
-        None => false,
-    }
-}
-
+/// #2112 — the claim is only read from a token whose HS256 signature verifies
+/// against the configured SaaS secret (constant-time HMAC compare) and whose
+/// expiry is still valid. A forged, tampered, `alg=none` or expired token
+/// yields `None` and callers fall back to their crate default context.
 pub fn branch_from_claim(headers: &HeaderMap) -> Option<Uuid> {
     let token = bearer_token(headers)?;
-    if !token.contains('.') {
-        return None;
-    }
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    if !header_is_secured(token) {
-        return None;
-    }
-    let payload = base64url_decode(parts[1])?;
-    let json: serde_json::Value = serde_json::from_slice(&payload).ok()?;
-    json.get("branch_id")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Uuid::parse_str(s).ok())
+    verify_saas_jwt(token).ok()?.branch_id
 }
 
 /// The Bearer token carried by the `Authorization` header.
@@ -145,9 +70,9 @@ fn bearer_token(headers: &HeaderMap) -> Option<&str> {
 
 /// Resolves the branch id for the authenticated user. The server-minted
 /// `branch_id` claim wins when present (issue #736); otherwise the JWT email
-/// (or the session-cache email for opaque suite tokens, or the `X-User-ID`
-/// email for the chat loopback) is looked up in `crm_contacts` to derive the
-/// contact's `branch_id`.
+/// (or the session-cache email for opaque suite tokens) is looked up in
+/// `crm_contacts` to derive the contact's `branch_id`. Only verified
+/// credentials are consulted — never the caller-supplied `X-User-ID` (#2122).
 pub fn branch_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
@@ -155,9 +80,7 @@ pub fn branch_from_jwt(
     if let Some(claim) = branch_from_claim(headers) {
         return Some(claim);
     }
-    let email = email_from_jwt(headers)
-        .or_else(|| email_from_session(headers))
-        .or_else(|| email_from_user_id(headers, conn))?;
+    let email = email_from_jwt(headers).or_else(|| email_from_session(headers))?;
     let contact_branch = {
         #[derive(diesel::QueryableByName)]
         struct Row {
@@ -193,6 +116,7 @@ pub fn branch_from_jwt_pool(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::verified_jwt::test_support::{mint_hs256, signed, tenant_claims};
 
     fn header_with(value: &str) -> HeaderMap {
         let mut headers = HeaderMap::new();
@@ -200,25 +124,22 @@ mod tests {
         headers
     }
 
+    fn claims_with(branch: Uuid, email: &str) -> serde_json::Value {
+        tenant_claims(&branch.to_string(), &Uuid::nil().to_string(), "user-1", email)
+    }
+
     #[test]
-    fn email_from_jwt_reads_the_payload_claim() {
-        use base64::Engine;
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(r#"{"email":"admin@pragmatismo.com.br"}"#);
-        let token = format!("aaa.{payload}.bbb");
-        let headers = header_with(&format!("Bearer {token}"));
+    fn email_from_jwt_reads_the_verified_claim() {
+        let token = signed(&claims_with(Uuid::new_v4(), "admin@pragmatismo.com.br"));
         assert_eq!(
-            email_from_jwt(&headers).as_deref(),
+            email_from_jwt(&header_with(&format!("Bearer {token}"))).as_deref(),
             Some("admin@pragmatismo.com.br")
         );
     }
 
     #[test]
     fn email_from_jwt_tolerates_a_comma_separated_header() {
-        use base64::Engine;
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(r#"{"email":"user@example.com"}"#);
-        let token = format!("aaa.{payload}.bbb");
+        let token = signed(&claims_with(Uuid::new_v4(), "user@example.com"));
         let headers = header_with(&format!("Bearer {token},extra-credential"));
         assert_eq!(email_from_jwt(&headers).as_deref(), Some("user@example.com"));
     }
@@ -232,91 +153,76 @@ mod tests {
 
     #[test]
     fn branch_from_claim_reads_the_server_minted_branch() {
-        use base64::Engine;
         let branch = Uuid::new_v4();
-        // A real token always carries a header; the fixture used to use a
-        // placeholder (`aaa`) that no longer passes the secured-header check.
-        let header = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(r#"{"alg":"HS256","typ":"JWT"}"#);
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(format!(r#"{{"branch_id":"{branch}"}}"#));
-        let token = format!("{header}.{payload}.bbb");
-        let headers = header_with(&format!("Bearer {token}"));
-        assert_eq!(branch_from_claim(&headers), Some(branch));
-    }
-
-    fn b64url(input: &str) -> String {
-        const TABLE: &[u8; 64] =
-            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-        let bytes = input.as_bytes();
-        let mut out = String::new();
-        for chunk in bytes.chunks(3) {
-            let b0 = chunk[0] as u32;
-            let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
-            let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
-            let triple = (b0 << 16) | (b1 << 8) | b2;
-            out.push(TABLE[(triple >> 18) as usize & 0x3F] as char);
-            out.push(TABLE[(triple >> 12) as usize & 0x3F] as char);
-            if chunk.len() > 1 {
-                out.push(TABLE[(triple >> 6) as usize & 0x3F] as char);
-            }
-            if chunk.len() > 2 {
-                out.push(TABLE[triple as usize & 0x3F] as char);
-            }
-        }
-        out
-    }
-
-    fn token(header: &str, payload: &str) -> String {
-        format!("{}.{}.sig", b64url(header), b64url(payload))
-    }
-
-    fn headers(auth: &str) -> HeaderMap {
-        let mut map = HeaderMap::new();
-        map.insert("authorization", auth.parse().expect("header"));
-        map
-    }
-
-    #[test]
-    fn an_unsecured_token_cannot_select_a_branch() {
-        // #2066 — a forged alg=none token must not resolve a tenant branch.
-        let branch = Uuid::new_v4();
-        let payload = format!(r#"{{"branch_id":"{branch}"}}"#);
-        let forged = token(r#"{"alg":"none","typ":"JWT"}"#, &payload);
-        assert_eq!(branch_from_claim(&headers(&format!("Bearer {forged}"))), None);
-    }
-
-    #[test]
-    fn an_unsecured_header_in_any_casing_is_refused() {
-        for header in [r#"{"alg":"NONE"}"#, r#"{"alg":"None"}"#, r#"{"alg":" none "}"#] {
-            let encoded = b64url(header);
-            let body = b64url(r#"{"branch_id":"11111111-1111-1111-1111-111111111111"}"#);
-            let forged = format!("{encoded}.{body}.sig");
-            assert!(!header_is_secured(&forged), "{header} must be refused");
-        }
-    }
-
-    #[test]
-    fn a_secured_token_still_resolves_the_branch() {
-        let branch = Uuid::new_v4();
-        let payload = format!(r#"{{"branch_id":"{branch}"}}"#);
-        let secured = token(r#"{"alg":"HS256","typ":"JWT"}"#, &payload);
+        let token = signed(&claims_with(branch, "user@example.com"));
         assert_eq!(
-            branch_from_claim(&headers(&format!("Bearer {secured}"))),
+            branch_from_claim(&header_with(&format!("Bearer {token}"))),
             Some(branch)
         );
     }
 
     #[test]
-    fn a_token_without_an_algorithm_is_refused() {
-        let forged = token(r#"{"typ":"JWT"}"#, r#"{"branch_id":"11111111-1111-1111-1111-111111111111"}"#);
-        assert!(!header_is_secured(&forged));
+    fn a_forged_signature_cannot_select_a_branch() {
+        // #2112 — the payload alone must never resolve a tenant.
+        let branch = Uuid::new_v4();
+        let mut parts: Vec<String> = signed(&claims_with(branch, "user@example.com"))
+            .split('.')
+            .map(str::to_string)
+            .collect();
+        parts[2] = "definitely-not-a-valid-signature".to_string();
+        let forged = parts.join(".");
+        let headers = header_with(&format!("Bearer {forged}"));
+        assert_eq!(branch_from_claim(&headers), None);
+        assert_eq!(email_from_jwt(&headers), None);
+    }
+
+    #[test]
+    fn a_token_signed_with_another_key_cannot_select_a_branch() {
+        let branch = Uuid::new_v4();
+        let token = mint_hs256(
+            &claims_with(branch, "user@example.com"),
+            "an-attacker-controlled-secret",
+        );
+        assert_eq!(
+            branch_from_claim(&header_with(&format!("Bearer {token}"))),
+            None
+        );
+    }
+
+    #[test]
+    fn an_unsecured_token_cannot_select_a_branch() {
+        use base64::Engine as _;
+        let encode = |bytes: &[u8]| base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
+        let branch = Uuid::new_v4();
+        let payload = encode(format!(r#"{{"branch_id":"{branch}","sub":"u","exp":4102444800}}"#).as_bytes());
+        for header in [r#"{"alg":"none","typ":"JWT"}"#, r#"{"alg":"NONE"}"#] {
+            let forged = format!("{}.{payload}.", encode(header.as_bytes()));
+            assert_eq!(
+                branch_from_claim(&header_with(&format!("Bearer {forged}"))),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn an_expired_token_cannot_select_a_branch() {
+        let mut claims = claims_with(Uuid::new_v4(), "user@example.com");
+        claims["exp"] = serde_json::Value::from(1);
+        let token = signed(&claims);
+        assert_eq!(
+            branch_from_claim(&header_with(&format!("Bearer {token}"))),
+            None
+        );
     }
 
     #[test]
     fn malformed_tokens_never_panic() {
         for value in ["", "a", "a.b", "!!!.payload.sig", ".."] {
-            assert!(!header_is_secured(value), "{value:?}");
+            assert_eq!(
+                branch_from_claim(&header_with(&format!("Bearer {value}"))),
+                None,
+                "{value:?}"
+            );
         }
     }
 }

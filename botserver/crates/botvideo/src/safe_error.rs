@@ -84,3 +84,7 @@ impl IntoResponse for SafeErrorResponse {
         (status, Json(self)).into_response()
     }
 }
+
+#[cfg(test)]
+#[path = "safe_error_tests.rs"]
+mod safe_error_tests;

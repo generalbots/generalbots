@@ -247,32 +247,6 @@ pub struct EmailContent {
     pub read: bool,
 }
 
-/// Decodes a URL-safe base64 payload (JWT claims). Trailing padding is
-/// stripped because JSON Web Tokens omit it and the decoder strictly walks
-/// the base64url alphabet. `None` is returned for invalid input so that a
-/// malformed token never aborts a request.
-fn decode_jwt_payload(segment: &str) -> Option<Vec<u8>> {
-    const TABLE: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let input = segment.trim_end_matches('=');
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &b in input.as_bytes() {
-        let v = {
-            let i = TABLE.iter().position(|&x| x == b)?;
-            i as u32
-        };
-        buf = (buf << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-        }
-    }
-    Some(out)
-}
-
 /// Maps a raw identity subject to the stable database UUID used for mail
 /// accounts. Zitadel/OIDC numeric user ids are not valid UUIDs; routing them
 /// through `UUIDv5(zitadel:{id})` produces the same deterministic value that
@@ -287,21 +261,27 @@ pub fn stable_user_uuid(raw: &str) -> Uuid {
 /// Resolves the authenticated user id from the request headers.
 ///
 /// Supported identities, in priority order:
-/// 1. `X-User-ID` header, used by the chat/WhatsApp loopback executor that
-///    cannot attach an `Authorization` header.
-/// 2. Opaque suite session token (`gb_*`) resolved through the shared session
+/// 1. Opaque suite session token (`gb_*`) resolved through the shared session
 ///    cache populated at login.
-/// 3. Bearer JWT whose claims identify the user (`sub` / `user_id`).
+/// 2. Bearer JWT — **verified** before any claim is read (#2123). The payload
+///    is never parsed on its own: a forged `alg=none` token, a token signed
+///    with another key, an expired token or one without `exp` is rejected.
+///
+/// `X-User-ID` is caller-supplied and is not an identity (#2122): the chat
+/// executor authenticates its loopback hop with a short-lived signed JWT.
 ///
 /// Never falls back to `Uuid::nil()` for an authenticated request: if the
 /// identity cannot be resolved this fails so callers can reject the request.
 pub fn extract_user_from_session(headers: &HeaderMap) -> Result<Uuid, String> {
-    if let Some(uid) = headers.get("x-user-id").and_then(|v| v.to_str().ok()) {
-        if let Ok(uuid) = Uuid::parse_str(uid) {
-            return Ok(uuid);
-        }
-    }
+    extract_user_with_secret(
+        headers,
+        &botsecurity_core::verified_jwt::resolve_saas_jwt_secret(),
+    )
+}
 
+/// Identity resolution with an explicit signing secret, so tests can verify
+/// tokens deterministically without touching the process environment.
+pub(crate) fn extract_user_with_secret(headers: &HeaderMap, secret: &str) -> Result<Uuid, String> {
     let auth = headers
         .get("authorization")
         .and_then(|v| v.to_str().ok())
@@ -316,23 +296,13 @@ pub fn extract_user_from_session(headers: &HeaderMap) -> Result<Uuid, String> {
         return Ok(stable_user_uuid(&entry.user_id));
     }
 
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return Err("Malformed JWT token".to_string());
-    }
-    let raw = decode_jwt_payload(parts[1])
-        .ok_or_else(|| "Invalid JWT payload encoding".to_string())?;
-    let claims: serde_json::Value = serde_json::from_slice(&raw)
-        .map_err(|e| format!("Invalid JWT payload JSON: {e}"))?;
-    let sub = claims
-        .get("sub")
-        .or_else(|| claims.get("user_id"))
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "JWT carries no identity claim".to_string())?;
-    if sub.is_empty() {
-        return Err("JWT identity claim is empty".to_string());
-    }
-    Ok(stable_user_uuid(sub))
+    // #2123 — the identity must come from a signature-verified token. Any
+    // failure (alg=none, wrong key, tampered payload, expired/missing exp,
+    // no subject) rejects the request; the decoded payload is never used as
+    // a fallback.
+    let claims = botsecurity_core::verified_jwt::verify_hs256_jwt(token, secret)
+        .map_err(|e| format!("Invalid JWT token: {e}"))?;
+    Ok(stable_user_uuid(&claims.sub))
 }
 
 #[derive(Debug, QueryableByName, serde::Serialize)]

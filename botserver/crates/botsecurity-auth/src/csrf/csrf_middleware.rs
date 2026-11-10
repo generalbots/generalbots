@@ -1,4 +1,5 @@
 use super::*;
+use crate::auth::{AuthenticatedUser, Role};
 
 pub async fn csrf_middleware(
     csrf_manager: Arc<CsrfManager>,
@@ -32,28 +33,16 @@ pub async fn csrf_middleware(
         return next.run(request).await;
     }
 
-    // Skip CSRF for the internal loopback identity header used by the chat
-    // `api.exec` executor: the auth middleware already resolves `X-User-ID`
-    // into the AuthenticatedUser, and service-to-service loopback calls never
-    // carry browser cookies, so the double-submit cookie check cannot apply.
-    let is_loopback_identity = request
-        .headers()
-        .get("X-User-ID")
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| !v.is_empty());
-    if is_loopback_identity {
-        return next.run(request).await;
-    }
-
-    // Skip CSRF for the internal service token (X-Internal-Token): the auth
-    // middleware already validated it against INTERNAL_API_TOKEN and inserted
-    // the service identity — e.g. the VIBE RUN BASIC keyword calling back into
-    // the local API. Same loopback rationale as X-User-ID above.
+    // Skip CSRF only for the verified internal service identity that the auth
+    // middleware inserted after matching `X-Internal-Token` against the
+    // configured secret (e.g. the VIBE RUN BASIC keyword calling back into the
+    // local API). A caller-supplied header value is never an identity, so a
+    // bare `X-User-ID`/`X-Internal-Token` string must not exempt a request
+    // from CSRF (#2122).
     let is_internal_service = request
-        .headers()
-        .get("X-Internal-Token")
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| !v.is_empty());
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .is_some_and(|user| user.has_role(&Role::Service) && user.username == "service:internal");
     if is_internal_service {
         return next.run(request).await;
     }

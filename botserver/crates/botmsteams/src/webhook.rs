@@ -1,10 +1,12 @@
+use crate::auth::{self, TeamsCredentials};
 use crate::state::ChannelState;
 use crate::session::{find_or_create_session, route_to_attendant, route_to_bot};
 
 use axum::{
+    body::Bytes,
     extract::State,
-    http::StatusCode,
-    response::IntoResponse,
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
     routing::post,
     Json, Router,
 };
@@ -64,11 +66,58 @@ pub fn configure() -> Router<Arc<ChannelState>> {
         .route("/api/msteams/send", post(crate::handlers::send_message))
 }
 
+/// Reads the two inbound credentials from the bot configuration. Both are
+/// optional in the sense that the gate decides what is required; an empty pair
+/// rejects every delivery instead of accepting them (see `auth`).
+fn teams_credentials(state: &Arc<ChannelState>) -> TeamsCredentials {
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::warn!("Teams credentials unavailable, no database connection: {e}");
+            return TeamsCredentials::default();
+        }
+    };
+
+    let bot_id = (state.get_default_bot)(&mut conn).0;
+    drop(conn);
+
+    let app_id = (state.get_config)(&bot_id, auth::APP_ID_KEY, None).unwrap_or_default();
+    let security_token = (state.get_config)(&bot_id, auth::SECURITY_TOKEN_KEY, None).unwrap_or_default();
+
+    TeamsCredentials::new(&app_id, &security_token)
+}
+
 pub async fn handle_incoming(
     State(state): State<Arc<ChannelState>>,
-    Json(activity): Json<TeamsActivity>,
-) -> impl IntoResponse {
-    match activity.activity_type.as_str() {
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    // The credential is checked before the body is parsed: an unsigned POST
+    // must not reach the dispatcher at all (#2113). The body is kept as bytes
+    // because the outgoing-webhook HMAC covers the exact payload.
+    let credentials = teams_credentials(&state);
+    if let Err(error) = auth::authorize(&headers, &body, &credentials).await {
+        log::warn!("Teams activity rejected: {}", error.reason());
+        return (
+            error.status(),
+            Json(serde_json::json!({ "error": "unauthorized" })),
+        )
+            .into_response();
+    }
+
+    let activity: TeamsActivity = match serde_json::from_slice(&body) {
+        Ok(activity) => activity,
+        Err(e) => {
+            log::info!("Teams activity body is not a valid activity: {e}");
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(serde_json::json!({ "error": "invalid activity" })),
+            )
+                .into_response();
+        }
+    };
+
+    let response = match activity.activity_type.as_str() {
         "message" => {
             if let Some(text) = &activity.text {
                 let conversation_id = &activity.conversation.id;
@@ -114,5 +163,7 @@ pub async fn handle_incoming(
             )
         }
         _ => (StatusCode::OK, Json(serde_json::json!({}))),
-    }
+    };
+
+    response.into_response()
 }

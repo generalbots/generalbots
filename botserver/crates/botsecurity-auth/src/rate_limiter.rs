@@ -158,7 +158,7 @@ pub async fn rate_limit_middleware(
         return http_rate_limit_response(30);
     }
 
-    let user_id = extract_user_id(&request).unwrap_or_else(|| addr.ip().to_string());
+    let user_id = addr.ip().to_string();
 
     match limiter.check_user_limit(&user_id).await {
         Ok(()) => next.run(request).await,
@@ -227,30 +227,6 @@ fn client_key(request: &Request<Body>, addr: Option<SocketAddr>) -> String {
 
     addr.map(|socket| socket.ip().to_string())
         .unwrap_or_else(|| "unknown".to_string())
-}
-
-fn extract_user_id(request: &Request<Body>) -> Option<String> {
-    if let Some(user_id) = request.headers().get("x-user-id") {
-        if let Ok(id) = user_id.to_str() {
-            return Some(id.to_string());
-        }
-    }
-
-    if let Some(auth) = request.headers().get("authorization") {
-        if let Ok(auth_str) = auth.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                if token.len() > 10 {
-                    // The header is caller-supplied: never slice it mid-character.
-                    return Some(format!(
-                        "token:{}",
-                        botlib::text::truncate_at_char_boundary(token, 10)
-                    ));
-                }
-            }
-        }
-    }
-
-    None
 }
 
 fn http_rate_limit_response(retry_after: u64) -> Response {
@@ -326,14 +302,6 @@ mod tests {
         let limiter = CombinedRateLimiter::with_defaults();
         let result = limiter.check_user_limit("test-user").await;
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_extract_user_id_none() {
-        let request = Request::builder()
-            .body(Body::empty())
-            .expect("request builds");
-        assert!(extract_user_id(&request).is_none());
     }
 
     #[test]

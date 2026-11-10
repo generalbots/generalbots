@@ -136,6 +136,9 @@ mod create_context_middleware_state;
 mod owner;
 mod org_manage;
 
+#[cfg(test)]
+mod jwt_verifier_tests;
+
 pub use with_cache_ttl::*;
 pub use require_role_middleware::*;
 pub use create_context_middleware_state::*;

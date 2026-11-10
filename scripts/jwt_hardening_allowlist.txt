@@ -1,0 +1,23 @@
+# JWT hardening allowlist (issue #2125) — pre-existing debt, shrink only.
+#
+# Format: <repo-relative path> # <why this file may decode a JWT payload and
+# read identity claims without calling botsecurity_core::verified_jwt>.
+#
+# Every entry below is a *known* payload-only reader. Adding a line is not a
+# way to make a new violation disappear: the entry documents why the current
+# shape is safe (or names the follow-up that must remove it).
+
+# Verifies the HMAC-SHA256 signature itself, in constant time, before the
+# payload is decoded — one of the two reference implementations.
+botserver/src/main_module/routes/cloud_sso_handler.rs # inline HS256 check + constant_time::eq_str before decoding
+
+# The following read claims without checking a signature. They are only safe
+# while an upstream layer already authenticated the request, which is not
+# guaranteed for direct API calls. Migrating them to verified_jwt is the
+# follow-up tracked from #2125 (companion of #2112/#2113/#2122/#2123).
+botserver/crates/botcloud/src/payment_cards/jwt_email.rs # unverified payload read, email claim (#2125 follow-up)
+botserver/crates/botcloud/src/vouchers.rs # unverified payload read, org scope (#2125 follow-up)
+botserver/crates/botlearn/src/routes_learn.rs # unverified payload read, sub claim (#2125 follow-up)
+botserver/crates/botsecurity-auth/src/platform_admin.rs # unverified payload read, email claim (#2125 follow-up)
+botserver/crates/botsecurity-auth/src/zitadel_auth/authenticate_request.rs # RS256/JWKS verification not implemented (#2125 follow-up)
+botserver/src/core/ai_accounts_chatgpt.rs # claims from a provider id_token obtained over TLS (#2125 follow-up)

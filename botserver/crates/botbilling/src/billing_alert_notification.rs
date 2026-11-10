@@ -65,7 +65,7 @@ pub struct PlanLimits {
     pub builds_per_day: LimitValue,
     pub uploads_per_hour: LimitValue,
 }
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LimitValue {
     Limited(u64),

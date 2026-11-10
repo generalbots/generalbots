@@ -68,22 +68,7 @@ pub(super) async fn create_invitation(
 
     // The inviter must be a real user (FK users(id)); resolve from headers
     // like the accept path instead of a random UUID.
-    let invited_by = headers
-        .get("x-user-id")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .or_else(|| {
-            botsecurity_core::tenant::user_id_from_claims(&headers).map(|sub| {
-                match Uuid::parse_str(&sub) {
-                    Ok(u) => u,
-                    Err(_) => Uuid::new_v5(
-                        &Uuid::NAMESPACE_DNS,
-                        format!("zitadel:{sub}").as_bytes(),
-                    ),
-                }
-            })
-        })
-        .unwrap_or(Uuid::nil());
+    let invited_by = verified_user_id(&headers).unwrap_or(Uuid::nil());
 
     match service
         .create_invitation(CreateInvitationParams {
@@ -136,22 +121,7 @@ pub(super) async fn bulk_invite(
         ));
     }
 
-    let invited_by = headers
-        .get("x-user-id")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .or_else(|| {
-            botsecurity_core::tenant::user_id_from_claims(&headers).map(|sub| {
-                match Uuid::parse_str(&sub) {
-                    Ok(u) => u,
-                    Err(_) => Uuid::new_v5(
-                        &Uuid::NAMESPACE_DNS,
-                        format!("zitadel:{sub}").as_bytes(),
-                    ),
-                }
-            })
-        })
-        .unwrap_or(Uuid::nil());
+    let invited_by = verified_user_id(&headers).unwrap_or(Uuid::nil());
 
     let response = service
         .bulk_invite(BulkInviteParams {
@@ -234,27 +204,10 @@ pub(super) async fn accept_invitation(
 ) -> Result<Json<AcceptInvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new(state.conn.clone());
 
-    // Resolve the accepting user from the request: X-User-ID header first
-    // (loopback/chat executor), then the JWT sub claim (derived to the stable
-    // UUID the RBAC layer uses). Never a random UUID — the org binding must
-    // point at the real user or the accept is meaningless.
-    let user_id = headers
-        .get("x-user-id")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .or_else(|| {
-            botsecurity_core::tenant::user_id_from_claims(&headers).map(|sub| {
-                match Uuid::parse_str(&sub) {
-                    Ok(u) => u,
-                    Err(_) => Uuid::new_v5(
-                        &Uuid::NAMESPACE_DNS,
-                        format!("zitadel:{sub}").as_bytes(),
-                    ),
-                }
-            })
-        })
-        .or(req.user_id)
-        .unwrap_or(Uuid::nil());
+    // Resolve the accepting user from the verified bearer identity only
+    // (#2122). Never a random UUID — the org binding must point at the real
+    // user or the accept is meaningless.
+    let user_id = verified_user_id(&headers).or(req.user_id).unwrap_or(Uuid::nil());
 
     if user_id == Uuid::nil() {
         return Err((
@@ -286,4 +239,14 @@ pub(super) async fn decline_invitation(
             Json(serde_json::json!({"error": error})),
         )),
     }
+}
+
+/// Resolves the caller's stable user UUID from the verified bearer JWT `sub`
+/// claim, mapped exactly like the RBAC layer. The caller-supplied
+/// `X-User-ID` header is never an identity (#2122).
+fn verified_user_id(headers: &axum::http::HeaderMap) -> Option<Uuid> {
+    botsecurity_core::tenant::user_id_from_claims(headers).map(|sub| match Uuid::parse_str(&sub) {
+        Ok(u) => u,
+        Err(_) => Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes()),
+    })
 }

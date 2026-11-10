@@ -339,3 +339,7 @@ pub async fn record_view_handler(
 }
 
 use crate::safe_error::SafeErrorResponse;
+
+#[cfg(test)]
+#[path = "analytics_tests.rs"]
+mod analytics_tests;

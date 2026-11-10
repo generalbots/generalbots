@@ -13,7 +13,6 @@ pub struct ExtractedAuthData {
     pub bearer_token: Option<String>,
     pub query_token: Option<String>,
     pub session_id: Option<String>,
-    pub user_id_header: Option<Uuid>,
     pub bot_id: Option<Uuid>,
 }
 
@@ -95,11 +94,20 @@ impl ExtractedAuthData {
 
         let session_id = extract_session_from_cookies(request, &config.session_cookie_name);
 
-        let user_id_header = request
+        // `X-User-ID` is caller-supplied and therefore NOT a credential
+        // (#2122). It is only ever logged, for correlation with the internal
+        // `api.exec` executor; identity comes exclusively from a verified
+        // API key, bearer/JWT or session above.
+        if let Some(correlation) = request
             .headers()
             .get("X-User-ID")
             .and_then(|v| v.to_str().ok())
-            .and_then(|s| Uuid::parse_str(s).ok());
+        {
+            debug!(
+                "Ignoring X-User-ID correlation header '{}': not an authentication source",
+                botlib::text::truncate_at_char_boundary(correlation, 36)
+            );
+        }
 
         let bot_id = extract_bot_id_from_request(request, config);
 
@@ -108,7 +116,6 @@ impl ExtractedAuthData {
             bearer_token,
             query_token,
             session_id,
-            user_id_header,
             bot_id,
         }
     }

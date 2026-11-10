@@ -58,7 +58,7 @@ pub async fn handle_cloud_sso(
             ))
         }
     };
-    if sig_b64 != expected_sig {
+    if !botsecurity_core::constant_time::eq_str(&sig_b64, &expected_sig) {
         log::warn!("cloud-sso: JWT signature mismatch — rejecting token");
         return Err((
             StatusCode::UNAUTHORIZED,
@@ -162,7 +162,7 @@ pub async fn handle_suite_sso(
 
     let message = format!("{}.{}", parts[0], parts[1]);
     let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes())
-        .map(|s| s == parts[2])
+        .map(|expected| botsecurity_core::constant_time::eq_str(&expected, parts[2]))
         .unwrap_or(false);
     if !sig_ok {
         log::warn!("suite-sso: JWT signature mismatch — rejecting token");
@@ -380,7 +380,7 @@ pub async fn handle_unified_login(
                 ))
             }
         };
-        if parts[2] != expected_sig {
+        if !botsecurity_core::constant_time::eq_str(parts[2], &expected_sig) {
             log::warn!("unified-login (cloud_token): JWT signature mismatch — rejecting token");
             return Err((
                 StatusCode::UNAUTHORIZED,

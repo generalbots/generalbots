@@ -58,7 +58,13 @@ impl MfaManager {
             .as_ref()
             .ok_or_else(|| anyhow!("No pending TOTP enrollment"))?;
 
-        let valid = super::mfa_helpers::verify_totp(&enrollment.secret, code, enrollment.period);
+        let valid = super::mfa_totp::verify_totp_full(
+            &enrollment.secret,
+            code,
+            enrollment.period,
+            enrollment.digits,
+            enrollment.algorithm,
+        );
 
         if valid {
             if let Some(ref mut e) = state.totp_enrollment {
@@ -106,7 +112,13 @@ impl MfaManager {
             return Err(anyhow!("TOTP enrollment not verified"));
         }
 
-        let valid = super::mfa_helpers::verify_totp(&enrollment.secret, code, enrollment.period);
+        let valid = super::mfa_totp::verify_totp_full(
+            &enrollment.secret,
+            code,
+            enrollment.period,
+            enrollment.digits,
+            enrollment.algorithm,
+        );
         state.record_attempt(valid, self.config.max_verification_attempts, self.config.lockout_duration_minutes);
 
         Ok(valid)

@@ -95,21 +95,6 @@ pub fn extract_user_from_request(
         return Ok(user);
     }
 
-    if let Some(user_id) = request
-        .headers()
-        .get("X-User-ID")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| Uuid::parse_str(s).ok())
-    {
-        let mut user = AuthenticatedUser::new(user_id, "header-user".to_string());
-
-        if let Some(bot_id) = extract_bot_id_from_request(request, config) {
-            user = user.with_current_bot(bot_id);
-        }
-
-        return Ok(user);
-    }
-
     Err(AuthError::MissingToken)
 }
 

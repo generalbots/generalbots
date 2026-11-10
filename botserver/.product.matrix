@@ -1,0 +1,58 @@
+# General Bots supported matrix (#2120)
+#
+# The product decision, in one machine-readable place: which build tier supports
+# which apps, on which platforms, owned by which team. It is the authority for
+# `botserver/src/apps/registry/ownership.rs` and for the `.product*` profiles,
+# and `scripts/product_profile_check.py` fails CI when the three disagree.
+#
+# Format: one `[tier <name>]` section per build tier.
+#   product     the `.product*` profile that implements the tier ("-" = none)
+#   level       ga | support | preview  (the support level of the tier)
+#   platforms   comma-separated host platforms
+#   owner       the team accountable for the tier
+#   cargo       the botserver Cargo feature that is the tier's build root
+#   apps        apps supported (SLA) in the tier; must cover the profile's apps=
+#   preview     apps that ship but are excluded from the SLA
+#   hidden      apps compiled and routed but never advertised
+#   deprecated  apps announced for removal; never in apps=
+#
+# Everything not listed in a tier is unsupported there. Rendering:
+# botbook/src/07-user-interface/app-support-matrix.md
+
+version=1
+
+[tier desktop-local]
+product=.product.desktop-local
+level=ga
+platforms=linux,windows,macos
+owner=desktop
+cargo=desktop-local
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations,about,settings
+preview=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
+hidden=research,sources
+deprecated=clock
+note=The blessed path: Tauri app and General Bots OS kiosk image.
+
+[tier cloud]
+product=.product
+level=support
+platforms=linux
+owner=platform
+cargo=default
+apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations,about,settings
+preview=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace,clock,database,desktop,editor,terminal
+hidden=research,sources
+deprecated=clock
+note=Self-hosted / SaaS server edition; the only server profile CI releases.
+
+[tier everything-else]
+product=-
+level=preview
+platforms=any
+owner=community
+cargo=-
+apps=
+preview=
+hidden=
+deprecated=
+note=Community and experimental builds: best effort, no SLA, not in the release matrix.

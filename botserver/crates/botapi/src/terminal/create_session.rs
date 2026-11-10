@@ -14,7 +14,7 @@ impl TerminalManager {
             return Err("Session already exists".to_string());
         }
 
-        let mut session = TerminalSession::new(session_id);
+        let mut session = TerminalSession::new(session_id)?;
         session.start().await?;
 
         let info = TerminalInfo {

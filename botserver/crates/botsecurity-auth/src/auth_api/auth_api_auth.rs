@@ -121,14 +121,6 @@ pub async fn authenticate_with_extracted_data(
         return Ok(user);
     }
 
-    if let Some(uid) = data.user_id_header {
-        let mut user = AuthenticatedUser::new(uid, "header-user".to_string());
-        if let Some(bid) = data.bot_id {
-            user = user.with_current_bot(bid);
-        }
-        return Ok(user);
-    }
-
     if !config.require_auth {
         // Single-user desktop install (`no_security=true`): no directory
         // account exists, but the local OS user owns the instance. Handlers

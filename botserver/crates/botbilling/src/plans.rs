@@ -446,3 +446,7 @@ impl PlanManager {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "plans_tests.rs"]
+mod plans_tests;

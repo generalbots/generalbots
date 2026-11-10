@@ -8,13 +8,16 @@
 //! every cloud-authenticated request to an anonymous "session-user",
 //! leaving CRM/Drive apps scoped to a random default branch. This provider
 //! validates the SaaS JWT signature + expiry only.
+//!
+//! #2112 — the verification itself lives in
+//! [`botsecurity_core::verified_jwt`], the same function the tenant resolver
+//! uses, so the login path and every `*_from_claims` helper agree on the
+//! secret, algorithm and expiry rules.
 
 use crate::auth::{AuthError, AuthenticatedUser, Role};
 use crate::auth_provider::AuthProvider;
 use async_trait::async_trait;
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use serde_json::Value;
-use std::collections::HashSet;
+use botsecurity_core::verified_jwt::verify_hs256_jwt;
 use uuid::Uuid;
 
 pub struct SaasJwtAuthProvider {
@@ -49,41 +52,22 @@ impl AuthProvider for SaasJwtAuthProvider {
 
     async fn authenticate(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
         log::info!("saas-jwt provider validating token");
-        let mut validation = Validation::new(Algorithm::HS256);
-        validation.validate_exp = true;
-        validation.required_spec_claims = HashSet::from(["exp".to_string()]);
-        // No iss/aud enforcement: cloud JWTs are minted claim-light.
+        let claims = verify_hs256_jwt(token, &self.secret).map_err(|reason| {
+            log::warn!("saas-jwt token rejected: {reason}");
+            AuthError::InvalidToken
+        })?;
 
-        let data = decode::<Value>(token, &DecodingKey::from_secret(self.secret.as_bytes()), &validation)
-            .map_err(|e| {
-                log::warn!("saas-jwt token rejected: {e}");
-                AuthError::InvalidToken
-            })?;
-
-        let claims = data.claims;
-        let sub = claims
-            .get("sub")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-        let email = claims
-            .get("email")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
-
-        let user_id = Uuid::parse_str(sub).unwrap_or_else(|_| {
-            Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes())
+        let user_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| {
+            Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{}", claims.sub).as_bytes())
         });
+        let email = claims.email.unwrap_or_default();
         let username = email.split('@').next().unwrap_or("user").to_string();
 
         let mut user = AuthenticatedUser::new(user_id, username)
-            .with_email(email.to_string())
+            .with_email(email)
             .with_role(Role::User);
 
-        if let Some(org) = claims
-            .get("org_id")
-            .and_then(|v| v.as_str())
-            .and_then(|s| Uuid::parse_str(s).ok())
-        {
+        if let Some(org) = claims.org_id {
             user = user.with_organization(org);
         }
 

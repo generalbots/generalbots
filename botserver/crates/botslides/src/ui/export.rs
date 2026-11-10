@@ -29,7 +29,7 @@ pub fn export_to_html(presentation: &Presentation) -> String {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>"#,
     );
-    html.push_str(&presentation.name);
+    html.push_str(&xml_escape(&presentation.name));
     html.push_str(
         r#"</title>
 <style>
@@ -258,7 +258,7 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                     svg.push_str(&format!(
                         r#" <image x="{}" y="{}" width="{}" height="{}" href="{}"/>
 "#,
-                        element.x, element.y, element.width, element.height, src
+                        element.x, element.y, element.width, element.height, xml_escape(src)
                     ));
                 }
             }
@@ -272,7 +272,7 @@ pub fn export_to_svg(slide: &Slide, width: u32, height: u32) -> String {
                 svg.push_str(&format!(
                     r#" <image x="{}" y="{}" width="{}" height="{}" href="{}"/>
 "#,
-                    item.x, item.y, item.width, item.height, item.src
+                    item.x, item.y, item.width, item.height, xml_escape(&item.src)
                 ));
             }
         }
@@ -330,3 +330,7 @@ pub fn export_to_markdown(presentation: &Presentation) -> String {
     md
 }
 
+
+#[cfg(test)]
+#[path = "export_tests.rs"]
+mod export_tests;

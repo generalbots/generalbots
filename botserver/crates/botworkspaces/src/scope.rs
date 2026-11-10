@@ -8,5 +8,5 @@
 
 pub use botsecurity_core::scope::{
     branch_from_claim, branch_from_jwt, branch_from_jwt_pool, email_from_jwt,
-    email_from_session, email_from_user_id,
+    email_from_session,
 };

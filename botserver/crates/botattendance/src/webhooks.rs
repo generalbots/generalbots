@@ -1,6 +1,7 @@
+use crate::errors::{api_error, api_error_db, locale_from_headers, ApiError};
 use crate::schema::attendance_webhooks;
 use crate::AttendanceConfig;
-use axum::{extract::{Path, State}, http::StatusCode, Json};
+use axum::{extract::{Path, State}, http::{HeaderMap, StatusCode}, Json};
 use chrono::Utc;
 use diesel::prelude::*;
 use hmac::{Hmac, Mac};
@@ -140,22 +141,26 @@ fn org_for_branch(config: &AttendanceConfig, branch_id: Uuid) -> Uuid {
 
 pub async fn list_webhooks(
     State(config): State<Arc<AttendanceConfig>>,
-) -> Result<Json<Vec<AttendanceWebhook>>, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    headers: HeaderMap,
+) -> Result<Json<Vec<AttendanceWebhook>>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let branch_id = get_bot_context(&config);
     let webhooks: Vec<AttendanceWebhook> = attendance_webhooks::table
         .filter(attendance_webhooks::branch_id.eq(branch_id))
         .order(attendance_webhooks::created_at.desc())
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     Ok(Json(webhooks))
 }
 
 pub async fn create_webhook(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Json(req): Json<CreateWebhookRequest>,
-) -> Result<Json<AttendanceWebhook>, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<Json<AttendanceWebhook>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let branch_id = get_bot_context(&config);
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -173,85 +178,93 @@ pub async fn create_webhook(
     diesel::insert_into(attendance_webhooks::table)
         .values(&webhook)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     Ok(Json(webhook))
 }
 
 pub async fn get_webhook(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<AttendanceWebhook>, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<Json<AttendanceWebhook>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let webhook: AttendanceWebhook = attendance_webhooks::table
         .filter(attendance_webhooks::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Webhook not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-attendance-webhook-not-found"))?;
     Ok(Json(webhook))
 }
 
 pub async fn update_webhook(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateWebhookRequest>,
-) -> Result<Json<AttendanceWebhook>, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<Json<AttendanceWebhook>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let now = Utc::now();
     if let Some(new_url) = req.webhook_url {
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
             .set(attendance_webhooks::webhook_url.eq(new_url))
-            .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
     if let Some(new_events) = req.events {
         let events_value: Vec<Option<String>> = new_events.into_iter().map(Some).collect();
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
             .set(attendance_webhooks::events.eq(Some(events_value)))
-            .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
     if let Some(active) = req.is_active {
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
             .set(attendance_webhooks::is_active.eq(Some(active)))
-            .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
     if let Some(new_secret) = req.secret_key {
         diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
             .set(attendance_webhooks::secret_key.eq(Some(new_secret)))
-            .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+            .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     }
     diesel::update(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
         .set(attendance_webhooks::updated_at.eq(now))
-        .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+        .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let webhook: AttendanceWebhook = attendance_webhooks::table
         .filter(attendance_webhooks::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Webhook not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-attendance-webhook-not-found"))?;
     Ok(Json(webhook))
 }
 
 pub async fn delete_webhook(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<StatusCode, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     diesel::delete(attendance_webhooks::table.filter(attendance_webhooks::id.eq(id)))
-        .execute(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .execute(&mut conn).map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn test_webhook(
     State(config): State<Arc<AttendanceConfig>>,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut conn = config.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let locale = locale_from_headers(&headers);
+    let mut conn = config.pool.get().map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let webhook: AttendanceWebhook = attendance_webhooks::table
         .filter(attendance_webhooks::id.eq(id))
         .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Webhook not found".to_string()))?;
+        .map_err(|_| api_error(&locale, StatusCode::NOT_FOUND, "error-attendance-webhook-not-found"))?;
     let payload = WebhookPayload {
         event: "test".to_string(), timestamp: Utc::now().to_rfc3339(), bot_id: webhook.branch_id,
         data: serde_json::json!({ "message": "This is a test webhook" }),
     };
     let payload_json = serde_json::to_string(&payload)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Serialization error: {e}")))?;
+        .map_err(|e| api_error_db(&locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let client = reqwest::Client::new();
     let mut request = client.post(&webhook.webhook_url);
     if let Some(ref secret) = webhook.secret_key {

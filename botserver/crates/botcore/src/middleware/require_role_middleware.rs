@@ -165,66 +165,97 @@ pub(super) async fn extract_and_validate_user(
         ..user
     })
 }
-/// Validate JWT token and extract claims using jsonwebtoken crate
+/// Key material for the request JWT verifier.
+///
+/// The variant *is* the algorithm: a deployment configures exactly one of the
+/// two, and the verifier never falls back from one to the other. The previous
+/// code tried HS256 first and then RS256 with the same bytes when the secret
+/// looked like a PEM, which is the classic HS256/RS256 confusion hole — an
+/// attacker who knows the RSA public key could sign HS256 with it and pass the
+/// first branch (#2125).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum JwtVerifierKey {
+    /// Opaque shared secret for HMAC-SHA256.
+    Hs256(Vec<u8>),
+    /// RSA public key in PEM form for RS256.
+    Rs256(Vec<u8>),
+}
+
+impl JwtVerifierKey {
+    /// Derives the configured algorithm from the material's shape. PEM
+    /// material is only ever an RSA public key; anything else is an HMAC
+    /// secret. The choice is made once, from configuration, never per token.
+    pub(super) fn from_secret(secret: &str) -> Result<Self, AuthError> {
+        if secret.trim().is_empty() {
+            return Err(AuthError::InvalidToken(
+                "JWT verification key is not configured".to_string(),
+            ));
+        }
+        if secret.contains("-----BEGIN") {
+            return Ok(Self::Rs256(secret.as_bytes().to_vec()));
+        }
+        Ok(Self::Hs256(secret.as_bytes().to_vec()))
+    }
+
+    pub(super) fn algorithm(&self) -> Algorithm {
+        match self {
+            Self::Hs256(_) => Algorithm::HS256,
+            Self::Rs256(_) => Algorithm::RS256,
+        }
+    }
+
+    fn decoding_key(&self) -> Result<DecodingKey, AuthError> {
+        match self {
+            Self::Hs256(secret) => Ok(DecodingKey::from_secret(secret)),
+            Self::Rs256(pem) => DecodingKey::from_rsa_pem(pem)
+                .map_err(|e| AuthError::InvalidToken(format!("Invalid RSA public key: {e}"))),
+        }
+    }
+}
+
+/// Validate JWT token and extract claims using jsonwebtoken crate.
 pub(super) fn validate_jwt(token: &str, secret: &str) -> Result<TokenClaims, AuthError> {
-    // Configure validation rules
-    let mut validation = Validation::new(Algorithm::HS256);
+    validate_jwt_with_key(token, &JwtVerifierKey::from_secret(secret)?)
+}
+
+/// Validates `token` against exactly one algorithm and one key. A token whose
+/// header advertises a different algorithm — `none`, RS256 against an HMAC
+/// key, HS256 against an RSA key — is rejected before the signature is
+/// compared, because `Validation` only accepts `key.algorithm()`.
+pub(super) fn validate_jwt_with_key(
+    token: &str,
+    key: &JwtVerifierKey,
+) -> Result<TokenClaims, AuthError> {
+    let mut validation = Validation::new(key.algorithm());
     validation.validate_exp = true;
     validation.validate_nbf = false;
     validation.set_required_spec_claims(&["sub", "exp"]);
 
-    // Also accept RS256 tokens (common with OIDC providers like Zitadel)
-    // Try HS256 first, then RS256 if that fails
-    let decoding_key = DecodingKey::from_secret(secret.as_bytes());
+    let decoding_key = key.decoding_key()?;
 
     match decode::<TokenClaims>(token, &decoding_key, &validation) {
         Ok(token_data) => Ok(token_data.claims),
-        Err(e) => {
-            // If HS256 fails, try decoding without signature verification
-            // This handles cases where the token is from an external OIDC provider
-            // and we just need to read the claims (signature already verified upstream)
-            match e.kind() {
-                jsonwebtoken::errors::ErrorKind::InvalidSignature => {
-                    // Try RS256 with the secret as a PEM key
-                    let mut rs_validation = Validation::new(Algorithm::RS256);
-                    rs_validation.validate_exp = true;
-                    rs_validation.validate_nbf = false;
-                    rs_validation.set_required_spec_claims(&["sub", "exp"]);
-
-                    // If secret looks like a PEM key, try to decode with it
-                    if secret.contains("-----BEGIN") {
-                        if let Ok(rsa_key) = DecodingKey::from_rsa_pem(secret.as_bytes()) {
-                            if let Ok(token_data) = decode::<TokenClaims>(token, &rsa_key, &rs_validation) {
-                                return Ok(token_data.claims);
-                            }
-                        }
-                    }
-
-                    // Fallback: decode without validation for trusted internal tokens
-                    Err(AuthError::InvalidToken(format!("Invalid signature: {}", e)))
-                }
-                jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
-                    Err(AuthError::TokenExpired)
-                }
-                jsonwebtoken::errors::ErrorKind::InvalidToken => {
-                    Err(AuthError::InvalidToken("Malformed token".to_string()))
-                }
-                jsonwebtoken::errors::ErrorKind::InvalidIssuer => {
-                    Err(AuthError::InvalidToken("Invalid issuer".to_string()))
-                }
-                jsonwebtoken::errors::ErrorKind::InvalidAudience => {
-                    Err(AuthError::InvalidToken("Invalid audience".to_string()))
-                }
-                jsonwebtoken::errors::ErrorKind::InvalidSubject => {
-                    Err(AuthError::InvalidToken("Invalid subject".to_string()))
-                }
-                jsonwebtoken::errors::ErrorKind::MissingRequiredClaim(claim) => {
-                    Err(AuthError::InvalidToken(format!("Missing required claim: {}", claim)))
-                }
-                _ => {
-                    Err(AuthError::InvalidToken(format!("Token validation failed: {}", e)))
-                }
+        Err(e) => Err(match e.kind() {
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => AuthError::TokenExpired,
+            jsonwebtoken::errors::ErrorKind::InvalidSignature => {
+                AuthError::InvalidToken(format!("Invalid signature: {e}"))
             }
-        }
+            jsonwebtoken::errors::ErrorKind::InvalidToken => {
+                AuthError::InvalidToken("Malformed token".to_string())
+            }
+            jsonwebtoken::errors::ErrorKind::InvalidIssuer => {
+                AuthError::InvalidToken("Invalid issuer".to_string())
+            }
+            jsonwebtoken::errors::ErrorKind::InvalidAudience => {
+                AuthError::InvalidToken("Invalid audience".to_string())
+            }
+            jsonwebtoken::errors::ErrorKind::InvalidSubject => {
+                AuthError::InvalidToken("Invalid subject".to_string())
+            }
+            jsonwebtoken::errors::ErrorKind::MissingRequiredClaim(claim) => {
+                AuthError::InvalidToken(format!("Missing required claim: {claim}"))
+            }
+            _ => AuthError::InvalidToken(format!("Token validation failed: {e}")),
+        }),
     }
 }

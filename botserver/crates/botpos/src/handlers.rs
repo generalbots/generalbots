@@ -66,6 +66,47 @@ fn parse_decimal(s: &str) -> Result<Decimal, (StatusCode, String)> {
     s.parse::<Decimal>().map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid decimal '{s}': {e}")))
 }
 
+/// Sums `quantity * unit_price` for an order. The unit price is the same
+/// decimal parser used by the product routes, so a malformed price fails the
+/// whole order with a 400 instead of being skipped (a silently smaller total
+/// is a money bug, not a tolerance).
+fn order_total(items: &[OrderItem]) -> Result<Decimal, (StatusCode, String)> {
+    let mut total = Decimal::ZERO;
+    for item in items {
+        let unit = parse_decimal(&item.unit_price)?;
+        total += unit * Decimal::from(item.quantity);
+    }
+    Ok(total)
+}
+
+/// Decodes the `items` JSONB column into order lines. Rows written by an older
+/// schema may miss a field: a line without a usable `product_id` is dropped
+/// (it cannot be joined back to a product) while a missing quantity or price
+/// falls back to the zero value the column itself uses.
+fn items_from_json(value: &serde_json::Value) -> Vec<OrderItem> {
+    value
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .filter_map(|row| {
+                    Some(OrderItem {
+                        product_id: row
+                            .get("product_id")
+                            .and_then(|p| p.as_str())
+                            .and_then(|s| Uuid::parse_str(s).ok())?,
+                        quantity: row.get("quantity").and_then(|q| q.as_i64()).unwrap_or(0),
+                        unit_price: row
+                            .get("unit_price")
+                            .and_then(|p| p.as_str())
+                            .unwrap_or("0")
+                            .to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub async fn list_products(headers: HeaderMap) -> Result<Json<Vec<Product>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
@@ -146,13 +187,7 @@ pub async fn list_orders(headers: HeaderMap) -> Result<Json<Vec<Order>>, (Status
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Order {
         id: r.id,
-        items: r.items.as_array().map(|a| a.iter().filter_map(|v| {
-            Some(OrderItem {
-                product_id: v.get("product_id").and_then(|p| p.as_str()).and_then(|s| Uuid::parse_str(s).ok())?,
-                quantity: v.get("quantity").and_then(|q| q.as_i64()).unwrap_or(0),
-                unit_price: v.get("unit_price").and_then(|p| p.as_str()).unwrap_or("0").to_string(),
-            })
-        }).collect()).unwrap_or_default(),
+        items: items_from_json(&r.items),
         total: r.total.to_string(),
         status: r.status,
         payment_method: r.payment_method,
@@ -165,11 +200,7 @@ pub async fn create_order(headers: HeaderMap, Json(req): Json<NewOrder>) -> Resu
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    let mut total = Decimal::ZERO;
-    for item in &req.items {
-        let unit = parse_decimal(&item.unit_price)?;
-        total += unit * Decimal::from(item.quantity);
-    }
+    let mut total = order_total(&req.items)?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     let items_json = serde_json::to_value(&req.items).map_err(|e| {
@@ -220,13 +251,7 @@ pub async fn get_order(headers: HeaderMap, Path(id): Path<String>) -> Result<Jso
     let r = row.ok_or((StatusCode::NOT_FOUND, format!("Order {id} not found")))?;
     Ok(Json(Order {
         id: r.id,
-        items: r.items.as_array().map(|a| a.iter().filter_map(|v| {
-            Some(OrderItem {
-                product_id: v.get("product_id").and_then(|p| p.as_str()).and_then(|s| Uuid::parse_str(s).ok())?,
-                quantity: v.get("quantity").and_then(|q| q.as_i64()).unwrap_or(0),
-                unit_price: v.get("unit_price").and_then(|p| p.as_str()).unwrap_or("0").to_string(),
-            })
-        }).collect()).unwrap_or_default(),
+        items: items_from_json(&r.items),
         total: r.total.to_string(),
         status: r.status,
         payment_method: r.payment_method,
@@ -236,3 +261,7 @@ pub async fn get_order(headers: HeaderMap, Path(id): Path<String>) -> Result<Jso
 #[cfg(test)]
 #[path = "parse_decimal_tests.rs"]
 mod parse_decimal_tests;
+
+#[cfg(test)]
+#[path = "handlers_tests.rs"]
+mod handlers_tests;

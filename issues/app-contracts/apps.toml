@@ -1,0 +1,236 @@
+# App contracts (#2119).
+#
+# One entry per id in `botserver/src/apps/registry/*.rs`. An entry documents the
+# app's server surface in one of two ways:
+#
+#   [app.<id>]
+#   routes = ["/api/<prefix>", ...]      # representative routes, not the full
+#                                        # inventory (that is `endpoint_inventory`)
+#
+#   [app.<id>]
+#   no_api = true                        # no server route at all
+#   reason = "why the app needs no API"  # >= 20 characters
+#   issue  = 2119                        # who owns the decision
+#
+# `python3 scripts/smoke_app_surfaces.py --contracts` verifies every listed
+# route exists as a `"/api/..."` literal in the botserver sources, so a contract
+# cannot invent a route the server does not serve. The same run also requires a
+# product classification and a `/suite/...` smoke surface for every app.
+
+[meta]
+issue = 2119
+note = "Representative routes per app; full inventories come from endpoint_inventory."
+
+[app.about]
+no_api = true
+reason = "static About page: version, credits and licenses come from the bundled product file"
+issue = 2119
+
+[app.analytics]
+routes = ["/api/analytics", "/api/analytics/bots/performance", "/api/analytics/activity/recent"]
+
+[app.attendant]
+routes = ["/api/attendant", "/api/attendant/agents", "/api/attendant/attachments"]
+
+[app.automations]
+routes = ["/api/automations/runs", "/api/automations/schedules"]
+
+[app.banking]
+routes = ["/api/banking", "/api/banking/accounts", "/api/banking/accounts/sync"]
+
+[app.billing]
+routes = ["/api/billing", "/api/billing/address", "/api/billing/accept-offer"]
+
+[app.browser]
+routes = ["/api/browser", "/api/browser/audit", "/api/browser/policy"]
+
+[app.calculator]
+no_api = true
+reason = "pure client-side calculator: arithmetic and history stay in the browser"
+issue = 2119
+
+[app.calendar]
+routes = ["/api/calendar", "/api/calendar/calendars", "/api/calendar/conflicts"]
+
+[app.campaigns]
+routes = ["/api/crm/campaigns", "/api/instagram/campaigns"]
+
+[app.canvas]
+routes = ["/api/canvas", "/api/canvas/ai/design", "/api/canvas/collaborators"]
+
+[app.chat]
+routes = ["/api/chat", "/api/chat/context", "/api/chat/attachments/preview"]
+
+[app.clock]
+routes = ["/api/timeclock/clock", "/api/timeclock/forms/clock-in", "/api/timeclock/forms/clock-out"]
+
+[app.clock-widget]
+no_api = true
+reason = "desktop widget that renders local time from the browser clock"
+issue = 2119
+
+[app.compliance]
+routes = ["/api/compliance", "/api/compliance/audit", "/api/compliance/checks"]
+
+[app.concierge]
+routes = ["/api/agent/plan"]
+
+[app.crm]
+routes = ["/api/crm", "/api/crm/accounts", "/api/crm/accounts/search"]
+
+[app.database]
+routes = ["/api/database", "/api/database/query", "/api/database/schema"]
+
+[app.designer]
+routes = ["/api/ui/designer/dialogs", "/api/ui/designer/export", "/api/ui/designer/files"]
+
+[app.desktop]
+routes = ["/api/desktop", "/api/desktop/activity", "/api/desktop/connect"]
+
+[app.docs]
+routes = ["/api/docs", "/api/docs/ai", "/api/docs/export/pdf"]
+
+[app.drive]
+routes = ["/api/drive/files", "/api/drive/sync/status", "/api/agent/drive/save"]
+
+[app.editor]
+routes = ["/api/editor", "/api/editor/files", "/api/editor/format"]
+
+[app.fraud]
+routes = ["/api/fraud", "/api/fraud/assess", "/api/fraud/blocklist"]
+
+[app.goals]
+routes = ["/api/goals", "/api/goals/ai/suggest", "/api/goals/alignment"]
+
+[app.handoff]
+routes = ["/api/handoff", "/api/handoff/agents", "/api/handoff/analytics"]
+
+[app.hr]
+routes = ["/api/hr", "/api/hr/attendance", "/api/hr/benefits"]
+
+[app.integrations]
+routes = ["/api/integrations", "/api/apps/integrations/catalog", "/api/apps/integrations/context"]
+
+[app.jukebox]
+routes = ["/api/jukebox", "/api/jukebox/audio", "/api/jukebox/format"]
+
+[app.kyc]
+routes = ["/api/kyc", "/api/kyc/certificates", "/api/kyc/signatures"]
+
+[app.learn]
+routes = ["/api/learn", "/api/learn/ai-assist", "/api/learn/badges"]
+
+[app.lists]
+routes = ["/api/crm/lists"]
+
+[app.mail]
+routes = ["/api/mail", "/api/mail/send"]
+
+[app.meet]
+routes = ["/api/meet", "/api/meet/create", "/api/meet/dashboard/stats"]
+
+[app.memory]
+routes = ["/api/memory/items", "/api/memory/export", "/api/memory/import"]
+
+[app.minutes]
+routes = ["/api/minutes", "/api/minutes/documents", "/api/minutes/forms/action"]
+
+[app.monitoring]
+routes = ["/api/monitoring", "/api/monitoring/alerts", "/api/monitoring/activity/latest"]
+
+[app.notes]
+no_api = true
+reason = "local notes pad: text lives in browser storage and is exported by the client"
+issue = 2119
+
+[app.o365]
+routes = ["/api/o365", "/api/o365/calendar", "/api/o365/connect"]
+
+[app.paper]
+routes = ["/api/ui/paper/ai/expand", "/api/ui/paper/ai/improve", "/api/ui/paper/ai/custom"]
+
+[app.people]
+routes = ["/api/people", "/api/people/departments", "/api/people/skills"]
+
+[app.photos]
+routes = ["/api/files", "/api/files/download", "/api/files/download-inline"]
+
+[app.plan]
+routes = ["/api/plan", "/api/plan/task", "/api/plan/ai/assist"]
+
+[app.player]
+routes = ["/api/player", "/api/player/formats", "/api/player/playlists"]
+
+[app.plugins]
+routes = ["/api/ui/plugins", "/api/ui/plugins/upload"]
+
+[app.pos]
+routes = ["/api/pos", "/api/pos/orders", "/api/pos/products"]
+
+[app.products]
+routes = ["/api/products", "/api/products/categories", "/api/catalog/products"]
+
+[app.project]
+routes = ["/api/ui/project/gantt", "/api/ui/project/new", "/api/ui/project/task/new"]
+
+[app.recycle]
+routes = ["/api/files/trash/restore", "/api/files/trash/empty"]
+
+[app.research]
+routes = ["/api/ui/research/collections", "/api/ui/paper/template/research"]
+
+[app.retail]
+routes = ["/api/retail", "/api/retail/branches", "/api/retail/promotions"]
+
+[app.settings]
+routes = ["/api/settings", "/api/settings/search", "/api/settings/accounts/smtp"]
+
+[app.sheet]
+routes = ["/api/sheet", "/api/sheet/ai", "/api/sheet/worksheets/add"]
+
+[app.slides]
+routes = ["/api/slides", "/api/slides/ai", "/api/slides/cursor"]
+
+[app.social]
+routes = ["/api/social", "/api/social/activity", "/api/social/analytics"]
+
+[app.store]
+routes = ["/api/cloud/store", "/api/cloud/store/purchase"]
+
+[app.tasks]
+routes = ["/api/tasks", "/api/tasks/stats/json"]
+
+[app.tax]
+routes = ["/api/tax", "/api/tax/calculate", "/api/billing/tax-rates"]
+
+[app.templates]
+routes = ["/api/templates", "/api/templates/list"]
+
+[app.terminal]
+routes = ["/api/terminal/exec", "/api/terminal/audit", "/api/terminal/create"]
+
+[app.tickets]
+routes = ["/api/tickets", "/api/tickets/canned", "/api/tickets/categories"]
+
+[app.timeclock]
+routes = ["/api/timeclock", "/api/timeclock/clock", "/api/timeclock/forms/break-end"]
+
+[app.timer]
+no_api = true
+reason = "countdown widget driven entirely by the browser event loop, no persistence"
+issue = 2119
+
+[app.vibe]
+routes = ["/api/vibe", "/api/vibe/agents", "/api/vibe/browser-driver/runs"]
+
+[app.video]
+routes = ["/api/video", "/api/video/alerts", "/api/video/analytics"]
+
+[app.vision]
+routes = ["/api/vision", "/api/vision/analyze", "/api/vision/barcode"]
+
+[app.weather]
+routes = ["/api/weather"]
+
+[app.workspace]
+routes = ["/api/ui/workspaces", "/api/ui/workspaces/cards", "/api/ui/workspaces/count"]

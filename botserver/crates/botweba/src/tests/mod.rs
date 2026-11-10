@@ -77,3 +77,4 @@ mod url_pattern;
 mod bot_name;
 mod queue_panel;
 mod bot_management_page;
+mod security;
