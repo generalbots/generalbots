@@ -215,5 +215,9 @@ mod validate_required;
 mod required;
 mod validate_url_ssrf;
 
+#[cfg(test)]
+#[path = "ssrf_tests.rs"]
+mod ssrf_tests;
+
 pub use validate_required::*;
 pub use validate_url_ssrf::*;

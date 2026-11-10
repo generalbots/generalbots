@@ -1,8 +1,21 @@
 use super::*;
 
 pub(super) fn extract_context(content: &str, start: usize, end: usize, padding: usize) -> String {
-    let context_start = start.saturating_sub(padding);
-    let context_end = (end + padding).min(content.len());
+    // #2066 — match offsets are byte offsets and the padding may land inside a
+    // multi-byte character; slicing there aborts the process (AGENTS.md bans
+    // panics on production paths). Widen outwards to the enclosing boundaries
+    // so the excerpt always contains the whole match.
+    let mut context_start = start.saturating_sub(padding).min(content.len());
+    while context_start > 0 && !content.is_char_boundary(context_start) {
+        context_start -= 1;
+    }
+    let mut context_end = (end + padding).min(content.len());
+    while context_end < content.len() && !content.is_char_boundary(context_end) {
+        context_end += 1;
+    }
+    if context_end < context_start {
+        context_end = context_start;
+    }
 
     let mut context = String::new();
 

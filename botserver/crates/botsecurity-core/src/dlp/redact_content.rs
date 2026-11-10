@@ -1,30 +1,52 @@
 use super::*;
 
 impl DlpManager {
-    pub fn redact_content(&self, content: &str, matches: &[DlpMatch]) -> String {
-        let mut redacted = content.to_string();
+    /// Rebuilds the content with every match replaced by its redaction label.
+    ///
+    /// #2066 — the previous implementation rewrote the string in place from
+    /// the last match to the first. Detection patterns overlap (a card number
+    /// also matches the SSN shape), so a replacement changed the length and a
+    /// later `replace_range` could slice past the end or inside a multi-byte
+    /// character: a panic, and the release profile aborts the process on
+    /// panic. Rebuilding against the original offsets is overlap-safe.
+    fn redact_with<F>(content: &str, matches: &[DlpMatch], replacement: F) -> String
+    where
+        F: Fn(&DlpMatch) -> String,
+    {
         let mut sorted_matches: Vec<&DlpMatch> = matches.iter().collect();
-        sorted_matches.sort_by_key(|b| std::cmp::Reverse(b.start_position));
+        // Widest span first at each start: a card number also matches the SSN
+        // shape, and redacting the longer span keeps the whole secret out.
+        sorted_matches.sort_by_key(|m| (m.start_position, std::cmp::Reverse(m.end_position)));
+
+        let mut redacted = String::with_capacity(content.len());
+        let mut cursor = 0usize;
 
         for dlp_match in sorted_matches {
-            let redaction = dlp_match.data_type.redaction_pattern();
-            redacted.replace_range(dlp_match.start_position..dlp_match.end_position, redaction);
+            let start = dlp_match.start_position.min(content.len());
+            let end = dlp_match.end_position.min(content.len());
+            // Skip matches that are malformed, out of order or already covered.
+            if start < cursor
+                || start >= end
+                || !content.is_char_boundary(start)
+                || !content.is_char_boundary(end)
+            {
+                continue;
+            }
+            redacted.push_str(&content[cursor..start]);
+            redacted.push_str(&replacement(dlp_match));
+            cursor = end;
         }
 
+        redacted.push_str(&content[cursor..]);
         redacted
     }
 
+    pub fn redact_content(&self, content: &str, matches: &[DlpMatch]) -> String {
+        Self::redact_with(content, matches, |m| m.data_type.redaction_pattern().to_string())
+    }
+
     pub fn partial_redact_content(&self, content: &str, matches: &[DlpMatch]) -> String {
-        let mut redacted = content.to_string();
-        let mut sorted_matches: Vec<&DlpMatch> = matches.iter().collect();
-        sorted_matches.sort_by_key(|b| std::cmp::Reverse(b.start_position));
-
-        for dlp_match in sorted_matches {
-            let masked = dlp_match.masked_value();
-            redacted.replace_range(dlp_match.start_position..dlp_match.end_position, &masked);
-        }
-
-        redacted
+        Self::redact_with(content, matches, DlpMatch::masked_value)
     }
 
     pub async fn add_policy(&self, policy: DlpPolicy) {

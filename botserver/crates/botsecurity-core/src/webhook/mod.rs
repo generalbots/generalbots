@@ -117,6 +117,10 @@ pub struct WebhookEndpointUpdate {
 }
 
 #[cfg(test)]
+#[path = "adversarial_tests.rs"]
+mod adversarial_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

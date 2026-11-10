@@ -244,6 +244,10 @@ mod master_key_lock;
 #[path = "encryption_tests.rs"]
 mod encryption_tests;
 
+#[cfg(test)]
+#[path = "tamper_tests.rs"]
+mod tamper_tests;
+
 use initialize::*;
 pub use derive_key_from_password::*;
 pub use master_key_lock::*;

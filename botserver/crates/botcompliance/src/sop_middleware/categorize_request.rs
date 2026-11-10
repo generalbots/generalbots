@@ -69,10 +69,12 @@ pub(super) fn determine_outcome(status: StatusCode) -> SopOutcome {
         SopOutcome::Success
     } else if status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN {
         SopOutcome::Denied
+    } else if status == StatusCode::REQUEST_TIMEOUT || status == StatusCode::GATEWAY_TIMEOUT {
+        // #2066 — this arm used to sit after `is_server_error`, which made the
+        // 504 branch unreachable and logged a gateway timeout as a plain error.
+        SopOutcome::Timeout
     } else if status.is_server_error() {
         SopOutcome::Error
-    } else if status == StatusCode::REQUEST_TIMEOUT || status == StatusCode::GATEWAY_TIMEOUT {
-        SopOutcome::Timeout
     } else {
         SopOutcome::Failure
     }

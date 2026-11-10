@@ -148,3 +148,7 @@ pub use extract_context::*;
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "adversarial_tests.rs"]
+mod adversarial_tests;

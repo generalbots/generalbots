@@ -104,7 +104,10 @@ impl PolicyChecker {
             let mut violations = Vec::new();
             let mut warnings = Vec::new();
 
-            if password.len() < 12 {
+            // #2066 — `len()` is bytes; a 9-character password with emoji is
+            // 18 bytes and passed the 12-character minimum.
+            let password_length = password.chars().count();
+            if password_length < 12 {
                 violations.push(PolicyViolation {
                     id: Uuid::new_v4(),
                     policy_id: policy.id,
@@ -115,7 +118,7 @@ impl PolicyChecker {
                     action_attempted: "set_password".to_string(),
                     violation_details: format!(
                         "Password length {} is less than required 12",
-                        password.len()
+                        password_length
                     ),
                     severity: PolicySeverity::High,
                     resolved: false,

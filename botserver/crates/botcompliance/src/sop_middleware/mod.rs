@@ -153,4 +153,8 @@ mod with_max_entries;
 mod search;
 mod categorize_request;
 
+#[cfg(test)]
+#[path = "categorize_tests.rs"]
+mod categorize_tests;
+
 pub use categorize_request::*;

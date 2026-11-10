@@ -1,5 +1,34 @@
 use super::*;
 
+/// True when an IP literal must never be reached from a user-supplied URL.
+///
+/// #2066 — an IPv4-mapped IPv6 literal (`[::ffff:127.0.0.1]`) parsed as a
+/// plain IPv6 address and passed every check, and the unique-local
+/// (`fc00::/7`) / link-local (`fe80::/10`) ranges were only matched by two
+/// hard-coded substrings. Every non-global range is refused here instead.
+pub(crate) fn is_blocked_ip(addr: IpAddr) -> bool {
+    match addr {
+        IpAddr::V4(v4) => {
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.is_broadcast()
+                || v4.is_documentation()
+        }
+        IpAddr::V6(v6) => {
+            if let Some(mapped) = v6.to_ipv4_mapped() {
+                return is_blocked_ip(IpAddr::V4(mapped));
+            }
+            let first = v6.segments()[0];
+            v6.is_loopback()
+                || v6.is_unspecified()
+                || (first & 0xfe00) == 0xfc00
+                || (first & 0xffc0) == 0xfe80
+        }
+    }
+}
+
 pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
     validate_url(url)?;
 
@@ -23,12 +52,7 @@ pub fn validate_url_ssrf(url: &str) -> Result<(), ValidationError> {
         };
 
         if let Ok(addr) = host_str.parse::<IpAddr>() {
-            let is_private = match addr {
-                IpAddr::V4(ipv4) => ipv4.is_loopback() || ipv4.is_private() || ipv4.is_link_local(),
-                IpAddr::V6(ipv6) => ipv6.is_loopback() || ipv6.is_unspecified(),
-            };
-
-            if is_private {
+            if is_blocked_ip(addr) {
                 return Err(ValidationError::Forbidden {
                     field: "url".to_string(),
                     reason: format!("URL resolves to private/internal address: {}", addr),

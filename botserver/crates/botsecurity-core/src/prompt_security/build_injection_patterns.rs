@@ -29,7 +29,7 @@ impl PromptSecurityManager {
             (r"(?i)system\s*:\s*you\s+are", InjectionType::RoleManipulation),
             (r"(?i)you\s+are\s+now\s+(a|an)\s+", InjectionType::RoleManipulation),
             (r"(?i)act\s+as\s+(a|an|if)\s+", InjectionType::RoleManipulation),
-            (r"(?i)pretend\s+(you('re|are)|to\s+be)\s+", InjectionType::RoleManipulation),
+            (r"(?i)pretend\s+(you('re|\s+are)|to\s+be)\s+", InjectionType::RoleManipulation),
             (r"(?i)roleplay\s+as\s+", InjectionType::RoleManipulation),
             (r"(?i)(reveal|show|tell|display|output|print)\s+(me\s+)?(your|the)\s+(system\s+)?(prompt|instructions?|rules?)", InjectionType::SystemPromptLeak),
             (r"(?i)what\s+(are|were)\s+your\s+(initial|original|system)\s+(instructions?|prompts?)", InjectionType::SystemPromptLeak),

@@ -126,3 +126,7 @@ impl Default for PolicyChecker {
 }
 
 mod service;
+
+#[cfg(test)]
+#[path = "checker_tests.rs"]
+mod checker_tests;

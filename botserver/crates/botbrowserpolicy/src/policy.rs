@@ -74,6 +74,17 @@ pub fn parse_url_parts(url: &str) -> Option<(String, String)> {
         return None;
     }
     let authority = rest.split(['/', '?', '#']).next()?;
+    // #2066 — browsers treat a backslash in a special-scheme URL as a path
+    // separator, so `https://evil.com\@example.com` is host `evil.com` in
+    // Chromium but parsed as `example.com` here, which bypassed the allowlist.
+    // Whitespace and control characters are equally ambiguous: refuse both
+    // instead of guessing the browser's normalisation.
+    if authority
+        .chars()
+        .any(|c| c == '\\' || c.is_whitespace() || c.is_control())
+    {
+        return None;
+    }
     let authority = authority.rsplit('@').next()?;
     let host = authority.split(':').next()?;
     if host.is_empty() {
@@ -137,6 +148,10 @@ pub fn step_allowed(cfg: &PolicyConfig, url: &str, task_kind: &str) -> Result<()
     url_allowed(cfg, url)?;
     credential_guard(cfg, url, task_kind)
 }
+
+#[cfg(test)]
+#[path = "policy_adversarial_tests.rs"]
+mod policy_adversarial_tests;
 
 #[cfg(test)]
 mod tests {

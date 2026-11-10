@@ -28,15 +28,20 @@ impl DlpMatch {
     }
 
     pub fn masked_value(&self) -> String {
-        let len = self.matched_text.len();
+        // #2066 — the value comes from a regex match over UTF-8 text (custom
+        // patterns can match non-ASCII), so slicing by byte offset panicked
+        // inside a multi-byte character. Mask by characters instead.
+        let chars: Vec<char> = self.matched_text.chars().collect();
+        let len = chars.len();
         if len <= 4 {
             "*".repeat(len)
         } else {
             format!(
-                "{}{}{}",
-                &self.matched_text[..2],
+                "{}{}{}{}",
+                chars[0],
+                chars[1],
                 "*".repeat(len - 4),
-                &self.matched_text[len - 2..]
+                chars[len - 2..].iter().collect::<String>()
             )
         }
     }

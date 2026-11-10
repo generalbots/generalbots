@@ -77,8 +77,17 @@ impl BudgetTracker {
     }
 
     /// Charges one step. Returns the new cumulative step count.
+    ///
+    /// The accumulator saturates: a wrapping counter would reset the budget
+    /// and let the caller charge again (guard bypass).
     pub fn charge_step(&self) -> Result<u32, BudgetExceeded> {
-        let used = self.steps.fetch_add(1, Ordering::SeqCst) + 1;
+        let used = self
+            .steps
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+                Some(current.saturating_add(1))
+            })
+            .map(|previous| previous.saturating_add(1))
+            .unwrap_or(u32::MAX);
         if used > self.caps.max_steps {
             return Err(BudgetExceeded::Steps {
                 used,
@@ -90,8 +99,18 @@ impl BudgetTracker {
 
     /// Charges a cost delta expressed in milli-units (1 unit = 1000 milli).
     /// Returns the new cumulative cost.
+    ///
+    /// The accumulator saturates instead of wrapping: `u64::MAX` was a valid
+    /// delta and wrapped the counter to zero, which reset the budget and let
+    /// every later charge through (guard bypass).
     pub fn charge_cost(&self, delta_milli: u64) -> Result<u64, BudgetExceeded> {
-        let used = self.cost_milli.fetch_add(delta_milli, Ordering::SeqCst) + delta_milli;
+        let used = self
+            .cost_milli
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+                Some(current.saturating_add(delta_milli))
+            })
+            .map(|previous| previous.saturating_add(delta_milli))
+            .unwrap_or(u64::MAX);
         if used > self.caps.max_cost_milli {
             return Err(BudgetExceeded::Cost {
                 used_milli: used,
@@ -116,6 +135,10 @@ impl BudgetTracker {
         self.caps
     }
 }
+
+#[cfg(test)]
+#[path = "budget_adversarial_tests.rs"]
+mod budget_adversarial_tests;
 
 #[cfg(test)]
 mod tests {

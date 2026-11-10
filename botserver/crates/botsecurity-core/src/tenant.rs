@@ -44,16 +44,17 @@ pub fn base64url_decode(input: &str) -> Option<Vec<u8>> {
 /// identifies the caller. The returned token is still verified on the normal
 /// authentication path, so this widens the transport, not the trust.
 pub fn token_from_authorization(auth: &str) -> Option<String> {
-    if let Some(token) = auth
-        .strip_prefix("Bearer ")
-        .or_else(|| auth.strip_prefix("bearer "))
-    {
-        let token = token.trim();
-        return if token.is_empty() {
-            None
-        } else {
-            Some(token.to_string())
-        };
+    // RFC 7235: the auth scheme is case-insensitive, so `BEARER` must work too.
+    const BEARER_PREFIX_LEN: usize = "bearer ".len();
+    if let Some(head) = auth.get(..BEARER_PREFIX_LEN) {
+        if head.eq_ignore_ascii_case("bearer ") {
+            let token = auth[BEARER_PREFIX_LEN..].trim();
+            return if token.is_empty() {
+                None
+            } else {
+                Some(token.to_string())
+            };
+        }
     }
 
     const BASIC_PREFIX_LEN: usize = "basic ".len();
@@ -94,7 +95,11 @@ fn jwt_header_is_secured(token: &str) -> bool {
     match header.get("alg").and_then(|v| v.as_str()) {
         // `none` (any casing) means "no signature"; HS/RS/ES/PS algorithms are
         // verified on the normal authentication path before a handler runs.
-        Some(alg) => !alg.trim().eq_ignore_ascii_case("none"),
+        // An empty algorithm is not a signature either.
+        Some(alg) => {
+            let alg = alg.trim();
+            !alg.is_empty() && !alg.eq_ignore_ascii_case("none")
+        }
         None => false,
     }
 }
@@ -114,6 +119,9 @@ fn jwt_payload(headers: &HeaderMap) -> Option<serde_json::Value> {
     }
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
+        return None;
+    }
+    if parts.iter().any(|part| part.is_empty()) {
         return None;
     }
     if !jwt_header_is_secured(&token) {
@@ -156,6 +164,11 @@ pub fn user_id_from_claims_subject(token: &str) -> Option<String> {
     let token = token.strip_prefix("Bearer ").unwrap_or(token);
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
+        return None;
+    }
+    // Same header gate as `jwt_payload`: a forged `alg=none` token must not
+    // supply the subject that scopes an SSE stream.
+    if !jwt_header_is_secured(token) {
         return None;
     }
     let payload = base64url_decode(parts[1].trim_end_matches('='))?;
@@ -226,6 +239,10 @@ pub fn branch_from_user_binding(
     .flatten()
     .map(|r| r.id)
 }
+
+#[cfg(test)]
+#[path = "tenant_adversarial_tests.rs"]
+mod tenant_adversarial_tests;
 
 #[cfg(test)]
 mod tenant_claim_tests {
