@@ -17,7 +17,9 @@ pub(super) fn validate_zipcode(input: &str) -> ValidationResult {
 
     if (cleaned.len() == 5 || cleaned.len() == 9) && cleaned.chars().all(|c| c.is_ascii_digit()) {
         let formatted = if cleaned.len() == 9 {
-            format!("{}-{}", &cleaned[0..5], &cleaned[5..8])
+            // ZIP+4 keeps all nine digits: the old slice stopped at index 8,
+            // so "12345-6789" came back as "12345-678".
+            format!("{}-{}", &cleaned[0..5], &cleaned[5..9])
         } else {
             cleaned.clone()
         };
@@ -255,4 +257,118 @@ pub(super) fn validate_color(input: &str) -> ValidationResult {
     }
 
     ValidationResult::invalid(InputType::Color.error_message())
+}
+
+#[cfg(test)]
+mod identity_validator_tests {
+    use super::*;
+
+    #[test]
+    fn brazilian_ceps_are_formatted() {
+        let result = validate_zipcode("01310100");
+        assert!(result.is_valid);
+        assert_eq!(result.normalized_value, "01310-100");
+        assert_eq!(
+            result.metadata.as_ref().unwrap()["country"],
+            serde_json::json!("BR")
+        );
+        assert_eq!(validate_zipcode("01310-100").normalized_value, "01310-100");
+    }
+
+    #[test]
+    fn us_zips_keep_every_digit() {
+        assert_eq!(validate_zipcode("12345").normalized_value, "12345");
+        // ZIP+4 used to come back as "12345-678", losing the last digit.
+        let plus_four = validate_zipcode("12345-6789");
+        assert!(plus_four.is_valid);
+        assert_eq!(plus_four.normalized_value, "12345-6789");
+        assert_eq!(
+            plus_four.metadata.as_ref().unwrap()["country"],
+            serde_json::json!("US")
+        );
+    }
+
+    #[test]
+    fn uk_postcodes_are_uppercased() {
+        let result = validate_zipcode("sw1a 1aa");
+        assert!(result.is_valid);
+        assert_eq!(result.normalized_value, "SW1A1AA");
+    }
+
+    #[test]
+    fn junk_is_rejected_as_a_zipcode() {
+        assert!(!validate_zipcode("").is_valid);
+        assert!(!validate_zipcode("abc").is_valid);
+        assert!(!validate_zipcode("1234").is_valid);
+    }
+
+    #[test]
+    fn valid_cpfs_pass_and_are_formatted() {
+        let result = validate_cpf("529.982.247-25");
+        assert!(result.is_valid);
+        assert_eq!(result.normalized_value, "529.982.247-25");
+        assert!(validate_cpf("52998224725").is_valid);
+    }
+
+    #[test]
+    fn invalid_cpfs_are_rejected() {
+        assert!(!validate_cpf("111.111.111-11").is_valid, "repeated digits");
+        assert!(!validate_cpf("529.982.247-26").is_valid, "bad check digit");
+        assert!(!validate_cpf("123").is_valid, "wrong length");
+        assert!(!validate_cpf("").is_valid);
+    }
+
+    #[test]
+    fn valid_cnpjs_pass_and_are_formatted() {
+        let result = validate_cnpj("11.222.333/0001-81");
+        assert!(result.is_valid);
+        assert_eq!(result.normalized_value, "11.222.333/0001-81");
+        assert!(validate_cnpj("11222333000181").is_valid);
+    }
+
+    #[test]
+    fn invalid_cnpjs_are_rejected() {
+        assert!(!validate_cnpj("11.222.333/0001-82").is_valid, "bad check digit");
+        assert!(!validate_cnpj("123").is_valid, "wrong length");
+        assert!(!validate_cnpj("").is_valid);
+    }
+
+    #[test]
+    fn languages_match_names_and_codes() {
+        assert_eq!(validate_language("Portuguese").normalized_value, "pt");
+        assert_eq!(validate_language("português").normalized_value, "pt");
+        assert_eq!(validate_language("EN").normalized_value, "en");
+        assert_eq!(validate_language("espanhol").normalized_value, "es");
+        assert!(!validate_language("klingon").is_valid);
+        assert!(!validate_language("").is_valid);
+    }
+
+    #[test]
+    fn urls_gain_a_scheme_when_missing() {
+        assert_eq!(validate_url("example.com").normalized_value, "https://example.com");
+        assert_eq!(
+            validate_url("https://example.com/path?q=1").normalized_value,
+            "https://example.com/path?q=1"
+        );
+        assert!(!validate_url("not a url").is_valid);
+        assert!(!validate_url("").is_valid);
+    }
+
+    #[test]
+    fn named_and_hex_colors_normalize_to_hex() {
+        assert_eq!(validate_color("red").normalized_value, "#FF0000");
+        assert_eq!(validate_color("#ff0000").normalized_value, "#FF0000");
+        assert_eq!(validate_color("#f00").normalized_value, "#FF0000");
+        assert_eq!(validate_color("rgb(255, 0, 0)").normalized_value, "#FF0000");
+        assert!(!validate_color("not-a-color").is_valid);
+    }
+
+    #[test]
+    fn uuids_are_validated_and_canonicalized() {
+        assert_eq!(
+            validate_uuid("550E8400-E29B-41D4-A716-446655440000").normalized_value,
+            "550e8400-e29b-41d4-a716-446655440000"
+        );
+        assert!(!validate_uuid("not-a-uuid").is_valid);
+    }
 }
