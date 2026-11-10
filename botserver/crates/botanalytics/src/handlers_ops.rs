@@ -30,7 +30,10 @@ pub fn bad_ratio(objective: &Objective, stats: &WindowStats) -> Option<f64> {
     match objective.metric {
         MetricKind::LatencyHistogram => {
             let threshold = objective.threshold_ms.unwrap_or(500.0);
-            ratio_above_histogram(&stats.buckets, threshold).map(|ratio| 1.0 - ratio)
+            // `ratio_above_histogram` already returns the bad share (above the
+            // threshold); inverting it here made a healthy service look like it
+            // was burning its error budget.
+            ratio_above_histogram(&stats.buckets, threshold)
         }
         MetricKind::ErrorRate => {
             if stats.requests == 0 {
