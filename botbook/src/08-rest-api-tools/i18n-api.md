@@ -33,10 +33,14 @@ List all available locales supported by the system.
 **Response:**
 ```json
 {
-  "locales": ["en", "pt-BR", "es", "fr"],
+  "locales": ["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"],
   "default": "en"
 }
 ```
+
+The list comes from the loaded catalogue (`botlib/locales/<code>/`), so it grows
+by adding a locale directory — there is no second list to maintain. See
+[Localization (i18n)](../07-user-interface/i18n/README.md).
 
 ---
 
@@ -94,7 +98,7 @@ Retrieve all translated strings for a specific locale. If the requested locale i
 
 BotServer resolves the response language with one helper (`botcore::i18n::locale_from_headers`), in this order:
 
-1. **Explicit** — `X-Locale: pt-BR` header (public/unauthenticated contexts, and a `?locale=` query for the same callers). An unsupported value is ignored.
+1. **Explicit** — `X-Locale: pt-BR` header (public/unauthenticated contexts). An unsupported value is ignored, not rejected.
 2. **User preference** — the locale stored in `user_preferences` (key `locale`) for authenticated requests, and for background work (emails, notifications, digests) the recipient's preference — never the process locale.
 3. **`Accept-Language`** — exact match, then language match, then fallback. Entries with `q=0` are treated as "not acceptable" and skipped.
 4. **Default** — `en`.
@@ -189,5 +193,8 @@ document.querySelectorAll('[data-i18n]').forEach(el => {
 
 ## See Also
 
+- [Localization (i18n)](../07-user-interface/i18n/README.md) — catalogue, Fluent subset, tooling
+- [i18n Server Surface](../07-user-interface/i18n/server.md) — resolver and error contract
+- [i18n Client Runtime](../07-user-interface/i18n/client.md) — `window.i18n` and attributes
 - [Admin API](./admin-api.md) — System configuration
 - [Organizations API](./organizations-api.md) — Organization settings

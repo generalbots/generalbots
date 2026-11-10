@@ -443,6 +443,9 @@
    - [Agentic UI Orchestration & Universal Search](./07-user-interface/agentic-ui-orchestration.md)
    - [App Action Model](./07-user-interface/app-action-model.md)
    - [Dev Chat Widget](./07-user-interface/dev-chat.md)
+   - [Localization (i18n)](./07-user-interface/i18n/README.md)
+      - [i18n Server Surface](./07-user-interface/i18n/server.md)
+      - [i18n Client Runtime](./07-user-interface/i18n/client.md)
 
 ---
 
