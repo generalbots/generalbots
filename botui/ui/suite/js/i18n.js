@@ -235,6 +235,18 @@
     }
 
     localStorage.setItem(STORAGE_KEY, locale);
+    // #2087 — persist the choice server-side so other devices and
+    // server-rendered messages follow it. Best effort: an unauthenticated
+    // visitor still gets the local switch.
+    try {
+      fetch("/api/i18n/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: locale }),
+      }).catch(function () {});
+    } catch (e) {
+      /* persistence is optional */
+    }
     await loadTranslations(locale);
     translatePage();
 
@@ -306,7 +318,28 @@
       return;
     }
 
-    const locale = detectBrowserLocale();
+    // #2087 — when this device has no explicit choice, prefer the locale the
+    // user persisted server-side (settings, another device, a server-rendered
+    // email) before falling back to the browser language.
+    let locale = null;
+    try {
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        const pref = await fetch("/api/i18n/preference", {
+          headers: { Accept: "application/json" },
+        });
+        if (pref.ok) {
+          const data = await pref.json();
+          if (data && data.locale) {
+            locale = data.locale;
+          }
+        }
+      }
+    } catch (e) {
+      /* unauthenticated or offline — the browser language wins */
+    }
+    if (!locale) {
+      locale = detectBrowserLocale();
+    }
     console.log(`i18n: Detected locale: ${locale}`);
     await loadTranslations(locale);
 
