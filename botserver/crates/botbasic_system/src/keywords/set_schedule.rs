@@ -5,7 +5,13 @@ use log::trace;
 use serde_json::{json, Value};
 
 pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
-    let input = input.trim().to_lowercase();
+    // Collapse runs of whitespace so `every  monday  at  9am` normalizes like
+    // the single-spaced form.
+    let input = input
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase();
 
     let parts: Vec<&str> = input.split_whitespace().collect();
     if (parts.len() == 5 || parts.len() == 6) && is_cron_expression(&parts) {
@@ -19,12 +25,26 @@ fn is_cron_expression(parts: &[&str]) -> bool {
     if parts.len() != 5 && parts.len() != 6 {
         return false;
     }
-    
-    parts.iter().all(|part| {
-        part.chars().all(|c| {
-            c.is_ascii_digit() || c == '*' || c == '/' || c == '-' || c == ',' || c.is_ascii_alphabetic()
+
+    // A cron field is numeric or `*`; day/month names are at most three
+    // letters and may be joined with `-`, `/` or `,` (e.g. `MON-FRI`).
+    // Without this shape check, an ordinary sentence with five or six words
+    // ("every 15 minutes business hours") was accepted verbatim as cron and
+    // silently stored as a schedule that can never fire.
+    fn field_is_cron(field: &str) -> bool {
+        field.split(['-', '/', ',']).all(|segment| {
+            !segment.is_empty()
+                && (segment
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || c == '*')
+                    || (segment.len() <= 3 && segment.chars().all(|c| c.is_ascii_alphabetic())))
         })
-    })
+    }
+
+    parts.iter().all(|part| field_is_cron(part))
+        && parts
+            .iter()
+            .any(|part| part.chars().any(|c| c.is_ascii_digit() || c == '*'))
 }
 
 fn parse_natural_language(input: &str) -> Result<String, String> {
@@ -35,7 +55,12 @@ fn parse_natural_language(input: &str) -> Result<String, String> {
         .replace(" to ", "_to_")
         .replace(" during ", "_during_");
 
-    let input = input.trim();
+    // The multiword replacements above only fire when the token is surrounded
+    // by spaces, so `at 9am` and `every 5 minutes` kept a literal space and
+    // never matched any pattern (the error message advertised both). Fold the
+    // remaining spaces into the same separator the parsers expect.
+    let input = input.trim().replace(' ', "_");
+    let input = input.as_str();
 
     if let Some(cron) = parse_simple_interval(input) {
         return Ok(cron);
@@ -350,3 +375,6 @@ use rhai::Engine;
 use uuid::Uuid;
 
 pub fn register_schedule_keywords(_state: Arc<dyn BasicRuntime>, _user: UserSession, _engine: &mut Engine) {}
+#[cfg(test)]
+#[path = "set_schedule_tests.rs"]
+mod set_schedule_tests;
