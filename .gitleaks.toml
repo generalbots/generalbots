@@ -54,6 +54,10 @@ paths = [
   '''^botserver/crates/botsecurity-core/src/dlp(/mod|/tests)?\.rs$''',
   '''^botserver/crates/botsecurity-auth/src/auth_provider(/mod)?\.rs$''',
   '''^botserver/crates/botsecurity-core/src/prompt_security(/mod)?\.rs$''',
+  # #2064/#2075 — the code-scanner tests feed the scanner's own patterns with
+  # documented fake samples (`api_key = "abcdefgh12345678"`); nothing here is
+  # a credential and the file never runs against a service.
+  '''^botserver/crates/botcompliance/src/code_scanner(/tests)?\.rs$''',
   '''^botserver/crates/botevents/src/redact\.rs$''',
   '''^botserver/src/security/mutual_tls\.rs$''',
 ]
