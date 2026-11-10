@@ -74,6 +74,10 @@ exceptions = [
     { allow = ["0BSD"], crate = "mailparse" },
     { allow = ["0BSD"], crate = "quoted_printable" },
     { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
+    # rustls-platform-verifier 0.7 pulls the Mozilla root store as
+    # `webpki-root-certs` (a different crate from `webpki-roots`); CDLA
+    # Permissive 2.0 is a permissive data license, no code linking.
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
     { allow = ["WTFPL"], crate = "ole" },
 ]
 
