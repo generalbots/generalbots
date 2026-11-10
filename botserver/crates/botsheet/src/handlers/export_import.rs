@@ -4,7 +4,7 @@ use base64::Engine;
 use crate::auth::{resolve_user_id, SheetUser};
 use crate::export::{
     export_to_csv, export_to_html, export_to_json, export_to_markdown, export_to_ods,
-    export_to_pdf_data, export_to_pdf_data_with, export_to_xlsx,
+    export_to_pdf_data, export_to_pdf_data_with,
 };
 use crate::state::{save_sheet_to_drive, SheetState};
 use crate::storage::import::import_spreadsheet_bytes;
@@ -55,43 +55,41 @@ pub async fn handle_export_sheet(
             Ok((content_headers("text/csv"), csv.into_bytes()))
         }
         "xlsx" => {
-            // #2043 — export prefers the preserved package, like save-back
-            // does: patching the source keeps charts, comments, conditional
-            // formats and images that the model cannot re-emit.
-            let (xlsx, fidelity) = match sheet.source_bytes.as_deref() {
-                Some(original) => match crate::storage::merge_into_original(original, &sheet) {
-                    Ok(bytes) => (bytes, "preserved"),
-                    Err(error) => {
-                        log::warn!(
-                            "sheet export: cannot patch the source package, regenerating: {error}"
-                        );
-                        let bytes = export_to_xlsx(&sheet).map_err(|e| {
-                            (
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
-                            )
-                        })?;
-                        (bytes, "regenerated")
-                    }
-                },
-                None => {
-                    let bytes = export_to_xlsx(&sheet).map_err(|e| {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
-                        )
-                    })?;
-                    (bytes, "regenerated")
-                }
-            };
+            // #2043 — export takes the same route as save-back: patch the
+            // retained package when one exists so charts, comments,
+            // conditional formats and images survive; rebuild only when there
+            // is nothing to patch, and label the result so the loss is never
+            // silent.
+            let produced = crate::storage::produce_xlsx(&sheet).map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botsheet::handlers::export_import", None)})),
+                )
+            })?;
+            if let Some(reason) = produced.plan.regenerate_reason() {
+                log::warn!(
+                    "sheet export regenerated from the model: {}",
+                    reason.description()
+                );
+            }
             let mut headers = content_headers(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             );
             headers.insert(
                 "x-gb-xlsx-fidelity",
-                axum::http::HeaderValue::from_static(fidelity),
+                axum::http::HeaderValue::from_static(produced.plan.as_str()),
             );
-            return Ok((headers, xlsx));
+            headers.insert(
+                "x-gb-xlsx-fidelity-reason",
+                axum::http::HeaderValue::from_static(
+                    produced
+                        .plan
+                        .regenerate_reason()
+                        .map(crate::storage::RegenerateReason::as_str)
+                        .unwrap_or("none"),
+                ),
+            );
+            return Ok((headers, produced.bytes));
         }
         "json" => {
             let json = export_to_json(&sheet);

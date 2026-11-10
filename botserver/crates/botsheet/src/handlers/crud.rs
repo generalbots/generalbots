@@ -2,6 +2,7 @@ use crate::auth::{resolve_user_id, SheetUser};
 use crate::state::{delete_sheet_from_drive, list_sheets_from_drive, load_sheet_from_drive,
     persist_sheet_to_drive, save_sheet_to_drive, SheetState};
 use crate::storage::import::{create_new_spreadsheet, parse_csv_to_worksheets, parse_xlsx_to_worksheets};
+use crate::storage::retains_snapshot;
 use crate::types::{LoadFromDriveRequest, LoadQuery, SaveRequest, SaveResponse, SearchQuery,
     ShareRequest, Spreadsheet, SpreadsheetMetadata};
 use crate::ui_fragments::Lang;
@@ -184,10 +185,15 @@ pub async fn handle_load_from_drive(
         source_bucket: Some(req.bucket.clone()),
         source_path: Some(req.path.clone()),
         // Retain the original package for the save-back merge (#788).
-        // #2043 — keep it for .ods/.xls too: merge_into_original refuses a
-        // non-xlsx package, so the snapshot is safe to hold and available to a
-        // future format-aware patcher.
-        source_bytes: Some(bytes.clone()),
+        // #2043 — keep it for .ods/.xls too: the snapshot is what makes the
+        // loss explicit (a non-OOXML package cannot be patched, so the save
+        // writes a named sibling instead of overwriting the source), and a
+        // future format-aware patcher can use it. `csv`/`tsv` have no package.
+        source_bytes: if retains_snapshot(&ext) {
+            Some(bytes.clone())
+        } else {
+            None
+        },
         acl: HashMap::new(),
     };
 

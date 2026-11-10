@@ -11,17 +11,24 @@ pub mod xlsx_external_links;
 pub mod xlsx_layout;
 pub mod xlsx_layout_patch;
 pub mod xlsx_passthrough;
+#[cfg(test)]
+mod xlsx_passthrough_tests;
 pub mod xlsx_read;
 pub mod xlsx_rename;
 pub mod xlsx_rich_text;
 pub mod xlsx_rules;
 pub mod xlsx_shared_strings;
+pub mod xlsx_source;
 pub mod xlsx_workbook;
 pub mod xlsx_workbook_patch;
 pub mod xlsx_write;
 
 pub use import::*;
 pub use xlsx_read::load_xlsx_from_bytes;
+pub use xlsx_source::{
+    plan_for, produce_xlsx, retains_snapshot, save_back_message, save_back_target, RegenerateReason,
+    SaveBackTarget, XlsxPlan,
+};
 pub use xlsx_write::{
     apply_umya_style, convert_to_xlsx, extract_cell_style, get_col_letter, merge_into_original,
 };
@@ -145,17 +152,8 @@ pub async fn save_workbook_to_drive(
     Ok(())
 }
 
-/// Creates a post-save hook that exports the sheet back to Drive as xlsx.
-///
-/// The export is written BESIDE the original source file (`<name>.gbsheet.xlsx`)
-/// rather than overwriting it. The umya-spreadsheet round-trip cannot yet
-/// preserve every unmodelled part (notably pivot tables), so overwriting the
-/// source would corrupt the user's file — this keeps the original untouched
-/// until a true zip-level preserve-and-passthrough lands (#788).
-/// Runs asynchronously via tokio::spawn (fire-and-forget) to avoid
-/// blocking the tokio runtime from within a sync closure.
-/// #2043 — the sibling the save-back writes, also reported in the save
-/// response so the user knows the opened file itself was not overwritten.
+/// Sibling destination for a workbook that cannot be patched in place:
+/// `report.xlsx` -> `report.gbsheet.xlsx` (#2043).
 pub fn sibling_xlsx_path(source_path: &str) -> String {
     let base = source_path
         .strip_suffix(".xlsx")
@@ -166,55 +164,53 @@ pub fn sibling_xlsx_path(source_path: &str) -> String {
     format!("{base}.gbsheet.xlsx")
 }
 
+/// Creates a post-save hook that writes the edited workbook back to Drive.
+///
+/// #2043 — the destination follows the source snapshot:
+/// * an OOXML package that can be patched is written back to the **opened
+///   file** (`source_path`); the zip-level passthrough copies every part it
+///   does not model, so charts, comments, conditional formats and images
+///   survive;
+/// * anything else (`.ods`/`.xls` snapshot, or no snapshot at all) goes to the
+///   `<name>.gbsheet.xlsx` sibling so a rebuilt workbook never replaces the
+///   original — [`save_back_message`] names that file for the user.
+///
+/// A failed patch returns the error instead of silently regenerating: the
+/// original stays untouched and the caller reports it (#2043).
+/// Runs asynchronously via tokio::spawn (fire-and-forget) to avoid
+/// blocking the tokio runtime from within a sync closure.
 pub fn create_save_back_hook(drive: Arc<dyn DriveOps>) -> SheetSaveHook {
     Arc::new(move |sheet: &Spreadsheet| {
-        let src_bucket = match sheet.source_bucket {
-            Some(ref b) => b.clone(),
-            None => return Ok(()),
-        };
-        let src_path = match sheet.source_path {
-            Some(ref p) => p.clone(),
-            None => return Ok(()),
+        let Some(target) = save_back_target(sheet) else {
+            return Ok(());
         };
 
-        // Non-destructive destination: a sibling file, never the source.
-        let dest_path = sibling_xlsx_path(&src_path);
-
-        let xlsx_bytes = match sheet.source_bytes {
-            Some(ref original) => match merge_into_original(original, sheet) {
-                Ok(b) => b,
-                Err(e) => {
-                    log::error!("Failed to merge xlsx save-back, falling back to regenerate: {e}");
-                    match convert_to_xlsx(sheet) {
-                        Ok(b) => b,
-                        Err(e2) => {
-                            log::error!("Failed to convert sheet to xlsx for save-back: {e2}");
-                            return Ok(());
-                        }
-                    }
-                }
-            },
-            None => match convert_to_xlsx(sheet) {
-                Ok(b) => b,
-                Err(e) => {
-                    log::error!("Failed to convert sheet to xlsx for save-back: {e}");
-                    return Ok(());
-                }
-            },
-        };
+        // Bytes are produced synchronously so a patch failure surfaces here
+        // rather than turning into a silent, lossy rebuild.
+        let produced = produce_xlsx(sheet)?;
+        if let Some(reason) = produced.plan.regenerate_reason() {
+            log::warn!(
+                "sheet save-back regenerated {} from the model: {}",
+                target.path,
+                reason.description()
+            );
+        }
 
         let d = drive.clone();
+        let bucket = target.bucket.clone();
+        let dest_path = target.path.clone();
+        let xlsx_bytes = produced.bytes;
         tokio::spawn(async move {
             if let Err(e) = d
                 .put_object(
-                    &src_bucket,
+                    &bucket,
                     &dest_path,
                     xlsx_bytes,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 )
                 .await
             {
-                log::error!("Failed to save xlsx back to Drive: {e}");
+                log::error!("Failed to save xlsx back to Drive ({dest_path}): {e}");
             }
         });
 

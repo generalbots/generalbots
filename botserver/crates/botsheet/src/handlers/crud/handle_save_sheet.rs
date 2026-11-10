@@ -136,12 +136,10 @@ pub async fn handle_save_sheet(
         ));
     }
 
-    // #2043 — the save-back writes a sibling; name it so the outcome is not a
-    // surprise.
-    let message = match sheet.source_path.as_deref() {
-        Some(path) => format!("Saved as {}", crate::storage::sibling_xlsx_path(path)),
-        None => "Sheet saved successfully".to_string(),
-    };
+    // #2043 — name the file the save-back actually writes: the opened file
+    // when it can be patched, the sibling when it cannot.
+    let target = crate::storage::save_back_target(&sheet);
+    let message = crate::storage::save_back_message(target.as_ref());
     Ok(Json(SaveResponse {
         id: sheet.id.clone(),
         success: true,

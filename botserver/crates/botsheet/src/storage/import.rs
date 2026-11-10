@@ -379,7 +379,15 @@ pub fn import_spreadsheet_bytes(
         external_links: super::xlsx_external_links::extract_external_links(bytes),
         source_bucket: None,
         source_path: None,
-        source_bytes: None,
+        // #2043 — retain the uploaded package so a later save patches the
+        // original (charts, comments, conditional formats, images survive)
+        // instead of rebuilding the workbook from the model. `csv`/`tsv` are
+        // plain text with no package to patch.
+        source_bytes: if super::xlsx_source::retains_snapshot(detected) {
+            Some(bytes.to_vec())
+        } else {
+            None
+        },
         acl: HashMap::new(),
     })
 }
