@@ -306,3 +306,7 @@ fn transform_line(line: &str) -> String {
 
 use std::collections::HashSet;
 use std::fmt::Write;
+
+#[cfg(test)]
+#[path = "goto_transform_tests.rs"]
+mod goto_transform_tests;
