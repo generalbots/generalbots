@@ -138,3 +138,7 @@ pub struct VerifyQuery {
     pub name: Option<String>,
     pub course: Option<String>,
 }
+
+#[cfg(test)]
+#[path = "certification_tests.rs"]
+mod certification_tests;

@@ -218,3 +218,7 @@ pub fn xp_progress(total_xp: i32) -> UserLevelInfo {
         xp_in_current_level: xp_in_current,
     }
 }
+
+#[cfg(test)]
+#[path = "xp_tests.rs"]
+mod xp_tests;

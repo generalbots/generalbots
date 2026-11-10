@@ -172,24 +172,26 @@ pub async fn cashflow_diagnosis_inner(
     })
 }
 pub(super) fn parse_csv_rows(csv: &str) -> Vec<CashflowRow> {
+    // Quoted cells may carry the delimiter: a pt-BR amount is written
+    // `"R$ 1.000,00"`, so a plain `split(',')` would truncate the cents and
+    // shift every later column.
+    use crate::intent::import::split_csv_line;
+
     let mut rows: Vec<CashflowRow> = Vec::new();
     let mut lines = csv.lines();
     let header_line = match lines.next() {
         Some(h) => h,
         None => return rows,
     };
-    let headers: Vec<String> = header_line
-        .split(',')
-        .map(|s| s.trim().trim_matches('"').to_lowercase())
+    let headers: Vec<String> = split_csv_line(header_line)
+        .iter()
+        .map(|s| s.to_lowercase())
         .collect();
     for line in lines {
         if line.trim().is_empty() {
             continue;
         }
-        let values: Vec<String> = line
-            .split(',')
-            .map(|s| s.trim().trim_matches('"').to_string())
-            .collect();
+        let values: Vec<String> = split_csv_line(line);
         let get = |h: &str| -> Option<String> {
             match headers.iter().position(|x| x == h) {
                 Some(idx) => values.get(idx).cloned(),

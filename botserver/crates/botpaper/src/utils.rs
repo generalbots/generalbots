@@ -288,3 +288,7 @@ pub fn strip_markdown(markdown: &str) -> String {
 
     result
 }
+
+#[cfg(test)]
+#[path = "utils_tests.rs"]
+mod utils_tests;

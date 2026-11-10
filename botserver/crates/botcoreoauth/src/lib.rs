@@ -258,3 +258,7 @@ impl OAuthState {
         serde_json::from_str(&json).ok()
     }
 }
+
+#[cfg(test)]
+#[path = "pkce_tests.rs"]
+mod pkce_tests;

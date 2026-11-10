@@ -17,7 +17,7 @@ pub(super) type Row = BTreeMap<String, String>;
 /// Splits one CSV line into cells. Double-quoted cells may contain the
 /// delimiter (`"R$ 1.234,56"`), and `""` inside a quoted cell is a literal
 /// quote. Unquoted cells keep the previous lenient behaviour.
-fn split_csv_line(line: &str) -> Vec<String> {
+pub(crate) fn split_csv_line(line: &str) -> Vec<String> {
     let mut cells = Vec::new();
     let mut current = String::new();
     let mut quoted = false;

@@ -10,17 +10,16 @@ pub async fn list_comments(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<CommentQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // When children are not requested, the LIKE patterns bind as the empty
     // string (which matches nothing — resource_type/resource_id are never
@@ -53,7 +52,7 @@ pub async fn list_comments(
     .bind::<Text, _>(&ty_prefix)
     .bind::<Text, _>(&id_prefix)
     .load::<CommentRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let reaction_rows = diesel::sql_query(
         "SELECT comment_id::text, user_id, emoji FROM collab_comment_reactions \
@@ -278,23 +277,19 @@ pub(crate) fn send_mention_emails(
 pub async fn create_comment(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<CreateCommentBody>,
 ) -> Result<Json<CommentItem>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let body = req.body.trim().to_string();
     if body.is_empty() {
-        return Err(err(StatusCode::BAD_REQUEST, "Comment body is required"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-comment-body-required"));
     }
     if body.chars().count() > 8000 {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Comment too long (max 8000 chars)",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-comment-too-long"));
     }
 
     let author_id = collab_user_id(&user);
@@ -305,14 +300,14 @@ pub async fn create_comment(
         None | Some("") => None,
         Some(p) => match uuid::Uuid::parse_str(p) {
             Ok(id) => Some(id),
-            Err(_) => return Err(err(StatusCode::BAD_REQUEST, "Invalid parent_id")),
+            Err(_) => return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-parent")),
         },
     };
 
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct CreatedRow {
@@ -336,10 +331,7 @@ pub async fn create_comment(
     .bind::<Text, _>(&mentions_json)
     .get_result::<CreatedRow>(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("insert failed: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     botlog::safe_info!(

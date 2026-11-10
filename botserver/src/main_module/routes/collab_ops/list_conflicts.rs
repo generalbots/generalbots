@@ -6,17 +6,16 @@ pub async fn list_conflicts(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct Row {
@@ -52,10 +51,7 @@ pub async fn list_conflicts(
     .bind::<Text, _>(&params.resource_id)
     .load::<Row>(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("list conflicts: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     let items: Vec<serde_json::Value> = rows
@@ -86,23 +82,22 @@ pub async fn resolve_conflict(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(body): Json<ResolveBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let resolution = match body.resolution.as_str() {
         "accept-server" => "rejected",
         "accept-client" => "accepted",
         _ => {
-            return Err(err(
-                StatusCode::BAD_REQUEST,
-                "resolution must be accept-server or accept-client",
-            ))
+            return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resolution"))
         }
     };
 
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     // Fetch the op's Lamport timestamp and resource address first.
     #[derive(QueryableByName)]
@@ -122,10 +117,10 @@ pub async fn resolve_conflict(
     .bind::<SqlUuid, _>(id)
     .get_result::<OpRef>(&mut conn)
     .optional()
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("load op: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let Some(op) = op else {
-        return Err(err(StatusCode::NOT_FOUND, "Operation not found"));
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-operation-not-found"));
     };
 
     let updated = diesel::sql_query(
@@ -136,17 +131,11 @@ pub async fn resolve_conflict(
     .bind::<Text, _>(resolution)
     .execute(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("resolve op: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     if updated == 0 {
-        return Err(err(
-            StatusCode::CONFLICT,
-            "Operation is not an unresolved conflict",
-        ));
+        return Err(err(locale, StatusCode::CONFLICT, "error-collab-not-a-conflict"));
     }
 
     // accept-client advances the converged version past the applied change and
@@ -181,17 +170,16 @@ pub async fn list_actors(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct Row {
@@ -219,10 +207,7 @@ pub async fn list_actors(
     .bind::<Text, _>(&params.resource_id)
     .load::<Row>(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("list actors: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     let items: Vec<serde_json::Value> = rows
@@ -246,17 +231,16 @@ pub async fn ops_state(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<ConflictQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let current =
         read_current_version(&mut conn, &params.resource_type, &params.resource_id).unwrap_or(0);

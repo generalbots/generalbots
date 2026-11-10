@@ -5,19 +5,18 @@ use super::*;
 pub async fn snapshot_version(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<SnapshotBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     if req.content.is_empty() {
-        return Err(err(StatusCode::BAD_REQUEST, "Content is required"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-content-required"));
     }
     if req.content.len() > 2_000_000 {
-        return Err(err(StatusCode::BAD_REQUEST, "Content too large"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-content-too-large"));
     }
     let actor_id = collab_user_id(&user);
     let actor_name = collab_user_name(&user);
@@ -26,7 +25,7 @@ pub async fn snapshot_version(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct LatestHash {
@@ -41,7 +40,7 @@ pub async fn snapshot_version(
     .bind::<Text, _>(&req.resource_type)
     .bind::<Text, _>(&req.resource_id)
     .load::<LatestHash>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?
     .into_iter()
     .next();
 
@@ -73,10 +72,7 @@ pub async fn snapshot_version(
     .bind::<Text, _>(&name)
     .get_result::<CreatedVersion>(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("insert failed: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     Ok(Json(serde_json::json!({
@@ -96,18 +92,17 @@ pub async fn list_versions(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<VersionsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<VersionItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let rows = diesel::sql_query(
         "SELECT id::text, actor_id, actor_name, content_hash, name, \
@@ -120,7 +115,7 @@ pub async fn list_versions(
     .bind::<Text, _>(&params.resource_id)
     .bind::<BigInt, _>(limit)
     .load::<VersionListRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let items: Vec<VersionItem> = rows
         .into_iter()
@@ -143,11 +138,13 @@ pub async fn get_version(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<VersionDetail>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let row = diesel::sql_query(
         "SELECT id::text, actor_id, actor_name, content, content_hash, name, created_at \
@@ -155,7 +152,7 @@ pub async fn get_version(
     )
     .bind::<SqlUuid, _>(id)
     .get_result::<VersionDetailRow>(&mut conn)
-    .map_err(|e| err(StatusCode::NOT_FOUND, &format!("version: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?;
 
     Ok(Json(VersionDetail {
         id: row.id,
@@ -175,13 +172,15 @@ pub async fn restore_version(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<VersionDetail>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let actor_id = collab_user_id(&user);
     let actor_name = collab_user_name(&user);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let old = diesel::sql_query(
         "SELECT resource_type, resource_id, content, content_hash, name \
@@ -189,7 +188,7 @@ pub async fn restore_version(
     )
     .bind::<SqlUuid, _>(id)
     .get_result::<RestoreRow>(&mut conn)
-    .map_err(|e| err(StatusCode::NOT_FOUND, &format!("version: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?;
 
     #[derive(QueryableByName)]
     struct CreatedVersion {
@@ -213,10 +212,7 @@ pub async fn restore_version(
     .bind::<Text, _>(&old.name)
     .get_result::<CreatedVersion>(&mut conn)
     .map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("insert failed: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     record_activity(
@@ -246,25 +242,27 @@ pub async fn name_version(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<uuid::Uuid>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<NameBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let name = req.name.trim().to_string();
     if name.is_empty() || name.chars().count() > 255 {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid name"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-name"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let changed = diesel::sql_query("UPDATE collab_versions SET name = $1 WHERE id = $2")
         .bind::<Text, _>(&name)
         .bind::<SqlUuid, _>(id)
         .execute(&mut conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if changed == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Version not found"));
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-version-not-found"));
     }
     botlog::safe_info!("version {id} named by {}", collab_user_id(&user));
     Ok(Json(serde_json::json!({ "success": true, "name": name })))
@@ -277,14 +275,16 @@ pub async fn my_mentions(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<MentionsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let uid = collab_user_id(&user);
     let uname = collab_user_name(&user);
     let limit = params.limit.unwrap_or(20).clamp(1, 100);
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let rows = diesel::sql_query(
         "SELECT id::text, resource_type, resource_id, author_id, author_name, \
@@ -299,7 +299,7 @@ pub async fn my_mentions(
     .bind::<Text, _>(&uid)
     .bind::<BigInt, _>(limit)
     .load::<CommentRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let items: Vec<CommentItem> = rows
         .into_iter()

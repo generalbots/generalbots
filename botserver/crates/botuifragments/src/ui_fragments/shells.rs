@@ -159,3 +159,7 @@ pub fn form_field(label: &str, control: &str) -> String {
         control = control,
     )
 }
+
+#[cfg(test)]
+#[path = "shells_tests.rs"]
+mod shells_tests;

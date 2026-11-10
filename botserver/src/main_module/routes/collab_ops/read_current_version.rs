@@ -125,19 +125,18 @@ pub(super) fn insert_op(op: NewOp<'_>) -> Result<String, diesel::result::Error> 
 pub async fn submit_op(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(body): Json<SubmitOpBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&body.resource_type, &body.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     if body.base_version < 0 {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid base_version"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-base-version"));
     }
     if body.op_type.trim().is_empty() || body.op_type.len() > 32 {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid op_type"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-op-type"));
     }
 
     let ty = body.resource_type;
@@ -152,7 +151,7 @@ pub async fn submit_op(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let outcome: Result<serde_json::Value, diesel::result::Error> = conn.transaction(|tx| {
         let current = read_current_version(tx, &ty, &id)?;
@@ -193,10 +192,7 @@ pub async fn submit_op(
     });
 
     let body = outcome.map_err(|e| {
-        err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("submit op: {e}"),
-        )
+        err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e)
     })?;
 
     Ok(Json(body))
@@ -207,17 +203,16 @@ pub async fn list_ops(
     State(state): State<Arc<AppState>>,
     Extension(_user): Extension<AuthenticatedUser>,
     Query(params): Query<OpsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct Row {
@@ -259,7 +254,7 @@ pub async fn list_ops(
     .bind::<Text, _>(&params.resource_id)
     .bind::<BigInt, _>(since)
     .load::<Row>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("list ops: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     let items: Vec<serde_json::Value> = rows
         .iter()

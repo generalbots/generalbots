@@ -15,19 +15,18 @@ pub async fn list_permissions(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<PermissionsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<PermissionItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !owner_or_admin(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
     let rows = diesel::sql_query(
         "SELECT grantee_type, grantee_id, role FROM resource_permissions \
@@ -36,7 +35,7 @@ pub async fn list_permissions(
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
     .load::<PermissionRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(
         rows.into_iter()
@@ -54,30 +53,29 @@ pub async fn list_permissions(
 pub async fn grant_permission(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<GrantBody>,
 ) -> Result<Json<PermissionItem>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     if !valid_grantee_type(&req.grantee_type) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid grantee_type"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-grantee-type"));
     }
     if !valid_editable_role(&req.role) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid role"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-role"));
     }
     let grantee = req.grantee_id.trim().to_string();
     if grantee.is_empty() || grantee.len() > 255 {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid grantee_id"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-grantee-id"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !ensure_owner(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
 
     diesel::sql_query(
@@ -93,7 +91,7 @@ pub async fn grant_permission(
     .bind::<Text, _>(&grantee)
     .bind::<Text, _>(&req.role)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     record_activity(
         &mut conn,
@@ -117,21 +115,20 @@ pub async fn grant_permission(
 pub async fn revoke_permission(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<RevokeBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let grantee = req.grantee_id.trim().to_string();
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !owner_or_admin(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
 
     let changed = diesel::sql_query(
@@ -144,10 +141,10 @@ pub async fn revoke_permission(
     .bind::<Text, _>(&req.grantee_type)
     .bind::<Text, _>(&grantee)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     if changed == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Grant not found"));
+        return Err(err(locale, StatusCode::NOT_FOUND, "error-collab-grant-not-found"));
     }
     record_activity(
         &mut conn,
@@ -166,24 +163,23 @@ pub async fn revoke_permission(
 pub async fn transfer_ownership(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<TransferBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let new_owner = req.new_owner_id.trim().to_string();
     if new_owner.is_empty() || new_owner.len() > 255 {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid new_owner_id"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-new-owner"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !owner_or_admin(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
 
     diesel::sql_query(
@@ -193,7 +189,7 @@ pub async fn transfer_ownership(
     .bind::<Text, _>(&req.resource_type)
     .bind::<Text, _>(&req.resource_id)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     diesel::sql_query(
         "INSERT INTO resource_permissions \
@@ -206,7 +202,7 @@ pub async fn transfer_ownership(
     .bind::<Text, _>(&req.resource_id)
     .bind::<Text, _>(&new_owner)
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     record_activity(
         &mut conn,
@@ -227,17 +223,16 @@ pub async fn my_role(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<PermissionsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     let role = effective_role(&mut conn, &user, &params.resource_type, &params.resource_id);
     Ok(Json(serde_json::json!({
         "role": role,
@@ -250,23 +245,22 @@ pub async fn my_role(
 pub async fn create_link(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    request_locale: botcore::i18n::RequestLocale,
     Json(req): Json<LinkBody>,
 ) -> Result<Json<LinkItem>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&req.resource_type, &req.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     if !valid_editable_role(&req.role) {
-        return Err(err(StatusCode::BAD_REQUEST, "Invalid role"));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-role"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !ensure_owner(&mut conn, &user, &req.resource_type, &req.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
 
     let token = format!(
@@ -291,7 +285,7 @@ pub async fn create_link(
     .bind::<Nullable<Timestamptz>, _>(expires_at)
     .bind::<Text, _>(&collab_user_id(&user))
     .execute(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     record_activity(
         &mut conn,
@@ -316,19 +310,18 @@ pub async fn list_links(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<PermissionsQuery>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<Vec<LinkItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     if !sanitize_resource(&params.resource_type, &params.resource_id) {
-        return Err(err(
-            StatusCode::BAD_REQUEST,
-            "Invalid resource_type/resource_id",
-        ));
+        return Err(err(locale, StatusCode::BAD_REQUEST, "error-collab-invalid-resource"));
     }
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
     if !owner_or_admin(&mut conn, &user, &params.resource_type, &params.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
     let rows = diesel::sql_query(
         "SELECT token, role, expires_at, created_at FROM resource_links \
@@ -339,7 +332,7 @@ pub async fn list_links(
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
     .load::<LinkRow>(&mut conn)
-    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+    .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(
         rows.into_iter()
@@ -359,11 +352,13 @@ pub async fn revoke_link(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(token): Path<String>,
+    request_locale: botcore::i18n::RequestLocale,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let locale = request_locale.locale();
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     #[derive(QueryableByName)]
     struct LinkResource {
@@ -376,18 +371,18 @@ pub async fn revoke_link(
         diesel::sql_query("SELECT resource_type, resource_id FROM resource_links WHERE token = $1")
             .bind::<Text, _>(&token)
             .load::<LinkResource>(&mut conn)
-            .map_err(|e| err(StatusCode::NOT_FOUND, &format!("link: {e}")))?
+            .map_err(|e| err_db(locale, StatusCode::NOT_FOUND, e))?
             .into_iter()
             .next()
-            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Link not found"))?;
+            .ok_or_else(|| err(locale, StatusCode::NOT_FOUND, "error-collab-link-not-found"))?;
 
     if !owner_or_admin(&mut conn, &user, &target.resource_type, &target.resource_id) {
-        return Err(err(StatusCode::FORBIDDEN, "Owner only"));
+        return Err(err(locale, StatusCode::FORBIDDEN, "error-collab-owner-only"));
     }
     diesel::sql_query("DELETE FROM resource_links WHERE token = $1")
         .bind::<Text, _>(&token)
         .execute(&mut conn)
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+        .map_err(|e| err_db(locale, StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(serde_json::json!({ "success": true })))
 }

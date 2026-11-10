@@ -1,7 +1,5 @@
 use super::*;
 
-use super::*;
-
 /// PIX end-to-end id: `E` + the transfer timestamp in milliseconds + the 32
 /// hexadecimal characters of the transfer id. Split from the clock and the RNG
 /// so the shape is unit-testable.

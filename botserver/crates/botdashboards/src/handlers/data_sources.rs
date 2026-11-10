@@ -342,3 +342,7 @@ pub async fn handle_conversational_query(
 
     Ok(Json(result))
 }
+
+#[cfg(test)]
+#[path = "data_sources_tests.rs"]
+mod data_sources_tests;

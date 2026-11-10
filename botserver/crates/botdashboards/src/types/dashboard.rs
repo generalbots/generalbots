@@ -298,3 +298,7 @@ impl std::str::FromStr for DataSourceStatus {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "dashboard_tests.rs"]
+mod dashboard_tests;

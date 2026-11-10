@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
-mod import;
+pub(crate) mod import;
 
 /// The `kind` discriminator of the command the runtime routes on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
