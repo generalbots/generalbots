@@ -44,6 +44,46 @@ fn encode_path(path: &str) -> String {
         .join("/")
 }
 
+/// Collapses a caller-supplied destination path into segments that cannot climb
+/// out of the folder the grant allows: `.`/`..` and empty segments are dropped,
+/// control characters are stripped. A save must never be able to address a
+/// parent of the app folder with `../`.
+pub fn sanitize_path(path: &str) -> String {
+    path.split(['/', '\\'])
+        .filter_map(|segment| {
+            let segment: String = segment
+                .chars()
+                .filter(|c| !c.is_control())
+                .collect::<String>()
+                .trim()
+                .to_string();
+            if segment.is_empty() || segment == "." || segment == ".." {
+                None
+            } else {
+                Some(segment)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// A file name is a single segment: separators are folded to `-` so a name can
+/// never create an unintended folder in the provider's tree, and the two
+/// relative-path names (`.` / `..`) get a neutral fallback.
+pub fn sanitize_name(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .filter(|c| !c.is_control())
+        .map(|c| if c == '/' || c == '\\' { '-' } else { c })
+        .collect();
+    let cleaned = cleaned.trim();
+    if cleaned.is_empty() || cleaned == "." || cleaned == ".." {
+        "artifact".to_string()
+    } else {
+        cleaned.to_string()
+    }
+}
+
 /// Builds the upload request. `path` is the destination relative to the drive
 /// root (or to the app folder, which is where a `Files.ReadWrite.AppFolder`
 /// grant may write); `replace_remote_id` switches to the item endpoint.
@@ -55,9 +95,12 @@ pub fn build_upload(
     replace_remote_id: Option<&str>,
     base: OneDriveBase,
 ) -> UploadTarget {
-    let full_path = match (path.trim_matches('/'), name) {
-        ("", name) => name.to_string(),
-        (path, name) => format!("{path}/{name}"),
+    let path = sanitize_path(path);
+    let name = sanitize_name(name);
+    let full_path = if path.is_empty() {
+        name
+    } else {
+        format!("{path}/{name}")
     };
     let url = match replace_remote_id.filter(|id| !id.is_empty()) {
         Some(id) => format!("{GRAPH_BASE}/me/drive/items/{}/content", percent_encode(id)),
@@ -145,6 +188,28 @@ mod tests {
         assert!(target
             .url
             .contains("/me/drive/special/approot:/artifacts/pib.xlsx:/content"));
+    }
+
+    #[test]
+    fn a_parent_segment_never_escapes_the_target_folder() {
+        // `..` is not an unreserved character in the encoder, so it would have
+        // survived into the Graph path syntax (`root:/../secret:/content`).
+        let target = build_upload(
+            "../../private",
+            "notes.txt",
+            "",
+            b"x",
+            None,
+            OneDriveBase::AppFolder,
+        );
+        assert!(target
+            .url
+            .ends_with("/me/drive/special/approot:/private/notes.txt:/content"));
+        assert!(!target.url.contains(".."));
+
+        // A name is one segment: a separator must not create a folder.
+        let named = build_upload("", "a/b.txt", "", b"x", None, OneDriveBase::Root);
+        assert!(named.url.ends_with("/me/drive/root:/a-b.txt:/content"));
     }
 
     #[test]

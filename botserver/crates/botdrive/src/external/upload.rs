@@ -18,6 +18,23 @@ use crate::external::types::{Provider, SyncError};
 /// limits; this is the one this endpoint enforces.
 pub const MAX_UPLOAD_BYTES: usize = 25 * 1024 * 1024;
 
+/// Per-provider ceiling for the single-request upload this module builds.
+/// Google's `multipart/related` upload is documented for files up to 5 MB —
+/// a larger body is rejected by Drive, so refusing it here keeps the error
+/// honest (`too_large`) instead of surfacing a provider rejection. OneDrive's
+/// simple PUT accepts far more, so the local request limit is the binding one.
+pub const fn max_upload_bytes(provider: Provider) -> usize {
+    let provider_cap = match provider {
+        Provider::GoogleDrive => 5 * 1024 * 1024,
+        Provider::OneDrive => MAX_UPLOAD_BYTES,
+    };
+    if provider_cap < MAX_UPLOAD_BYTES {
+        provider_cap
+    } else {
+        MAX_UPLOAD_BYTES
+    }
+}
+
 /// What to write, and where.
 #[derive(Debug, Clone)]
 pub struct UploadRequest {
@@ -93,7 +110,7 @@ impl UploadError {
                 "the connection only allows reading; grant write access and try again".to_string()
             }
             Self::TooLarge(size) => format!(
-                "the file is {size} bytes; the simple upload limit is {MAX_UPLOAD_BYTES} bytes"
+                "the file is {size} bytes; it exceeds the single-request upload limit of this drive"
             ),
             Self::Provider(detail) => format!("the provider rejected the upload: {detail}"),
         }
@@ -124,10 +141,24 @@ pub fn onedrive_app_folder_only(granted: &str) -> bool {
     !broad
 }
 
+/// Path recorded in the local mirror for a file that was just uploaded. Uses
+/// the same segment rules as the OneDrive request builder so the listing shows
+/// the path the provider actually stored (and a `../` in the request can never
+/// land in the mirror either).
+pub fn mirror_path(folder: &str, name: &str) -> String {
+    let folder = crate::external::onedrive_upload::sanitize_path(folder);
+    let name = crate::external::onedrive_upload::sanitize_name(name);
+    if folder.is_empty() {
+        name
+    } else {
+        format!("{folder}/{name}")
+    }
+}
+
 /// Prepares the pure request data for one upload. Kept separate from the send
 /// so the URL/body construction is testable without a network.
 pub fn build_target(req: &UploadRequest, granted: &str) -> Result<PreparedUpload, UploadError> {
-    if req.content.len() > MAX_UPLOAD_BYTES {
+    if req.content.len() > max_upload_bytes(req.provider) {
         return Err(UploadError::TooLarge(req.content.len()));
     }
     match req.provider {
@@ -192,6 +223,10 @@ pub async fn send(
         "POST" => reqwest::Method::POST,
         _ => reqwest::Method::PUT,
     };
+    // What we actually sent, used when the provider omits `size` from its
+    // answer — reporting 0 bytes for a stored file would be a lie the UI
+    // shows back to the user.
+    let sent_bytes = prepared.body.len();
     let res = http
         .request(method, &prepared.url)
         .bearer_auth(access_token)
@@ -214,10 +249,10 @@ pub async fn send(
     let fallback = name.to_string();
     let (remote_id, stored_name, link, bytes) = match provider {
         Provider::GoogleDrive => {
-            crate::external::gdrive_upload::parse_upload(&json, &fallback, 0)
+            crate::external::gdrive_upload::parse_upload(&json, &fallback, sent_bytes)
         }
         Provider::OneDrive => {
-            crate::external::onedrive_upload::parse_upload(&json, &fallback, 0)
+            crate::external::onedrive_upload::parse_upload(&json, &fallback, sent_bytes)
         }
     };
     if remote_id.is_empty() {
@@ -251,96 +286,5 @@ fn classify_upload_status(status: u16, body: &str, provider: Provider) -> SyncEr
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn request(provider: Provider, name: &str) -> UploadRequest {
-        UploadRequest {
-            provider,
-            path: "artifacts".to_string(),
-            name: name.to_string(),
-            mime_type: "text/plain".to_string(),
-            content: b"hello".to_vec(),
-            replace_remote_id: None,
-            parent_id: None,
-        }
-    }
-
-    #[test]
-    fn oversized_content_is_refused_before_building_a_request() {
-        let mut req = request(Provider::GoogleDrive, "big.txt");
-        req.content = vec![0; MAX_UPLOAD_BYTES + 1];
-        assert_eq!(
-            build_target(&req, ""),
-            Err(UploadError::TooLarge(MAX_UPLOAD_BYTES + 1))
-        );
-        assert_eq!(UploadError::TooLarge(1).kind(), "too_large");
-    }
-
-    #[test]
-    fn error_kinds_are_the_contract_the_ui_reads() {
-        assert_eq!(UploadError::NotConfigured.kind(), "not_configured");
-        assert_eq!(UploadError::NotConnected.kind(), "not_connected");
-        assert_eq!(
-            UploadError::MissingWriteScope.kind(),
-            "missing_write_scope"
-        );
-        assert_eq!(UploadError::Provider("x".into()).kind(), "provider_error");
-    }
-
-    #[test]
-    fn write_capability_comes_from_the_recorded_scope() {
-        assert!(allows_write(
-            Provider::GoogleDrive,
-            "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file"
-        ));
-        assert!(!allows_write(
-            Provider::GoogleDrive,
-            "https://www.googleapis.com/auth/drive.readonly"
-        ));
-        assert!(!allows_write(Provider::OneDrive, ""));
-        assert!(allows_write(
-            Provider::OneDrive,
-            "offline_access Files.Read.All Files.ReadWrite.AppFolder User.Read"
-        ));
-    }
-
-    #[test]
-    fn onedrive_uses_the_app_folder_unless_a_broad_write_scope_was_granted() {
-        assert!(onedrive_app_folder_only(
-            "offline_access Files.Read.All Files.ReadWrite.AppFolder"
-        ));
-        assert!(!onedrive_app_folder_only("Files.ReadWrite"));
-        assert!(!onedrive_app_folder_only("Files.ReadWrite.All"));
-    }
-
-    #[test]
-    fn google_target_is_multipart_related_with_metadata() {
-        let mut req = request(Provider::GoogleDrive, "pib.csv");
-        req.parent_id = Some("folder-9".to_string());
-        let prepared = build_target(&req, "").expect("target");
-        assert_eq!(prepared.method, "POST");
-        assert!(prepared.url.contains("uploadType=multipart"));
-        assert!(prepared
-            .content_type
-            .starts_with("multipart/related; boundary="));
-        let body = String::from_utf8_lossy(&prepared.body);
-        assert!(body.contains(r#""name":"pib.csv""#));
-        assert!(body.contains(r#""parents":["folder-9"]"#));
-        assert!(body.contains("hello"));
-    }
-
-    #[test]
-    fn onedrive_target_puts_the_bytes_to_the_path() {
-        let prepared = build_target(
-            &request(Provider::OneDrive, "pib.csv"),
-            "Files.ReadWrite.AppFolder",
-        )
-        .expect("target");
-        assert_eq!(prepared.method, "PUT");
-        assert!(prepared
-            .url
-            .contains("/me/drive/special/approot:/artifacts/pib.csv:/content"));
-        assert_eq!(prepared.body, b"hello");
-    }
-}
+#[path = "upload_tests.rs"]
+mod tests;

@@ -169,11 +169,7 @@ pub async fn upload_file(
     let mirror = ExternalFile {
         remote_id: uploaded.remote_id.clone(),
         name: uploaded.name.clone(),
-        path: if request.path.trim_matches('/').is_empty() {
-            uploaded.name.clone()
-        } else {
-            format!("{}/{}", request.path.trim_matches('/'), uploaded.name)
-        },
+        path: upload::mirror_path(&request.path, &uploaded.name),
         mime_type: Some(request.mime_type.clone()).filter(|mime| !mime.is_empty()),
         size_bytes: uploaded.bytes as i64,
         modified_at: Some(chrono::Utc::now()),
