@@ -4,7 +4,11 @@
 //! functions live in an `impl VMetering` block and use the crate-visible pool
 //! accessor.
 
-use super::*;
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use uuid::Uuid;
+
+use super::metering::{MeterKind, VMetering, VMeteringRef};
 
 impl VMetering {
     pub fn accrue_vm_hours(
