@@ -53,7 +53,7 @@ USERS_PER_ORG = 8
 # table -> (scope kind, rows per org at scale 1.0)
 SCALED = {
     "products": ("org_id", 250),
-    "support_tickets": ("org_id", 600),
+    "support_tickets": ("branch_id", 600),
     "user_sessions": ("branch_id", 400),
     "drive_files": ("branch_id", 800),
     "bot_memories": ("bot_id", 200),
@@ -61,8 +61,15 @@ SCALED = {
 }
 COMMENTS_PER_TICKET = 3
 MESSAGES_PER_SESSION = 8
-GLOBAL_SESSIONS = 20
-GLOBAL_FILES = 40
+# Every Nth ticket has no branch: the nil-branch fallback case. `support_tickets`
+# is the one seeded table whose `branch_id` is still nullable (6.5.23 set
+# `user_sessions`, `drive_files` and `products` to NOT NULL).
+UNASSIGNED_EVERY = 20
+
+# table -> scope kind, the key the test uses to build its predicate.
+SCOPE_KINDS = {table: kind for table, (kind, _rows) in SCALED.items()}
+SCOPE_KINDS["message_history"] = "session_branch"
+SCOPE_KINDS["ticket_comments"] = "ticket_branch"
 
 # COPY order: parents before children.
 COPY_ORDER = [
@@ -111,10 +118,8 @@ def copy_cell(value) -> str:
 
 def build(seed: int, scale: float) -> tuple[dict, list[tuple[str, list[str], list[list]]]]:
     rows: dict[str, list[list]] = {name: [] for name, _ in COPY_ORDER}
-    scopes: dict[str, dict[str, list[uuid.UUID]]] = {t: {} for t in SCALED}
-    scopes.setdefault("ticket_comments", {})
-    scopes.setdefault("message_history", {})
-    null_scope: dict[str, list[uuid.UUID]] = {"user_sessions": [], "drive_files": []}
+    scopes: dict[str, dict[str, list[uuid.UUID]]] = {t: {} for t in SCOPE_KINDS}
+    null_scope: dict[str, list[uuid.UUID]] = {t: [] for t in SCOPE_KINDS}
     orgs: list[dict] = []
 
     def n(per_org: int) -> int:
@@ -158,8 +163,11 @@ def build(seed: int, scale: float) -> tuple[dict, list[tuple[str, list[str], lis
                      "bot_ids": [str(b) for b in bot_ids],
                      "user_ids": [str(u) for u in user_ids]})
 
-        def note(table: str, scope_id: uuid.UUID, row_id: uuid.UUID) -> None:
-            scopes[table].setdefault(str(scope_id), []).append(row_id)
+        def note(table: str, scope_id: uuid.UUID | None, row_id: uuid.UUID) -> None:
+            if scope_id is None:
+                null_scope[table].append(row_id)
+            else:
+                scopes[table].setdefault(str(scope_id), []).append(row_id)
 
         for i in range(n(SCALED["products"][1])):
             row_id = det_uuid(seed, "product", f"{org_slug}/{i}")
@@ -169,20 +177,22 @@ def build(seed: int, scale: float) -> tuple[dict, list[tuple[str, list[str], lis
             note("products", org_id, row_id)
 
         ticket_ids: list[uuid.UUID] = []
+        ticket_branches: list[uuid.UUID | None] = []
         for i in range(n(SCALED["support_tickets"][1])):
             row_id = det_uuid(seed, "ticket", f"{org_slug}/{i}")
             ticket_ids.append(row_id)
-            bot_id, branch_id = bot_ids[i % len(bot_ids)], branch_ids[i % len(branch_ids)]
+            bot_id = bot_ids[i % len(bot_ids)]
+            branch_id = None if i % UNASSIGNED_EVERY == 0 else branch_ids[i % len(branch_ids)]
+            ticket_branches.append(branch_id)
             rows["support_tickets"].append(
                 [row_id, org_id, bot_id, f"T-{org_slug}-{i}", f"Ticket {i}", "open",
                  "medium", f"{org_slug}-{i}@integrity.test", branch_id])
-            note("support_tickets", org_id, row_id)
+            note("support_tickets", branch_id, row_id)
         for i, ticket_id in enumerate(ticket_ids):
-            branch_id = branch_ids[i % len(branch_ids)]
             for ci in range(COMMENTS_PER_TICKET):
                 row_id = det_uuid(seed, "comment", f"{org_slug}/{i}/{ci}")
                 rows["ticket_comments"].append([row_id, ticket_id, f"Comment {ci}"])
-                note("ticket_comments", branch_id, row_id)
+                note("ticket_comments", ticket_branches[i], row_id)
 
         for i in range(n(SCALED["user_sessions"][1])):
             row_id = det_uuid(seed, "session", f"{org_slug}/{i}")
@@ -216,38 +226,18 @@ def build(seed: int, scale: float) -> tuple[dict, list[tuple[str, list[str], lis
                                       "files.read", bot_id])
             note("audit_log", bot_id, row_id)
 
-    # "Global" rows: no branch, the nil-branch fallback path. They must never
-    # show up in a tenant-scoped query.
-    for i in range(GLOBAL_SESSIONS):
-        row_id = det_uuid(seed, "session", f"global/{i}")
-        user_id = det_uuid(seed, "user", f"integrity-a/user-{i % USERS_PER_ORG}")
-        bot_id = det_uuid(seed, "bot", f"integrity-a/branch-0/bot-{i % BOTS_PER_BRANCH}")
-        rows["user_sessions"].append([row_id, user_id, bot_id, f"Global {i}", None])
-        null_scope["user_sessions"].append(row_id)
-    for i in range(GLOBAL_FILES):
-        row_id = det_uuid(seed, "file", f"global/{i}")
-        rows["drive_files"].append([row_id, f"/global/{i}.pdf", "file", f"g-{i}.pdf", None])
-        null_scope["drive_files"].append(row_id)
-
     manifest_tables: dict[str, dict] = {}
-    for table, (kind, _per_org) in SCALED.items():
+    for table, kind in SCOPE_KINDS.items():
         entries = {scope_id: {"rows": len(ids), "checksum": checksum(ids)}
                    for scope_id, ids in sorted(scopes[table].items())}
+        null_ids = null_scope.get(table, [])
         manifest_tables[table] = {
             "scope": kind,
             "rows": sum(e["rows"] for e in entries.values()),
-            "null_rows": len(null_scope.get(table, [])),
-            "null_checksum": checksum(null_scope[table]) if null_scope.get(table) else None,
+            "null_rows": len(null_ids),
+            "null_checksum": checksum(null_ids) if null_ids else None,
             "scopes": entries,
         }
-    for table, kind in (("message_history", "session_branch"),
-                        ("ticket_comments", "ticket_branch")):
-        entries = {scope_id: {"rows": len(ids), "checksum": checksum(ids)}
-                   for scope_id, ids in sorted(scopes[table].items())}
-        manifest_tables[table] = {"scope": kind,
-                                  "rows": sum(e["rows"] for e in entries.values()),
-                                  "null_rows": 0, "null_checksum": None,
-                                  "scopes": entries}
 
     manifest = {
         "version": 1,

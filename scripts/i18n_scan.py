@@ -275,6 +275,11 @@ def scan_html(text: str, path: str = "") -> list:
                     literal.simple = False
             continue
         if tag in VOID_TAGS:
+            # `<label>Name<input></label>` still has a child: a void element
+            # counts for the parent's mixed-content decision even though it
+            # never opens a scope of its own.
+            if stack:
+                stack[-1]["kids"] += 1
             continue
         blocked = (
             tag in SKIP_TAGS

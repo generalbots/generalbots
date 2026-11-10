@@ -114,7 +114,7 @@ GATES: tuple[Gate, ...] = (
         title="Operational runbooks exist for the on-call surface",
         owner=2116,
         proves="Analytics console, error budgets and runbooks are operable, not prose",
-        evidence=("botbook/src/10-configuration-deployment/runbooks/*.md",),
+        evidence=("botbook/src/10-configuration-deployment/operations/runbook-*.md",),
         min_files=6,
         ok_detail="six runbooks published",
     ),

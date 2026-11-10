@@ -1,0 +1,1 @@
+{"object":"whatsapp_business_account","entry":[{"id":"1","changes":[{"field":"messages","value":{"messaging_product":"whatsapp","messages":[{"from":"5511","id":"wamid","type":"text","text":{"body":"hi"}}]}}]}]}

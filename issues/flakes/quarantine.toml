@@ -1,0 +1,33 @@
+# Flake quarantine registry (#2119).
+#
+# Every quarantined test lives here. `scripts/flake_report.py` fails CI when an
+# entry is incomplete or past its SLA, and when a test that flakes often enough
+# has no entry at all. The policy is in `issues/flakes/POLICY.md`.
+#
+# Rules enforced by the script:
+#   * `test`  — the exact libtest name (`crate::module::test_name`);
+#   * `issue` — the issue that owns the fix (a PR cannot add a flake without one);
+#   * `owner` — the team or person accountable for the fix;
+#   * `since` — YYYY-MM-DD; past `sla_days` the gate fails (fix it or delete it);
+#   * `reason`— why it is flaky (>= 20 characters), not "flaky".
+#
+# Quarantining a test also means marking it `#[ignore = "flaky: <issue>"]` in the
+# source, so it never blocks an unrelated PR. The entry is removed in the same PR
+# that fixes (or deletes) the test.
+
+[meta]
+issue = 2119
+sla_days = 14
+max_retries = 1
+max_flakes = 3
+window = 20
+note = "Empty is the expected state: a flake must be recorded here before it is ignored in code."
+
+# Example of a complete entry (keep it commented until a real flake exists):
+#
+# [[flake]]
+# test = "botcore::tests::websocket_handshake_retries"
+# issue = 1234
+# owner = "quality"
+# since = "2026-11-10"
+# reason = "times out when the shared runner cache is cold, unrelated to the change"

@@ -16,7 +16,8 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-serde_json = { workspace = true }
+# Explicit version: a detached package cannot inherit `workspace = true`.
+serde_json = "1"
 
 # The parsers under test. They are workspace members, addressed by path so the
 # fuzz package stays outside the workspace graph.
