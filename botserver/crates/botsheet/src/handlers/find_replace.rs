@@ -116,3 +116,7 @@ pub async fn handle_find_replace(
         r##"<div class="ss-find-result" style="padding:8px;color:#4ade80;font-size:12px;">{replacements} replacement(s) applied.</div>"##
     )))
 }
+
+#[cfg(test)]
+#[path = "find_replace_tests.rs"]
+mod tests;

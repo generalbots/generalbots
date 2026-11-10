@@ -26,8 +26,11 @@ pub(super) fn resolve_origin(spec: &ProviderSpec, credentials: &Value) -> Result
         }
         Origin::MailchimpDataCenter => {
             let key = cred_str(credentials, "api_key")?;
-            let dc = key.rsplit('-').next().unwrap_or_default();
-            if dc.len() > 16 || !dc.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            // Mailchimp keys are `key-dc`; the suffix selects the host. A key
+            // without a usable suffix used to be accepted verbatim and pointed
+            // the client at `https://<key>.api.mailchimp.com`.
+            let dc = key.rsplit_once('-').map(|(_, dc)| dc).unwrap_or_default();
+            if dc.is_empty() || dc.len() > 16 || !dc.chars().all(|c| c.is_ascii_alphanumeric()) {
                 return Err(invalid(
                     "credential key api_key has no usable data center suffix".to_string(),
                 ));

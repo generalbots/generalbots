@@ -1,144 +1,7 @@
 use super::utils_format::{html_escape, strip_html};
 use crate::re_cache::cached_re;
 
-pub fn html_to_markdown(html: &str) -> String {
-    let mut md = html.to_string();
-    md = md.replace("<strong>", "**").replace("</strong>", "**");
-    md = md.replace("<b>", "**").replace("</b>", "**");
-    md = md.replace("<em>", "*").replace("</em>", "*");
-    md = md.replace("<i>", "*").replace("</i>", "*");
-    md = md.replace("<u>", "_").replace("</u>", "_");
-    md = md.replace("<h1>", "# ").replace("</h1>", "\n");
-    md = md.replace("<h2>", "## ").replace("</h2>", "\n");
-    md = md.replace("<h3>", "### ").replace("</h3>", "\n");
-    md = md.replace("<h4>", "#### ").replace("</h4>", "\n");
-    md = md.replace("<h5>", "##### ").replace("</h5>", "\n");
-    md = md.replace("<h6>", "###### ").replace("</h6>", "\n");
-    md = md.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n");
-    md = md.replace("<p>", "").replace("</p>", "\n\n");
-    md = md.replace("<li>", "- ").replace("</li>", "\n");
-    md = md.replace("<ul>", "").replace("</ul>", "\n");
-    md = md.replace("<ol>", "").replace("</ol>", "\n");
-    md = md.replace("<blockquote>", "> ").replace("</blockquote>", "\n");
-    md = md.replace("<code>", "`").replace("</code>", "`");
-    md = md.replace("<code>", "`").replace("</code>", "`");
-    md = md.replace("<pre>", "```\n").replace("</pre>", "\n```\n");
-    md = md.replace("<hr>", "\n---\n").replace("<hr/>", "\n---\n");
-
-    strip_html(&md)
-}
-
-pub fn markdown_to_html(md: &str) -> String {
-    let mut html = String::new();
-    let lines: Vec<&str> = md.lines().collect();
-    let mut in_code_block = false;
-    let mut in_list = false;
-
-    for line in lines {
-        if line.starts_with("```") {
-            if in_code_block {
-                html.push_str("</pre>");
-                in_code_block = false;
-            } else {
-                html.push_str("<pre>");
-                in_code_block = true;
-            }
-            continue;
-        }
-
-        if in_code_block {
-            html.push_str(&html_escape(line));
-            html.push('\n');
-            continue;
-        }
-
-        let processed = process_markdown_line(line);
-
-        if line.starts_with("- ") || line.starts_with("* ") {
-            if !in_list {
-                html.push_str("<ul>");
-                in_list = true;
-            }
-            html.push_str(&format!("<li>{}</li>", &processed[2..]));
-        } else {
-            if in_list {
-                html.push_str("</ul>");
-                in_list = false;
-            }
-            html.push_str(&processed);
-        }
-    }
-
-    if in_list {
-        html.push_str("</ul>");
-    }
-    if in_code_block {
-        html.push_str("</pre>");
-    }
-
-    html
-}
-
-fn process_markdown_line(line: &str) -> String {
-    let mut result = line.to_string();
-
-    // Ordered longest-first so `### ` never matches the `# ` rule.
-    const HEADINGS: [(&str, &str); 6] = [
-        ("###### ", "h6"),
-        ("##### ", "h5"),
-        ("#### ", "h4"),
-        ("### ", "h3"),
-        ("## ", "h2"),
-        ("# ", "h1"),
-    ];
-    for (prefix, tag) in HEADINGS {
-        if let Some(text) = line.strip_prefix(prefix) {
-            return format!("<{tag}>{text}</{tag}>");
-        }
-    }
-    if let Some(text) = line.strip_prefix("> ") {
-        return format!("<blockquote>{text}</blockquote>");
-    }
-    if line == "---" || line == "***" || line == "___" {
-        return "<hr>".to_string();
-    }
-
-    result = process_inline_formatting(&result);
-
-    if !result.is_empty() && !result.starts_with('<') {
-        result = format!("<p>{}</p>", result);
-    }
-
-    result
-}
-
-fn process_inline_formatting(text: &str) -> String {
-    let mut result = text.to_string();
-
-    let bold_re = cached_re!(r"\*\*(.+?)\*\*");
-    if let Some(re) = bold_re {
-        result = re.replace_all(&result, "<strong>$1</strong>").to_string();
-    }
-
-    let italic_re = cached_re!(r"\*(.+?)\*");
-    if let Some(re) = italic_re {
-        result = re.replace_all(&result, "<em>$1</em>").to_string();
-    }
-
-    let code_re = cached_re!(r"`(.+?)`");
-    if let Some(re) = code_re {
-        result = re.replace_all(&result, "<code>$1</code>").to_string();
-    }
-
-    let link_re = cached_re!(r"\[(.+?)\]\((.+?)\)");
-    if let Some(re) = link_re {
-        result = re
-            .replace_all(&result, r#"<a href="$2">$1</a>"#)
-            .to_string();
-    }
-
-    result
-}
+pub use super::utils_markdown::{html_to_markdown, markdown_to_html};
 
 pub fn rtf_to_html(rtf: &str) -> String {
     let mut html = String::new();
@@ -171,34 +34,41 @@ pub fn rtf_to_html(rtf: &str) -> String {
                     cmd.push(chars[i]);
                     i += 1;
                 }
+                // A control word carries an optional numeric parameter (`\b0`,
+                // `\fs24`, `\u233`); it must be consumed here or its digits
+                // leak into the text.
+                let mut param = String::new();
+                if i < chars.len() && (chars[i] == '-' || chars[i].is_ascii_digit()) {
+                    param.push(chars[i]);
+                    i += 1;
+                    while i < chars.len() && chars[i].is_ascii_digit() {
+                        param.push(chars[i]);
+                        i += 1;
+                    }
+                }
+                let enabled = param.is_empty() || param != "0";
 
                 match cmd.as_str() {
                     "b" => {
-                        if !bold {
+                        if enabled && !bold {
                             html.push_str("<strong>");
                             bold = true;
-                        }
-                    }
-                    "b0" => {
-                        if bold {
+                        } else if !enabled && bold {
                             html.push_str("</strong>");
                             bold = false;
                         }
                     }
                     "i" => {
-                        if !italic {
+                        if enabled && !italic {
                             html.push_str("<em>");
                             italic = true;
-                        }
-                    }
-                    "i0" => {
-                        if italic {
+                        } else if !enabled && italic {
                             html.push_str("</em>");
                             italic = false;
                         }
                     }
                     "ul" => {
-                        if !underline {
+                        if enabled && !underline {
                             html.push_str("<u>");
                             underline = true;
                         }
@@ -211,6 +81,19 @@ pub fn rtf_to_html(rtf: &str) -> String {
                     }
                     "par" | "line" => html.push_str("<br>"),
                     "tab" => html.push_str("&nbsp;&nbsp;&nbsp;&nbsp;"),
+                    "u" => {
+                        // `\uN` is followed by a fallback character that is
+                        // dropped; negative N means "add 65536".
+                        if let Ok(code) = param.parse::<i64>() {
+                            let code = if code < 0 { code + 65_536 } else { code };
+                            if let Some(ch) = char::from_u32(code as u32) {
+                                html.push(ch);
+                            }
+                        }
+                        if i < chars.len() && !matches!(chars[i], '\\' | '{' | '}') {
+                            i += 1;
+                        }
+                    }
                     _ => {}
                 }
 
@@ -281,7 +164,8 @@ pub fn odt_content_to_html(odt_xml: &str) -> String {
     let mut html = String::from("<div>");
 
     let mut in_text = false;
-    let mut in_span = false;
+    let mut span_tag: Option<&'static str> = None;
+    let mut heading_level = '1';
     let mut current_text = String::new();
     let chars: Vec<char> = odt_xml.chars().collect();
     let mut i = 0;
@@ -308,30 +192,37 @@ pub fn odt_content_to_html(odt_xml: &str) -> String {
                 html.push_str("</p>");
                 in_text = false;
             } else if tag.starts_with("text:span") {
-                if tag.contains("Bold") {
+                // Flush first, or the pending run lands inside the span.
+                if !current_text.is_empty() {
+                    html.push_str(&current_text);
+                    current_text.clear();
+                }
+                span_tag = if tag.contains("Bold") {
                     html.push_str("<strong>");
+                    Some("strong")
                 } else if tag.contains("Italic") {
                     html.push_str("<em>");
-                }
-                in_span = true;
+                    Some("em")
+                } else {
+                    None
+                };
             } else if tag == "/text:span" {
                 html.push_str(&current_text);
                 current_text.clear();
-                if in_span {
-                    html.push_str("</strong>");
+                if let Some(tag) = span_tag.take() {
+                    html.push_str(&format!("</{tag}>"));
                 }
-                in_span = false;
             } else if tag.starts_with("text:h") {
-                let level = tag
+                heading_level = tag
                     .chars()
                     .find(|c| c.is_ascii_digit())
                     .unwrap_or('1');
-                html.push_str(&format!("<h{level}>"));
+                html.push_str(&format!("<h{heading_level}>"));
                 in_text = true;
             } else if tag.starts_with("/text:h") {
                 html.push_str(&current_text);
                 current_text.clear();
-                html.push_str("</h1>");
+                html.push_str(&format!("</h{heading_level}>"));
                 in_text = false;
             } else if tag == "text:line-break" || tag == "text:line-break/" {
                 current_text.push_str("<br>");
@@ -364,7 +255,7 @@ office:version="1.2">
 "#,
     );
 
-    let mut result = html.to_string();
+    let mut result = html.replace(['\n', '\r'], " ");
     result = result.replace("<p>", "<text:p>");
     result = result.replace("</p>", "</text:p>\n");
     result = result.replace("<br>", "<text:line-break/>");
@@ -385,16 +276,50 @@ office:version="1.2">
     result = result.replace("<h3>", "<text:h text:outline-level=\"3\">");
     result = result.replace("</h3>", "</text:h>\n");
 
-    let stripped = strip_html(&result);
-    let paragraphs: Vec<&str> = stripped.lines().collect();
-    for para in paragraphs {
-        if !para.trim().is_empty() {
-            odt.push_str(&format!("<text:p>{}</text:p>\n", para.trim()));
+    let cleaned = strip_non_odt_tags(&result);
+    for para in cleaned.lines() {
+        let trimmed = para.trim();
+        if trimmed.is_empty() {
+            continue;
         }
+        if trimmed.starts_with("<text:p") || trimmed.starts_with("<text:h") {
+            odt.push_str(trimmed);
+        } else {
+            odt.push_str(&format!("<text:p>{trimmed}</text:p>"));
+        }
+        odt.push('\n');
     }
 
     odt.push_str("</office:text>\n</office:body>\n</office:document-content>");
     odt
+}
+
+/// Drops HTML tags that have no ODF counterpart, keeping the `text:` elements
+/// this module emits. `strip_html` would remove those too and lose the styles.
+fn strip_non_odt_tags(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut tag = String::new();
+    let mut in_tag = false;
+
+    for ch in html.chars() {
+        match ch {
+            '<' => {
+                in_tag = true;
+                tag.clear();
+            }
+            '>' if in_tag => {
+                in_tag = false;
+                if tag.starts_with("text:") || tag.starts_with("/text:") {
+                    out.push('<');
+                    out.push_str(&tag);
+                    out.push('>');
+                }
+            }
+            _ if in_tag => tag.push(ch),
+            _ => out.push(ch),
+        }
+    }
+    out
 }
 
 pub fn detect_document_format(content: &[u8]) -> &'static str {
@@ -445,3 +370,7 @@ pub fn convert_to_html(content: &[u8]) -> Result<String, String> {
         _ => Err(format!("Unsupported format: {format}")),
     }
 }
+
+#[cfg(test)]
+#[path = "utils_convert_tests.rs"]
+mod tests;

@@ -12,6 +12,19 @@ mod pdf_data;
 mod util;
 mod xlsx;
 
+#[cfg(test)]
+mod csv_tests;
+#[cfg(test)]
+mod html_tests;
+#[cfg(test)]
+mod json_tests;
+#[cfg(test)]
+mod markdown_tests;
+#[cfg(test)]
+mod support_tests;
+#[cfg(test)]
+mod util_tests;
+
 pub use csv::export_to_csv;
 pub use html::export_to_html;
 pub use json::export_to_json;

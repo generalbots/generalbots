@@ -177,7 +177,8 @@ fn validate_value(value: &str, rule: &ValidationRule) -> ValidationResult {
             })
             .unwrap_or(false),
         "text_length" => {
-            let len = value.len();
+            // Length is what the user sees: characters, not UTF-8 bytes.
+            let len = value.chars().count();
             let min = rule
                 .value1
                 .as_ref()
@@ -264,3 +265,7 @@ pub async fn handle_add_note(
         message: Some("Note added".to_string()),
     }))
 }
+
+#[cfg(test)]
+#[path = "validation_tests.rs"]
+mod tests;

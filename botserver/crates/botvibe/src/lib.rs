@@ -43,6 +43,7 @@ pub mod backups;
 pub mod rbac;
 pub mod members_api;
 pub mod metering;
+mod metering_vm_hours;
 pub mod metering_api;
 pub mod metering_schema;
 pub mod permissions;

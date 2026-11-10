@@ -256,3 +256,95 @@ pub async fn save_client(
         "stored_at": path,
     })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(slug: &str) -> OAuthProviderConfig {
+        provider_config(slug).expect("provider is configured")
+    }
+
+    fn url(slug: &str, client_id: &str, code_challenge: &str) -> String {
+        build_authorize_url(
+            &config(slug),
+            client_id,
+            "http://localhost:5000/callback",
+            "encoded",
+            "sig",
+            slug,
+            code_challenge,
+        )
+    }
+
+    #[test]
+    fn the_base_url_always_carries_the_code_flow_parameters() {
+        let built = url("hubspot", "cid", "");
+        assert!(built.starts_with("https://app.hubspot.com/oauth/authorize?"));
+        assert!(built.contains("client_id=cid"));
+        assert!(built.contains("response_type=code"));
+        assert!(built.contains("redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fcallback"));
+        assert!(built.contains("state=encoded.sig"));
+    }
+
+    #[test]
+    fn state_and_signature_are_joined_by_exactly_one_dot() {
+        let built = url("hubspot", "cid", "");
+        let state = built
+            .split("state=")
+            .nth(1)
+            .and_then(|rest| rest.split('&').next())
+            .expect("state present");
+        assert_eq!(state, "encoded.sig");
+        assert_eq!(state.matches('.').count(), 1);
+    }
+
+    #[test]
+    fn an_empty_scope_list_emits_no_scope_parameter() {
+        // Intercom declares no scopes; `scope=` with an empty value is rejected
+        // by some providers.
+        assert!(!url("intercom", "cid", "").contains("scope="));
+    }
+
+    #[test]
+    fn declared_scopes_are_encoded_into_one_parameter() {
+        let built = url("hubspot", "cid", "");
+        assert!(built.contains("scope=crm.objects.contacts.write%20crm.objects.deals.read"));
+    }
+
+    #[test]
+    fn pkce_is_emitted_only_when_a_challenge_is_supplied() {
+        let without = url("hubspot", "cid", "");
+        assert!(!without.contains("code_challenge"));
+
+        let with = url("hubspot", "cid", "challenge+value/=");
+        assert!(with.contains("code_challenge=challenge%2Bvalue%2F%3D"));
+        assert!(with.contains("code_challenge_method=S256"));
+    }
+
+    #[test]
+    fn google_slugs_request_offline_access() {
+        let built = url("gmail", "cid", "");
+        assert!(built.contains("access_type=offline"));
+        assert!(built.contains("prompt=consent"));
+    }
+
+    #[test]
+    fn non_google_slugs_do_not_request_offline_access() {
+        let built = url("hubspot", "cid", "");
+        assert!(!built.contains("access_type=offline"));
+        assert!(!built.contains("prompt=consent"));
+    }
+
+    #[test]
+    fn a_client_id_with_reserved_characters_is_encoded_once() {
+        let built = url("hubspot", "a+b/c=", "");
+        assert!(built.contains("client_id=a%2Bb%2Fc%3D"));
+        assert!(!built.contains("%252B"), "double-encoded: {built}");
+    }
+
+    #[test]
+    fn unknown_providers_have_no_configuration() {
+        assert!(provider_config("no-such-provider").is_none());
+    }
+}

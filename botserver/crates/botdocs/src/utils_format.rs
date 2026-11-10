@@ -37,7 +37,11 @@ pub fn format_error(message: &str) -> serde_json::Value {
 }
 
 pub fn format_relative_time(dt: DateTime<Utc>) -> String {
-    let now = Utc::now();
+    format_relative_time_at(dt, Utc::now())
+}
+
+/// `format_relative_time` with an explicit "now", so the buckets are testable.
+pub fn format_relative_time_at(dt: DateTime<Utc>, now: DateTime<Utc>) -> String {
     let diff = now.signed_duration_since(dt);
 
     if diff < Duration::minutes(1) {
@@ -82,10 +86,10 @@ pub fn strip_html(html: &str) -> String {
 
     result
         .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
+        .replace("&amp;", "&")
 }
 
 pub fn count_words(text: &str) -> usize {
@@ -97,7 +101,9 @@ pub fn count_words(text: &str) -> usize {
 }
 
 pub fn truncate_text(text: &str, max_chars: usize) -> String {
-    if text.len() <= max_chars {
+    // Count characters, not bytes: a multi-byte string shorter than the limit
+    // must not gain a truncation marker.
+    if text.chars().count() <= max_chars {
         return text.to_string();
     }
 
@@ -130,3 +136,7 @@ pub fn generate_document_id() -> String {
 pub fn get_user_docs_path(user_id: &str) -> String {
     format!("users/{}/docs", user_id)
 }
+
+#[cfg(test)]
+#[path = "utils_format_tests.rs"]
+mod tests;

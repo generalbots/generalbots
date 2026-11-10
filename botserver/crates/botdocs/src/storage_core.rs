@@ -93,10 +93,10 @@ pub fn strip_html(html: &str) -> String {
 
     result
         .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
+        .replace("&amp;", "&")
 }
 
 pub fn escape_html(text: &str) -> String {
@@ -142,6 +142,11 @@ pub fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
     let mut bold_stack: i32 = 0;
     let mut italic_stack: i32 = 0;
     let mut underline_stack: i32 = 0;
+    // Any formatted run inside the paragraph marks the whole paragraph, so a
+    // closed `<b>` run is not lost when `</p>` arrives.
+    let mut run_bold = false;
+    let mut run_italic = false;
+    let mut run_underline = false;
 
     for ch in html.chars() {
         match ch {
@@ -165,6 +170,12 @@ pub fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
                                     current.text,
                                     decode_html_entities(&text_buffer)
                                 );
+                                current.bold = current.bold || run_bold;
+                                current.italic = current.italic || run_italic;
+                                current.underline = current.underline || run_underline;
+                                run_bold = false;
+                                run_italic = false;
+                                run_underline = false;
                                 if !current.text.trim().is_empty() {
                                     paragraphs.push(current);
                                 }
@@ -202,9 +213,18 @@ pub fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
                         "li" => current.style = "li".to_string(),
                         "blockquote" => current.style = "blockquote".to_string(),
                         "pre" | "code" => current.style = "code".to_string(),
-                        "b" | "strong" => bold_stack += 1,
-                        "i" | "em" => italic_stack += 1,
-                        "u" => underline_stack += 1,
+                        "b" | "strong" => {
+                            bold_stack += 1;
+                            run_bold = true;
+                        }
+                        "i" | "em" => {
+                            italic_stack += 1;
+                            run_italic = true;
+                        }
+                        "u" => {
+                            underline_stack += 1;
+                            run_underline = true;
+                        }
                         _ => {}
                     }
                 }
@@ -225,6 +245,9 @@ pub fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
     if !text_buffer.is_empty() {
         current.text = format!("{}{}", current.text, decode_html_entities(&text_buffer));
     }
+    current.bold = current.bold || run_bold;
+    current.italic = current.italic || run_italic;
+    current.underline = current.underline || run_underline;
     if !current.text.trim().is_empty() {
         paragraphs.push(current);
     }
@@ -233,13 +256,62 @@ pub fn parse_html_to_paragraphs(html: &str) -> Vec<ParagraphData> {
 }
 
 pub fn decode_html_entities(text: &str) -> String {
-    text.replace("&nbsp;", " ")
-        .replace("&amp;", "&")
+    // Numeric entities first, `&amp;` last: decoding `&amp;` early would turn
+    // `&amp;lt;` into `<`, which is not what a single decode means.
+    decode_numeric_entities(text)
+        .replace("&nbsp;", " ")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
         .replace("&apos;", "'")
+        .replace("&amp;", "&")
+}
+
+/// Decodes `&#233;` and `&#xE9;`; anything unrecognised is left untouched.
+fn decode_numeric_entities(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch != '&' {
+            out.push(ch);
+            continue;
+        }
+        let mut body = String::new();
+        while let Some(&next) = chars.peek() {
+            if next == ';' || body.len() >= 10 {
+                break;
+            }
+            if !(next.is_ascii_alphanumeric() || next == '#') {
+                break;
+            }
+            body.push(next);
+            chars.next();
+        }
+        let terminated = chars.peek() == Some(&';');
+        if terminated {
+            chars.next();
+        }
+        let decoded = body
+            .strip_prefix('#')
+            .and_then(|digits| match digits.strip_prefix(['x', 'X']) {
+                Some(hex) => u32::from_str_radix(hex, 16).ok(),
+                None => digits.parse::<u32>().ok(),
+            })
+            .and_then(char::from_u32);
+        match (decoded, terminated) {
+            (Some(ch), true) => out.push(ch),
+            _ => {
+                out.push('&');
+                out.push_str(&body);
+                if terminated {
+                    out.push(';');
+                }
+            }
+        }
+    }
+    out
 }
 
 pub async fn load_docx_from_drive(
@@ -306,3 +378,7 @@ pub async fn load_docx_from_bytes(
         track_changes_enabled: false,
     })
 }
+
+#[cfg(test)]
+#[path = "storage_core_tests.rs"]
+mod tests;

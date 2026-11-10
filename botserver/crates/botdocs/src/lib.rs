@@ -16,6 +16,7 @@ pub mod ui_fragments;
 pub mod utils;
 pub mod utils_convert;
 pub mod utils_format;
+mod utils_markdown;
 pub mod utils_ooxml;
 pub mod utils_pdf;
 

@@ -51,3 +51,7 @@ pub(super) fn parse_key(key: &str) -> Option<(u32, u32)> {
     let (row, col) = key.split_once(',')?;
     Some((row.parse().ok()?, col.parse().ok()?))
 }
+
+#[cfg(test)]
+#[path = "text_tests.rs"]
+mod tests;

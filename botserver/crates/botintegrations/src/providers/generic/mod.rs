@@ -49,6 +49,14 @@ pub(crate) const MAX_LIST_ITEMS: usize = 25;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[path = "payload_tests.rs"]
+mod payload_tests;
+
+#[cfg(test)]
+#[path = "auth_tests.rs"]
+mod auth_tests;
+
 mod spec;
 mod auth;
 mod adapter;

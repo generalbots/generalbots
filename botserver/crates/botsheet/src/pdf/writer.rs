@@ -154,7 +154,7 @@ impl PdfWriter {
             stream.push_str(&text_cmd(
                 MARGIN + 260.0,
                 top - 4.0,
-                &format!("rows {}–{}", first + 1, last + 1),
+                &format!("rows {}-{}", first + 1, last + 1),
             ));
         }
 
@@ -256,3 +256,7 @@ impl PdfWriter {
         out
     }
 }
+
+#[cfg(test)]
+#[path = "writer_tests.rs"]
+mod tests;

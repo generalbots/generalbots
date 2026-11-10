@@ -11,7 +11,7 @@ pub fn export_to_html(sheet: &Spreadsheet) -> String {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>"#);
-    html.push_str(&sheet.name);
+    html.push_str(&html_escape(&sheet.name));
     html.push_str(r#"</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
@@ -26,7 +26,7 @@ tr:hover { background-color: #f1f1f1; }
 "#);
 
     for ws in &sheet.worksheets {
-        html.push_str(&format!("<h2>{}</h2>\n", ws.name));
+        html.push_str(&format!("<h2>{}</h2>\n", html_escape(&ws.name)));
         html.push_str("<table>\n");
 
         let mut max_row: u32 = 0;
