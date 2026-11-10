@@ -26,3 +26,7 @@ mod verify_faces_aws;
 mod verify_faces_insightface;
 
 use cosine_similarity::*;
+
+#[cfg(test)]
+#[path = "cosine_similarity_tests.rs"]
+mod cosine_similarity_tests;

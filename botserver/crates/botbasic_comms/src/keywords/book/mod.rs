@@ -130,6 +130,14 @@ mod book_keyword;
 mod execute_book_meeting;
 mod resolve_event_scope;
 
+#[cfg(test)]
+#[path = "time_parse_tests.rs"]
+mod time_parse_tests;
+
+#[cfg(test)]
+#[path = "recurrence_tests.rs"]
+mod recurrence_tests;
+
 pub use book_keyword::*;
 use execute_book_meeting::*;
 use resolve_event_scope::*;

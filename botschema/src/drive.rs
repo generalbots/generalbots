@@ -30,7 +30,9 @@ diesel::table! {
 
 
 // Query-only struct (no defaults needed)
-#[derive(Queryable, Debug, Clone)]
+#[derive(Queryable, Debug, Clone, Selectable)]
+#[diesel(table_name = drive_files)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DriveFile {
     pub id: Uuid,
     pub file_path: String,
@@ -54,6 +56,7 @@ pub struct DriveFile {
 // Insert struct - uses diesel defaults
 #[derive(Insertable, Debug)]
 #[diesel(table_name = drive_files)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDriveFile {
     pub file_path: String,
     pub file_type: String,
@@ -124,6 +127,7 @@ diesel::table! {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = drive_user_permissions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DriveUserPermission {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -137,6 +141,7 @@ pub struct DriveUserPermission {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = drive_user_permissions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDriveUserPermission {
     pub user_id: Uuid,
     pub bucket: String,
@@ -148,6 +153,7 @@ pub struct NewDriveUserPermission {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = drive_starred)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DriveStarred {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -158,6 +164,7 @@ pub struct DriveStarred {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = drive_starred)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDriveStarred {
     pub user_id: Uuid,
     pub bucket: String,
@@ -166,6 +173,7 @@ pub struct NewDriveStarred {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = drive_share_links)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DriveShareLink {
     pub id: Uuid,
     pub created_by: Uuid,
@@ -175,12 +183,15 @@ pub struct DriveShareLink {
     pub permission: String,
     pub expires_at: Option<DateTime<Utc>>,
     pub max_downloads: Option<i32>,
-    pub download_count: i32,
+    /// `drive_share_links.download_count` is `Nullable<Int4>`: a link that was
+    /// never downloaded loads as `NULL`, not `0`.
+    pub download_count: Option<i32>,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = drive_share_links)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDriveShareLink {
     pub created_by: Uuid,
     pub bucket: String,

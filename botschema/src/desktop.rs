@@ -47,6 +47,7 @@ diesel::table! {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = desktop_connections)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DesktopConnectionDb {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -63,6 +64,7 @@ pub struct DesktopConnectionDb {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = desktop_connections)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDesktopConnection {
     pub user_id: Uuid,
     pub name: String,
@@ -75,6 +77,7 @@ pub struct NewDesktopConnection {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = desktop_connection_log)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DesktopConnectionLogDb {
     pub id: Uuid,
     pub connection_id: Option<Uuid>,
@@ -91,6 +94,7 @@ pub struct DesktopConnectionLogDb {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = desktop_connection_log)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewDesktopConnectionLog {
     pub connection_id: Option<Uuid>,
     pub user_id: Uuid,

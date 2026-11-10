@@ -82,6 +82,10 @@ use uuid::Uuid;
 
 mod trigger_type;
 mod from_tools;
+
+#[cfg(test)]
+#[path = "trigger_type_tests.rs"]
+mod trigger_type_tests;
 mod register_bot_keywords;
 mod list_bots_keyword;
 mod delegate_to_bot;

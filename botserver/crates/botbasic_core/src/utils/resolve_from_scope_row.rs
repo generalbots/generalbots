@@ -127,7 +127,9 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn s
     }
     let column = parts[0].trim();
     let value = parts[1].trim();
-    if !column.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    if column.is_empty()
+        || !column.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
         return Err("Invalid column name in filter".into());
     }
     Ok((format!("{} = $1", column), vec![value.to_string()]))

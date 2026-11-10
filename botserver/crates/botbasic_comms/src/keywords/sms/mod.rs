@@ -65,6 +65,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 mod sms_priority;
+
+#[cfg(test)]
+#[path = "sms_priority_tests.rs"]
+mod sms_priority_tests;
 mod register_sms_keywords;
 mod register_send_sms_full_keyword;
 mod send_via_twilio;

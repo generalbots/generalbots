@@ -71,5 +71,9 @@ mod from_string;
 mod play_keyword;
 mod execute_play;
 
+#[cfg(test)]
+#[path = "options_tests.rs"]
+mod options_tests;
+
 pub use play_keyword::*;
 pub use execute_play::*;

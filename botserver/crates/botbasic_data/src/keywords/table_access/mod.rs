@@ -203,4 +203,8 @@ mod with_user_id;
 mod can_read;
 mod load_table_access_info;
 
+#[cfg(test)]
+#[path = "with_user_id_tests.rs"]
+mod with_user_id_tests;
+
 pub use load_table_access_info::*;

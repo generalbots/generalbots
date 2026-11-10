@@ -78,6 +78,10 @@ mod register_pivot_keyword;
 mod execute_insert;
 mod execute_filter;
 
+#[cfg(test)]
+#[path = "filter_tests.rs"]
+mod filter_tests;
+
 pub use query_table_field::*;
 pub use register_delete_keyword::*;
 pub use register_pivot_keyword::*;

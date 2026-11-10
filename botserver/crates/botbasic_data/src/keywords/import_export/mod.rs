@@ -13,5 +13,9 @@ pub(crate) use std::sync::Arc;
 mod register_import_export;
 mod import_excel;
 
+#[cfg(test)]
+#[path = "csv_tests.rs"]
+mod csv_tests;
+
 pub use register_import_export::*;
 use import_excel::*;

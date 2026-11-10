@@ -309,6 +309,11 @@ mod tests {
         // Two or more pages means more than one /Type /Page object plus kids.
         let page_count = body.matches("/Type /Page ").count();
         assert!(page_count >= 2, "expected pagination, got {page_count} pages");
-        assert!(body.contains("/Count 2") || body.contains("/Count 3") || body.contains("/Count 4"));
+        // The page tree must declare exactly the number of pages it contains;
+        // pinning 2/3/4 here failed as soon as the line budget changed.
+        assert!(
+            body.contains(&format!("/Count {page_count}")),
+            "the page tree does not declare {page_count} pages"
+        );
     }
 }

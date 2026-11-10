@@ -109,6 +109,10 @@ mod execute_transfer;
 mod register_transfer_to_human_keyword;
 mod get_tool_definition;
 
+#[cfg(test)]
+#[path = "tool_definition_tests.rs"]
+mod tool_definition_tests;
+
 pub use is_crm_enabled::*;
 pub use execute_transfer::*;
 pub use register_transfer_to_human_keyword::*;

@@ -249,6 +249,10 @@ mod org_drive_bucket;
 mod key_for;
 mod resolve_from_scope_row;
 
+#[cfg(test)]
+#[path = "resolve_from_scope_row_tests.rs"]
+mod resolve_from_scope_row_tests;
+
 pub use to_array::*;
 pub use org_drive_bucket::*;
 pub use key_for::*;

@@ -17,16 +17,18 @@ impl PlayOptions {
                 "linenumbers" => opts.line_numbers = Some(true),
                 _ => {
                     if let Some((key, value)) = opt.split_once('=') {
-                        match key {
-                            "start" => opts.start_time = value.parse().ok(),
-                            "end" => opts.end_time = value.parse().ok(),
-                            "width" => opts.width = value.parse().ok(),
-                            "height" => opts.height = value.parse().ok(),
-                            "theme" => opts.theme = Some(value.to_string()),
-                            "slide" => opts.slide = value.parse().ok(),
-                            "page" => opts.page = value.parse().ok(),
-                            "zoom" => opts.zoom = value.parse().ok(),
-                            "highlight" => {
+                        // Spaces around `=` are user formatting, not part of the
+                        // key or the value: "page = 3" must behave like "page=3".
+                        match (key.trim(), value.trim()) {
+                            ("start", value) => opts.start_time = value.parse().ok(),
+                            ("end", value) => opts.end_time = value.parse().ok(),
+                            ("width", value) => opts.width = value.parse().ok(),
+                            ("height", value) => opts.height = value.parse().ok(),
+                            ("theme", value) => opts.theme = Some(value.to_string()),
+                            ("slide", value) => opts.slide = value.parse().ok(),
+                            ("page", value) => opts.page = value.parse().ok(),
+                            ("zoom", value) => opts.zoom = value.parse().ok(),
+                            ("highlight", value) => {
                                 opts.highlight_lines =
                                     Some(value.split('-').filter_map(|s| s.parse().ok()).collect());
                             }

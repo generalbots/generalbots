@@ -127,3 +127,9 @@ pub use self::database_manager::*;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "schema_invariants_tests.rs"]
+mod schema_invariants_tests;
+#[cfg(test)]
+#[path = "struct_contract_tests.rs"]
+mod struct_contract_tests;

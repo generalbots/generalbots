@@ -206,21 +206,40 @@ pub(super) fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String>
 pub(super) fn extract_hour_from_string(s: &str) -> Option<u32> {
     let s = s.to_lowercase();
 
-    if s.contains("pm") {
-        if let Some(hour_str) = s.split('p').next() {
-            if let Ok(hour) = hour_str.trim().replace(':', "").parse::<u32>() {
-                return Some(if hour < 12 { hour + 12 } else { hour });
-            }
-        }
-    } else if s.contains("am") {
-        if let Some(hour_str) = s.split('a').next() {
-            if let Ok(hour) = hour_str.trim().replace(':', "").parse::<u32>() {
-                return Some(if hour == 12 { 0 } else { hour });
-            }
-        }
+    let is_pm = s.contains("pm");
+    if !is_pm && !s.contains("am") {
+        return None;
     }
 
-    None
+    // The hour is the last number before the meridiem marker: the text may be
+    // "tomorrow 3:30pm". Scanning from the start used to concatenate the
+    // minutes into the hour ("3:30" -> 330) and the caller clamped it to 23:00,
+    // and any prefix ("tomorrow 3pm") made the parse fail entirely.
+    let marker = if is_pm { "pm" } else { "am" };
+    let head = s[..s.rfind(marker)?].trim_end();
+    let hour_text: String = head
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_digit() || *c == ':')
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    let hour: u32 = hour_text.split(':').next()?.parse().ok()?;
+
+    let hour = if is_pm {
+        if hour < 12 {
+            hour + 12
+        } else {
+            hour
+        }
+    } else if hour == 12 {
+        0
+    } else {
+        hour
+    };
+
+    (hour <= 23).then_some(hour)
 }
 pub(super) fn log_booking(
     state: &dyn BasicRuntime,

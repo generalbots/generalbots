@@ -168,8 +168,15 @@ pub(super) fn parse_csv_line(line: &str) -> Vec<String> {
     result
 }
 pub(super) fn escape_csv_value(value: &str) -> String {
-    if value.contains(',') || value.contains('"') || value.contains('\n') {
-        value.replace('"', "").to_string()
+    // RFC 4180: a field containing a comma, a quote or a line break must be
+    // wrapped in quotes, and its own quotes doubled. The previous version
+    // dropped the quotes, which shifted every following column and lost data.
+    if value.contains(',')
+        || value.contains('"')
+        || value.contains('\n')
+        || value.contains('\r')
+    {
+        format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_string()
     }

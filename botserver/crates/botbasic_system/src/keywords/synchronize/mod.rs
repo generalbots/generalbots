@@ -220,6 +220,21 @@ mod extract_key_value;
 mod error_type;
 mod register_synchronize_keywords;
 
+#[cfg(test)]
+#[path = "error_type_tests.rs"]
+mod error_type_tests;
+#[cfg(test)]
+#[path = "coerce_value_tests.rs"]
+mod coerce_value_tests;
+
+#[cfg(test)]
+#[path = "extract_key_value_tests.rs"]
+mod extract_key_value_tests;
+
+#[cfg(test)]
+#[path = "transform_record_tests.rs"]
+mod transform_record_tests;
+
 use extract_key_value::*;
 pub use error_type::*;
 pub use register_synchronize_keywords::*;

@@ -39,6 +39,7 @@ diesel::table! {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = database_query_history)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct QueryHistoryDb {
     pub id: Uuid,
     pub bot_id: Uuid,
@@ -54,6 +55,7 @@ pub struct QueryHistoryDb {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = database_query_history)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewQueryHistory {
     pub bot_id: Uuid,
     pub user_id: Uuid,
@@ -67,6 +69,7 @@ pub struct NewQueryHistory {
 
 #[derive(Queryable, Debug, Clone, Selectable)]
 #[diesel(table_name = database_saved_queries)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SavedQueryDb {
     pub id: Uuid,
     pub bot_id: Uuid,
@@ -82,6 +85,7 @@ pub struct SavedQueryDb {
 
 #[derive(Insertable, Debug)]
 #[diesel(table_name = database_saved_queries)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewSavedQuery {
     pub bot_id: Uuid,
     pub user_id: Uuid,
