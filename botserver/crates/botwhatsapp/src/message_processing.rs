@@ -62,7 +62,7 @@ pub async fn process_incoming_message(
             // The bot/workspace language: a WhatsApp sender is a phone
             // number, not a `users` row, so there is no stored preference.
             let locale = botlib::i18n::locale_from_config(|key| {
-                (state.get_config)(&bot_id, key, None).ok()
+                (state.get_config)(key).ok()
             });
             let error_msg =
                 botlib::i18n::translate(&locale, "channel-reply-processing-failed", &[]);
