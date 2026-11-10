@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use super::metering::{MeterKind, VMetering, VMeteringRef};
+use super::metering::{F64Cell, MeterKind, VMetering, VMeteringRef};
 
 impl VMetering {
     pub fn accrue_vm_hours(

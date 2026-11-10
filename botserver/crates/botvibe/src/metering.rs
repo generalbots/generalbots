@@ -13,9 +13,9 @@ pub type VMeteringRef = std::sync::Arc<VMetering>;
 type Conn = diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 #[derive(diesel::QueryableByName)]
-struct F64Cell {
+pub(crate) struct F64Cell {
     #[diesel(sql_type = diesel::sql_types::Float8)]
-    value: f64,
+    pub(crate) value: f64,
 }
 
 #[derive(diesel::QueryableByName)]
@@ -132,7 +132,7 @@ impl VMetering {
         Ok(plan.map(|r| r.plan_name).as_deref().map(MeterPlan::parse).unwrap_or(MeterPlan::Free))
     }
 
-    fn window_seconds() -> i64 {
+    pub(crate) fn window_seconds() -> i64 {
         window_seconds_from(std::env::var(WINDOW_ENV).ok().as_deref())
     }
 
