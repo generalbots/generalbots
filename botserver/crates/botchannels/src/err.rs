@@ -47,3 +47,7 @@ impl std::str::FromStr for ChannelType {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "channel_type_tests.rs"]
+mod channel_type_tests;

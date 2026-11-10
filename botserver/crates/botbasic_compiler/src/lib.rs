@@ -64,3 +64,8 @@ mod with_callbacks;
 mod preprocess_basic;
 
 mod re_cache;
+
+#[cfg(test)]
+#[path = "tool_parsing_tests.rs"]
+mod tool_parsing_tests;
+

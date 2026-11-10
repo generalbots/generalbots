@@ -203,6 +203,22 @@ impl TwilioSmsChannel {
         Ok(numbers)
     }
 
+    /// The exact string Twilio signs: the webhook URL followed by every
+    /// parameter as `key + value`, sorted by key. Exposed so the signature
+    /// tests (and any future caller) can assert the material, not just the
+    /// boolean.
+    pub(crate) fn webhook_signing_input(url: &str, params: &HashMap<String, String>) -> String {
+        let mut sorted_params: Vec<(&String, &String)> = params.iter().collect();
+        sorted_params.sort_by(|a, b| a.0.cmp(b.0));
+
+        let mut data = url.to_string();
+        for (key, value) in sorted_params {
+            data.push_str(key);
+            data.push_str(value);
+        }
+        data
+    }
+
     pub fn validate_webhook_signature(
         &self,
         signature: &str,
@@ -212,28 +228,25 @@ impl TwilioSmsChannel {
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
 
-        let mut sorted_params: Vec<(&String, &String)> = params.iter().collect();
-        sorted_params.sort_by(|a, b| a.0.cmp(b.0));
-
-        let mut data = url.to_string();
-        for (key, value) in sorted_params {
-            data.push_str(key);
-            data.push_str(value);
-        }
+        let data = Self::webhook_signing_input(url, params);
 
         let mut mac = match Hmac::<Sha1>::new_from_slice(self.config.auth_token.as_bytes()) {
             Ok(m) => m,
-            Err(_) => return false,
+            Err(e) => {
+                log::error!("Twilio webhook HMAC key error: {e}");
+                return false;
+            }
         };
 
         mac.update(data.as_bytes());
-        let result = mac.finalize();
         let computed_signature = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            result.into_bytes(),
+            mac.finalize().into_bytes(),
         );
 
-        signature == computed_signature
+        // Constant time: `==` on `&str` stops at the first differing byte, so
+        // response timing leaks how much of the base64 signature was guessed.
+        constant_time_eq(computed_signature.as_bytes(), signature.trim().as_bytes())
     }
 
     pub(crate) async fn update_conversation(
@@ -289,3 +302,22 @@ impl TwilioSmsChannel {
         }
     }
 }
+
+/// Byte-wise equality that does not short-circuit on the first difference.
+///
+/// Signature comparison is the one place where a timing difference is
+/// observable by an unauthenticated caller, so it must not use `==`.
+pub(super) fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (left, right) in a.iter().zip(b.iter()) {
+        diff |= left ^ right;
+    }
+    diff == 0
+}
+
+#[cfg(test)]
+#[path = "webhook_tests.rs"]
+mod webhook_tests;

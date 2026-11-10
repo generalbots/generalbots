@@ -34,3 +34,7 @@ pub(super) fn escape_xml(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
 }
+
+#[cfg(test)]
+#[path = "status_tests.rs"]
+mod status_tests;

@@ -21,9 +21,13 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         (r#"ADD\s+SUGGESTION\s+TOOL"#, 2, 2, vec!["tool", "text"]),
         (r#"ADD\s+SUGGESTION\s+TEXT"#, 2, 2, vec!["value", "text"]),
-        (r#"ADD\s+SUGGESTION(?!\s+TOOL|\s+TEXT|_)"#, 2, 2, vec!["context", "text"]),
+        // The space form is rewritten to the underscored custom syntax the
+        // runtime registers (`ADD_SUGGESTION … as …`). This entry used to carry
+        // a `(?!…)` lookahead, which the Rust regex crate cannot compile, so
+        // the pattern was silently dropped and every `ADD SUGGESTION` statement
+        // reached the engine unrewritten. Ordering keeps TOOL/TEXT first.
+        (r#"ADD\s+SUGGESTION"#, 1, 2, vec!["context", "text"]),
         (r#"ADD\s+SWITCHER"#, 2, 2, vec!["switcher", "text"]),
-        (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
         (r#"ADD\s+MEMBER"#, 2, 2, vec!["name", "role"]),
 
         (r#"CREATE\s+TASK"#, 1, 1, vec!["task"]),
@@ -280,16 +284,31 @@ pub fn convert_multiword_keywords(script: &str) -> String {
                             } else if keyword.starts_with("add_suggestion") {
                                 // ADD_SUGGESTION, ADD_SUGGESTION_TOOL, ADD_SUGGESTION_TEXT
                                 // all use "AS" separator between param1 and param2 and are custom syntaxes, not functions
-                                let (a, b) = if params.len() == 2 {
-                                    (params[0].clone(), params[1].clone())
-                                } else if params.len() >= 3 {
-                                    let as_idx = params.iter().position(|p| p.eq_ignore_ascii_case("as")).unwrap_or(1);
-                                    (params[0].clone(), params[as_idx + 1..].join(" "))
-                                } else {
-                                    (params[0].clone(), String::new())
-                                };
                                 let up_keyword = keyword.to_uppercase();
-                                format!("{}{}{} {} as {};", indent, prefix, up_keyword, a, b)
+                                if params.len() == 1 {
+                                    // One parsed parameter can still be the
+                                    // `x AS y` pair: the comma splitter does not
+                                    // know about the AS separator.
+                                    let single = params[0].clone();
+                                    match single.to_uppercase().find(" AS ") {
+                                        Some(pos) => {
+                                            let a = single[..pos].trim();
+                                            let b = single[pos + 4..].trim();
+                                            format!("{indent}{prefix}{up_keyword} {a} as {b};")
+                                        }
+                                        // Simple form: one argument is both the
+                                        // context and the button text.
+                                        None => format!("{indent}{prefix}{up_keyword} {single};"),
+                                    }
+                                } else {
+                                    let (a, b) = if params.len() == 2 {
+                                        (params[0].clone(), params[1].clone())
+                                    } else {
+                                        let as_idx = params.iter().position(|p| p.eq_ignore_ascii_case("as")).unwrap_or(1);
+                                        (params[0].clone(), params[as_idx + 1..].join(" "))
+                                    };
+                                    format!("{indent}{prefix}{up_keyword} {a} as {b};")
+                                }
                             } else {
                                 let param_str = if params.is_empty() {
                                     String::new()

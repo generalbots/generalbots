@@ -18,6 +18,13 @@ pub fn convert_while_wend_syntax(script: &str) -> String {
     }
     result
 }
+/// `CASE 1` must stay numeric: comparing an integer subject with the string
+/// `"1"` is always false in Rhai, which silently skipped every branch of an
+/// integer `SELECT`.
+fn is_numeric_literal(raw: &str) -> bool {
+    !raw.is_empty() && raw.parse::<f64>().is_ok()
+}
+
 pub fn convert_select_case_syntax(script: &str) -> String {
     let mut result = String::new();
     let lines: Vec<&str> = script.lines().collect();
@@ -39,9 +46,17 @@ pub fn convert_select_case_syntax(script: &str) -> String {
         let trimmed = lines[i].trim();
         let upper = trimmed.to_uppercase();
 
-        if upper.starts_with("SELECT ") && !upper.contains(" THEN") {
-            let select_var = trimmed[7..].trim();
-            log::trace!("Converting SELECT statement for variable: '{}'", select_var);
+        // `SELECT ... FROM` is SQL, not the SELECT/CASE construct.
+        if upper.starts_with("SELECT ") && !upper.contains(" THEN") && !upper.contains(" FROM ") {
+            let subject = trimmed[7..].trim();
+            // `SELECT CASE expr` is the VBA spelling used by the shipped
+            // templates; the subject is `expr`, not `CASE expr`.
+            let select_var = if subject.to_uppercase().starts_with("CASE ") {
+                subject[5..].trim().to_string()
+            } else {
+                subject.to_string()
+            };
+            log::trace!("Converting SELECT statement for variable: '{select_var}'");
 
             i += 1;
 
@@ -69,7 +84,7 @@ pub fn convert_select_case_syntax(script: &str) -> String {
                             }
                             result.push('\n');
                         }
-                        result.push_str(" }\n");
+                        result.push_str("}\n");
                         current_case_body.clear();
                     }
                     i += 1;
@@ -85,7 +100,7 @@ pub fn convert_select_case_syntax(script: &str) -> String {
                             }
                             result.push('\n');
                         }
-                        result.push_str(" }\n");
+                        result.push_str("}\n");
                         current_case_body.clear();
                     }
                     break;
@@ -103,17 +118,32 @@ pub fn convert_select_case_syntax(script: &str) -> String {
                         current_case_body.clear();
                     }
 
-                    let case_value = if case_trimmed[5..].trim().starts_with('"') {
-                        case_trimmed[5..].trim().to_string()
+                    let case_raw = case_trimmed[5..].trim();
+
+                    // `CASE ELSE` is the default branch, not a literal to match.
+                    if case_raw.eq_ignore_ascii_case("ELSE") {
+                        if is_first_case {
+                            result.push_str("if true {\n");
+                            is_first_case = false;
+                        } else {
+                            result.push_str("} else {\n");
+                        }
+                        in_case = true;
+                        i += 1;
+                        continue;
+                    }
+
+                    let case_value = if case_raw.starts_with('"') || is_numeric_literal(case_raw) {
+                        case_raw.to_string()
                     } else {
-                        format!("\"{}\"", case_trimmed[5..].trim())
+                        format!("\"{case_raw}\"")
                     };
 
                     if is_first_case {
-                        result.push_str(&format!("if {} == {} {{\n", select_var, case_value));
+                        result.push_str(&format!("if {select_var} == {case_value} {{\n"));
                         is_first_case = false;
                     } else {
-                        result.push_str(&format!("}} else if {} == {} {{\n", select_var, case_value));
+                        result.push_str(&format!("}} else if {select_var} == {case_value} {{\n"));
                     }
                     in_case = true;
                     i += 1;
@@ -147,18 +177,54 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
 
     let mut result = String::new();
     for line in script.lines() {
-        let mut processed_line = line.to_string();
-        for keyword in &rhai_builtins {
-            let pattern = format!(r"\b{}\b", regex::escape(keyword));
-            if let Some(re) = crate::re_cache::dynamic(&pattern) {
-                processed_line = re.replace_all(&processed_line, keyword.to_lowercase()).to_string();
-            }
-        }
-        result.push_str(&processed_line);
+        result.push_str(&lowercase_builtins_outside_literals(line, &rhai_builtins));
         result.push('\n');
     }
     result
 }
+
+/// Lowercases Rhai builtins in code only. Text inside a string literal is user
+/// data — `TALK "IF you dare"` must not come out as `TALK "if you dare"`.
+fn lowercase_builtins_outside_literals(line: &str, builtins: &[&str]) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut code = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for ch in line.chars() {
+        if in_string {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+        } else if ch == '"' {
+            out.push_str(&lowercase_builtins(&code, builtins));
+            code.clear();
+            out.push(ch);
+            in_string = true;
+        } else {
+            code.push(ch);
+        }
+    }
+    out.push_str(&lowercase_builtins(&code, builtins));
+    out
+}
+
+fn lowercase_builtins(code: &str, builtins: &[&str]) -> String {
+    let mut processed = code.to_string();
+    for keyword in builtins {
+        let pattern = format!(r"\b{}\b", regex::escape(keyword));
+        if let Some(re) = crate::re_cache::dynamic(&pattern) {
+            processed = re.replace_all(&processed, keyword.to_lowercase()).to_string();
+        }
+    }
+    processed
+}
+
 /// Outside string literals, bare `TODAY`/`NOW` tokens become calls
 /// `TODAY()`/`NOW()`: the runtime registers them as functions
 /// (botbasic_core datetime/now.rs), but BASIC scripts write them as bare

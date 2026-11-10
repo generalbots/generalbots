@@ -12,4 +12,8 @@ mod convert_save_statements;
 mod process_tables_bas;
 mod split_by_commas_outside_parens;
 
+#[cfg(test)]
+#[path = "save_conversion_tests.rs"]
+mod save_conversion_tests;
+
 use split_by_commas_outside_parens::*;

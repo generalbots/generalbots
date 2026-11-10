@@ -124,28 +124,79 @@ pub fn validate_directives(directives: &HashSet<Directive>) -> Result<(), BasicE
 mod tests {
     use super::*;
 
+    fn set(directives: &[Directive]) -> HashSet<Directive> {
+        directives.iter().copied().collect()
+    }
+
     #[test]
     fn test_e_bas_0001_schedule_and_on_update() {
-        let mut dirs = HashSet::new();
-        dirs.insert(Directive::SetSchedule);
-        dirs.insert(Directive::OnUpdateOf);
-        let err = validate_directives(&dirs).unwrap_err();
+        let err = validate_directives(&set(&[Directive::SetSchedule, Directive::OnUpdateOf]))
+            .expect_err("conflict");
         assert_eq!(err.code, "E-BAS-0001");
+        assert!(err.message.contains("SET SCHEDULE"), "got: {}", err.message);
+        assert!(err.message.contains("ON UPDATE OF"), "got: {}", err.message);
     }
 
     #[test]
     fn test_e_bas_0001_website_ok() {
-        let mut dirs = HashSet::new();
-        dirs.insert(Directive::SetSchedule);
-        dirs.insert(Directive::UseWebsite);
-        assert!(validate_directives(&dirs).is_ok());
+        assert!(validate_directives(&set(&[Directive::SetSchedule, Directive::UseWebsite])).is_ok());
     }
 
     #[test]
     fn test_e_bas_0001_single_trigger_ok() {
-        let mut dirs = HashSet::new();
-        dirs.insert(Directive::OnUpdateOf);
-        assert!(validate_directives(&dirs).is_ok());
+        assert!(validate_directives(&set(&[Directive::OnUpdateOf])).is_ok());
+    }
+
+    #[test]
+    fn every_pair_of_trigger_modes_conflicts() {
+        for (i, first) in TRIGGER_MODES.iter().enumerate() {
+            for second in &TRIGGER_MODES[i + 1..] {
+                assert!(
+                    validate_directives(&set(&[*first, *second])).is_err(),
+                    "{first:?} + {second:?} must conflict"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_trigger_mode_coexists_with_use_website() {
+        for mode in TRIGGER_MODES {
+            assert!(
+                validate_directives(&set(&[*mode, Directive::UseWebsite])).is_ok(),
+                "{mode:?} + USE WEBSITE must be allowed"
+            );
+        }
+    }
+
+    #[test]
+    fn repeating_the_same_directive_is_not_a_conflict() {
+        assert!(validate_directives(&set(&[Directive::Webhook, Directive::Webhook])).is_ok());
+    }
+
+    #[test]
+    fn an_empty_directive_set_is_valid() {
+        assert!(validate_directives(&set(&[])).is_ok());
+    }
+
+    #[test]
+    fn every_directive_has_a_name_and_a_description() {
+        for directive in [
+            Directive::SetSchedule,
+            Directive::OnUpdateOf,
+            Directive::Webhook,
+            Directive::UseWebsite,
+            Directive::OnEmail,
+            Directive::OnChange,
+            Directive::OnEvent,
+        ] {
+            assert!(!directive.name().is_empty(), "{directive:?} has no name");
+            assert!(
+                !directive.description().is_empty(),
+                "{directive:?} has no description"
+            );
+        }
+        assert_eq!(Directive::OnEmail.name(), "ON EMAIL FROM");
     }
 
     #[test]
@@ -155,3 +206,4 @@ mod tests {
         assert_eq!(msg, "[E-BAS-9999] Teste");
     }
 }
+

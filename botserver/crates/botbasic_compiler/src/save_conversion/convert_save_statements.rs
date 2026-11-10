@@ -45,10 +45,10 @@ impl BasicCompiler {
         // Patterns: SAVE variable TO table WHERE id = expr
         //           SAVE (key = val, ...) TO table WHERE id = expr
         if upper.contains(" WHERE ") && upper.contains(" TO ") {
-            return self.convert_save_with_where(content, save_counter);
+            return Self::convert_save_with_where(content, save_counter);
         }
 
-        let parts = self.parse_save_statement(content)?;
+        let parts = Self::parse_save_statement(content)?;
 
         // If the SAVE uses an inline map literal (#{...}) as the data argument,
         // do NOT convert — let the SAVE keyword handler process the map directly.
@@ -107,7 +107,6 @@ impl BasicCompiler {
     }
 
     pub(super) fn parse_save_statement(
-        &self,
         content: &str,
     ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         let mut parts = Vec::new();
@@ -151,7 +150,6 @@ impl BasicCompiler {
     ///   SAVE variable TO table WHERE id = expr
     ///     → SAVE "table", expr, variable
     pub(super) fn convert_save_with_where(
-        &self,
         content: &str,
         save_counter: &mut usize,
     ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
@@ -244,13 +242,17 @@ impl BasicCompiler {
         );
 
         let tables_content = fs::read_to_string(&tables_path)?;
-        let columns = self.parse_table_definition_for_fields(&tables_content, table_name)?;
+        let columns = Self::parse_table_definition_for_fields(&tables_content, table_name)?;
 
         Ok(columns)
     }
 
+    /// Column names of one table in a `tables.bas` source.
+    ///
+    /// `tables.bas` declares tables as `BEGIN TABLE <name> … END TABLE`
+    /// (see AGENTS.md); a bare `TABLE <name>` header is accepted too. The name
+    /// must match exactly — `TABLE orders_archive` is not `orders`.
     pub(super) fn parse_table_definition_for_fields(
-        &self,
         content: &str,
         table_name: &str,
     ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
@@ -259,27 +261,51 @@ impl BasicCompiler {
 
         for line in content.lines() {
             let trimmed = line.trim();
+            let upper = trimmed.to_uppercase();
 
-            if trimmed.starts_with("TABLE ") && trimmed.contains(table_name) {
-                in_target_table = true;
+            if let Some(declared) = table_header_name(trimmed) {
+                in_target_table = declared.eq_ignore_ascii_case(table_name);
+                if in_target_table {
+                    continue;
+                }
+                // A different table's body: stop collecting, keep scanning.
                 continue;
             }
 
-            if in_target_table {
-                if trimmed.starts_with("END TABLE") {
-                    break;
-                }
+            if !in_target_table {
+                continue;
+            }
 
-                if trimmed.starts_with("FIELD ") {
-                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        let field_name = parts[1].to_string();
-                        columns.push(field_name);
-                    }
+            if upper.starts_with("END TABLE") {
+                break;
+            }
+
+            if upper.starts_with("FIELD ") {
+                let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    columns.push(parts[1].to_string());
                 }
             }
         }
 
         Ok(columns)
+    }
+}
+
+/// Table name declared by a `BEGIN TABLE <name>` or `TABLE <name>` header.
+fn table_header_name(line: &str) -> Option<&str> {
+    let upper = line.to_uppercase();
+    let prefix_len = if upper.starts_with("BEGIN TABLE ") {
+        "BEGIN TABLE ".len()
+    } else if upper.starts_with("TABLE ") {
+        "TABLE ".len()
+    } else {
+        return None;
+    };
+    let name = line.get(prefix_len..)?.trim().split_whitespace().next()?;
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
     }
 }

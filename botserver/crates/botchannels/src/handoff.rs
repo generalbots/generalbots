@@ -219,3 +219,7 @@ impl Default for HandoffService {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "handoff_tests.rs"]
+mod handoff_tests;

@@ -59,8 +59,14 @@ pub async fn process_incoming_message(
         Err(e) => {
             log::error!("Message processing failed for {}: {}", formatted_phone, e);
 
-            let error_msg = "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.";
-            (state.send_message)(&formatted_phone, error_msg, &bot_id.to_string())
+            // The bot/workspace language: a WhatsApp sender is a phone
+            // number, not a `users` row, so there is no stored preference.
+            let locale = botlib::i18n::locale_from_config(|key| {
+                (state.get_config)(&bot_id, key, None).ok()
+            });
+            let error_msg =
+                botlib::i18n::translate(&locale, "channel-reply-processing-failed", &[]);
+            (state.send_message)(&formatted_phone, &error_msg, &bot_id.to_string())
                 .await
                 .map_err(|e| format!("Failed to send error message: {}", e))?;
 

@@ -9,49 +9,66 @@ impl TwilioSmsChannel {
         }
     }
 
-    pub async fn send_sms(&self, request: SendSmsRequest) -> Result<SmsMessage, TwilioError> {
-        let url = format!(
-            "{}/Accounts/{}/Messages.json",
-            Self::API_BASE, self.config.account_sid
-        );
-
-        let mut params: HashMap<&str, String> = HashMap::new();
-        params.insert("To", request.to.clone());
-        params.insert("Body", request.body.clone());
+    /// Builds the `application/x-www-form-urlencoded` body Twilio expects.
+    ///
+    /// `From` and `MessagingServiceSid` are mutually exclusive: the messaging
+    /// service wins when configured, because that is the routing pool the
+    /// account pays for. Media URLs are numbered from zero.
+    pub(super) fn build_send_sms_params(&self, request: &SendSmsRequest) -> HashMap<String, String> {
+        let mut params: HashMap<String, String> = HashMap::new();
+        params.insert("To".to_string(), request.to.clone());
+        params.insert("Body".to_string(), request.body.clone());
 
         if let Some(ref msid) = self.config.messaging_service_sid {
-            params.insert("MessagingServiceSid", msid.clone());
+            params.insert("MessagingServiceSid".to_string(), msid.clone());
         } else {
-            params.insert("From", self.config.from_number.clone());
+            params.insert("From".to_string(), self.config.from_number.clone());
         }
 
-        if let Some(ref callback) = request.status_callback.or(self.config.status_callback_url.clone()) {
-            params.insert("StatusCallback", callback.clone());
+        if let Some(ref callback) = request
+            .status_callback
+            .clone()
+            .or(self.config.status_callback_url.clone())
+        {
+            params.insert("StatusCallback".to_string(), callback.clone());
         }
 
         if let Some(ref media_urls) = request.media_url {
-            for (i, url) in media_urls.iter().enumerate() {
-                params.insert(Box::leak(format!("MediaUrl{}", i).into_boxed_str()), url.clone());
+            for (index, url) in media_urls.iter().enumerate() {
+                // Owned key: the previous `Box::leak` version leaked one
+                // allocation per media URL on every send.
+                params.insert(format!("MediaUrl{}", index), url.clone());
             }
         }
 
         if let Some(ref max_price) = request.max_price {
-            params.insert("MaxPrice", max_price.clone());
+            params.insert("MaxPrice".to_string(), max_price.clone());
         }
 
         if let Some(validity) = request.validity_period {
-            params.insert("ValidityPeriod", validity.to_string());
+            params.insert("ValidityPeriod".to_string(), validity.to_string());
         }
 
         if let Some(ref schedule_type) = request.schedule_type {
             let schedule_str = match schedule_type {
                 ScheduleType::Fixed => "fixed",
             };
-            params.insert("ScheduleType", schedule_str.to_string());
+            params.insert("ScheduleType".to_string(), schedule_str.to_string());
             if let Some(send_at) = request.send_at {
-                params.insert("SendAt", send_at.to_rfc3339());
+                params.insert("SendAt".to_string(), send_at.to_rfc3339());
             }
         }
+
+        params
+    }
+
+    pub async fn send_sms(&self, request: SendSmsRequest) -> Result<SmsMessage, TwilioError> {
+        let url = format!(
+            "{}/Accounts/{}/Messages.json",
+            Self::API_BASE, self.config.account_sid
+        );
+
+        let params = self.build_send_sms_params(&request);
 
         let response = self
             .http_client
@@ -282,3 +299,7 @@ impl TwilioSmsChannel {
         Ok(self.convert_response_to_message(message))
     }
 }
+
+#[cfg(test)]
+#[path = "send_payload_tests.rs"]
+mod send_payload_tests;
