@@ -1,8 +1,18 @@
 [build]
-jobs = 2
+# Compile as wide as the host allows: `jobs = 8` saturates the 4-vCPU dev box
+# (link and codegen overlap, which is where most wall time goes) and matches
+# the CI runners. Override per invocation with CARGO_BUILD_JOBS when the box is
+# shared — e.g. CARGO_BUILD_JOBS=2 while another job needs the cores.
+jobs = 8
 
 [target.x86_64-unknown-linux-gnu]
-linker = "gcc"
+# mold links the ~280 MB dev binary in a fraction of the time GNU ld needs.
+# `clang` is required because rustc on Debian passes `-fuse-ld=lld` and a bare
+# `gcc` driver then fails to find `ld`; clang resolves mold through `ld.mold`
+# on PATH (Ubuntu/Debian `mold` package, or `ln -s /usr/bin/mold ~/.local/bin/ld.mold`).
+# CI installs both from `.github/actions/rust-setup` (default packages).
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "link-arg=/LIBPATH:C:\\pgsql\\pgsql\\lib"]

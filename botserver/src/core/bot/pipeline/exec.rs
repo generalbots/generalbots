@@ -402,11 +402,11 @@ pub async fn process_message_internal(
             }
         }
     }
-
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 
+    let turn_timeout_secs = super::enriched_llm::turn_timeout_secs();
     if tokio::time::timeout(
-        std::time::Duration::from_secs(300),
+        std::time::Duration::from_secs(turn_timeout_secs),
         super::enriched_llm::build_and_stream(
             identity,
             rx,
@@ -421,7 +421,7 @@ pub async fn process_message_internal(
     .await
     .is_err()
     {
-        botlog::safe_warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
+        botlog::safe_warn!("stream_llm_response TIMEOUT after {turn_timeout_secs}s for session {session_id}");
     }
 
     // #1635 — the pipeline streams typed BotResponse frames, which have no

@@ -14,6 +14,12 @@ fn run_html(run: &Run) -> String {
     for child in &run.children {
         match child {
             RunChild::Text(text) => run_text.push_str(&escape_html(&text.text)),
+            // A page break must survive the conversion: without it a two-page
+            // document renders as one endless page in the preview, which is
+            // exactly what a reader sees as "only one page" (#2150).
+            RunChild::Break(br) if matches!(br.br_type, docx_rs::BreakType::Page) => {
+                run_text.push_str(r#"<div class="gb-doc-page-break"></div>"#)
+            }
             RunChild::Break(_) => run_text.push_str("<br>"),
             RunChild::Tab(_) => run_text.push_str("&nbsp;&nbsp;&nbsp;&nbsp;"),
             _ => {}

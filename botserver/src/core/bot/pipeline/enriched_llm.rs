@@ -11,6 +11,18 @@ use super::types::{PipelineResult, SessionIdentity};
 
 /// The persisted conversation shows the user's own words; the agent-only
 /// `[User attached a file stored at inbox/…]` block must stay in the prompt
+/// Turn budget for one LLM call.
+///
+/// A CPU-only provider must prefill the whole prompt before the first token,
+/// so the ceiling is configurable: `LLM_TURN_TIMEOUT_SECS` (default 300).
+pub(super) fn turn_timeout_secs() -> u64 {
+    std::env::var("LLM_TURN_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .filter(|secs| *secs > 0)
+        .unwrap_or(300)
+}
+
 /// copy only (replay used to show it inside the user's bubble).
 fn display_user_text(text: &str) -> String {
     const MARKER: &str = "[User attached a file stored at inbox/";
@@ -139,11 +151,7 @@ pub(super) async fn build_and_stream(
     // therefore configurable: `LLM_TURN_TIMEOUT_SECS` (default 300) lets an
     // operator give a slow local model a realistic window without loosening the
     // default for hosted providers.
-    let turn_timeout_secs = std::env::var("LLM_TURN_TIMEOUT_SECS")
-        .ok()
-        .and_then(|value| value.trim().parse::<u64>().ok())
-        .filter(|secs| *secs > 0)
-        .unwrap_or(300);
+    let turn_timeout_secs = turn_timeout_secs();
     let timed_out = tokio::time::timeout(
         std::time::Duration::from_secs(turn_timeout_secs),
         super::llm::stream_llm_response(identity, rx, &messages_val, &user_query, model_preference),
