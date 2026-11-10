@@ -69,3 +69,7 @@ pub use normalize_etag::*;
 // `parse_kb_path` only defines `parse_kb_path`, which is behind these features.
 #[cfg(any(feature = "research", feature = "llm"))]
 use parse_kb_path::*;
+
+#[cfg(test)]
+#[path = "classify_tests.rs"]
+mod classify_tests;

@@ -187,3 +187,7 @@ mod evaluate;
 mod subscribe;
 mod update_system_health;
 mod start_background_collection;
+
+#[cfg(test)]
+#[path = "collector_tests.rs"]
+mod collector_tests;

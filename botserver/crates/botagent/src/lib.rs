@@ -4,6 +4,12 @@
 //! (`agent_conversation_folders`), org API keys (`org_api_keys`) and the
 //! sandboxed code-execution service (`sandbox_runs`). All Incus invocations
 //! go through `botlib::security::command_guard::SafeCommand`.
+//!
+//! #2062 — the workspace image is described by profiles (`vm::profile`):
+//! `base`, `office` (default: document libraries + embedded headless
+//! Chromium), `media` and `data` (opt-in). The prefabricated Incus image is
+//! built with `scripts/build_vm_image.sh --profile office`, which bakes every
+//! artifact into the image so a cold container needs no package download.
 
 pub mod api;
 pub mod claude;

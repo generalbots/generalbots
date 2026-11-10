@@ -14,33 +14,21 @@ impl MetricsCollector {
         let error_count = self.error_counter.load(Ordering::Relaxed);
         let total_latency = self.total_latency_ms.load(Ordering::Relaxed);
 
-        let error_rate = if request_count > 0 {
-            (error_count as f64 / request_count as f64) * 100.0
-        } else {
-            0.0
-        };
-
-        let avg_latency = if request_count > 0 {
-            total_latency as f64 / request_count as f64
-        } else {
-            0.0
-        };
-
         let uptime = (now - self.start_time).num_seconds() as u64;
 
-        let rps = if uptime > 0 {
-            request_count as f64 / uptime as f64
-        } else {
-            0.0
-        };
+        let stats = crate::policy::request_stats(request_count, error_count, total_latency, uptime);
+        let error_rate = stats.error_rate_percent;
+        let avg_latency = stats.average_latency_ms;
+        let rps = stats.requests_per_second;
 
         let components = self.check_component_health().await;
 
-        let overall_status = self.calculate_overall_status(
+        let overall_status = crate::policy::calculate_overall_status(
             cpu_usage,
             memory_usage,
             error_rate,
             &components,
+            &crate::policy::HealthThresholds::default(),
         );
 
         let health = SystemHealth {
@@ -219,36 +207,6 @@ impl MetricsCollector {
             latency_ms: Some(start.elapsed().as_secs_f64() * 1000.0),
             message,
             last_check: Utc::now(),
-        }
-    }
-
-    pub(super) fn calculate_overall_status(
-        &self,
-        cpu_usage: f64,
-        memory_usage: f64,
-        error_rate: f64,
-        components: &[ComponentHealth],
-    ) -> HealthStatus {
-        let unhealthy_components = components
-            .iter()
-            .filter(|c| c.status == HealthStatus::Unhealthy)
-            .count();
-
-        let degraded_components = components
-            .iter()
-            .filter(|c| c.status == HealthStatus::Degraded)
-            .count();
-
-        if unhealthy_components > 0 || cpu_usage > 95.0 || memory_usage > 95.0 || error_rate > 10.0 {
-            HealthStatus::Unhealthy
-        } else if degraded_components > 0
-            || cpu_usage > 80.0
-            || memory_usage > 80.0
-            || error_rate > 5.0
-        {
-            HealthStatus::Degraded
-        } else {
-            HealthStatus::Healthy
         }
     }
 

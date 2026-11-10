@@ -7,9 +7,14 @@ pub mod panels;
 pub mod quick;
 pub mod log_stream;
 pub mod metrics_panel;
+mod policy;
 pub mod real_time;
 pub mod resources_panel;
 pub mod tracing;
+
+#[cfg(test)]
+#[path = "policy_tests.rs"]
+mod policy_tests;
 
 use axum::{routing::{delete, get, patch, post}, Router};
 use std::sync::Arc;
@@ -212,30 +217,7 @@ pub fn host_port_from_url(url: &str, default_port: u16) -> Option<(String, u16)>
 }
 
 fn service_host_port(url: &str, default_port: u16) -> Option<(String, u16)> {
-    let trimmed = url.trim();
-    let without_scheme = trimmed
-        .split_once("://")
-        .map(|(_, rest)| rest)
-        .unwrap_or(trimmed);
-    let host_part = without_scheme.split(['/', '?', '@']).next().unwrap_or(without_scheme);
-    let host_part = if host_part.contains('@') {
-        host_part.rsplit_once('@').map(|(_, h)| h).unwrap_or(host_part)
-    } else {
-        host_part
-    };
-    if host_part.is_empty() {
-        return None;
-    }
-    let (host, port) = match host_part.rsplit_once(':') {
-        Some((h, p)) if !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()) => {
-            (h.to_string(), p.parse::<u16>().unwrap_or(default_port))
-        }
-        _ => (host_part.to_string(), default_port),
-    };
-    if host.is_empty() {
-        return None;
-    }
-    Some((host, port))
+    policy::service_host_port(url, default_port)
 }
 
 fn tcp_connect(host: &str, port: u16) -> bool {

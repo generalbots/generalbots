@@ -14,7 +14,9 @@ mod exec;
 mod identity;
 mod incus;
 mod incus_errors;
+mod launch;
 mod lifecycle;
+mod profile;
 mod retry;
 mod workspace;
 

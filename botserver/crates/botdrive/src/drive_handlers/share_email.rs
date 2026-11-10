@@ -12,10 +12,9 @@
 
 use super::*;
 
-use lettre::message::header::ContentType;
-use lettre::transport::smtp::authentication::{Credentials, Mechanism};
-use lettre::{Message, SmtpTransport, Transport};
 use serde::Deserialize;
+
+use super::share_email_send::{html_escape, send_blocking, SenderConfig};
 
 const MAX_RECIPIENTS: usize = 10;
 
@@ -39,17 +38,6 @@ pub struct ShareEmailBody {
 #[derive(Debug, Deserialize)]
 pub struct ShareEmailAccountsQuery {
     pub user_id: Option<String>,
-}
-
-#[derive(Clone)]
-struct SenderConfig {
-    from: String,
-    host: String,
-    port: u16,
-    username: String,
-    secret: String,
-    oauth2: bool,
-    label: String,
 }
 
 fn valid_recipients(
@@ -198,67 +186,6 @@ async fn native_sender() -> Option<SenderConfig> {
     })
 }
 
-fn build_mail(
-    sender: &SenderConfig,
-    to: &str,
-    subject: &str,
-    html: String,
-) -> Result<Message, String> {
-    Message::builder()
-        .from(
-            sender
-                .from
-                .parse()
-                .map_err(|e| format!("invalid from: {e}"))?,
-        )
-        .to(to.parse().map_err(|e| format!("invalid recipient: {e}"))?)
-        .subject(subject)
-        .header(ContentType::TEXT_HTML)
-        .body(html)
-        .map_err(|e| format!("message build failed: {e}"))
-}
-
-fn transport(sender: &SenderConfig) -> Result<SmtpTransport, String> {
-    let local = sender.host == "localhost"
-        || sender.host.starts_with("127.")
-        || sender.host == "::1"
-        || sender.host.ends_with(".local");
-    let builder = if local {
-        SmtpTransport::builder_dangerous(&sender.host)
-    } else {
-        SmtpTransport::relay(&sender.host).map_err(|e| format!("SMTP relay failed: {e}"))?
-    };
-    let mut builder = builder.port(sender.port).credentials(Credentials::new(
-        sender.username.clone(),
-        sender.secret.clone(),
-    ));
-    if sender.oauth2 {
-        builder = builder.authentication(vec![Mechanism::Xoauth2]);
-    }
-    Ok(builder.build())
-}
-
-fn send_blocking(
-    sender: &SenderConfig,
-    to: &str,
-    subject: &str,
-    html: String,
-) -> Result<(), String> {
-    let mail = build_mail(sender, to, subject, html)?;
-    transport(sender)?
-        .send(&mail)
-        .map(|_| ())
-        .map_err(|e| format!("SMTP send failed: {e}"))
-}
-
-fn html_escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-}
-
 /// `GET /api/files/share/email/accounts` — the sender picker. Reports the
 /// user's connected accounts and whether the deployment mailbox is usable.
 pub async fn share_email_accounts(
@@ -318,6 +245,7 @@ pub async fn share_email_accounts(
 pub async fn send_share_email(
     State(state): State<Arc<AppState>>,
     Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<ShareEmailBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let recipients = valid_recipients(&req.recipients)?;
@@ -363,20 +291,36 @@ pub async fn send_share_email(
         .filter(|name| !name.is_empty())
         .unwrap_or("file");
     let note = req.message.as_deref().unwrap_or("").trim();
-    let expiry_line = match minted.expires_at {
-        Some(when) => format!(
-            "This link expires on {}. You can revoke it at any time.",
-            when.format("%Y-%m-%d %H:%M UTC")
+    // #2094 — the recipient reads the mail, but only the sharer's request
+    // carries a language; the sharer is the one composing the message.
+    let locale = botcore::i18n::locale_from_headers(&headers);
+    let expires_text = minted
+        .expires_at
+        .map(|when| when.format("%Y-%m-%d %H:%M UTC").to_string());
+    let expiry_line = match expires_text.as_deref() {
+        Some(when) => botcore::i18n::translate(
+            &locale,
+            "email-share-link-expires",
+            &[("date", when)],
         ),
-        None => "This link does not expire. You can revoke it at any time.".to_string(),
+        None => botcore::i18n::translate(&locale, "email-share-link-no-expiry", &[]),
     };
+    let download = botcore::i18n::translate(
+        &locale,
+        "email-share-download",
+        &[("file", file_name)],
+    );
     let html = format!(
-        "<p>{note}</p><p><a href=\"{url}\">Download {file}</a></p><p style=\"color:#64748b;font-size:12px\">{expiry_line}</p>",
+        "<p>{note}</p><p><a href=\"{url}\">{download}</a></p><p style=\"color:#64748b;font-size:12px\">{expiry_line}</p>",
         note = html_escape(note),
         url = html_escape(&url),
-        file = html_escape(file_name),
+        download = html_escape(&download),
     );
-    let subject = format!("{} shared \"{}\" with you", sender.label, file_name);
+    let subject = botcore::i18n::translate(
+        &locale,
+        "email-share-subject",
+        &[("sender", &sender.label), ("file", file_name)],
+    );
 
     let mut sent = 0usize;
     let mut failures = 0usize;

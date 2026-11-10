@@ -85,8 +85,13 @@ mod move_file;
 mod public_link_url;
 mod search_files;
 mod share_email;
+mod share_email_send;
 mod share_recipients;
 mod version_list_body;
+
+#[cfg(test)]
+#[path = "keys_tests.rs"]
+mod keys_tests;
 
 pub use ai_chat_handler::*;
 use cached_quota::*;

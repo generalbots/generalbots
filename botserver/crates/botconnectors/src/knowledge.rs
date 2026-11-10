@@ -363,3 +363,7 @@ impl KnowledgeConnector for DriveConnector {
         iter_items_generic(cred, container, since, DEFAULT_ITEMS_PATH_DRIVE)
     }
 }
+
+#[cfg(test)]
+#[path = "knowledge_tests.rs"]
+mod tests;

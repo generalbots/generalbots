@@ -238,3 +238,7 @@ mod attr_to_otlp_value;
 
 use generate_trace_id::*;
 use attr_to_otlp_value::*;
+
+#[cfg(test)]
+#[path = "serializers_tests.rs"]
+mod serializers_tests;

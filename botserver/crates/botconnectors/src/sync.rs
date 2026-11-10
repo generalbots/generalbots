@@ -214,3 +214,26 @@ fn mark_missing_deleted(
     };
     Ok(affected as i64)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_rfc3339_cursor_is_parsed_into_utc() {
+        let cursor = cursor_since(Some(&serde_json::json!("2026-01-02T03:04:05+02:00")))
+            .expect("parsed");
+        assert_eq!(cursor.to_rfc3339(), "2026-01-02T01:04:05+00:00");
+    }
+
+    #[test]
+    fn a_missing_blank_or_non_string_cursor_means_full_resync() {
+        // `None` re-reads everything: a dropped cursor must never be mistaken
+        // for "nothing changed".
+        assert_eq!(cursor_since(None), None);
+        assert_eq!(cursor_since(Some(&serde_json::json!(""))), None);
+        assert_eq!(cursor_since(Some(&serde_json::json!(5))), None);
+        assert_eq!(cursor_since(Some(&serde_json::json!(null))), None);
+        assert_eq!(cursor_since(Some(&serde_json::json!("not-a-date"))), None);
+    }
+}
