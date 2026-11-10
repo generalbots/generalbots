@@ -11,8 +11,21 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use serde_json::Value;
 use tokio::sync::mpsc;
+use uuid::Uuid;
 
 use botevents::RunState;
+
+/// Canonical thread id of a chat session (#2084).
+///
+/// The turn sink and the socket subscription must derive the id from this one
+/// function: when the producer publishes to one thread while the socket
+/// listens on a differently formatted one, every frame is silently dropped and
+/// the client sits on "Waiting for the model…" while the server log says the
+/// LLM answered.
+#[must_use]
+pub fn thread_id(session_id: Uuid) -> String {
+    session_id.to_string()
+}
 
 #[derive(Debug)]
 struct RunMeta {
@@ -122,12 +135,27 @@ impl ThreadChannel {
         }
     }
 
-    pub fn publish(&self, frame: Value) {
+    /// Publishes a frame to every socket subscribed to this thread.
+    ///
+    /// Returns how many subscribers received it. Zero means the frame was
+    /// dropped — the tab is gone or still reconnecting — so the caller must
+    /// keep the payload for the next connection instead of assuming delivery
+    /// (#2084).
+    pub fn publish(&self, frame: Value) -> usize {
         if let Some(seq) = frame.get("seq").and_then(Value::as_u64) {
             self.last_seq.fetch_max(seq, Ordering::SeqCst);
         }
         let mut subscribers = self.lock_subscribers();
-        subscribers.retain(|sender| sender.send(frame.clone()).is_ok());
+        let mut delivered = 0_usize;
+        subscribers.retain(|sender| {
+            if sender.send(frame.clone()).is_ok() {
+                delivered += 1;
+                true
+            } else {
+                false
+            }
+        });
+        delivered
     }
 
     /// Subscribes a socket. Returns the highest sequence already published so
@@ -210,8 +238,8 @@ impl RunBus {
         self.thread(thread_id).current_run_id()
     }
 
-    pub fn publish(&self, thread_id: &str, frame: Value) {
-        self.thread(thread_id).publish(frame);
+    pub fn publish(&self, thread_id: &str, frame: Value) -> usize {
+        self.thread(thread_id).publish(frame)
     }
 
     pub fn subscribe(&self, thread_id: &str) -> (u64, mpsc::UnboundedReceiver<Value>) {
@@ -252,8 +280,9 @@ pub fn bus() -> &'static RunBus {
 
 #[cfg(test)]
 mod tests {
-    use super::RunBus;
+    use super::{thread_id, RunBus};
     use botevents::RunState;
+    use uuid::Uuid;
 
     #[test]
     fn subscriber_receives_published_frames() {
@@ -265,6 +294,43 @@ mod tests {
         );
         let frame = receiver.try_recv().expect("frame delivered");
         assert_eq!(frame["seq"], 1);
+    }
+
+    /// #2084 — the exact frame the LLM pipeline produces for a final answer
+    /// must reach a socket subscribed to the session thread, and the publisher
+    /// must learn that it was delivered.
+    #[test]
+    fn a_completed_bot_response_reaches_the_subscribed_socket() {
+        let bus = RunBus::new();
+        let thread = thread_id(Uuid::nil());
+        let (_last, mut receiver) = bus.subscribe(&thread);
+        let frame = serde_json::json!({
+            "bot_id": "bot",
+            "user_id": "user",
+            "session_id": thread.clone(),
+            "channel": "web",
+            "content": "5 byte",
+            "message_type": 2,
+            "is_complete": true,
+        });
+        assert_eq!(bus.publish(&thread, frame), 1);
+        let delivered = receiver.try_recv().expect("frame delivered");
+        assert_eq!(delivered["message_type"], 2);
+        assert_eq!(delivered["content"], "5 byte");
+        assert_eq!(delivered["is_complete"], serde_json::Value::Bool(true));
+    }
+
+    /// A reply published while no tab is connected is lost unless the caller
+    /// is told about it: `0` is the signal the sink uses to keep the answer for
+    /// the next connection.
+    #[test]
+    fn publishing_without_a_socket_reports_zero_delivered() {
+        let bus = RunBus::new();
+        let thread = thread_id(Uuid::nil());
+        assert_eq!(
+            bus.publish(&thread, serde_json::json!({ "content": "nobody home" })),
+            0
+        );
     }
 
     #[test]

@@ -20,6 +20,30 @@ use crate::core::bot::runs::bus;
 pub(super) type WsSender =
     Arc<tokio::sync::Mutex<futures_util::stream::SplitSink<WebSocket, Message>>>;
 
+/// #2084 — a finished answer that the socket could not carry is kept for the
+/// next connection of this session. The chat client always redials, and the
+/// connect path already delivers `pending_stream_responses`, so the user sees
+/// the reply instead of an empty bubble stuck on "Waiting for the model…".
+async fn keep_final_frame(state: &Arc<AppState>, frame: &serde_json::Value) {
+    let is_complete = frame
+        .get("is_complete")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    if !is_complete {
+        return;
+    }
+    let content = match frame.get("content").and_then(serde_json::Value::as_str) {
+        Some(content) if !content.is_empty() => content,
+        _ => return,
+    };
+    let session_key = match frame.get("session_id").and_then(serde_json::Value::as_str) {
+        Some(key) => key.to_string(),
+        None => return,
+    };
+    let mut pending = state.pending_stream_responses.lock().await;
+    pending.insert(session_key, content.to_string());
+}
+
 pub async fn handle_ws(
     socket: WebSocket,
     state: Arc<AppState>,
@@ -102,7 +126,9 @@ pub async fn handle_ws(
 
     // #1666 — the socket subscribes to the thread, it does not own the run.
     // Frames produced by a background turn (or another tab) arrive here too.
-    let thread_id = session_id.to_string();
+    // #2084 — the thread id comes from `bus::thread_id` so the sink that
+    // publishes the LLM answer and this subscription can never disagree.
+    let thread_id = bus::thread_id(session_id);
     let (_live_seq, mut bus_rx) = bus::bus().subscribe(&thread_id);
 
     loop {
@@ -110,7 +136,21 @@ pub async fn handle_ws(
             frame = bus_rx.recv() => {
                 match frame {
                     Some(frame) => {
-                        if ws_sender.lock().await.send(Message::Text(frame.to_string())).await.is_err() {
+                        let payload = frame.to_string();
+                        if let Err(error) = ws_sender
+                            .lock()
+                            .await
+                            .send(Message::Text(payload))
+                            .await
+                        {
+                            // #2084 — this used to break silently: the answer
+                            // was produced and published, then dropped with no
+                            // trace. Keep it for the next connection.
+                            botlog::safe_warn!(
+                                "WS send failed on thread {}: {error}; reply kept for the next connection",
+                                thread_id
+                            );
+                            keep_final_frame(&state, &frame).await;
                             break;
                         }
                     }

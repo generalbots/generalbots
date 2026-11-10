@@ -219,7 +219,12 @@ function dialChatSocket(seq) {
         } catch (e) { /* CustomEvent unavailable */ }
       }
       if (window.RunTimeline) {
-        window.RunTimeline.handleFrame(data);
+        // #2084 — a timeline/renderer exception here used to abort this whole
+        // handler before the message reached processMessage, so the answer was
+        // received and never drawn. The transcript is the priority.
+        try {
+          window.RunTimeline.handleFrame(data);
+        } catch (e) { console.warn("[WS] run timeline frame failed:", e); }
       }
       // #1669 — trusted catalog surfaces and structured questions.
       if (data.type === "CUSTOM" && data.data && window.SurfaceRenderer) {
@@ -267,6 +272,12 @@ function dialChatSocket(seq) {
       }
 
       if (data.message_type === MessageType.BOT_RESPONSE) {
+        // #2084 — any assistant frame ends the wait: the pending timer and the
+        // "Waiting for the model…" status must not survive a reply that was
+        // deduped (or rendered by a pane) and therefore never called
+        // addMessage(), which is what used to clear them.
+        if (typeof window.clearChatPending === "function") window.clearChatPending();
+        if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
         var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
         processMessage(data);
@@ -365,4 +376,4 @@ function dialChatSocket(seq) {
   };
 }
 
-// cache-bust: 20260905a
+// cache-bust: 20261110a

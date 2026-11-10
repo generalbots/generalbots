@@ -32,9 +32,7 @@ pub(super) fn spawn(spec: RunSpec) {
         start_bas_ran,
     } = spec;
     tokio::spawn(async move {
-        let sink = RunBusSink {
-            thread_id: thread_id.clone(),
-        };
+        let sink = RunBusSink::new(session_id, state.clone());
         let identity = SessionIdentity {
             sink: &sink,
             state: &state,

@@ -226,7 +226,9 @@ async fn stream_llm_response_inner(
                         &err_msg,
                         "web",
                     );
-                    let _ = sink.send_bot_response(&err_resp).await;
+                    if let Err(error) = sink.send_bot_response(&err_resp).await {
+                        log::error!("empty-response notice not delivered: {error}");
+                    }
                     {
                         let mut sm = state.session_manager.lock().await;
                         let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
@@ -253,7 +255,15 @@ async fn stream_llm_response_inner(
                         context_max_length: 0,
                         reasoning: reasoning_accumulated.trim().to_string(),
                     };
-                    let _ = sink.send_bot_response(&final_resp).await;
+                    // #2084 — the reply is the whole point of the turn: a
+                    // transport error here used to be discarded by `let _`,
+                    // so the client waited forever with nothing in the log.
+                    if let Err(error) = sink.send_bot_response(&final_resp).await {
+                        log::error!(
+                            "final LLM reply not delivered ({} bytes): {error}",
+                            final_resp.content.len()
+                        );
+                    }
                 }
 
                 if has_tool_call {
