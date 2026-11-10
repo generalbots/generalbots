@@ -230,3 +230,7 @@ pub fn extract_json(response: &str) -> Result<String, String> {
 
     Err("No JSON found in response".to_string())
 }
+
+#[cfg(test)]
+#[path = "from_config_tests.rs"]
+mod from_config_tests;

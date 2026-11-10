@@ -81,6 +81,7 @@ pub fn configure_compliance_routes() -> Router<AppState> {
         .route("/api/compliance/checks", get(handlers::handle_list_checks).post(handlers::handle_run_check))
         .route("/api/compliance/checks/:check_id", get(handlers::handle_get_check))
         .route("/api/compliance/checks/:check_id/run", post(handlers::handle_run_check_by_id))
+        .route("/api/compliance/scan", post(handlers::handle_run_scan))
         .route("/api/compliance/issues", get(handlers::handle_list_issues).post(handlers::handle_create_issue))
         .route("/api/compliance/issues/:issue_id", put(handlers::handle_update_issue))
         .route("/api/compliance/audit", get(handlers::handle_list_audit_logs).post(handlers::handle_create_audit_log))
