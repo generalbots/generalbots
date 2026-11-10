@@ -1,6 +1,7 @@
 pub mod antivirus;
 pub mod audit;
 pub mod command_guard;
+pub mod constant_time;
 pub mod cors;
 pub mod dlp;
 pub mod error_sanitizer;

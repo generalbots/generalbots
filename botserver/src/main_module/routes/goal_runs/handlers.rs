@@ -175,7 +175,7 @@ pub(super) async fn tick_now(
         .map_err(|error| {
             log::warn!("goal run advance refused: {error}");
             api_error(
-                locale,
+                &locale,
                 StatusCode::BAD_REQUEST,
                 "error-goal-run-advance-refused",
             )

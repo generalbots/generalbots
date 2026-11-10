@@ -327,13 +327,10 @@ impl JwtManager {
         self.blacklist.len().await
     }
 
-    pub fn decode_without_validation(&self, token: &str) -> Result<Claims> {
-        let token_data = jsonwebtoken::dangerous::insecure_decode::<Claims>(&token)
-            .map_err(|e| anyhow!("Failed to decode token: {e}"))?;
-
-        Ok(token_data.claims)
-    }
-
+    /// Claims are only ever handed out by the verifying paths
+    /// (`validate_token`, `validate_access_token`, `validate_refresh_token`).
+    /// There is deliberately no payload-only decoder here: a token whose
+    /// signature was not checked must never yield identity claims (#2125).
     pub fn config(&self) -> &JwtConfig {
         &self.config
     }

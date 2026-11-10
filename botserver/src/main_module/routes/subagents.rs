@@ -132,7 +132,7 @@ async fn create(
     validate_tasks(&tasks).map_err(|error| {
         log::warn!("subagent validation failed: {error}");
         api_error(
-            locale,
+            &locale,
             StatusCode::BAD_REQUEST,
             "error-subagent-invalid-tasks",
         )

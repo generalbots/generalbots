@@ -20,9 +20,9 @@ pub use botsecurity_protection;
 
 // ─── botsecurity-core ───
 pub use botsecurity_core::{
-    antivirus, audit, command_guard, cors, dlp, error_sanitizer, file_validation, headers,
-    log_sanitizer, panic_handler, path_guard, prompt_security, request_id, safe_unwrap, scope,
-    security_monitoring, sql_guard, tenant, validation, webhook,
+    antivirus, audit, command_guard, constant_time, cors, dlp, error_sanitizer, file_validation,
+    headers, log_sanitizer, panic_handler, path_guard, prompt_security, request_id, safe_unwrap,
+    scope, security_monitoring, sql_guard, tenant, validation, webhook,
 };
 
 // ─── botsecurity-auth ───
