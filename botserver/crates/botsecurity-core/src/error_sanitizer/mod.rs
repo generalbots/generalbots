@@ -249,6 +249,79 @@ mod tests {
         assert!(!sanitizer.include_request_id);
         assert!(sanitizer.sensitive_patterns.contains(&"custom_secret".to_string()));
     }
+
+    #[test]
+    fn every_connection_scheme_is_detected() {
+        for uri in [
+            "postgres://u:p@h/db",
+            "postgresql://h/db",
+            "mysql://h/db",
+            "mariadb://h/db",
+            "mongodb://h/db",
+            "mongodb+srv://h/db",
+            "redis://h:6379",
+            "rediss://h:6380",
+            "valkey://h:6379",
+            "amqp://h",
+            "kafka://h:9092",
+            "ldap://h",
+            "jdbc:postgresql://h/db",
+            "ftp://h",
+            "sftp://h",
+            "http://h",
+            "https://h",
+        ] {
+            assert!(looks_like_connection_string(uri), "{uri} must be detected");
+        }
+    }
+
+    #[test]
+    fn indicator_pairs_are_detected_without_a_scheme() {
+        assert!(looks_like_connection_string("host=db dbname=app"));
+        assert!(looks_like_connection_string("user=app password=secret"));
+        assert!(looks_like_connection_string("port=5432 sslmode=require"));
+        // A single indicator is not enough to call it a connection string.
+        assert!(!looks_like_connection_string("host is down"));
+        assert!(!looks_like_connection_string("plain message"));
+    }
+
+    #[test]
+    fn credentials_are_redacted_from_every_scheme() {
+        let sanitizer = ErrorSanitizer::production();
+        for uri in [
+            "postgres://admin:secret@db/app",
+            "mysql://root:toor@db/app",
+            "redis://default:pw@cache:6379",
+        ] {
+            let redacted = sanitizer.sanitize_message(uri);
+            assert!(!redacted.contains("secret"), "{uri} leaked a password");
+            assert!(!redacted.contains("toor"), "{uri} leaked a password");
+            assert!(!redacted.contains("pw@"), "{uri} leaked a password");
+        }
+    }
+
+    #[test]
+    fn the_json_helper_never_leaks_the_message() {
+        let value = log_and_sanitize_json(
+            &"postgres://admin:secret@db/app",
+            "handler",
+            Some("req-1"),
+        );
+        let text = value.to_string();
+        assert!(!text.contains("secret"));
+        assert!(!text.contains("postgres://"));
+    }
+
+    #[test]
+    fn the_string_helper_returns_a_generic_internal_error() {
+        let response = log_and_sanitize_str(
+            "connection refused at /home/app/db.rs",
+            "handler",
+            Some("req-2"),
+        );
+        assert!(!response.message.contains("/home/app"));
+        assert_eq!(response.request_id.as_deref(), Some("req-2"));
+    }
 }
 
 mod with_code;
