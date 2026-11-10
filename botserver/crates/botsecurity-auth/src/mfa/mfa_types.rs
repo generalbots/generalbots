@@ -137,7 +137,7 @@ impl TotpEnrollment {
     pub fn to_uri(&self) -> String {
         let encoded_issuer = urlencoding::encode(&self.issuer);
         let encoded_account = urlencoding::encode(&self.account_name);
-        let encoded_secret = super::mfa_helpers::base32_encode(&self.secret);
+        let encoded_secret = super::mfa_helpers::base32_encode_totp_secret(&self.secret);
 
         format!(
             "otpauth://totp/{encoded_issuer}:{encoded_account}?secret={encoded_secret}&issuer={encoded_issuer}&algorithm={}&digits={}&period={}",
@@ -148,7 +148,7 @@ impl TotpEnrollment {
     }
 
     pub fn secret_base32(&self) -> String {
-        super::mfa_helpers::base32_encode(&self.secret)
+        super::mfa_helpers::base32_encode_totp_secret(&self.secret)
     }
 }
 

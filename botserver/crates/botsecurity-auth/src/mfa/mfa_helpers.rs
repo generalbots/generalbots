@@ -70,9 +70,15 @@ pub fn constant_time_compare(a: &str, b: &str) -> bool {
     result == 0
 }
 
-pub fn base32_encode(data: &str) -> String {
+/// RFC 4648 base32 over raw bytes.
+///
+/// #2066 — the TOTP secret is stored hex-encoded, and `generate_totp_code`
+/// hex-decodes it before using it as the HMAC key. The QR code used to
+/// base32-encode the *hex string* instead of those raw bytes, so an
+/// authenticator derived a different key than the server verifies and
+/// enrollment could never succeed.
+pub fn base32_encode_bytes(bytes: &[u8]) -> String {
     const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-    let bytes = data.as_bytes();
     let mut result = String::new();
 
     let mut buffer: u64 = 0;
@@ -95,6 +101,21 @@ pub fn base32_encode(data: &str) -> String {
     }
 
     result
+}
+
+/// Base32 over the UTF-8 bytes of a string (kept for existing callers).
+pub fn base32_encode(data: &str) -> String {
+    base32_encode_bytes(data.as_bytes())
+}
+
+/// Base32 of the raw key behind a hex-encoded TOTP secret, which is what an
+/// authenticator expects in an `otpauth://` URI. Falls back to the hex text
+/// when the secret is not valid hex, so a malformed row cannot panic.
+pub fn base32_encode_totp_secret(secret: &str) -> String {
+    match hex::decode(secret) {
+        Ok(bytes) => base32_encode_bytes(&bytes),
+        Err(_) => base32_encode(secret),
+    }
 }
 
 pub fn verify_totp(secret: &str, code: &str, period: u64) -> bool {
