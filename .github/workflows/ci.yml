@@ -493,6 +493,141 @@ jobs:
             kill "$(cat /tmp/botserver-a11y.pid)" 2>/dev/null || true
           fi
 
+  app-surfaces:
+    # #2101 — the build shipped apps nothing proved were reachable. This job
+    # compiles the default binary and the desktop-local bundle that the
+    # installers ship, boots the desktop-local server and asks every app
+    # surface the registry advertises for a page: a blank app (#2100) now
+    # fails here instead of in a user's browser.
+    #
+    # The surface list is derived from the code, not maintained by hand:
+    # `scripts/smoke_app_surfaces.py` reads every `url:` in
+    # `botserver/src/apps/registry/*.rs`, adds the desktop shell, walks every
+    # `botui/ui/cloud|login/*.html` page and requires `/api/apps/catalog` to
+    # list each registry id with `compiled: true`. A new app is covered the
+    # moment it enters the registry.
+    name: App surface smoke (desktop-local)
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gb
+          POSTGRES_PASSWORD: gb
+          POSTGRES_DB: botserver
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gb -d botserver"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+      DATABASE_URL: postgres://gb:gb@127.0.0.1:5432/botserver
+      CACHE_URL: redis://127.0.0.1:6379
+      # Same remote-Vault trick as `served-desktop`: no local stack bootstrap.
+      VAULT_ADDR: https://vault.smoke.invalid:8200
+      BOTSERVER_DISABLE_TLS: "1"
+      BOT_TEMPLATES_REPO: https://example.invalid/templates.git
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: app-surfaces
+          packages: build-essential clang mold pkg-config zstd libpq-dev libssl-dev liblzma-dev zlib1g-dev
+      # (a) the default binary is the `all-apps` profile: compiling it proves
+      # every registry app's crate is reachable from the default feature set.
+      - name: Build botserver (default = all-apps)
+        run: cargo build -p botserver
+      # (a) the profile the installers ship. Same target path, so this binary
+      # is the one the smoke step probes.
+      - name: Build botserver (desktop-local)
+        run: cargo build -p botserver --no-default-features --features desktop-local
+      - name: Start botserver with the desktop-local product
+        env:
+          BOTSERVER_STACK_PATH: ${{ runner.temp }}/gbstack
+        run: |
+          set -euo pipefail
+          mkdir -p "$BOTSERVER_STACK_PATH/conf/system"
+          # Test-only override, never committed: the checked-in desktop product
+          # requires the wizard administrator, but this job probes the app
+          # surfaces anonymously. Copy it to the repo root (the first path
+          # ProductConfig reads for a desktop-local build) and flip
+          # no_security so the auth gate cannot turn an app page into a login
+          # redirect, which would hide a broken app behind a 200.
+          cp botserver/.product.desktop-local .product.desktop-local
+          sed -i 's/^no_security=false/no_security=true/' .product.desktop-local
+          # Point Zitadel at an unused loopback port so its bootstrap retries
+          # fail fast and boot continues; health is what this job needs.
+          cat > "$BOTSERVER_STACK_PATH/conf/system/directory_config.json" <<'JSON'
+          {"issuer_url":"http://127.0.0.1:1","issuer":"http://127.0.0.1:1","client_id":"smoke","client_secret":"smoke","redirect_uri":"/callback","project_id":"default","api_url":"http://127.0.0.1:1","allow_insecure_http":true}
+          JSON
+          nohup ./target/debug/botserver --noconsole > /tmp/botserver-smoke.log 2>&1 &
+          echo $! > /tmp/botserver-smoke.pid
+          for _ in $(seq 1 300); do
+            if curl -sf -o /dev/null http://127.0.0.1:8080/health; then break; fi
+            sleep 2
+          done
+          curl -sf -o /dev/null http://127.0.0.1:8080/health || {
+            echo "botserver did not become healthy"; tail -200 /tmp/botserver-smoke.log; exit 1;
+          }
+          curl -sf http://127.0.0.1:8080/api/product | grep -q '"no_security":true' || {
+            echo "the smoke profile did not load (no_security=true missing)"; exit 1;
+          }
+      # Cloud and login pages belong to botui (ports 4000/5000); botserver
+      # never serves complete cloud pages, so they are probed on a static
+      # server over the same checkout the installers package.
+      - name: Start the static botui server (cloud + login)
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 3100 --directory botui/ui \
+            > /tmp/botui-static.log 2>&1 &
+          echo $! > /tmp/botui-static.pid
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:3100/cloud/index.html; then break; fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:3100/cloud/index.html || {
+            echo "static botui server did not start"; tail -20 /tmp/botui-static.log; exit 1;
+          }
+      # (b)+(c) every surface answers 200 with a non-empty HTML body; the run
+      # stops at the first surface that does not respond.
+      - name: Smoke every shipped app surface
+        run: |
+          set -euo pipefail
+          python3 scripts/smoke_app_surfaces.py \
+            --suite-base http://127.0.0.1:8080 \
+            --static-base http://127.0.0.1:3100 \
+            --catalog http://127.0.0.1:8080/api/apps/catalog
+      - name: Upload botserver log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-surfaces-botserver-log
+          path: /tmp/botserver-smoke.log
+          if-no-files-found: ignore
+      - name: Stop botserver and the static server
+        if: always()
+        run: |
+          for pid_file in /tmp/botserver-smoke.pid /tmp/botui-static.pid; do
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
+
   evaluate:
     # Boteval makes paid model calls; run it on pull requests (the merge gate)
     # and on manual dispatches, not again on every push to main.
