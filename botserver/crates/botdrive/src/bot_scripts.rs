@@ -291,3 +291,39 @@ fn truncate_error(error: &str) -> String {
     }
     format!("{}... [truncated]", &error[..end])
 }
+
+#[cfg(test)]
+mod compilable_path_tests {
+    use super::*;
+
+    #[test]
+    fn a_live_dialog_script_is_compilable() {
+        assert!(BotScriptsRepository::is_compilable_path(
+            "acme.gbai/acme.gbdialog/start.bas"
+        ));
+        assert!(BotScriptsRepository::is_compilable_path("start.bas"));
+    }
+
+    #[test]
+    fn non_bas_files_are_never_compiled() {
+        assert!(!BotScriptsRepository::is_compilable_path("start.txt"));
+        assert!(!BotScriptsRepository::is_compilable_path("start.bas.bak"));
+        assert!(!BotScriptsRepository::is_compilable_path(""));
+    }
+
+    #[test]
+    fn archived_copies_are_refused() {
+        // The archive pass writes Drive snapshots under /archive/; they must
+        // never resurrect as work.
+        assert!(!BotScriptsRepository::is_compilable_path(
+            "acme.gbai/archive/acme-20261110/acme.gbdialog/start.bas"
+        ));
+    }
+
+    #[test]
+    fn the_archived_dialog_prefix_is_refused() {
+        assert!(!BotScriptsRepository::is_compilable_path(
+            "acme.gbai/.gbdialog/start.bas"
+        ));
+    }
+}
