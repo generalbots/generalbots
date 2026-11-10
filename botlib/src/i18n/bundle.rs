@@ -11,6 +11,28 @@ pub struct I18nBundle {
     fallback: Locale,
 }
 
+/// Byte offset of the `}` that closes the `{` at `open`, honouring nested
+/// braces and quoted strings. Fluent select expressions nest `{ $count }`
+/// placeholders inside the variant list, so the first `}` is never the end.
+fn matching_brace(text: &str, open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    let mut quoted = false;
+    for (offset, ch) in text[open..].char_indices() {
+        match ch {
+            '"' => quoted = !quoted,
+            '{' if !quoted => depth += 1,
+            '}' if !quoted => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Some(open + offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 impl I18nBundle {
     pub fn load(_base_path: &str) -> BotResult<Self> {
         #[cfg(feature = "i18n")]
@@ -197,10 +219,15 @@ impl I18nBundle {
                 let plural_pattern = format!("{{ ${key} ->");
 
                 if let Some(start) = result.find(&plural_pattern) {
-                    if let Some(end) = result[start..].find('}') {
-                        let plural_block = &result[start..start + end + 1];
-                        let replacement = Self::select_plural_form(plural_block, count);
-                        result = result.replace(plural_block, &replacement);
+                    // #2087 — the closing brace belongs to the whole select
+                    // expression, not to the `{ $count }` placeholder inside
+                    // the first variant. Slicing at the first `}` truncated
+                    // the block before `[one]`/`*[other]` and returned an
+                    // empty string for every plural message.
+                    if let Some(end) = matching_brace(&result, start) {
+                        let plural_block = result[start..=end].to_string();
+                        let replacement = Self::select_plural_form(&plural_block, count);
+                        result = result.replacen(&plural_block, &replacement, 1);
                     }
                 }
             }
@@ -276,6 +303,45 @@ greeting = Hello, { $name }!
 
         let result = I18nBundle::interpolate("Hello, { $name }!", Some(&args));
         assert!(result.contains("World") || result.contains("{ $name }"));
+    }
+
+    #[test]
+    fn plural_block_keeps_nested_placeholders() {
+        let template = "{ $count ->\n    [one] One item\n   *[other] { $count } items\n}";
+        let mut args = MessageArgs::new();
+        args.insert("count".to_string(), "1".to_string());
+        assert_eq!(
+            I18nBundle::interpolate(template, Some(&args)),
+            "One item"
+        );
+
+        args.insert("count".to_string(), "5".to_string());
+        assert_eq!(
+            I18nBundle::interpolate(template, Some(&args)),
+            "5 items"
+        );
+    }
+
+    #[test]
+    fn plural_block_prefers_zero_when_defined() {
+        let template = "{ $count ->\n    [zero] No items\n    [one] One item\n   *[other] { $count } items\n}";
+        let mut args = MessageArgs::new();
+        args.insert("count".to_string(), "0".to_string());
+        assert_eq!(I18nBundle::interpolate(template, Some(&args)), "No items");
+    }
+
+    #[test]
+    fn unmatched_plural_block_is_left_alone() {
+        let template = "{ $count -> [one] One item";
+        let mut args = MessageArgs::new();
+        args.insert("count".to_string(), "1".to_string());
+        assert_eq!(I18nBundle::interpolate(template, Some(&args)), template);
+    }
+
+    #[test]
+    fn matching_brace_ignores_braces_in_quotes() {
+        let text = "{ $count -> \"}\" [other] x }";
+        assert_eq!(matching_brace(text, 0), Some(text.len() - 1));
     }
 
     #[test]
