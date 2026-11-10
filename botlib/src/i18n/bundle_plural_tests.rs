@@ -88,6 +88,11 @@ fn every_english_plural_block_renders_for_representative_counts() {
 
     for source in locale_sources("en") {
         for (head, block) in plural_blocks(&source) {
+            // `{ $size -> ... }` is a select expression, not a plural: only
+            // blocks keyed on `$count` follow the plural rules under test.
+            if !head.contains("$count") {
+                continue;
+            }
             for count in [0i64, 1, 2, 5] {
                 let rendered = I18nBundle::interpolate(&block, Some(&args_for(count)));
 
