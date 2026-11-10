@@ -29,6 +29,7 @@ use std::path::PathBuf;
 
 mod safe_sh_command;
 mod with_base_path;
+mod tables_cluster;
 mod fetch_vault_credentials;
 mod initialize_vault_local;
 mod seed_vault_defaults;
