@@ -1,150 +1,115 @@
+//! HTTP-surface identity tests (#2112).
+//!
+//! `resolve_user_id` / `resolve_user_id_sse` are the only places the browser
+//! policy API turns a request into a user id. These tests pin the rule: the id
+//! comes from a signature-verified token, and any failure is a 401 — never a
+//! fallback to decoded-but-unverified claims.
+
 use super::*;
+use crate::jwt::test_support::{
+    an_hour_ago, b64, claims, hs256, in_an_hour, process_secret, valid_token, OTHER_SECRET,
+};
 
-fn b64url(input: &[u8]) -> String {
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut out = String::new();
-    for chunk in input.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = *chunk.get(1).unwrap_or(&0) as u32;
-        let b2 = *chunk.get(2).unwrap_or(&0) as u32;
-        let n = (b0 << 16) | (b1 << 8) | b2;
-        out.push(ALPHABET[((n >> 18) & 63) as usize] as char);
-        out.push(ALPHABET[((n >> 12) & 63) as usize] as char);
-        if chunk.len() > 1 {
-            out.push(ALPHABET[((n >> 6) & 63) as usize] as char);
-        }
-        if chunk.len() > 2 {
-            out.push(ALPHABET[(n & 63) as usize] as char);
-        }
-    }
-    out
-}
-
-fn token(header: &str, payload: &str) -> String {
-    format!(
-        "{}.{}.{}",
-        b64url(header.as_bytes()),
-        b64url(payload.as_bytes()),
-        b64url(b"signature")
-    )
-}
+const USER_A: &str = "00000000-0000-0000-0000-00000000000a";
+const USER_B: &str = "00000000-0000-0000-0000-00000000000b";
 
 fn headers_with(token: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
-    headers.insert(
-        "authorization",
-        axum::http::HeaderValue::from_str(&format!("Bearer {token}")).expect("header"),
-    );
+    if let Ok(value) = axum::http::HeaderValue::from_str(&format!("Bearer {token}")) {
+        headers.insert("authorization", value);
+    }
     headers
 }
 
-#[test]
-fn base64url_decodes_url_safe_and_ignores_padding() {
-    let encoded = b64url(b"{\"sub\":\"user\"}");
-    assert_eq!(
-        base64_url_decode(&encoded).expect("decoded"),
-        b"{\"sub\":\"user\"}"
-    );
-    assert_eq!(
-        base64_url_decode(&format!("{encoded}==")).expect("decoded"),
-        b"{\"sub\":\"user\"}"
-    );
-    assert!(base64_url_decode("!!!").is_err());
+fn uuid_of(raw: &str) -> Uuid {
+    Uuid::parse_str(raw).unwrap_or_default()
+}
+
+/// A forged `alg:none` token naming `sub` — the pre-#2112 bypass.
+fn forged_alg_none(sub: &str) -> String {
+    format!(
+        "{}.{}.",
+        b64(br#"{"alg":"none","typ":"JWT"}"#),
+        b64(claims(sub, in_an_hour()).as_bytes())
+    )
 }
 
 #[test]
-fn secured_tokens_expose_their_payload() {
-    let payload = r#"{"uid":"00000000-0000-0000-0000-000000000001"}"#;
-    let jwt = token(r#"{"alg":"HS256","typ":"JWT"}"#, payload);
-
-    assert_eq!(jwt_payload(&jwt).and_then(|p| p.get("uid").cloned()), Some(serde_json::json!("00000000-0000-0000-0000-000000000001")));
+fn a_verified_token_resolves_to_its_subject() {
+    let resolved = resolve_user_id(&headers_with(&valid_token(USER_A))).expect("verified user");
+    assert_eq!(resolved, uuid_of(USER_A));
 }
 
 #[test]
-fn unsecured_tokens_are_refused() {
-    let payload = r#"{"uid":"00000000-0000-0000-0000-000000000001"}"#;
-
-    assert!(jwt_payload(&token(r#"{"alg":"none"}"#, payload)).is_none());
-    assert!(jwt_payload(&token(r#"{"alg":"NONE"}"#, payload)).is_none());
-    assert!(jwt_payload(&token(r#"{"typ":"JWT"}"#, payload)).is_none());
+fn a_verified_subject_that_is_not_a_uuid_is_refused() {
+    // Zitadel-style numeric subjects have no local user row in this API.
+    let numeric = hs256(&claims("123456789", in_an_hour()), &process_secret());
+    assert!(resolve_user_id(&headers_with(&numeric)).is_err());
 }
 
 #[test]
-fn malformed_tokens_are_refused() {
-    assert!(jwt_payload("a.b").is_none());
-    assert!(jwt_payload("a.b.c.d").is_none());
-    assert!(jwt_payload("not-a-token").is_none());
-    assert!(jwt_payload(&format!("{}.!!!.sig", b64url(br#"{"alg":"HS256"}"#))).is_none());
-}
-
-#[test]
-fn resolve_user_id_prefers_the_uid_claim() {
-    let headers = headers_with(&token(
-        r#"{"alg":"HS256"}"#,
-        r#"{"uid":"00000000-0000-0000-0000-00000000000a","sub":"00000000-0000-0000-0000-00000000000b"}"#,
-    ));
-
-    assert_eq!(
-        resolve_user_id(&headers).expect("user"),
-        Uuid::parse_str("00000000-0000-0000-0000-00000000000a").expect("uuid")
-    );
-}
-
-#[test]
-fn resolve_user_id_falls_back_to_sub() {
-    let headers = headers_with(&token(
-        r#"{"alg":"HS256"}"#,
-        r#"{"sub":"00000000-0000-0000-0000-00000000000b"}"#,
-    ));
-
-    assert_eq!(
-        resolve_user_id(&headers).expect("user"),
-        Uuid::parse_str("00000000-0000-0000-0000-00000000000b").expect("uuid")
-    );
-}
-
-#[test]
-fn resolve_user_id_rejects_missing_invalid_and_unsecured_tokens() {
+fn missing_forged_tampered_and_expired_tokens_are_refused() {
     assert!(resolve_user_id(&HeaderMap::new()).is_err());
 
-    let no_subject = headers_with(&token(r#"{"alg":"HS256"}"#, r#"{"role":"admin"}"#));
-    assert!(resolve_user_id(&no_subject).is_err());
+    // A token without the `Bearer ` scheme is not an Authorization header.
+    let mut bare = HeaderMap::new();
+    if let Ok(value) = axum::http::HeaderValue::from_str(&valid_token(USER_A)) {
+        bare.insert("authorization", value);
+    }
+    assert!(resolve_user_id(&bare).is_err());
 
-    let invalid_uuid = headers_with(&token(r#"{"alg":"HS256"}"#, r#"{"uid":"nope"}"#));
-    assert!(resolve_user_id(&invalid_uuid).is_err());
+    assert!(resolve_user_id(&headers_with(&forged_alg_none(USER_A))).is_err());
 
-    let forged = headers_with(&token(
-        r#"{"alg":"none"}"#,
-        r#"{"uid":"00000000-0000-0000-0000-000000000001"}"#,
-    ));
-    assert!(resolve_user_id(&forged).is_err());
+    // Signed with another key.
+    let foreign = hs256(&claims(USER_A, in_an_hour()), OTHER_SECRET);
+    assert!(resolve_user_id(&headers_with(&foreign)).is_err());
+
+    // Tampered payload carrying a different subject.
+    let valid = valid_token(USER_B);
+    let parts: Vec<&str> = valid.split('.').collect();
+    let tampered = format!(
+        "{}.{}.{}",
+        parts[0],
+        b64(claims(USER_A, in_an_hour()).as_bytes()),
+        parts[2]
+    );
+    assert!(resolve_user_id(&headers_with(&tampered)).is_err());
+
+    // Expired.
+    let expired = hs256(&claims(USER_A, an_hour_ago()), &process_secret());
+    assert!(resolve_user_id(&headers_with(&expired)).is_err());
+
+    // A `uid` claim is not an identity.
+    let legacy_uid = hs256(
+        &format!(r#"{{"uid":"{USER_A}","exp":{}}}"#, in_an_hour()),
+        &process_secret(),
+    );
+    assert!(resolve_user_id(&headers_with(&legacy_uid)).is_err());
 }
 
 #[test]
 fn sse_resolution_prefers_the_header_over_the_query_token() {
-    let header_jwt = token(
-        r#"{"alg":"HS256"}"#,
-        r#"{"uid":"00000000-0000-0000-0000-00000000000a"}"#,
-    );
-    let query_jwt = token(
-        r#"{"alg":"HS256"}"#,
-        r#"{"uid":"00000000-0000-0000-0000-00000000000b"}"#,
-    );
+    let resolved = resolve_user_id_sse(&headers_with(&valid_token(USER_A)), &valid_token(USER_B))
+        .expect("header wins");
+    assert_eq!(resolved, uuid_of(USER_A));
+}
 
-    let resolved = resolve_user_id_sse(&headers_with(&header_jwt), &query_jwt).expect("header wins");
-    assert_eq!(
-        resolved,
-        Uuid::parse_str("00000000-0000-0000-0000-00000000000a").expect("uuid")
-    );
+#[test]
+fn sse_resolution_accepts_a_verified_query_token() {
+    let resolved =
+        resolve_user_id_sse(&HeaderMap::new(), &valid_token(USER_B)).expect("query token");
+    assert_eq!(resolved, uuid_of(USER_B));
+}
 
-    let resolved = resolve_user_id_sse(&HeaderMap::new(), &query_jwt).expect("query token");
-    assert_eq!(
-        resolved,
-        Uuid::parse_str("00000000-0000-0000-0000-00000000000b").expect("uuid")
-    );
+#[test]
+fn sse_resolution_never_falls_back_when_the_header_token_fails() {
+    let forged = forged_alg_none(USER_A);
+    assert!(resolve_user_id_sse(&headers_with(&forged), &valid_token(USER_B)).is_err());
 }
 
 #[test]
 fn sse_resolution_requires_some_token() {
     assert!(resolve_user_id_sse(&HeaderMap::new(), "").is_err());
+    assert!(resolve_user_id_sse(&HeaderMap::new(), "   ").is_err());
+    assert!(resolve_user_id_sse(&HeaderMap::new(), "not-a-token").is_err());
 }

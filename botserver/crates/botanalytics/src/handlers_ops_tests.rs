@@ -58,15 +58,21 @@ fn ws_and_llm_ratios_are_independent() {
             < 1e-9
     );
     assert!(
-        (bad_ratio(&objective(MetricKind::LlmFirstToken, 0.95, Some(2000.0)), &stats)
-            .unwrap_or(-1.0)
+        (bad_ratio(
+            &objective(MetricKind::LlmFirstToken, 0.95, Some(2000.0)),
+            &stats
+        )
+        .unwrap_or(-1.0)
             - 0.25)
             .abs()
             < 1e-9
     );
     assert!(
-        (bad_ratio(&objective(MetricKind::LlmAnswer, 0.95, Some(15000.0)), &stats)
-            .unwrap_or(-1.0)
+        (bad_ratio(
+            &objective(MetricKind::LlmAnswer, 0.95, Some(15000.0)),
+            &stats
+        )
+        .unwrap_or(-1.0)
             - 0.5)
             .abs()
             < 1e-9
@@ -104,4 +110,27 @@ fn render_links_every_objective_to_its_runbook() {
     assert!(html.contains("runbook-llm-outage.md"));
     assert!(html.contains("no data"));
     assert!(!html.contains("NaN"));
+}
+
+#[test]
+fn gate_only_objectives_are_listed_without_a_burn_rate() {
+    let mut config = SloConfig::defaults();
+    config.objectives.push(Objective {
+        id: "cache_p95".to_string(),
+        metric: MetricKind::LatencyHistogram,
+        target: 0.95,
+        threshold_ms: Some(50.0),
+        runbook: "botbook/src/10-configuration-deployment/operations/runbook-disk-and-queue.md"
+            .to_string(),
+        panel: "ops-endpoints".to_string(),
+    });
+    let windows = vec![
+        ("1h".to_string(), WindowStats::default()),
+        ("6h".to_string(), WindowStats::default()),
+        ("3d".to_string(), WindowStats::default()),
+    ];
+    let html = render(&config, &windows, &WindowStats::default());
+    assert!(html.contains("measured by the CI SLO gate"));
+    assert!(html.contains("cache_p95"));
+    assert!(html.contains("scripts/check_slo.py"));
 }

@@ -5,7 +5,9 @@ pub(super) struct ServerLayers {
     pub cors: tower_http::cors::CorsLayer,
     pub csrf_manager: Arc<CsrfManager>,
     pub panic_config: PanicHandlerConfig,
-    pub security_headers: axum::Extension<SecurityHeadersConfig>,
+    /// IMP-09 header set. Applied outermost (see `apply_middleware`) so error
+    /// responses produced by the inner layers carry the headers too.
+    pub security_headers: SecurityHeadersConfig,
     pub rate_limit: axum::Extension<Arc<CombinedRateLimiter>>,
     pub rbac_manager: Arc<crate::security::rbac_middleware::RbacManager>,
     pub auth_middleware_state: crate::security::auth::AuthMiddlewareState,
@@ -20,7 +22,7 @@ pub(super) fn apply_middleware(
         cors,
         csrf_manager,
         panic_config,
-        security_headers: security_headers_extension,
+        security_headers: security_headers_config,
         rate_limit: rate_limit_extension,
         rbac_manager,
         auth_middleware_state,
@@ -108,13 +110,21 @@ pub(super) fn apply_middleware(
         .layer(axum::middleware::from_fn(crate::security::cors::strip_proxy_cors_middleware))
         .layer(TraceLayer::new_for_http());
 
-    // Operational counters for the Analytics app (#2116). Outermost so the
-    // measured latency is what the caller waited for, including auth, rate
-    // limiting and compression.
-    #[cfg(feature = "analytics")]
-    let app = app.layer(axum::middleware::from_fn(ops_metrics_middleware));
+    with_ops_metrics(app)
+}
 
-    app
+/// Adds the operational counter middleware (#2116) when the Analytics app is
+/// compiled in. Outermost in the stack, so the measured latency is what the
+/// caller waited for — including auth, rate limiting and compression. Kept as
+/// a function so both configurations share one return point.
+#[cfg(feature = "analytics")]
+fn with_ops_metrics(router: Router) -> Router {
+    router.layer(axum::middleware::from_fn(ops_metrics_middleware))
+}
+
+#[cfg(not(feature = "analytics"))]
+fn with_ops_metrics(router: Router) -> Router {
+    router
 }
 #[cfg(feature = "calendar")]
 pub(super) fn add_calendar_routes(r: Router, s: &Arc<AppState>) -> Router {

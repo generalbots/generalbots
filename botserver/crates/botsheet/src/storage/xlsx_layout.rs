@@ -25,13 +25,13 @@ pub fn extract_hyperlinks(
     sheet: &umya_spreadsheet::Worksheet,
 ) -> Option<HashMap<String, Hyperlink>> {
     let mut hyperlinks = HashMap::new();
-    for ((col, row), cell) in sheet.get_collection_to_hashmap() {
-        if let Some(hyperlink) = cell.as_ref().get_hyperlink() {
-            let url = hyperlink.get_url();
+    for ((col, row), cell) in sheet.collection_to_hashmap() {
+        if let Some(hyperlink) = cell.as_ref().hyperlink() {
+            let url = hyperlink.url();
             if url.is_empty() {
                 continue;
             }
-            let tooltip = hyperlink.get_tooltip();
+            let tooltip = hyperlink.tooltip();
             hyperlinks.insert(
                 format!("{},{}", row - 1, col - 1),
                 Hyperlink {
@@ -41,7 +41,7 @@ pub fn extract_hyperlinks(
                     } else {
                         Some(tooltip.to_string())
                     },
-                    is_internal: hyperlink.get_location(),
+                    is_internal: hyperlink.location(),
                 },
             );
         }
@@ -66,18 +66,18 @@ pub struct ExtractedStructures {
 /// Reads tables, the autofilter range and manual page breaks from `sheet`.
 pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStructures {
     let autofilter = sheet
-        .get_auto_filter()
-        .map(|af| af.get_range().get_range().to_string())
+        .auto_filter()
+        .map(|af| af.range().range().to_string())
         .filter(|r| !r.is_empty());
 
     let mut tables = Vec::new();
-    for table in sheet.get_tables() {
-        let area = table.get_area();
-        let start_row = area.0.get_row_num();
-        let start_col = area.0.get_col_num();
-        let end_row = area.1.get_row_num();
-        let end_col = area.1.get_col_num();
-        let name = table.get_name().to_string();
+    for table in sheet.tables() {
+        let area = table.area();
+        let start_row = area.0.row_num();
+        let start_col = area.0.col_num();
+        let end_row = area.1.row_num();
+        let end_col = area.1.col_num();
+        let name = table.name().to_string();
         tables.push(TableConfig {
             id: name.clone(),
             name,
@@ -90,12 +90,12 @@ pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStruc
     }
 
     let mut row_page_breaks = Vec::new();
-    for brk in sheet.get_row_breaks().get_break_list() {
-        row_page_breaks.push(brk.get_id());
+    for brk in sheet.row_breaks().break_list() {
+        row_page_breaks.push(brk.id());
     }
     let mut column_page_breaks = Vec::new();
-    for brk in sheet.get_column_breaks().get_break_list() {
-        column_page_breaks.push(brk.get_id());
+    for brk in sheet.column_breaks().break_list() {
+        column_page_breaks.push(brk.id());
     }
 
     ExtractedStructures {
@@ -123,21 +123,21 @@ pub fn extract_structures(sheet: &umya_spreadsheet::Worksheet) -> ExtractedStruc
 /// neither a two-cell nor a one-cell anchor.
 pub fn extract_images(sheet: &umya_spreadsheet::Worksheet) -> Option<Vec<SheetImage>> {
     let mut images = Vec::new();
-    for image in sheet.get_image_collection() {
-        let anchored = image.get_two_cell_anchor().is_some()
-            || image.get_one_cell_anchor().is_some();
+    for image in sheet.image_collection() {
+        let anchored = image.two_cell_anchor().is_some()
+            || image.one_cell_anchor().is_some();
         if !anchored {
             continue;
         }
-        let name = image.get_image_name();
+        let name = image.image_name();
         if name.is_empty() {
             continue;
         }
         images.push(SheetImage {
             id: Uuid::new_v4().to_string(),
             name: name.to_string(),
-            row: image.get_row(),
-            col: image.get_col(),
+            row: image.row(),
+            col: image.col(),
         });
     }
     if images.is_empty() {
@@ -154,13 +154,13 @@ pub fn extract_print_titles(
     workbook: &umya_spreadsheet::Workbook,
 ) -> HashMap<usize, PrintTitles> {
     let mut map: HashMap<usize, PrintTitles> = HashMap::new();
-    for name in workbook.get_defined_names() {
-        if name.get_name() != "_xlnm.Print_Titles" {
+    for name in workbook.defined_names() {
+        if name.name() != "_xlnm.Print_Titles" {
             continue;
         }
-        let sheet_index = name.get_local_sheet_id() as usize;
+        let sheet_index = name.local_sheet_id() as usize;
         let titles = map.entry(sheet_index).or_default();
-        for part in name.get_address().split(',') {
+        for part in name.address().split(',') {
             let range = part.rsplit('!').next().unwrap_or(part).replace('$', "");
             if range.is_empty() {
                 continue;
@@ -183,12 +183,12 @@ pub fn extract_print_areas(
     workbook: &umya_spreadsheet::Workbook,
 ) -> HashMap<usize, Vec<String>> {
     let mut map: HashMap<usize, Vec<String>> = HashMap::new();
-    for name in workbook.get_defined_names() {
-        if name.get_name() != "_xlnm.Print_Area" {
+    for name in workbook.defined_names() {
+        if name.name() != "_xlnm.Print_Area" {
             continue;
         }
-        let address = name.get_address();
-        let sheet_index = name.get_local_sheet_id() as usize;
+        let address = name.address();
+        let sheet_index = name.local_sheet_id() as usize;
         for part in address.split(',') {
             let range = part.rsplit('!').next().unwrap_or(part).replace('$', "");
             if !range.is_empty() {
@@ -205,18 +205,18 @@ pub fn extract_print_areas(
 pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintSetup> {
     use umya_spreadsheet::structs::OrientationValues;
 
-    let page_setup = sheet.get_page_setup();
-    let margins = sheet.get_page_margins();
-    let header_footer = sheet.get_header_footer();
+    let page_setup = sheet.page_setup();
+    let margins = sheet.page_margins();
+    let header_footer = sheet.header_footer();
 
-    let orientation = match page_setup.get_orientation() {
+    let orientation = match page_setup.orientation() {
         OrientationValues::Landscape => Some("landscape".to_string()),
         OrientationValues::Portrait => Some("portrait".to_string()),
         OrientationValues::Default => None,
     };
 
     let odd_header = {
-        let value = header_footer.get_odd_header().get_value();
+        let value = header_footer.odd_header().value();
         if value.is_empty() {
             None
         } else {
@@ -224,7 +224,7 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         }
     };
     let odd_footer = {
-        let value = header_footer.get_odd_footer().get_value();
+        let value = header_footer.odd_footer().value();
         if value.is_empty() {
             None
         } else {
@@ -232,10 +232,10 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         }
     };
 
-    let paper_size = page_setup.get_paper_size();
-    let scale = page_setup.get_scale();
-    let fit_to_width = page_setup.get_fit_to_width();
-    let fit_to_height = page_setup.get_fit_to_height();
+    let paper_size = page_setup.paper_size();
+    let scale = page_setup.scale();
+    let fit_to_width = page_setup.fit_to_width();
+    let fit_to_height = page_setup.fit_to_height();
 
     // Skip untouched sheets: umya defaults are paper_size/scale/fit = 0 and
     // empty header/footer text.
@@ -256,12 +256,12 @@ pub fn extract_print_setup(sheet: &umya_spreadsheet::Worksheet) -> Option<PrintS
         scale: Some(scale),
         fit_to_width: Some(fit_to_width),
         fit_to_height: Some(fit_to_height),
-        margin_left: Some(margins.get_left()),
-        margin_right: Some(margins.get_right()),
-        margin_top: Some(margins.get_top()),
-        margin_bottom: Some(margins.get_bottom()),
-        margin_header: Some(margins.get_header()),
-        margin_footer: Some(margins.get_footer()),
+        margin_left: Some(margins.left()),
+        margin_right: Some(margins.right()),
+        margin_top: Some(margins.top()),
+        margin_bottom: Some(margins.bottom()),
+        margin_header: Some(margins.header()),
+        margin_footer: Some(margins.footer()),
         // Print titles are extracted separately (extract_print_titles) and
         // merged on the import path; the layout writer has no titles source.
         print_titles: None,
@@ -281,43 +281,43 @@ pub fn extract_layout(sheet: &umya_spreadsheet::Worksheet) -> ExtractedLayout {
     // column/row to the right of where it belongs.
     let mut column_widths = HashMap::new();
     let mut hidden_columns = Vec::new();
-    for dim in sheet.get_column_dimensions() {
-        let col = dim.get_col_num().saturating_sub(1);
-        let width = dim.get_width();
+    for dim in sheet.column_dimensions() {
+        let col = dim.col_num().saturating_sub(1);
+        let width = dim.width();
         if width > 0.0 {
             column_widths.insert(col, width.round() as u32);
         }
-        if dim.get_hidden() {
+        if dim.hidden() {
             hidden_columns.push(col);
         }
     }
 
     let mut row_heights = HashMap::new();
     let mut hidden_rows = Vec::new();
-    for dim in sheet.get_row_dimensions() {
-        let row = dim.get_row_num().saturating_sub(1);
-        let height = dim.get_height();
+    for dim in sheet.row_dimensions() {
+        let row = dim.row_num().saturating_sub(1);
+        let height = dim.height();
         if height > 0.0 {
             row_heights.insert(row, height.round() as u32);
         }
-        if dim.get_hidden() {
+        if dim.hidden() {
             hidden_rows.push(row);
         }
     }
 
     let merged_cells: Vec<MergedCell> = sheet
-        .get_merge_cells()
+        .merge_cells()
         .iter()
-        .filter_map(|mc| parse_merge_range(&mc.get_range().to_string()))
+        .filter_map(|mc| parse_merge_range(&mc.range().to_string()))
         .collect();
 
-    let view = sheet.get_sheets_views().get_sheet_view_list().first();
-    let pane = view.and_then(|v| v.get_pane());
+    let view = sheet.sheets_views().sheet_view_list().first();
+    let pane = view.and_then(|v| v.pane());
     let frozen_rows = pane
-        .map(|p| p.get_vertical_split() as u32)
+        .map(|p| p.vertical_split() as u32)
         .filter(|&v| v > 0);
     let frozen_cols = pane
-        .map(|p| p.get_horizontal_split() as u32)
+        .map(|p| p.horizontal_split() as u32)
         .filter(|&v| v > 0);
 
     ExtractedLayout {

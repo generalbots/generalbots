@@ -8,7 +8,7 @@ use uuid::Uuid;
 /// Maps umya sheet state to the model visibility string (`None` = visible).
 fn sheet_visibility(sheet: &umya_spreadsheet::Worksheet) -> Option<String> {
     use umya_spreadsheet::structs::SheetStateValues;
-    match sheet.get_state() {
+    match sheet.state() {
         SheetStateValues::Hidden => Some("hidden".to_string()),
         SheetStateValues::VeryHidden => Some("veryHidden".to_string()),
         SheetStateValues::Visible => None,
@@ -135,17 +135,17 @@ pub fn parse_xlsx_to_worksheets(
         if let Ok(workbook) = umya_spreadsheet::reader::xlsx::read_reader(std::io::Cursor::new(bytes), true) {
             let mut worksheets = Vec::new();
 
-            for sheet in workbook.get_sheet_collection() {
+            for sheet in workbook.sheet_collection() {
                 let mut data: HashMap<String, crate::types::CellData> = HashMap::new();
 
                 // Iterate actual cells (umya's map), not the 1..=max bounding box.
-                for ((col, row), cell) in sheet.get_collection_to_hashmap() {
+                for ((col, row), cell) in sheet.collection_to_hashmap() {
                     let cell = cell.as_ref();
-                    let value = cell.get_value().to_string();
-                    let formula = if cell.get_formula().is_empty() {
+                    let value = cell.value().to_string();
+                    let formula = if cell.formula().is_empty() {
                         None
                     } else {
-                        Some(format!("={}", cell.get_formula()))
+                        Some(format!("={}", cell.formula()))
                     };
 
                     if value.is_empty() && formula.is_none() {
@@ -156,8 +156,8 @@ pub fn parse_xlsx_to_worksheets(
                     let style = super::xlsx_write::extract_cell_style(cell);
 
                     // Format code (e.g. "$#,##0.00") so the type survives round-trip.
-                    let number_format = cell.get_style().get_number_format()
-                        .map(|nf| nf.get_format_code().to_string())
+                    let number_format = cell.style().number_format()
+                        .map(|nf| nf.format_code().to_string())
                         .filter(|c| c != "General" && !c.is_empty());
 
                     // Typed value (#781/#785): keeps the real cell type for
@@ -166,7 +166,7 @@ pub fn parse_xlsx_to_worksheets(
                     // zip code) must stay `Text` — parsing it back from the
                     // display string would turn it into a number and drop a
                     // leading zero.
-                    let typed = match cell.get_raw_value() {
+                    let typed = match cell.raw_value() {
                         umya_spreadsheet::structs::CellRawValue::Numeric(n) => {
                             CellValue::Number(*n)
                         }
@@ -207,7 +207,7 @@ pub fn parse_xlsx_to_worksheets(
                 let hyperlinks = super::xlsx_layout::extract_hyperlinks(sheet);
                 let structures = super::xlsx_layout::extract_structures(sheet);
                 worksheets.push(crate::types::Worksheet {
-                    name: sheet.get_name().to_string(),
+                    name: sheet.name().to_string(),
                     data,
                     column_widths: layout.column_widths,
                     row_heights: layout.row_heights,

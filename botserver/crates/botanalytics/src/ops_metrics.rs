@@ -38,23 +38,12 @@ struct Key {
     status_class: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 struct Aggregate {
     count: i64,
     sum_ms: f64,
     max_ms: f64,
     buckets: [i64; BUCKET_COUNT],
-}
-
-impl Default for Aggregate {
-    fn default() -> Self {
-        Self {
-            count: 0,
-            sum_ms: 0.0,
-            max_ms: 0.0,
-            buckets: [0; BUCKET_COUNT],
-        }
-    }
 }
 
 impl Aggregate {
@@ -139,9 +128,7 @@ pub fn bucket_index(latency_ms: f64) -> usize {
 pub fn bucket_bound_ms(index: usize) -> f64 {
     match BUCKET_UPPER_BOUNDS_MS.get(index) {
         Some(bound) => *bound as f64,
-        None => *BUCKET_UPPER_BOUNDS_MS
-            .last()
-            .unwrap_or(&5_000) as f64,
+        None => *BUCKET_UPPER_BOUNDS_MS.last().unwrap_or(&5_000) as f64,
     }
 }
 
@@ -317,7 +304,8 @@ pub fn spawn_flusher(pool: std::sync::Arc<DbPool>) {
             ticks += 1;
             if ticks % 120 == 0 {
                 let pool_for_prune = pool.clone();
-                let prune_result = tokio::task::spawn_blocking(move || prune(&pool_for_prune)).await;
+                let prune_result =
+                    tokio::task::spawn_blocking(move || prune(&pool_for_prune)).await;
                 if let Err(error) = prune_result {
                     log::error!("ops metrics prune task failed: {error}");
                 }

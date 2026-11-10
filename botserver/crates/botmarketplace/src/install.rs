@@ -60,7 +60,7 @@ pub async fn install(
     Json(body): Json<InstallBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let org_id = auth::jwt_org_id(&headers);
-    if !auth::jwt_is_admin(&headers) && org_id.is_none() {
+    if !auth::jwt_is_admin(&headers, &service.pool) && org_id.is_none() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }
 
@@ -77,7 +77,7 @@ pub async fn install(
 
     let is_publisher = org_id.map(|o| package.publisher_org_id == Some(o)).unwrap_or(false);
     let publicly_available = package.visibility == "public" && package.review_status != "rejected";
-    if !publicly_available && !is_publisher && !auth::jwt_is_admin(&headers) {
+    if !publicly_available && !is_publisher && !auth::jwt_is_admin(&headers, &service.pool) {
         return Err((StatusCode::NOT_FOUND, "Package not available".to_string()));
     }
 
@@ -168,7 +168,7 @@ pub async fn uninstall(
     Path(slug): Path<String>,
     body: Option<Json<InstallBody>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    if !auth::jwt_is_admin(&headers) && auth::jwt_org_id(&headers).is_none() {
+    if !auth::jwt_is_admin(&headers, &service.pool) && auth::jwt_org_id(&headers).is_none() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }
     let InstallBody { bot_id, .. } = body

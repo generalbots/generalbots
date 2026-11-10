@@ -5,166 +5,24 @@
 //! targets and burn-rate thresholds from `ops/slo.yaml` through
 //! [`crate::ops_slo`]. Every cell is either a measured number or an explicit
 //! "no data" — nothing is synthesised.
+//!
+//! The window queries live in [`crate::ops_slo_windows`]; this file holds the
+//! burn math and the HTML.
 
 use std::sync::Arc;
 
 use axum::extract::State;
 use axum::response::Html;
 use axum::response::IntoResponse;
-use diesel::RunQueryDsl;
 
 use crate::analytics_types::html_escape;
-use crate::ops_metrics::{percentile_from_histogram, ratio_above_histogram, BUCKET_COUNT};
+use crate::ops_metrics::{percentile_from_histogram, ratio_above_histogram};
 use crate::ops_slo::{
-    burn_rate, runbook_base_url, severity, BurnSeverity, MetricKind, Objective, SloConfig,
-    BURN_WINDOWS,
+    burn_rate, runbook_base_url, severity, split_for_dashboard, BurnSeverity, MetricKind,
+    Objective, SloConfig, BURN_WINDOWS,
 };
+use crate::ops_slo_windows::{collect_window, threshold_of, WindowStats};
 use crate::DbPool;
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct WindowStats {
-    pub requests: i64,
-    pub errors: i64,
-    pub ws_requests: i64,
-    pub ws_failures: i64,
-    pub buckets: [i64; BUCKET_COUNT],
-    pub llm_requests: i64,
-    pub llm_ttft_samples: i64,
-    pub llm_ttft_slow: i64,
-    pub llm_answer_slow: i64,
-    pub llm_ttft_p95: Option<f64>,
-    pub llm_answer_p95: Option<f64>,
-}
-
-#[derive(Debug, diesel::QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct RequestWindowRow {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    requests: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    errors: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    ws_requests: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    ws_failures: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b1: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b2: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b3: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b4: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b5: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b6: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b7: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    b8: i64,
-}
-
-#[derive(Debug, diesel::QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct LlmWindowRow {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    requests: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    ttft_samples: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    ttft_slow: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    answer_slow: i64,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Double>)]
-    ttft_p95: Option<f64>,
-    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Double>)]
-    answer_p95: Option<f64>,
-}
-
-const REQUEST_WINDOW_SQL: &str = "SELECT
-        COALESCE(SUM(request_count), 0)::bigint AS requests,
-        COALESCE(SUM(CASE WHEN status_class = '5xx' THEN request_count ELSE 0 END), 0)::bigint AS errors,
-        COALESCE(SUM(CASE WHEN endpoint_class = 'websocket' THEN request_count ELSE 0 END), 0)::bigint AS ws_requests,
-        COALESCE(SUM(CASE WHEN endpoint_class = 'websocket' AND status_class IN ('4xx','5xx')
-                          THEN request_count ELSE 0 END), 0)::bigint AS ws_failures,
-        COALESCE(SUM(b_le_50), 0)::bigint AS b1,
-        COALESCE(SUM(b_le_100), 0)::bigint AS b2,
-        COALESCE(SUM(b_le_250), 0)::bigint AS b3,
-        COALESCE(SUM(b_le_500), 0)::bigint AS b4,
-        COALESCE(SUM(b_le_1000), 0)::bigint AS b5,
-        COALESCE(SUM(b_le_2500), 0)::bigint AS b6,
-        COALESCE(SUM(b_le_5000), 0)::bigint AS b7,
-        COALESCE(SUM(b_gt_5000), 0)::bigint AS b8
-    FROM ops_request_metrics
-    WHERE endpoint_class <> 'static'
-      AND bucket > NOW() - ($1::int * INTERVAL '1 minute')";
-
-const LLM_WINDOW_SQL: &str = "SELECT
-        COUNT(*)::bigint AS requests,
-        COUNT(*) FILTER (WHERE ttft_ms IS NOT NULL)::bigint AS ttft_samples,
-        COUNT(*) FILTER (WHERE ttft_ms IS NOT NULL AND ttft_ms > $2)::bigint AS ttft_slow,
-        COUNT(*) FILTER (WHERE latency_ms > $3)::bigint AS answer_slow,
-        percentile_cont(0.95) WITHIN GROUP (ORDER BY ttft_ms)
-            FILTER (WHERE ttft_ms IS NOT NULL) AS ttft_p95,
-        percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms) AS answer_p95
-    FROM llm_metrics
-    WHERE timestamp > NOW() - ($1::int * INTERVAL '1 minute')";
-
-/// Collects one window. Returns zeroed stats when a query fails, so the panel
-/// shows "no data" for that window instead of failing the whole fragment.
-fn collect_window(
-    conn: &mut diesel::PgConnection,
-    minutes: i32,
-    ttft_threshold: i64,
-    answer_threshold: i64,
-) -> WindowStats {
-    let mut stats = WindowStats::default();
-
-    match diesel::sql_query(REQUEST_WINDOW_SQL)
-        .bind::<diesel::sql_types::Integer, _>(minutes)
-        .get_result::<RequestWindowRow>(conn)
-    {
-        Ok(row) => {
-            stats.requests = row.requests;
-            stats.errors = row.errors;
-            stats.ws_requests = row.ws_requests;
-            stats.ws_failures = row.ws_failures;
-            stats.buckets = [
-                row.b1, row.b2, row.b3, row.b4, row.b5, row.b6, row.b7, row.b8,
-            ];
-        }
-        Err(error) => log::error!("ops SLO request window ({minutes} min) failed: {error}"),
-    }
-
-    match diesel::sql_query(LLM_WINDOW_SQL)
-        .bind::<diesel::sql_types::Integer, _>(minutes)
-        .bind::<diesel::sql_types::BigInt, _>(ttft_threshold)
-        .bind::<diesel::sql_types::BigInt, _>(answer_threshold)
-        .get_result::<LlmWindowRow>(conn)
-    {
-        Ok(row) => {
-            stats.llm_requests = row.requests;
-            stats.llm_ttft_samples = row.ttft_samples;
-            stats.llm_ttft_slow = row.ttft_slow;
-            stats.llm_answer_slow = row.answer_slow;
-            stats.llm_ttft_p95 = row.ttft_p95;
-            stats.llm_answer_p95 = row.answer_p95;
-        }
-        Err(error) => log::error!("ops SLO LLM window ({minutes} min) failed: {error}"),
-    }
-
-    stats
-}
-
-fn threshold_of(objectives: &[Objective], metric: MetricKind, fallback: i64) -> i64 {
-    objectives
-        .iter()
-        .find(|objective| objective.metric == metric)
-        .and_then(|objective| objective.threshold_ms)
-        .map(|value| value as i64)
-        .unwrap_or(fallback)
-}
 
 /// Observed bad ratio for one objective in one window. `None` means the window
 /// has no observations for that signal.
@@ -208,12 +66,10 @@ pub fn bad_ratio(objective: &Objective, stats: &WindowStats) -> Option<f64> {
 /// Human value of the signal (what was measured), used next to the burn rate.
 fn observed_label(objective: &Objective, stats: &WindowStats) -> String {
     match objective.metric {
-        MetricKind::LatencyHistogram => {
-            match percentile_from_histogram(&stats.buckets, 0.95) {
-                Some(ms) => format!("p95 {ms:.0} ms"),
-                None => "no data".to_string(),
-            }
-        }
+        MetricKind::LatencyHistogram => match percentile_from_histogram(&stats.buckets, 0.95) {
+            Some(ms) => format!("p95 {ms:.0} ms"),
+            None => "no data".to_string(),
+        },
         MetricKind::ErrorRate => {
             if stats.requests == 0 {
                 "no data".to_string()
@@ -262,9 +118,10 @@ fn render_cell(burn: Option<f64>, alert: crate::ops_slo::AlertPolicy) -> String 
 fn render(config: &SloConfig, windows: &[(String, WindowStats)], budget: &WindowStats) -> String {
     let base = runbook_base_url();
     let first_window = windows.first().map(|(_, stats)| *stats).unwrap_or_default();
+    let (measured, gate_only) = split_for_dashboard(&config.objectives);
     let mut rows = String::new();
 
-    for objective in &config.objectives {
+    for objective in measured {
         let mut worst = BurnSeverity::Ok;
         let mut cells = String::new();
         for (_, stats) in windows {
@@ -325,6 +182,35 @@ fn render(config: &SloConfig, windows: &[(String, WindowStats)], budget: &Window
         .map(|(label, _)| format!("<th>{label} burn</th>"))
         .collect();
 
+    let mut gate_rows = String::new();
+    for objective in gate_only.iter() {
+        let runbook = if objective.runbook.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " · <a class=\"ops-runbook\" href=\"{}/{}\" target=\"_blank\" rel=\"noopener\">runbook</a>",
+                html_escape(&base),
+                html_escape(&objective.runbook)
+            )
+        };
+        gate_rows.push_str(&format!(
+            "<li><strong>{id}</strong> · target {target:.1}% · {kind}{runbook}</li>",
+            id = html_escape(&objective.id),
+            target = objective.target * 100.0,
+            kind = objective.metric.label(),
+            runbook = runbook,
+        ));
+    }
+    let gate_section = if gate_only.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "<h4 class=\"ops-subtitle\">Objectives measured by the CI SLO gate</h4>
+    <p class=\"ops-hint\">These objectives read instrumentation this dashboard does not own (tool calls, database, cache, storage, queue, per-turn errors), so they carry a target and a runbook but no burn rate here. <code>scripts/check_slo.py</code> evaluates them against its snapshot.</p>
+    <ul class=\"ops-gate-list\">{gate_rows}</ul>"
+        )
+    };
+
     format!(
         "<div class=\"ops-panel\" id=\"ops-slo\">
     <div class=\"chart-header\">
@@ -337,6 +223,7 @@ fn render(config: &SloConfig, windows: &[(String, WindowStats)], budget: &Window
             <tbody>{rows}</tbody>
         </table>
     </div>
+    {gate_section}
     <p class=\"ops-hint\">Burn rate = observed bad ratio ÷ error budget. Budget used is measured over the full SLO window. API latency comes from the request histogram (thresholds on bucket boundaries); LLM percentiles come from <code>llm_metrics</code>.</p>
 </div>",
         source = html_escape(&config.source),
@@ -347,6 +234,7 @@ fn render(config: &SloConfig, windows: &[(String, WindowStats)], budget: &Window
         slow = config.alert.slow_burn,
         headers = headers,
         rows = rows,
+        gate_section = gate_section,
     )
 }
 
@@ -370,7 +258,11 @@ pub async fn handle_ops_slo(State(pool): State<Arc<DbPool>>) -> impl IntoRespons
             log::error!("ops SLO panel: no DB connection");
             return (Vec::new(), WindowStats::default());
         };
-        let ttft = threshold_of(&config_for_task.objectives, MetricKind::LlmFirstToken, 2_000);
+        let ttft = threshold_of(
+            &config_for_task.objectives,
+            MetricKind::LlmFirstToken,
+            2_000,
+        );
         let answer = threshold_of(&config_for_task.objectives, MetricKind::LlmAnswer, 15_000);
         let mut collected = Vec::new();
         for (label, minutes) in BURN_WINDOWS {

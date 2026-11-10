@@ -3,7 +3,10 @@ use super::*;
 #[test]
 fn classify_endpoint_prefers_the_specific_prefix() {
     assert_eq!(classify_endpoint("/api/ui/analytics/ops/slo"), "analytics");
-    assert_eq!(classify_endpoint("/api/analytics/messages/count"), "analytics");
+    assert_eq!(
+        classify_endpoint("/api/analytics/messages/count"),
+        "analytics"
+    );
     assert_eq!(classify_endpoint("/api/ui/drive/files"), "ui");
     assert_eq!(classify_endpoint("/api/cloud/signup"), "cloud");
     assert_eq!(classify_endpoint("/api/auth/login"), "auth");
@@ -62,7 +65,11 @@ fn record_and_drain_keep_the_count() {
     let before: i64 = drain().iter().map(|row| row.count).sum();
     record("/api/ui/analytics/ops/slo", 200, Duration::from_millis(12));
     record("/api/ui/analytics/ops/slo", 200, Duration::from_millis(700));
-    record("/api/ui/analytics/ops/slo", 500, Duration::from_millis(1_200));
+    record(
+        "/api/ui/analytics/ops/slo",
+        500,
+        Duration::from_millis(1_200),
+    );
     let rows = drain();
     let total: i64 = rows.iter().map(|row| row.count).sum();
     assert_eq!(total - before, 3);

@@ -238,6 +238,7 @@ pub(crate) fn row_status(active: bool, downloaded: bool, downloading: bool) -> &
 }
 
 /// Every catalogue entry, in declaration order.
+#[cfg(test)]
 pub(crate) fn catalog() -> &'static [ModelSpec] {
     CATALOG
 }

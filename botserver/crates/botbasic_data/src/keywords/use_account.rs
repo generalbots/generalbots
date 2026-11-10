@@ -145,8 +145,6 @@ fn add_account_to_session(
         let vault_path = account.access_token.clone();
         let meta_json = account.metadata_json.clone();
         let acc_id = account.id;
-        let bot_id_clone = bot_id;
-        let user_id_clone = user_id;
         let qdrant_coll = qdrant_collection.clone();
         std::thread::spawn(move || {
             let rt = match tokio::runtime::Builder::new_current_thread()
@@ -160,7 +158,7 @@ fn add_account_to_session(
             };
             rt.block_on(index_imap_account_emails(
                 &email_clone, &vault_path, &meta_json,
-                acc_id, bot_id_clone, user_id_clone, &qdrant_coll,
+                acc_id, &qdrant_coll,
             ));
         });
     }
@@ -174,8 +172,6 @@ async fn index_imap_account_emails(
     vault_path: &str,
     metadata_json: &str,
     account_id: Uuid,
-    bot_id: Uuid,
-    user_id: Uuid,
     qdrant_collection: &str,
 ) {
     let meta: HashMap<String, String> = match serde_json::from_str(metadata_json) {
@@ -337,8 +333,6 @@ async fn index_imap_account_emails(
     _vault_path: &str,
     _metadata_json: &str,
     _account_id: Uuid,
-    _bot_id: Uuid,
-    _user_id: Uuid,
     _qdrant_collection: &str,
 ) {
     log::debug!("IMAP email indexing not available without 'mail' feature");

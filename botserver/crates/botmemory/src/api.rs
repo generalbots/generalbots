@@ -6,10 +6,16 @@
 //! - `POST   /api/memory/import`                       — bulk import / dry-run
 //! - `GET    /api/memory/export`                       — export live memories
 //!
-//! Authorization is owner-only: reads and writes require a JWT user claim and
+//! Authorization is owner-only: reads and writes require a **verified** JWT and
 //! target rows owned by the caller. Branch-shared rows (`scope = 'branch'`)
-//! additionally appear in listings when their branch matches the JWT branch
-//! claim; writes never cross ownership.
+//! additionally appear in listings when their branch matches the verified
+//! branch claim; writes never cross ownership.
+//!
+//! #2123 — the bearer token used to be base64-decoded on its own, so a forged
+//! payload (`alg: none`, or any key) chose its own `sub`, `org_id` and
+//! `branch_id`. [`botsecurity_core::verified_jwt::verify_saas_jwt`] checks the
+//! HS256 signature in constant time, the algorithm and the `exp`/`nbf` window
+//! before a single claim is read; anything it refuses is a 401.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -20,6 +26,7 @@ use axum::{
     routing::{get, post, put},
     Json, Router,
 };
+use botsecurity_core::verified_jwt::{bearer_token, verify_saas_jwt};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -27,86 +34,31 @@ use crate::models::{ImportBody, MemoryBody, UpdateMemoryBody};
 use crate::store::{self, DedupeOutcome};
 use crate::MemoryService;
 
-
-fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
-    let mut normalized = String::with_capacity(input.len());
-    for c in input.trim().chars() {
-        match c {
-            '-' => normalized.push('+'),
-            '_' => normalized.push('/'),
-            c if !c.is_whitespace() => normalized.push(c),
-            _ => {}
-        }
-    }
-    if normalized.len() % 4 == 1 {
-        return None;
-    }
-    let mut out = Vec::with_capacity(normalized.len() / 4 * 3);
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    for byte in normalized.bytes() {
-        if byte == b'=' {
-            break;
-        }
-        let value = match byte {
-            b'A'..=b'Z' => (byte - b'A') as u32,
-            b'a'..=b'z' => (byte - b'a' + 26) as u32,
-            b'0'..=b'9' => (byte - b'0' + 52) as u32,
-            b'+' => 62,
-            b'/' => 63,
-            _ => return None,
-        };
-        acc = (acc << 6) | value;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push(((acc >> bits) & 0xFF) as u8);
-        }
-    }
-    Some(out)
+/// The caller identity carried by a token whose signature and expiry verified.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Caller {
+    user_id: Uuid,
+    org_id: Option<Uuid>,
+    branch_id: Option<Uuid>,
 }
 
-fn jwt_claims(headers: &HeaderMap) -> Option<Value> {
-    let token = headers
-        .get("authorization")?
-        .to_str()
-        .ok()?
-        .strip_prefix("Bearer ")?
-        .trim();
-    let payload = token.split('.').nth(1)?;
-    let decoded = b64_decode_flexible(payload)?;
-    serde_json::from_slice(&decoded).ok()
+/// Resolves the caller from the `Authorization: Bearer` header, or `None`.
+///
+/// Fails closed: an unverifiable token (wrong key, `alg: none`, expired,
+/// missing `exp`, malformed) yields `None`, never the unverified payload.
+fn caller_from_headers(headers: &HeaderMap) -> Option<Caller> {
+    let verified = verify_saas_jwt(bearer_token(headers)?).ok()?;
+    let user_id = Uuid::parse_str(verified.sub.trim()).ok()?;
+    Some(Caller {
+        user_id,
+        org_id: verified.org_id,
+        branch_id: verified.branch_id,
+    })
 }
 
-fn claim_uuid(claims: &Value, keys: &[&str]) -> Option<Uuid> {
-    for key in keys {
-        if let Some(raw) = claims.get(key).and_then(|v| v.as_str()) {
-            if let Ok(id) = Uuid::parse_str(raw) {
-                return Some(id);
-            }
-        }
-    }
-    None
-}
-
-fn jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
-    let claims = jwt_claims(headers)?;
-    claim_uuid(&claims, &["user_id", "sub", "uid"])
-}
-
-fn jwt_scope(headers: &HeaderMap) -> (Option<Uuid>, Option<Uuid>) {
-    let claims = jwt_claims(headers);
-    match claims {
-        Some(claims) => (
-            claim_uuid(&claims, &["org_id", "org"]),
-            claim_uuid(&claims, &["branch_id", "branch"]),
-        ),
-        None => (None, None),
-    }
-}
-
-fn require_user(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
-    jwt_user_id(headers).ok_or_else(|| (StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
+fn require_caller(headers: &HeaderMap) -> Result<Caller, (StatusCode, String)> {
+    caller_from_headers(headers)
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
 }
 
 fn internal(context: &str, err: impl std::fmt::Display) -> (StatusCode, String) {
@@ -128,8 +80,7 @@ async fn list_items(
     headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
-    let (_, branch_claim) = jwt_scope(&headers);
+    let caller = require_caller(&headers)?;
     let filter = store::ListFilter {
         kind: params.get("kind").map(String::as_str),
         q: params.get("q").map(String::as_str),
@@ -142,7 +93,7 @@ async fn list_items(
             .pool
             .get()
             .map_err(|e| internal("db pool", e))?;
-        store::list(&mut conn, owner, branch_claim, filter, offset)
+        store::list(&mut conn, caller.user_id, caller.branch_id, filter, offset)
             .map_err(|e| internal("list", e))?
     };
 
@@ -155,8 +106,7 @@ async fn create_item(
     headers: HeaderMap,
     Json(body): Json<MemoryBody>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
-    let (org_id, branch_id) = jwt_scope(&headers);
+    let caller = require_caller(&headers)?;
     let scope = crate::models::ensure_scope(&body.scope).map_err(bad_request)?;
     let kind = crate::models::ensure_kind(&body.kind).map_err(bad_request)?;
     let content = crate::models::ensure_content(&body.content).map_err(bad_request)?;
@@ -169,9 +119,9 @@ async fn create_item(
         store::insert(
             &mut conn,
             store::NewMemory {
-                org_id,
-                branch_id,
-                owner_user_id: owner,
+                org_id: caller.org_id,
+                branch_id: caller.branch_id,
+                owner_user_id: caller.user_id,
                 scope: &scope,
                 kind: &kind,
                 content: &content,
@@ -198,7 +148,7 @@ async fn update_item(
     Path(memory_id): Path<Uuid>,
     Json(body): Json<UpdateMemoryBody>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
+    let caller = require_caller(&headers)?;
     let patch = store::MemoryPatch {
         scope: match body.scope.as_deref() {
             Some(raw) => Some(crate::models::ensure_scope(raw).map_err(bad_request)?),
@@ -220,7 +170,8 @@ async fn update_item(
             .pool
             .get()
             .map_err(|e| internal("db pool", e))?;
-        store::update(&mut conn, memory_id, owner, &patch).map_err(|e| internal("update", e))?
+        store::update(&mut conn, memory_id, caller.user_id, &patch)
+            .map_err(|e| internal("update", e))?
     };
 
     match updated {
@@ -235,13 +186,13 @@ async fn delete_item(
     headers: HeaderMap,
     Path(memory_id): Path<Uuid>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
+    let caller = require_caller(&headers)?;
     let deleted = {
         let mut conn = service
             .pool
             .get()
             .map_err(|e| internal("db pool", e))?;
-        store::delete(&mut conn, memory_id, owner).map_err(|e| internal("delete", e))?
+        store::delete(&mut conn, memory_id, caller.user_id).map_err(|e| internal("delete", e))?
     };
     if !deleted {
         return Err((StatusCode::NOT_FOUND, "Memory not found".to_string()));
@@ -255,8 +206,7 @@ async fn import_items(
     headers: HeaderMap,
     Json(body): Json<ImportBody>,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
-    let (org_id, branch_id) = jwt_scope(&headers);
+    let caller = require_caller(&headers)?;
     if body.items.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "items must not be empty".to_string()));
     }
@@ -266,8 +216,15 @@ async fn import_items(
             .pool
             .get()
             .map_err(|e| internal("db pool", e))?;
-        crate::import::import(&mut conn, owner, org_id, branch_id, &body.items, body.dry_run)
-            .map_err(|e| internal("import", e))?
+        crate::import::import(
+            &mut conn,
+            caller.user_id,
+            caller.org_id,
+            caller.branch_id,
+            &body.items,
+            body.dry_run,
+        )
+        .map_err(|e| internal("import", e))?
     };
 
     Ok(Json(json!({ "report": report, "dry_run": body.dry_run })))
@@ -278,13 +235,13 @@ async fn export_items(
     State(service): State<Arc<MemoryService>>,
     headers: HeaderMap,
 ) -> Result<Json<Value>, (StatusCode, String)> {
-    let owner = require_user(&headers)?;
+    let caller = require_caller(&headers)?;
     let items = {
         let mut conn = service
             .pool
             .get()
             .map_err(|e| internal("db pool", e))?;
-        store::export_all(&mut conn, owner).map_err(|e| internal("export", e))?
+        store::export_all(&mut conn, caller.user_id).map_err(|e| internal("export", e))?
     };
 
     Ok(Json(json!({ "items": items, "count": items.len() })))

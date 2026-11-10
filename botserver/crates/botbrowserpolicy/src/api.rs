@@ -8,7 +8,7 @@
 //! `POST /api/browser/tasks/:id/finish` for the external execution driver,
 //! `GET/PUT /api/browser/policy` (admin-only).
 
-use crate::jwt::{base64_url_decode, jwt_header_is_secured, jwt_payload};
+use crate::jwt::{bearer_token, verified_claims};
 use crate::models::ProgressDoc;
 use crate::policy::{PolicyConfig, TASK_KIND_CHECKOUT, TASK_KIND_DEFAULT};
 use crate::tasks::{self, StepResult, TaskError};
@@ -46,41 +46,40 @@ fn api_error(context: &str, e: &TaskError) -> (StatusCode, String) {
     }
 }
 
+fn unauthorized() -> (StatusCode, String) {
+    (StatusCode::UNAUTHORIZED, "Authentication required".to_string())
+}
+
+/// Identity of a **verified** Bearer token.
+///
+/// #2112 — there is no fallback path: a token that cannot be verified
+/// (malformed, `alg:none`, tampered, foreign key, expired, no subject) yields
+/// no claims, so the request is refused before any policy decision is taken.
+fn verified_user_id(token: &str) -> Result<Uuid, (StatusCode, String)> {
+    let claims = verified_claims(token).ok_or_else(unauthorized)?;
+    Uuid::parse_str(&claims.sub)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token subject".to_string()))
+}
+
 fn resolve_user_id(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
-    let payload = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .and_then(jwt_payload);
-    raw_subject_to_uuid(payload.as_ref())
+    let token = bearer_token(headers).ok_or_else(unauthorized)?;
+    verified_user_id(token)
 }
 
 /// SSE transport: EventSource cannot set headers, so the suite passes the
-/// Bearer token as `?token=`. Header wins when both are present.
+/// Bearer token as `?token=`. Header wins when both are present; a header
+/// token that fails verification never falls back to the query parameter.
 fn resolve_user_id_sse(
     headers: &HeaderMap,
     token_param: &str,
 ) -> Result<Uuid, (StatusCode, String)> {
-    let header_token = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .unwrap_or_default();
-    let token = if header_token.is_empty() { token_param } else { header_token };
-    if token.is_empty() {
-        return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
-    }
-    raw_subject_to_uuid(jwt_payload(token).as_ref())
-}
-
-fn raw_subject_to_uuid(payload: Option<&serde_json::Value>) -> Result<Uuid, (StatusCode, String)> {
-    let raw = payload
-        .and_then(|p| p.get("uid").or_else(|| p.get("sub")))
-        .and_then(|v| v.as_str());
-    let Some(raw) = raw else {
-        return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
+    let header_token = bearer_token(headers).unwrap_or_default();
+    let token = if header_token.is_empty() {
+        token_param.trim()
+    } else {
+        header_token
     };
-    Uuid::parse_str(raw).map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token subject".to_string()))
+    verified_user_id(token)
 }
 
 fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, (StatusCode, String)> {

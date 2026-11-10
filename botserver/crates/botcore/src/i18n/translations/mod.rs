@@ -14,11 +14,10 @@ mod translation_keys_tours;
 /// present only in an FTL file used to reach the browser as its raw identifier
 /// (#1853).
 fn translation_keys() -> Vec<String> {
-    let mut keys: Vec<String> = translation_keys_actions::TRANSLATION_KEYS
-        .iter()
-        .chain(translation_keys_common::TRANSLATION_KEYS.iter())
-        .chain(translation_keys_tours::TRANSLATION_KEYS.iter())
-        .map(|key| (*key).to_string())
+    let mut keys: Vec<String> = translation_keys_actions::translation_keys()
+        .chain(translation_keys_common::TRANSLATION_KEYS.iter().copied())
+        .chain(translation_keys_tours::TRANSLATION_KEYS.iter().copied())
+        .map(str::to_string)
         .collect();
     let mut seen: HashSet<String> = keys.iter().cloned().collect();
     for key in botlib::i18n::message_ids() {

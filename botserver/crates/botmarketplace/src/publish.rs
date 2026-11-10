@@ -122,7 +122,7 @@ pub async fn publish(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     validate_body(&body)?;
 
-    let admin = auth::jwt_is_admin(&headers);
+    let admin = auth::jwt_is_admin(&headers, &service.pool);
     let org_id = auth::jwt_org_id(&headers);
     if !admin && org_id.is_none() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
@@ -159,8 +159,7 @@ pub async fn publish(
     )
     .map_err(|e| storage_unavailable(&e))?;
 
-    let publisher_name = auth::jwt_claims(&headers)
-        .and_then(|c| c.get("name").or_else(|| c.get("email")).and_then(|v| v.as_str()).map(|s| s.to_string()));
+    let publisher_name = auth::jwt_email(&headers);
 
     let package_id = upsert_package_and_version(&mut conn, &body, org_id, publisher_name)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Persist failed: {e}")))?;
@@ -182,7 +181,7 @@ pub async fn unpublish(
     headers: HeaderMap,
     Path(slug): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let admin = auth::jwt_is_admin(&headers);
+    let admin = auth::jwt_is_admin(&headers, &service.pool);
     let org_id = auth::jwt_org_id(&headers);
     if !admin && org_id.is_none() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
@@ -220,7 +219,7 @@ pub async fn my_packages(
     State(service): State<Arc<MarketplaceService>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let admin = auth::jwt_is_admin(&headers);
+    let admin = auth::jwt_is_admin(&headers, &service.pool);
     let org_id = auth::jwt_org_id(&headers);
     if !admin && org_id.is_none() {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));

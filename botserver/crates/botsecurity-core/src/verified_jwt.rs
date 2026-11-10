@@ -14,6 +14,10 @@
 //! * the payload must carry a non-empty `sub` (or legacy `user_id`) and an
 //!   `exp` that has not passed.
 //!
+//! Role claims (`role`/`roles`) are surfaced only after the signature checks
+//! pass, so authorization decisions that read [`VerifiedJwt::roles`] can never
+//! be driven by a payload the caller wrote (issues #2112/#2125).
+//!
 //! Cloud-login tokens (`botcloud::api`) and suite JWTs (`JwtManager`) are both
 //! HS256 tokens signed with the persisted `saas_jwt_secret`, so one verifier
 //! covers both. Opaque suite tokens (`gb_*`) are not JWTs and are resolved
@@ -35,6 +39,13 @@ pub struct VerifiedJwt {
     pub email: Option<String>,
     pub org_id: Option<Uuid>,
     pub branch_id: Option<Uuid>,
+    /// Roles the issuer signed into the token (`role`, plus the `roles`
+    /// array), trimmed and lowercased, without duplicates.
+    ///
+    /// Empty when the token carries no role claim — cloud-login tokens do
+    /// not (#736), so callers resolve the role from RBAC in that case. A
+    /// non-empty list is authoritative: it was signed by the server.
+    pub roles: Vec<String>,
     /// Expiry in epoch seconds (always present on a verified token).
     pub exp: i64,
 }
@@ -172,8 +183,30 @@ pub fn verify_hs256_jwt(token: &str, secret: &str) -> Result<VerifiedJwt, JwtVer
         org_id: uuid_claim(&payload, "org_id")
             .or_else(|| uuid_claim(&payload, "organization_id")),
         branch_id: uuid_claim(&payload, "branch_id"),
+        roles: role_claims(&payload),
         exp,
     })
+}
+
+/// The role claims of a verified payload, normalized for comparison.
+fn role_claims(payload: &serde_json::Value) -> Vec<String> {
+    let mut roles: Vec<String> = Vec::new();
+    if let Some(role) = payload.get("role").and_then(|v| v.as_str()) {
+        push_role(&mut roles, role);
+    }
+    if let Some(list) = payload.get("roles").and_then(|v| v.as_array()) {
+        for entry in list.iter().filter_map(|v| v.as_str()) {
+            push_role(&mut roles, entry);
+        }
+    }
+    roles
+}
+
+fn push_role(roles: &mut Vec<String>, raw: &str) {
+    let role = raw.trim().to_lowercase();
+    if !role.is_empty() && !roles.contains(&role) {
+        roles.push(role);
+    }
 }
 
 fn string_claim(payload: &serde_json::Value, name: &str) -> Option<String> {

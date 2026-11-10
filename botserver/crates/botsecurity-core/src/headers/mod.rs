@@ -1,6 +1,23 @@
-pub(crate) use axum::{ body::Body, http::{header::HeaderName, HeaderValue, Request}, middleware::Next, response::Response, };
+pub(crate) use axum::{
+    body::Body,
+    http::{header::HeaderName, HeaderValue, Request},
+    middleware::Next,
+    response::Response,
+    Router,
+};
 pub(crate) use std::collections::HashMap;
 
+/// Environment variable that drops HSTS for plain-HTTP local development.
+///
+/// HSTS is emitted by default on every server. A browser that receives it on a
+/// `http://localhost` origin pins that host to HTTPS for the whole `max-age`,
+/// and the dev server does not speak TLS — the tab then refuses to load at all
+/// and the only cure is clearing the browser's transport-security state.
+/// Local dev therefore sets `GB_SECURITY_HSTS=off`; anything else (unset,
+/// `1`, `on`, `true`) keeps HSTS. Production never sets it.
+pub const HSTS_ENV: &str = "GB_SECURITY_HSTS";
+
+/// The IMP-09 header set. One config drives every server in the workspace.
 #[derive(Debug, Clone)]
 pub struct SecurityHeadersConfig {
     pub content_security_policy: Option<String>,
@@ -18,166 +35,63 @@ pub struct CspBuilder {
     directives: HashMap<String, Vec<String>>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::{body::Body, http::{Request, StatusCode}, response::IntoResponse, routing::get, Router};
-    use tower::ServiceExt;
-
-    async fn dummy_handler() -> impl IntoResponse {
-        (StatusCode::OK, "Hello, world!")
-    }
-
-    async fn strict_csp_handler() -> axum::response::Response {
-        let mut response = axum::response::Response::new(Body::from("preview"));
-        response.headers_mut().insert(
-            HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static("default-src 'none'; style-src 'unsafe-inline'"),
-        );
-        response
-    }
-
-    #[tokio::test]
-    async fn handler_scoped_csp_is_preserved() {
-        let config = SecurityHeadersConfig::default();
-        let app = Router::new()
-            .route("/strict", get(strict_csp_handler))
-            .layer(axum::middleware::from_fn(security_headers_middleware))
-            .layer(axum::Extension(config));
-        let request = Request::builder().uri("/strict").body(Body::empty()).unwrap();
-        let response = app.oneshot(request).await.unwrap();
-        assert_eq!(
-            response.headers().get("content-security-policy").unwrap(),
-            "default-src 'none'; style-src 'unsafe-inline'"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_security_headers_middleware_application() {
-        let config = SecurityHeadersConfig::default();
-        let app = Router::new()
-            .route("/", get(dummy_handler))
-            .layer(axum::middleware::from_fn(security_headers_middleware))
-            .layer(axum::Extension(config));
-            
-        let request = Request::builder().uri("/").body(Body::empty()).unwrap();
-        let response = app.oneshot(request).await.unwrap();
-        
-        // Ensure standard security headers are applied
-        assert!(response.headers().contains_key("content-security-policy"));
-        assert_eq!(response.headers().get("x-frame-options").unwrap(), "DENY");
-        assert_eq!(response.headers().get("x-content-type-options").unwrap(), "nosniff");
-        assert_eq!(response.headers().get("x-powered-by").unwrap(), "General Bots");
-    }
-
-    #[test]
-    fn test_default_config() {
-        let config = SecurityHeadersConfig::default();
-        assert!(config.content_security_policy.is_some());
-        assert_eq!(config.x_frame_options, Some("DENY".to_string()));
-        assert_eq!(config.x_content_type_options, Some("nosniff".to_string()));
-    }
-
-    #[test]
-    fn test_default_permissions_policy_allows_self_media_capture() {
-        // The chat composer records voice notes and camera shots through
-        // getUserMedia from the same origin. `microphone=()` / `camera=()`
-        // block the browser prompt entirely, so the buttons look dead.
-        let config = SecurityHeadersConfig::default();
-        let policy = config.permissions_policy.expect("default policy");
-        assert!(policy.contains("microphone=(self)"), "policy: {policy}");
-        assert!(policy.contains("camera=(self)"), "policy: {policy}");
-        assert!(policy.contains("geolocation=()"), "policy: {policy}");
-    }
-
-    #[test]
-    fn test_strict_config() {
-        let config = SecurityHeadersConfig::strict();
-        assert!(config.content_security_policy.is_some());
-        assert!(config.referrer_policy == Some("no-referrer".to_string()));
-        assert!(!config.custom_headers.is_empty());
-    }
-
-    #[test]
-    fn test_relaxed_config() {
-        let config = SecurityHeadersConfig::relaxed();
-        assert!(config.content_security_policy.is_none());
-        assert_eq!(config.x_frame_options, Some("SAMEORIGIN".to_string()));
-    }
-
-    #[test]
-    fn test_api_config() {
-        let config = SecurityHeadersConfig::api();
-        assert!(config.permissions_policy.is_none());
-        assert_eq!(config.cache_control, Some("no-store".to_string()));
-    }
-
-    #[test]
-    fn test_builder_methods() {
-        let config = SecurityHeadersConfig::default()
-            .with_csp("default-src 'self'")
-            .with_frame_options("SAMEORIGIN")
-            .with_hsts(63072000, true, true)
-            .with_referrer_policy("no-referrer")
-            .with_custom_header("X-Custom", "value");
-
-        assert_eq!(
-            config.content_security_policy,
-            Some("default-src 'self'".to_string())
-        );
-        assert_eq!(config.x_frame_options, Some("SAMEORIGIN".to_string()));
-        assert!(config
-            .strict_transport_security
-            .as_ref()
-            .unwrap()
-            .contains("63072000"));
-        assert_eq!(config.referrer_policy, Some("no-referrer".to_string()));
-        assert_eq!(
-            config.custom_headers.get("X-Custom"),
-            Some(&"value".to_string())
-        );
-    }
-
-    #[test]
-    fn test_csp_builder() {
-        let csp = CspBuilder::new()
-            .default_src(&["'self'"])
-            .script_src(&["'self'", "'unsafe-inline'"])
-            .style_src(&["'self'", "https://fonts.googleapis.com"])
-            .img_src(&["'self'", "data:", "https:"])
-            .upgrade_insecure_requests()
-            .build();
-
-        assert!(csp.contains("default-src 'self'"));
-        assert!(csp.contains("script-src 'self' 'unsafe-inline'"));
-        assert!(csp.contains("upgrade-insecure-requests"));
-    }
-
-    #[test]
-    fn test_csp_builder_empty_directive() {
-        let csp = CspBuilder::new()
-            .default_src(&["'none'"])
-            .block_all_mixed_content()
-            .build();
-
-        assert!(csp.contains("block-all-mixed-content"));
-        assert!(csp.contains("default-src 'none'"));
-    }
-
-    #[test]
-    fn test_disable_hsts() {
-        let config = SecurityHeadersConfig::default().disable_hsts();
-        assert!(config.strict_transport_security.is_none());
-    }
-
-    #[test]
-    fn test_without_csp() {
-        let config = SecurityHeadersConfig::default().without_csp();
-        assert!(config.content_security_policy.is_none());
+impl SecurityHeadersConfig {
+    /// The config every public server uses: the strict default, with HSTS
+    /// dropped only when [`HSTS_ENV`] explicitly asks for it.
+    pub fn from_env() -> Self {
+        if hsts_enabled() {
+            Self::default()
+        } else {
+            Self::default().disable_hsts()
+        }
     }
 }
 
-mod strict;
+/// Whether HSTS may be emitted for this process. See [`HSTS_ENV`].
+pub fn hsts_enabled() -> bool {
+    hsts_value_enabled(std::env::var(HSTS_ENV).ok().as_deref())
+}
+
+/// Interprets one `GB_SECURITY_HSTS` value. Split from [`hsts_enabled`] so the
+/// decision is testable without mutating process-wide state.
+fn hsts_value_enabled(value: Option<&str>) -> bool {
+    match value {
+        Some(raw) => !matches!(
+            raw.trim().to_ascii_lowercase().as_str(),
+            "0" | "off" | "false" | "no"
+        ),
+        None => true,
+    }
+}
+
+/// Applies the IMP-09 headers to every response a router produces.
+///
+/// This is the single place a router becomes compliant: call it once, after the
+/// router is fully built. Axum only applies a layer to routes that already
+/// exist, so the call must follow the last `route`/`nest`/`fallback`. Because
+/// it wraps the whole router, fallbacks, nested static services (`ServeDir`)
+/// and error responses — 401/403/404/429/500 — carry the headers too.
+pub fn with_security_headers<S>(router: Router<S>, config: SecurityHeadersConfig) -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
+    router.layer(axum::middleware::from_fn(
+        move |request: Request<Body>, next: Next| {
+            let config = config.clone();
+            async move {
+                let mut response = next.run(request).await;
+                apply_security_headers(&mut response, &config);
+                response
+            }
+        },
+    ))
+}
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;
+
 mod default_src;
+mod strict;
 
 pub use strict::*;

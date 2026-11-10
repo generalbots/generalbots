@@ -158,6 +158,23 @@ fn the_legacy_user_id_claim_is_accepted() {
 }
 
 #[test]
+fn role_claims_are_normalized_from_both_spellings() {
+    let payload = format!(
+        r#"{{"sub":"user-1","role":" Admin ","roles":["user","ADMIN","auditor"],"exp":{}}}"#,
+        in_an_hour()
+    );
+    let claims = verify_hs256_jwt(&token(&payload, SECRET), SECRET).expect("valid token");
+    assert_eq!(claims.roles, vec!["admin", "user", "auditor"]);
+}
+
+#[test]
+fn a_token_without_role_claims_has_no_roles() {
+    let payload = format!(r#"{{"sub":"user-1","exp":{}}}"#, in_an_hour());
+    let claims = verify_hs256_jwt(&token(&payload, SECRET), SECRET).expect("valid token");
+    assert!(claims.roles.is_empty());
+}
+
+#[test]
 fn asymmetric_algorithms_are_rejected() {
     let payload = format!(r#"{{"sub":"user-1","exp":{}}}"#, in_an_hour());
     let token = token_with_header(r#"{"alg":"RS256","typ":"JWT"}"#, &payload, SECRET);

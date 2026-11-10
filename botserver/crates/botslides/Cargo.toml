@@ -26,3 +26,7 @@ rand = { workspace = true }
 base64 = { workspace = true }
 diesel = { workspace = true, features = ["r2d2", "postgres"] }
 zip = { workspace = true }
+
+[dev-dependencies]
+hmac = { workspace = true }
+sha2 = { workspace = true }

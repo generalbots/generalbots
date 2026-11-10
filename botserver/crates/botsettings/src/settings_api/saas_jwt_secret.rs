@@ -6,14 +6,6 @@ use super::*;
 /// store the auth middleware rehydrates from), and the stored `user_id` is
 /// mapped to a stable UUID the same way `resolve_user_role` does — never the
 /// first row of the `users` table.
-/// Resolves the SaaS JWT secret used to sign cloud-login tokens — the same
-/// chain the minter applies (`directory_setup::resolve_saas_jwt_secret` is
-/// `pub(crate)` to the botserver crate). #2112 — the chain lives in
-/// `botsecurity_core::verified_jwt`, so the settings path and the tenant
-/// resolver cannot drift.
-pub(super) fn saas_jwt_secret() -> String {
-    botsecurity::botsecurity_core::verified_jwt::resolve_saas_jwt_secret()
-}
 /// #1457 — verifies a stateless SaaS cloud JWT and returns the caller's
 /// stable user id. Cloud login mints claim-light tokens (`sub`/`email`/
 /// `org_id`/`branch_id`, issue #736); the `sub` claim maps to a UUID the

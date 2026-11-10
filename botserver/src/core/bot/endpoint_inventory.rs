@@ -361,12 +361,14 @@ pub(crate) const ALL_ROUTES: &[ApiEndpoint] = &[
 /// Iterates every mounted endpoint. The catalogue is split across five
 /// chunks for the 450-line limit; the chunks are chained in catalogue order
 /// (A, directory, editor_email, minutes, ui_billing) so the iteration stays sorted by path.
+/// Each chunk that still outgrew the limit is itself a directory of
+/// domain modules exposing `all_routes()` in the same order.
 pub fn all_routes() -> impl Iterator<Item = &'static ApiEndpoint> {
     ALL_ROUTES
         .iter()
-        .chain(super::endpoint_inventory_directory::ALL_ROUTES)
+        .chain(super::endpoint_inventory_directory::all_routes())
         .chain(super::endpoint_inventory_editor_email::ALL_ROUTES)
-        .chain(super::endpoint_inventory_minutes::ALL_ROUTES)
+        .chain(super::endpoint_inventory_minutes::all_routes())
         .chain(super::endpoint_inventory_ui_billing::ALL_ROUTES)
 }
 

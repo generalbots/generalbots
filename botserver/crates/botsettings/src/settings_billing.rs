@@ -4,7 +4,6 @@ use axum::{
     response::{Html, IntoResponse, Response},
 };
 use diesel::RunQueryDsl;
-use std::io::Write;
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;

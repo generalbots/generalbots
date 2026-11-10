@@ -1,152 +1,167 @@
-//! Memory HTTP surface helpers: JWT claim extraction and the lenient base64url
-//! decoder that feeds it.
+//! Memory HTTP surface helpers: verified caller extraction (#2123).
+//!
+//! The identity of a memory caller now comes from
+//! `botsecurity_core::verified_jwt::verify_saas_jwt`, so these tests mint real
+//! HS256 tokens with the secret the verifier resolves in this process and pin
+//! the accept/reject boundary: a valid token yields the caller, and a tampered,
+//! unsigned (`alg: none`), expired or foreign-key token yields nothing at all.
 
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
-use serde_json::json;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 use uuid::Uuid;
 
-use super::{
-    b64_decode_flexible, bad_request, claim_uuid, jwt_claims, jwt_scope, jwt_user_id,
-    labeled_memory, require_user,
-};
+use botsecurity_core::verified_jwt::resolve_saas_jwt_secret;
 
-/// Minimal base64url encoder so the tests build tokens without a new dependency.
+use super::{bad_request, caller_from_headers, labeled_memory, require_caller};
+
+const USER: Uuid = Uuid::from_u128(0xaa);
+const BRANCH: Uuid = Uuid::from_u128(0xbb);
+const ORG: Uuid = Uuid::from_u128(0xcc);
+
 fn b64url(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 64] =
-        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut out = String::new();
-    for chunk in bytes.chunks(3) {
-        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
-        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
-        out.push(ALPHABET[(n >> 18) as usize & 63] as char);
-        out.push(ALPHABET[(n >> 12) as usize & 63] as char);
-        if chunk.len() > 1 {
-            out.push(ALPHABET[(n >> 6) as usize & 63] as char);
-        }
-        if chunk.len() > 2 {
-            out.push(ALPHABET[n as usize & 63] as char);
-        }
-    }
-    out
+    URL_SAFE_NO_PAD.encode(bytes)
 }
 
-fn token_with(claims: serde_json::Value) -> String {
+/// Signs `claims` as HS256 with `secret`, the way the login path mints tokens.
+fn sign_with(claims: serde_json::Value, secret: &str) -> String {
+    let header = b64url(br#"{"alg":"HS256","typ":"JWT"}"#);
     let payload = b64url(claims.to_string().as_bytes());
-    format!("header.{payload}.signature")
+    let signing_input = format!("{header}.{payload}");
+    let Ok(mut mac) = Hmac::<Sha256>::new_from_slice(secret.as_bytes()) else {
+        return String::new();
+    };
+    mac.update(signing_input.as_bytes());
+    format!(
+        "{signing_input}.{}",
+        b64url(&mac.finalize().into_bytes())
+    )
+}
+
+/// A token signed with the secret the process verifies against.
+fn token(claims: serde_json::Value) -> String {
+    sign_with(claims, &resolve_saas_jwt_secret())
+}
+
+fn live_claims() -> serde_json::Value {
+    serde_json::json!({
+        "sub": USER.to_string(),
+        "org_id": ORG.to_string(),
+        "branch_id": BRANCH.to_string(),
+        "exp": chrono::Utc::now().timestamp() + 3600,
+    })
 }
 
 fn headers_with(token: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
-    headers.insert(
-        "authorization",
-        HeaderValue::from_str(&format!("Bearer {token}")).expect("header"),
-    );
+    let value = HeaderValue::from_str(&format!("Bearer {token}"))
+        .unwrap_or_else(|_| HeaderValue::from_static("Bearer "));
+    headers.insert("authorization", value);
     headers
 }
 
-const USER: Uuid = Uuid::from_u128(0xaa);
-const BRANCH: Uuid = Uuid::from_u128(0xbb);
-
 #[test]
-fn the_decoder_accepts_standard_and_url_safe_alphabets() {
-    assert_eq!(b64_decode_flexible("aGVsbG8="), Some(b"hello".to_vec()));
-    assert_eq!(b64_decode_flexible("aGVsbG8"), Some(b"hello".to_vec()));
-
-    let bytes = [0xfb, 0xff, 0xbf];
-    let url = b64url(&bytes);
-    let standard = url.replace('-', "+").replace('_', "/");
-    assert_ne!(url, standard, "the sample must exercise both alphabets");
-    assert_eq!(b64_decode_flexible(&standard), Some(bytes.to_vec()));
-    assert_eq!(b64_decode_flexible(&url), Some(bytes.to_vec()));
+fn a_valid_token_yields_the_caller() {
+    let caller = caller_from_headers(&headers_with(&token(live_claims()))).expect("caller");
+    assert_eq!(caller.user_id, USER);
+    assert_eq!(caller.org_id, Some(ORG));
+    assert_eq!(caller.branch_id, Some(BRANCH));
 }
 
 #[test]
-fn the_decoder_ignores_whitespace_and_stops_at_padding() {
-    assert_eq!(b64_decode_flexible(" aGVs bG8= "), Some(b"hello".to_vec()));
-    assert_eq!(b64_decode_flexible("aGVsbG8=trailing"), Some(b"hello".to_vec()));
-    assert_eq!(b64_decode_flexible(""), Some(Vec::new()));
+fn a_verified_token_without_tenant_claims_has_no_scope() {
+    let claims = serde_json::json!({
+        "sub": USER.to_string(),
+        "exp": chrono::Utc::now().timestamp() + 3600,
+    });
+    let caller = caller_from_headers(&headers_with(&token(claims))).expect("caller");
+    assert_eq!(caller.user_id, USER);
+    assert_eq!(caller.org_id, None);
+    assert_eq!(caller.branch_id, None);
 }
 
 #[test]
-fn the_decoder_rejects_invalid_input() {
-    assert_eq!(b64_decode_flexible("aGVsbG8*"), None);
-    assert_eq!(b64_decode_flexible("a"), None);
+fn a_tampered_payload_is_refused() {
+    // Re-encode the payload with another user, keeping the original signature.
+    let valid = token(live_claims());
+    let mut parts: Vec<String> = valid.split('.').map(str::to_string).collect();
+    let forged_claims = serde_json::json!({
+        "sub": Uuid::from_u128(0xdead).to_string(),
+        "org_id": ORG.to_string(),
+        "branch_id": BRANCH.to_string(),
+        "exp": chrono::Utc::now().timestamp() + 3600,
+    });
+    parts[1] = b64url(forged_claims.to_string().as_bytes());
+    let tampered = parts.join(".");
+
+    assert_eq!(caller_from_headers(&headers_with(&tampered)), None);
 }
 
 #[test]
-fn a_missing_or_malformed_authorization_header_yields_no_claims() {
-    assert!(jwt_claims(&HeaderMap::new()).is_none());
+fn an_unsigned_alg_none_token_is_refused() {
+    let header = b64url(br#"{"alg":"none","typ":"JWT"}"#);
+    let payload = b64url(live_claims().to_string().as_bytes());
+    let unsigned = format!("{header}.{payload}.");
+
+    assert_eq!(caller_from_headers(&headers_with(&unsigned)), None);
+}
+
+#[test]
+fn an_expired_token_is_refused() {
+    let claims = serde_json::json!({
+        "sub": USER.to_string(),
+        "branch_id": BRANCH.to_string(),
+        "exp": 1,
+    });
+    assert_eq!(caller_from_headers(&headers_with(&token(claims))), None);
+}
+
+#[test]
+fn a_token_without_expiry_is_refused() {
+    let claims = serde_json::json!({ "sub": USER.to_string() });
+    assert_eq!(caller_from_headers(&headers_with(&token(claims))), None);
+}
+
+#[test]
+fn a_token_signed_with_another_key_is_refused() {
+    let forged = sign_with(live_claims(), "attacker-controlled-secret");
+    assert_eq!(caller_from_headers(&headers_with(&forged)), None);
+}
+
+#[test]
+fn a_verified_token_whose_subject_is_not_a_uuid_is_refused() {
+    let claims = serde_json::json!({
+        "sub": "zitadel-user-42",
+        "exp": chrono::Utc::now().timestamp() + 3600,
+    });
+    assert_eq!(caller_from_headers(&headers_with(&token(claims))), None);
+}
+
+#[test]
+fn a_missing_or_malformed_authorization_header_yields_no_caller() {
+    assert!(caller_from_headers(&HeaderMap::new()).is_none());
 
     let mut basic = HeaderMap::new();
     basic.insert("authorization", HeaderValue::from_static("Basic abc"));
-    assert!(jwt_claims(&basic).is_none());
+    assert!(caller_from_headers(&basic).is_none());
 
-    let mut single = HeaderMap::new();
-    single.insert("authorization", HeaderValue::from_static("Bearer onlyonepart"));
-    assert!(jwt_claims(&single).is_none());
-
-    let mut garbage = HeaderMap::new();
-    garbage.insert("authorization", HeaderValue::from_static("Bearer a.*.c"));
-    assert!(jwt_claims(&garbage).is_none());
+    for token in ["", "onlyonepart", "a.b", ".."] {
+        assert_eq!(caller_from_headers(&headers_with(token)), None, "{token:?}");
+    }
 }
 
 #[test]
-fn claims_are_decoded_from_the_bearer_token() {
-    let headers = headers_with(&token_with(json!({ "sub": USER.to_string() })));
-    let claims = jwt_claims(&headers).expect("claims");
-    assert_eq!(claims["sub"], USER.to_string());
-}
-
-#[test]
-fn the_first_known_claim_key_wins() {
-    let claims = json!({
-        "user_id": USER.to_string(),
-        "sub": BRANCH.to_string(),
-    });
-    assert_eq!(claim_uuid(&claims, &["user_id", "sub"]), Some(USER));
-    assert_eq!(claim_uuid(&claims, &["sub", "user_id"]), Some(BRANCH));
-}
-
-#[test]
-fn an_unparsable_claim_value_is_skipped() {
-    let claims = json!({ "user_id": "not-a-uuid", "sub": USER.to_string() });
-    assert_eq!(claim_uuid(&claims, &["user_id", "sub"]), Some(USER));
-    assert_eq!(claim_uuid(&json!({ "user_id": 7 }), &["user_id"]), None);
-    assert_eq!(claim_uuid(&json!({}), &["user_id"]), None);
-}
-
-#[test]
-fn the_user_and_scope_come_from_the_documented_claim_names() {
-    let headers = headers_with(&token_with(json!({
-        "sub": USER.to_string(),
-        "branch_id": BRANCH.to_string(),
-        "org_id": Uuid::nil().to_string(),
-    })));
-    assert_eq!(jwt_user_id(&headers), Some(USER));
-    assert_eq!(jwt_scope(&headers), (Some(Uuid::nil()), Some(BRANCH)));
-
-    let aliases = headers_with(&token_with(json!({
-        "uid": USER.to_string(),
-        "branch": BRANCH.to_string(),
-        "org": Uuid::nil().to_string(),
-    })));
-    assert_eq!(jwt_user_id(&aliases), Some(USER));
-    assert_eq!(jwt_scope(&aliases), (Some(Uuid::nil()), Some(BRANCH)));
-}
-
-#[test]
-fn an_anonymous_request_has_no_scope_and_is_refused() {
-    let anonymous = HeaderMap::new();
-    assert_eq!(jwt_scope(&anonymous), (None, None));
-    let error = require_user(&anonymous).expect_err("must refuse");
+fn an_anonymous_request_is_unauthorized() {
+    let error = require_caller(&HeaderMap::new()).expect_err("must refuse");
     assert_eq!(error.0, StatusCode::UNAUTHORIZED);
     assert_eq!(error.1, "Authentication required");
 }
 
 #[test]
-fn an_authenticated_request_resolves_the_owner() {
-    let headers = headers_with(&token_with(json!({ "sub": USER.to_string() })));
-    assert_eq!(require_user(&headers), Ok(USER));
+fn an_authenticated_request_resolves_the_caller() {
+    let caller = require_caller(&headers_with(&token(live_claims()))).expect("caller");
+    assert_eq!(caller.user_id, USER);
 }
 
 #[test]
@@ -170,5 +185,8 @@ fn the_response_helpers_shape_the_payload() {
     let value = labeled_memory("created", memory);
     assert_eq!(value["status"], "created");
     assert_eq!(value["memory"]["content"], "hello");
-    assert_eq!(bad_request("bad".to_string()), (StatusCode::BAD_REQUEST, "bad".to_string()));
+    assert_eq!(
+        bad_request("bad".to_string()),
+        (StatusCode::BAD_REQUEST, "bad".to_string())
+    );
 }

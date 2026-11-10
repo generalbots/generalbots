@@ -83,7 +83,7 @@ impl BudgetTracker {
     pub fn charge_step(&self) -> Result<u32, BudgetExceeded> {
         let used = self
             .steps
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
                 Some(current.saturating_add(1))
             })
             .map(|previous| previous.saturating_add(1))
@@ -106,7 +106,7 @@ impl BudgetTracker {
     pub fn charge_cost(&self, delta_milli: u64) -> Result<u64, BudgetExceeded> {
         let used = self
             .cost_milli
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
                 Some(current.saturating_add(delta_milli))
             })
             .map(|previous| previous.saturating_add(delta_milli))

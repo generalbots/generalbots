@@ -90,3 +90,43 @@ fn burn_windows_are_the_documented_ones() {
     let labels: Vec<&str> = BURN_WINDOWS.iter().map(|(label, _)| *label).collect();
     assert_eq!(labels, vec!["1h", "6h", "3d"]);
 }
+
+#[test]
+fn split_keeps_one_histogram_and_one_error_rate_on_the_dashboard() {
+    let mut config = SloConfig::defaults();
+    config.objectives.push(Objective {
+        id: "db_p95".to_string(),
+        metric: MetricKind::LatencyHistogram,
+        target: 0.95,
+        threshold_ms: Some(100.0),
+        runbook: String::new(),
+        panel: String::new(),
+    });
+    config.objectives.push(Objective {
+        id: "turn_error_rate".to_string(),
+        metric: MetricKind::ErrorRate,
+        target: 0.99,
+        threshold_ms: None,
+        runbook: String::new(),
+        panel: String::new(),
+    });
+
+    let (measured, gate_only) = split_for_dashboard(&config.objectives);
+    assert_eq!(measured.len(), 5);
+    assert_eq!(gate_only.len(), 2);
+    assert_eq!(gate_only[0].id, "db_p95");
+    assert_eq!(gate_only[1].id, "turn_error_rate");
+}
+
+#[test]
+fn every_llm_and_ws_objective_stays_measurable() {
+    let config = SloConfig::defaults();
+    let (measured, gate_only) = split_for_dashboard(&config.objectives);
+    assert!(gate_only.is_empty());
+    assert!(measured
+        .iter()
+        .any(|objective| objective.metric == MetricKind::LlmFirstToken));
+    assert!(measured
+        .iter()
+        .any(|objective| objective.metric == MetricKind::WsHandshake));
+}

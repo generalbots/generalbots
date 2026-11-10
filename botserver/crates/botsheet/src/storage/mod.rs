@@ -92,10 +92,10 @@ pub async fn update_xlsx_cell(
     style: Option<&crate::types::CellStyle>,
 ) -> Result<(), String> {
     let sheet = workbook
-        .get_sheet_by_name_mut(sheet_name)
+        .sheet_by_name_mut(sheet_name)
         .map_err(|_| format!("Sheet '{sheet_name}' not found"))?;
 
-    let cell = sheet.get_cell_mut((col + 1, row + 1));
+    let cell = sheet.cell_mut((col + 1, row + 1));
 
     if let Some(f) = formula {
         let formula_str = if let Some(stripped) = f.strip_prefix('=') { stripped } else { f };

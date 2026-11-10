@@ -67,13 +67,13 @@ struct OsStatus {
 }
 
 #[derive(Deserialize)]
-struct LogQuery {
+pub struct LogQuery {
     service: Option<String>,
     lines: Option<usize>,
 }
 
 #[derive(Deserialize)]
-struct RestartRequest {
+pub struct RestartRequest {
     service: String,
     confirmation: String,
 }

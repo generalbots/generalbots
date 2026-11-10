@@ -183,6 +183,7 @@ pub(super) async fn send_group_invite_json(
         "ok": true,
         "group_id": group_id,
         "email": email,
+        "role": payload.role,
         "message": "Invitation recorded",
     })))
 }

@@ -1,5 +1,4 @@
 use super::utils_format::{html_escape, strip_html};
-use crate::re_cache::cached_re;
 
 pub use super::utils_markdown::{html_to_markdown, markdown_to_html};
 

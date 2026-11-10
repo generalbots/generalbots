@@ -112,13 +112,28 @@ impl SecurityHeadersConfig {
 
     pub fn relaxed() -> Self {
         Self {
-            content_security_policy: None,
+            // IMP-09 keeps all six headers on every profile. A "relaxed"
+            // deployment may widen the policy, never drop the header: a page
+            // served without CSP is what a stored-XSS payload needs.
+            content_security_policy: Some(
+                "default-src 'self'; frame-ancestors 'self'; base-uri 'self'".to_string(),
+            ),
             x_frame_options: Some("SAMEORIGIN".to_string()),
             x_content_type_options: Some("nosniff".to_string()),
             x_xss_protection: Some("1; mode=block".to_string()),
             strict_transport_security: Some("max-age=31536000".to_string()),
             referrer_policy: Some("origin-when-cross-origin".to_string()),
-            permissions_policy: None,
+            permissions_policy: Some(
+                "accelerometer=(), \
+                 camera=(self), \
+                 geolocation=(), \
+                 gyroscope=(), \
+                 magnetometer=(), \
+                 microphone=(self), \
+                 payment=(), \
+                 usb=()"
+                    .to_string(),
+            ),
             cache_control: None,
             custom_headers: HashMap::new(),
         }
@@ -132,11 +147,22 @@ impl SecurityHeadersConfig {
             x_xss_protection: Some("0".to_string()),
             strict_transport_security: Some("max-age=31536000; includeSubDomains".to_string()),
             referrer_policy: Some("no-referrer".to_string()),
-            permissions_policy: None,
+            // JSON responses need none of the sensors, but the header itself is
+            // mandatory: a browser that renders an API error page must not be
+            // able to reach the camera or the microphone.
+            permissions_policy: Some(
+                "accelerometer=(), \
+                 camera=(), \
+                 geolocation=(), \
+                 gyroscope=(), \
+                 magnetometer=(), \
+                 microphone=(), \
+                 payment=(), \
+                 usb=()"
+                    .to_string(),
+            ),
             cache_control: Some("no-store".to_string()),
-            custom_headers: HashMap::from([
-                ("X-Content-Type-Options".to_string(), "nosniff".to_string()),
-            ]),
+            custom_headers: HashMap::new(),
         }
     }
 

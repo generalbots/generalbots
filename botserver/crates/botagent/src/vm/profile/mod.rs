@@ -111,6 +111,7 @@ impl VmProfile {
     }
 
     /// Installed bytes the profile adds over today's base image.
+    #[cfg(test)]
     pub(super) fn extra_bytes(self) -> u64 {
         self.artifacts().iter().map(|a| a.installed_bytes).sum()
     }

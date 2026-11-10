@@ -159,7 +159,7 @@ pub(crate) async fn create_project(
             // the project still works in native mode until ALM is configured.
             // github-mode projects clone the caller's external repository into
             // the workspace instead (payload.clone_url).
-            if (p.source_control == "github" || p.source_control == "import") {
+            if p.source_control == "github" || p.source_control == "import" {
                 if let Err(e) = crate::git_mode::ensure_github_clone(&p).await {
                     log::error!("github-mode wiring for project {} failed: {e}", p.id);
                 }

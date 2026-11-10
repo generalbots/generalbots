@@ -28,7 +28,7 @@ pub fn load_xlsx_from_bytes(
 
     // umya-only extras: per-sheet protection, keyed by worksheet index (both
     // paths iterate `get_sheet_collection()` in document order).
-    for (index, sheet) in workbook.get_sheet_collection().iter().enumerate() {
+    for (index, sheet) in workbook.sheet_collection().iter().enumerate() {
         if let Some(ws) = worksheets.get_mut(index) {
             ws.protection = extract_protection(sheet);
         }
@@ -63,11 +63,11 @@ pub fn load_xlsx_from_bytes(
 
 /// Reads a sheet's protection flags into the structured model (#788).
 fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtection> {
-    let p = sheet.get_sheet_protection().filter(|p| p.get_sheet())?;
+    let p = sheet.sheet_protection().filter(|p| p.sheet())?;
     Some(SheetProtection {
         protected: true,
         password_hash: {
-            let raw = p.get_password_raw();
+            let raw = p.password_raw();
             if raw.is_empty() {
                 None
             } else {
@@ -75,19 +75,19 @@ fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtec
             }
         },
         locked_cells: Vec::new(),
-        allow_select_locked: !p.get_select_locked_cells(),
-        allow_select_unlocked: !p.get_select_unlocked_cells(),
-        allow_format_cells: p.get_format_cells(),
-        allow_format_columns: p.get_format_columns(),
-        allow_format_rows: p.get_format_rows(),
-        allow_insert_columns: p.get_insert_columns(),
-        allow_insert_rows: p.get_insert_rows(),
-        allow_insert_hyperlinks: p.get_insert_hyperlinks(),
-        allow_delete_columns: p.get_delete_columns(),
-        allow_delete_rows: p.get_delete_rows(),
-        allow_sort: p.get_sort(),
-        allow_filter: p.get_auto_filter(),
-        allow_pivot_tables: p.get_pivot_tables(),
+        allow_select_locked: !p.select_locked_cells(),
+        allow_select_unlocked: !p.select_unlocked_cells(),
+        allow_format_cells: p.format_cells(),
+        allow_format_columns: p.format_columns(),
+        allow_format_rows: p.format_rows(),
+        allow_insert_columns: p.insert_columns(),
+        allow_insert_rows: p.insert_rows(),
+        allow_insert_hyperlinks: p.insert_hyperlinks(),
+        allow_delete_columns: p.delete_columns(),
+        allow_delete_rows: p.delete_rows(),
+        allow_sort: p.sort(),
+        allow_filter: p.auto_filter(),
+        allow_pivot_tables: p.pivot_tables(),
     })
 }
 
@@ -95,14 +95,14 @@ fn extract_protection(sheet: &umya_spreadsheet::Worksheet) -> Option<SheetProtec
 /// structured model so the round-trip keeps them (#788).
 fn extract_named_ranges(workbook: &umya_spreadsheet::Workbook) -> Option<Vec<NamedRange>> {
     let mut named_ranges = Vec::new();
-    for name in workbook.get_defined_names() {
-        let Some((start_row, start_col, end_row, end_col)) = parse_a1_address(&name.get_address())
+    for name in workbook.defined_names() {
+        let Some((start_row, start_col, end_row, end_col)) = parse_a1_address(&name.address())
         else {
             continue;
         };
         named_ranges.push(NamedRange {
             id: Uuid::new_v4().to_string(),
-            name: name.get_name().to_string(),
+            name: name.name().to_string(),
             scope: "workbook".to_string(),
             worksheet_index: None,
             start_row,

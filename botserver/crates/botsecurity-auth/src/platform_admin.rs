@@ -23,8 +23,14 @@ pub const ROOT_ORG_SLUG: &str = "default";
 pub const DEV_ADMIN_EMAIL: &str = "admin@localhost";
 
 /// Extract the caller's email claim from a Bearer JWT in the
-/// `Authorization` header, without verifying the signature (callers must
-/// have authenticated the request already; this only reads the claim).
+/// `Authorization` header.
+///
+/// **Unverified**: the payload is decoded without checking the signature, so a
+/// forged `alg:none` token can name any email. Callers that make an
+/// authorization decision must first verify the token
+/// (`botsecurity_core::verified_jwt`) and use [`is_platform_admin_for_email`]
+/// with the verified claim; only callers whose request was already
+/// authenticated upstream may use this helper directly.
 pub fn email_from_bearer(headers: &HeaderMap) -> Option<String> {
     let token = headers
         .get("authorization")?
@@ -47,6 +53,9 @@ pub fn email_from_bearer(headers: &HeaderMap) -> Option<String> {
 
 /// Is this caller a PLATFORM admin (may cross tenants)? DB-backed:
 /// explicit membership in the root org, or the dev-mode admin email.
+///
+/// #2112 — the email is read from an unverified payload. Admin gates must use
+/// [`is_platform_admin_for_email`] with a signature-verified claim instead.
 pub fn is_platform_admin(
     conn: &mut diesel::PgConnection,
     headers: &HeaderMap,
@@ -54,6 +63,17 @@ pub fn is_platform_admin(
     let Some(email) = email_from_bearer(headers) else {
         return Ok(false);
     };
+    is_platform_admin_for_email(conn, &email)
+}
+
+/// Platform-admin check for an **already verified** email claim.
+///
+/// This is the variant authorization gates must call after verifying the
+/// caller's token, so a forged token cannot promote itself to admin.
+pub fn is_platform_admin_for_email(
+    conn: &mut diesel::PgConnection,
+    email: &str,
+) -> Result<bool, String> {
     if email.eq_ignore_ascii_case(DEV_ADMIN_EMAIL) {
         return Ok(true);
     }

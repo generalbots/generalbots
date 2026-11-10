@@ -1,3 +1,6 @@
+use crate::collaboration::ws_auth::{
+    extract_user_from_token, reason_code, unauthorized, WsAuthQuery,
+};
 use crate::collaboration::{
     get_mentions, get_presence, get_presenter_control, get_questions, get_selections,
     get_slide_channels, get_typing, MentionNotification, PresenterControl, Question, SelectionInfo,
@@ -7,79 +10,35 @@ use crate::storage::DriveOps;
 use crate::types::SlideMessage;
 use crate::SlidesState;
 use axum::extract::{Path, Query, State, ws::{Message, WebSocket, WebSocketUpgrade}};
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
 use std::sync::Arc;
-
-#[derive(Debug, Deserialize, Default)]
-pub struct WsAuthQuery {
-    #[serde(default)]
-    pub token: String,
-}
-
-fn extract_user_from_token(token: &str) -> Option<(String, String)> {
-    if token.is_empty() {
-        return None;
-    }
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let payload_b64 = parts[1].replace('-', "+").replace('_', "/");
-    let padding = (4 - payload_b64.len() % 4) % 4;
-    let padded = format!("{}{}", payload_b64, "=".repeat(padding));
-    let chars: Vec<u8> = padded.bytes().collect();
-    let mut out = Vec::with_capacity(chars.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-    for &c in &chars {
-        let v = match c {
-            b'A'..=b'Z' => c - b'A',
-            b'a'..=b'z' => c - b'a' + 26,
-            b'0'..=b'9' => c - b'0' + 52,
-            b'+' => 62,
-            b'/' => 63,
-            b'=' => break,
-            _ => return None,
-        };
-        buf = (buf << 6) | v as u32;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1u32 << bits) - 1;
-        }
-    }
-    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&out) {
-        let sub = v.get("sub").and_then(|x| x.as_str())
-            .or_else(|| v.get("user_id").and_then(|x| x.as_str()))
-            .or_else(|| v.get("email").and_then(|x| x.as_str()));
-        let name = v.get("name").and_then(|x| x.as_str())
-            .or_else(|| v.get("display_name").and_then(|x| x.as_str()))
-            .or_else(|| v.get("preferred_username").and_then(|x| x.as_str()))
-            .or_else(|| v.get("email").and_then(|x| x.as_str()));
-        if let (Some(s), Some(n)) = (sub, name) {
-            return Some((s.to_string(), n.to_string()));
-        }
-        if let Some(s) = sub {
-            return Some((s.to_string(), s.to_string()));
-        }
-    }
-    None
-}
 
 pub async fn handle_slides_websocket<D: DriveOps>(
     ws: WebSocketUpgrade,
     Path(presentation_id): Path<String>,
     Query(q): Query<WsAuthQuery>,
     State(_state): State<Arc<SlidesState<D>>>,
-) -> impl IntoResponse {
-    let auth = extract_user_from_token(&q.token);
-    ws.on_upgrade(move |socket| handle_slides_connection(socket, presentation_id, auth))
+) -> Response {
+    match extract_user_from_token(&q.token) {
+        Ok(identity) => ws
+            .on_upgrade(move |socket| handle_slides_connection(socket, presentation_id, identity))
+            .into_response(),
+        Err(reason) => {
+            log::warn!(
+                "slides ws refused for presentation {presentation_id}: {}",
+                reason_code(&reason)
+            );
+            unauthorized(reason)
+        }
+    }
 }
 
-async fn handle_slides_connection(socket: WebSocket, presentation_id: String, auth: Option<(String, String)>) {
+async fn handle_slides_connection(
+    socket: WebSocket,
+    presentation_id: String,
+    identity: (String, String),
+) {
     let (mut sender, mut receiver) = socket.split();
 
     let channels = get_slide_channels();
@@ -93,13 +52,8 @@ async fn handle_slides_connection(socket: WebSocket, presentation_id: String, au
 
     let mut broadcast_rx = broadcast_tx.subscribe();
 
-    let (user_id, user_name) = match auth {
-        Some((id, name)) => (id, name),
-        None => {
-            let id = uuid::Uuid::new_v4().to_string();
-            (id.clone(), format!("Guest {}", &id[..8]))
-        }
-    };
+    // Only a verified identity reaches this point; there is no guest fallback.
+    let (user_id, user_name) = identity;
     let user_id_for_send = user_id.clone();
     let user_color = {
         use rand::Rng;

@@ -275,10 +275,7 @@ impl SloConfig {
                 .get("window_days")
                 .and_then(|v| v.parse::<u32>().ok())
                 .unwrap_or(defaults.window_days),
-            owner: flat
-                .get("owner")
-                .cloned()
-                .unwrap_or(defaults.owner.clone()),
+            owner: flat.get("owner").cloned().unwrap_or(defaults.owner.clone()),
             source: "ops/slo.yaml".to_string(),
             alert: AlertPolicy {
                 fast_burn: number("alert.fast_burn", defaults.alert.fast_burn),
@@ -350,11 +347,50 @@ pub fn severity(burn: Option<f64>, alert: AlertPolicy) -> BurnSeverity {
     }
 }
 
+/// Splits objectives into the ones this dashboard can measure from live tables
+/// and the ones only the CI SLO gate measures.
+///
+/// `ops/slo.yaml` is shared with `scripts/check_slo.py` (#2115), which has
+/// dedicated instrumentation for tool-call, database, cache, storage and queue
+/// latency. This crate only owns one request histogram and one request error
+/// counter, so evaluating a second `latency_histogram` or `error_rate`
+/// objective here would print the same number under a different name — a
+/// duplicate metric. Those objectives are listed with their target and runbook
+/// but without a burn rate, and the panel says where they are measured.
+pub fn split_for_dashboard(objectives: &[Objective]) -> (Vec<&Objective>, Vec<&Objective>) {
+    let mut latency_taken = false;
+    let mut error_taken = false;
+    let mut measured = Vec::new();
+    let mut gate_only = Vec::new();
+
+    for objective in objectives {
+        let measurable = match objective.metric {
+            MetricKind::LlmFirstToken | MetricKind::LlmAnswer | MetricKind::WsHandshake => true,
+            MetricKind::LatencyHistogram => {
+                let first = !latency_taken;
+                latency_taken = true;
+                first
+            }
+            MetricKind::ErrorRate => {
+                let first = !error_taken;
+                error_taken = true;
+                first
+            }
+        };
+        if measurable {
+            measured.push(objective);
+        } else {
+            gate_only.push(objective);
+        }
+    }
+
+    (measured, gate_only)
+}
+
 /// Runbook base URL so the panel can deep-link without hardcoding a host.
 pub fn runbook_base_url() -> String {
-    std::env::var("GB_RUNBOOK_BASE_URL").unwrap_or_else(|_| {
-        "https://github.com/generalbots/generalbots/blob/main".to_string()
-    })
+    std::env::var("GB_RUNBOOK_BASE_URL")
+        .unwrap_or_else(|_| "https://github.com/generalbots/generalbots/blob/main".to_string())
 }
 
 #[cfg(test)]

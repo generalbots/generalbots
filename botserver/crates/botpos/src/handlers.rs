@@ -200,7 +200,7 @@ pub async fn create_order(headers: HeaderMap, Json(req): Json<NewOrder>) -> Resu
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    let mut total = order_total(&req.items)?;
+    let total = order_total(&req.items)?;
     let id = Uuid::new_v4();
     let now = Utc::now();
     let items_json = serde_json::to_value(&req.items).map_err(|e| {

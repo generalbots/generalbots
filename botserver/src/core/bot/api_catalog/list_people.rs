@@ -233,7 +233,7 @@ pub(super) fn calculate_anonymous_service_tax(
     conn: &mut diesel::PgConnection,
     branch_id: &Uuid,
     value: Option<&str>,
-) -> Result<serde_json::Value, (axum::http::StatusCode, String)> {
+) -> Result<serde_json::Value, (axum::http::StatusCode, &'static str)> {
     use rust_decimal::Decimal;
     use std::str::FromStr as _;
     let service_value = value

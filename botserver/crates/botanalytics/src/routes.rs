@@ -7,7 +7,9 @@ use crate::handlers_activity::*;
 use crate::handlers_charts::*;
 use crate::handlers_dashboard::*;
 use crate::handlers_ops::handle_ops_slo;
-use crate::handlers_ops_runtime::{handle_ops_cost, handle_ops_endpoints, handle_ops_queue};
+use crate::handlers_ops_cost::handle_ops_cost;
+use crate::handlers_ops_endpoints::handle_ops_endpoints;
+use crate::handlers_ops_queue::handle_ops_queue;
 use crate::handlers_ops_traffic::handle_ops_traffic;
 use crate::{DbPool, GetBotContextFn, GetDefaultBotFn};
 
