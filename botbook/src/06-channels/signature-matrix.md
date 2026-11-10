@@ -18,6 +18,31 @@ mounted in `botserver/src/main_module/routes/feature_routers/make_saas_router.rs
 | Stripe (billing) | `POST /api/billing/webhook` | `stripe-signature` HMAC-SHA256 with 300 s tolerance | Rejects when no webhook secret is configured |
 | Outbound settings webhooks | delivered by the server, not received | `X-Webhook-Signature` HMAC-SHA256 over the payload | — |
 
+## The fails-closed rule
+
+An anonymous inbound route that answers is worse than one that does not, so the
+rule is: **an unconfigured credential rejects the delivery**. Three channels
+follow it; two predate it and are the documented exceptions.
+
+| Channel | Credential | Unconfigured | Status |
+|---|---|---|---|
+| WhatsApp | `whatsapp_app_secret` (Vault) / `whatsapp-app-secret` (config.csv) | every POST refused | `403` |
+| Microsoft Teams | `teams-app-id` (Bot Framework JWT) and/or `teams-security-token` (HMAC) | every POST refused when neither is set | `401` |
+| Stripe | webhook secret | every POST refused | `400` |
+| Telegram | `telegram-webhook-secret` | **accepted** — no secret is the documented default | — |
+| Instagram / Messenger | none for POST | **accepted** — POST authenticity is not verified | — |
+
+Two details make the WhatsApp gate hard to bypass accidentally:
+
+- the digest covers the **raw** bytes, so the body is read as `Bytes` and parsed
+  only after the gate (re-serialising JSON changes key order and whitespace);
+- the `sha256=` prefix is mandatory and an uppercase digest is rejected rather
+  than normalised, because Meta always sends lowercase.
+
+`DeliveryAuth` (`botwhatsapp/src/webhooks.rs`) keeps `Unconfigured` and
+`Mismatch` as separate outcomes, so the log names the operator action
+(`set whatsapp_app_secret`) instead of reporting a generic signature failure.
+
 ## WhatsApp
 
 `handle_webhook` reads the body as `Bytes` and only parses JSON **after** the

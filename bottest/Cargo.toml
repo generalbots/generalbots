@@ -71,6 +71,12 @@ botbasic_types = { workspace = true }
 botbasic_compiler = { workspace = true }
 botsecurity-auth = { workspace = true }
 botwhatsapp = { workspace = true }
+# #2113 — the Teams inbound gate (HMAC / Bot Framework) so the offline suite can
+# prove an unauthenticated POST cannot create a bot turn.
+botmsteams = { workspace = true }
+# `HeaderMap` is the argument type of both inbound gates (#2112, #2113); axum
+# re-exports this same `http` type, so the tests build headers directly.
+http = { workspace = true }
 # The office editors, so the cross-format fidelity contract (#2044) can drive
 # their public import/patch/export APIs instead of re-implementing them.
 botdocs = { workspace = true }

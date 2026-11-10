@@ -19,9 +19,9 @@ js_modules = 1
 loc = 585
 
 [apps."analytics"]
-routes = 45
+routes = 33
 js_modules = 5
-loc = 2993
+loc = 3006
 
 [apps."attendant"]
 routes = 17
@@ -94,7 +94,7 @@ js_modules = 1
 loc = 221
 
 [apps."crm"]
-routes = 62
+routes = 51
 js_modules = 5
 loc = 3114
 
@@ -114,7 +114,7 @@ js_modules = 62
 loc = 27938
 
 [apps."docs"]
-routes = 57
+routes = 0
 js_modules = 18
 loc = 2660
 
@@ -124,7 +124,7 @@ js_modules = 30
 loc = 9553
 
 [apps."editor"]
-routes = 8
+routes = 1
 js_modules = 5
 loc = 1255
 
@@ -189,12 +189,12 @@ js_modules = 2
 loc = 722
 
 [apps."minutes"]
-routes = 11
+routes = 1
 js_modules = 1
 loc = 340
 
 [apps."monitoring"]
-routes = 50
+routes = 0
 js_modules = 7
 loc = 8110
 
@@ -204,7 +204,7 @@ js_modules = 1
 loc = 195
 
 [apps."o365"]
-routes = 16
+routes = 10
 js_modules = 1
 loc = 405
 
@@ -214,7 +214,7 @@ js_modules = 4
 loc = 3628
 
 [apps."people"]
-routes = 14
+routes = 1
 js_modules = 4
 loc = 1862
 
@@ -224,12 +224,12 @@ js_modules = 2
 loc = 674
 
 [apps."plan"]
-routes = 7
+routes = 0
 js_modules = 4
 loc = 965
 
 [apps."player"]
-routes = 4
+routes = 0
 js_modules = 3
 loc = 1812
 
@@ -239,17 +239,17 @@ js_modules = 0
 loc = 84
 
 [apps."pos"]
-routes = 5
+routes = 0
 js_modules = 1
 loc = 290
 
 [apps."products"]
-routes = 34
+routes = 19
 js_modules = 0
 loc = 1545
 
 [apps."project"]
-routes = 6
+routes = 0
 js_modules = 3
 loc = 2274
 
@@ -259,32 +259,32 @@ js_modules = 1
 loc = 203
 
 [apps."research"]
-routes = 6
+routes = 0
 js_modules = 2
 loc = 2540
 
 [apps."retail"]
-routes = 5
+routes = 0
 js_modules = 1
 loc = 472
 
 [apps."settings"]
-routes = 153
+routes = 52
 js_modules = 23
-loc = 10358
+loc = 10337
 
 [apps."sheet"]
-routes = 61
+routes = 0
 js_modules = 34
 loc = 7799
 
 [apps."slides"]
-routes = 39
+routes = 0
 js_modules = 10
 loc = 2233
 
 [apps."social"]
-routes = 18
+routes = 6
 js_modules = 1
 loc = 1260
 
@@ -294,17 +294,17 @@ js_modules = 1
 loc = 372
 
 [apps."tasks"]
-routes = 3
+routes = 0
 js_modules = 23
 loc = 17364
 
 [apps."tax"]
-routes = 11
+routes = 5
 js_modules = 1
 loc = 884
 
 [apps."templates"]
-routes = 4
+routes = 1
 js_modules = 1
 loc = 513
 
@@ -314,12 +314,12 @@ js_modules = 2
 loc = 688
 
 [apps."tickets"]
-routes = 26
+routes = 5
 js_modules = 1
 loc = 1657
 
 [apps."timeclock"]
-routes = 31
+routes = 19
 js_modules = 1
 loc = 271
 
@@ -349,6 +349,6 @@ js_modules = 1
 loc = 491
 
 [apps."workspace"]
-routes = 9
+routes = 7
 js_modules = 1
-loc = 552
+loc = 550

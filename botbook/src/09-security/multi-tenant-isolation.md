@@ -76,6 +76,63 @@ Consequences:
   the authenticated scope to know *who* the caller is; the resolver only
   guarantees that the tenant claim it returns was signed by this server.
 
+### One verifier for the whole tree
+
+`botserver/crates/botsecurity-core/src/verified_jwt.rs` is the only module that
+may turn a token into claims (issue #2123). It exposes four items:
+
+| Item | Purpose |
+|---|---|
+| `verify_hs256_jwt(token, secret)` | verifies against an explicit secret |
+| `verify_saas_jwt(token)` | verifies against the process secret, resolved once (`OnceLock`) |
+| `bearer_token(headers)` | extracts `Bearer <token>` (first entry if a proxy appended more) |
+| `resolve_saas_jwt_secret()` | the secret chain: `directory_config.json` → `saas_jwt_secret` → `SAAS_JWT_SECRET` → `JWT_SECRET` → development default |
+
+Every refusal is a distinct `JwtVerifyError`, and none of them falls back to the
+payload:
+
+| Refusal | Condition |
+|---|---|
+| `Malformed` | not exactly three dot-separated segments |
+| `UnsupportedAlgorithm` | header `alg` is anything but `HS256` — `none`, `RS256`, `ES256` and `EdDSA` included |
+| `InvalidSignature` | HMAC-SHA256 over `header.payload` does not match (`Mac::verify_slice`, constant time) |
+| `MissingSecret` | empty signing secret |
+| `MissingSubject` | no non-empty `sub` (legacy `user_id` accepted) |
+| `MissingExpiry` / `Expired` | no `exp`, or `exp` in the past |
+| `NotYetValid` | `nbf` more than 60 s ahead (clock-skew leeway) |
+
+**Rule: claims exist only as `VerifiedJwt`.** No handler, crate or helper keeps
+claims as a `serde_json::Value`, a `(sub, email)` tuple or a locally decoded
+payload; the type is produced by the two `verify_*` functions and nowhere else.
+Role claims (`role`/`roles`) are read only after the signature checks pass, so
+an authorization decision that reads `VerifiedJwt::roles` cannot be driven by a
+payload the caller wrote.
+
+Consumers, all through the same module:
+
+| Consumer | Uses it for |
+|---|---|
+| `botsecurity-core/src/tenant.rs` | `branch_id` / `org_id` / `sub` / `email` for every tenant-scoped handler |
+| `botsecurity-core/src/scope.rs` | `branch_from_jwt` — claim first, CRM contact second |
+| `botsecurity-auth/src/saas_jwt_auth.rs` | `SaasJwtAuthProvider` on the authentication path |
+| `botcloud/src/branch_scope.rs` | cloud branch resolution |
+| `botemail/src/models.rs` | mail/imap caller identity |
+| `botmarketplace/src/auth.rs` | publisher identity and the admin role |
+| `botbrowserpolicy/src/jwt.rs` | task ownership and the admin policy gate |
+| `botmemory/src/api.rs` | memory caller (`user_id`, `org_id`, `branch_id`) |
+| `botslides/src/collaboration/ws.rs` | WebSocket collaboration identity |
+| `botsettings/src/settings_api/saas_jwt_secret.rs` | settings scope |
+| `botserver/src/main_module/directory_setup.rs` | persists the secret the others verify with |
+
+Known exceptions live in `scripts/jwt_hardening_allowlist.txt` and are
+shrink-only: `cloud_sso_handler.rs` verifies the HMAC itself in constant time
+before decoding, and six files still read a payload without a signature
+(`botcloud` payment cards and vouchers, `botlearn`, `botsecurity-auth`
+platform admin and the Zitadel request authenticator, `ai_accounts_chatgpt`).
+Each carries the follow-up that must remove it; the gate described in
+[Security Features](./security-features.md#mechanical-gates-in-ci) fails on any
+new occurrence.
+
 ### Fallback rule
 
 When no verified JWT claim is present (anonymous/system callers), the resolver
