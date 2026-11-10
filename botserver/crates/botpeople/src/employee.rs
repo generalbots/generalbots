@@ -218,3 +218,163 @@ pub struct EmployeeHierarchyNode {
     pub employee: Employee,
     pub children: Vec<EmployeeHierarchyNode>,
 }
+
+#[cfg(test)]
+mod employee_tests {
+    use super::*;
+
+    fn new_employee(first: &str, last: &str, dept: &str) -> NewEmployee {
+        NewEmployee {
+            org_id: Uuid::nil(),
+            first_name: first.to_string(),
+            last_name: last.to_string(),
+            email: format!("{first}.{last}@example.com").to_lowercase(),
+            phone: None,
+            department: dept.to_string(),
+            position: "Engineer".to_string(),
+            hire_date: NaiveDate::from_ymd_opt(2026, 1, 15).expect("date"),
+            salary: 1000.0,
+            manager_id: None,
+        }
+    }
+
+    #[test]
+    fn create_starts_the_employee_active() {
+        let service = EmployeeService::new();
+        let created = service.create(new_employee("Ana", "Souza", "eng")).expect("create");
+        assert_eq!(created.status, EmploymentStatus::Active);
+        assert_eq!(created.first_name, "Ana");
+        assert_eq!(created.last_name, "Souza");
+        assert!(service.get(created.id).is_ok());
+    }
+
+    #[test]
+    fn get_reports_a_missing_employee() {
+        let service = EmployeeService::new();
+        assert!(service.get(Uuid::new_v4()).is_err());
+    }
+
+    #[test]
+    fn list_is_sorted_by_last_name() {
+        let service = EmployeeService::new();
+        service.create(new_employee("Zoe", "Alves", "eng")).expect("a");
+        service.create(new_employee("Bruno", "Costa", "eng")).expect("b");
+        service.create(new_employee("Carla", "Barros", "eng")).expect("c");
+
+        let names: Vec<String> = service
+            .list()
+            .expect("list")
+            .into_iter()
+            .map(|e| e.last_name)
+            .collect();
+        assert_eq!(names, vec!["Alves", "Barros", "Costa"]);
+    }
+
+    #[test]
+    fn search_by_department_filters_exactly() {
+        let service = EmployeeService::new();
+        service.create(new_employee("Ana", "Souza", "eng")).expect("a");
+        service.create(new_employee("Bia", "Lima", "sales")).expect("b");
+        assert_eq!(service.search_by_department("eng").expect("eng").len(), 1);
+        assert_eq!(service.search_by_department("sales").expect("sales").len(), 1);
+        assert!(service.search_by_department("hr").expect("hr").is_empty());
+    }
+
+    #[test]
+    fn search_by_status_filters_exactly() {
+        let service = EmployeeService::new();
+        let created = service.create(new_employee("Ana", "Souza", "eng")).expect("a");
+        assert_eq!(
+            service.search_by_status(EmploymentStatus::Active).expect("active").len(),
+            1
+        );
+        assert!(service
+            .search_by_status(EmploymentStatus::Terminated)
+            .expect("terminated")
+            .is_empty());
+
+        let update = EmployeeUpdate {
+            status: Some("Terminated".to_string()),
+            ..Default::default()
+        };
+        service.update(created.id, update).expect("update");
+        assert!(service
+            .search_by_status(EmploymentStatus::Active)
+            .expect("active")
+            .is_empty());
+    }
+
+    #[test]
+    fn update_applies_only_the_provided_fields() {
+        let service = EmployeeService::new();
+        let created = service.create(new_employee("Ana", "Souza", "eng")).expect("create");
+
+        let update = EmployeeUpdate {
+            first_name: Some("Ana Maria".to_string()),
+            salary: Some(2500.0),
+            ..Default::default()
+        };
+        let updated = service.update(created.id, update).expect("update");
+        assert_eq!(updated.first_name, "Ana Maria");
+        assert_eq!(updated.salary, 2500.0);
+        // Untouched fields keep their values.
+        assert_eq!(updated.last_name, "Souza");
+        assert_eq!(updated.department, "eng");
+    }
+
+    #[test]
+    fn update_rejects_an_unknown_status_label() {
+        let service = EmployeeService::new();
+        let created = service.create(new_employee("Ana", "Souza", "eng")).expect("create");
+        let update = EmployeeUpdate {
+            status: Some("Nonsense".to_string()),
+            ..Default::default()
+        };
+        let updated = service.update(created.id, update).expect("update");
+        assert_eq!(updated.status, EmploymentStatus::Active);
+    }
+
+    #[test]
+    fn update_of_a_missing_employee_is_reported() {
+        let service = EmployeeService::new();
+        assert!(service
+            .update(Uuid::new_v4(), EmployeeUpdate::default())
+            .is_err());
+    }
+
+    #[test]
+    fn delete_removes_and_reports_missing_ids() {
+        let service = EmployeeService::new();
+        let created = service.create(new_employee("Ana", "Souza", "eng")).expect("create");
+        service.delete(created.id).expect("delete");
+        assert!(service.get(created.id).is_err());
+        assert!(service.delete(created.id).is_err());
+    }
+
+    #[test]
+    fn the_hierarchy_tree_walks_two_levels() {
+        let service = EmployeeService::new();
+        let boss = service.create(new_employee("Boss", "One", "eng")).expect("boss");
+
+        let mut mid_data = new_employee("Mid", "Two", "eng");
+        mid_data.manager_id = Some(boss.id);
+        let mid = service.create(mid_data).expect("mid");
+
+        let mut leaf_data = new_employee("Leaf", "Three", "eng");
+        leaf_data.manager_id = Some(mid.id);
+        service.create(leaf_data).expect("leaf");
+
+        let tree = service.hierarchy_tree(boss.id).expect("tree");
+        assert_eq!(tree.len(), 1);
+        assert_eq!(tree[0].employee.last_name, "One");
+        assert_eq!(tree[0].children.len(), 1);
+        assert_eq!(tree[0].children[0].employee.last_name, "Two");
+        assert_eq!(tree[0].children[0].children.len(), 1);
+    }
+
+    #[test]
+    fn a_missing_manager_is_reported() {
+        let service = EmployeeService::new();
+        assert!(service.hierarchy_tree(Uuid::new_v4()).is_err());
+    }
+}
