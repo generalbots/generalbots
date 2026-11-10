@@ -192,4 +192,51 @@ mod tests {
         assert_eq!(json["days_remaining"], 30);
         assert!(json.get("next_period_start").is_some());
     }
+
+    #[test]
+    fn a_report_carries_person_and_period() {
+        let json = serde_json::to_value(TimeClockRequest::banco_horas_report("ana", "2026-11"))
+            .unwrap();
+        assert_eq!(json["kind"], "banco_horas_report");
+        assert_eq!(json["person_id"], "ana");
+        assert_eq!(json["period"], "2026-11");
+        // The report starts with no accumulated totals.
+        assert_eq!(json["total_hours_worked"], 0.0);
+        assert_eq!(json["total_overtime"], 0.0);
+        assert_eq!(json["total_night_shift"], 0.0);
+        assert_eq!(json["total_absences"], 0);
+    }
+
+    #[test]
+    fn a_clock_out_is_the_opposite_direction_of_clock_in() {
+        let clock_in = serde_json::to_value(TimeClockRequest::clock_in()).unwrap();
+        let clock_out = serde_json::to_value(TimeClockRequest::clock_out()).unwrap();
+        assert_eq!(clock_out["action"], "out");
+        assert_eq!(clock_out["entry_type"], "clock_out");
+        assert_ne!(clock_in["action"], clock_out["action"]);
+    }
+
+    #[test]
+    fn every_request_kind_has_its_snake_case_name() {
+        for (kind, label) in [
+            (TimeClockRequestKind::ClockEntry, "clock_entry"),
+            (TimeClockRequestKind::BancoHoras, "banco_horas"),
+            (TimeClockRequestKind::FeriasBalance, "ferias_balance"),
+            (TimeClockRequestKind::BancoHorasReport, "banco_horas_report"),
+        ] {
+            assert_eq!(kind.as_str(), label);
+            let json = serde_json::to_value(kind).unwrap();
+            assert_eq!(json, label);
+        }
+    }
+
+    #[test]
+    fn absent_fields_are_not_serialised() {
+        let json = serde_json::to_value(TimeClockRequest::clock_in()).unwrap();
+        let object = json.as_object().expect("object");
+        // A clock entry must not carry report-only fields.
+        assert!(!object.contains_key("period"));
+        assert!(!object.contains_key("total_hours_worked"));
+        assert!(!object.contains_key("days_available"));
+    }
 }
