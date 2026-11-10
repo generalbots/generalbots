@@ -51,7 +51,7 @@ paths = [
 [[allowlists]]
 description = "Rust unit-test fixtures: generated/fake RSA certificates, DLP sample JWTs and prompt-injection samples. Never used against a real service."
 paths = [
-  '''^botserver/crates/botsecurity-core/src/dlp(/mod)?\.rs$''',
+  '''^botserver/crates/botsecurity-core/src/dlp(/mod|/tests)?\.rs$''',
   '''^botserver/crates/botsecurity-auth/src/auth_provider(/mod)?\.rs$''',
   '''^botserver/crates/botsecurity-core/src/prompt_security(/mod)?\.rs$''',
   '''^botserver/crates/botevents/src/redact\.rs$''',
