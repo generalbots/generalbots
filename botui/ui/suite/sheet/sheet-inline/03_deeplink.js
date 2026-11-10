@@ -11,6 +11,14 @@
     var params = detail.params || {};
     var bucket = params.bucket;
     var path = params.file;
+    // A command deep link targets the workbook by id (`app://sheet?file_id=…`).
+    // Ignoring it left the previous workbook on screen while the id pointed at
+    // the new one, so the requested sheet never appeared (UAT SHEET-01).
+    var sheetRef = params.file_id || params.id || '';
+    if (!bucket && !path && sheetRef) {
+      if (typeof loadSheet === 'function') loadSheet(sheetRef);
+      return;
+    }
     if (!bucket || !path) return;
     var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
     fetch('/api/sheet/load-from-drive', {

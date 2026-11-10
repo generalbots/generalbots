@@ -338,6 +338,10 @@ document.addEventListener('keydown', function(e) {
 });
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');
-    s.src = 'js/vendor/htmx.min.js';
+    // Absolute path: a relative one resolved against /suite/sheet/sheet.html
+    // (/suite/sheet/js/vendor/htmx.min.js) and answered 404, so every toolbar
+    // hx-post stayed dead whenever the app was opened without the desktop
+    // shell's global htmx (isolated window / direct route).
+    s.src = '/suite/js/vendor/htmx.min.js';
     document.body.appendChild(s);
 }

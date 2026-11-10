@@ -6,7 +6,13 @@ function injectEditorStyles() {
   var style = document.createElement("style");
   style.id = "docs-editor-styles";
   style.textContent = [
-    "article.docs-doc-view{background:#ffffff;color:#1e293b;padding:96px;width:816px;margin:32px auto;border:1px solid #e2e8f0;border-radius:4px;font-family:Georgia,serif;font-size:16px;line-height:1.7;min-height:1056px;outline:none;box-shadow:0 10px 30px rgba(0,0,0,0.25);box-sizing:border-box;}",
+    // UAT DOC-01 — the article is a flex item of `.docs-content` (a fixed-height
+    // column scroller). With the default `flex-shrink:1` the browser clamped it
+    // to `min-height` (1056px = one A4 page) instead of its content height, so
+    // everything after page 1 was painted outside the white page: dark text
+    // (#1e293b) on the dark app background (#0f172a), i.e. invisible. The page
+    // must grow with its content and let the scroller scroll.
+    "article.docs-doc-view{flex-shrink:0;background:#ffffff;color:#1e293b;padding:96px;width:816px;margin:32px auto;border:1px solid #e2e8f0;border-radius:4px;font-family:Georgia,serif;font-size:16px;line-height:1.7;min-height:1056px;outline:none;box-shadow:0 10px 30px rgba(0,0,0,0.25);box-sizing:border-box;}",
     "article.docs-doc-view h1{font-size:32px;font-weight:700;margin:0.8em 0 0.4em;color:#0f172a;}",
     "article.docs-doc-view h2{font-size:24px;font-weight:600;margin:0.7em 0 0.35em;color:#0f172a;}",
     "article.docs-doc-view h3{font-size:20px;font-weight:600;margin:0.6em 0 0.3em;color:#334155;}",

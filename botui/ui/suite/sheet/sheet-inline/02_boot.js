@@ -27,6 +27,34 @@
   var bucket = params.get('bucket') || gp.bucket;
   var path = params.get('path') || gp.file;
 
+  // A chat/command deep link carries the workbook id, not a Drive path
+  // (`app://sheet?file_id=<id>`, used by the sheet.open/get/save/cell.set
+  // commands). This case was missing, so every such link fell through to the
+  // "no file" branch below: the grid bound itself to the literal id "current"
+  // and the workbook the bot had just created was never fetched — the sheet
+  // opened empty while still accepting edits, which then landed on a
+  // different, blank workbook (UAT SHEET-01 / SHEET-03).
+  var sheetRef = params.get('file_id') || params.get('id') || gp.file_id || gp.id || '';
+  if (!bucket && !path && sheetRef) {
+    window.__SHEET_INITIAL_ID = sheetRef;
+    var refToken = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
+    window.__SHEET_BOOT = fetch('/api/sheet/load?id=' + encodeURIComponent(sheetRef), {
+      headers: refToken ? { Authorization: 'Bearer ' + refToken } : {}
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (sheet) {
+      window.__LOADED_SHEET = sheet;
+      if (sheet && sheet.id) window.__SHEET_INITIAL_ID = sheet.id;
+      var refNameInput = document.querySelector('.sheet-name-input');
+      if (refNameInput && sheet && sheet.name) refNameInput.value = sheet.name;
+    }).catch(function (err) {
+      // Keep the requested id: edits must still target the same workbook.
+      console.error('Sheet load error:', err);
+    });
+    return;
+  }
+
   if (!bucket || !path) {
     window.__SHEET_INITIAL_ID = "current";
     window.__SHEET_BOOT = Promise.resolve();
