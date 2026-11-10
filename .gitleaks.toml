@@ -60,6 +60,19 @@ paths = [
   '''^botserver/crates/botcompliance/src/code_scanner(/tests)?\.rs$''',
   '''^botserver/crates/botevents/src/redact\.rs$''',
   '''^botserver/src/security/mutual_tls\.rs$''',
+  # #2113/#2125 — one throwaway RSA key pair shared by the Teams inbound-gate
+  # and the JWT hardening suites (`fixtures.rs` is the historical name of
+  # `fixtures_tests.rs`). It signs nothing outside `cargo test`, no test
+  # touches the network, and both files say so at the top.
+  '''^botserver/crates/botmsteams/src/auth/(fixtures|tests)(_tests)?\.rs$''',
+  '''^botserver/crates/botsecurity-auth/src/jwt/hardening_tests\.rs$''',
+  # #2119 — deterministic fuzz corpus: unsigned/garbage JWT seeds that the
+  # properties assert are *rejected*; they carry no signature and no secret.
+  '''^bottest/tests/fuzz_regressions\.rs$''',
+  # #2075 — the compliance scanner is fed documented fake samples so each
+  # pattern has a positive; `patterns_tests.rs` is the test half of the pair
+  # already allowlisted above.
+  '''^botserver/crates/botcompliance/src/code_scanner/patterns_tests\.rs$''',
 ]
 
 # ---------------------------------------------------------------------------
