@@ -140,7 +140,12 @@
                 // shell. The shell stays hidden until this gate resolves; on
                 // private+unauthenticated we redirect to login immediately.
                 var authDenied = false;
-                if (noSecurity) { /* skip auth gate entirely */ } else try {
+                // #2085 — the splash window (asset origin) must never run the
+                // auth gate: it has no login form, so the redirect opened a
+                // stray tauri.localhost/suite/login.html window whose /api
+                // calls hit the asset protocol ("asset not found").
+                var isSplashPage = /(^|\/)splash\.html$/.test(window.location.pathname);
+                if (noSecurity || isSplashPage) { /* skip auth gate entirely */ } else try {
 
                     if (botName && botName !== 'default') {
                         const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());

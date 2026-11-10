@@ -3,7 +3,16 @@
             // installs inject GB_LOGIN_URL before this script runs, so only
             // the standalone (botserver-served) build uses the fallback.
             if (!window.GB_LOGIN_URL) {
-                window.GB_LOGIN_URL = "/suite/login.html";
+                // #2085 — on the Tauri asset origin a relative fallback points
+                // at tauri.localhost/suite/login.html, whose /api/auth/* calls
+                // hit the asset protocol ("asset not found"). Target the
+                // sidecar origin instead.
+                var __gbAssetOrigin =
+                    window.location.protocol === "tauri:" ||
+                    window.location.hostname === "tauri.localhost";
+                window.GB_LOGIN_URL = __gbAssetOrigin
+                    ? "http://127.0.0.1:8080/suite/login.html"
+                    : "/suite/login.html";
             }
             // Consume a suite session token BEFORE any other script loads.
             // security-bootstrap.js snapshots the token into memory when it
