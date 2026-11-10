@@ -10,8 +10,18 @@ use crate::storage::ensure_schema_sync;
 
 use botcore::shared::tenant::branch_from_claims;
 
-fn resolve_branch(headers: &HeaderMap) -> Uuid {
-    branch_from_claims(headers).unwrap_or_else(Uuid::nil)
+/// Resolves the caller's tenant branch from the JWT claims.
+///
+/// #2066 — this used to fall back to `Uuid::nil()`, so a request that carried no
+/// valid claims wrote into the global branch instead of being refused. A KYC
+/// write must never be globalized by accident.
+fn resolve_branch(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
+    branch_from_claims(headers).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            "missing tenant claims: sign in again".to_string(),
+        )
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,7 +67,7 @@ pub struct UpdateVerification {
 
 pub async fn list_verifications(headers: HeaderMap) -> Result<Json<Vec<Verification>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -109,7 +119,7 @@ pub async fn update_verification(
         )
     })?;
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -187,7 +197,7 @@ pub async fn update_verification(
 
 pub async fn list_signatures(headers: HeaderMap) -> Result<Json<Vec<Signature>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     #[derive(diesel::QueryableByName)]
@@ -219,7 +229,7 @@ pub async fn sign_document(headers: HeaderMap, Path(id): Path<String>) -> Result
     let parsed = Uuid::parse_str(&id)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid id '{id}': {e}")))?;
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
@@ -242,7 +252,7 @@ pub async fn sign_document(headers: HeaderMap, Path(id): Path<String>) -> Result
 
 pub async fn list_certificates(headers: HeaderMap) -> Result<Json<Vec<Certificate>>, (StatusCode, String)> {
     ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
+    let branch = resolve_branch(&headers)?;
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     // The identity_certificates table is not created by any migration yet,
