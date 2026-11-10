@@ -96,8 +96,10 @@ fn paper_state(store: &Store) -> Arc<PaperState> {
         })
     };
 
-    let call_llm: botpaper::state::CallLlmFn =
-        Arc::new(|_prompt, _context| Box::pin(async { Err("no llm".to_string()) }));
+    let call_llm: botpaper::state::CallLlmFn = Arc::new(|_prompt, _context| {
+        Box::pin(async { Err("no llm".to_string()) })
+            as std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
+    });
 
     Arc::new(PaperState {
         conn: pool(),

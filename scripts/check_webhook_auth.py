@@ -57,8 +57,7 @@ VERIFIER_FN = re.compile(r"^(?:authorize|verify|secret_matches|signature_gate)")
 
 # A verifier must never turn "no secret configured" into "accept".
 EMPTY_ACCEPT = re.compile(
-    r"is_empty\(\)\s*\{\s*return\s+"
-    r"(?:true|DeliveryAuth::Verified|WebhookGate::Allowed|Ok\(\(\)\))"
+    r"is_empty\(\)\s*\{\s*return\s+(?:true|DeliveryAuth::Verified|WebhookGate::Allowed|Ok\(\(\)\))"
 )
 
 ROUTE_METHODS = re.compile(r"\b(?:get|post|put|patch|delete|any)\(\s*([A-Za-z0-9_:]+)")
@@ -68,7 +67,7 @@ ROUTE_METHODS = re.compile(r"\b(?:get|post|put|patch|delete|any)\(\s*([A-Za-z0-9
 class Webhook:
     """One inbound route family owned by a channel."""
 
-    channel: str
+    channel: str  # channel name used in the matrix
     crate: str
     routes: tuple[str, ...]
 
@@ -142,10 +141,6 @@ def _route_calls(text: str) -> list[tuple[int, str]]:
     return calls
 
 
-def _string_literals(text: str) -> list[str]:
-    return [m.group(1) for m in re.finditer(r'"((?:[^"\\]|\\.)*)"', text)]
-
-
 def _rust_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for scan in SCAN_DIRS:
@@ -185,7 +180,7 @@ def discover_routes(root: Path) -> list[Route]:
         for offset, call in _route_calls(text):
             head, _, tail = call.partition(",")
             head = head.strip()
-            literal = _string_literals(head)
+            literal = re.findall(r'"((?:[^"\\]|\\.)*)"', head)
             if literal:
                 route_path = literal[0]
             elif re.fullmatch(r"[A-Z][A-Z0-9_]*", head):
@@ -288,6 +283,11 @@ def scan(
                     bodies.update(_function_bodies(source))
             body = bodies.get(handler.split("::")[-1])
             if body is None:
+                # A handler the gate cannot read must not silently pass.
+                violations.append(Violation(
+                    "unknown-handler", route.file, route.line,
+                    f"{route.path} -> {handler}() not found in {_crate_dir(route.file)}",
+                ))
                 continue
             if _has_verifier(body, bodies):
                 continue

@@ -221,13 +221,15 @@ documents.
 
 Ownership now comes from the `DocUser` request extension that the host
 middleware (`botserver/src/docs/user_middleware.rs`) derives from the verified
-`AuthenticatedUser`:
+`AuthenticatedUser` through the shared office resolver
+(`botserver/src/security/office_owner.rs`, the same one Slides and Paper use):
 
 | Profile | Owner segment |
 |---------|---------------|
 | directory / cloud user | the verified user id (UUID) |
-| desktop-local (`no_security`) | a UUID derived from the installation (`botdocs::local_owner::install_owner_id`, same seed as the Sheet middleware; `GB_DESKTOP_LOCAL_USER_ID` overrides) |
-| anonymous, service, bot | none — the handler answers `401` |
+| desktop-local (`no_security`) | the shared install owner (`security::office_owner::office_install_owner`, `office_local_owner` in `conf/system/directory_config.json`) |
+| bot principal | its own bot id (the bot's own documents) |
+| anonymous, service | none — the handler answers `401` |
 
 Key layout: `users/{owner}/docs/{doc-id}.html` (plus `.meta.json`, `.docx`,
 `.docx.source.json`) inside the bot bucket, so the bucket is the tenant boundary

@@ -31,20 +31,20 @@ fn a_verified_owner_never_resolves_into_the_legacy_prefix() {
 
 #[test]
 fn adopting_a_legacy_object_lands_in_the_install_namespace() {
-    let owner = "local-11111111-1111-1111-1111-111111111111";
+    let owner = "9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c";
     assert_eq!(
         adopt_destination(owner, "users/default-user/docs/doc-1.html").as_deref(),
-        Some("users/local-11111111-1111-1111-1111-111111111111/docs/doc-1.html")
+        Some("users/9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c/docs/doc-1.html")
     );
     assert_eq!(
         adopt_destination(owner, "users/default-user/docs/doc-1.meta.json").as_deref(),
-        Some("users/local-11111111-1111-1111-1111-111111111111/docs/doc-1.meta.json")
+        Some("users/9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c/docs/doc-1.meta.json")
     );
 }
 
 #[test]
 fn adoption_never_escapes_the_legacy_prefix() {
-    let owner = "local-11111111-1111-1111-1111-111111111111";
+    let owner = "9f8b7a6c-5d4e-4f3a-2b1c-0d9e8f7a6b5c";
     assert!(adopt_destination(owner, "users/default-user/other/doc-1.html").is_none());
     assert!(adopt_destination(owner, "users/22222222-2222-2222-2222-222222222222/docs/a.html").is_none());
     assert!(adopt_destination(owner, "users/default-user/docs/").is_none());

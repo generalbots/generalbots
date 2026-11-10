@@ -196,7 +196,8 @@ pub fn is_blocked_address(addr: IpAddr) -> bool {
 
 /// Normalises a hostname for policy checks: lower-case, no trailing dot.
 fn normalise_host(host: &str) -> String {
-    host.trim_matches(|c| c == '[' || c == ']')
+    host.trim_start_matches('[')
+        .trim_end_matches(']')
         .trim_end_matches('.')
         .to_ascii_lowercase()
 }
@@ -208,7 +209,7 @@ fn normalise_host(host: &str) -> String {
 /// a normal domain that happens to use only hex letters and digits
 /// (`face2face.com`) is left to DNS.
 fn looks_like_obfuscated_ipv4(host: &str) -> bool {
-    let host = host.trim_matches(|c| c == '[' || c == ']');
+    let host = host.trim_start_matches('[').trim_end_matches(']');
     if host.is_empty() {
         return false;
     }

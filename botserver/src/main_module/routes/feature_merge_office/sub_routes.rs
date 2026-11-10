@@ -132,10 +132,8 @@ pub(super) async fn merge_office_sub_routes(
     {
         // #2135 — every Docs handler derives its namespace from the verified
         // owner, so the router gets the middleware that turns the platform
-        // principal into a `DocUser`. The per-install id used by the
-        // single-user desktop profile is derived once here, not per request.
-        let docs_local_owner: Arc<str> =
-            Arc::from(botdocs::local_owner::install_owner_id());
+        // principal into a `DocUser` (owner resolution is shared with Slides and
+        // Paper in `security::office_owner`).
         let docs_state = Arc::new(botdocs::state::DocState {
             pool: Arc::new(app_state.conn.clone()),
             drive: app_state
@@ -145,32 +143,46 @@ pub(super) async fn merge_office_sub_routes(
             bucket_name: app_state.bucket_name.clone(),
             history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         });
+
         // Pre-#2135 documents live under `users/default-user/docs`, a namespace
         // every account shared. On a single-user install the install owner is
         // provably the only account that wrote them, so they are copied into its
         // namespace (sources kept). A multi-user deployment has no derivable
         // owner, so the objects stay orphaned and are reported once.
-        let no_security = botcore::product::ProductConfig::load()
-            .map(|product| product.no_security)
-            .unwrap_or_else(|_| {
-                botcore::product::PRODUCT_CONFIG
-                    .read()
-                    .map(|product| product.no_security)
-                    .unwrap_or(false)
-            });
-        let install_owner = docs_local_owner.to_string();
+        #[cfg(feature = "desktop-local")]
+        let legacy_adopter: Option<String> = {
+            let no_security = botcore::product::ProductConfig::load()
+                .map(|product| product.no_security)
+                .unwrap_or_else(|_| {
+                    botcore::product::PRODUCT_CONFIG
+                        .read()
+                        .map(|product| product.no_security)
+                        .unwrap_or(false)
+                });
+            if no_security {
+                Some(crate::security::office_owner::office_install_owner())
+            } else {
+                None
+            }
+        };
+        #[cfg(not(feature = "desktop-local"))]
+        let legacy_adopter: Option<String> = None;
+
         let legacy_state = docs_state.clone();
         tokio::spawn(async move {
-            if no_security {
-                botdocs::legacy::adopt_legacy_namespace(&legacy_state, &install_owner).await;
-            } else {
-                botdocs::legacy::audit_legacy_namespace(&legacy_state).await;
+            match legacy_adopter {
+                Some(owner) => {
+                    botdocs::legacy::adopt_legacy_namespace(&legacy_state, &owner).await;
+                }
+                None => {
+                    botdocs::legacy::audit_legacy_namespace(&legacy_state).await;
+                }
             }
         });
+
         *sub_router = sub_router.clone().merge(
             crate::docs::configure_docs_routes()
-                .layer(axum::middleware::from_fn_with_state(
-                    docs_local_owner,
+                .layer(axum::middleware::from_fn(
                     crate::docs::user_middleware::docs_user_middleware,
                 ))
                 .with_state(docs_state),

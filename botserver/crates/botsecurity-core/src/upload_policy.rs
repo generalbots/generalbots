@@ -220,7 +220,9 @@ pub fn sanitize_upload_filename(raw: &str, max_len: usize) -> Result<String, Upl
         .collect();
     let trimmed = cleaned.trim();
 
-    if trimmed.is_empty() || trimmed.starts_with('.') || trimmed == "." || trimmed == ".." {
+    // A leading dot is a hidden file, not an escape: Drive stores
+    // `.gbdesktop.json` and friends. A name made only of dots is refused.
+    if trimmed.is_empty() || trimmed.chars().all(|c| c == '.') {
         return Err(UploadError::FilenameInvalid);
     }
     if trimmed.len() > max_len {
@@ -249,17 +251,27 @@ pub fn validate_upload(
     let filename = sanitize_upload_filename(filename, limits.max_filename_len)?;
     let extension = final_extension(&filename).to_lowercase();
 
-    if extension.is_empty() {
-        return Err(UploadError::UnknownExtension { extension });
-    }
     if blocked_extensions().contains(&extension.as_str()) {
         return Err(UploadError::ExtensionBlocked { extension });
     }
 
-    let expected = mime_for_extension(&extension)
-        .ok_or_else(|| UploadError::UnknownExtension { extension: extension.clone() })?;
+    // The Drive is a file manager: an extensionless text artifact (`LICENSE`,
+    // `Makefile`, `Dockerfile`) is normal there. Every other endpoint needs a
+    // known extension, and an extensionless binary still fails the magic check
+    // below because `text/plain` is expected.
+    let expected = if extension.is_empty() {
+        if class != UploadClass::Drive {
+            return Err(UploadError::UnknownExtension { extension });
+        }
+        "text/plain"
+    } else {
+        mime_for_extension(&extension)
+            .ok_or_else(|| UploadError::UnknownExtension { extension: extension.clone() })?
+    };
 
-    if !limits.allows_extension(&extension) {
+    // An extensionless Drive file is allowed (see above) and has nothing to
+    // check against the allowlist.
+    if !extension.is_empty() && !limits.allows_extension(&extension) {
         return Err(UploadError::ExtensionNotAllowed {
             extension,
             allowed: limits.extensions,
@@ -370,7 +382,10 @@ fn magic_matches(extension: &str, expected: &str, detected: &str, data: &[u8]) -
     }
     if matches!(
         expected,
-        "application/msword" | "application/vnd.ms-excel" | "application/vnd.ms-powerpoint"
+        "application/msword"
+            | "application/vnd.ms-excel"
+            | "application/vnd.ms-powerpoint"
+            | "application/vnd.ms-project"
     ) && detected == "application/x-ole-storage"
     {
         return true;

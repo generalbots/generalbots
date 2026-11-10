@@ -74,6 +74,9 @@ pub async fn persist_all() {
     let res = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut conn = pool.get().map_err(|e| e.to_string())?;
         for (plan_id, payload) in snapshot {
+            let owner_id = json_text(&payload, "owner_id");
+            let org_id = json_uuid(&payload, "org_id");
+            let branch_id = json_uuid(&payload, "branch_id");
             diesel::sql_query(
                 "INSERT INTO plan_snapshots \
                      (plan_id, payload, owner_id, org_id, branch_id, updated_at) \
@@ -83,16 +86,10 @@ pub async fn persist_all() {
                      branch_id = EXCLUDED.branch_id, updated_at = NOW()",
             )
             .bind::<diesel::sql_types::Text, _>(&plan_id)
-            .bind::<diesel::sql_types::Jsonb, _>(payload.clone())
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(json_text(
-                &payload, "owner_id",
-            ))
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(json_uuid(
-                &payload, "org_id",
-            ))
-            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(json_uuid(
-                &payload, "branch_id",
-            ))
+            .bind::<diesel::sql_types::Jsonb, _>(payload)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(owner_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(org_id)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(branch_id)
             .execute(&mut conn)
             .map_err(|e| e.to_string())?;
         }

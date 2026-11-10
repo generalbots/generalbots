@@ -19,9 +19,9 @@
 //! * The bucket (`DocState::bucket_name`) — the tenant/bot boundary. One bot
 //!   writes to its own bucket, so two users of different tenants never meet
 //!   even if their ids collided.
-//! * a per-install UUID — the single-user desktop profile. It is derived from
-//!   the installation (see [`crate::local_owner`]), so two installs never share
-//!   a namespace.
+//! * a per-install UUID — the single-user desktop profile. The host resolves it
+//!   once per install (`security::office_owner::office_install_owner`), so two
+//!   installs never share a namespace.
 //!
 //! Sharing a document between users is therefore explicit and out of scope
 //! here: collaborators are recorded inside the document, not by widening the

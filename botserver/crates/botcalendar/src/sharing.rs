@@ -164,8 +164,13 @@ pub async fn import_ical(
         Ok::<_, StatusCode>(())
     })
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "calendar import failed".to_string(),
+        )
+    })?;
 
-    result?;
+    result.map_err(|status| (status, "calendar import failed".to_string()))?;
     Ok(Json(serde_json::json!({ "imported": count })))
 }

@@ -27,7 +27,6 @@ pub async fn handle_new_document(
     user: PaperUser,
 ) -> impl IntoResponse {
     let user_identifier = user.owner_id().to_string();
-    let user_id = user_identifier.clone();
 
     let doc_id = Uuid::new_v4().to_string();
     let title = "Untitled".to_string();
@@ -55,7 +54,11 @@ pub async fn handle_new_document(
     html.push_str("</script>");
     html.push_str("</div>");
 
-    log::info!("New document created: {} for user {}", doc_id, user_id);
+    log::info!(
+        "New document created: {} for owner {}",
+        doc_id,
+        user.owner_id()
+    );
     Html(html)
 }
 

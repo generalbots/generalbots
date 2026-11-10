@@ -218,15 +218,33 @@ fn html_is_only_accepted_where_the_endpoint_asks_for_it() {
 }
 
 #[test]
-fn svg_is_refused_everywhere() {
-    let svg = br#"<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>"#;
+fn svg_is_refused_where_the_endpoint_does_not_accept_it() {
+    let svg = br#"<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>"#;
 
-    let error = validate_upload(UploadClass::Drive, "logo.svg", "image/svg+xml", svg)
-        .expect_err("SVG must never be stored through an upload endpoint");
-    assert!(matches!(
-        error,
-        UploadError::UnknownExtension { .. } | UploadError::ExtensionNotAllowed { .. }
-    ));
+    // Chat attachments never accept SVG.
+    let error = validate_upload(
+        UploadClass::ChatAttachment,
+        "logo.svg",
+        "image/svg+xml",
+        svg,
+    )
+    .expect_err("a chat attachment must never be SVG");
+    assert!(matches!(error, UploadError::ExtensionNotAllowed { .. }));
+
+    // Drive accepts it (the designers save SVG) but only real SVG bytes: an
+    // HTML document renamed `.svg` is refused, and so is a script payload.
+    let upload = validate_upload(UploadClass::Drive, "logo.svg", "image/svg+xml", svg)
+        .expect("a real SVG must be accepted by Drive");
+    assert_eq!(upload.mime, "image/svg+xml");
+
+    let error = validate_upload(
+        UploadClass::Drive,
+        "logo.svg",
+        "image/svg+xml",
+        b"<!DOCTYPE html><html><body>x</body></html>",
+    )
+    .expect_err("HTML bytes named .svg must be refused");
+    assert!(matches!(error, UploadError::TypeMismatch { .. }));
 }
 
 #[test]
@@ -261,4 +279,34 @@ fn the_rejection_body_carries_a_stable_code_and_a_message() {
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["code"], "error-file-content-mismatch");
     assert!(body["message"].as_str().is_some_and(|m| !m.is_empty()));
+}
+
+#[test]
+fn the_drive_accepts_extensionless_text_artifacts() {
+    // `LICENSE`, `Makefile`, `Dockerfile` are normal Drive files.
+    let upload = validate_upload(UploadClass::Drive, "LICENSE", "", b"MIT License\n")
+        .expect("an extensionless text file must be accepted by Drive");
+    assert_eq!(upload.filename, "LICENSE");
+    assert_eq!(upload.extension, "");
+    assert_eq!(upload.mime, "text/plain");
+
+    // The same name carrying a binary payload is refused.
+    let elf = [0x7F, 0x45, 0x4C, 0x46, 2, 1, 1, 0];
+    let error = validate_upload(UploadClass::Drive, "Makefile", "", &elf)
+        .expect_err("an extensionless binary must be refused");
+    assert!(matches!(error, UploadError::TypeMismatch { .. }));
+}
+
+#[test]
+fn a_hidden_drive_file_with_a_known_extension_is_accepted() {
+    let upload = validate_upload(
+        UploadClass::Drive,
+        "Desktop/.gbdesktop.json",
+        "application/json",
+        br#"{"version":1}"#,
+    )
+    .expect("the desktop sync file must be storable");
+
+    assert_eq!(upload.filename, ".gbdesktop.json");
+    assert_eq!(upload.extension, "json");
 }

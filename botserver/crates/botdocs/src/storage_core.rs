@@ -18,7 +18,7 @@ const CACHE_TTL_SECS: i64 = 3600;
 /// Normalises an owner id into a single Drive path segment.
 ///
 /// The owner is always a server-verified id (#2135) — a directory UUID or the
-/// per-install `local-…` id — so this only removes separators a future identity
+/// per-install desktop id — so this only removes separators a future identity
 /// source could smuggle in; it is not an authorisation check.
 pub fn sanitize_owner(user_identifier: &str) -> String {
     user_identifier

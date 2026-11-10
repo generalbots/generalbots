@@ -20,7 +20,7 @@ use crate::security::auth::AuthenticatedUser;
 /// Returns `None` when the request has no verified identity — the caller must
 /// answer `401` rather than pick a default owner.
 pub fn verified_owner_id(user: &AuthenticatedUser) -> Option<String> {
-    if !user.user_id.is_nil() {
+    if user.is_authenticated() {
         return Some(user.user_id.to_string());
     }
     desktop_local_owner(user)

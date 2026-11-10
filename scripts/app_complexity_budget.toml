@@ -226,7 +226,7 @@ loc = 674
 [apps."plan"]
 routes = 0
 js_modules = 4
-loc = 1016
+loc = 1029
 
 [apps."player"]
 routes = 0

@@ -154,15 +154,15 @@ pub(super) async fn get_kb_article(
         .bind::<diesel::sql_types::Uuid, _>(&id)
         .bind::<diesel::sql_types::Uuid, _>(&branch_id)
         .get_result::<Row>(&mut db_conn)
-            .ok()
-            .map(|r| KbArticleRow {
-                id: r.id,
-                title: r.title,
-                body: r.body,
-                category: r.category,
-                tags: r.tags,
-                is_published: r.is_published,
-            })
+        .ok()
+        .map(|r| KbArticleRow {
+            id: r.id,
+            title: r.title,
+            body: r.body,
+            category: r.category,
+            tags: r.tags,
+            is_published: r.is_published,
+        })
     })
     .await
     .unwrap_or(None);
