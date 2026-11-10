@@ -11,8 +11,8 @@ The count is a *function* count, not a line-coverage percentage. A crate with ma
 ## Summary
 
 - Crates in the workspace: **122**
-- `.rs` files scanned: **3952**
-- Test functions: **6433**
+- `.rs` files scanned: **3953**
+- Test functions: **6436**
 - Crates with no tests: **12**
 - Crates with 1–4 tests: **6**
 
@@ -37,7 +37,7 @@ Run one crate at a time (`cargo test -p <crate> --lib`); the workspace graph doe
 | `botsheet-core` | 128 | `arrays`, `formats` |
 | `botintegrations` | 122 | `auth`, `payload`, `vault_path (integration)` |
 | `botsheet` | 114 | `csv`, `find_replace`, `html`, `isolation`, +9 more |
-| `botdocs` | 110 | `auth`, `extract_user_from_token`, `legacy`, `review`, +5 more |
+| `botdocs` | 111 | `auth`, `extract_user_from_token`, `legacy`, `review`, +5 more |
 | `botbasic_data` | 102 | `csv`, `filter`, `table_definition`, `verified_caller`, +1 more |
 | `botbilling` | 99 | `format`, `lib`, `metric`, `plans`, +1 more |
 | `botapp` | 97 | inline `#[cfg(test)]` modules |
@@ -48,10 +48,10 @@ Run one crate at a time (`cargo test -p <crate> --lib`); the workspace graph doe
 | `botsettings` | 80 | `catalog`, `html_escape`, `jobs`, `permission_inheritance`, +2 more |
 | `botwhatsapp` | 78 | `utils`, `webhooks` |
 | `botbasic_system` | 77 | `coerce_value`, `cosine_similarity`, `create_task`, `error_type`, +3 more |
+| `botslides` | 77 | `create`, `export`, `owner_isolation`, `pptx_preservation (integration)`, +2 more |
 | `botcloud` | 76 | `api`, `compute_provisioning`, `domain_provisioning`, `helpers`, +3 more |
 | `botanalytics` | 75 | `analytics_types`, `goals_types`, `handlers_charts`, `handlers_ops`, +7 more |
 | `botbasic_comms` | 75 | `delegate_to_bot`, `options`, `recurrence`, `sms_priority`, +4 more |
-| `botslides` | 75 | `export`, `owner_isolation`, `pptx_preservation (integration)`, `requests`, +1 more |
 | `botbanking` | 73 | `cashflow_rules`, `dashboard`, `handlers`, `intent`, +2 more |
 | `botchannels` | 72 | `channel_type`, `handoff`, `result`, `send_payload`, +2 more |
 | `botmemory` | 70 | `api`, `extract`, `import`, `models`, +4 more |

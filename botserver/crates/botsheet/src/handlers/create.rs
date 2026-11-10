@@ -142,8 +142,7 @@ pub fn build_spreadsheet(
                 continue;
             }
             let cell = cell_from_text(text, &sheet.worksheets, 0);
-            sheet
-                .worksheets[0]
+            sheet.worksheets[0]
                 .data
                 .insert(format!("{row_index},{col_index}"), cell);
         }
@@ -174,10 +173,8 @@ pub async fn handle_set_cells(
     Json(req): Json<SetCellsRequest>,
 ) -> Result<Json<SaveResponse>, SheetError> {
     let user_id = resolve_user_id(user.as_deref())?;
-    let ((start_row, start_col), _) =
-        botsheet_core::formulas::refs::parse_range(&req.range).ok_or_else(|| {
-            bad_request(format!("invalid A1 range '{}'", req.range))
-        })?;
+    let ((start_row, start_col), _) = botsheet_core::formulas::refs::parse_range(&req.range)
+        .ok_or_else(|| bad_request(format!("invalid A1 range '{}'", req.range)))?;
     let grid = row_values(&req.values).map_err(bad_request)?;
 
     let session = state
@@ -189,10 +186,7 @@ pub async fn handle_set_cells(
     let written = {
         let mut sheet = session.sheet.write().await;
         if let Err(e) = botsheet_core::state::ensure_write_allowed(&user_id, &sheet) {
-            return Err((
-                StatusCode::FORBIDDEN,
-                Json(json!({ "error": e })),
-            ));
+            return Err((StatusCode::FORBIDDEN, Json(json!({ "error": e }))));
         }
         if req.worksheet_index >= sheet.worksheets.len() {
             return Err(bad_request("Invalid worksheet index".to_string()));
@@ -229,7 +223,10 @@ pub async fn handle_set_cells(
             "cells": written,
         }),
     );
-    session.persist_now(&state).await.map_err(|e| internal(&e))?;
+    session
+        .persist_now(&state)
+        .await
+        .map_err(|e| internal(&e))?;
 
     Ok(Json(SaveResponse {
         id: req.sheet_id,
@@ -244,11 +241,7 @@ mod tests {
 
     #[test]
     fn created_spreadsheet_carries_an_id_and_the_rows() {
-        let rows = json!([
-            ["Region", "Total"],
-            ["North", 1200],
-            ["South", 980],
-        ]);
+        let rows = json!([["Region", "Total"], ["North", 1200], ["South", 980],]);
         let sheet = build_spreadsheet("owner-1", Some("  Budget  "), Some(&rows))
             .expect("rows are a valid grid");
         assert!(!sheet.id.is_empty(), "the created artifact needs an id");
