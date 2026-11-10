@@ -239,3 +239,140 @@ impl std::fmt::Display for BillingError {
     }
 }
 impl std::error::Error for BillingError {}
+
+#[cfg(test)]
+mod limit_tests {
+    use super::*;
+
+    fn limits(messages: LimitValue) -> PlanLimits {
+        PlanLimits {
+            messages_per_day: messages,
+            storage_mb: LimitValue::Limited(100),
+            bots: LimitValue::Limited(2),
+            users: LimitValue::Limited(5),
+            api_calls_per_day: LimitValue::Limited(1000),
+            signups_per_day: Some(LimitValue::Limited(10)),
+            kb_documents: LimitValue::Limited(50),
+            apps: LimitValue::Limited(3),
+            emails_per_day: LimitValue::Limited(200),
+            builds_per_day: LimitValue::Limited(20),
+            uploads_per_hour: LimitValue::Limited(30),
+        }
+    }
+
+    fn config(limits: PlanLimits) -> ProductConfig {
+        let plan = PlanConfig {
+            name: "Starter".to_string(),
+            description: None,
+            price: PlanPrice::Free,
+            limits,
+            features: vec!["chat".to_string()],
+            stripe_price_id: None,
+            trial_days: None,
+        };
+        let mut plans = HashMap::new();
+        plans.insert("starter".to_string(), plan);
+        ProductConfig {
+            branding: BrandingConfig {
+                name: "Acme".to_string(),
+                logo: None,
+                primary_color: "#000000".to_string(),
+                secondary_color: None,
+                favicon: None,
+            },
+            plans,
+            features: Vec::new(),
+            stripe: None,
+        }
+    }
+
+    #[test]
+    fn a_limited_value_allows_usage_below_the_limit_only() {
+        let limit = LimitValue::Limited(10);
+        assert!(limit.check(0));
+        assert!(limit.check(9));
+        assert!(!limit.check(10));
+        assert!(!limit.check(11));
+    }
+
+    #[test]
+    fn an_unlimited_value_always_allows() {
+        let limit = LimitValue::Unlimited;
+        assert!(limit.is_unlimited());
+        assert_eq!(limit.value(), None);
+        assert!(limit.check(0));
+        assert!(limit.check(u64::MAX));
+    }
+
+    #[test]
+    fn a_limited_value_reports_its_number() {
+        assert_eq!(LimitValue::Limited(42).value(), Some(42));
+        assert!(!LimitValue::Limited(42).is_unlimited());
+        // The default is a hard zero: deny everything until configured.
+        assert!(!LimitValue::default().check(0));
+    }
+
+    #[tokio::test]
+    async fn check_limit_maps_each_metric_to_its_field() {
+        let service = BillingService::new(config(limits(LimitValue::Limited(100))), true);
+
+        assert!(service
+            .check_limit("starter", UsageMetric::Messages, 99)
+            .await
+            .expect("messages"));
+        assert!(!service
+            .check_limit("starter", UsageMetric::Messages, 100)
+            .await
+            .expect("messages"));
+        assert!(!service
+            .check_limit("starter", UsageMetric::Bots, 2)
+            .await
+            .expect("bots"));
+        assert!(service
+            .check_limit("starter", UsageMetric::Users, 4)
+            .await
+            .expect("users"));
+    }
+
+    #[tokio::test]
+    async fn storage_is_compared_in_bytes() {
+        let service = BillingService::new(config(limits(LimitValue::Limited(1))), true);
+        // The plan allows 100 MB, so 100 MB of usage is the first refused value.
+        let hundred_mb = 100 * 1024 * 1024;
+        assert!(service
+            .check_limit("starter", UsageMetric::StorageBytes, hundred_mb - 1)
+            .await
+            .expect("under"));
+        assert!(!service
+            .check_limit("starter", UsageMetric::StorageBytes, hundred_mb)
+            .await
+            .expect("at limit"));
+    }
+
+    #[tokio::test]
+    async fn an_unknown_plan_is_reported() {
+        let service = BillingService::new(config(limits(LimitValue::Limited(1))), true);
+        assert!(service
+            .check_limit("missing", UsageMetric::Messages, 0)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn plans_are_readable_by_id() {
+        let service = BillingService::new(config(limits(LimitValue::Limited(1))), false);
+        assert!(service.get_plan("starter").await.is_some());
+        assert!(service.get_plan("missing").await.is_none());
+        assert_eq!(service.get_all_plans().await.len(), 1);
+        assert!(!service.is_saas_enabled());
+    }
+
+    #[tokio::test]
+    async fn an_unlimited_plan_never_refuses() {
+        let service = BillingService::new(config(limits(LimitValue::Unlimited)), true);
+        assert!(service
+            .check_limit("starter", UsageMetric::Messages, u64::MAX)
+            .await
+            .expect("unlimited"));
+    }
+}
