@@ -203,6 +203,16 @@ jobs:
           python3 scripts/adequacy_guard.py \
             --baseline issues/adequacy/baseline.json "${args[@]}"
 
+      # #2074 — the offline unit suite is a gate, not a convention: every module
+      # under `bottest/tests/unit/` must be registered, a skipped test must say
+      # why, no file may cross 450 lines and no unit test may reach for a
+      # service. Pure Python, fails in under a second with file:line.
+      - name: Unit-suite policy guards (#2074)
+        run: |
+          set -euo pipefail
+          python3 scripts/test_guards.py --check
+          python3 scripts/test_guards.py --self-test
+
   reindex:
     name: Verify the committed BotBook
     needs: [changes]
@@ -672,6 +682,81 @@ jobs:
           cache-scope: bottest-unit
       - name: Cross-crate unit tests
         run: cargo test -p bottest --test unit
+
+  # #2074 — coverage measurement. The crate matrix is generated from
+  # `coverage-exclusions.toml`, so adding or dropping a measured crate is a
+  # one-line TOML change instead of a workflow edit.
+  coverage-plan:
+    name: Coverage plan
+    # Fork pull requests never run the coverage jobs: they upload artifacts and
+    # spend runner minutes without a trustworthy report.
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      crates: ${{ steps.plan.outputs.crates }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Read the per-crate floors
+        id: plan
+        run: |
+          set -euo pipefail
+          python3 scripts/check_coverage.py --self-test
+          python3 scripts/check_coverage.py --list-crates >> "$GITHUB_OUTPUT"
+
+  # One crate per matrix entry: `cargo llvm-cov --workspace` exceeds the memory
+  # budget, and a per-crate run keeps each job inside it (issue #2074).
+  unit-coverage:
+    name: Unit coverage (${{ matrix.crate }})
+    needs: [coverage-plan]
+    if: ${{ github.server_url == 'https://github.com' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: ${{ fromJSON(needs.coverage-plan.outputs.crates) }}
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: unit-coverage
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-llvm-cov
+      - name: Install llvm-tools
+        # cargo-llvm-cov drives llvm-profdata/llvm-cov from this component; the
+        # install action only provides the cargo subcommand.
+        run: rustup component add llvm-tools-preview
+      - name: Measure ${{ matrix.crate }}
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          # `--no-report` collects the profile data once; the two explicit
+          # reports below then read the same run, so the lcov artifact and the
+          # JSON the floor gate consumes can never disagree.
+          cargo llvm-cov -p "${{ matrix.crate }}" --lib --no-report
+          cargo llvm-cov report --lcov \
+            --output-path "coverage/${{ matrix.crate }}.lcov"
+          cargo llvm-cov report --json \
+            --output-path "coverage/${{ matrix.crate }}.json"
+      - name: Enforce the floor (${{ matrix.crate }})
+        run: |
+          set -euo pipefail
+          python3 scripts/check_coverage.py \
+            --crate "${{ matrix.crate }}" \
+            --json "coverage/${{ matrix.crate }}.json"
+      - name: Upload the lcov report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-${{ matrix.crate }}
+          path: coverage/${{ matrix.crate }}.lcov
+          if-no-files-found: warn
 
   # #1811 — the manifest reports only the features the command line requested.
   # This keeps the old feature-unification guard (a slim build must not inherit

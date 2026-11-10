@@ -184,3 +184,13 @@ channel-error-webhook = Webhook verification failed
 channel-error-permission = Insufficient permissions
 channel-error-not-found = Channel not found
 channel-error-already-exists = Channel already configured
+
+# Channel replies and inbound markers (#2094)
+channel-reply-processing-failed = Sorry, I encountered an error processing your message. Please try again.
+channel-telegram-photo-received = [Photo received]
+channel-telegram-document-received = [Document received]
+channel-telegram-voice-received = [Voice message received]
+channel-telegram-audio-received = [Audio message received]
+channel-telegram-video-received = [Video received]
+channel-telegram-location-received = [Location: { $latitude }, { $longitude }]
+channel-telegram-contact-received = [Contact: { $name } { $phone }]

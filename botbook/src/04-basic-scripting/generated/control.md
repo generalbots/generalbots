@@ -8,7 +8,7 @@ Part of the [generated BASIC reference](./index.md). Status and purpose come fro
 
 | Keyword | Signature | Status | Source | Docs | Purpose |
 |---|---|---|---|---|---|
-| `Agenda execução do script por cron` | `Agenda execução do script por cron` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Agenda execução do script por cron` | `Agenda execução do script por cron` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `CALL` | `CALL $ident$ ( $expr$ )` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_call_keyword.rs` | — | — |
 | `CALL` | `CALL $ident$` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_call_keyword.rs` | — | — |
 | `CLEAR ERROR` | `CLEAR ERROR` | registered | `botserver/crates/botbasic_core/src/keywords/errors/on_error.rs` | — | — |
@@ -21,27 +21,27 @@ Part of the [generated BASIC reference](./index.md). Status and purpose come fro
 | `EXIT FOR` | `EXIT FOR` | registered | `botserver/crates/botbasic_core/src/keywords/for_next.rs` | [page](../keyword-exit-for.md) | — |
 | `EXIT WHILE` | `EXIT WHILE` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_procedure_keywords.rs` | — | — |
 | `FOR EACH IN NEXT` | `FOR EACH $ident$ IN $expr$ $block$ NEXT $ident$` | registered | `botserver/crates/botbasic_core/src/keywords/for_next.rs` | — | — |
-| `Faz scraping de site para contexto` | `Faz scraping de site para contexto` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Faz scraping de site para contexto` | `Faz scraping de site para contexto` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `IF THEN ELSE END IF` | `IF $expr$ THEN $block$ ELSE $block$ END IF` | registered | `botserver/crates/botbasic_core/src/keywords/dag.rs` | — | — |
-| `ON CHANGE` | `ON CHANGE` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | [page](../keyword-on-change.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `ON EMAIL FROM` | `ON EMAIL FROM` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `ON CHANGE` | `ON CHANGE` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | [page](../keyword-on-change.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `ON EMAIL FROM` | `ON EMAIL FROM` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `ON ERROR` | `ON ERROR $block$` | registered | `botserver/crates/botbasic_core/src/keywords/dag.rs` | [page](../keyword-on-error.md) | — |
 | `ON ERROR GOTO` | `ON ERROR GOTO $ident$` | registered | `botserver/crates/botbasic_core/src/keywords/errors/on_error.rs` | — | — |
 | `ON ERROR RESUME NEXT` | `ON ERROR RESUME NEXT` | registered | `botserver/crates/botbasic_core/src/keywords/errors/on_error.rs` | — | — |
-| `ON EVENT` | `ON EVENT` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `ON UPDATE OF` | `ON UPDATE OF` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | [page](../keyword-on-update-of.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `ON EVENT` | `ON EVENT` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `ON UPDATE OF` | `ON UPDATE OF` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | [page](../keyword-on-update-of.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `PARALLEL AND END PARALLEL` | `PARALLEL $block$ AND $block$ END PARALLEL` | registered | `botserver/crates/botbasic_core/src/keywords/dag.rs` | — | — |
 | `RETURN` | `RETURN $expr$` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_call_keyword.rs` | — | — |
 | `RETURN` | `RETURN` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_call_keyword.rs` | — | — |
-| `Registra gatilho de email recebido` | `Registra gatilho de email recebido` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `Registra gatilho de evento de canal (media_uploaded, message_received)` | `Registra gatilho de evento de canal (media_uploaded, message_received)` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `Registra gatilho de mudança em tabela` | `Registra gatilho de mudança em tabela` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `Registra gatilho de tabela no banco de dados` | `Registra gatilho de tabela no banco de dados` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `Registra webhook HTTP` | `Registra webhook HTTP` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `SET SCHEDULE` | `SET SCHEDULE` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | [page](../keyword-set-schedule.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
-| `USE WEBSITE` | `USE WEBSITE` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | [page](../keyword-use-website.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Registra gatilho de email recebido` | `Registra gatilho de email recebido` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Registra gatilho de evento de canal (media_uploaded, message_received)` | `Registra gatilho de evento de canal (media_uploaded, message_received)` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Registra gatilho de mudança em tabela` | `Registra gatilho de mudança em tabela` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Registra gatilho de tabela no banco de dados` | `Registra gatilho de tabela no banco de dados` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `Registra webhook HTTP` | `Registra webhook HTTP` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | — | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `SET SCHEDULE` | `SET SCHEDULE` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | [page](../keyword-set-schedule.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `USE WEBSITE` | `USE WEBSITE` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | [page](../keyword-use-website.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `WAIT` | `WAIT $expr$` | registered | `botserver/crates/botbasic_core/src/keywords/wait.rs` | [page](../keyword-wait.md) | — |
-| `WEBHOOK` | `WEBHOOK` | directive | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` | [page](../keyword-webhook.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
+| `WEBHOOK` | `WEBHOOK` | directive | `botserver/crates/botbasic_compiler/src/basic_errors.rs` | [page](../keyword-webhook.md) | Compiler directive: consumed by `preprocess_basic.rs` before evaluation, not a runtime syntax. |
 | `WHILE WEND` | `WHILE $expr$ $block$ WEND` | registered | `botserver/crates/botbasic_core/src/keywords/procedures/register_procedure_keywords.rs` | — | — |
 
 ## Functions

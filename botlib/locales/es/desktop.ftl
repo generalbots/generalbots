@@ -146,3 +146,175 @@ pin-close = Cerrar
 pin-length-hint = 4–8 dígitos
 pin-cancel = Cancelar
 pin-ok = Aceptar
+
+# --- Superficies de colaboración compartidas por todas las apps del suite:
+# --- diálogo de compartir, historial de actividad, aviso de conflicto e
+# --- historial de versiones (suite/js/collab-*.js) — #2095
+
+role-owner = propietario
+role-editor = Editor
+role-commenter = Comentarista
+role-viewer = Lector
+
+share-request-failed = Error en la solicitud ({ $status })
+share-warning-title = Los enlaces compartidos aún no son accesibles
+share-warning-body = Esta instalación solo es accesible en localhost, así que un enlace aquí no abre en ningún lado. Configure una de estas opciones primero: active P2P en Configuración → Red, o apunte Enlaces Compartidos a su propio dominio.
+share-open-shared-links = Abrir Enlaces Compartidos
+share-open-network = Abrir Red
+share-invite-people = Invitar personas
+share-anyone-with-link = Cualquier persona con el enlace
+share-create-link = Crear enlace
+share-transfer-ownership = Transferir propiedad
+share-transfer = Transferir
+share-new-owner-placeholder = correo del nuevo propietario
+share-owner-suffix = · propietario
+share-no-people = Aún no hay personas añadidas.
+share-no-links = Aún no hay enlace público.
+share-copied = Copiado
+share-revoke = Revocar
+share-enter-email = Introduzca un correo
+share-enter-new-owner = Introduzca el correo del nuevo propietario
+share-needs-base = Configure P2P o su propio dominio antes de crear un enlace compartido.
+
+activity-title = Actividad
+activity-request-failed = Error en la solicitud ({ $status })
+activity-load-more = Cargar más
+activity-loading = Cargando…
+activity-empty = Aún no hay actividad
+activity-action-create = creó
+activity-action-edit = editó
+activity-action-comment = comentó en
+activity-action-delete = eliminó
+activity-action-resolve = resolvió un comentario en
+activity-action-reopen = reabrió un comentario en
+activity-action-reaction = reaccionó a
+activity-action-share = compartió
+activity-action-restore = restauró
+activity-action-transfer = transfirió
+
+conflict-title = Ediciones en conflicto
+conflict-dismiss = Descartar
+conflict-edited-concurrently = editó simultáneamente ({ $op })
+conflict-keep-server = Mantener versión del servidor
+conflict-keep-mine = Mantener mi cambio
+conflict-not-started = La vigilancia de conflictos no está iniciada
+conflict-request-failed = Error en la solicitud ({ $status })
+
+versions-title = Historial de versiones
+versions-loading = Cargando…
+versions-empty = Aún no hay versiones — el primer guardado crea una.
+versions-version-n = Versión { $n }
+versions-current-tag = (actual)
+versions-name = Nombrar…
+versions-restore-failed = Error al restaurar: { $error }
+versions-rename-failed = Error al renombrar: { $error }
+versions-restore-dialog-title = Restaurar versión
+versions-restore-confirm = ¿Restaurar esta versión? Se creará una nueva versión actual — no se pierde nada.
+versions-name-dialog-title = Nombrar versión
+versions-name-prompt = Nombre de esta versión (ej.: "v2 — aprobada"):
+versions-request-failed = Error en la solicitud ({ $status })
+
+# --- Shell del escritorio: selector de acople, pestañas de espacio de
+# --- trabajo, escritorios virtuales, menú contextual, panel git, panel de
+# --- navegador, widgets y exportación de datos (suite/js/*.js)
+
+snap-title = Acoplar "{ $app }"
+snap-layout-top-left = Esquina superior izquierda
+snap-layout-top = Mitad superior
+snap-layout-top-right = Esquina superior derecha
+snap-layout-left = Mitad izquierda
+snap-layout-full = Maximizar
+snap-layout-right = Mitad derecha
+snap-layout-bottom-left = Esquina inferior izquierda
+snap-layout-bottom = Mitad inferior
+snap-layout-bottom-right = Esquina inferior derecha
+snap-layout-third-left = Tercio izquierdo
+snap-layout-two-thirds = Dos tercios
+snap-layout-third-right = Tercio derecho
+
+wstabs-close-tab = Cerrar pestaña
+wstabs-new-tab = Nueva pestaña de espacio de trabajo
+wstabs-default-name = Espacio de trabajo { $n }
+wstabs-default-main = Principal
+wstabs-rename-title = Renombrar espacio de trabajo
+wstabs-name-prompt = Nombre del espacio de trabajo:
+
+vdesk-default-name = Escritorio { $n }
+vdesk-title = Escritorios Virtuales
+vdesk-new = Nuevo escritorio
+vdesk-rename-title = Renombrar escritorio
+vdesk-name-prompt = Nombre del escritorio:
+vdesk-restore-title = Restaurar sesión
+vdesk-restore-body = ¿Reabrir las { $count } ventana(s) de su última sesión en este escritorio?
+vdesk-restore-body-short = ¿Restaurar su última sesión ({ $count } ventana(s))?
+
+ctxmenu-search = Buscar en DuckDuckGo
+ctxmenu-search-prompt = Buscar en DuckDuckGo:
+ctxmenu-wikipedia = Definición en Wikipedia
+ctxmenu-wikipedia-prompt = Definición en Wikipedia:
+
+git-loading-status = Cargando estado...
+git-no-changes = Sin cambios
+git-new-branch-prompt = Nombre de la nueva rama:
+git-loading-diff = Cargando diff...
+git-diff-failed = Error al cargar el diff
+git-commit-message-required = Introduzca un mensaje de commit
+git-pushing = Enviando...
+git-committed = Commit y push realizados correctamente
+git-failed = Error en la operación de Git
+
+browser-session-active = Sesión de navegador { $id } activa.
+browser-init-failed = Error al inicializar el navegador
+browser-init-first = Inicialice el navegador primero
+browser-capture = Captura
+browser-no-session = Ninguna sesión activa
+browser-export-failed = Error en la exportación
+browser-no-actions = Ninguna acción registrada
+
+widget-load-failed = Error al cargar el widget
+widget-no-source = Ninguna fuente de widget configurada
+widget-open-windowed = Abrir en ventana
+widget-pin-launcher = Fijar en el lanzador
+
+dataexport-title = Exportación y Copia de Seguridad de Datos
+dataexport-desc = Exporte todos sus datos, incluido el historial de chat, la memoria, los metadatos del drive y la configuración, como un archivo JSON de copia de seguridad.
+dataexport-export-all = Exportar Todos los Datos
+dataexport-import = Importar Copia
+dataexport-exported = Copia de seguridad exportada correctamente
+dataexport-too-large = Copia rechazada: el archivo supera los 4 MB
+dataexport-invalid = Archivo de copia inválido: { $error }
+dataexport-nothing = Esta copia no contiene ajustes restaurables
+dataexport-unknown-date = fecha desconocida
+dataexport-restore-confirm = Esto restaurará { $count } ajuste(s) de la copia del { $date }. Las credenciales y los tokens de sesión nunca se importan. ¿Continuar?
+dataexport-restored = Copia restaurada ({ $count } elementos).
+dataexport-rejected = { $count } entrada(s) rechazada(s) por la lista de permitidos.
+dataexport-reloading = Recargando...
+
+comments-title = Comentarios
+comments-request-failed = Error en la solicitud ({ $status })
+comments-loading = Cargando comentarios…
+comments-load-failed = Error al cargar comentarios: { $error }
+comments-empty-open = No hay comentarios abiertos. Use @nombre para mencionar a alguien.
+comments-empty-resolved = No hay comentarios resueltos. Use @nombre para mencionar a alguien.
+comments-resolved-chip = Resuelto
+comments-resolve = Resolver
+comments-reopen = Reabrir
+comments-resolved-announce = Comentario resuelto
+comments-reopened-announce = Comentario reabierto
+comments-resolve-failed = Error al resolver: { $error }
+comments-added = Comentario añadido
+comments-post = Publicar
+comments-post-failed = Error al comentar: { $error }
+comments-reaction-failed = Error en la reacción: { $error }
+comments-delete-failed = Error al eliminar: { $error }
+comments-reply-failed = Error al responder: { $error }
+comments-delete-title = Eliminar comentario
+comments-delete-confirm = ¿Eliminar este comentario?
+comments-reply-title = Responder
+comments-reply-prompt = Responder al comentario:
+comments-filter-open = Abiertos
+comments-filter-all = Todos
+comments-filter-resolved = Resueltos
+comments-input-placeholder = Añada un comentario… use @nombre para mencionar
+comments-someone = alguien
+comments-mention-announce = Le mencionaron en un comentario de { $author }

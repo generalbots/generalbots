@@ -186,3 +186,5 @@ error-llm-token-store-unavailable = O armazenamento de tokens está indisponíve
 error-llm-subscription-token-expired = O token de assinatura expirou; envie a mensagem novamente.
 error-llm-prompt-missing = Não há prompt na requisição.
 error-llm-account-unlinked = Conecte sua conta Claude ou ChatGPT em Configurações → Contas de IA primeiro.
+
+error-timeout = A solicitação expirou. Tente novamente.

@@ -253,3 +253,5 @@ auth-notify-password-changed = Tu contraseña ha sido cambiada
 auth-notify-mfa-enabled = La autenticación de dos factores ha sido activada
 auth-notify-passkey-added = Nueva llave de acceso añadida a tu cuenta
 auth-notify-suspicious-activity = Actividad sospechosa detectada en tu cuenta
+
+auth-session-expired = Tu sesión ha caducado. Vuelve a iniciar sesión.

@@ -247,20 +247,20 @@ are validated for conflicts in `directive_conflicts.rs`.
 
 | Directive | Source |
 |---|---|
-| `Agenda execução do script por cron` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Faz scraping de site para contexto` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `ON CHANGE` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `ON EMAIL FROM` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `ON EVENT` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `ON UPDATE OF` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Registra gatilho de email recebido` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Registra gatilho de evento de canal (media_uploaded, message_received)` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Registra gatilho de mudança em tabela` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Registra gatilho de tabela no banco de dados` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `Registra webhook HTTP` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `SET SCHEDULE` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `USE WEBSITE` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
-| `WEBHOOK` | `botserver/crates/botbasic_compiler/src/directive_conflicts.rs` |
+| `Agenda execução do script por cron` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Faz scraping de site para contexto` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `ON CHANGE` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `ON EMAIL FROM` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `ON EVENT` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `ON UPDATE OF` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Registra gatilho de email recebido` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Registra gatilho de evento de canal (media_uploaded, message_received)` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Registra gatilho de mudança em tabela` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Registra gatilho de tabela no banco de dados` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `Registra webhook HTTP` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `SET SCHEDULE` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `USE WEBSITE` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
+| `WEBHOOK` | `botserver/crates/botbasic_compiler/src/basic_errors.rs` |
 
 ## Rewrite aliases
 
@@ -270,7 +270,7 @@ before evaluation, which is why a form can be usable without a runtime syntax.
 | Written form | Rewritten to | Arguments |
 |---|---|---|
 | `ADD MEMBER` | `add_member(…)` | name, role |
-| `ADD MEMBER` | `add_member(…)` | name, role |
+| `ADD SUGGESTION` | `add_suggestion(…)` | context, text |
 | `ADD SUGGESTION TEXT` | `add_suggestion_text(…)` | value, text |
 | `ADD SUGGESTION TOOL` | `add_suggestion_tool(…)` | tool, text |
 | `ADD SWITCHER` | `add_switcher(…)` | switcher, text |

@@ -6,3 +6,5 @@ fn test_unit_module_loads() {
 
 mod pii_guard;
 mod foundation;
+mod meta;
+mod security;

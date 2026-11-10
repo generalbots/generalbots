@@ -1,0 +1,9 @@
+# Pre-existing unit-suite policy debt (#2074) — SHRINK-ONLY.
+#
+# Format:  <rule>:<repo-relative path>   [# reason]
+# Rules:   module-registration | ignore-reason | file-size | offline-only
+#
+# Every entry is a violation the guard tolerates today. `scripts/test_guards.py
+# --check` fails when an entry no longer matches a violation, so fixing the code
+# and deleting the line is the only way to keep this file honest. Add an entry
+# only for debt that predates the guard; new code must pass without one.

@@ -146,3 +146,173 @@ pin-close = Close
 pin-length-hint = 4–8 digits
 pin-cancel = Cancel
 pin-ok = OK
+
+# --- Collaboration surfaces shared by every suite app: share dialog, activity
+# --- trail, conflict banner and version history (suite/js/collab-*.js) — #2095
+
+role-owner = owner
+role-editor = Editor
+role-commenter = Commenter
+role-viewer = Viewer
+
+share-request-failed = Request failed ({ $status })
+share-warning-title = Shared links are not reachable yet
+share-warning-body = This installation is only reachable on localhost, so a link here opens nowhere. Set up one of these first: enable P2P in Settings → Network, or point Shared Links at your own domain.
+share-open-shared-links = Open Shared Links
+share-open-network = Open Network
+share-invite-people = Invite people
+share-anyone-with-link = Anyone with the link
+share-create-link = Create link
+share-transfer-ownership = Transfer ownership
+share-transfer = Transfer
+share-new-owner-placeholder = new owner email
+share-owner-suffix = · owner
+share-no-people = No people added yet.
+share-no-links = No public link yet.
+share-copied = Copied
+share-revoke = Revoke
+share-enter-email = Enter an email
+share-enter-new-owner = Enter the new owner's email
+share-needs-base = Set up P2P or your own domain before creating a shared link.
+
+activity-title = Activity
+activity-request-failed = Request failed ({ $status })
+activity-load-more = Load more
+activity-loading = Loading…
+activity-empty = No activity yet
+activity-action-create = created
+activity-action-edit = edited
+activity-action-comment = commented on
+activity-action-delete = deleted
+activity-action-resolve = resolved a comment on
+activity-action-reopen = reopened a comment on
+activity-action-reaction = reacted to
+activity-action-share = shared
+activity-action-restore = restored
+activity-action-transfer = transferred
+
+conflict-title = Conflicting edits
+conflict-dismiss = Dismiss
+conflict-edited-concurrently = edited concurrently ({ $op })
+conflict-keep-server = Keep server version
+conflict-keep-mine = Keep my change
+conflict-not-started = Conflict watch not started
+conflict-request-failed = Request failed ({ $status })
+
+versions-title = Version history
+versions-loading = Loading…
+versions-empty = No versions yet — the first save creates one.
+versions-version-n = Version { $n }
+versions-current-tag = (current)
+versions-name = Name…
+versions-restore-failed = Restore failed: { $error }
+versions-rename-failed = Rename failed: { $error }
+versions-restore-dialog-title = Restore version
+versions-restore-confirm = Restore this version? A new current version will be created — nothing is lost.
+versions-name-dialog-title = Name version
+versions-name-prompt = Name this version (e.g. "v2 — approved"):
+versions-request-failed = Request failed ({ $status })
+
+# --- Desktop shell: snap picker, workspace tabs, virtual desktops, context
+# --- menu, git panel, browser panel, widgets and data export (suite/js/*.js)
+
+snap-title = Snap "{ $app }"
+snap-layout-top-left = Top left
+snap-layout-top = Top half
+snap-layout-top-right = Top right
+snap-layout-left = Left half
+snap-layout-full = Maximize
+snap-layout-right = Right half
+snap-layout-bottom-left = Bottom left
+snap-layout-bottom = Bottom half
+snap-layout-bottom-right = Bottom right
+snap-layout-third-left = Left third
+snap-layout-two-thirds = Two thirds
+snap-layout-third-right = Right third
+
+wstabs-close-tab = Close tab
+wstabs-new-tab = New workspace tab
+wstabs-default-name = Workspace { $n }
+wstabs-default-main = Main
+wstabs-rename-title = Rename workspace
+wstabs-name-prompt = Workspace name:
+
+vdesk-default-name = Desktop { $n }
+vdesk-title = Virtual Desktops
+vdesk-new = New desktop
+vdesk-rename-title = Rename desktop
+vdesk-name-prompt = Desktop name:
+vdesk-restore-title = Restore session
+vdesk-restore-body = Reopen the { $count } window(s) from your last session on this desktop?
+vdesk-restore-body-short = Restore your last session ({ $count } window(s))?
+
+ctxmenu-search = Search DuckDuckGo
+ctxmenu-search-prompt = Search DuckDuckGo:
+ctxmenu-wikipedia = Wikipedia definition
+ctxmenu-wikipedia-prompt = Wikipedia definition:
+
+git-loading-status = Loading status...
+git-no-changes = No changes
+git-new-branch-prompt = New branch name:
+git-loading-diff = Loading diff...
+git-diff-failed = Failed to load diff
+git-commit-message-required = Please enter a commit message
+git-pushing = Pushing...
+git-committed = Committed and pushed successfully
+git-failed = Git operation failed
+
+browser-session-active = Browser session { $id } active.
+browser-init-failed = Failed to initialize browser
+browser-init-first = Please initialize browser first
+browser-capture = Capture
+browser-no-session = No active session
+browser-export-failed = Export failed
+browser-no-actions = No actions recorded
+
+widget-load-failed = Widget failed to load
+widget-no-source = No widget source configured
+widget-open-windowed = Open windowed
+widget-pin-launcher = Pin to launcher
+
+dataexport-title = Data Export & Backup
+dataexport-desc = Export all your data including chat history, memory, drive metadata, and settings as a JSON backup file.
+dataexport-export-all = Export All Data
+dataexport-import = Import Backup
+dataexport-exported = Backup exported successfully
+dataexport-too-large = Backup rejected: the file is larger than 4 MB
+dataexport-invalid = Invalid backup file: { $error }
+dataexport-nothing = This backup contains no restorable settings
+dataexport-unknown-date = unknown date
+dataexport-restore-confirm = This will restore { $count } setting(s) from the backup of { $date }. Credentials and session tokens are never imported. Continue?
+dataexport-restored = Backup restored ({ $count } items).
+dataexport-rejected = { $count } entry(ies) rejected by the allowlist.
+dataexport-reloading = Reloading...
+
+comments-title = Comments
+comments-request-failed = Request failed ({ $status })
+comments-loading = Loading comments…
+comments-load-failed = Failed to load comments: { $error }
+comments-empty-open = No open comments. Use @name to mention someone.
+comments-empty-resolved = No resolved comments. Use @name to mention someone.
+comments-resolved-chip = Resolved
+comments-resolve = Resolve
+comments-reopen = Reopen
+comments-resolved-announce = Comment resolved
+comments-reopened-announce = Comment reopened
+comments-resolve-failed = Resolve failed: { $error }
+comments-added = Comment added
+comments-post = Post
+comments-post-failed = Comment failed: { $error }
+comments-reaction-failed = Reaction failed: { $error }
+comments-delete-failed = Delete failed: { $error }
+comments-reply-failed = Reply failed: { $error }
+comments-delete-title = Delete comment
+comments-delete-confirm = Delete this comment?
+comments-reply-title = Reply
+comments-reply-prompt = Reply to comment:
+comments-filter-open = Open
+comments-filter-all = All
+comments-filter-resolved = Resolved
+comments-input-placeholder = Add a comment… use @name to mention
+comments-someone = someone
+comments-mention-announce = You were mentioned in a comment by { $author }

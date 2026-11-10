@@ -146,3 +146,175 @@ pin-close = Fechar
 pin-length-hint = 4–8 dígitos
 pin-cancel = Cancelar
 pin-ok = OK
+
+# --- Superfícies de colaboração compartilhadas por todos os apps do suite:
+# --- diálogo de compartilhamento, trilha de atividades, banner de conflito e
+# --- histórico de versões (suite/js/collab-*.js) — #2095
+
+role-owner = proprietário
+role-editor = Editor
+role-commenter = Comentarista
+role-viewer = Visualizador
+
+share-request-failed = Falha na requisição ({ $status })
+share-warning-title = Links compartilhados ainda não estão acessíveis
+share-warning-body = Esta instalação só é acessível em localhost, então um link aqui não abre em lugar nenhum. Configure uma destas opções primeiro: ative o P2P em Configurações → Rede, ou aponte Links Compartilhados para o seu próprio domínio.
+share-open-shared-links = Abrir Links Compartilhados
+share-open-network = Abrir Rede
+share-invite-people = Convidar pessoas
+share-anyone-with-link = Qualquer pessoa com o link
+share-create-link = Criar link
+share-transfer-ownership = Transferir propriedade
+share-transfer = Transferir
+share-new-owner-placeholder = e-mail do novo proprietário
+share-owner-suffix = · proprietário
+share-no-people = Nenhuma pessoa adicionada ainda.
+share-no-links = Nenhum link público ainda.
+share-copied = Copiado
+share-revoke = Revogar
+share-enter-email = Informe um e-mail
+share-enter-new-owner = Informe o e-mail do novo proprietário
+share-needs-base = Configure o P2P ou o seu próprio domínio antes de criar um link compartilhado.
+
+activity-title = Atividades
+activity-request-failed = Falha na requisição ({ $status })
+activity-load-more = Carregar mais
+activity-loading = Carregando…
+activity-empty = Nenhuma atividade ainda
+activity-action-create = criou
+activity-action-edit = editou
+activity-action-comment = comentou em
+activity-action-delete = excluiu
+activity-action-resolve = resolveu um comentário em
+activity-action-reopen = reabriu um comentário em
+activity-action-reaction = reagiu a
+activity-action-share = compartilhou
+activity-action-restore = restaurou
+activity-action-transfer = transferiu
+
+conflict-title = Edições conflitantes
+conflict-dismiss = Dispensar
+conflict-edited-concurrently = editou simultaneamente ({ $op })
+conflict-keep-server = Manter versão do servidor
+conflict-keep-mine = Manter minha alteração
+conflict-not-started = Monitoramento de conflitos não iniciado
+conflict-request-failed = Falha na requisição ({ $status })
+
+versions-title = Histórico de versões
+versions-loading = Carregando…
+versions-empty = Nenhuma versão ainda — o primeiro salvamento cria uma.
+versions-version-n = Versão { $n }
+versions-current-tag = (atual)
+versions-name = Nomear…
+versions-restore-failed = Falha ao restaurar: { $error }
+versions-rename-failed = Falha ao renomear: { $error }
+versions-restore-dialog-title = Restaurar versão
+versions-restore-confirm = Restaurar esta versão? Uma nova versão atual será criada — nada é perdido.
+versions-name-dialog-title = Nomear versão
+versions-name-prompt = Nomeie esta versão (ex.: "v2 — aprovada"):
+versions-request-failed = Falha na requisição ({ $status })
+
+# --- Shell do desktop: seletor de encaixe, abas de workspace, desktops
+# --- virtuais, menu de contexto, painel git, painel de navegador, widgets e
+# --- exportação de dados (suite/js/*.js)
+
+snap-title = Encaixar "{ $app }"
+snap-layout-top-left = Canto superior esquerdo
+snap-layout-top = Metade superior
+snap-layout-top-right = Canto superior direito
+snap-layout-left = Metade esquerda
+snap-layout-full = Maximizar
+snap-layout-right = Metade direita
+snap-layout-bottom-left = Canto inferior esquerdo
+snap-layout-bottom = Metade inferior
+snap-layout-bottom-right = Canto inferior direito
+snap-layout-third-left = Terço esquerdo
+snap-layout-two-thirds = Dois terços
+snap-layout-third-right = Terço direito
+
+wstabs-close-tab = Fechar aba
+wstabs-new-tab = Nova aba de workspace
+wstabs-default-name = Workspace { $n }
+wstabs-default-main = Principal
+wstabs-rename-title = Renomear workspace
+wstabs-name-prompt = Nome do workspace:
+
+vdesk-default-name = Desktop { $n }
+vdesk-title = Desktops Virtuais
+vdesk-new = Novo desktop
+vdesk-rename-title = Renomear desktop
+vdesk-name-prompt = Nome do desktop:
+vdesk-restore-title = Restaurar sessão
+vdesk-restore-body = Reabrir as { $count } janela(s) da sua última sessão neste desktop?
+vdesk-restore-body-short = Restaurar sua última sessão ({ $count } janela(s))?
+
+ctxmenu-search = Pesquisar no DuckDuckGo
+ctxmenu-search-prompt = Pesquisar no DuckDuckGo:
+ctxmenu-wikipedia = Definição na Wikipédia
+ctxmenu-wikipedia-prompt = Definição na Wikipédia:
+
+git-loading-status = Carregando status...
+git-no-changes = Sem alterações
+git-new-branch-prompt = Nome da nova branch:
+git-loading-diff = Carregando diff...
+git-diff-failed = Falha ao carregar o diff
+git-commit-message-required = Informe uma mensagem de commit
+git-pushing = Enviando...
+git-committed = Commit e push realizados com sucesso
+git-failed = Falha na operação do Git
+
+browser-session-active = Sessão de navegador { $id } ativa.
+browser-init-failed = Falha ao inicializar o navegador
+browser-init-first = Inicialize o navegador primeiro
+browser-capture = Captura
+browser-no-session = Nenhuma sessão ativa
+browser-export-failed = Falha na exportação
+browser-no-actions = Nenhuma ação registrada
+
+widget-load-failed = Falha ao carregar o widget
+widget-no-source = Nenhuma fonte de widget configurada
+widget-open-windowed = Abrir em janela
+widget-pin-launcher = Fixar no launcher
+
+dataexport-title = Exportação e Backup de Dados
+dataexport-desc = Exporte todos os seus dados, incluindo histórico de chat, memória, metadados do drive e configurações, como um arquivo JSON de backup.
+dataexport-export-all = Exportar Todos os Dados
+dataexport-import = Importar Backup
+dataexport-exported = Backup exportado com sucesso
+dataexport-too-large = Backup rejeitado: o arquivo tem mais de 4 MB
+dataexport-invalid = Arquivo de backup inválido: { $error }
+dataexport-nothing = Este backup não contém configurações restauráveis
+dataexport-unknown-date = data desconhecida
+dataexport-restore-confirm = Isso restaurará { $count } configuração(ões) do backup de { $date }. Credenciais e tokens de sessão nunca são importados. Continuar?
+dataexport-restored = Backup restaurado ({ $count } itens).
+dataexport-rejected = { $count } entrada(s) rejeitada(s) pela lista de permissões.
+dataexport-reloading = Recarregando...
+
+comments-title = Comentários
+comments-request-failed = Falha na requisição ({ $status })
+comments-loading = Carregando comentários…
+comments-load-failed = Falha ao carregar comentários: { $error }
+comments-empty-open = Nenhum comentário aberto. Use @nome para mencionar alguém.
+comments-empty-resolved = Nenhum comentário resolvido. Use @nome para mencionar alguém.
+comments-resolved-chip = Resolvido
+comments-resolve = Resolver
+comments-reopen = Reabrir
+comments-resolved-announce = Comentário resolvido
+comments-reopened-announce = Comentário reaberto
+comments-resolve-failed = Falha ao resolver: { $error }
+comments-added = Comentário adicionado
+comments-post = Publicar
+comments-post-failed = Falha ao comentar: { $error }
+comments-reaction-failed = Falha na reação: { $error }
+comments-delete-failed = Falha ao excluir: { $error }
+comments-reply-failed = Falha ao responder: { $error }
+comments-delete-title = Excluir comentário
+comments-delete-confirm = Excluir este comentário?
+comments-reply-title = Responder
+comments-reply-prompt = Responder ao comentário:
+comments-filter-open = Abertos
+comments-filter-all = Todos
+comments-filter-resolved = Resolvidos
+comments-input-placeholder = Adicione um comentário… use @nome para mencionar
+comments-someone = alguém
+comments-mention-announce = Você foi mencionado em um comentário por { $author }

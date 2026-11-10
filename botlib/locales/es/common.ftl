@@ -345,3 +345,6 @@ a11y-error = Error
 a11y-success = Éxito
 a11y-warning = Advertencia
 a11y-info = Información
+
+common-cancel = Cancelar
+tab-strip = Conversaciones
