@@ -290,6 +290,7 @@ mod verb_endpoint_tests {
     }
 
     /// A response body that the deep link can open: a non-empty top-level `id`.
+    #[cfg(any(feature = "docs", feature = "sheet", feature = "slides"))]
     fn response_has_id(body: &Value) -> bool {
         body.get("id")
             .and_then(Value::as_str)

@@ -342,6 +342,11 @@ pub async fn publish_turn_output(
     PublishReport { folder, published }
 }
 
+/// Ceiling on one turn's publishing work (listing + reads + uploads). The
+/// answer has already been delivered, so a slow Drive must not hold the turn
+/// task open; a timeout leaves the ledger untouched and the next turn retries.
+const PUBLISH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
 /// Publishes the turn's artifacts and attaches their links to the chat.
 ///
 /// `vmfile:` is a chat link, so only the web channel receives the message;
@@ -355,7 +360,18 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
         user_id,
         ..
     } = *identity;
-    let report = publish_turn_output(state, bot_uuid, user_id, session_id).await;
+    let report = match tokio::time::timeout(
+        PUBLISH_TIMEOUT,
+        publish_turn_output(state, bot_uuid, user_id, session_id),
+    )
+    .await
+    {
+        Ok(report) => report,
+        Err(_) => {
+            botlog::safe_warn!("output publish: timed out for {session_id}; retrying next turn");
+            return;
+        }
+    };
     if report.is_empty() {
         return;
     }

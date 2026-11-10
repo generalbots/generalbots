@@ -56,6 +56,24 @@ There are **24 verbs with `admin_only: true`** (13 in the core table, 11 in the
 extra table), including `recycle.empty`, `store.product.publish` and
 `o365.mail.send`.
 
+### Deep-link resolution
+
+`deep_link` is a template, not a link. It is filled in exactly one place:
+`build_deep_link` in `botserver/src/apps/commands/deep_link_build.rs`, called by
+`execute_command` twice — `navigation_result` for a navigation-only verb, and
+`with_navigation` for the result of a bound endpoint. Values come from the
+verb's params and from the command result (nested objects are read; arrays are
+not, because a list does not name one record).
+
+| Template | Meaning | Unresolved value |
+|---|---|---|
+| `{key}` | the caller supplies it, or the result returns it | the navigation fails with `cannot open the <app> app from '<verb>': '<key>' in the deep link '<template>' has no value, so nothing was opened` — no button is rendered |
+| `{key?}` | optional record reference | the query pair is dropped, so a list verb links the app view (`app://crm`) instead of a record it cannot name |
+| `app://docs` (no query) | the app view | when the result carries the record (a create verb answers with its id) the app's declared record key is appended: `app://docs?file=<id>` |
+
+The command palette (`botui/ui/suite/js/command-palette.js`) prompts only for
+required placeholders; optional ones are left to the backend.
+
 ## Surface 1 — chat and WhatsApp: `__api_call__`
 
 On every channel the model is taught a two-step protocol in the system prompt
@@ -207,8 +225,9 @@ perform the clicks.
 The honest reading of the numbers: the *surface* is complete for navigation and
 for the 74 generic bindings, and the rest of the 312 verbs are either handled by
 a curated in-process handler or answered with a deep link. A verb with a deep
-link answers `{"navigate": true, "app": …, "deep_link": …}` and the UI opens the
-app; a verb with neither a binding nor a deep link answers
+link answers `{"navigate": true, "app": …, "deep_link": …}` — with the record
+placeholders already filled (see [Deep-link resolution](#deep-link-resolution)) —
+and the UI opens the app; a verb with neither a binding nor a deep link answers
 `command '<name>' is not executable from chat; open the <app> app instead`.
 Extending coverage means adding a `bind(...)` entry in `verb_endpoints.rs`
 naming a route that already exists in the inventory — never inventing a path.
