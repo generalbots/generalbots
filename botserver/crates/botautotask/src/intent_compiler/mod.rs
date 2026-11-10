@@ -187,7 +187,7 @@ mod tests {
 
 mod compile_prompt;
 mod state;
-mod extract_json_object;
+pub(crate) mod extract_json_object;
 
 pub use compile_prompt::*;
 use extract_json_object::*;

@@ -42,3 +42,26 @@ pub(super) fn suggest_name(intent: &str) -> String {
     }
     wrapped.into_iter().collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{has_any, has_phrase, suggest_name};
+
+    #[test]
+    fn single_words_need_a_word_boundary_and_phrases_do_not() {
+        assert!(has_phrase("crm system", &["crm"]));
+        assert!(!has_phrase("crmx system", &["crm"]));
+        assert!(has_phrase("please create command now", &["create command"]));
+        assert!(!has_phrase("createcommand", &["create command"]));
+        assert!(has_any("ab crmx", &["crm"]));
+        assert!(!has_any("ab crmx", &["xyz"]));
+    }
+
+    #[test]
+    fn suggest_name_slugs_at_most_three_alphanumeric_words() {
+        assert_eq!(suggest_name("Build CRM System Now"), "build_crm_system");
+        assert_eq!(suggest_name("fala todo dia que o comercial vendeu"), "fala_todo_dia");
+        assert_eq!(suggest_name("!!!"), "");
+        assert_eq!(suggest_name(""), "");
+    }
+}

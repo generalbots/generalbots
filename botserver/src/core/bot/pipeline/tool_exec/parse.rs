@@ -273,3 +273,7 @@ pub(super) fn parse_xml_tool_use(raw: &str) -> Option<serde_json::Value> {
         "arguments": payload,
     }))
 }
+
+#[cfg(test)]
+#[path = "parse_tests.rs"]
+mod tests;

@@ -1,4 +1,5 @@
 use super::*;
+use crate::intent_compiler::extract_json_object::extract_json_object;
 
 impl IntentClassifier {
     pub fn new(
@@ -162,8 +163,14 @@ Respond with JSON only:
         let cleaned = response.trim()
             .trim_start_matches("```json").trim_start_matches("```JSON")
             .trim_start_matches("```").trim_end_matches("```").trim();
+        // Models routinely close the fence and keep talking ("Here is why…"),
+        // so fence stripping alone left the trailing prose in the payload and
+        // the parse fell back to the heuristic — silently dropping the
+        // confidence, entities and time_spec the model did return. Take the
+        // first balanced JSON object instead.
+        let payload = extract_json_object(cleaned);
 
-        match serde_json::from_str::<LlmResponse>(cleaned) {
+        match serde_json::from_str::<LlmResponse>(payload) {
             Ok(resp) => {
                 let time_spec = resp.time_spec.map(|ts| TimeSpec {
                     schedule_type: match ts.schedule_type.as_deref() {
@@ -296,3 +303,7 @@ Respond with JSON only:
         })
     }
 }
+
+#[cfg(test)]
+#[path = "state_tests.rs"]
+mod tests;

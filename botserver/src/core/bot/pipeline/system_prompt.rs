@@ -225,6 +225,66 @@ fn api_catalog_enabled(value: Option<&str>) -> bool {
 }
 
 #[cfg(test)]
+mod prompt_assembly_tests {
+    use super::{canvas_drawing_block, capability_block, delivery_policy_block, with_structured_tools};
+
+    #[test]
+    fn capability_block_uses_the_client_defaults() {
+        let block = capability_block("web", None);
+        assert!(block.starts_with("CLIENT CAPABILITIES\nchannel=web; surfaces="));
+        assert!(block.contains("max_live_apps=2; motion=full; locale=en; input=text,file."));
+        assert!(block.contains("Only use a surface listed above."));
+        // A null/non-object caps payload must not panic and keeps the defaults.
+        assert!(capability_block("whatsapp", Some(&serde_json::Value::Null))
+            .contains("channel=whatsapp;"));
+    }
+
+    #[test]
+    fn capability_block_reports_only_the_announced_surfaces() {
+        let caps = serde_json::json!({
+            "surfaces": ["text", "gb.app.v1", 7, null],
+            "motion": "reduced",
+            "locale": "pt-BR",
+            "input": "text",
+            "max_live_apps": 4,
+        });
+        let block = capability_block("web", Some(&caps));
+        assert!(block.contains("surfaces=text, gb.app.v1; max_live_apps=4"));
+        assert!(block.contains("motion=reduced; locale=pt-BR; input=text."));
+    }
+
+    #[test]
+    fn canvas_prompt_is_only_appended_for_drawing_turns() {
+        for drawing in ["desenhe um gato", "DRAW A LOGO", "svg of a skyline"] {
+            let block = canvas_drawing_block(drawing);
+            assert!(block.starts_with("CANVAS DRAWING SUBSYSTEM"), "turn {drawing}");
+            assert!(block.contains("Open in Canvas"));
+        }
+        for prose in ["qual é o faturamento do mês?", "send the invoice by email"] {
+            assert_eq!(canvas_drawing_block(prose), "", "turn {prose}");
+        }
+    }
+
+    #[test]
+    fn delivery_policy_names_the_artifact_rule() {
+        let block = delivery_policy_block();
+        assert!(block.starts_with("DELIVERY POLICY (ask, done)"));
+        assert!(block.contains("Never substitute a different format silently."));
+        assert!(block.contains("Deliver quietly"));
+    }
+
+    #[test]
+    fn structured_tool_instructions_stay_off_non_web_channels() {
+        // Only the web channel can render run events; every other channel gets
+        // the prompt untouched regardless of the runtime feature flag.
+        assert_eq!(
+            with_structured_tools("base".to_string(), "whatsapp"),
+            "base"
+        );
+    }
+}
+
+#[cfg(test)]
 mod api_catalog_gate_tests {
     use super::api_catalog_enabled;
 

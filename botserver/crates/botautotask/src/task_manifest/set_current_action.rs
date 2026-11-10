@@ -286,3 +286,7 @@ impl TaskManifest {
         md
     }
 }
+
+#[cfg(test)]
+#[path = "set_current_action_tests.rs"]
+mod tests;

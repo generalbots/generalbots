@@ -80,3 +80,56 @@ pub fn generate_create_table_sql(table: &crate::task_manifest::TableDefinition, 
     sql.push_str("\n)");
     sql
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{generate_create_table_sql, get_content_type};
+    use crate::task_manifest::{FieldDefinition, TableDefinition};
+
+    fn field(name: &str, field_type: &str) -> FieldDefinition {
+        FieldDefinition {
+            name: name.to_string(),
+            field_type: field_type.to_string(),
+            nullable: false,
+            is_key: false,
+            is_nullable: false,
+            default_value: None,
+            reference_table: None,
+        }
+    }
+
+    #[test]
+    fn content_types_are_case_insensitive_and_default_to_octet_stream() {
+        assert_eq!(get_content_type("index.html"), "text/html");
+        assert_eq!(get_content_type("LOGO.A.PNG"), "image/png");
+        assert_eq!(get_content_type("photo.jpeg"), "image/jpeg");
+        assert_eq!(get_content_type("module.mjs"), "application/javascript");
+        assert_eq!(get_content_type("README"), "application/octet-stream");
+        assert_eq!(get_content_type("trailing."), "application/octet-stream");
+        assert_eq!(get_content_type(""), "application/octet-stream");
+    }
+
+    #[test]
+    fn create_table_sql_is_postgres_only_and_deterministic() {
+        assert_eq!(generate_create_table_sql(&TableDefinition {
+            name: "customers".to_string(),
+            fields: vec![field("id", "uuid")],
+        }, "mysql"), "");
+
+        let mut id = field("id", "guid");
+        id.is_key = true;
+        let mut total = field("total", "decimal");
+        total.default_value = Some("0".to_string());
+        let table = TableDefinition {
+            name: "customers".to_string(),
+            fields: vec![id, field("name", "string"), total],
+        };
+        let sql = generate_create_table_sql(&table, "postgres");
+        assert!(sql.starts_with("CREATE TABLE IF NOT EXISTS customers (\n"));
+        assert!(sql.contains("  id UUID PRIMARY KEY DEFAULT gen_random_uuid()"));
+        assert!(sql.contains("  name VARCHAR(255) NOT NULL"));
+        assert!(sql.contains("  total DECIMAL(10,2) NOT NULL DEFAULT 0"));
+        assert!(sql.ends_with("\n)"));
+        assert_eq!(sql, generate_create_table_sql(&table, "postgres"));
+    }
+}

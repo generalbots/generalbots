@@ -9,7 +9,7 @@
 /// characters". This scans string-aware for the first *balanced* `{ … }` block
 /// and returns it; the input comes back unchanged when there is none, so the
 /// caller's error keeps pointing at the original text.
-pub(super) fn extract_json_object(response: &str) -> &str {
+pub(crate) fn extract_json_object(response: &str) -> &str {
     let bytes = response.as_bytes();
     let Some(start) = response.find('{') else {
         return response;
