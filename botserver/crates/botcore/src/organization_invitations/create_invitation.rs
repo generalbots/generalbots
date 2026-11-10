@@ -88,7 +88,7 @@ impl InvitationService {
             accepted_by: None,
         };
 
-        self.send_invitation_email(&invitation, params.organization_name)
+        self.send_invitation_email(&invitation, params.organization_name, &params.locale)
             .await;
 
         Ok(invitation)
@@ -110,6 +110,7 @@ impl InvitationService {
                     invited_by_name: params.invited_by_name,
                     message: params.message.clone(),
                     expires_in_days: 7,
+                    locale: params.locale.clone(),
                 })
                 .await
             {

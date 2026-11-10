@@ -1,6 +1,7 @@
 pub(crate) use axum::{ extract::{Path, Query, State}, http::StatusCode, response::Json, routing::{delete, get, post}, Router, };
 pub(crate) use chrono::{DateTime, Duration, Utc};
 pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use crate::i18n::Locale;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InvitationStatus {
@@ -174,6 +175,9 @@ pub struct CreateInvitationParams<'a> {
     pub invited_by_name: &'a str,
     pub message: Option<String>,
     pub expires_in_days: i64,
+    /// Language of the invitation email (#2094). The invitee has no account
+    /// yet, so the inviter's request locale (or the default) is used.
+    pub locale: Locale,
 }
 
 pub struct BulkInviteParams<'a> {
@@ -185,6 +189,8 @@ pub struct BulkInviteParams<'a> {
     pub invited_by: Uuid,
     pub invited_by_name: &'a str,
     pub message: Option<String>,
+    /// Language of every invitation email in the batch (#2094).
+    pub locale: Locale,
 }
 
 #[cfg(test)]
@@ -270,6 +276,7 @@ mod tests {
             invited_by_name: "Admin",
             message: None,
             expires_in_days: 7,
+            locale: Locale::default(),
         };
         let invitation = service.create_invitation(params).await.unwrap();
 

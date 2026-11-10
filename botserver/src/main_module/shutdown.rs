@@ -2,9 +2,11 @@
 
 use log::{error, info, warn};
 
+use super::cli_locale;
+
 pub fn print_shutdown_message() {
     println!();
-    println!("Thank you for using General Bots!");
+    println!("{}", cli_locale::t("cli-shutdown-thanks"));
     println!();
 }
 

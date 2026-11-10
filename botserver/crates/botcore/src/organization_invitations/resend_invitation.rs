@@ -6,6 +6,7 @@ impl InvitationService {
         invitation_id: Uuid,
         organization_name: &str,
         extend_expiry: bool,
+        locale: &Locale,
     ) -> Result<OrganizationInvitation, String> {
         let mut invitation = self.get_invitation(invitation_id).await.ok_or("Invitation not found")?;
 
@@ -48,7 +49,7 @@ impl InvitationService {
         .map_err(|e| format!("Task join error: {e}"))??;
 
         let invitation_clone = invitation.clone();
-        self.send_invitation_email(&invitation_clone, organization_name)
+        self.send_invitation_email(&invitation_clone, organization_name, locale)
             .await;
 
         Ok(invitation_clone)

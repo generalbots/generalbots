@@ -12,6 +12,7 @@ impl<'a> Default for CreateInvitationParams<'a> {
             invited_by_name: "",
             message: None,
             expires_in_days: 7,
+            locale: Locale::default(),
         }
     }
 }

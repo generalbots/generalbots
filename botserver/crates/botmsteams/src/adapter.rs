@@ -410,3 +410,7 @@ impl botlib::traits::ChannelAdapter for TeamsAdapter {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "adapter_tests.rs"]
+mod tests;

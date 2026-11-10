@@ -111,7 +111,8 @@ pub(crate) async fn handle_checkout(
     // --- Notification: invoice generated ---
     let mut vars = notifier::EmailVars::new(
         &customer_name, &customer_email, &payload.plan, total_value, &payload.currency,
-    );
+    )
+    .with_locale(notifier::recipient_locale(body.locale.as_deref()));
     vars.invoice_id = invoice_id.to_string();
     notifier::notify_invoice_created(&vars);
 
@@ -292,7 +293,8 @@ pub(crate) async fn checkout_success(
             &plan_label,
             total,
             invoice.currency.as_str(),
-        );
+        )
+        .with_locale(notifier::recipient_locale(params.get("locale").map(String::as_str)));
         vars.invoice_id = invoice_id.to_string();
         notifier::notify_payment_success(&vars);
         notifier::notify_subscription_activated(&vars);

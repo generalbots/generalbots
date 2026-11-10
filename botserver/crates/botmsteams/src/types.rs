@@ -123,6 +123,37 @@ pub fn create_thumbnail_card(
     card
 }
 
+#[cfg(test)]
+#[path = "types_tests.rs"]
+mod tests;
+
+/// Replaces every `@Display` occurrence that ends on a word boundary with the
+/// Teams mention tag and reports how many were replaced. Without the boundary
+/// check a shorter mention rewrites the head of a longer name (`@Ann` inside
+/// `@Anna`).
+fn replace_mention(message: &str, display_name: &str) -> (String, usize) {
+    let needle = format!("@{display_name}");
+    let mut out = String::with_capacity(message.len());
+    let mut rest = message;
+    let mut replaced = 0;
+    while let Some(position) = rest.find(&needle) {
+        let boundary = rest[position + needle.len()..]
+            .chars()
+            .next()
+            .is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
+        out.push_str(&rest[..position]);
+        if boundary {
+            out.push_str(&format!("<at>{display_name}</at>"));
+            replaced += 1;
+        } else {
+            out.push_str(&needle);
+        }
+        rest = &rest[position + needle.len()..];
+    }
+    out.push_str(rest);
+    (out, replaced)
+}
+
 pub fn create_message_with_mentions(
     text: &str,
     mentions: Vec<(&str, &str)>,
@@ -130,17 +161,22 @@ pub fn create_message_with_mentions(
     let mut message = text.to_string();
     let mention_entities: Vec<serde_json::Value> = mentions
         .into_iter()
-        .map(|(user_id, display_name)| {
+        .filter_map(|(user_id, display_name)| {
             let mention_text = format!("<at>{}</at>", display_name);
-            message = message.replace(&format!("@{}", display_name), &mention_text);
+            let (updated, replaced) = replace_mention(&message, display_name);
+            message = updated;
 
-            serde_json::json!({
-                "type": "mention",
-                "mentioned": {
-                    "id": user_id,
-                    "name": display_name
-                },
-                "text": mention_text
+            // Teams ignores an entity whose `<at>` tag is absent from the
+            // text, so only report the mentions that were actually inserted.
+            (replaced > 0).then(|| {
+                serde_json::json!({
+                    "type": "mention",
+                    "mentioned": {
+                        "id": user_id,
+                        "name": display_name
+                    },
+                    "text": mention_text
+                })
             })
         })
         .collect();

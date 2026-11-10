@@ -96,6 +96,7 @@ pub(super) async fn create_invitation(
             invited_by_name: "Admin User",
             message: req.message,
             expires_in_days,
+            locale: crate::i18n::locale_from_headers(&headers),
         })
         .await
     {
@@ -162,6 +163,7 @@ pub(super) async fn bulk_invite(
             invited_by,
             invited_by_name: "Admin User",
             message: req.message,
+            locale: crate::i18n::locale_from_headers(&headers),
         })
         .await;
 
@@ -205,15 +207,17 @@ pub(super) async fn revoke_invitation(
 }
 pub(super) async fn resend_invitation(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Path((_org_id, invitation_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<ResendInvitationRequest>,
 ) -> Result<Json<InvitationResponse>, (StatusCode, Json<serde_json::Value>)> {
     let service = InvitationService::new(state.conn.clone());
 
     let extend_expiry = req.extend_expiry.unwrap_or(true);
+    let locale = crate::i18n::locale_from_headers(&headers);
 
     match service
-        .resend_invitation(invitation_id, "Organization", extend_expiry)
+        .resend_invitation(invitation_id, "Organization", extend_expiry, &locale)
         .await
     {
         Ok(invitation) => Ok(Json(service.to_response(&invitation, "Organization"))),

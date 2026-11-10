@@ -12,42 +12,22 @@ pub(crate) fn jwt_sign(header: &str, payload: &str, secret: &[u8]) -> Result<Str
     Ok(format!("{signing_input}.{signature}"))
 }
 
+/// Decodes one JWT segment (URL-safe base64, RFC 7515 §2).
+///
+/// #2069 — this used to be a hand-rolled decoder that silently *skipped* every
+/// character outside the alphabet, so `"eyJ!x"` decoded as if the `!` were not
+/// there: a malformed token produced bytes no encoder ever emitted. Padding is
+/// optional (the encoder emits unpadded segments), and everything else — a
+/// stray character, an impossible length, a padded byte in the middle — is an
+/// error. Every caller treats `Err` as "no identity", so a stricter decoder
+/// can only deny tokens, never grant a scope.
 pub(crate) fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
-    // Convert URL-safe base64 to standard base64
-    let raw = input.replace('-', "+").replace('_', "/");
-    let raw = match raw.len() % 4 {
-        2 => raw + "==",
-        3 => raw + "=",
-        0 => raw,
-        _ => return Err("invalid base64 input length"),
-    };
-    // Decode base64 manually (no external dep needed)
-    let chars: Vec<char> = raw.chars().collect();
-    let mut out = Vec::with_capacity(chars.len() / 4 * 3);
-    let alphabet: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i] == '=' { break; }
-        let mut vals = [0u8; 4];
-        let mut valid = 0usize;
-        for j in 0..4 {
-            if i + j >= chars.len() || chars[i + j] == '=' { break; }
-            if let Some(pos) = alphabet.iter().position(|&a| a as char == chars[i + j]) {
-                vals[valid] = pos as u8;
-                valid += 1;
-            }
-        }
-        if valid == 0 { break; }
-        let n = ((vals[0] as u32) << 18)
-            | (if valid > 1 { (vals[1] as u32) << 12 } else { 0 })
-            | (if valid > 2 { (vals[2] as u32) << 6 } else { 0 })
-            | (if valid > 3 { vals[3] as u32 } else { 0 });
-        out.push((n >> 16) as u8);
-        if valid > 2 { out.push((n >> 8) as u8); }
-        if valid > 3 { out.push(n as u8); }
-        i += 4;
-    }
-    Ok(out)
+    use base64::Engine as _;
+
+    let unpadded = input.trim_end_matches('=');
+    base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(unpadded)
+        .map_err(|_| "invalid base64url input")
 }
 
 pub fn get_branch_id_from_jwt(

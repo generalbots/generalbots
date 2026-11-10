@@ -1,7 +1,15 @@
 use super::*;
 
 impl InvitationService {
-    pub(crate) async fn send_invitation_email(&self, invitation: &OrganizationInvitation, org_name: &str) {
+    /// Sends the invitation in the inviter's language (#2094). The invitee has
+    /// no account yet, so there is no `users.locale` to read; the MIME envelope
+    /// and the addresses are untouched, only subject and body are localized.
+    pub(crate) async fn send_invitation_email(
+        &self,
+        invitation: &OrganizationInvitation,
+        org_name: &str,
+        locale: &crate::i18n::Locale,
+    ) {
         log::info!(
             "Sending invitation email to {} for organization {} (token: {}...)",
             invitation.email,
@@ -15,6 +23,7 @@ impl InvitationService {
             // USER/PASS/FROM — secrets come from the environment/Vault, never
             // hardcoded). Best-effort: a failure logs and never fails the
             // invite creation.
+            use crate::i18n::translate;
             use lettre::transport::smtp::authentication::Credentials;
             use lettre::{Message, SmtpTransport, Transport};
 
@@ -30,13 +39,20 @@ impl InvitationService {
 
             let invite_url = std::env::var("INVITE_BASE_URL")
                 .unwrap_or_else(|_| "http://localhost:5000/invitations/accept".to_string());
-            let body = format!(
-                "You have been invited to join {org_name}.\n\n\
-                 Accept your invitation: {invite_url}?token={token}\n\n\
-                 This invitation expires at {expires}.",
-                token = invitation.token,
-                expires = invitation.expires_at.format("%Y-%m-%d %H:%M UTC"),
+            let link = format!("{invite_url}?token={}", invitation.token);
+            let expires = invitation.expires_at.format("%Y-%m-%d %H:%M UTC").to_string();
+
+            // No greeting line: the invitee has no display name yet, and
+            // "Hello user@example.com," reads badly.
+            let subject = translate(locale, "email-invitation-subject", &[("org", org_name)]);
+            let body = translate(
+                locale,
+                "email-invitation-body",
+                &[("org", org_name), ("url", &link), ("expires", &expires)],
             );
+            let signoff = translate(locale, "email-signoff", &[]);
+            let team = translate(locale, "email-team", &[]);
+            let body = format!("{body}\n\n{signoff}\n{team}");
 
             // `builder_dangerous` avoids needing a TLS feature on lettre (the
             // workspace dep only enables smtp-transport + builder); encryption
@@ -64,7 +80,7 @@ impl InvitationService {
             match Message::builder()
                 .from(from_addr.into())
                 .to(to_addr.into())
-                .subject(format!("Invitation to join {org_name}"))
+                .subject(subject)
                 .body(body)
             {
                 Ok(email) => {
@@ -74,6 +90,13 @@ impl InvitationService {
                 }
                 Err(e) => log::warn!("Failed to build invitation email: {e}"),
             }
+        }
+
+        #[cfg(not(feature = "mail"))]
+        {
+            // Without the `mail` feature nothing is delivered, but the locale
+            // stays part of the contract so callers do not branch on features.
+            let _ = locale;
         }
     }
 }

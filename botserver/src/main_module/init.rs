@@ -24,15 +24,7 @@ pub fn init_logging_and_i18n(no_console: bool, no_ui: bool) {
         );
     }
 
-    let locales_path = if std::path::Path::new("./locales").exists() {
-        "./locales"
-    } else if std::path::Path::new("../botlib/locales").exists() {
-        "../botlib/locales"
-    } else if std::path::Path::new("../locales").exists() {
-        "../locales"
-    } else {
-        "./locales"
-    };
+    let locales_path = i18n::default_locales_path();
     if let Err(e) = i18n::init_i18n(locales_path) {
         warn!(
             "Failed to initialize i18n from {}: {}. Translations will show keys.",

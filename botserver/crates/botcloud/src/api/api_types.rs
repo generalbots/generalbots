@@ -17,6 +17,10 @@ pub struct CheckoutBody {
     pub email: String,
     pub organization_name: Option<String>,
     pub return_url: Option<String>,
+    /// Recipient language for the transactional email (#2094). Optional so
+    /// older clients keep working; the notifier falls back to English.
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +31,10 @@ pub struct SignupBody {
     pub password: Option<String>,
     pub plan: Option<String>,
     pub template: Option<String>,
+    /// Recipient language for the welcome email (#2094). Optional so older
+    /// clients keep working; the notifier falls back to English.
+    #[serde(default)]
+    pub locale: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

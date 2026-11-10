@@ -14,13 +14,15 @@ use axum::{
 };
 use botlib::i18n::{self, MessageArgs as BotlibMessageArgs};
 
+pub mod cli;
 mod error;
 mod routes;
 mod translations;
 #[cfg(test)]
 mod tests;
 
-pub use botlib::i18n::Locale;
+pub use botlib::i18n::{translate, Locale};
+pub use cli as cli_locale;
 pub use error::{error_body, error_body_with_args, LocalizedError};
 pub use routes::configure_i18n_routes;
 pub use routes::locale_for_user;
@@ -149,8 +151,34 @@ fn negotiate_locale(requested: &[(String, f32)]) -> Option<Locale> {
 
 pub type MessageArgs = botlib::i18n::MessageArgs;
 
+/// Locales directory the binary loads at boot, resolved relative to the
+/// working directory. The CLI needs the same path before the bootstrap runs
+/// (`--lang` help output), so the rule lives here instead of in `init.rs`.
+#[must_use]
+pub fn default_locales_path() -> &'static str {
+    const CANDIDATES: &[&str] = &["./locales", "../botlib/locales", "../locales"];
+    CANDIDATES
+        .iter()
+        .find(|path| std::path::Path::new(path).exists())
+        .copied()
+        .unwrap_or("./locales")
+}
+
 pub fn init_i18n(locales_path: &str) -> Result<(), String> {
     i18n::init(locales_path).map_err(|e| format!("Failed to initialize i18n: {e}"))
+}
+
+/// Loads the catalogue once, for code paths that run before the bootstrap
+/// (`botserver security …`, the setup wizard, `--help`). A failed load is
+/// logged and leaves the keys visible, exactly like the boot-time path.
+pub fn ensure_initialized() {
+    if is_i18n_initialized() {
+        return;
+    }
+
+    if let Err(e) = init_i18n(default_locales_path()) {
+        log::warn!("i18n catalogue not loaded: {e}");
+    }
 }
 
 pub fn is_i18n_initialized() -> bool {
@@ -168,6 +196,11 @@ pub fn t_with_args(locale: &Locale, key: &str, args: Option<&MessageArgs>) -> St
             .collect()
     });
     i18n::get_with_args(locale, key, botlib_args.as_ref())
+}
+
+/// Convenience wrapper over [`translate`] with a `(name, value)` argument list.
+pub fn t_args(locale: &Locale, key: &str, args: &[(&str, &str)]) -> String {
+    i18n::translate(locale, key, args)
 }
 
 pub fn available_locales() -> Vec<String> {

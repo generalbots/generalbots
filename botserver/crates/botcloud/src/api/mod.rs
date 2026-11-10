@@ -98,7 +98,11 @@ mod byok;
 mod catalog;
 mod checkout;
 mod helpers;
+#[cfg(test)]
+mod helpers_tests;
 mod jwt_api;
+#[cfg(test)]
+mod jwt_api_tests;
 mod llm_api;
 mod login;
 mod login_helpers;

@@ -26,6 +26,8 @@ struct IdRow {
 use crate::{DbPool, SaasConfig};
 
 mod slugify;
+#[cfg(test)]
+mod slugify_tests;
 mod link_org_to_tenant;
 mod copy_dir_all;
 

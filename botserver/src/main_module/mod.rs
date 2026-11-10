@@ -34,6 +34,10 @@ pub use background::*;
 pub use cache::*;
 pub use init::*;
 
+/// CLI text locale resolution (`--lang`/`LANG`), owned by `botcore::i18n` so
+/// the package-manager help pages use the same setting (#2094).
+pub use botcore::i18n::cli_locale;
+
 #[cfg(feature = "automation")]
 pub use auto_service::start_automation_service;
 pub use constants::get_noise_filters;

@@ -13,8 +13,11 @@ pub(crate) fn directory_url_allows_password(dir_url: &str, allow_insecure_http: 
     };
     let host = parsed.host_str().unwrap_or("");
     let h = host.trim_start_matches('[').trim_end_matches(']');
+    // #2069 — the loopback test must be an *address* test. A bare
+    // `h.starts_with("127.")` also matched DNS names such as
+    // `127.0.0.1.attacker.example`, letting a password be sent over cleartext
+    // to a public host. `is_loopback()` covers all of 127.0.0.0/8.
     let private = h == "localhost"
-        || h.starts_with("127.")
         || h.parse::<std::net::IpAddr>().is_ok_and(|addr| match addr {
             std::net::IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
             std::net::IpAddr::V6(v6) => {

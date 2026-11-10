@@ -1,3 +1,10 @@
+//! Transactional email for the cloud plan/billing flow (#2094).
+//!
+//! Every subject and body comes from the catalogue, rendered for the
+//! recipient's locale (`EmailVars::locale`) with an English fallback. The SMTP
+//! envelope, the MIME headers and the addresses are untouched: only the human
+//! text is translated.
+
 use lettre::{
     transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport,
     Message, Tokio1Executor,
@@ -5,7 +12,16 @@ use lettre::{
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+use botlib::i18n::{self, Locale};
+
 static SMTP_CONFIG: OnceLock<SmtpConfig> = OnceLock::new();
+
+/// Cloud dashboard the transactional mail links to.
+const DASHBOARD_URL: &str = "https://cloud.generalbots.com/dashboard";
+const INVOICES_URL: &str = "https://cloud.generalbots.com/invoices";
+const SERVICES_URL: &str = "https://cloud.generalbots.com/services";
+const SETTINGS_URL: &str = "https://cloud.generalbots.com/settings";
+const OFFERS_URL: &str = "https://cloud.generalbots.com/offers";
 
 #[derive(Debug, Clone)]
 struct SmtpConfig {
@@ -48,6 +64,14 @@ fn try_send_email(to: &str, subject: &str, body: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Recipient language from a request field or a stored preference, falling
+/// back to English when the value is missing or unknown.
+#[must_use]
+pub fn recipient_locale(raw: Option<&str>) -> Locale {
+    raw.and_then(|value| Locale::new(value.trim()))
+        .unwrap_or_default()
+}
+
 pub struct EmailVars {
     pub customer_name: String,
     pub customer_email: String,
@@ -58,6 +82,9 @@ pub struct EmailVars {
     pub org_id: String,
     pub bot_name: String,
     pub extra: HashMap<String, String>,
+    /// Language the recipient reads. Defaults to English; callers that know
+    /// the user's preference (signup/checkout body, `users.locale`) set it.
+    pub locale: Locale,
 }
 
 impl EmailVars {
@@ -78,7 +105,34 @@ impl EmailVars {
             org_id: String::new(),
             bot_name: "default".to_string(),
             extra: HashMap::new(),
+            locale: Locale::default(),
         }
+    }
+
+    /// Pins the language of this message to the recipient's preference.
+    #[must_use]
+    pub fn with_locale(mut self, locale: Locale) -> Self {
+        self.locale = locale;
+        self
+    }
+
+    /// Money is rendered once, so no catalogue entry carries a currency symbol.
+    fn amount_text(&self) -> String {
+        format!("${:.2}", self.amount)
+    }
+
+    /// Greeting + body + signature, in the recipient's language.
+    fn compose(&self, body_key: &str, args: &[(&str, &str)]) -> String {
+        let greeting = i18n::translate(&self.locale, "email-greeting", &[("name", &self.customer_name)]);
+        let body = i18n::translate(&self.locale, body_key, args);
+        let signoff = i18n::translate(&self.locale, "email-signoff", &[]);
+        let team = i18n::translate(&self.locale, "email-team", &[]);
+
+        format!("{greeting}\n\n{body}\n\n{signoff}\n{team}")
+    }
+
+    fn subject(&self, key: &str, args: &[(&str, &str)]) -> String {
+        i18n::translate(&self.locale, key, args)
     }
 }
 
@@ -92,15 +146,10 @@ pub fn notify_welcome(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = format!("Welcome to General Bots Cloud — {} Plan", vars.plan);
-        let body = format!(
-            "Hello {},\n\n\
-             Welcome to General Bots Cloud! Your {} plan is now active.\n\n\
-             You can start creating bots and managing your workspace at:\n\
-             https://cloud.generalbots.com/dashboard\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.plan
+        let subject = vars.subject("email-welcome-subject", &[("plan", &vars.plan)]);
+        let body = vars.compose(
+            "email-welcome-body",
+            &[("plan", &vars.plan), ("url", DASHBOARD_URL)],
         );
         if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send welcome email: {e}");
@@ -119,16 +168,19 @@ pub fn notify_invoice_created(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = format!("Invoice #{} — General Bots Cloud", vars.invoice_id);
-        let body = format!(
-            "Hello {},\n\n\
-             A new invoice has been created:\n\
-             Invoice: {}\n\
-             Amount: ${:.2} {}\n\n\
-             View details at: https://cloud.generalbots.com/invoices\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.invoice_id, vars.amount, vars.currency
+        let subject = vars.subject(
+            "email-invoice-subject",
+            &[("invoice", &vars.invoice_id)],
+        );
+        let amount = vars.amount_text();
+        let body = vars.compose(
+            "email-invoice-body",
+            &[
+                ("invoice", &vars.invoice_id),
+                ("amount", &amount),
+                ("currency", &vars.currency),
+                ("url", INVOICES_URL),
+            ],
         );
         if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send invoice email: {e}");
@@ -147,17 +199,17 @@ pub fn notify_payment_success(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = "Payment Confirmed — General Bots Cloud";
-        let body = format!(
-            "Hello {},\n\n\
-             Your payment of ${:.2} {} has been confirmed.\n\
-             Plan: {}\n\n\
-             Thank you for your subscription!\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.amount, vars.currency, vars.plan
+        let subject = vars.subject("email-payment-success-subject", &[]);
+        let amount = vars.amount_text();
+        let body = vars.compose(
+            "email-payment-success-body",
+            &[
+                ("amount", &amount),
+                ("currency", &vars.currency),
+                ("plan", &vars.plan),
+            ],
         );
-        if let Err(e) = try_send_email(&vars.customer_email, subject, &body) {
+        if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send payment success email: {e}");
         }
     }
@@ -172,17 +224,12 @@ pub fn notify_subscription_activated(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = "Subscription Activated — General Bots Cloud";
-        let body = format!(
-            "Hello {},\n\n\
-             Your {} subscription is now active.\n\n\
-             You can manage your subscription at:\n\
-             https://cloud.generalbots.com/services\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.plan
+        let subject = vars.subject("email-subscription-activated-subject", &[]);
+        let body = vars.compose(
+            "email-subscription-activated-body",
+            &[("plan", &vars.plan), ("url", SERVICES_URL)],
         );
-        if let Err(e) = try_send_email(&vars.customer_email, subject, &body) {
+        if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send activation email: {e}");
         }
     }
@@ -199,16 +246,19 @@ pub fn notify_recurring_charge(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = format!("Recurring Charge — Invoice #{}", vars.invoice_id);
-        let body = format!(
-            "Hello {},\n\n\
-             Your recurring subscription has been charged:\n\
-             Invoice: {}\n\
-             Amount: ${:.2} {}\n\n\
-             View details at: https://cloud.generalbots.com/invoices\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.invoice_id, vars.amount, vars.currency
+        let subject = vars.subject(
+            "email-recurring-charge-subject",
+            &[("invoice", &vars.invoice_id)],
+        );
+        let amount = vars.amount_text();
+        let body = vars.compose(
+            "email-recurring-charge-body",
+            &[
+                ("invoice", &vars.invoice_id),
+                ("amount", &amount),
+                ("currency", &vars.currency),
+                ("url", INVOICES_URL),
+            ],
         );
         if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send recurring charge email: {e}");
@@ -227,18 +277,18 @@ pub fn notify_payment_failed(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = "Payment Failed — Action Required";
-        let body = format!(
-            "Hello {},\n\n\
-             Your payment of ${:.2} {} has failed.\n\
-             Invoice: {}\n\n\
-             Please update your payment method at:\n\
-             https://cloud.generalbots.com/settings\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.amount, vars.currency, vars.invoice_id
+        let subject = vars.subject("email-payment-failed-subject", &[]);
+        let amount = vars.amount_text();
+        let body = vars.compose(
+            "email-payment-failed-body",
+            &[
+                ("amount", &amount),
+                ("currency", &vars.currency),
+                ("invoice", &vars.invoice_id),
+                ("url", SETTINGS_URL),
+            ],
         );
-        if let Err(e) = try_send_email(&vars.customer_email, subject, &body) {
+        if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send payment failed email: {e}");
         }
     }
@@ -253,17 +303,12 @@ pub fn notify_subscription_cancelled(vars: &EmailVars) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = "Subscription Cancelled — General Bots Cloud";
-        let body = format!(
-            "Hello {},\n\n\
-             Your {} subscription has been cancelled.\n\n\
-             If you'd like to reactivate, visit:\n\
-             https://cloud.generalbots.com/offers\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, vars.plan
+        let subject = vars.subject("email-subscription-cancelled-subject", &[]);
+        let body = vars.compose(
+            "email-subscription-cancelled-body",
+            &[("plan", &vars.plan), ("url", OFFERS_URL)],
         );
-        if let Err(e) = try_send_email(&vars.customer_email, subject, &body) {
+        if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send cancellation email: {e}");
         }
     }
@@ -278,17 +323,13 @@ pub fn notify_grace_period_warning(vars: &EmailVars, days_left: u32) {
     );
 
     if let Some(_cfg) = get_smtp_config() {
-        let subject = "Payment Overdue — Service Suspension Warning";
-        let body = format!(
-            "Hello {},\n\n\
-             Your payment is overdue. Your service will be suspended in {} days.\n\n\
-             Please update your payment method immediately:\n\
-             https://cloud.generalbots.com/settings\n\n\
-             Best regards,\n\
-             General Bots Team",
-            vars.customer_name, days_left
+        let subject = vars.subject("email-grace-warning-subject", &[]);
+        let days = days_left.to_string();
+        let body = vars.compose(
+            "email-grace-warning-body",
+            &[("days", &days), ("url", SETTINGS_URL)],
         );
-        if let Err(e) = try_send_email(&vars.customer_email, subject, &body) {
+        if let Err(e) = try_send_email(&vars.customer_email, &subject, &body) {
             tracing::warn!(target: "saas_notifier", "Failed to send grace period warning: {e}");
         }
     }

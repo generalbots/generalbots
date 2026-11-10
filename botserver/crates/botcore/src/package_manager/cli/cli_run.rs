@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::i18n::cli_locale::{t, t_args};
+
 pub async fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -21,28 +23,37 @@ pub async fn run() -> Result<()> {
                 None
             };
             let pm = PackageManager::new(mode, tenant)?;
-            println!("Starting all installed components...");
+            println!("{}", t("cli-start-starting"));
             let components = get_all_components();
             for component in components {
                 if pm.is_installed(component.name) {
                     match pm.start(component.name) {
-                        Ok(_) => println!("* Started {}", component.name),
-                        Err(e) => eprintln!("x Failed to start {}: {}", component.name, e),
+                        Ok(_) => println!(
+                            "* {}",
+                            t_args("cli-component-started", &[("component", component.name)])
+                        ),
+                        Err(e) => eprintln!(
+                            "x {}",
+                            t_args(
+                                "cli-component-start-failed",
+                                &[("component", component.name), ("error", &e.to_string())]
+                            )
+                        ),
                     }
                 }
             }
-            println!("* BotServer components started");
+            println!("* {}", t("cli-start-done"));
         }
         "stop" => {
-            println!("Stopping all components...");
+            println!("{}", t("cli-stop-stopping"));
             let components = get_all_components();
             for component in components {
                 safe_pkill(&["-f", component.termination_command]);
             }
-            println!("* BotServer components stopped");
+            println!("* {}", t("cli-stop-done"));
         }
         "restart" => {
-            println!("Restarting BotServer...");
+            println!("{}", t("cli-restart-restarting"));
             let components = get_all_components();
             for component in components {
                 safe_pkill(&["-f", component.termination_command]);
@@ -65,11 +76,11 @@ pub async fn run() -> Result<()> {
                     let _ = pm.start(component.name);
                 }
             }
-            println!("* BotServer restarted");
+            println!("* {}", t("cli-restart-done"));
         }
         "install" => {
             if args.len() < 3 {
-                eprintln!("Usage: botserver install <component> [--container] [--container-only] [--tenant <name>]");
+                eprintln!("{}", t("cli-usage-install-synopsis"));
                 return Ok(());
             }
             let component = &args[2];
@@ -101,8 +112,8 @@ pub async fn run() -> Result<()> {
             if let Some(install_result) = result {
                 install_result.print();
                 if container_only {
-                    println!("\n* Container created successfully (--container-only mode)");
-                    println!("* Run without --container-only to complete installation");
+                    println!("\n* {}", t("cli-container-only-created"));
+                    println!("* {}", t("cli-container-only-next"));
                 }
             }
         }
@@ -110,24 +121,30 @@ pub async fn run() -> Result<()> {
             let vault_container = args.get(2).map(|s| s.as_str()).unwrap_or("vault");
             let container_name = vault_container.to_string();
 
-            println!("* Generating .env from vault container: {}", container_name);
+            println!(
+                "* {}",
+                t_args("cli-setup-env-generating", &[("container", &container_name)])
+            );
 
             match PackageManager::generate_env_from_vault(&container_name) {
                 Ok(env_vars) => {
-                    println!("* Successfully generated .env from vault");
-                    println!("\nGenerated configuration:");
+                    println!("* {}", t("cli-setup-env-done"));
+                    println!("\n{}", t("cli-setup-env-config"));
                     println!("{}", env_vars);
-                    println!("\nYou can now start botserver with: botserver start");
+                    println!("\n{}", t("cli-setup-env-next"));
                 }
                 Err(e) => {
-                    eprintln!("x Failed to generate .env: {}", e);
+                    eprintln!(
+                        "x {}",
+                        t_args("cli-setup-env-failed", &[("error", &e.to_string())])
+                    );
                     return Err(anyhow::anyhow!("Setup env failed: {}", e));
                 }
             }
         }
         "remove" => {
             if args.len() < 3 {
-                eprintln!("Usage: botserver remove <component> [--container] [--tenant <name>]");
+                eprintln!("{}", t("cli-usage-remove-synopsis"));
                 return Ok(());
             }
             let component = &args[2];
@@ -149,7 +166,10 @@ pub async fn run() -> Result<()> {
             };
             let pm = PackageManager::new(mode, tenant)?;
             pm.remove(component)?;
-            println!("* Component '{}' removed successfully", component);
+            println!(
+                "* {}",
+                t_args("cli-component-removed", &[("component", component.as_str())])
+            );
         }
         "list" => {
             let mode = if args.contains(&"--container".to_string()) {
@@ -163,19 +183,19 @@ pub async fn run() -> Result<()> {
                 None
             };
             let pm = PackageManager::new(mode, tenant)?;
-            println!("Available components:");
+            println!("{}", t("cli-list-title"));
             for component in pm.list() {
                 let status = if pm.is_installed(&component) {
-                    "* installed"
+                    format!("* {}", t("cli-list-installed"))
                 } else {
-                    "  available"
+                    format!("  {}", t("cli-list-available"))
                 };
                 println!(" {} {}", status, component);
             }
         }
         "status" => {
             if args.len() < 3 {
-                eprintln!("Usage: botserver status <component> [--container] [--tenant <name>]");
+                eprintln!("{}", t("cli-usage-status-synopsis"));
                 return Ok(());
             }
             let component = &args[2];
@@ -197,9 +217,15 @@ pub async fn run() -> Result<()> {
             };
             let pm = PackageManager::new(mode, tenant)?;
             if pm.is_installed(component) {
-                println!("* Component '{}' is installed", component);
+                println!(
+                    "* {}",
+                    t_args("cli-component-installed", &[("component", component.as_str())])
+                );
             } else {
-                println!("x Component '{}' is not installed", component);
+                println!(
+                    "x {}",
+                    t_args("cli-component-not-installed", &[("component", component.as_str())])
+                );
             }
         }
         "version" => {
@@ -208,8 +234,8 @@ pub async fn run() -> Result<()> {
         }
         "rotate-secret" => {
             if args.len() < 3 {
-                eprintln!("Usage: botserver rotate-secret <component>");
-                eprintln!("Components: tables, drive, cache, email, directory, encryption, jwt");
+                eprintln!("{}", t("cli-usage-rotate-secret-synopsis"));
+                eprintln!("{}", t("cli-rotate-components"));
                 return Ok(());
             }
             let component = &args[2];
@@ -220,8 +246,8 @@ pub async fn run() -> Result<()> {
             if rotate_all {
                 rotate_all_secrets().await?;
             } else {
-                eprintln!("Usage: botserver rotate-secrets --all");
-                eprintln!("This will rotate ALL secrets. Use with caution!");
+                eprintln!("{}", t("cli-usage-rotate-secrets-synopsis"));
+                eprintln!("{}", t("cli-rotate-secrets-warning"));
             }
         }
         "certs" => {
@@ -240,15 +266,15 @@ pub async fn run() -> Result<()> {
                     let tenant = args.iter().position(|a| a == "--tenant")
                         .and_then(|i| args.get(i + 1).cloned());
                     let pm = PackageManager::new(mode, tenant)?;
-                    println!("Generating all service certificates...");
+                    println!("{}", t("cli-certs-generating"));
                     certs_utils::generate_all_certs(&pm.base_path)?;
-                    println!("* All certificates generated successfully");
+                    println!("* {}", t("cli-certs-generated"));
                 }
                 "push" => {
                     let ssh_host = if let Some(idx) = args.iter().position(|a| a == "--ssh-host") {
                         args.get(idx + 1).map(|s| s.as_str())
                     } else {
-                        Some("10.0.0.1")
+                        Some(DEFAULT_SSH_HOST)
                     };
                     if let Some(host) = ssh_host {
                         let mode = if args.contains(&"--container".to_string()) {
@@ -259,18 +285,21 @@ pub async fn run() -> Result<()> {
                         let tenant = args.iter().position(|a| a == "--tenant")
                             .and_then(|i| args.get(i + 1).cloned());
                         let pm = PackageManager::new(mode, tenant)?;
-                        println!("Pushing certificates to containers via SSH to {}...", host);
+                        println!(
+                            "{}",
+                            t_args("cli-certs-pushing", &[("host", host)])
+                        );
                         certs_utils::push_all_certs_ssh(&pm.base_path, host)?;
-                        println!("* All certificates pushed successfully");
+                        println!("* {}", t("cli-certs-pushed"));
                     } else {
-                        eprintln!("Usage: botserver certs push --ssh-host <host-ip>");
+                        eprintln!("{}", t("cli-usage-certs-push-synopsis"));
                     }
                 }
                 "provision" => {
                     let ssh_host = if let Some(idx) = args.iter().position(|a| a == "--ssh-host") {
                         args.get(idx + 1).map(|s| s.as_str())
                     } else {
-                        Some("10.0.0.1")
+                        Some(DEFAULT_SSH_HOST)
                     };
                     if let Some(host) = ssh_host {
                         let mode = if args.contains(&"--container".to_string()) {
@@ -281,23 +310,29 @@ pub async fn run() -> Result<()> {
                         let tenant = args.iter().position(|a| a == "--tenant")
                             .and_then(|i| args.get(i + 1).cloned());
                         let pm = PackageManager::new(mode, tenant)?;
-                        println!("=== mTLS Certificate Provisioning ===");
-                        println!("Phase 1: Generating certificates...");
+                        println!("{}", t("cli-certs-provision-title"));
+                        println!("{}", t("cli-certs-phase1"));
                         certs_utils::generate_all_certs(&pm.base_path)?;
-                        println!("Phase 2: Pushing to containers via SSH to {}...", host);
+                        println!(
+                            "{}",
+                            t_args("cli-certs-phase2", &[("host", host)])
+                        );
                         certs_utils::push_all_certs_ssh(&pm.base_path, host)?;
-                        println!("* mTLS provisioning complete!");
+                        println!("* {}", t("cli-certs-provision-done"));
                         println!();
-                        println!("Next steps:");
-                        println!("  1. Restart each service to enable mTLS on dual ports");
-                        println!("  2. Update connection strings to use mTLS ports");
-                        println!("  3. Verify services still work on original ports");
+                        println!("{}", t("cli-certs-next-steps"));
+                        println!("  {}", t("cli-certs-next-restart"));
+                        println!("  {}", t("cli-certs-next-connection"));
+                        println!("  {}", t("cli-certs-next-verify"));
                     } else {
-                        eprintln!("Usage: botserver certs provision --ssh-host <host-ip>");
+                        eprintln!("{}", t("cli-usage-certs-provision-synopsis"));
                     }
                 }
                 _ => {
-                    eprintln!("Unknown certs command: {}", subcommand);
+                    eprintln!(
+                        "{}",
+                        t_args("cli-certs-unknown", &[("command", subcommand.as_str())])
+                    );
                     print_certs_usage();
                 }
             }
@@ -315,8 +350,8 @@ pub async fn run() -> Result<()> {
                 }
                 "put" => {
                     if args.len() < 4 {
-                        eprintln!("Usage: botserver vault put <path> [key=value] [key=value...]");
-                        eprintln!("       botserver vault put <path> (interactive mode - prompts for keys)");
+                        eprintln!("{}", t("cli-usage-vault-put-synopsis"));
+                        eprintln!("       {}", t("cli-usage-vault-put-interactive"));
                         return Ok(());
                     }
                     let path = &args[3];
@@ -325,7 +360,7 @@ pub async fn run() -> Result<()> {
                 }
                 "get" => {
                     if args.len() < 4 {
-                        eprintln!("Usage: botserver vault get <path> [key]");
+                        eprintln!("{}", t("cli-usage-vault-get-synopsis"));
                         return Ok(());
                     }
                     let path = &args[3];
@@ -339,7 +374,10 @@ pub async fn run() -> Result<()> {
                     vault_health().await?;
                 }
                 _ => {
-                    eprintln!("Unknown vault command: {}", subcommand);
+                    eprintln!(
+                        "{}",
+                        t_args("cli-vault-unknown", &[("command", subcommand.as_str())])
+                    );
                     print_vault_usage();
                 }
             }
@@ -351,7 +389,10 @@ pub async fn run() -> Result<()> {
             print_usage();
         }
         _ => {
-            eprintln!("Unknown command: {}", command);
+            eprintln!(
+                "{}",
+                t_args("cli-unknown-command", &[("command", command.as_str())])
+            );
             print_usage();
         }
     }

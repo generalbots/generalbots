@@ -380,7 +380,7 @@ pub(crate) async fn handle_signup(
 
     notifier::notify_welcome(&notifier::EmailVars::new(
         &body.name, &body.email, &chosen_plan, 0.0, "USD",
-    ));
+    ).with_locale(notifier::recipient_locale(body.locale.as_deref())));
 
     let header = base64_url_encode(b"{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
     let now_ts = (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp();

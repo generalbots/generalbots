@@ -54,13 +54,52 @@ pub struct RedeemVoucherRequest {
     pub code: String,
 }
 
+/// Alphabet of a voucher code: uppercase ASCII and digits, nothing that needs
+/// escaping in a URL or a chat message.
+const VOUCHER_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+/// Voucher codes are `GB<trial_days>-<8 random chars>`; the day count is part
+/// of the code so support can read the trial length without a database lookup.
+/// #2069 CLD-7 — the RNG is injected so the shape is testable.
+fn voucher_code_with<R: rand::Rng>(trial_days: i32, rng: &mut R) -> String {
+    let pick = |rng: &mut R| VOUCHER_ALPHABET[rng.random_range(0..VOUCHER_ALPHABET.len())] as char;
+    let mut suffix = String::with_capacity(8);
+    for _ in 0..8 {
+        suffix.push(pick(rng));
+    }
+    format!("GB{trial_days}-{suffix}")
+}
+
 pub fn generate_voucher_code(trial_days: i32) -> String {
-    use rand::Rng;
-    let mut rng = rand::rng();
-    let chars: Vec<char> = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".chars().collect();
-    let r1: String = (0..4).map(|_| chars[rng.random_range(0..chars.len())]).collect();
-    let r2: String = (0..4).map(|_| chars[rng.random_range(0..chars.len())]).collect();
-    format!("GB{}-{}{}", trial_days, r1, r2)
+    voucher_code_with(trial_days, &mut rand::rng())
+}
+
+/// Trial length a voucher may grant (inclusive bounds).
+pub(crate) const TRIAL_DAYS_RANGE: std::ops::RangeInclusive<i32> = 1..=180;
+
+/// #2069 CLD-8 — redemption policy, without a database handle.
+///
+/// Returns the rejection reason the endpoint reports, or `None` when the
+/// voucher may be redeemed. Precedence is exhausted → expired → duplicate.
+pub(crate) fn redemption_rejection(
+    uses_count: i32,
+    max_uses: i32,
+    expires_at: Option<DateTime<Utc>>,
+    already_redeemed: bool,
+    now: DateTime<Utc>,
+) -> Option<&'static str> {
+    if uses_count >= max_uses {
+        return Some("Voucher has reached its maximum uses");
+    }
+    if let Some(expiry) = expires_at {
+        if now > expiry {
+            return Some("Voucher has expired");
+        }
+    }
+    if already_redeemed {
+        return Some("Voucher already redeemed by this user");
+    }
+    None
 }
 
 /// `POST /api/cloud/vouchers`
@@ -96,7 +135,7 @@ pub async fn create_voucher(
     } else { None };
 
     let trial_days = body.trial_days;
-    if !(1..=180).contains(&trial_days) {
+    if !TRIAL_DAYS_RANGE.contains(&trial_days) {
         return Err((StatusCode::BAD_REQUEST, "Trial days must be between 1 and 180".to_string()));
     }
 
@@ -221,17 +260,8 @@ pub async fn redeem_voucher(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Voucher query: {e}")))?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "Voucher code not found".to_string()))?;
 
-    // 3. Validation checks
-    if voucher.uses_count >= voucher.max_uses {
-        return Err((StatusCode::BAD_REQUEST, "Voucher has reached its maximum uses".to_string()));
-    }
-    if let Some(expiry) = voucher.expires_at {
-        if Utc::now() > expiry {
-            return Err((StatusCode::BAD_REQUEST, "Voucher has expired".to_string()));
-        }
-    }
-
-    // Check duplicate redemption
+    // 3. Validation checks — one pure policy function, so the endpoint and the
+    // tests can never disagree about precedence (#2069 CLD-8).
     use crate::schema_ext::cloud_voucher_redemptions::dsl::{cloud_voucher_redemptions as cvr_tbl, voucher_id as cvid, contact_id as cctid};
     let already_redeemed = cvr_tbl
         .filter(cvid.eq(voucher.id))
@@ -240,8 +270,14 @@ pub async fn redeem_voucher(
         .optional()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Check redemption: {e}")))?;
 
-    if already_redeemed.is_some() {
-        return Err((StatusCode::BAD_REQUEST, "Voucher already redeemed by this user".to_string()));
+    if let Some(reason) = redemption_rejection(
+        voucher.uses_count,
+        voucher.max_uses,
+        voucher.expires_at,
+        already_redeemed.is_some(),
+        Utc::now(),
+    ) {
+        return Err((StatusCode::BAD_REQUEST, reason.to_string()));
     }
 
     // 4. Create trial subscription
@@ -340,3 +376,7 @@ pub async fn get_my_redemptions(
 
     Ok(Json(serde_json::json!({ "redemptions": redemptions })))
 }
+
+#[cfg(test)]
+#[path = "vouchers_tests.rs"]
+mod vouchers_tests;
