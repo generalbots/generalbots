@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-success-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,8 @@
    <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
   <link rel="stylesheet" href="/cloud/css/cloud-components.css">
   <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
 </head>
 <body>
 <div class="mgmt-auth">
@@ -25,17 +27,17 @@
       <div class="prism-triangle"></div>
       <div class="prism-spectrum"></div>
     </div>
-    <span class="split-pitch-tag">Payment confirmed</span>
-    <h2 class="split-pitch-title" style="margin-top:1.25rem;font-size:1.6rem">Your order is <span>complete</span></h2>
-    <p class="split-pitch-body" style="margin-top:.75rem">
+    <span class="split-pitch-tag" data-i18n="cloud-success-tag">Payment confirmed</span>
+    <h2 class="split-pitch-title" style="margin-top:1.25rem;font-size:1.6rem" data-i18n-html="cloud-success-pitch-title">Your order is <span>complete</span></h2>
+    <p class="split-pitch-body" style="margin-top:.75rem" data-i18n="cloud-success-pitch-body">
       Your services are being provisioned and will be ready shortly.
     </p>
   </div>
   <div class="mgmt-auth-right">
     <div class="mgmt-auth-card" style="text-align:center">
-      <h1>✓ Payment Successful</h1>
-      <p>Your organization is being provisioned. You'll receive access details shortly.</p>
-      <a href="/dashboard" class="btn-primary">Go to Dashboard</a>
+      <h1 data-i18n="cloud-success-title">✓ Payment Successful</h1>
+      <p data-i18n="cloud-success-body">Your organization is being provisioned. You'll receive access details shortly.</p>
+      <a href="/dashboard" class="btn-primary" data-i18n="cloud-success-dashboard">Go to Dashboard</a>
     </div>
   </div>
 </div>

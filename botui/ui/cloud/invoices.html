@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-invoices-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoices — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
 </head>
 <body class="mgmt-layout">
 
@@ -11,21 +13,21 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Invoices</span>
+      <span class="mgmt-page-title" data-i18n="cloud-invoices-title">Invoices</span>
     </div>
 
     <div style="padding:2rem">
       <div class="stats-row" style="grid-template-columns:repeat(3,1fr);max-width:500px;margin-bottom:1.5rem">
-        <div class="stat-card"><div class="stat-label">Total Due</div><div class="stat-value" id="inv-due">—</div></div>
-        <div class="stat-card"><div class="stat-label">Paid This Month</div><div class="stat-value" id="inv-paid">—</div></div>
-        <div class="stat-card"><div class="stat-label">Open</div><div class="stat-value" id="inv-open">—</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-invoices-total-due">Total Due</div><div class="stat-value" id="inv-due">—</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-invoices-paid-month">Paid This Month</div><div class="stat-value" id="inv-paid">—</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-invoices-open">Open</div><div class="stat-value" id="inv-open">—</div></div>
       </div>
 
       <div class="cat-pills" style="margin-bottom:1rem">
-        <button class="cat-pill active" onclick="filterInv(this,'all')">All</button>
-        <button class="cat-pill" onclick="filterInv(this,'paid')">Paid</button>
-        <button class="cat-pill" onclick="filterInv(this,'open')">Open</button>
-        <button class="cat-pill" onclick="filterInv(this,'overdue')">Overdue</button>
+        <button class="cat-pill active" onclick="filterInv(this,'all')" data-i18n="cloud-invoices-filter-all">All</button>
+        <button class="cat-pill" onclick="filterInv(this,'paid')" data-i18n="cloud-invoices-filter-paid">Paid</button>
+        <button class="cat-pill" onclick="filterInv(this,'open')" data-i18n="cloud-invoices-open">Open</button>
+        <button class="cat-pill" onclick="filterInv(this,'overdue')" data-i18n="cloud-invoices-filter-overdue">Overdue</button>
       </div>
 
       <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:auto">
@@ -33,10 +35,10 @@
           <thead>
             <tr>
               <th>#</th>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Status</th>
+              <th data-i18n="cloud-invoices-col-date">Date</th>
+              <th data-i18n="cloud-invoices-col-description">Description</th>
+              <th data-i18n="cloud-invoices-col-amount">Amount</th>
+              <th data-i18n="cloud-invoices-col-status">Status</th>
               <th></th>
             </tr>
           </thead>

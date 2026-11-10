@@ -72,7 +72,9 @@
       this.activeWindowId = null;
       this._updateDockActive();
       if (this.openWindows.length === 0) {
-        document.title = "General Bots Desktop";
+        document.title = window.gbT
+          ? window.gbT("desktop-document-title", "General Bots Desktop")
+          : "General Bots Desktop";
       }
     }
     document.dispatchEvent(new CustomEvent("gb-window-close", { detail: { id } }));

@@ -43,9 +43,17 @@ const AgentControl = (() => {
   function knownApps() {
     const registry = window.APPS_REGISTRY || [];
     if (registry.length) {
-      return registry.map((a) => ({ id: a.id, title: a.title || a.id }));
+      return registry.map((a) => ({
+        id: a.id,
+        title: window.gbAppTitle ? window.gbAppTitle(a) : a.title || a.id,
+      }));
     }
-    return [{ id: "default", title: "All apps" }];
+    return [
+      {
+        id: "default",
+        title: window.gbT ? window.gbT("agent-all-apps", "All apps") : "All apps",
+      },
+    ];
   }
 
   /* Ask the user once for a specific app+action. resolve(true) allows and
@@ -53,7 +61,8 @@ const AgentControl = (() => {
      floating tool window (VB6-style), never a modal or native dialog. */
   function ask(appId, action, reason, resolve) {
     const app = (window.APPS_REGISTRY || []).find((a) => a.id === appId);
-    const title = (app && app.title) || appId;
+    const title =
+      app && window.gbAppTitle ? window.gbAppTitle(app) : (app && app.title) || appId;
     const html =
       '<div class="gb-ac-ask">' +
       '<p>The desktop agent wants to <strong>' + escapeHtml(action) + "</strong> in “" + escapeHtml(title) + "”" +
@@ -152,7 +161,11 @@ const AgentControl = (() => {
         );
       }).join("");
       rows +=
-        "<tr><td><strong>" + escapeHtml(app.title) + "</strong><br><code>" + escapeHtml(app.id) + "</code></td>" +
+        "<tr><td><strong>" +
+        escapeHtml(window.gbAppTitle ? window.gbAppTitle(app) : app.title) +
+        "</strong><br><code>" +
+        escapeHtml(app.id) +
+        "</code></td>" +
         cells +
         "</tr>";
     }

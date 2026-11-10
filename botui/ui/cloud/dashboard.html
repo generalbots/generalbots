@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-dashboard-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .usage-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
@@ -32,43 +34,43 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Dashboard</span>
+      <span class="mgmt-page-title" data-i18n="cloud-dashboard-title">Dashboard</span>
       <div class="mgmt-topbar-actions">
-        <a href="/store" class="btn btn-primary btn-sm">+ Add Service</a>
+        <a href="/store" class="btn btn-primary btn-sm" data-i18n="cloud-add-service">+ Add Service</a>
       </div>
     </div>
 
     <div style="padding:2rem">
       <!-- STATS -->
       <div class="stats-row" id="stats-row">
-        <div class="stat-card"><div class="stat-label">Active Services</div><div class="stat-value" id="stat-services">—</div><div class="stat-delta">running</div></div>
-        <div class="stat-card"><div class="stat-label">Monthly Spend</div><div class="stat-value" id="stat-spend">—</div><div class="stat-delta">this cycle</div></div>
-        <div class="stat-card"><div class="stat-label">Open Invoices</div><div class="stat-value" id="stat-invoices">—</div><div class="stat-delta">unpaid</div></div>
-        <div class="stat-card"><div class="stat-label">Organization</div><div class="stat-value" id="stat-org" style="font-size:1rem;line-height:1.4">—</div><div class="stat-delta" id="stat-plan-badge">active</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-stat-active-services">Active Services</div><div class="stat-value" id="stat-services">—</div><div class="stat-delta" data-i18n="cloud-stat-active-services-note">running</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-stat-monthly-spend">Monthly Spend</div><div class="stat-value" id="stat-spend">—</div><div class="stat-delta" data-i18n="cloud-stat-monthly-spend-note">this cycle</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-stat-open-invoices">Open Invoices</div><div class="stat-value" id="stat-invoices">—</div><div class="stat-delta" data-i18n="cloud-stat-open-invoices-note">unpaid</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="cloud-stat-organization">Organization</div><div class="stat-value" id="stat-org" style="font-size:1rem;line-height:1.4">—</div><div class="stat-delta" id="stat-plan-badge">active</div></div>
       </div>
 
       <!-- USAGE BARS -->
       <div class="mgmt-section-header">
-        <div><div class="mgmt-section-title">Usage</div><div class="mgmt-section-sub">Current plan limits and consumption</div></div>
+        <div><div class="mgmt-section-title" data-i18n="cloud-usage-title">Usage</div><div class="mgmt-section-sub" data-i18n="cloud-usage-subtitle">Current plan limits and consumption</div></div>
       </div>
       <div class="usage-grid" id="usage-grid">
         <div class="usage-card">
-          <div class="usage-label"><span>Messages Today</span><span id="usage-msgs-label">0 / —</span></div>
+          <div class="usage-label"><span data-i18n="cloud-usage-messages">Messages Today</span><span id="usage-msgs-label">0 / —</span></div>
           <div class="usage-bar"><div class="usage-bar-fill" id="usage-msgs-bar" style="width:0%"></div></div>
           <div class="usage-value" id="usage-msgs-note">Free: 10 msg/day · Shared: unlimited</div>
         </div>
         <div class="usage-card">
-          <div class="usage-label"><span>Storage</span><span id="usage-storage-label">0 GB / 50 GB</span></div>
+          <div class="usage-label"><span data-i18n="cloud-usage-storage">Storage</span><span id="usage-storage-label">0 GB / 50 GB</span></div>
           <div class="usage-bar"><div class="usage-bar-fill" id="usage-storage-bar" style="width:0%"></div></div>
           <div class="usage-value" id="usage-storage-note">Pool storage across all workspaces</div>
         </div>
         <div class="usage-card">
-          <div class="usage-label"><span>Workspaces</span><span id="usage-ws-label">0 / 5</span></div>
+          <div class="usage-label"><span data-i18n="cloud-usage-workspaces">Workspaces</span><span id="usage-ws-label">0 / 5</span></div>
           <div class="usage-bar"><div class="usage-bar-fill" id="usage-ws-bar" style="width:0%"></div></div>
           <div class="usage-value" id="usage-ws-note">Shared max: 5 · Private Cloud: unlimited</div>
         </div>
         <div class="usage-card">
-          <div class="usage-label"><span>Organizations</span><span id="usage-org-label">0 / 5</span></div>
+          <div class="usage-label"><span data-i18n="cloud-usage-organizations">Organizations</span><span id="usage-org-label">0 / 5</span></div>
           <div class="usage-bar"><div class="usage-bar-fill" id="usage-org-bar" style="width:0%"></div></div>
           <div class="usage-value" id="usage-org-note">Shared max: 5 · Private Cloud: unlimited</div>
         </div>
@@ -76,10 +78,10 @@
 
       <!-- YOUR BOTS -->
       <div class="mgmt-section-header" style="margin-top:1rem">
-        <div><div class="mgmt-section-title">Your Bots</div><div class="mgmt-section-sub">Direct links to your chatbots</div></div>
+        <div><div class="mgmt-section-title" data-i18n="cloud-your-bots">Your Bots</div><div class="mgmt-section-sub" data-i18n="cloud-your-bots-subtitle">Direct links to your chatbots</div></div>
       </div>
       <div id="bots-grid" style="margin-bottom:1.5rem;font-size:.82rem">
-        <span style="color:var(--muted)">Loading...</span>
+        <span style="color:var(--muted)" data-i18n="cloud-loading">Loading...</span>
       </div>
 
       <!-- UPGRADE PATH -->
@@ -94,76 +96,76 @@
           <div class="upgrade-title" id="upgrade-title">Go Shared or Private Cloud</div>
           <div class="upgrade-desc" id="upgrade-desc">Upgrade to unlock dedicated VPS, unlimited workspaces, GPU access, phone numbers, domains, and more. Starting at $3.99/mo.</div>
           <div class="upgrade-features" id="upgrade-features">
-            <span class="upgrade-feature">More Messages</span>
-            <span class="upgrade-feature">Unlimited Workspaces</span>
-            <span class="upgrade-feature">GPU Access</span>
-            <span class="upgrade-feature">BYOK + Tokens</span>
-            <span class="upgrade-feature">Priority Support</span>
+            <span class="upgrade-feature" data-i18n="cloud-upgrade-feature-messages">More Messages</span>
+            <span class="upgrade-feature" data-i18n="cloud-upgrade-feature-workspaces">Unlimited Workspaces</span>
+            <span class="upgrade-feature" data-i18n="cloud-upgrade-feature-gpu">GPU Access</span>
+            <span class="upgrade-feature" data-i18n="cloud-upgrade-feature-byok">BYOK + Tokens</span>
+            <span class="upgrade-feature" data-i18n="cloud-upgrade-feature-support">Priority Support</span>
           </div>
         </div>
         <div>
-          <a href="/offers" class="btn btn-primary" id="upgrade-btn">View Offers</a>
+          <a href="/offers" class="btn btn-primary" id="upgrade-btn" data-i18n="cloud-view-offers">View Offers</a>
         </div>
       </div>
 
       <!-- QUICK LAUNCH (paid) -->
       <div class="mgmt-section-header" id="quick-launch-header">
-        <div><div class="mgmt-section-title">Quick Launch</div><div class="mgmt-section-sub" id="quick-launch-sub">Most popular add-ons</div></div>
+        <div><div class="mgmt-section-title" data-i18n="cloud-quick-launch">Quick Launch</div><div class="mgmt-section-sub" id="quick-launch-sub" data-i18n="cloud-quick-launch-subtitle">Most popular add-ons</div></div>
       </div>
       <div id="quick-launch-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin-bottom:2rem">
         <a href="/store/compute" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h6"/><path d="M9 19h6"/></svg></div>
-          <div class="store-cat">Compute</div>
-          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)">VPS Server</div>
+          <div class="store-cat" data-i18n="cloud-cat-compute">Compute</div>
+          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)" data-i18n="cloud-product-vps">VPS Server</div>
           <div class="store-price">$9.99 <small>/mo</small></div>
         </a>
         <a href="/store/storage" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg></div>
-          <div class="store-cat">Storage</div>
-          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)">Object Storage</div>
+          <div class="store-cat" data-i18n="cloud-cat-storage">Storage</div>
+          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)" data-i18n="cloud-product-object-storage">Object Storage</div>
           <div class="store-price">$9.99 <small>/mo</small></div>
         </a>
         <a href="/store/comms" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
-          <div class="store-cat">Communications</div>
-          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)">Phone Number</div>
+          <div class="store-cat" data-i18n="cloud-cat-communications">Communications</div>
+          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)" data-i18n="cloud-product-phone-number">Phone Number</div>
           <div class="store-price">$5.99 <small>/mo</small></div>
         </a>
         <a href="/store/apps" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
-          <div class="store-cat">Domains</div>
-          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)">.com Domain</div>
+          <div class="store-cat" data-i18n="cloud-cat-domains">Domains</div>
+          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)" data-i18n="cloud-product-domain-com">.com Domain</div>
           <div class="store-price">$21.99 <small>/yr</small></div>
         </a>
         <a href="/appstores" class="store-card" style="text-decoration:none">
           <div class="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-          <div class="store-cat">Publishing</div>
-          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)">App Store Publishing</div>
-          <div class="store-price">From $125</div>
+          <div class="store-cat" data-i18n="cloud-cat-publishing">Publishing</div>
+          <div class="store-card h3" style="font-size:.95rem;font-weight:700;color:var(--text)" data-i18n="cloud-product-app-publishing">App Store Publishing</div>
+          <div class="store-price" data-i18n="cloud-price-from">From $125</div>
         </a>
       </div>
 
       <!-- RECENT SERVICES -->
       <div class="mgmt-section-header">
-        <div><div class="mgmt-section-title">Recent Services</div></div>
-        <a href="/services" class="btn btn-ghost btn-sm">View all</a>
+        <div><div class="mgmt-section-title" data-i18n="cloud-recent-services">Recent Services</div></div>
+        <a href="/services" class="btn btn-ghost btn-sm" data-i18n="cloud-view-all">View all</a>
       </div>
       <div class="services-list" id="recent-services">
         <div class="mgmt-empty">
           <div class="mgmt-empty-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4v10l8 4 8-4V7z"/><path d="M12 11v6"/><path d="M8 9v2"/><path d="M16 9v2"/></svg></div>
-          No services yet. <a href="/store" style="color:var(--accent)">Browse the store</a> to get started.
+          <span data-i18n-html="cloud-no-services-empty">No services yet. <a href="/store" style="color:var(--accent)">Browse the store</a> to get started.</span>
         </div>
       </div>
 
       <!-- PRODUCT CATALOG -->
       <div class="mgmt-section-header">
-        <div><div class="mgmt-section-title">Product Catalog</div><div class="mgmt-section-sub">Products recorded in the default org</div></div>
-        <a href="/store" class="btn btn-ghost btn-sm">Browse Store</a>
+        <div><div class="mgmt-section-title" data-i18n="cloud-product-catalog">Product Catalog</div><div class="mgmt-section-sub" data-i18n="cloud-product-catalog-subtitle">Products recorded in the default org</div></div>
+        <a href="/store" class="btn btn-ghost btn-sm" data-i18n="cloud-browse-store">Browse Store</a>
       </div>
       <div class="products-grid" id="catalog-products" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-bottom:2rem">
         <div class="mgmt-empty" style="grid-column:1/-1">
           <div class="mgmt-empty-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
-          Loading products...
+          <span data-i18n="cloud-loading-products">Loading products...</span>
         </div>
       </div>
     </div>
@@ -173,6 +175,8 @@
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
+  // #2090 — dynamic dashboard copy resolves through the catalogue.
+  const t = (key, fallback) => (window.gbT ? window.gbT(key, fallback) : fallback);
   const token = requireAuth();
   if (!token) return;
   // Kept local: cloud pages tokenize from management_token (cloud getToken()).
@@ -197,13 +201,17 @@
       const totalSpend = (services || []).reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
       document.getElementById('stat-spend').textContent = '$' + totalSpend.toFixed(2);
 
-      const orgName = orgs.length ? orgs[0].name : 'No organization';
+      const orgName = orgs.length ? orgs[0].name : (window.gbT ? gbT('cloud-no-organization', 'No organization') : 'No organization');
       document.getElementById('stat-org').innerHTML = '<a href="/organizations" style="color:var(--text);text-decoration:none" title="Manage organizations">' + orgName + (orgs.length > 1 ? ' <small style="color:var(--muted)">+' + (orgs.length-1) + '</small>' : '') + '</a>';
 
       // Plan badge
       const currentPlan = orgs.length ? (orgs[0].plan || 'free') : 'free';
       const badge = document.getElementById('stat-plan-badge');
-      const planLabels = { free: 'Free Plan', shared: 'Shared Plan', 'private-cloud': 'Private Cloud' };
+      const planLabels = {
+        free: window.gbT ? gbT('cloud-plan-free', 'Free Plan') : 'Free Plan',
+        shared: window.gbT ? gbT('cloud-plan-shared', 'Shared Plan') : 'Shared Plan',
+        'private-cloud': window.gbT ? gbT('cloud-plan-private', 'Private Cloud') : 'Private Cloud',
+      };
       badge.textContent = planLabels[currentPlan] || currentPlan;
       badge.style.fontWeight = '600';
 
@@ -222,18 +230,30 @@
         const ud = document.getElementById('upgrade-desc');
         const uf = document.getElementById('upgrade-features');
         const ub = document.getElementById('upgrade-btn');
-        if (ut) ut.textContent = 'Go Shared Plan';
-        if (ud) ud.textContent = 'Upgrade to Shared Plan ($3.99/mo) for more messages, phone numbers, domains, and LLM access.';
-        if (uf) uf.innerHTML = '<span class="upgrade-feature">More Messages</span><span class="upgrade-feature">Phone Numbers</span><span class="upgrade-feature">Domains</span><span class="upgrade-feature">BYOK</span><span class="upgrade-feature">LLM Models</span>';
-        if (ub) ub.textContent = 'See Plans';
+        if (ut) ut.textContent = t('cloud-plan-upgrade-shared-title', 'Go Shared Plan');
+        if (ud) ud.textContent = t('cloud-plan-upgrade-shared-desc', 'Upgrade to Shared Plan ($3.99/mo) for more messages, phone numbers, domains, and LLM access.');
+        if (uf) uf.innerHTML = [
+          t('cloud-upgrade-feature-messages', 'More Messages'),
+          t('cloud-upgrade-feature-phone', 'Phone Numbers'),
+          t('cloud-upgrade-feature-domains', 'Domains'),
+          t('cloud-upgrade-feature-byok-only', 'BYOK'),
+          t('cloud-upgrade-feature-llm', 'LLM Models'),
+        ].map(function (label) { return '<span class="upgrade-feature">' + label + '</span>'; }).join('');
+        if (ub) ub.textContent = t('cloud-plan-see-plans', 'See Plans');
       } else {
         // Shared: upgrade card points to Private Cloud, Quick Launch stays
         const ut = document.getElementById('upgrade-title');
         const ud = document.getElementById('upgrade-desc');
         const uf = document.getElementById('upgrade-features');
-        if (ut) ut.textContent = 'Go Private Cloud';
-        if (ud) ud.textContent = 'Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $9.99/mo.';
-        if (uf) uf.innerHTML = '<span class="upgrade-feature">Dedicated VPS</span><span class="upgrade-feature">Unlimited Workspaces</span><span class="upgrade-feature">GPU Access</span><span class="upgrade-feature">BYOK + Tokens</span><span class="upgrade-feature">Priority Support</span>';
+        if (ut) ut.textContent = t('cloud-plan-upgrade-private-title', 'Go Private Cloud');
+        if (ud) ud.textContent = t('cloud-plan-upgrade-private-desc', 'Upgrade to Private Cloud for dedicated VPS, unlimited workspaces, and exclusive GPU access. Starting at $9.99/mo.');
+        if (uf) uf.innerHTML = [
+          t('cloud-upgrade-feature-vps', 'Dedicated VPS'),
+          t('cloud-upgrade-feature-workspaces', 'Unlimited Workspaces'),
+          t('cloud-upgrade-feature-gpu', 'GPU Access'),
+          t('cloud-upgrade-feature-byok', 'BYOK + Tokens'),
+          t('cloud-upgrade-feature-support', 'Priority Support'),
+        ].map(function (label) { return '<span class="upgrade-feature">' + label + '</span>'; }).join('');
       }
 
       // Update plan note on usage bars
@@ -242,20 +262,20 @@
       const wsNote = document.getElementById('usage-ws-note');
       const orgNote = document.getElementById('usage-org-note');
       if (currentPlan === 'free') {
-        if (msgsNote) msgsNote.textContent = 'Free: 10 msg/day. Upgrade for more.';
-        if (storageNote) storageNote.textContent = 'Free: 50 MB. Upgrade for more.';
-        if (wsNote) wsNote.textContent = 'Free: 1 workspace. Upgrade for more.';
-        if (orgNote) orgNote.textContent = 'Single organization on Free plan.';
+        if (msgsNote) msgsNote.textContent = t('cloud-usage-free-messages', 'Free: 10 msg/day. Upgrade for more.');
+        if (storageNote) storageNote.textContent = t('cloud-usage-free-storage', 'Free: 50 MB. Upgrade for more.');
+        if (wsNote) wsNote.textContent = t('cloud-usage-free-workspaces', 'Free: 1 workspace. Upgrade for more.');
+        if (orgNote) orgNote.textContent = t('cloud-usage-free-orgs', 'Single organization on Free plan.');
       } else if (currentPlan === 'shared') {
-        if (msgsNote) msgsNote.textContent = 'Shared: 100 msg/day. Private Cloud: unlimited.';
-        if (storageNote) storageNote.textContent = 'Pool storage across all workspaces.';
-        if (wsNote) wsNote.textContent = 'Shared max: 5. Private Cloud: unlimited.';
-        if (orgNote) orgNote.textContent = 'Shared max: 5 orgs. Private Cloud: unlimited.';
+        if (msgsNote) msgsNote.textContent = t('cloud-usage-shared-messages', 'Shared: 100 msg/day. Private Cloud: unlimited.');
+        if (storageNote) storageNote.textContent = t('cloud-usage-shared-storage', 'Pool storage across all workspaces.');
+        if (wsNote) wsNote.textContent = t('cloud-usage-shared-workspaces', 'Shared max: 5. Private Cloud: unlimited.');
+        if (orgNote) orgNote.textContent = t('cloud-usage-shared-orgs', 'Shared max: 5 orgs. Private Cloud: unlimited.');
       } else if (currentPlan === 'private-cloud') {
-        if (msgsNote) msgsNote.textContent = 'Tenant admin: unlimited.';
-        if (storageNote) storageNote.textContent = 'Tenant admin: unlimited storage.';
-        if (wsNote) wsNote.textContent = 'Tenant admin: unlimited workspaces.';
-        if (orgNote) orgNote.textContent = 'Tenant admin: unlimited organizations.';
+        if (msgsNote) msgsNote.textContent = t('cloud-usage-tenant-unlimited', 'Tenant admin: unlimited.');
+        if (storageNote) storageNote.textContent = t('cloud-usage-tenant-storage', 'Tenant admin: unlimited storage.');
+        if (wsNote) wsNote.textContent = t('cloud-usage-tenant-workspaces', 'Tenant admin: unlimited workspaces.');
+        if (orgNote) orgNote.textContent = t('cloud-usage-tenant-orgs', 'Tenant admin: unlimited organizations.');
       }
 
       // Usage bars with plan-aware limits
@@ -286,17 +306,17 @@
       document.getElementById('usage-msgs-bar').style.width = '5%';
       document.getElementById('usage-msgs-bar').className = 'usage-bar-fill';
 
-      document.getElementById('usage-storage-label').textContent = planLimits.storage === 'Unlimited' ? '0 GB / Unlimited' : '0 GB / ' + planLimits.storage + ' GB';
+      document.getElementById('usage-storage-label').textContent = planLimits.storage === 'Unlimited' ? '0 GB / ' + t('cloud-unlimited', 'Unlimited') : '0 GB / ' + planLimits.storage + ' GB';
       const storagePct = planLimits.storage === 'Unlimited' ? 0 : Math.min((storageGB / planLimits.storage) * 100, 100);
       document.getElementById('usage-storage-bar').style.width = storagePct + '%';
       document.getElementById('usage-storage-bar').className = 'usage-bar-fill' + (storagePct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-ws-label').textContent = planLimits.workspaces === 'Unlimited' ? '0 / Unlimited' : wsCount + ' / ' + planLimits.workspaces;
+      document.getElementById('usage-ws-label').textContent = planLimits.workspaces === 'Unlimited' ? '0 / ' + t('cloud-unlimited', 'Unlimited') : wsCount + ' / ' + planLimits.workspaces;
       const wsPct = planLimits.workspaces === 'Unlimited' ? 0 : Math.min((wsCount / planLimits.workspaces) * 100, 100);
       document.getElementById('usage-ws-bar').style.width = wsPct + '%';
       document.getElementById('usage-ws-bar').className = 'usage-bar-fill' + (wsPct > 80 ? ' warning' : '');
 
-      document.getElementById('usage-org-label').textContent = planLimits.orgs === 'Unlimited' ? orgCount + ' / Unlimited' : orgCount + ' / ' + planLimits.orgs;
+      document.getElementById('usage-org-label').textContent = planLimits.orgs === 'Unlimited' ? orgCount + ' / ' + t('cloud-unlimited', 'Unlimited') : orgCount + ' / ' + planLimits.orgs;
       const orgPct = planLimits.orgs === 'Unlimited' ? 0 : Math.min((orgCount / planLimits.orgs) * 100, 100);
       document.getElementById('usage-org-bar').style.width = orgPct + '%';
       document.getElementById('usage-org-bar').className = 'usage-bar-fill' + (orgPct > 80 ? ' warning' : '');
@@ -322,12 +342,12 @@
   async function loadBots() {
     try {
       const res = await cloudFetch('/api/cloud/bots');
-      if (!res.ok) { document.getElementById('bots-grid').textContent = 'Could not load bots'; return; }
+      if (!res.ok) { document.getElementById('bots-grid').textContent = t('cloud-error-load-bots', 'Could not load bots'); return; }
       const data = await res.json();
       const bots = data.bots || [];
       const grid = document.getElementById('bots-grid');
       if (!grid) return;
-      if (bots.length === 0) { grid.innerHTML = '<span style="color:var(--muted)">No bots yet.</span>'; return; }
+      if (bots.length === 0) { grid.innerHTML = '<span style="color:var(--muted)">' + t('cloud-no-bots', 'No bots yet.') + '</span>'; return; }
       const platform = window.GB_PLATFORM_DOMAIN;
       const chatBase = window.GB_CHAT_URL || 'http://localhost:3000';
       grid.innerHTML = bots.map(b => {
@@ -342,7 +362,7 @@
           '<span onclick="navigator.clipboard.writeText(\'' + chatUrl + '\').then(()=>{this.textContent=\'Copied\';setTimeout(()=>this.textContent=\'\uD83D\uDCCB\',1200)}).catch(()=>{})" style="cursor:pointer;color:var(--muted)" title="Copy link">\uD83D\uDCCB</span>' +
           '</span>';
       }).join('');
-    } catch(e) { document.getElementById('bots-grid').textContent = 'Error loading bots'; }
+    } catch(e) { document.getElementById('bots-grid').textContent = t('cloud-error-loading-bots', 'Error loading bots'); }
   }
 
   await loadBots();

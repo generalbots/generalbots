@@ -52,6 +52,20 @@ function notifyParentSuccess(token, email, name) {
   } catch (_) { /* parent may be cross-origin and unreachable */ }
 }
 
+// #2090 — login/signup errors and busy labels come from the catalogue; the
+// authored English stays as the fallback.
+function currentLocale() {
+  try {
+    return localStorage.getItem('gb-locale') || navigator.language || 'en';
+  } catch (e) {
+    return 'en';
+  }
+}
+
+function _t(key, fallback, params) {
+  return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
+
 async function handleLogin(e) {
   e.preventDefault();
   const btn   = document.getElementById('login-btn');
@@ -59,7 +73,7 @@ async function handleLogin(e) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
-  btn.textContent = 'Signing in…';
+  btn.textContent = _t('login-signing-in', 'Signing in…');
   btn.disabled = true;
   errEl.style.display = 'none';
 
@@ -71,7 +85,9 @@ async function handleLogin(e) {
     const attempt = (base) => fetch(base + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      // #2090 — carry the chosen locale so the first dashboard render can
+      // already be localized (the server ignores unknown fields today).
+      body: JSON.stringify({ email, password, locale: currentLocale() }),
     });
     let res = await attempt(API_BASE);
     if (res.status === 404) {
@@ -81,13 +97,13 @@ async function handleLogin(e) {
     let data = {};
     try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || data.error || 'Login failed. Check your credentials.';
+      errEl.textContent = data.detail || data.error || _t('login-error-failed', 'Login failed. Check your credentials.');
       errEl.style.display = 'block';
       return;
     }
     const token = data.token || data.access_token;
     if (!token) {
-      errEl.textContent = 'Login succeeded but no session token was returned.';
+      errEl.textContent = _t('login-error-no-token', 'Login succeeded but no session token was returned.');
       errEl.style.display = 'block';
       return;
     }
@@ -100,10 +116,10 @@ async function handleLogin(e) {
     var dest = resolveRedirect() || (CLOUD_CONFIG.baseUrl + '/dashboard');
     window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = _t('login-error-network', 'Network error: {error}', { error: err.message });
     errEl.style.display = 'block';
   } finally {
-    btn.textContent = 'Sign In';
+    btn.textContent = _t('login-submit', 'Sign In');
     btn.disabled = false;
   }
 }
@@ -124,7 +140,7 @@ async function handleSignup(e) {
   const templateSelect = document.getElementById('bot-template');
   const template = templateSelect ? templateSelect.value : '';
 
-  btn.textContent = 'Creating account…';
+  btn.textContent = _t('signup-creating', 'Creating account…');
   btn.disabled = true;
   errEl.style.display = 'none';
 
@@ -132,13 +148,16 @@ async function handleSignup(e) {
     const res = await fetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, bot_name: botName, password, plan, template }),
+      body: JSON.stringify({
+        email, name, bot_name: botName, password, plan, template,
+        locale: currentLocale(),
+      }),
     });
     const text = await res.text();
     let data = {};
     try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || 'Signup failed.';
+      errEl.textContent = data.detail || _t('signup-error-failed', 'Signup failed.');
       errEl.style.display = 'block';
       return;
     }
@@ -158,10 +177,10 @@ async function handleSignup(e) {
     var dest = resolveRedirect() || (plan === 'private-cloud' ? CLOUD_CONFIG.baseUrl + '/store' : CLOUD_CONFIG.baseUrl + '/dashboard');
     window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(emailOut) + '&name=' + encodeURIComponent(data.account?.name || name);
   } catch (err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = _t('login-error-network', 'Network error: {error}', { error: err.message });
     errEl.style.display = 'block';
   } finally {
-    btn.textContent = 'Create Account';
+    btn.textContent = _t('signup-submit', 'Create Account');
     btn.disabled = false;
   }
 }
@@ -192,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var isPrivate = el.querySelector('input[name="plan"]')?.value === 'private-cloud';
       if (infoEl) infoEl.style.display = isPrivate ? 'block' : 'none';
       // All plans use "Create Account" — private redirects to store after signup
-      if (btn) btn.textContent = 'Create Account';
+      if (btn) btn.textContent = _t('signup-submit', 'Create Account');
     });
   });
 });

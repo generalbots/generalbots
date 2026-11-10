@@ -99,11 +99,13 @@
 
   function appTitle(id) {
     var app = appMeta(id);
+    if (app && window.gbAppTitle) return window.gbAppTitle(app);
     return (app && app.title) || String(id || "");
   }
 
   function appDescription(id) {
     var app = appMeta(id);
+    if (app && window.gbAppDesc) return window.gbAppDesc(app);
     return (app && app.description) || "";
   }
 

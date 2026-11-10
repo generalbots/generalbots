@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-services-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Services — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
 </head>
 <body class="mgmt-layout">
 
@@ -11,20 +13,20 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">My Services</span>
+      <span class="mgmt-page-title" data-i18n="cloud-services-title">My Services</span>
       <div class="mgmt-topbar-actions">
-        <a href="/store" class="btn btn-primary btn-sm">+ Add Service</a>
+        <a href="/store" class="btn btn-primary btn-sm" data-i18n="cloud-add-service">+ Add Service</a>
       </div>
     </div>
 
     <div style="padding:2rem">
       <!-- Filter tabs -->
       <div class="cat-pills" id="filter-pills">
-        <button class="cat-pill active" onclick="filterServices(this,'all')">All</button>
-        <button class="cat-pill" onclick="filterServices(this,'compute')">VPS / GPU</button>
-        <button class="cat-pill" onclick="filterServices(this,'storage')">Storage</button>
-        <button class="cat-pill" onclick="filterServices(this,'number')">Numbers</button>
-        <button class="cat-pill" onclick="filterServices(this,'domain')">Domains</button>
+        <button class="cat-pill active" onclick="filterServices(this,'all')" data-i18n="cloud-services-filter-all">All</button>
+        <button class="cat-pill" onclick="filterServices(this,'compute')" data-i18n="cloud-services-filter-compute">VPS / GPU</button>
+        <button class="cat-pill" onclick="filterServices(this,'storage')" data-i18n="cloud-services-filter-storage">Storage</button>
+        <button class="cat-pill" onclick="filterServices(this,'number')" data-i18n="cloud-services-filter-numbers">Numbers</button>
+        <button class="cat-pill" onclick="filterServices(this,'domain')" data-i18n="cloud-services-filter-domains">Domains</button>
       </div>
 
       <div class="services-list" id="services-list">

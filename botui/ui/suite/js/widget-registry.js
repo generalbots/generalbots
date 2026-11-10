@@ -200,7 +200,9 @@
       SYSTEM_WIDGETS.forEach(function (def) {
         var item = document.createElement("div");
         item.className = "desktop-context-item";
-        item.textContent = def.title;
+        item.textContent = window.gbAppTitle
+          ? window.gbAppTitle({ id: def.id, title: def.title })
+          : def.title;
         item.addEventListener("click", function () {
           API.addSystem(def.id);
           menu.remove();
@@ -234,7 +236,9 @@
       addInstance({
         id: existingId,
         kind: "system",
-        title: def.title,
+        title: window.gbAppTitle
+          ? window.gbAppTitle({ id: def.id, title: def.title })
+          : def.title,
         partial: def.partial,
         w: def.w,
         h: def.h,
@@ -251,7 +255,7 @@
         id: "app-" + appId,
         kind: "app",
         appId: appId,
-        title: app.title,
+        title: window.gbAppTitle ? window.gbAppTitle(app) : app.title,
         w: 420,
         h: 320,
         x: pos.x,

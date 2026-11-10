@@ -196,9 +196,10 @@
 
   _appTileHTML(app) {
     const iconColor = app.color || "#88ccff";
-    return `<div class="start-menu-app" data-app-id="${app.id}" onclick="window.WindowManager.launchFromMenu('${app.id}', '${app.title.replace(/'/g, "\\'")}', '${app.hxGet}')">
+    const label = window.gbAppTitle ? window.gbAppTitle(app) : app.title;
+    return `<div class="start-menu-app" data-app-id="${app.id}" onclick="window.WindowManager.launchFromMenu('${app.id}', '${label.replace(/'/g, "\\'")}', '${app.hxGet}')">
       <div class="start-menu-app-icon" style="background:${iconColor}22;color:${iconColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg></div>
-      <div class="start-menu-app-label">${app.title}</div>
+      <div class="start-menu-app-label">${label}</div>
     </div>`;
   },
 

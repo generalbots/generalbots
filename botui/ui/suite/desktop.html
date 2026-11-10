@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"> <head>
+<html lang="en" data-i18n-document-title="desktop-document-title"> <head>
 <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>General Bots Desktop</title> <link rel="manifest" href="/manifest.webmanifest" />
 <script src="/suite/desktop-inline/01_boot_flags.js"></script> <!-- AUTH GATE: hide the shell until the bot public/auth check resolves.
@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=6" /> <link rel="stylesheet" href="/suite/js/multitasking.css?v=1" />
 <link rel="stylesheet" href="/suite/js/chrome.css?v=1" /> <!-- Local JS requirements per AGENTS.md / UI.md -->
 <script src="/suite/js/vendor/htmx.min.js"></script> <script src="/suite/js/gb-shared.js"></script> <script src="/suite/js/gb-icons.js?v=1"></script>
-<script src="/suite/js/i18n.js?v=9"></script> <script src="/suite/js/i18n-format.js?v=1"></script> <link rel="stylesheet" href="/suite/css/tour.css?v=1" /> <script src="/suite/js/tour.js?v=2"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
+<script src="/suite/js/i18n.js?v=9"></script> <script src="/suite/js/app-i18n.js?v=1"></script> <script src="/suite/js/i18n-format.js?v=1"></script> <link rel="stylesheet" href="/suite/css/tour.css?v=1" /> <script src="/suite/js/tour.js?v=2"></script> <script src="/suite/js/security-bootstrap/01_tokens.js?v=6"></script>
 <script src="/suite/js/security-bootstrap/02_interceptors.js?v=6"></script> <script src="/suite/js/security-bootstrap/99_init.js?v=6"></script>
 <script src="/suite/js/vendor/marked.min.js"></script> <script src="/suite/js/window-manager/01_registry.js?v=131"></script>
 <script src="/suite/js/window-manager/02_class_core.js?v=131"></script> <script src="/suite/js/window-manager/03_window_chrome.js?v=131"></script>
@@ -57,7 +57,7 @@
 </div> <link rel="stylesheet" href="/suite/desktop-inline/04_boot_splash.css">
 <script src="/suite/desktop-inline/03_boot_splash.js"></script> <!-- Minibar removed - login moved to taskbar -->
 <div class="build-container"> <!-- Sidebar (v16) — Claude/zo.computer style: app links + chat history -->
-<aside class="chat-sidebar" id="chatSidebar"> <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle sidebar">
+<aside class="chat-sidebar" id="chatSidebar"> <div class="chat-sidebar-toggle" onclick="toggleChatSidebar()" title="Toggle sidebar" data-i18n-title="sidebar-toggle">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <rect x="3" y="4" width="18" height="16" rx="2"/>
 <line x1="9" y1="4" x2="9" y2="20"/> </svg>
 </div> <div class="chat-sidebar-content">
@@ -69,14 +69,14 @@
 <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav> <div class="chat-sidebar-section-label" data-i18n="sidebar-conversations">Conversations</div>
 <div class="chat-sidebar-conversations" id="chatConversations"></div> <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
 <div class="chat-sidebar-user" id="sidebarUser"></div> </div>
-<div class="chat-sidebar-collapsed-icons"> <div class="chat-sidebar-collapsed-icon" title="Chat" onclick="window.openDeepLink('chat', {})">
+<div class="chat-sidebar-collapsed-icons"> <div class="chat-sidebar-collapsed-icon" title="Chat" data-i18n-title="sidebar-collapsed-chat" onclick="window.openDeepLink('chat', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> </div>
-<div class="chat-sidebar-collapsed-icon" title="Terminal" data-terminal-shortcut onclick="window.openDeepLink('terminal', {})"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-</div> <div class="chat-sidebar-collapsed-icon" title="Drive" onclick="window.openDeepLink && window.openDeepLink('drive', {})">
+<div class="chat-sidebar-collapsed-icon" title="Terminal" data-i18n-title="sidebar-collapsed-terminal" data-terminal-shortcut onclick="window.openDeepLink('terminal', {})"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+</div> <div class="chat-sidebar-collapsed-icon" title="Drive" data-i18n-title="sidebar-collapsed-drive" onclick="window.openDeepLink && window.openDeepLink('drive', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> </div>
-<div class="chat-sidebar-collapsed-icon" title="Settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
+<div class="chat-sidebar-collapsed-icon" title="Settings" data-i18n-title="sidebar-collapsed-settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> </div>
-<div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div> </div>
+<div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account" data-i18n-title="sidebar-collapsed-account"></div> </div>
 </aside> <!-- Main Wrapper -->
 <div class="main-wrapper"> <!-- Top Navigation Tabs - Removed (already in Vibe) -->
 <!-- Workspace container where WindowManager operates. This is the page's
@@ -110,66 +110,66 @@
 <script src="/suite/desktop-inline/04_auth_fullscreen.js"></script> <script src="/suite/desktop-inline/05_offline_shell.js"></script>
 <!-- Setup Wizard Overlay (hidden by default) --> <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
 <div class="setup-wizard-modal"> <div class="setup-wizard-header">
-<h2>Welcome to General Bots</h2> <p>Let's get you set up in a few quick steps</p>
+<h2 data-i18n="setup-welcome-title">Welcome to General Bots</h2> <p data-i18n="setup-welcome-subtitle">Let's get you set up in a few quick steps</p>
 </div> <div class="setup-progress">
 <div class="setup-progress-bar"> <div class="setup-progress-fill" id="setupProgressFill" style="width: 25%"></div>
 </div> <div class="setup-progress-steps">
-<span class="setup-step active" data-step="1">LLM Provider</span> <span class="setup-step" data-step="2">User Profile</span>
-<span class="setup-step" data-step="3">Bot Config</span> <span class="setup-step" data-step="4">Training</span>
+<span class="setup-step active" data-step="1" data-i18n="setup-step-llm">LLM Provider</span> <span class="setup-step" data-step="2" data-i18n="setup-step-profile">User Profile</span>
+<span class="setup-step" data-step="3" data-i18n="setup-step-bot">Bot Config</span> <span class="setup-step" data-step="4" data-i18n="setup-step-training">Training</span>
 </div> </div>
-<div class="setup-step-content active" id="setupStep1"> <h3>Choose your LLM Provider</h3>
-<p>Select the AI model provider for your bot</p> <div class="setup-options">
+<div class="setup-step-content active" id="setupStep1"> <h3 data-i18n="setup-choose-provider-title">Choose your LLM Provider</h3>
+<p data-i18n="setup-choose-provider-subtitle">Select the AI model provider for your bot</p> <div class="setup-options">
 <div class="setup-option" data-value="openai" onclick="window.selectSetupOption(this, 'llm_provider')"> <div class="setup-option-icon">
 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
 </svg> </div>
 <div class="setup-option-info"> <span class="setup-option-title">OpenAI</span>
-<span class="setup-option-desc">GPT-4, GPT-3.5 models</span> </div>
+<span class="setup-option-desc" data-i18n="setup-provider-openai-desc">GPT-4, GPT-3.5 models</span> </div>
 </div> <div class="setup-option" data-value="nvidia" onclick="window.selectSetupOption(this, 'llm_provider')">
 <div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/> </svg>
 </div> <div class="setup-option-info">
-<span class="setup-option-title">NVIDIA</span> <span class="setup-option-desc">NVIDIA NIM inference</span>
+<span class="setup-option-title">NVIDIA</span> <span class="setup-option-desc" data-i18n="setup-provider-nvidia-desc">NVIDIA NIM inference</span>
 </div> </div>
 <div class="setup-option" data-value="anthropic" onclick="window.selectSetupOption(this, 'llm_provider')"> <div class="setup-option-icon">
 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
 </svg> </div>
 <div class="setup-option-info"> <span class="setup-option-title">Anthropic</span>
-<span class="setup-option-desc">Claude 3, Claude 3.5 models</span> </div>
+<span class="setup-option-desc" data-i18n="setup-provider-anthropic-desc">Claude 3, Claude 3.5 models</span> </div>
 </div> <div class="setup-option" data-value="local" onclick="window.selectSetupOption(this, 'llm_provider')">
 <div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/> </svg>
 </div> <div class="setup-option-info">
-<span class="setup-option-title">Local</span> <span class="setup-option-desc">llama.cpp, Ollama, etc.</span>
+<span class="setup-option-title">Local</span> <span class="setup-option-desc" data-i18n="setup-provider-local-desc">llama.cpp, Ollama, etc.</span>
 </div> </div>
 </div> </div>
-<div class="setup-step-content" id="setupStep2"> <h3>What describes you best?</h3>
-<p>Select your profile type for personalized defaults</p> <div class="setup-options">
+<div class="setup-step-content" id="setupStep2"> <h3 data-i18n="setup-profile-title">What describes you best?</h3>
+<p data-i18n="setup-profile-subtitle">Select your profile type for personalized defaults</p> <div class="setup-options">
 <div class="setup-option" data-value="developer" onclick="window.selectSetupOption(this, 'user_profile')"> <div class="setup-option-icon">
 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
 </svg> </div>
-<div class="setup-option-info"> <span class="setup-option-title">Developer</span>
-<span class="setup-option-desc">Build and deploy bots, write BASIC scripts</span> </div>
+<div class="setup-option-info"> <span class="setup-option-title" data-i18n="setup-profile-developer">Developer</span>
+<span class="setup-option-desc" data-i18n="setup-profile-developer-desc">Build and deploy bots, write BASIC scripts</span> </div>
 </div> <div class="setup-option" data-value="business" onclick="window.selectSetupOption(this, 'user_profile')">
 <div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/> <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
 </svg> </div>
-<div class="setup-option-info"> <span class="setup-option-title">Business</span>
-<span class="setup-option-desc">Automate workflows, manage CRM</span> </div>
+<div class="setup-option-info"> <span class="setup-option-title" data-i18n="setup-profile-business">Business</span>
+<span class="setup-option-desc" data-i18n="setup-profile-business-desc">Automate workflows, manage CRM</span> </div>
 </div> <div class="setup-option" data-value="support" onclick="window.selectSetupOption(this, 'user_profile')">
 <div class="setup-option-icon"> <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/> </svg>
 </div> <div class="setup-option-info">
-<span class="setup-option-title">Support</span> <span class="setup-option-desc">Customer service, ticket management</span>
+<span class="setup-option-title" data-i18n="setup-profile-support">Support</span> <span class="setup-option-desc" data-i18n="setup-profile-support-desc">Customer service, ticket management</span>
 </div> </div>
 </div> </div>
-<div class="setup-step-content" id="setupStep3"> <h3>Configure your Bot</h3>
-<p>Give your bot a name, purpose, and optional template</p> <div class="setup-form">
-<div class="setup-form-group"> <label for="wizardBotName">Bot Name</label>
-<input type="text" id="setupBotName" placeholder="My Assistant" class="setup-input" /> </div>
-<div class="setup-form-group"> <label for="setupBotPurpose">Bot Purpose</label>
-<textarea id="setupBotPurpose" rows="2" placeholder="Describe what your bot should do..." class="setup-input"></textarea> </div>
-<div class="setup-form-group"> <label for="wizardBotTemplate">Bot Template <span style="font-weight:400;text-transform:none;color:var(--muted, #888);font-size:.65rem">(optional)</span></label>
-<select id="wizardBotTemplate" class="setup-input" style="appearance:auto"> <option value="">— Start from scratch —</option>
+<div class="setup-step-content" id="setupStep3"> <h3 data-i18n="setup-bot-title">Configure your Bot</h3>
+<p data-i18n="setup-bot-subtitle">Give your bot a name, purpose, and optional template</p> <div class="setup-form">
+<div class="setup-form-group"> <label for="wizardBotName" data-i18n="setup-bot-name">Bot Name</label>
+<input type="text" id="setupBotName" placeholder="My Assistant" data-i18n-placeholder="setup-bot-name-placeholder" class="setup-input" /> </div>
+<div class="setup-form-group"> <label for="setupBotPurpose" data-i18n="setup-bot-purpose">Bot Purpose</label>
+<textarea id="setupBotPurpose" rows="2" placeholder="Describe what your bot should do..." data-i18n-placeholder="setup-bot-purpose-placeholder" class="setup-input"></textarea> </div>
+<div class="setup-form-group"> <label for="wizardBotTemplate"><span data-i18n="setup-bot-template">Bot Template</span> <span style="font-weight:400;text-transform:none;color:var(--muted, #888);font-size:.65rem" data-i18n="setup-optional">(optional)</span></label>
+<select id="wizardBotTemplate" class="setup-input" style="appearance:auto"> <option value="" data-i18n="setup-template-scratch">— Start from scratch —</option>
 <optgroup label="Recommended"> <option value="core/default.gbai">Default — starter with greeting &amp; basic tools</option>
 <option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option> <option value="sales/helpdesk.gbai">Helpdesk — ticket creation and resolution</option>
 <option value="education/edu.gbai">Education — semantic learning assistant</option> </optgroup>
@@ -210,19 +210,19 @@
 <option value="sales/travel.gbai">Travel</option> </optgroup>
 </select> </div>
 </div> </div>
-<div class="setup-step-content" id="setupStep4"> <h3>Treinar seu Bot</h3>
-<p>Arraste arquivos .pdf, .xls, .doc para o treinamento inicial. Você terá acesso ao Drive e poderá mudar depois.</p> <div class="setup-form">
+<div class="setup-step-content" id="setupStep4"> <h3 data-i18n="setup-training-title">Train your Bot</h3>
+<p data-i18n="setup-training-subtitle">Drop .pdf, .xls, .doc files for the initial training. You will have access to Drive and can change it later.</p> <div class="setup-form">
 <div class="setup-form-group"> <div id="setupDropZone" class="setup-drop-zone" ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="window.handleSetupFileDrop(event)">
 <div class="setup-drop-icon"> <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/> </svg>
-</div> <p class="setup-drop-text">Solte arquivos aqui ou clique para selecionar</p>
-<p class="setup-drop-hint">.pdf, .xls, .doc — até 10MB cada</p> <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
-<button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()">Selecionar Arquivos</button> </div>
+</div> <p class="setup-drop-text" data-i18n="setup-drop-text">Drop files here or click to select</p>
+<p class="setup-drop-hint" data-i18n="setup-drop-hint">.pdf, .xls, .doc — up to 10MB each</p> <input type="file" id="setupFileInput" multiple accept=".pdf,.xls,.xlsx,.doc,.docx" style="display:none" onchange="window.handleSetupFileSelect(event)" />
+<button type="button" class="setup-btn setup-btn-secondary" onclick="document.getElementById('setupFileInput').click()" data-i18n="setup-select-files">Select Files</button> </div>
 <div id="setupFileList" class="setup-file-list"></div> </div>
 </div> </div>
-<div class="setup-wizard-footer"> <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;">Back</button>
-<button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()">Next</button> <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;">Finish</button>
-<button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()">Skip Setup</button> </div>
+<div class="setup-wizard-footer"> <button class="setup-btn setup-btn-secondary" id="setupBackBtn" onclick="window.setupWizardBack()" style="display: none;" data-i18n="setup-back">Back</button>
+<button class="setup-btn setup-btn-primary" id="setupNextBtn" onclick="window.setupWizardNext()" data-i18n="setup-next">Next</button> <button class="setup-btn setup-btn-primary" id="setupFinishBtn" onclick="window.setupWizardFinish()" style="display: none;" data-i18n="setup-finish">Finish</button>
+<button class="setup-btn setup-btn-text" onclick="window.setupWizardSkip()" data-i18n="setup-skip">Skip Setup</button> </div>
 </div> </div>
 <script src="/suite/js/setup-wizard-media.js?v=1"></script> <script src="/suite/js/setup-wizard.js?v=1"></script> <script src="/suite/js/versions.js"></script>
 <script src="/suite/js/preview.js"></script> <script src="/suite/js/campaigns.js"></script>

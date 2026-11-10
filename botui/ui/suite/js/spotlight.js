@@ -77,8 +77,13 @@ const Spotlight = (() => {
 
     const apps = window.APPS_REGISTRY || [];
     apps.forEach((a) => {
-      if (!query || (a.title + " " + a.category + " " + (a.description || "")).toLowerCase().indexOf(query) !== -1) {
-        results.push({ kind: "app", id: a.id, title: a.title, subtitle: a.category, icon: a.icon, color: a.color, url: a.hxGet });
+      const title = window.gbAppTitle ? window.gbAppTitle(a) : a.title;
+      const desc = window.gbAppDesc ? window.gbAppDesc(a) : a.description || "";
+      // Match on the localized label AND the authored English literal so a
+      // user typing either language finds the app (#2089).
+      const haystack = title + " " + a.title + " " + a.category + " " + desc;
+      if (!query || haystack.toLowerCase().indexOf(query) !== -1) {
+        results.push({ kind: "app", id: a.id, title: title, subtitle: a.category, icon: a.icon, color: a.color, url: a.hxGet });
       }
     });
 

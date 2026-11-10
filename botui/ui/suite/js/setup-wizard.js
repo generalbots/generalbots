@@ -21,6 +21,12 @@
  */
 
 var _isDesktopLocal = !!(window.productConfig && window.productConfig.no_security === true);
+
+// #2089 — every wizard label goes through the catalogue; the literal stays the
+// authored fallback so a missing key never leaks an identifier.
+function _t(key, fallback, params) {
+  return window.gbT ? window.gbT(key, fallback, params) : fallback;
+}
 var SetupWizardState = {
   currentStep: 1,
   totalSteps: _isDesktopLocal ? 2 : 4,
@@ -59,15 +65,25 @@ function showSetupWizard() {
   if (_isDesktopLocal) {
     var header = overlay.querySelector(".setup-wizard-header");
     if (header) {
-      header.innerHTML = '<h2>Welcome to General Bots</h2><p>Two quick steps to get started</p>';
+      header.innerHTML =
+        '<h2>' + _t("setup-welcome-title", "Welcome to General Bots") + '</h2>' +
+        '<p>' + _t("setup-welcome-quick-subtitle", "Two quick steps to get started") + '</p>';
     }
     var progressSteps = overlay.querySelector(".setup-progress-steps");
     if (progressSteps) {
-      progressSteps.innerHTML = '<span class="setup-step active" data-step="1">AI Model</span><span class="setup-step" data-step="2">Your Name</span>';
+      progressSteps.innerHTML =
+        '<span class="setup-step active" data-step="1">' + _t("setup-step-ai-model", "AI Model") + '</span>' +
+        '<span class="setup-step" data-step="2">' + _t("setup-step-your-name", "Your Name") + '</span>';
     }
     var step2 = document.getElementById("setupStep2");
     if (step2) {
-      step2.innerHTML = '<h3>What should we call you?</h3><p>This name appears in your conversations</p><div class="setup-form"><div class="setup-form-group"><label for="setupDisplayName">Your Name</label><input type="text" id="setupDisplayName" placeholder="e.g. Maria" class="setup-input" /></div></div>';
+      step2.innerHTML =
+        '<h3>' + _t("setup-name-title", "What should we call you?") + '</h3>' +
+        '<p>' + _t("setup-name-subtitle", "This name appears in your conversations") + '</p>' +
+        '<div class="setup-form"><div class="setup-form-group">' +
+        '<label for="setupDisplayName">' + _t("setup-name-label", "Your Name") + '</label>' +
+        '<input type="text" id="setupDisplayName" placeholder="' +
+        _t("setup-name-placeholder", "e.g. Maria") + '" class="setup-input" /></div></div>';
     }
     var step3 = document.getElementById("setupStep3");
     var step4 = document.getElementById("setupStep4");
@@ -229,7 +245,7 @@ function renderFileItem(file) {
   div.innerHTML =
     '<span class="file-name">' + escapeHtml(file.name) + '</span>' +
     '<span class="file-size">' + size + '</span>' +
-    '<span class="file-status pending">Pending</span>';
+    '<span class="file-status pending">' + _t("setup-file-status-pending", "Pending") + '</span>';
   list.appendChild(div);
 }
 
@@ -288,7 +304,10 @@ function updateFileStatus(fileName, status) {
       var statusEl = item.querySelector(".file-status");
       if (statusEl) {
         statusEl.className = "file-status " + status;
-        statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        statusEl.textContent = _t(
+          "setup-file-status-" + status,
+          status.charAt(0).toUpperCase() + status.slice(1)
+        );
       }
     }
   });
@@ -327,7 +346,7 @@ function setupWizardFinish() {
   var finishBtn = document.getElementById("setupFinishBtn");
   if (finishBtn) {
     finishBtn.disabled = true;
-    finishBtn.textContent = "Saving...";
+    finishBtn.textContent = _t("setup-saving", "Saving...");
   }
 
   // Upload training files first, then save final config
@@ -358,9 +377,17 @@ function setupWizardFinish() {
           if (result.success) {
             localStorage.setItem("gb_setup_wizard_done", "true");
             hideSetupWizard();
-            notify("Setup complete! Welcome to General Bots.", "success");
+            notify(
+              _t("setup-complete-message", "Setup complete! Welcome to General Bots."),
+              "success"
+            );
           } else {
-            notify("Setup failed: " + (result.error || "Unknown error"), "error");
+            notify(
+              _t("setup-failed", "Setup failed: {error}", {
+                error: result.error || _t("setup-unknown-error", "Unknown error"),
+              }),
+              "error"
+            );
           }
         })
         .catch(function(e) {
@@ -370,7 +397,7 @@ function setupWizardFinish() {
         .finally(function() {
           if (finishBtn) {
             finishBtn.disabled = false;
-            finishBtn.textContent = "Finish";
+            finishBtn.textContent = _t("setup-finish", "Finish");
           }
         });
     });

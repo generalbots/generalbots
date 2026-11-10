@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-index-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>General Bots Cloud</title>
   <meta name="description" content="General Bots Cloud: AI bot deployment, infrastructure, and services management.">
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
 </head>
 <body class="mgmt-layout">
   <main class="mgmt-main" id="index-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Cloud Portal</span>
+      <span class="mgmt-page-title" data-i18n="cloud-portal-title">Cloud Portal</span>
       <div class="mgmt-topbar-actions">
-        <div class="theme-toggle" style="position:static" aria-label="Theme switcher" role="radiogroup">
-          <button data-theme="system" class="active" title="System theme" aria-label="Use system theme">💻</button>
-          <button data-theme="light" title="Light theme" aria-label="Use light theme">☀️</button>
-          <button data-theme="dark" title="Dark theme" aria-label="Use dark theme">🌙</button>
+        <div class="theme-toggle" style="position:static" aria-label="Theme switcher" data-i18n-aria-label="cloud-theme-switcher" role="radiogroup">
+          <button data-theme="system" class="active" title="System theme" data-i18n-title="cloud-theme-system" aria-label="Use system theme" data-i18n-aria-label="cloud-theme-system">💻</button>
+          <button data-theme="light" title="Light theme" data-i18n-title="cloud-theme-light" aria-label="Use light theme" data-i18n-aria-label="cloud-theme-light">☀️</button>
+          <button data-theme="dark" title="Dark theme" data-i18n-title="cloud-theme-dark" aria-label="Use dark theme" data-i18n-aria-label="cloud-theme-dark">🌙</button>
         </div>
       </div>
     </div>
@@ -24,10 +26,10 @@
       <div class="mgmt-split-left">
         <div>
           <span class="split-pitch-tag">General Bots Cloud</span>
-          <h1 class="split-pitch-title" style="margin-top:1.25rem">
+          <h1 class="split-pitch-title" style="margin-top:1.25rem" data-i18n-html="cloud-pitch-title">
             Everything your <span>AI bots</span> need to run.
           </h1>
-          <p class="split-pitch-body" style="margin-top:1rem">
+          <p class="split-pitch-body" style="margin-top:1rem" data-i18n="cloud-pitch-body">
             VPS servers, storage, phone numbers, domains — provision everything in one place, fully integrated with General Bots Cloud.
           </p>
         </div>
@@ -39,34 +41,34 @@
         </div>
 
         <ul class="split-pitch-bullets">
-          <li>Pay-as-you-go cloud infrastructure</li>
-          <li>Phone numbers in 150+ countries</li>
-          <li>S3-compatible storage from $9.99/mo</li>
-          <li>Domains with one-click DNS setup</li>
-          <li>Unified invoicing &amp; billing</li>
+          <li data-i18n="cloud-bullet-payg">Pay-as-you-go cloud infrastructure</li>
+          <li data-i18n="cloud-bullet-phones">Phone numbers in 150+ countries</li>
+          <li data-i18n="cloud-bullet-storage">S3-compatible storage from $9.99/mo</li>
+          <li data-i18n="cloud-bullet-domains">Domains with one-click DNS setup</li>
+          <li data-i18n="cloud-bullet-invoicing">Unified invoicing &amp; billing</li>
         </ul>
         <div class="split-trust">
           <div class="split-trust-item">
             <span class="split-trust-num">99.9%</span>
-            <span class="split-trust-label">Uptime SLA</span>
+            <span class="split-trust-label" data-i18n="cloud-trust-uptime">Uptime SLA</span>
           </div>
           <div class="split-trust-item">
             <span class="split-trust-num">150+</span>
-            <span class="split-trust-label">Countries</span>
+            <span class="split-trust-label" data-i18n="cloud-trust-countries">Countries</span>
           </div>
           <div class="split-trust-item">
             <span class="split-trust-num">24/7</span>
-            <span class="split-trust-label">Support</span>
+            <span class="split-trust-label" data-i18n="cloud-trust-support">Support</span>
           </div>
         </div>
       </div>
 
       <div class="mgmt-split-right" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.75rem;text-align:center">
         <div style="font-size:3.5rem;opacity:0.4;filter:grayscale(1)">◆</div>
-        <h2 style="font-size:1.6rem;font-weight:800;color:var(--text);letter-spacing:-.02em">Welcome to General Bots Cloud</h2>
-        <p style="color:var(--muted);max-width:360px;font-size:1rem;line-height:1.7">Sign in to manage your workspace, purchase add-ons, and control billing.</p>
-        <a href="/login" class="btn btn-primary" style="padding:.85rem 2.5rem;font-size:1rem">Sign In</a>
-        <p style="color:var(--muted);font-size:.9rem">New here? <a href="/signup" style="color:var(--accent);text-decoration:none;font-weight:600">Create account</a></p>
+        <h2 style="font-size:1.6rem;font-weight:800;color:var(--text);letter-spacing:-.02em" data-i18n="cloud-welcome-title">Welcome to General Bots Cloud</h2>
+        <p style="color:var(--muted);max-width:360px;font-size:1rem;line-height:1.7" data-i18n="cloud-welcome-body">Sign in to manage your workspace, purchase add-ons, and control billing.</p>
+        <a href="/login" class="btn btn-primary" style="padding:.85rem 2.5rem;font-size:1rem" data-i18n="cloud-signin">Sign In</a>
+        <p style="color:var(--muted);font-size:.9rem"><span data-i18n="cloud-new-here">New here?</span> <a href="/signup" style="color:var(--accent);text-decoration:none;font-weight:600" data-i18n="cloud-create-account">Create account</a></p>
       </div>
     </div>
   </main>

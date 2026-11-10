@@ -1,42 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-profile-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
 </head>
 <body class="mgmt-layout">
 
 
 
   <main class="mgmt-main">
-    <div class="mgmt-topbar"><span class="mgmt-page-title">My Profile</span></div>
+    <div class="mgmt-topbar"><span class="mgmt-page-title" data-i18n="cloud-profile-title">My Profile</span></div>
 
     <div style="padding:2rem;max-width:700px">
       <div class="profile-section">
-        <div class="profile-section-title">Account Information</div>
+        <div class="profile-section-title" data-i18n="cloud-profile-account-info">Account Information</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-          <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="prof-name" class="form-control"></div>
-          <div class="form-group"><label class="form-label">Email</label><input type="email" id="prof-email" class="form-control" readonly style="opacity:.6"></div>
+          <div class="form-group"><label class="form-label" data-i18n="cloud-profile-full-name">Full Name</label><input type="text" id="prof-name" class="form-control"></div>
+          <div class="form-group"><label class="form-label" data-i18n="cloud-profile-email">Email</label><input type="email" id="prof-email" class="form-control" readonly style="opacity:.6"></div>
         </div>
-        <div class="form-group"><label class="form-label">Organization</label><input type="text" id="prof-org" class="form-control"></div>
-        <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save Changes</button>
+        <div class="form-group"><label class="form-label" data-i18n="cloud-profile-organization">Organization</label><input type="text" id="prof-org" class="form-control"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveProfile()" data-i18n="cloud-profile-save">Save Changes</button>
       </div>
 
       <div class="profile-section">
-        <div class="profile-section-title">Change Password</div>
-        <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="pw-current" class="form-control" placeholder="••••••••"></div>
+        <div class="profile-section-title" data-i18n="cloud-profile-change-password">Change Password</div>
+        <div class="form-group"><label class="form-label" data-i18n="cloud-profile-current-password">Current Password</label><input type="password" id="pw-current" class="form-control" placeholder="••••••••"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-          <div class="form-group"><label class="form-label">New Password</label><input type="password" id="pw-new" class="form-control" placeholder="min. 8 characters"></div>
-          <div class="form-group"><label class="form-label">Confirm</label><input type="password" id="pw-confirm" class="form-control" placeholder="repeat password"></div>
+          <div class="form-group"><label class="form-label" data-i18n="cloud-profile-new-password">New Password</label><input type="password" id="pw-new" class="form-control" placeholder="min. 8 characters" data-i18n-placeholder="cloud-profile-new-password-placeholder"></div>
+          <div class="form-group"><label class="form-label" data-i18n="cloud-profile-confirm">Confirm</label><input type="password" id="pw-confirm" class="form-control" placeholder="repeat password" data-i18n-placeholder="cloud-profile-confirm-placeholder"></div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="changePassword()">Update Password</button>
+        <button class="btn btn-secondary btn-sm" onclick="changePassword()" data-i18n="cloud-profile-update-password">Update Password</button>
       </div>
 
       <div class="profile-section" style="border-color:rgba(255,107,107,.25)">
-        <div class="profile-section-title" style="color:var(--accent3)">Danger Zone</div>
-        <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem">Permanently delete your account and all associated data. This action cannot be undone.</p>
-        <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete Account</button>
+        <div class="profile-section-title" style="color:var(--accent3)" data-i18n="cloud-profile-danger-zone">Danger Zone</div>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:.75rem" data-i18n="cloud-profile-danger-body">Permanently delete your account and all associated data. This action cannot be undone.</p>
+        <button class="btn btn-danger btn-sm" onclick="confirmDelete()" data-i18n="cloud-profile-delete-account">Delete Account</button>
       </div>
     </div>
   </main>

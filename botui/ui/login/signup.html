@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="signup-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,66 +96,66 @@
 </head>
 <body>
 
-<div class="gb-preview-banner">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms">Review terms</a> before production use.</div>
+<div class="gb-preview-banner" data-i18n-html="login-preview-banner">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms">Review terms</a> before production use.</div>
 
 <div class="bar"></div>
-<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" data-i18n-title="login-theme-toggle" aria-label="Toggle theme" data-i18n-aria-label="login-theme-toggle">☀️</button>
 
 <main class="middle">
   <div class="card">
     <div class="product-logo"><a href="https://generalbots.org" target="_blank"><img src="/images/logo.svg" alt="General Bots"></a></div>
-    <h1>Create Account</h1>
-    <p>Start managing your General Bots Cloud</p>
+    <h1 data-i18n="signup-title">Create Account</h1>
+    <p data-i18n="signup-subtitle">Start managing your General Bots Cloud</p>
 
     <div id="signup-error" class="error-box"></div>
 
     <form id="signup-form" onsubmit="return doSignup(event)" style="width:100%">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="signup-name">Name</label>
-          <input id="signup-name" class="form-input" type="text" name="name" placeholder="Full name">
+          <label class="form-label" for="signup-name" data-i18n="signup-label-name">Name</label>
+          <input id="signup-name" class="form-input" type="text" name="name" placeholder="Full name" data-i18n-placeholder="signup-placeholder-name">
         </div>
         <div class="form-group">
-          <label class="form-label" for="signup-botname">Bot Name</label>
-          <input id="signup-botname" class="form-input" type="text" name="bot_name" required placeholder="e.g. MyAssistant">
+          <label class="form-label" for="signup-botname" data-i18n="signup-label-bot-name">Bot Name</label>
+          <input id="signup-botname" class="form-input" type="text" name="bot_name" required placeholder="e.g. MyAssistant" data-i18n-placeholder="signup-placeholder-bot-name">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="signup-email">Email</label>
-          <input id="signup-email" class="form-input" type="email" name="email" required placeholder="you@example.com">
+          <label class="form-label" for="signup-email" data-i18n="signup-label-email">Email</label>
+          <input id="signup-email" class="form-input" type="email" name="email" required placeholder="you@example.com" data-i18n-placeholder="signup-placeholder-email">
         </div>
         <div class="form-group">
-          <label class="form-label" for="signup-password">Password</label>
-          <input id="signup-password" class="form-input" type="password" name="password" required minlength="8" placeholder="At least 8 chars">
+          <label class="form-label" for="signup-password" data-i18n="signup-label-password">Password</label>
+          <input id="signup-password" class="form-input" type="password" name="password" required minlength="8" placeholder="At least 8 chars" data-i18n-placeholder="signup-placeholder-password">
         </div>
       </div>
 
       <div class="plan-chooser" id="plan-chooser">
         <label class="plan-option selected" data-plan="free">
           <input type="radio" name="plan" value="free" checked>
-          <span class="plan-option-name">Free</span>
-          <span class="plan-option-price">$0/mo</span>
-          <span class="plan-option-desc">1 bot, 20MB</span>
+          <span class="plan-option-name" data-i18n="signup-plan-free-name">Free</span>
+          <span class="plan-option-price" data-i18n="signup-plan-free-price">$0/mo</span>
+          <span class="plan-option-desc" data-i18n="signup-plan-free-desc">1 bot, 20MB</span>
         </label>
         <label class="plan-option" data-plan="shared">
           <input type="radio" name="plan" value="shared">
-          <span class="plan-option-name">Shared</span>
-          <span class="plan-option-price">$3.99/mo</span>
-          <span class="plan-option-desc">5 bots, 50GB, 14-day <strong>TRIAL</strong></span>
+          <span class="plan-option-name" data-i18n="signup-plan-shared-name">Shared</span>
+          <span class="plan-option-price" data-i18n="signup-plan-shared-price">$3.99/mo</span>
+          <span class="plan-option-desc" data-i18n-html="signup-plan-shared-desc">5 bots, 50GB, 14-day <strong>TRIAL</strong></span>
         </label>
         <label class="plan-option plan-option-private" data-plan="private-cloud">
           <input type="radio" name="plan" value="private-cloud">
-          <span class="plan-option-name">Private Server</span>
-          <span class="plan-option-price">from $9.99</span>
-          <span class="plan-option-desc">Isolated tenant</span>
+          <span class="plan-option-name" data-i18n="signup-plan-private-name">Private Server</span>
+          <span class="plan-option-price" data-i18n="signup-plan-private-price">from $9.99</span>
+          <span class="plan-option-desc" data-i18n="signup-plan-private-desc">Isolated tenant</span>
         </label>
       </div>
 
       <div class="form-group" style="width:100%;margin-bottom:8px">
-        <label class="form-label" for="bot-template">Bot Template</label>
+        <label class="form-label" for="bot-template" data-i18n="signup-label-template">Bot Template</label>
         <select id="bot-template" class="form-input" name="template">
-          <optgroup label="— Recommended —">
+          <optgroup label="— Recommended —" data-i18n-label="signup-group-recommended">
             <option value="core/default.gbai" selected>Defaults</option>
             <option value="sales/attendance-crm.gbai">Attendance CRM — customer support with routing</option>
             <option value="sales/helpdesk.gbai">Helpdesk — ticket tracking and resolution</option>
@@ -242,20 +242,20 @@
 
       <button type="submit" id="signup-btn" class="btn">Create Free Account</button>
       <div id="private-server-info" class="info-box" style="display:none">
-        You are signing up for a <strong>Private Server</strong> environment.
-        After creating your account, you will be redirected to configure and purchase a VPS.
+        <span data-i18n-html="signup-private-info">You are signing up for a <strong>Private Server</strong> environment. After creating your account, you will be redirected to configure and purchase a VPS.</span>
       </div>
     </form>
 
-    <div class="alt">Already have an account? <a href="/">Sign in</a></div>
+    <div class="alt"><span data-i18n="signup-have-account">Already have an account?</span> <a href="/" data-i18n="signup-signin-link">Sign in</a></div>
   </div>
 </main>
 
 <div class="bottom-links">
   <a href="https://generalbots.org">generalbots.org</a>
   <nav>
-    <a href="https://docs.generalbots.org">Docs</a>
-    <a href="https://github.com/generalbots/generalbots">GitHub</a>
+    <span data-i18n-switcher></span>
+    <a href="https://docs.generalbots.org" data-i18n="login-link-docs">Docs</a>
+    <a href="https://github.com/generalbots/generalbots" data-i18n="login-link-github">GitHub</a>
   </nav>
 </div>
 <div class="bottombar"></div>
@@ -268,6 +268,8 @@ window.CLOUD_CONFIG = {
   salesEmail: 'sales@pragmatismo.com.br',
 };
 </script>
+<script src="/js/i18n-lite.js"></script>
+<script src="/js/i18n-switcher.js"></script>
 <script src="/js/cloud-auth.js"></script>
 <script>
 (function(){var k='gb-login-theme',r=document.documentElement,b=document.getElementById('theme-btn');
@@ -293,10 +295,23 @@ labels.forEach(function(l){
     l.querySelector('input[type=radio]').checked=true;
 
     var plan=l.getAttribute('data-plan');
-    if(plan==='free'){btn.textContent='Create Free Account';info.style.display='none'}
-    else if(plan==='shared'){btn.textContent='Start 14-Day Trial';info.style.display='none'}
-    else if(plan==='private-cloud'){btn.textContent='Get a Quote';info.style.display='block'}
+    applyPlanLabel(plan);
+    info.style.display=plan==='private-cloud'?'block':'none';
   });
+});
+
+// #2090 — the submit label follows both the selected plan and the locale; the
+// button carries no data-i18n so a language switch cannot reset it to the
+// free-plan wording.
+function applyPlanLabel(plan){
+  var t=function(k,f){return window.gbT?gbT(k,f):f};
+  if(plan==='shared'){btn.textContent=t('signup-submit-trial','Start 14-Day Trial')}
+  else if(plan==='private-cloud'){btn.textContent=t('signup-submit-quote','Get a Quote')}
+  else{btn.textContent=t('signup-submit-free','Create Free Account')}
+}
+window.addEventListener('localeChanged',function(){
+  var sel=document.querySelector('input[name=plan]:checked');
+  applyPlanLabel(sel?sel.value:'free');
 });
 })();
 </script>

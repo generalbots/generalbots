@@ -81,11 +81,15 @@
   }
 
   function titleFor(item) {
-    if (item.title) return item.title;
+    // App chips resolve through the catalogue every render: a title stored at
+    // pin time would freeze the language the user pinned in (#2089).
     if (item.kind === "app") {
       var app = findApp(item.appId);
-      if (app) return app.title;
+      if (app) {
+        return window.gbAppTitle ? window.gbAppTitle(app) : app.title;
+      }
     }
+    if (item.title) return item.title;
     return item.appId || item.id || "Pinned";
   }
 
@@ -255,7 +259,11 @@
   function pinApp(appId) {
     var app = findApp(appId);
     if (!isPinnable(app)) return false; // #1312 — toolwindows not pinnable
-    return add({ kind: "app", appId: appId, title: app.title });
+    return add({
+      kind: "app",
+      appId: appId,
+      title: window.gbAppTitle ? window.gbAppTitle(app) : app.title,
+    });
   }
 
   function unpinApp(appId) {

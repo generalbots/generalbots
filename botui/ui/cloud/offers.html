@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-offers-document-title">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offers — General Bots Cloud</title>
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <style>
     .offers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
     .offer-card {
@@ -35,15 +37,15 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Special Offers</span>
+      <span class="mgmt-page-title" data-i18n="cloud-offers-title">Special Offers</span>
       <div class="mgmt-topbar-actions">
-        <a href="/store" class="btn btn-outline btn-sm">Build Your Own</a>
+        <a href="/store" class="btn btn-outline btn-sm" data-i18n="cloud-offers-build-own">Build Your Own</a>
       </div>
     </div>
 
     <div style="padding:2rem">
 
-      <div class="offers-section-title" style="margin-top:0">Available Plans</div>
+      <div class="offers-section-title" style="margin-top:0" data-i18n="cloud-offers-available-plans">Available Plans</div>
       <div class="offers-grid" id="offers-grid"></div>
     </div>
   </main>

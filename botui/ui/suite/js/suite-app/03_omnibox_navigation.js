@@ -179,8 +179,10 @@ Object.assign(Omnibox, {
       .map((app) => ({
         target: app.id,
         icon: app.icon || "📦",
-        title: app.title || app.id,
-        description: app.description || "App plugin",
+        title: window.gbAppTitle ? window.gbAppTitle(app) : app.title || app.id,
+        description: window.gbAppDesc
+          ? window.gbAppDesc(app) || "App plugin"
+          : app.description || "App plugin",
       }));
 
     const allItems = items.concat(pluginApps);

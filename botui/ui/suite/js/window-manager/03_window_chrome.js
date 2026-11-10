@@ -85,11 +85,12 @@
   // write these nodes directly.
   _statusBar(id) {
     const title = ((this.openWindows.find((w) => w.id === id)) || {}).title || "";
+    const statusText = window.gbT ? window.gbT("status-ready", "Ready") : "Ready";
     const safeTitle = String(title).replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     })[ch]);
     return `<div class="window-statusbar" data-window-id="${id}" data-state="ready" role="group" aria-label="Window status">
-      <span class="window-statusbar-status" data-state="ready" role="status" aria-live="polite" tabindex="0" data-help="status-ready" data-tooltip="Ready" title="Ready">Ready</span>
+      <span class="window-statusbar-status" data-state="ready" role="status" aria-live="polite" tabindex="0" data-help="status-ready" data-i18n="status-ready" data-i18n-title="status-ready" data-i18n-aria-label="status-ready" data-tooltip="${statusText}" title="${statusText}">${statusText}</span>
       <span class="window-statusbar-progress" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" hidden>
         <span class="window-statusbar-progress-track" aria-hidden="true"><span class="window-statusbar-progress-fill"></span></span>
         <span class="window-statusbar-progress-label"></span>
@@ -213,7 +214,11 @@
     const dockItem = document.createElement("div");
     dockItem.id = `dock-item-${id}`;
     dockItem.className = "taskbar-dock-item";
-    dockItem.title = app ? app.title : id;
+    dockItem.title = app
+      ? window.gbAppTitle
+        ? window.gbAppTitle(app)
+        : app.title
+      : id;
     dockItem.onclick = () => this.toggleMinimize(id);
     dockItem.innerHTML = this.getIconSvg(id);
     center.appendChild(dockItem);

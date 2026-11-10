@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="login-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,42 +75,43 @@
 </head>
 <body>
 
-<div class="gb-preview-banner">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms">Review terms</a> before production use.</div>
+<div class="gb-preview-banner" data-i18n-html="login-preview-banner">⚡ <strong>General Bots 6</strong> is currently in <strong>Preview</strong> — features are evolving rapidly. <a href="/terms">Review terms</a> before production use.</div>
 
 <div class="bar"></div>
-<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme" data-i18n-title="login-theme-toggle" aria-label="Toggle theme" data-i18n-aria-label="login-theme-toggle">☀️</button>
 
 <main class="middle">
   <div class="card">
     <div class="product-logo"><a href="https://generalbots.org" target="_blank"><img src="/images/logo.svg" alt="General Bots"></a></div>
-    <h1>Welcome back</h1>
-    <p>Sign in to your management account</p>
+    <h1 data-i18n="login-welcome-title">Welcome back</h1>
+    <p data-i18n="login-welcome-subtitle">Sign in to your management account</p>
 
     <div id="login-error" class="error-box"></div>
 
     <form id="login-form" onsubmit="onLoginSubmit(event)" style="width:100%">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" for="login-email">Email</label>
-          <input id="login-email" class="form-input" type="email" placeholder="you@company.com" required autocomplete="email">
+          <label class="form-label" for="login-email" data-i18n="login-label-email">Email</label>
+          <input id="login-email" class="form-input" type="email" placeholder="you@company.com" data-i18n-placeholder="login-placeholder-email" required autocomplete="email">
         </div>
         <div class="form-group">
-          <label class="form-label" for="login-password">Password</label>
-          <input id="login-password" class="form-input" type="password" placeholder="Password" required autocomplete="current-password">
+          <label class="form-label" for="login-password" data-i18n="login-label-password">Password</label>
+          <input id="login-password" class="form-input" type="password" placeholder="Password" data-i18n-placeholder="login-placeholder-password" required autocomplete="current-password">
         </div>
       </div>
-      <button type="submit" class="btn" id="login-btn">Sign In</button>
+      <button type="submit" class="btn" id="login-btn" data-i18n="login-submit">Sign In</button>
     </form>
 
-    <div class="alt">Don't have an account? <a href="/signup">Create a free account</a></div>
+    <div class="alt"><span data-i18n="login-no-account">Don't have an account?</span> <a href="/signup" data-i18n="login-create-account-link">Create a free account</a></div>
   </div>
 </main>
 
 <div class="bottom-links">
   <a href="https://generalbots.org">generalbots.org</a>
   <nav>
-    <a href="https://docs.generalbots.org">Docs</a>
-    <a href="https://github.com/generalbots/generalbots">GitHub</a>
+    <span data-i18n-switcher></span>
+    <a href="https://docs.generalbots.org" data-i18n="login-link-docs">Docs</a>
+    <a href="https://github.com/generalbots/generalbots" data-i18n="login-link-github">GitHub</a>
   </nav>
 </div>
 <div class="bottombar"></div>
@@ -123,6 +124,8 @@ window.CLOUD_CONFIG = {
   salesEmail: 'sales@pragmatismo.com.br',
 };
 </script>
+<script src="/js/i18n-lite.js"></script>
+<script src="/js/i18n-switcher.js"></script>
 <script src="/js/cloud-auth.js"></script>
 <script>
 (function(){var k='gb-login-theme',r=document.documentElement,b=document.getElementById('theme-btn');

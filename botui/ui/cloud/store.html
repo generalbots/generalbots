@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-i18n-document-title="cloud-store-document-title">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Store — General Bots Cloud</title>
   <meta name="description" content="General Bots Cloud Store — VPS, GPU, Storage, Phone Numbers, Domains and LLM tokens.">
   <script src="/cloud/js/cloud-shell.js"></script>
+  <script src="/cloud/js/i18n-lite.js"></script>
+  <script src="/cloud/js/i18n-switcher.js"></script>
   <link rel="stylesheet" href="/cloud/css/cloud-store.css">
   <script src="/cloud/js/store/00_schema.js"></script>
   <link rel="stylesheet" href="/cloud/css/store-inline.css">
@@ -16,7 +18,7 @@
 
   <main class="mgmt-main">
     <div class="mgmt-topbar">
-      <span class="mgmt-page-title">Store</span>
+      <span class="mgmt-page-title" data-i18n="cloud-store-title">Store</span>
       <div class="mgmt-topbar-actions">
         <span id="topbar-cat-label" style="font-size:.75rem;color:var(--muted)"></span>
       </div>
@@ -48,7 +50,7 @@
               </svg>
               Private Cloud Calculator
             </div>
-            <div class="calc-panel-sub">Configure and price your sovereign cloud</div>
+            <div class="calc-panel-sub" data-i18n="cloud-store-calc-sub">Configure and price your sovereign cloud</div>
           </div>
         </div>
 
@@ -58,8 +60,8 @@
           <div class="calc-step">
             <div class="calc-step-header">
               <span class="calc-step-num">1</span>
-              <span class="calc-step-label">Profile</span>
-              <span class="calc-recommend" id="calc-recommend">Select for recommendations</span>
+              <span class="calc-step-label" data-i18n="cloud-store-profile">Profile</span>
+              <span class="calc-recommend" id="calc-recommend" data-i18n="cloud-store-select-recommendations">Select for recommendations</span>
             </div>
             <div class="calc-profile-row">
               <button class="calc-prof-btn" data-profile="whatsapp" onclick="selectProfile('whatsapp')">
@@ -85,7 +87,7 @@
           <div class="calc-step">
             <div class="calc-step-header">
               <span class="calc-step-num">2</span>
-              <span class="calc-step-label">Server size</span>
+              <span class="calc-step-label" data-i18n="cloud-store-server-size">Server size</span>
             </div>
             <div class="calc-vps-grid">
               <label class="calc-vps-btn selected" data-value="vps-small" data-price="9.99">
@@ -119,7 +121,7 @@
           <div class="calc-step">
             <div class="calc-step-header">
               <span class="calc-step-num">3</span>
-              <span class="calc-step-label">Users</span>
+              <span class="calc-step-label" data-i18n="cloud-store-users">Users</span>
             </div>
             <div class="calc-storage-options">
               <label class="calc-addon-btn selected" data-price="0">
@@ -150,7 +152,7 @@
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
                 <span class="calc-step-num">4</span>
-                <span class="calc-step-label">Storage</span>
+                <span class="calc-step-label" data-i18n="cloud-store-storage">Storage</span>
               </div>
               <div class="calc-storage-options">
                 <label class="calc-addon-btn selected" data-price="0">
@@ -174,7 +176,7 @@
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
                 <span class="calc-step-num">5</span>
-                <span class="calc-step-label">GPU</span>
+                <span class="calc-step-label" data-i18n="cloud-store-gpu">GPU</span>
               </div>
               <div class="calc-gpu-options">
                 <label class="calc-addon-btn selected" data-price="0">
@@ -201,7 +203,7 @@
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
                 <span class="calc-step-num" style="background:var(--accent2)"></span>
-                <span class="calc-step-label">Phone</span>
+                <span class="calc-step-label" data-i18n="cloud-store-phone">Phone</span>
               </div>
               <div class="calc-phone-options">
                 <label class="calc-addon-btn selected" data-price="0">
@@ -225,7 +227,7 @@
             <div class="calc-step calc-step-compact">
               <div class="calc-step-header">
                 <span class="calc-step-num" style="background:var(--accent2)"></span>
-                <span class="calc-step-label">Domain</span>
+                <span class="calc-step-label" data-i18n="cloud-store-domain">Domain</span>
               </div>
               <div class="calc-domain-options">
                 <label class="calc-addon-btn selected" data-price="0">
@@ -252,13 +254,13 @@
           <div class="calc-step">
             <div class="calc-step-header">
               <span class="calc-step-num">6</span>
-              <span class="calc-step-label">LLM Tokens</span>
-              <span class="calc-recommend">No BYOK needed</span>
+              <span class="calc-step-label" data-i18n="cloud-store-llm-tokens">LLM Tokens</span>
+              <span class="calc-recommend" data-i18n="cloud-store-no-byok">No BYOK needed</span>
             </div>
             <div class="calc-llm-grid" id="calc-llm-grid">
               <div class="calc-llm-card selected" data-price="0" onclick="selectLLM(null,0,null,event)">
-                <div class="calc-llm-head">No LLM</div>
-                <div class="calc-llm-sub">Skip tokens</div>
+                <div class="calc-llm-head" data-i18n="cloud-store-llm-none">No LLM</div>
+                <div class="calc-llm-sub" data-i18n="cloud-store-llm-skip">Skip tokens</div>
                 <div class="calc-llm-price">$0<span>/mo</span></div>
               </div>
               <div class="calc-llm-card" data-provider="openai">
@@ -336,7 +338,7 @@
         <!-- Footer: price + CTA -->
         <div class="calc-panel-footer">
           <div class="calc-total-display">
-            <span class="calc-total-label">Monthly total</span>
+            <span class="calc-total-label" data-i18n="cloud-store-monthly-total">Monthly total</span>
             <span class="calc-total-value">
               <sup>$</sup><span id="calc-total">9.99</span>
               <span class="calc-total-period">/mo</span>
@@ -350,7 +352,7 @@
             <span>·</span>
             <span>99.9% SLA</span>
             <span>·</span>
-            <span>Cancel anytime</span>
+            <span data-i18n="cloud-store-cancel-anytime">Cancel anytime</span>
           </div>
         </div>
       </aside>
@@ -361,10 +363,10 @@
 <div class="mgmt-modal" id="purchase-modal">
   <div class="mgmt-backdrop" onclick="hideModal()"></div>
   <div class="mgmt-modal-box">
-    <div class="mgmt-modal-title" id="modal-title">Order Service</div>
+    <div class="mgmt-modal-title" id="modal-title" data-i18n="cloud-store-order-service">Order Service</div>
     <div id="modal-body"></div>
     <div class="mgmt-modal-actions">
-      <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="hideModal()" data-i18n="cloud-cancel">Cancel</button>
       <button class="btn btn-primary" id="modal-confirm-btn" onclick="confirmOrder()">Confirm &amp; Purchase</button>
     </div>
   </div>
@@ -378,13 +380,13 @@
 <div class="mgmt-modal" id="signup-modal">
   <div class="mgmt-backdrop" onclick="closeEmbeddedSignup()"></div>
   <div class="mgmt-modal-box mgmt-signup-box">
-    <div class="mgmt-modal-title" id="signup-modal-title">Create Free Account</div>
+    <div class="mgmt-modal-title" id="signup-modal-title" data-i18n="cloud-store-create-account">Create Free Account</div>
     <button class="mgmt-modal-close" onclick="closeEmbeddedSignup()" aria-label="Close">&times;</button>
     <iframe id="signup-iframe" title="Sign up"
       style="width:100%;height:520px;border:none;border-radius:10px;background:#fff"></iframe>
     <p style="text-align:center;font-size:12px;color:#667;margin:8px 0 0">
       Already have an account?
-      <a href="#" onclick="switchEmbeddedAuth('login');return false;">Sign in</a>
+      <a href="#" onclick="switchEmbeddedAuth('login');return false;" data-i18n="cloud-checkout-signin">Sign in</a>
     </p>
   </div>
 </div>

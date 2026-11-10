@@ -43,7 +43,11 @@
       params = {};
     }
     const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
-    const title = app ? app.title : appId;
+    const title = app
+      ? window.gbAppTitle
+        ? window.gbAppTitle(app)
+        : app.title
+      : appId;
     const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
     this.closeStartMenu();
     // #1432/#1439 — `new: true` forces a FRESH window instance even when
