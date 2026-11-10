@@ -85,14 +85,24 @@ pub fn dateadd_impl(date_str: &str, amount: i64, unit: &str) -> String {
                 }
             }
             "year" | "years" | "y" => {
-                let years = amount as i32;
-                NaiveDate::from_ymd_opt(
-                    datetime.year() + years,
-                    datetime.month(),
-                    datetime.day().min(28),
-                )
-                .map(|d| d.and_time(datetime.time()))
-                .unwrap_or(datetime)
+                // Adding 12 months clamps only when the target month is
+                // shorter (Feb 29 → Feb 28). The previous implementation
+                // clamped every day to 28, so 2025-01-31 + 1 year silently
+                // became 2026-01-28.
+                let months = amount.saturating_mul(12);
+                if months >= 0 {
+                    datetime
+                        .date()
+                        .checked_add_months(chrono::Months::new(months as u32))
+                        .map(|d| d.and_time(datetime.time()))
+                        .unwrap_or(datetime)
+                } else {
+                    datetime
+                        .date()
+                        .checked_sub_months(chrono::Months::new(months.unsigned_abs() as u32))
+                        .map(|d| d.and_time(datetime.time()))
+                        .unwrap_or(datetime)
+                }
             }
             _ => datetime,
         };
@@ -151,6 +161,70 @@ mod tests {
     #[test]
     fn test_dateadd_years() {
         assert_eq!(dateadd_impl("2025-01-15", 1, "year"), "2026-01-15");
+    }
+
+    #[test]
+    fn dateadd_year_keeps_end_of_month_days() {
+        // A day above 28 used to be clamped, silently losing the day.
+        assert_eq!(dateadd_impl("2025-01-31", 1, "year"), "2026-01-31");
+        assert_eq!(dateadd_impl("2025-03-30", 2, "year"), "2027-03-30");
+        assert_eq!(dateadd_impl("2025-12-31", -1, "year"), "2024-12-31");
+        // Leap day clamps to the last valid day of the target month.
+        assert_eq!(dateadd_impl("2024-02-29", 1, "year"), "2025-02-28");
+    }
+
+    #[test]
+    fn dateadd_month_clamps_to_the_short_month() {
+        assert_eq!(dateadd_impl("2025-01-31", 1, "month"), "2025-02-28");
+        assert_eq!(dateadd_impl("2025-03-31", -1, "month"), "2025-02-28");
+    }
+
+    #[test]
+    fn dateadd_preserves_the_time_when_given_one() {
+        assert_eq!(
+            dateadd_impl("2025-01-15 10:30:00", 2, "hour"),
+            "2025-01-15 12:30:00"
+        );
+        assert_eq!(
+            dateadd_impl("2025-01-15 10:30:00", 1, "day"),
+            "2025-01-16 10:30:00"
+        );
+    }
+
+    #[test]
+    fn dateadd_supports_every_documented_unit_alias() {
+        assert_eq!(dateadd_impl("2025-01-15", 1, "d"), "2025-01-16");
+        assert_eq!(dateadd_impl("2025-01-15", 1, "W"), "2025-01-22");
+        assert_eq!(dateadd_impl("2025-01-15", 2, "min"), "2025-01-15");
+        assert_eq!(
+            dateadd_impl("2025-01-15 00:00:00", 30, "s"),
+            "2025-01-15 00:00:30"
+        );
+    }
+
+    #[test]
+    fn dateadd_returns_the_input_when_it_cannot_parse() {
+        assert_eq!(dateadd_impl("not a date", 1, "day"), "not a date");
+        assert_eq!(dateadd_impl("", 1, "day"), "");
+    }
+
+    #[test]
+    fn datediff_supports_weeks_hours_and_seconds() {
+        assert_eq!(datediff_impl("2025-01-01", "2025-01-15", "week"), 2);
+        assert_eq!(
+            datediff_impl("2025-01-15 00:00:00", "2025-01-15 05:00:00", "hour"),
+            5
+        );
+        assert_eq!(
+            datediff_impl("2025-01-15 00:00:00", "2025-01-15 00:01:30", "second"),
+            90
+        );
+    }
+
+    #[test]
+    fn datediff_returns_zero_for_unparseable_input() {
+        assert_eq!(datediff_impl("junk", "2025-01-15", "day"), 0);
+        assert_eq!(datediff_impl("2025-01-15", "junk", "day"), 0);
     }
 
     #[test]
