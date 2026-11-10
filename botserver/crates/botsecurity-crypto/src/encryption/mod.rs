@@ -240,6 +240,10 @@ mod initialize;
 mod derive_key_from_password;
 mod master_key_lock;
 
+#[cfg(test)]
+#[path = "encryption_tests.rs"]
+mod encryption_tests;
+
 use initialize::*;
 pub use derive_key_from_password::*;
 pub use master_key_lock::*;

@@ -100,6 +100,10 @@ impl EncryptionManager {
     }
 
     pub async fn encrypt_with_envelope(&self, plaintext: &[u8]) -> Result<EnvelopeEncryptedData> {
+        if !self.config.enabled {
+            return Err(anyhow!("Encryption is disabled"));
+        }
+
         if !self.config.envelope_encryption {
             return Err(anyhow!("Envelope encryption is disabled"));
         }
@@ -145,6 +149,10 @@ impl EncryptionManager {
     }
 
     pub async fn decrypt_with_envelope(&self, envelope: &EnvelopeEncryptedData) -> Result<Vec<u8>> {
+        if !self.config.enabled {
+            return Err(anyhow!("Encryption is disabled"));
+        }
+
         if !self.config.envelope_encryption {
             return Err(anyhow!("Envelope encryption is disabled"));
         }
