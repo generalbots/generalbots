@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn handle_list_audit_logs(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Query(query): Query<ListAuditLogsQuery>,
 ) -> Result<Json<Vec<AuditLogEntry>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -11,7 +12,7 @@ pub async fn handle_list_audit_logs(
 
         let limit = query.limit.unwrap_or(100);
         let offset = query.offset.unwrap_or(0);
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let mut db_query = compliance_audit_log::table
             .filter(compliance_audit_log::branch_id.eq(branch_id))
@@ -54,6 +55,7 @@ pub async fn handle_list_audit_logs(
 }
 pub async fn handle_create_audit_log(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<CreateAuditLogRequest>,
 ) -> Result<Json<AuditLogEntry>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -61,7 +63,7 @@ pub async fn handle_create_audit_log(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let metadata = serde_json::to_value(req.metadata.unwrap_or_default()).unwrap_or(serde_json::json!({}));
 
@@ -96,6 +98,7 @@ pub async fn handle_create_audit_log(
 }
 pub async fn handle_create_training(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<CreateTrainingRequest>,
 ) -> Result<Json<TrainingRecord>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -103,7 +106,7 @@ pub async fn handle_create_training(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let db_training = DbTrainingRecord {
             id: Uuid::new_v4(),
@@ -148,12 +151,13 @@ pub async fn handle_create_training(
 }
 pub async fn handle_list_training(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<TrainingRecord>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let db_records: Vec<DbTrainingRecord> = compliance_training_records::table
             .filter(compliance_training_records::branch_id.eq(branch_id))
@@ -186,12 +190,13 @@ pub async fn handle_list_training(
 }
 pub async fn handle_list_risks(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<serde_json::Value>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let items: Vec<DbRiskAssessment> = compliance_risk_assessments::table
             .filter(compliance_risk_assessments::branch_id.eq(branch_id))
@@ -211,6 +216,7 @@ pub async fn handle_list_risks(
 }
 pub async fn handle_run_check_by_id(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(check_id): Path<Uuid>,
 ) -> Result<Json<ComplianceCheckResult>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -219,8 +225,10 @@ pub async fn handle_run_check_by_id(
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
 
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
         let mut db_check: DbComplianceCheck = compliance_checks::table
-            .find(check_id)
+            .filter(compliance_checks::id.eq(check_id))
+            .filter(compliance_checks::branch_id.eq(branch_id))
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Check not found".to_string()))?;
 

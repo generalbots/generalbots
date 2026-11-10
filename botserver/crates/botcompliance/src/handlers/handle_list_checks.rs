@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn handle_list_checks(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Query(query): Query<ListChecksQuery>,
 ) -> Result<Json<Vec<ComplianceCheckResult>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -11,7 +12,7 @@ pub async fn handle_list_checks(
 
         let limit = query.limit.unwrap_or(50);
         let offset = query.offset.unwrap_or(0);
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let mut db_query = compliance_checks::table
             .filter(compliance_checks::branch_id.eq(branch_id))
@@ -46,6 +47,7 @@ pub async fn handle_list_checks(
 }
 pub async fn handle_run_check(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<RunCheckRequest>,
 ) -> Result<Json<Vec<ComplianceCheckResult>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -53,7 +55,7 @@ pub async fn handle_run_check(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let controls = match req.framework {
             ComplianceFramework::Gdpr => vec![
@@ -106,6 +108,7 @@ pub async fn handle_run_check(
 }
 pub async fn handle_get_check(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(check_id): Path<Uuid>,
 ) -> Result<Json<Option<ComplianceCheckResult>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -113,8 +116,10 @@ pub async fn handle_get_check(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
         let db_check: Option<DbComplianceCheck> = compliance_checks::table
-            .find(check_id)
+            .filter(compliance_checks::id.eq(check_id))
+            .filter(compliance_checks::branch_id.eq(branch_id))
             .first(&mut conn)
             .optional()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
@@ -133,6 +138,7 @@ pub async fn handle_get_check(
 }
 pub async fn handle_list_issues(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Query(query): Query<ListIssuesQuery>,
 ) -> Result<Json<Vec<ComplianceIssueResult>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -142,7 +148,7 @@ pub async fn handle_list_issues(
 
         let limit = query.limit.unwrap_or(50);
         let offset = query.offset.unwrap_or(0);
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let mut db_query = compliance_issues::table
             .filter(compliance_issues::branch_id.eq(branch_id))
@@ -178,6 +184,7 @@ pub async fn handle_list_issues(
 }
 pub async fn handle_create_issue(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<CreateIssueRequest>,
 ) -> Result<Json<ComplianceIssueResult>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -185,7 +192,7 @@ pub async fn handle_create_issue(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let db_issue = DbComplianceIssue {
             id: Uuid::new_v4(),
@@ -221,6 +228,7 @@ pub async fn handle_create_issue(
 }
 pub async fn handle_update_issue(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(issue_id): Path<Uuid>,
     Json(req): Json<UpdateIssueRequest>,
 ) -> Result<Json<ComplianceIssueResult>, ComplianceError> {
@@ -230,8 +238,10 @@ pub async fn handle_update_issue(
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
 
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
         let mut db_issue: DbComplianceIssue = compliance_issues::table
-            .find(issue_id)
+            .filter(compliance_issues::id.eq(issue_id))
+            .filter(compliance_issues::branch_id.eq(branch_id))
             .first(&mut conn)
             .map_err(|_| ComplianceError::NotFound("Issue not found".to_string()))?;
 

@@ -2,7 +2,7 @@
 //! catalogs and attached evidence, plus coverage computation and audit-ready
 //! CSV export. Every mutation is recorded in `compliance_audit_log`.
 
-pub(crate) use axum::{ extract::{Path, Query, State}, response::{Html, IntoResponse}, Json, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::HeaderMap, response::{Html, IntoResponse}, Json, };
 pub(crate) use chrono::Utc;
 pub(crate) use diesel::prelude::*;
 pub(crate) use serde::Deserialize;
@@ -12,7 +12,6 @@ pub(crate) use crate::schema::{ compliance_audit_log, compliance_control_evidenc
 pub(crate) use crate::storage::{ DbComplianceControl, DbComplianceControlEvidence, DbComplianceFramework, };
 pub(crate) use crate::ComplianceError;
 
-const BRANCH_ID_PLACEHOLDER: Uuid = Uuid::nil();
 
 #[derive(Debug, Deserialize)]
 pub struct CreateFrameworkRequest {

@@ -81,12 +81,13 @@ pub async fn handle_get_framework(
 /// `POST /api/compliance/controls`
 pub async fn handle_create_control(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<CreateControlRequest>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let control_id = req.control_id.trim().to_string();
         if control_id.is_empty() || req.title.trim().is_empty() {
@@ -203,12 +204,13 @@ pub async fn handle_update_control(
 /// `POST /api/compliance/evidence/attach`
 pub async fn handle_attach_evidence(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<AttachEvidenceRequest>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         // Control must exist and belong to the branch scope.
         let _control: DbComplianceControl = compliance_controls::table

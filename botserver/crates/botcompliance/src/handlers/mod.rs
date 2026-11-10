@@ -1,4 +1,4 @@
-pub(crate) use axum::{ extract::{Path, Query, State}, Json, };
+pub(crate) use axum::{ extract::{Path, Query, State}, http::HeaderMap, Json, };
 pub(crate) use chrono::Utc;
 pub(crate) use diesel::prelude::*;
 pub(crate) use std::sync::Arc;
@@ -8,7 +8,6 @@ pub(crate) use crate::storage::{ db_audit_to_entry, db_check_to_result, db_issue
 pub(crate) use crate::types::{ AuditLogEntry, ComplianceCheckResult, ComplianceFramework, ComplianceIssueResult, ComplianceReport, CreateAuditLogRequest, CreateIssueRequest, CreateTrainingRequest, ListAuditLogsQuery, ListChecksQuery, ListIssuesQuery, RunCheckRequest, TrainingRecord, TrainingType, UpdateIssueRequest, };
 pub(crate) use crate::ComplianceError;
 
-const BRANCH_ID_PLACEHOLDER: Uuid = Uuid::nil();
 
 mod handle_list_checks;
 mod handle_list_audit_logs;

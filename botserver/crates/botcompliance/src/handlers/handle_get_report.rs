@@ -2,6 +2,7 @@ use super::*;
 
 pub async fn handle_get_report(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Query(query): Query<ListChecksQuery>,
 ) -> Result<Json<ComplianceReport>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
@@ -9,7 +10,7 @@ pub async fn handle_get_report(
             .get()
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let mut db_query = compliance_checks::table
             .filter(compliance_checks::branch_id.eq(branch_id))

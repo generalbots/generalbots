@@ -3,10 +3,12 @@ use super::*;
 /// `DELETE /api/compliance/evidence/:evidence_id`
 pub async fn handle_delete_evidence(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(evidence_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         diesel::delete(compliance_control_evidence::table.find(evidence_id))
             .execute(&mut conn)
@@ -14,7 +16,7 @@ pub async fn handle_delete_evidence(
 
         audit(
             &mut conn,
-            BRANCH_ID_PLACEHOLDER,
+            branch_id,
             None,
             "evidence.delete",
             "compliance_control_evidence",

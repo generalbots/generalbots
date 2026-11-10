@@ -27,6 +27,8 @@ pub mod types;
 pub mod ui;
 pub mod vulnerability_scanner;
 
+pub mod branch_scope;
+
 pub use code_scanner::{
     CodeIssue, CodeScanner, ComplianceReporter, ComplianceScanResult, IssueSeverity, IssueType,
     ScanStats,

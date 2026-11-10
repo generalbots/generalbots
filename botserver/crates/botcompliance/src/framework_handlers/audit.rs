@@ -76,11 +76,12 @@ pub(super) fn evidence_json(e: &DbComplianceControlEvidence) -> serde_json::Valu
 /// `GET /api/compliance/frameworks`
 pub async fn handle_list_frameworks(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Query(query): Query<ListFrameworksQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let mut db_query = compliance_frameworks::table
             .filter(compliance_frameworks::branch_id.eq(branch_id))
@@ -117,12 +118,13 @@ pub async fn handle_list_frameworks(
 /// `POST /api/compliance/frameworks`
 pub async fn handle_create_framework(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Json(req): Json<CreateFrameworkRequest>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
-        let branch_id = BRANCH_ID_PLACEHOLDER;
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         let name = req.name.trim().to_string();
         if name.is_empty() {
@@ -224,11 +226,13 @@ pub async fn handle_update_framework(
 /// `POST /api/compliance/frameworks/:framework_id/archive`
 pub async fn handle_archive_framework(
     State(pool): State<Arc<crate::DbPool>>,
+    headers: HeaderMap,
     Path(framework_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, ComplianceError> {
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| ComplianceError::Database(e.to_string()))?;
         let now = Utc::now();
+        let branch_id = crate::branch_scope::resolve_branch(&headers, &pool);
 
         diesel::update(compliance_frameworks::table.find(framework_id))
             .set((
@@ -240,7 +244,7 @@ pub async fn handle_archive_framework(
 
         audit(
             &mut conn,
-            BRANCH_ID_PLACEHOLDER,
+            branch_id,
             None,
             "framework.archive",
             "compliance_framework",
