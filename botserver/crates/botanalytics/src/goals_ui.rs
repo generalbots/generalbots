@@ -316,7 +316,7 @@ pub async fn new_objective_form(
 <button class="btn-close" type="button" onclick="window.closeModal && window.closeModal()">&times;</button>
 </div>
 <form class="objective-form" hx-post="/api/goals/objectives" hx-swap="none"
-      hx-on::after-request="if(event.detail.successful){window.closeModal&&window.closeModal();document.body.dispatchEvent(new Event('objectiveCreated'));}">
+      hx-on::after-request="if(event.detail.successful){{window.closeModal&&window.closeModal();document.body.dispatchEvent(new Event('objectiveCreated'));}}">
 <div class="form-group">
 <label>Title</label>
 <input type="text" name="title" placeholder="What do you want to achieve?" required />
