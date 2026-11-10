@@ -10,8 +10,7 @@ where
         .map(|a| format!("- {} (id: {}) — {}", a.title, a.id, a.description))
         .collect();
     let deep_links: Vec<String> = crate::apps::commands::all_deep_links()
-        .iter()
-        .filter(|(app_id, _)| available(app_id))
+        .filter(|pair| available(pair.0))
         .map(|(app_id, params)| {
             let keys = params
                 .iter()

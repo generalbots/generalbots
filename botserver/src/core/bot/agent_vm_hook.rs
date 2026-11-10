@@ -379,4 +379,4 @@ pub async fn list_session_folder(
         .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
 }
 mod wake;
-pub use wake::{exec_with_wake_events, exec_with_wake_result};
+pub(crate) use wake::{exec_with_wake_events, exec_with_wake_result};

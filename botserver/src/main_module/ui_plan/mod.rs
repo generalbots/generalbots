@@ -185,7 +185,9 @@ Compose a message to Rodrigo."#;
         assert_eq!(plan.steps[1].op, UiOp::Menu);
         assert_eq!(
             plan.steps[1].path.as_deref(),
-            Some(["Page", "Background", "Yellow"].as_slice())
+            Some(
+                ["Page".to_string(), "Background".to_string(), "Yellow".to_string()].as_slice()
+            )
         );
         assert_eq!(plan.steps[2].op, UiOp::Download);
     }

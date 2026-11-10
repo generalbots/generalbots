@@ -11,7 +11,7 @@ pub use types::{CatalogResponse, LlmAction, LlmProviderSummary, ProviderItem};
 use axum::Router;
 
 use types::{
-    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed,
+    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed, Status,
 };
 
 pub fn register<S: Clone + Send + Sync + 'static>(router: Router<S>) -> Router<S> {
