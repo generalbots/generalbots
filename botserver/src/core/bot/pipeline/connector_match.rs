@@ -139,16 +139,13 @@ fn capability_for(provider_id: &str, tokens: &[String]) -> String {
     let mut best: Option<(u32, &'static str)> = None;
     for action in &actions {
         let key = action.name.to_lowercase();
-        let label = action.label.to_lowercase();
         let summary = action.summary.to_lowercase();
         let verb = key.rsplit('.').next().unwrap_or(key.as_str());
         let mut score = 0u32;
         for token in tokens {
-            if label.contains(token.as_str()) {
-                score += 3;
-            }
+            // `LlmAction` carries the key and the human summary, not a label.
             if key.contains(token.as_str()) {
-                score += 2;
+                score += 3;
             }
             if summary.contains(token.as_str()) {
                 score += 1;
