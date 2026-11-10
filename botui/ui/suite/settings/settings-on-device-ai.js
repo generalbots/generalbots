@@ -287,12 +287,15 @@
   }
 
   function cancel(id) {
-    var job = state.activeJob;
-    if (!job || job.modelId !== id) {
+    var model = findModel(id);
+    var jobId = model && model.job_id
+      ? model.job_id
+      : (state.activeJob && state.activeJob.modelId === id ? state.activeJob.jobId : null);
+    if (!jobId) {
       say("No running download for this model.");
       return;
     }
-    json("/api/llm/local/jobs/" + encodeURIComponent(job.jobId) + "/cancel", { method: "POST" })
+    json("/api/llm/local/jobs/" + encodeURIComponent(jobId) + "/cancel", { method: "POST" })
       .then(function () {
         say("Cancelling…");
       })
@@ -386,6 +389,10 @@
       renderTable();
       renderRecommended(data);
       say("");
+      var running = allModels().filter(function (model) {
+        return model.status === "downloading" && model.job_id;
+      })[0];
+      if (running) startPolling(running.job_id, running.id);
     }).catch(function (error) {
       say("Cannot load the on-device models: " + error.message);
     });

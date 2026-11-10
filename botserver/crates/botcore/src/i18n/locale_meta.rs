@@ -79,12 +79,7 @@ pub fn metadata_for(code: &str) -> LocaleMetadata {
         }
         // An unknown code is shown as written rather than hidden: a locale
         // directory that landed without metadata still reaches the picker.
-        None => (
-            trimmed,
-            trimmed,
-            DEFAULT_DATE_FORMAT,
-            DEFAULT_NUMBER_FORMAT,
-        ),
+        None => (trimmed, trimmed, DEFAULT_DATE_FORMAT, DEFAULT_NUMBER_FORMAT),
     };
 
     LocaleMetadata {

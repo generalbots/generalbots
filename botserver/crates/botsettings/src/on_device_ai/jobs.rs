@@ -28,6 +28,9 @@ pub(crate) struct Job {
     state: Mutex<&'static str>,
     bytes_done: AtomicU64,
     bytes_total: AtomicU64,
+    /// Authoritative size from the HTTP response; 0 when the server sent no
+    /// `Content-Length`, in which case only the checksum can verify the file.
+    expected_bytes: AtomicU64,
     cancel: AtomicBool,
     started: Instant,
     error: Mutex<Option<String>>,
@@ -90,6 +93,7 @@ pub(crate) fn start(spec: &'static ModelSpec, dir: &Path) -> Result<String, Stri
         state: Mutex::new(STATE_DOWNLOADING),
         bytes_done: AtomicU64::new(0),
         bytes_total: AtomicU64::new(spec.size_bytes),
+        expected_bytes: AtomicU64::new(0),
         cancel: AtomicBool::new(false),
         started: Instant::now(),
         error: Mutex::new(None),
@@ -138,6 +142,15 @@ pub(crate) fn cancel(job_id: &str) -> Result<(), String> {
     let job = jobs.get(job_id).ok_or_else(|| "job_not_found".to_string())?;
     job.cancel.store(true, Ordering::SeqCst);
     Ok(())
+}
+
+/// Id of the running download for `model_id`, so the page can resume polling
+/// (and cancel) after a reload.
+pub(crate) fn active_job_id(model_id: &str) -> Option<String> {
+    let jobs = JOBS.lock().ok()?;
+    jobs.values()
+        .find(|job| job.model_id == model_id && job_state(job) == STATE_DOWNLOADING)
+        .map(|job| job.id.clone())
 }
 
 /// Percentage of a running download for `model_id`, for the table row.
@@ -190,7 +203,7 @@ async fn run(job: Arc<Job>, spec: &'static ModelSpec, dir: PathBuf) {
         return;
     }
 
-    let expected = job.bytes_total.load(Ordering::Relaxed);
+    let expected = job.expected_bytes.load(Ordering::Relaxed);
     if expected > 0 && resume_from != expected {
         fail(&job, format!("size_mismatch: got {resume_from}, expected {expected}"));
         return;
@@ -234,8 +247,10 @@ async fn fetch_into(
     part: &Path,
     resume_from: u64,
 ) -> Result<(), DownloadError> {
+    // No total timeout: a large GGUF takes far longer than any request budget.
+    // Only the connection is bounded, so a dead endpoint fails fast.
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
+        .connect_timeout(Duration::from_secs(30))
         .build()
         .map_err(|error| DownloadError::Failed(format!("http_client_failed: {error}")))?;
     let url = format!(
@@ -256,14 +271,18 @@ async fn fetch_into(
     if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE && resume_from > 0 {
         // The partial file already holds every byte the server has.
         job.bytes_total.store(resume_from, Ordering::SeqCst);
+        job.expected_bytes.store(resume_from, Ordering::SeqCst);
         return Ok(());
     }
     if !status.is_success() {
         return Err(DownloadError::Failed(format!("http_status_{}", status.as_u16())));
     }
     let offset = if append { resume_from } else { 0 };
-    let total = response
-        .content_length()
+    let content_length = response.content_length();
+    if let Some(length) = content_length {
+        job.expected_bytes.store(length + offset, Ordering::SeqCst);
+    }
+    let total = content_length
         .map(|length| length + offset)
         .unwrap_or(spec.size_bytes);
     job.bytes_total.store(total, Ordering::SeqCst);

@@ -40,12 +40,20 @@ pub(crate) fn active_model(state: &std::sync::Arc<botcore::shared::state::AppSta
         .unwrap_or_default()
 }
 
-/// Persist the model (and optional profile) to Vault.
+/// True for the endpoints the on-device engine binds to. A hosted provider
+/// URL must not be replaced by activating a local model.
+pub(crate) fn is_loopback(url: &str) -> bool {
+    let lowered = url.to_ascii_lowercase();
+    lowered.contains("localhost") || lowered.contains("127.0.0.1") || lowered.contains("[::1]")
+}
+
+/// Persist the model (and optional profile) to Vault. Returns whether the
+/// local chat-completions URL was written as well.
 pub(crate) async fn save_choice(
     state: &std::sync::Arc<botcore::shared::state::AppState>,
     spec: &ModelSpec,
     profile: Option<&Profile>,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let secrets = SecretsManager::get_clone().map_err(|error| format!("vault_unavailable: {error}"))?;
     if !secrets.is_enabled() {
         return Err("vault_not_enabled".to_string());
@@ -56,13 +64,11 @@ pub(crate) async fn save_choice(
         .await
         .unwrap_or_default();
     central.insert("model".to_string(), spec.file.to_string());
-    let has_url = central
-        .get("url")
-        .is_some_and(|url| !url.trim().is_empty());
-    if !has_url {
+    let current_url = central.get("url").cloned().unwrap_or_default();
+    let write_url = current_url.trim().is_empty() || is_loopback(&current_url);
+    if write_url {
         central.insert("url".to_string(), DEFAULT_LLM_URL.to_string());
     }
-    central.insert("provider".to_string(), "llama".to_string());
     secrets
         .put_secret(CENTRAL_LLM_PATH, central)
         .await
@@ -90,7 +96,7 @@ pub(crate) async fn save_choice(
         }
     }
 
-    Ok(())
+    Ok(write_url)
 }
 
 #[cfg(test)]

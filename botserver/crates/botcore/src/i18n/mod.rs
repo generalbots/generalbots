@@ -18,9 +18,9 @@ pub mod cli;
 mod error;
 mod locale_meta;
 mod routes;
-mod translations;
 #[cfg(test)]
 mod tests;
+mod translations;
 
 pub use botlib::i18n::{has_message, translate, Locale};
 pub use cli as cli_locale;
@@ -146,9 +146,7 @@ fn negotiate_locale(requested: &[(String, f32)]) -> Option<Locale> {
     let requested_refs: Vec<&Locale> = requested_locales.iter().collect();
     let fallback = Locale::default();
 
-    Some(
-        Locale::negotiate(&requested_refs, &available, &fallback).clone(),
-    )
+    Some(Locale::negotiate(&requested_refs, &available, &fallback).clone())
 }
 
 pub type MessageArgs = botlib::i18n::MessageArgs;
@@ -211,11 +209,8 @@ pub fn t(locale: &Locale, key: &str) -> String {
 }
 
 pub fn t_with_args(locale: &Locale, key: &str, args: Option<&MessageArgs>) -> String {
-    let botlib_args: Option<BotlibMessageArgs> = args.map(|a| {
-        a.iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect()
-    });
+    let botlib_args: Option<BotlibMessageArgs> =
+        args.map(|a| a.iter().map(|(k, v)| (k.clone(), v.clone())).collect());
     i18n::get_with_args(locale, key, botlib_args.as_ref())
 }
 

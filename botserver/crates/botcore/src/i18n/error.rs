@@ -95,4 +95,3 @@ pub fn error_body(locale: &Locale, code: &str) -> serde_json::Value {
 pub fn error_body_with_args(locale: &Locale, code: &str, args: &MessageArgs) -> serde_json::Value {
     LocalizedError::with_args(locale, code, args).body()
 }
-

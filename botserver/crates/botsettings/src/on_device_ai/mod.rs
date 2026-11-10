@@ -36,7 +36,9 @@ fn error(status: StatusCode, code: &str) -> ApiError {
 }
 
 fn require_admin(user: &AuthenticatedUser) -> Result<(), ApiError> {
-    if user.is_admin() || user.is_super_admin() {
+    // The single-user desktop install has one principal: the local owner.
+    let local_owner = user.metadata.contains_key("desktop_local");
+    if user.is_admin() || user.is_super_admin() || local_owner {
         return Ok(());
     }
     Err(error(StatusCode::FORBIDDEN, "admin_required"))
@@ -118,6 +120,7 @@ fn model_row(
         "file": spec.file,
         "status": status,
         "progress": progress,
+        "job_id": jobs::active_job_id(spec.id),
         "partial_bytes": partial,
         "active": active,
         "downloaded": downloaded,
@@ -222,7 +225,7 @@ async fn activate(
         ),
         None => None,
     };
-    vault_store::save_choice(&state, spec, profile)
+    let url_written = vault_store::save_choice(&state, spec, profile)
         .await
         .map_err(|reason| {
             log::error!("[on_device_ai] cannot persist choice: {reason}");
@@ -233,6 +236,7 @@ async fn activate(
         "profile": profile.map(|profile| profile.id),
         "restarted": false,
         "restart_required": true,
+        "url_written": url_written,
     })))
 }
 

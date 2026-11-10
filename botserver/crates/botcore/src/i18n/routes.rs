@@ -73,8 +73,7 @@ struct PreferenceRow {
 }
 
 fn caller_id(headers: &HeaderMap) -> Option<Uuid> {
-    crate::shared::tenant::user_id_from_claims(headers)
-        .and_then(|raw| Uuid::parse_str(&raw).ok())
+    crate::shared::tenant::user_id_from_claims(headers).and_then(|raw| Uuid::parse_str(&raw).ok())
 }
 
 /// `GET /api/i18n/preference` — the locale this user picked, so a new device or
