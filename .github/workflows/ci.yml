@@ -608,6 +608,55 @@ jobs:
       - name: Run botserver unit tests
         run: cargo test -p botserver --bin botserver
 
+  # #2074 — the binary job above only runs botserver's tests. Every other
+  # crate's unit tests were never invoked, so a regression in a library shipped
+  # green. This matrix runs the crates that have offline tests; `bottest` runs
+  # the cross-crate unit module.
+  workspace-tests:
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - botlib
+          - botschema
+          - botlog
+          - botbasic_types
+          - botdocs
+          - botslides
+          - botsheet
+          - botdrive
+          - botchannels
+          - botagent
+          - botsources
+          - botintegrations
+          - botbasic_comms
+          - boterp
+          - botvision
+          - botanalytics
+          - botui
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: workspace-tests
+      - name: Unit tests (${{ matrix.crate }})
+        run: cargo test -p ${{ matrix.crate }} --lib
+
+  bottest-unit:
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/rust-setup
+        with:
+          cache-scope: bottest-unit
+      - name: Cross-crate unit tests
+        run: cargo test -p bottest --test unit
+
   # #1811 — the manifest reports only the features the command line requested.
   # This keeps the old feature-unification guard (a slim build must not inherit
   # `botcore/default` through a workspace dependency).
