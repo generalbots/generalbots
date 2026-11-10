@@ -9,7 +9,7 @@ use axum::http::StatusCode;
 /// Remediation returned when the host has no usable Incus daemon. The text is
 /// fixed and free of host paths/identities, so it is safe to send to API
 /// callers (the raw command output stays in the log).
-const INCUS_MISSING_MESSAGE: &str = "Incus is not available on this host: install the incus package (Debian/Ubuntu: apt install incus), run `incus admin init --minimal`, add the botserver user to the incus-admin group, then restart the botserver service";
+pub(super) const INCUS_MISSING_MESSAGE: &str = "Incus is not available on this host: install the incus package (Debian/Ubuntu: apt install incus), run `incus admin init --minimal`, add the botserver user to the incus-admin group, then restart the botserver service";
 
 /// Remediation for the socket-permission failure: `/var/lib/incus/unix.socket`
 /// is `root:incus-admin 0660` and the daemon checks the peer credentials, so
@@ -20,7 +20,7 @@ const INCUS_PERMISSION_MESSAGE: &str = "The botserver service cannot access the 
 /// by host setup (missing binary/daemon or socket permission). Returns `None`
 /// for everything else so callers keep the generic sanitized message and its
 /// detail stays in the log.
-fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
+pub(super) fn incus_setup_error(detail: &str) -> Option<(StatusCode, String)> {
     let lower = detail.to_ascii_lowercase();
     let permission_denied = lower.contains("permission denied")
         || lower.contains("needed permissions")

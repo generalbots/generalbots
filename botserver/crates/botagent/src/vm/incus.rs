@@ -13,7 +13,7 @@ use crate::stream::{pump_lines, wait_for_child, ExecEvent};
 use crate::AgentService;
 
 use super::internal;
-use super::incus_errors::incus_setup_error;
+use super::incus_errors::{incus_setup_error, INCUS_MISSING_MESSAGE};
 use super::retry::{cold_start_timeout_message, retry_incus};
 
 const LAUNCH_WAIT_SECS: u64 = 60;
