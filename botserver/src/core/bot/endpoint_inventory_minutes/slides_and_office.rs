@@ -96,6 +96,11 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
     },
     ApiEndpoint {
         method: "POST",
+        path: "/api/slides/new",
+        summary: "registered in crates/botslides/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
         path: "/api/slides/presenter/end",
         summary: "registered in crates/botslides/src/routes.rs",
     },

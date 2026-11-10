@@ -278,6 +278,32 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     deliver();
   }
 
+  /* -------------------------------------------------------------- downloads */
+
+  // #2144 — the drawing has to leave chat as a file, not only through
+  // Save-to-Drive. `js/artifact-download.js` serialises the live root (a DOM
+  // closes whatever the model has not finished, so the *current* state of a
+  // streaming drawing is always a valid document), paints the preview
+  // background and rasterises PNG at 2x without any external library.
+  function currentDrawing(box) {
+    var state = box.__gbLiveSvg;
+    var root = state && state.root;
+    return root ? root.outerHTML || "" : "";
+  }
+
+  function downloadButton(box, format, label, title) {
+    if (!window.GBArtifactExport) return document.createElement("span");
+    return window.GBArtifactExport.drawingButton(
+      format,
+      function () { return currentDrawing(box); },
+      {
+        label: label,
+        title: title,
+        className: "gb-attachment-inline-btn gb-live-artifact-download",
+      }
+    );
+  }
+
   /* ------------------------------------------------------------------ chrome */
 
   function build(container) {
@@ -302,6 +328,16 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
       if (svg) sendToCanvas(svg);
     });
     head.appendChild(send);
+    // #2144 — Download sits next to "Open in Canvas" so the drawing can leave
+    // chat as a file even before the model finishes streaming.
+    var downloadSvg = downloadButton(
+      box, "svg", "SVG", "Download the drawing as SVG"
+    );
+    head.appendChild(downloadSvg);
+    var downloadPng = downloadButton(
+      box, "png", "PNG", "Download the drawing as PNG (2x)"
+    );
+    head.appendChild(downloadPng);
     var expand = document.createElement("button");
     expand.type = "button";
     expand.className = "gb-attachment-inline-btn";
@@ -329,6 +365,7 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     box.appendChild(body);
     box.__gbLiveSvg = {
       head: head, badge: badge, body: body, host: host, send: send,
+      downloadSvg: downloadSvg, downloadPng: downloadPng,
       root: null, frame: null, applied: {}, containers: {}, parts: 0,
     };
     container.appendChild(box);
@@ -363,6 +400,10 @@ window.GBLiveArtifact = window.GBLiveArtifact || (function () {
     if (state.frame) state.frame.hidden = isSvg;
     state.host.hidden = !isSvg;
     state.send.hidden = !isSvg;
+    // A generated HTML app is not a drawing: there is no SVG to export, and
+    // the opaque iframe cannot be serialised from the suite document.
+    state.downloadSvg.hidden = !isSvg;
+    state.downloadPng.hidden = !isSvg;
     if (!isSvg) {
       renderHtml(state, block);
       return;

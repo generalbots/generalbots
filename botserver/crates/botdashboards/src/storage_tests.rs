@@ -66,7 +66,8 @@ fn a_malformed_config_falls_back_to_the_default() {
     for config in [json!("not-an-object"), json!([]), json!(null)] {
         let widget = db_widget_to_widget(widget_row("kpi", config));
         assert_eq!(widget.config.text_content, None);
-        assert_eq!(widget.config.chart_config, None);
+        // `ChartConfig` has no `PartialEq`; assert the option is empty instead.
+        assert!(widget.config.chart_config.is_none());
         // The row itself still maps: a broken config must not hide the widget.
         assert_eq!(widget.title, "Revenue");
     }

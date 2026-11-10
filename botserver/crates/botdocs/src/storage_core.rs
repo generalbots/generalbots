@@ -86,6 +86,24 @@ pub fn create_new_document(owner_id: &str) -> Document {
     }
 }
 
+/// Builds a document with the requested title and body (#2143). Kept free of
+/// Drive so the shape of the created artifact is testable on its own.
+pub fn create_document_with(
+    owner_id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+) -> Document {
+    let mut doc = create_new_document(owner_id);
+    if let Some(title) = title.map(str::trim).filter(|title| !title.is_empty()) {
+        doc.title = title.to_string();
+    }
+    if let Some(content) = content {
+        doc.content = content.to_string();
+    }
+    doc.updated_at = Utc::now();
+    doc
+}
+
 pub fn strip_html(html: &str) -> String {
     let mut result = String::new();
     let mut in_tag = false;

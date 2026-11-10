@@ -113,6 +113,11 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \
                      Save generated artifacts into output/ so the user can preview them. \
+                     Every new or changed file left in output/ is published to the user's \
+                     Drive automatically when the turn ends and its vmfile link is attached \
+                     to the answer, so you do not need to call drive_save just to make an \
+                     artifact durable; call it only to publish a specific file on demand or \
+                     into a different folder. \
                      WORKSPACE TRACE (mandatory for programs with more than one step): \
                      print one line to stdout when each meaningful block starts and when \
                      it ends, so the chat run card shows a live task table with timing. A \
@@ -128,7 +133,8 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      Files the user names may already be in data/ (fetched from their Drive); \
                      read them from there. Use `drive_fetch` to pull a Drive file into data/ \
                      and `drive_save` to publish output/ files to the user's Drive under the \
-                     conversation folder. When the user asks to save to Google Drive or \
+                     conversation folder when the user asks for that explicitly. When the \
+                     user asks to save to Google Drive or \
                      OneDrive, call `save_to_external_drive` with \"provider\": \"gdrive\" \
                      or \"onedrive\" (plus optional \"files\" and \"folder\"); it writes \
                      straight to the account the user connected and returns a share link. If \
@@ -137,6 +143,10 @@ pub(super) async fn inject(identity: &SessionIdentity<'_>, messages: &mut Vec<Va
                      was saved when it was not. \
                      After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
+                     `drive_save` already returns each Drive file as \
+                     [name](app://drive?path=<key>&scope=bot): repeat those links verbatim. \
+                     These two are the only link forms the chat renders — never emit a \
+                     drive: URL, it stays dead text and the user cannot open the file. \
                      PROGRESS ETIQUETTE (mandatory): the user stares at a spinner while \
                      code runs, so keep them informed. Before every tool call write one \
                      short line, in the user's language, saying what you are about to do \

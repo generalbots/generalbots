@@ -27,3 +27,7 @@ pub struct SlidesState<D: DriveOps> {
 #[cfg(test)]
 #[path = "owner_isolation_tests.rs"]
 mod owner_isolation_tests;
+
+#[cfg(test)]
+#[path = "create_tests.rs"]
+mod create_tests;

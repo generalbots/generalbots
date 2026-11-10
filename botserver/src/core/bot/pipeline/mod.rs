@@ -18,6 +18,8 @@ pub mod connector_match;
 pub mod native_drive;
 pub mod native_external_save;
 pub mod native_tools;
+#[cfg(all(feature = "agent-vm", feature = "drive"))]
+pub mod output_publish;
 pub mod sink;
 pub mod start_bas;
 pub mod start_gate;

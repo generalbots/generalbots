@@ -39,6 +39,24 @@ where
 }
 
 
+/// One slide of a `slides.create` request: a heading and an optional body.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DeckSlideInput {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub body: Option<String>,
+}
+
+/// `POST /api/slides/new` body: a deck title and optional slides (#2143).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreatePresentationRequest {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub slides: Option<Vec<DeckSlideInput>>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavePresentationRequest {
     #[serde(skip_serializing_if = "Option::is_none")]

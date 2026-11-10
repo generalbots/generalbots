@@ -20,28 +20,28 @@ pub(super) async fn merge_channels(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_marketing_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_marketing_router(app_state));
     }
 
     #[cfg(feature = "telegram")]
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_telegram_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_telegram_router(app_state));
     }
 
     #[cfg(feature = "instagram")]
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_instagram_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_instagram_router(app_state));
     }
 
     #[cfg(feature = "msteams")]
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_msteams_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_msteams_router(app_state));
     }
 
     #[cfg(feature = "sources")]
@@ -56,7 +56,7 @@ pub(super) async fn merge_channels(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_attendant_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_attendant_router(app_state));
     }
 
     #[cfg(feature = "browser")]

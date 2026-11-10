@@ -134,6 +134,6 @@ pub(super) async fn merge_workspace(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_canvas_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_canvas_router(app_state));
     }
 }

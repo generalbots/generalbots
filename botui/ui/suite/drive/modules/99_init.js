@@ -145,13 +145,20 @@ window.DriveModule = {
     loadExternalTab: loadExternalTab,
 };
 
-// Deep-link from a desktop shortcut: jump straight to the file's folder
-// once the module is ready (window.__gbAppParams__.path, set by the shell).
-var __deepPath = (window.__gbAppParams__ || {}).path;
+// Deep-link from a desktop shortcut or a chat link: jump straight to the
+// file's folder once the module is ready (window.__gbAppParams__.path, set by
+// the shell). #2143 — links emitted by `drive_save` carry `scope=bot` because
+// the saved artifact lives in the bot workspace, not in the caller's personal
+// bucket; without it the folder resolved against `users/{id}/` and rendered
+// empty.
+var __deepParams = window.__gbAppParams__ || {};
+var __deepPath = __deepParams.path;
+var __deepScope = String(__deepParams.scope || "").toLowerCase();
 if (__deepPath) {
     var __origInit = init;
     init = async function () {
         await __origInit();
+        if (__deepScope === "bot") currentScope = "bot";
         try { await loadFiles(__deepPath); } catch (e) { /* default listing */ }
     };
 }

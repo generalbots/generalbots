@@ -25,13 +25,13 @@ pub(super) async fn merge_office_tail(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_designer_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_designer_router(app_state));
     }
 
     #[cfg(feature = "dashboards")]
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_dashboards_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_dashboards_router(app_state));
     }
 }

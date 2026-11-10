@@ -73,7 +73,7 @@ pub(super) async fn merge_commerce(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_social_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_social_router(app_state));
     }
 
     #[cfg(feature = "learn")]
@@ -98,13 +98,13 @@ pub(super) async fn merge_commerce(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_billing_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_billing_router(app_state));
     }
 
     #[cfg(feature = "saas")]
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::feature_routers::make_saas_router(app_state));
+            .merge(crate::main_module::routes::feature_routers::make_saas_router(app_state));
     }
 }

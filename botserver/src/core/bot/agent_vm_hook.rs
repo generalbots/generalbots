@@ -378,5 +378,30 @@ pub async fn list_session_folder(
         .ok()
         .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
 }
+
+/// Same listing as [`list_session_folder`] plus each file's modification
+/// stamp (#2143). The turn-end publisher compares `(size, modified)` with the
+/// copy it already sent to Drive, so an unchanged artifact is never uploaded
+/// twice.
+pub async fn list_session_folder_meta(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    folder: &str,
+) -> Option<Vec<(String, u64, u64)>> {
+    let service = SERVICE.get()?;
+    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return None;
+    }
+    botagent::transfer::list_folder(service, &row.vm_name, &session_id.to_string(), folder)
+        .await
+        .ok()
+        .map(|files| {
+            files
+                .into_iter()
+                .map(|f| (f.name, f.size, f.modified))
+                .collect()
+        })
+}
 mod wake;
 pub(crate) use wake::{exec_with_wake_events, exec_with_wake_result};

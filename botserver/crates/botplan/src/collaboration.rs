@@ -1,5 +1,6 @@
 use crate::auth::{
     authorize, caller_from_ws, Access, Caller, PlanError, PLAN_WS_CLOSE_FORBIDDEN,
+    PLAN_WS_CLOSE_UNAUTHORIZED,
 };
 use crate::handlers::visible_plan;
 use axum::{

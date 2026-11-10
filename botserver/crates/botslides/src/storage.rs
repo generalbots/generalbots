@@ -16,7 +16,7 @@
 //! longer served to any caller. Move it to the install owner (or to
 //! `legacy/`) with `mc` before deleting it.
 
-use crate::types::{Presentation, PresentationMetadata, Slide};
+use crate::types::{DeckSlideInput, Presentation, PresentationMetadata, PresentationTheme, Slide};
 use crate::utils::{create_content_slide, create_default_theme, create_title_slide, create_blank_slide};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
@@ -283,6 +283,53 @@ pub fn create_new_presentation(owner_id: &str) -> Presentation {
         source_bucket: None,
         source_path: None,
     }
+}
+
+/// Escapes text placed in the generated slide HTML.
+fn escape_text(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// A content slide whose heading and body come from the request.
+fn slide_from_input(input: &DeckSlideInput, theme: &PresentationTheme) -> Slide {
+    let mut slide = create_content_slide(theme);
+    if let Some(title) = input.title.as_deref() {
+        if let Some(element) = slide.elements.get_mut(0) {
+            element.content.text = Some(title.to_string());
+            element.content.html = Some(format!("<h2>{}</h2>", escape_text(title)));
+        }
+    }
+    if let Some(body) = input.body.as_deref() {
+        if let Some(element) = slide.elements.get_mut(1) {
+            element.content.text = Some(body.to_string());
+            element.content.html = Some(format!("<p>{}</p>", escape_text(body)));
+        }
+    }
+    slide
+}
+
+/// Builds a deck from a title and optional `{title, body}` slides without
+/// touching Drive, so the created artifact is testable on its own (#2143).
+pub fn create_presentation_with(
+    owner_id: &str,
+    title: Option<&str>,
+    slides: Option<&[DeckSlideInput]>,
+) -> Presentation {
+    let mut deck = create_new_presentation(owner_id);
+    if let Some(title) = title.map(str::trim).filter(|title| !title.is_empty()) {
+        deck.name = title.to_string();
+    }
+    if let Some(inputs) = slides.filter(|inputs| !inputs.is_empty()) {
+        deck.slides = inputs
+            .iter()
+            .map(|input| slide_from_input(input, &deck.theme))
+            .collect();
+    }
+    deck.updated_at = Utc::now();
+    deck
 }
 
 /// Builds a new slide for the layout name the insert dialog sends. Every

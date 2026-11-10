@@ -76,20 +76,20 @@ pub(super) async fn merge_office_sub_routes(
     {
         *sub_router = sub_router
             .clone()
-            .merge(super::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
+            .merge(crate::main_module::routes::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
         *sub_router = sub_router.clone().merge(
-            super::chat_history::configure_chat_history_routes().with_state(app_state.clone()),
+            crate::main_module::routes::chat_history::configure_chat_history_routes().with_state(app_state.clone()),
         );
     }
 
     *sub_router = sub_router
         .clone()
-        .merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
+        .merge(crate::main_module::routes::misc_handlers::configure_misc_routes().with_state(app_state.clone()));
     *sub_router = sub_router
         .clone()
-        .merge(super::bot_tree::configure_bot_tree_routes().with_state(app_state.clone()));
+        .merge(crate::main_module::routes::bot_tree::configure_bot_tree_routes().with_state(app_state.clone()));
     *sub_router = sub_router.clone().merge(
-        super::unified_search::configure_unified_search_routes().with_state(app_state.clone()),
+        crate::main_module::routes::unified_search::configure_unified_search_routes().with_state(app_state.clone()),
     );
     #[cfg(feature = "tasks")]
     {
@@ -196,7 +196,7 @@ pub(super) async fn merge_office_sub_routes(
                 .layer(axum::middleware::from_fn(
                     crate::paper::user_middleware::paper_user_middleware,
                 ))
-                .with_state(super::feature_routers::make_paper_state(app_state)),
+                .with_state(crate::main_module::routes::feature_routers::make_paper_state(app_state)),
         );
     }
 

@@ -319,3 +319,7 @@ error-product-not-found = Producto no encontrado.
 error-service-not-found = Servicio no encontrado.
 error-service-invalid-value = El valor del servicio no es válido.
 error-service-price-required = Este servicio no tiene precio; informa un valor.
+
+# Service-tax value validation (#2094)
+error-invalid-value = No se pudo interpretar el valor indicado.
+error-value-required = Es necesario indicar un valor para este servicio.

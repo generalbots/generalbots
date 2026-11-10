@@ -1,8 +1,8 @@
 pub use crate::storage_core::{
-    cache_document_bytes, count_words, create_new_document, decode_html_entities,
-    escape_html, generate_doc_id, get_cached_document_bytes, get_user_docs_path,
-    html_to_paragraphs, load_docx_from_drive, paragraphs_to_html, parse_html_to_paragraphs,
-    remove_from_cache, sanitize_owner, strip_html,
+    cache_document_bytes, count_words, create_document_with, create_new_document,
+    decode_html_entities, escape_html, generate_doc_id, get_cached_document_bytes,
+    get_user_docs_path, html_to_paragraphs, load_docx_from_drive, paragraphs_to_html,
+    parse_html_to_paragraphs, remove_from_cache, sanitize_owner, strip_html,
 };
 pub use crate::storage_docx::{convert_docx_to_html, convert_html_to_docx};
 pub use crate::storage_docx_source::{docx_bytes_with_fidelity, persist_original_docx, DocxFidelity};

@@ -93,6 +93,68 @@ pub(super) async fn route_project(
     Ok(false)
 }
 
+/// #1670 — structured answers travel with the user turn. Records them so a
+/// field is never asked twice and marks the values authoritative for this turn.
+pub(super) fn apply_structured_answers(
+    parsed: &Value,
+    session_id: uuid::Uuid,
+    messages: &mut Vec<Value>,
+) {
+    if let Some(values) = parsed
+        .get("question_answers")
+        .and_then(|value| value.as_object())
+    {
+        super::surface_tools::record_answers(&session_id.to_string(), values);
+        let rendered = serde_json::to_string(values).unwrap_or_default();
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": format!(
+                "The user answered the structured question with {rendered}. These values are authoritative; do not ask for the same fields again."
+            )
+        }));
+    }
+    if let Some(plan) = parsed.get("plan_approval") {
+        let rendered = serde_json::to_string(plan).unwrap_or_default();
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": format!(
+                "The user approved the plan with {rendered}. Execute it; do not propose it again."
+            )
+        }));
+    }
+}
+
+/// #1644 — results of approved browser/terminal actions are fed back into the
+/// conversation before the model answers, so the reply can cite the page title
+/// (or say the action was denied/failed).
+pub(super) async fn apply_completed_actions(
+    session_id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    messages: &mut Vec<Value>,
+) {
+    let completed =
+        crate::core::computer_use::take_completed_for_prompt(&session_id.to_string(), user_id)
+            .await;
+    if completed.is_empty() {
+        return;
+    }
+    let mut block =
+        String::from("Results of computer actions the user approved in this conversation:\n");
+    for action in &completed {
+        let name = action
+            .action
+            .get("action")
+            .and_then(|value| value.as_str())
+            .unwrap_or(&action.kind);
+        let result = serde_json::to_string(&action.result).unwrap_or_default();
+        block.push_str(&format!("- {name}: {result}\n"));
+    }
+    block.push_str(
+        "Answer from these results; quote the page title/URL when the user asked about a page. If a result says denied or error, say so plainly.",
+    );
+    messages.push(serde_json::json!({"role": "system", "content": block}));
+}
+
 /// #1545 — the client's recent Drive names become prompt context when
 /// `index_all_drive` is enabled (the default). The Settings toggle writes
 /// `gb-index-all-drive`; `chat-send.js` forwards it as this boolean.

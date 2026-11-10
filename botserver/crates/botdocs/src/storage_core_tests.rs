@@ -156,3 +156,15 @@ fn new_documents_start_empty_and_versioned() {
     assert_eq!(doc.id.len(), 36);
     assert_ne!(doc.id, create_new_document("user-1").id);
 }
+
+/// #2143 — the chat create verb needs a document that already carries its
+/// title, body and the id the deep link opens.
+#[test]
+fn created_documents_carry_an_id_title_and_content() {
+    let doc = create_document_with("user-1", Some("  Quarterly Report "), Some("<h1>Q3</h1>"));
+    assert_eq!(doc.title, "Quarterly Report");
+    assert_eq!(doc.content, "<h1>Q3</h1>");
+    assert_eq!(doc.owner_id, "user-1");
+    assert!(!doc.id.is_empty(), "the created document needs an id");
+    assert_eq!(doc.id.len(), 36);
+}

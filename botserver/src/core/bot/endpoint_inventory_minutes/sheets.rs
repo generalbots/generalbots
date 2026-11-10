@@ -71,6 +71,11 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
     },
     ApiEndpoint {
         method: "POST",
+        path: "/api/sheet/cells",
+        summary: "registered in crates/botsheet/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
         path: "/api/sheet/chart",
         summary: "registered in crates/botsheet/src/routes.rs",
     },
@@ -236,6 +241,11 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
     },
     ApiEndpoint {
         method: "GET",
+        path: "/api/sheet/new",
+        summary: "registered in crates/botsheet/src/routes.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
         path: "/api/sheet/new",
         summary: "registered in crates/botsheet/src/routes.rs",
     },

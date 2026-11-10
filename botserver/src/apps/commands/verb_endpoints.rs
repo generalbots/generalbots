@@ -115,6 +115,8 @@ pub fn docs_template_path(template: &str) -> Result<&'static str, String> {
 pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     // ——— #2037 — Docs (crates/botdocs) ———
     bind("docs.list", "GET", "/api/docs/list", &[], &[]),
+    bind("docs.create", "POST", "/api/docs/new", &[], &[]),
+    bind("docs.update", "POST", "/api/docs/save", &[("file_id", "id")], &[]),
     bind("docs.get", "GET", "/api/docs/:id", &[("file_id", "id")], &[]),
     bind("docs.save", "POST", "/api/docs/save", &[("file_id", "id")], &[]),
     bind("docs.autosave", "POST", "/api/docs/autosave", &[("file_id", "id")], &[]),
@@ -125,6 +127,8 @@ pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     bind("docs.ai", "POST", "/api/docs/ai", &[("file_id", "doc_id"), ("instruction", "command")], &[]),
     // ——— #2037 — Sheet (crates/botsheet) ———
     bind("sheet.list", "GET", "/api/sheet/list", &[], &[]),
+    bind("sheet.create", "POST", "/api/sheet/new", &[], &[]),
+    bind("sheet.cells.set", "POST", "/api/sheet/cells", &[("file_id", "sheet_id")], &[]),
     bind("sheet.get", "GET", "/api/sheet/:id", &[("file_id", "id")], &[]),
     bind("sheet.new", "GET", "/api/sheet/new", &[], &[]),
     bind("sheet.delete", "POST", "/api/sheet/delete", &[("file_id", "id")], &[]),
@@ -133,6 +137,7 @@ pub static VERB_ENDPOINTS: &[VerbEndpoint] = &[
     bind("sheet.chart.create", "POST", "/api/sheet/chart", &[("file_id", "id"), ("range", "data_range"), ("type", "chart_type")], &[]),
     // ——— #2037 — Slides (crates/botslides) ———
     bind("slides.list", "GET", "/api/slides/list", &[], &[]),
+    bind("slides.create", "POST", "/api/slides/new", &[], &[]),
     bind("slides.get", "GET", "/api/slides/:id", &[("file_id", "id")], &[]),
     bind("slides.new", "GET", "/api/slides/new", &[], &[]),
     bind("slides.delete", "POST", "/api/slides/delete", &[("file_id", "id")], &[]),
@@ -281,6 +286,164 @@ mod verb_endpoint_tests {
                 binding.method,
                 binding.path
             );
+        }
+    }
+
+    /// A response body that the deep link can open: a non-empty top-level `id`.
+    fn response_has_id(body: &Value) -> bool {
+        body.get("id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| !id.trim().is_empty())
+    }
+
+    /// `docs.create` posts the document-create endpoint and its response carries
+    /// the new document id (#2143, gap B).
+    #[test]
+    fn docs_create_binds_the_document_create_endpoint() {
+        let binding = verb_endpoint("docs.create").expect("docs.create is bound");
+        assert_eq!(binding.method, "POST");
+        assert_eq!(binding.path, "/api/docs/new");
+
+        let mut params = Map::new();
+        params.insert("title".to_string(), Value::String("Report".to_string()));
+        params.insert("content".to_string(), Value::String("# Body".to_string()));
+        let mapped = binding.map_params(&params);
+        assert_eq!(
+            mapped.get("title"),
+            Some(&Value::String("Report".to_string()))
+        );
+        assert_eq!(
+            mapped.get("content"),
+            Some(&Value::String("# Body".to_string()))
+        );
+
+        #[cfg(feature = "docs")]
+        {
+            let doc = botdocs::storage::create_document_with("owner-1", Some("Report"), Some("# Body"));
+            let body = serde_json::to_value(doc).unwrap_or(Value::Null);
+            assert!(response_has_id(&body), "created document must carry its id");
+        }
+    }
+
+    /// `docs.update` posts the save endpoint; `append` keeps the stored body
+    /// instead of replacing it, and the response carries the document id.
+    #[test]
+    fn docs_update_binds_the_document_save_endpoint() {
+        let binding = verb_endpoint("docs.update").expect("docs.update is bound");
+        assert_eq!(binding.method, "POST");
+        assert_eq!(binding.path, "/api/docs/save");
+
+        let mut params = Map::new();
+        params.insert("file_id".to_string(), Value::String("doc-1".to_string()));
+        params.insert("mode".to_string(), Value::String("append".to_string()));
+        let mapped = binding.map_params(&params);
+        assert_eq!(mapped.get("id"), Some(&Value::String("doc-1".to_string())));
+        assert_eq!(mapped.get("mode"), Some(&Value::String("append".to_string())));
+
+        #[cfg(feature = "docs")]
+        {
+            let body = serde_json::to_value(botdocs::types_core::DocsSaveResponse {
+                id: "doc-1".to_string(),
+                success: true,
+            })
+            .unwrap_or(Value::Null);
+            assert!(response_has_id(&body), "saved document must carry its id");
+        }
+    }
+
+    /// `sheet.create` posts the spreadsheet-create endpoint and its response
+    /// carries the new spreadsheet id (#2143, gap B).
+    #[test]
+    fn sheet_create_binds_the_spreadsheet_create_endpoint() {
+        let binding = verb_endpoint("sheet.create").expect("sheet.create is bound");
+        assert_eq!(binding.method, "POST");
+        assert_eq!(binding.path, "/api/sheet/new");
+
+        let rows = serde_json::json!([["Region", "Total"], ["North", 1200]]);
+        let mut params = Map::new();
+        params.insert("title".to_string(), Value::String("Budget".to_string()));
+        params.insert("rows".to_string(), rows.clone());
+        let mapped = binding.map_params(&params);
+        assert_eq!(mapped.get("rows"), Some(&rows));
+
+        #[cfg(feature = "sheet")]
+        {
+            let body = match botsheet::handlers::create::build_spreadsheet(
+                "owner-1",
+                Some("Budget"),
+                Some(&rows),
+            ) {
+                Ok(sheet) => serde_json::to_value(sheet).unwrap_or(Value::Null),
+                Err(_) => Value::Null,
+            };
+            assert!(response_has_id(&body), "created spreadsheet must carry its id");
+        }
+    }
+
+    /// `sheet.cells.set` posts the block-write endpoint, renames the curated
+    /// `file_id` onto `sheet_id`, and its response carries the sheet id.
+    #[test]
+    fn sheet_cells_set_binds_the_cell_block_endpoint() {
+        let binding = verb_endpoint("sheet.cells.set").expect("sheet.cells.set is bound");
+        assert_eq!(binding.method, "POST");
+        assert_eq!(binding.path, "/api/sheet/cells");
+
+        let mut params = Map::new();
+        params.insert("file_id".to_string(), Value::String("sheet-1".to_string()));
+        params.insert("range".to_string(), Value::String("A1:B2".to_string()));
+        params.insert("values".to_string(), serde_json::json!([[1, 2], [3, 4]]));
+        let mapped = binding.map_params(&params);
+        assert_eq!(
+            mapped.get("sheet_id"),
+            Some(&Value::String("sheet-1".to_string()))
+        );
+        assert!(mapped.get("file_id").is_none());
+
+        #[cfg(feature = "sheet")]
+        {
+            let body = serde_json::to_value(botsheet::types::SaveResponse {
+                id: "sheet-1".to_string(),
+                success: true,
+                message: Some("4 cells updated".to_string()),
+            })
+            .unwrap_or(Value::Null);
+            assert!(response_has_id(&body), "cell write must carry the sheet id");
+        }
+    }
+
+    /// `slides.create` posts the presentation-create endpoint and its response
+    /// carries the new deck id (#2143, gap B).
+    #[test]
+    fn slides_create_binds_the_presentation_create_endpoint() {
+        let binding = verb_endpoint("slides.create").expect("slides.create is bound");
+        assert_eq!(binding.method, "POST");
+        assert_eq!(binding.path, "/api/slides/new");
+
+        let mut params = Map::new();
+        params.insert("title".to_string(), Value::String("Kickoff".to_string()));
+        params.insert(
+            "slides".to_string(),
+            serde_json::json!([{ "title": "Agenda", "body": "Goals" }]),
+        );
+        let mapped = binding.map_params(&params);
+        assert_eq!(
+            mapped.get("title"),
+            Some(&Value::String("Kickoff".to_string()))
+        );
+
+        #[cfg(feature = "slides")]
+        {
+            let slides = [botslides::types::DeckSlideInput {
+                title: Some("Agenda".to_string()),
+                body: Some("Goals".to_string()),
+            }];
+            let deck = botslides::storage::create_presentation_with(
+                "owner-1",
+                Some("Kickoff"),
+                Some(&slides),
+            );
+            let body = serde_json::to_value(deck).unwrap_or(Value::Null);
+            assert!(response_has_id(&body), "created deck must carry its id");
         }
     }
 }

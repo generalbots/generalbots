@@ -6,7 +6,8 @@ use crate::collaboration::{
 };
 use crate::handlers::{
     handle_add_element, handle_add_media, handle_add_slide, handle_apply_theme,
-    handle_apply_transition_to_all, handle_delete_element, handle_delete_media,
+    handle_apply_transition_to_all, handle_create_presentation, handle_delete_element,
+    handle_delete_media,
     handle_delete_presentation, handle_delete_slide, handle_duplicate_slide, handle_end_presenter,
     handle_export_presentation, handle_get_presentation_by_id, handle_get_presenter_notes,
     handle_import_presentation, handle_list_cursors, handle_list_media,
@@ -31,7 +32,10 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         .route("/api/slides/load", get(handle_load_presentation::<D>))
         .route("/api/slides/save", post(handle_save_presentation::<D>))
         .route("/api/slides/delete", post(handle_delete_presentation::<D>))
-        .route("/api/slides/new", get(handle_new_presentation::<D>))
+        .route(
+            "/api/slides/new",
+            get(handle_new_presentation::<D>).post(handle_create_presentation::<D>),
+        )
         .route("/api/slides/ai", post(handle_slides_ai::<D>))
         .route("/api/slides/:id", get(handle_get_presentation_by_id::<D>))
         .route(

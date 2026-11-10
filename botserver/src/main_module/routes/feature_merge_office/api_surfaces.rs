@@ -47,15 +47,15 @@ pub(super) async fn merge_office_api_surfaces(
         .clone()
         .merge(crate::core::bot::runs::tools::router());
     // #1697 — pooled group budgets and usage reports.
-    *api_router = api_router.clone().merge(super::group_budgets::router());
+    *api_router = api_router.clone().merge(crate::main_module::routes::group_budgets::router());
     // #1694 — parallel sub-agent fan-out.
-    *api_router = api_router.clone().merge(super::subagents::router());
+    *api_router = api_router.clone().merge(crate::main_module::routes::subagents::router());
     // #1705 — long-horizon goal runs with automatic checkpoints.
-    *api_router = api_router.clone().merge(super::goal_runs::router());
+    *api_router = api_router.clone().merge(crate::main_module::routes::goal_runs::router());
 
     *api_router = api_router
         .clone()
-        .merge(super::workspace_tabs::configure_workspace_tabs_routes());
+        .merge(crate::main_module::routes::workspace_tabs::configure_workspace_tabs_routes());
 
     #[cfg(feature = "tax")]
     {

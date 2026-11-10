@@ -24,6 +24,7 @@ use crate::handlers::comments::{
     handle_add_comment, handle_delete_comment, handle_list_comments, handle_reply_comment,
     handle_resolve_comment,
 };
+use crate::handlers::create::{handle_create_sheet, handle_set_cells};
 use crate::handlers::crud::{
     handle_delete_sheet, handle_get_sheet_by_id, handle_list_sheets, handle_load_from_drive,
     handle_load_sheet, handle_new_sheet, handle_save_sheet, handle_search_sheets,
@@ -77,7 +78,8 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/pivot", post(handle_pivot))
         .route("/api/sheet/export", post(handle_export_sheet))
         .route("/api/sheet/share", post(handle_share_sheet))
-        .route("/api/sheet/new", get(handle_new_sheet))
+        .route("/api/sheet/new", get(handle_new_sheet).post(handle_create_sheet))
+        .route("/api/sheet/cells", post(handle_set_cells))
         .route("/api/sheet/merge", post(handle_merge_cells))
         .route("/api/sheet/unmerge", post(handle_unmerge_cells))
         .route("/api/sheet/freeze", post(handle_freeze_panes))

@@ -70,6 +70,33 @@ fn human_size(bytes: u64) -> String {
     }
 }
 
+/// Bucket-relative key of a [`drive_bridge::save_object`] result (`bucket/key`).
+///
+/// S3 bucket names never contain `/`, so the first segment is always the
+/// bucket and the remainder is the key the Drive app addresses.
+fn relative_key(bucket_path: &str) -> &str {
+    bucket_path
+        .split_once('/')
+        .map(|(_, key)| key)
+        .unwrap_or(bucket_path)
+}
+
+/// Markdown link the chat renderer turns into an "Open in Drive" button.
+///
+/// #2143 gap A — `drive:` is not a scheme any client resolves, so every saved
+/// artifact was a dead link. The two forms the renderer understands are
+/// `vmfile:` (workspace files only, `chat/modules/vm_attachments/02_links.js`)
+/// and `app://` (`chat/chat-render.js`). Drive files therefore use the
+/// registered deep link `app://drive?path={path}`
+/// (`apps/commands/deep_link_params_for_app.rs`), where `path` is the
+/// bucket-relative key, percent-encoded. `scope=bot` makes the Drive app open
+/// the bot workspace `drive_save` publishes into instead of the caller's
+/// personal bucket (`drive/modules/99_init.js`).
+fn drive_link(name: &str, key: &str) -> String {
+    let path = urlencoding::encode(key);
+    format!("[{name}](app://drive?path={path}&scope=bot)")
+}
+
 async fn run_drive_fetch(identity: &SessionIdentity<'_>, args: &str) {
     let parsed = parse(args);
     let reference = parsed
@@ -219,7 +246,7 @@ async fn run_drive_save(identity: &SessionIdentity<'_>, args: &str) {
                     continue;
                 }
                 match drive_bridge::save_object(state, &bot_uuid, &folder, name, bytes).await {
-                    Some(path) => saved.push(format!("[{name}](drive:{path})")),
+                    Some(path) => saved.push(drive_link(name, relative_key(&path))),
                     None => failed.push(name.to_string()),
                 }
             }
@@ -339,4 +366,58 @@ pub async fn fetch_referenced(
         "drive bridge: pre-fetched {} files for {session_id}",
         fetched.len()
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// #2143 gap A — the chat renderer resolves only `vmfile:` and `app://`
+    /// links, so a `drive:` URL rendered as dead text and the artifact was
+    /// unreachable. The emitted string must be one of those two prefixes.
+    #[test]
+    fn drive_link_uses_a_prefix_the_chat_renderer_resolves() {
+        let link = drive_link(
+            "report.pdf",
+            "beiner.gbdrive/conversations/quarterly-report",
+        );
+        assert!(
+            link.starts_with("[report.pdf](app://drive?path="),
+            "unexpected link: {link}"
+        );
+        assert!(link.ends_with("&scope=bot)"), "unexpected link: {link}");
+        assert!(!link.contains("](drive:"), "dead drive: scheme: {link}");
+        assert!(
+            link.starts_with("[report.pdf](app://") || link.starts_with("[report.pdf](vmfile:"),
+            "not a renderer prefix: {link}"
+        );
+    }
+
+    /// The path must survive percent-encoding, because the renderer decodes it
+    /// into the Drive app's `path` parameter.
+    #[test]
+    fn drive_link_encodes_the_folder_key() {
+        let link = drive_link("report.pdf", "beiner.gbdrive/conversations/q3 2026");
+        let encoded = link
+            .split("path=")
+            .nth(1)
+            .and_then(|rest| rest.split('&').next())
+            .unwrap_or_default();
+        let decoded = urlencoding::decode(encoded)
+            .ok()
+            .map(|value| value.into_owned())
+            .unwrap_or_default();
+        assert_eq!(decoded, "beiner.gbdrive/conversations/q3 2026");
+        assert!(encoded.contains("%2F"), "slashes must be encoded: {link}");
+    }
+
+    /// `save_object` returns `bucket/key`; the Drive app addresses the key.
+    #[test]
+    fn relative_key_drops_the_bucket() {
+        assert_eq!(
+            relative_key("beiner.gbai/beiner.gbdrive/conversations/x/report.pdf"),
+            "beiner.gbdrive/conversations/x/report.pdf"
+        );
+        assert_eq!(relative_key("no-slash"), "no-slash");
+    }
 }

@@ -1,8 +1,9 @@
 use crate::state::DocState;
 use crate::storage::{
-    create_new_document, delete_document_from_drive, list_documents_from_drive, load_document_from_drive, save_document_to_drive,
+    create_document_with, create_new_document, delete_document_from_drive,
+    list_documents_from_drive, load_document_from_drive, save_document_to_drive,
 };
-use crate::types::{DocsSaveRequest, DocsSaveResponse, Document, DocumentMetadata, SearchQuery};
+use crate::types::{CreateDocumentRequest, DocsSaveRequest, DocsSaveResponse, Document, DocumentMetadata, SearchQuery};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -30,6 +31,24 @@ async fn effective_title(
     }
 }
 
+/// Resolution of the body stored with a save. `append` keeps the existing body
+/// and adds the new content after it; any other mode replaces it (#2143).
+async fn effective_content(
+    state: &DocState,
+    user_id: &str,
+    doc_id: &str,
+    requested: &str,
+    mode: Option<&str>,
+) -> String {
+    if mode != Some("append") {
+        return requested.to_string();
+    }
+    match load_document_from_drive(state, user_id, doc_id).await {
+        Ok(Some(doc)) => format!("{}{}", doc.content, requested),
+        _ => requested.to_string(),
+    }
+}
+
 pub async fn handle_docs_save(
     State(state): State<Arc<DocState>>,
     user: DocUser,
@@ -38,11 +57,12 @@ pub async fn handle_docs_save(
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
+    let content = effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
 
     // #1138: archive the previous version before overwriting it.
-    super::history::capture_snapshot(&state, &doc_id, &title, &req.content).await;
+    super::history::capture_snapshot(&state, &doc_id, &title, &content).await;
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &req.content).await {
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
@@ -79,6 +99,28 @@ pub async fn handle_new_document(
     user: DocUser,
 ) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(create_new_document(user.id())))
+}
+
+/// `POST /api/docs/new` — create a document from `{title, content}` and return
+/// it with the id the deep link opens (#2143).
+pub async fn handle_create_document(
+    State(state): State<Arc<DocState>>,
+    user: DocUser,
+    Json(req): Json<CreateDocumentRequest>,
+) -> Result<Json<Document>, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = user.id().to_string();
+    let doc = create_document_with(&user_id, req.title.as_deref(), req.content.as_deref());
+
+    if let Err(e) =
+        save_document_to_drive(&state, &user_id, &doc.id, &doc.title, &doc.content).await
+    {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
+        ));
+    }
+
+    Ok(Json(doc))
 }
 
 pub async fn handle_list_documents(
@@ -154,8 +196,9 @@ pub async fn handle_save_document(
     let user_id = user.id().to_string();
     let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
+    let content = effective_content(&state, &user_id, &doc_id, &req.content, req.mode.as_deref()).await;
 
-    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &req.content).await {
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),

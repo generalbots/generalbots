@@ -36,3 +36,27 @@ Authentication accepts either a JWT or an organization API key
 The switcher sends `{ "type": "agent_mode", "enabled": true|false }` over the
 existing WebSocket. The server replies with an `agent_mode_status` frame;
 no LLM invocation is involved.
+
+## Artifacts and Drive
+
+The conversation folder is ephemeral: it disappears with the session, so a file
+left only in `output/` used to vanish when the user closed the chat unless they
+clicked Save/Open or the model called `drive_save`.
+
+At the end of every turn that produced files, `pipeline/output_publish.rs`
+publishes the new or changed files from `output/` to the user's Drive through
+the same bridge the Save button uses
+(`{bot}.gbdrive/conversations/{title}/`) and attaches the `vmfile:` link to the
+answer, so the artifact survives the conversation.
+
+- Bounded: at most 5 files, 25 MB per file and 50 MB per turn.
+- Idempotent: an unchanged file (same size and modification time) is neither
+  read nor uploaded again; a file that was only touched is not re-uploaded when
+  its content digest still matches.
+- Best effort: if Drive is unavailable the turn still succeeds, a warning is
+  logged, and the next turn retries. Nothing is claimed as saved.
+- `drive_save` remains available for an explicit, on-demand publish (for
+  example into a folder the user named).
+
+Channels other than the web chat get the durable Drive copy but no `vmfile:`
+message, because that link form is only rendered by the suite chat.

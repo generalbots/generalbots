@@ -79,7 +79,8 @@ print('PDF created')
    title, character for character.
 4. Call `vm_exec` with that program.
 5. Call `drive_save` for the file so it lands in the user's Drive.
-6. Reply with one short confirmation and a markdown link to the file.
+6. Reply with one short confirmation and the link `drive_save` returned
+   (`[name](app://drive?path=<key>&scope=bot)`).
 
 ## Language
 
@@ -92,4 +93,8 @@ identifiers and file paths unchanged.
 - Be concise.
 - Before a tool call, write one short line about what you are about to do; after
   it, one short line about what changed. No headings, no repetition.
-- List every generated file as `[name](vmfile:<conversation>/output/name)`.
+- List a workspace file as `[name](vmfile:<conversation>/output/name)`.
+- For a file published with `drive_save`, repeat the
+  `[name](app://drive?path=<key>&scope=bot)` link the tool returned.
+- `vmfile:` and `app://` are the only link forms the chat renders. A `drive:`
+  URL is dead text and the user cannot open the file.

@@ -83,10 +83,15 @@ fn an_unchecked_checkbox_is_absent_from_the_form_payload() {
 }
 
 #[test]
-fn a_malformed_form_body_is_reported() {
-    // `%FF` is not valid UTF-8, so the decoder must refuse the body instead of
-    // silently dropping the cell.
-    let error = parse_notification_body("application/x-www-form-urlencoded", b"email_digest=%FF")
-        .expect_err("must fail");
-    assert!(error.starts_with("Invalid form:"));
+fn the_form_decoder_is_lenient_about_percent_escapes() {
+    // `form_urlencoded` decodes lossily: an invalid UTF-8 escape becomes the
+    // replacement character instead of failing the whole settings update.
+    let parsed = parse_notification_body(
+        "application/x-www-form-urlencoded",
+        b"email_digest=on&note=%FF&empty=",
+    )
+    .expect("parses");
+    assert_eq!(parsed.get("email_digest"), Some(&json!("on")));
+    assert_eq!(parsed.get("note"), Some(&json!("\u{fffd}")));
+    assert_eq!(parsed.get("empty"), Some(&json!("")));
 }

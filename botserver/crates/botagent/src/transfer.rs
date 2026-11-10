@@ -24,6 +24,10 @@ const CHUNK: usize = 60_000;
 pub struct FolderFile {
     pub name: String,
     pub size: u64,
+    /// Modification time in epoch milliseconds, `0` when the platform did not
+    /// report one. The turn-end publisher uses it to skip files that are
+    /// already in Drive (#2143).
+    pub modified: u64,
 }
 
 fn bad_request(msg: &str) -> (StatusCode, String) {
@@ -187,7 +191,7 @@ pub async fn list_folder(
     }
     let folder = folder_for(conversation_id)?;
     let script = format!(
-        "find {path} -maxdepth 1 -type f -printf '%f\\t%s\\n' 2>/dev/null | sort | head -200",
+        "find {path} -maxdepth 1 -type f -printf '%f\\t%s\\t%T@\\n' 2>/dev/null | sort | head -200",
         path = shell_quote(&format!("{folder}/{safe_sub}"))
     );
     let (ok, stdout, _) = run(state, vm_name, script, 30_000).await?;
@@ -197,14 +201,23 @@ pub async fn list_folder(
     Ok(stdout
         .lines()
         .filter_map(|line| {
-            let (name, size) = line.split_once('\t')?;
-            let name = name.trim();
+            let mut fields = line.split('\t');
+            let name = fields.next()?.trim();
+            let size = fields.next()?.trim().parse().unwrap_or(0);
+            // `%T@` is a float (seconds.nanoseconds); milliseconds keep a
+            // same-second rewrite visible to the publisher.
+            let modified = fields
+                .next()
+                .and_then(|stamp| stamp.trim().parse::<f64>().ok())
+                .map(|stamp| (stamp.max(0.0) * 1000.0) as u64)
+                .unwrap_or(0);
             if name.is_empty() {
                 return None;
             }
             Some(FolderFile {
                 name: name.to_string(),
-                size: size.trim().parse().unwrap_or(0),
+                size,
+                modified,
             })
         })
         .collect())

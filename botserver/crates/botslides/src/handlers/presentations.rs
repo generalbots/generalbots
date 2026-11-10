@@ -1,12 +1,12 @@
 use crate::auth::SlidesUser;
 use crate::storage::{
-    create_new_presentation, delete_presentation_from_drive,
+    create_new_presentation, create_presentation_with, delete_presentation_from_drive,
     list_presentations_from_drive, load_presentation_by_id, load_presentation_from_drive,
     save_presentation_to_drive, DriveOps,
 };
 use crate::types::{
-    LoadQuery, Presentation, PresentationMetadata, SavePresentationRequest, SaveResponse,
-    SearchQuery,
+    CreatePresentationRequest, LoadQuery, Presentation, PresentationMetadata,
+    SavePresentationRequest, SaveResponse, SearchQuery,
 };
 use crate::SlidesState;
 use axum::{
@@ -23,6 +23,27 @@ pub async fn handle_new_presentation<D: DriveOps>(
     user: SlidesUser,
 ) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(create_new_presentation(user.owner_id())))
+}
+
+/// `POST /api/slides/new` — create a deck from `{title, slides}` and return it
+/// with the id the deep link opens (#2143).
+pub async fn handle_create_presentation<D: DriveOps>(
+    State(state): State<Arc<SlidesState<D>>>,
+    user: SlidesUser,
+    Json(req): Json<CreatePresentationRequest>,
+) -> Result<Json<Presentation>, (StatusCode, Json<serde_json::Value>)> {
+    let deck = create_presentation_with(user.owner_id(), req.title.as_deref(), req.slides.as_deref());
+
+    if let Some(drive) = &state.drive {
+        if let Err(e) = save_presentation_to_drive(drive, user.owner_id(), &deck).await {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
+            ));
+        }
+    }
+
+    Ok(Json(deck))
 }
 
 pub async fn handle_list_presentations<D: DriveOps>(

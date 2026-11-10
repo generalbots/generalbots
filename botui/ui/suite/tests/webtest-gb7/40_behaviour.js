@@ -139,3 +139,32 @@ test("BEHAVE #1638: Drive search asks for every bucket and file content", async 
     assert(requested.indexOf("query=report") !== -1, "query missing: " + requested);
   });
 });
+
+// #2143 gap A — `drive_save` used to emit [name](drive:bucket/key), a scheme no
+// client resolves, so every saved artifact was a dead link. The Rust helper
+// (`native_drive::drive_link`) now emits the app:// form below; this test pins
+// the renderer half of that contract: the anchor becomes an "Open in Drive"
+// button whose params the desktop shell hands to the Drive app.
+test("BEHAVE #2143: drive_save app:// link renders as an Open in Drive button", function () {
+  var context = loadScript("chat/chat-render.js", {
+    window: { WindowManager: {}, openDeepLink: function () {} },
+    document: {},
+    console: console,
+  });
+  var href = "app://drive?path=beiner.gbdrive%2Fconversations%2Fq3&scope=bot";
+  var html = context.renderDeepLinks('<a href="' + href + '">report.pdf</a>');
+  assert(html.indexOf('data-gb-app="drive"') !== -1, "drive link did not become a button: " + html);
+  assert(html.indexOf(">report.pdf<") !== -1, "the file name must stay the link text: " + html);
+  assert(
+    html.indexOf("window.openDeepLink(this.dataset.gbApp, JSON.parse(this.dataset.gbParams))") !== -1,
+    "button does not call openDeepLink: " + html,
+  );
+  var paramsAttr = html.match(/data-gb-params="([^"]+)"/);
+  assert(paramsAttr, "button carries no params: " + html);
+  var params = JSON.parse(paramsAttr[1].replace(/&quot;/g, '"'));
+  assert(
+    params.path === "beiner.gbdrive/conversations/q3",
+    "path param was not decoded: " + paramsAttr[1],
+  );
+  assert(params.scope === "bot", "scope param lost: " + paramsAttr[1]);
+});

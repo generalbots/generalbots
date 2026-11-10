@@ -173,3 +173,4 @@ auto-run = execução
 auto-tool = ferramenta
 auto-download = Baixar
 auto-hours-label = Horas
+artifact-drawing-not-started = O desenho ainda não começou.

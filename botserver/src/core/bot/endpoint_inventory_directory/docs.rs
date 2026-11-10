@@ -196,6 +196,11 @@ pub(crate) const ROUTES: &[ApiEndpoint] = &[
     },
     ApiEndpoint {
         method: "POST",
+        path: "/api/docs/new",
+        summary: "registered in crates/botdocs/src/lib.rs",
+    },
+    ApiEndpoint {
+        method: "POST",
         path: "/api/docs/open-from-drive",
         summary: "registered in crates/botdocs/src/lib.rs",
     },

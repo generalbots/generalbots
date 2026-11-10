@@ -186,6 +186,10 @@ function openArtifactPanel(content, sourceEl) {
     '<div class="gb-artifact-actions">' +
     '<input class="gb-artifact-folder" type="text" placeholder="Folder (optional)" aria-label="Drive folder" />' +
     '<button class="gb-artifact-copy" title="Copy">Copy</button>' +
+    (isSvg
+      ? '<button class="gb-artifact-download-svg" title="Download the drawing as SVG">Download SVG</button>' +
+        '<button class="gb-artifact-download-png" title="Download the drawing as PNG (2x)">Download PNG</button>'
+      : '<button class="gb-artifact-download" title="Download this artifact">Download</button>') +
     (isSvg ? '<button class="gb-artifact-open-canvas" title="Open in Canvas">Open in Canvas</button>' : "") +
     '<button class="gb-artifact-save" title="Save to Drive">Save</button>' +
     '<button class="gb-artifact-close" title="Close">Close</button>' +
@@ -211,6 +215,53 @@ function openArtifactPanel(content, sourceEl) {
   panel.querySelector(".gb-artifact-copy").addEventListener("click", function () {
     if (navigator.clipboard) navigator.clipboard.writeText(body);
   });
+
+  // #2144 — "downloadable as SVG/PNG" must not depend on Save-to-Drive: the
+  // panel writes the file straight to the user's machine. A drawing is
+  // exported as the model's vector source; the PNG is rasterised at 2x by
+  // `js/artifact-download.js`. Every other artifact downloads as its own text
+  // document (md/html/txt).
+  function artifactDownload(format) {
+    if (!window.GBArtifactExport) return;
+    var name = window.GBArtifacts.slug(title);
+    if (format === "text") {
+      // The exporter reports its own failures; a text artifact needs the same
+      // courtesy, since nothing else surfaces the error.
+      window.GBArtifactExport.downloadText(name, body, artifactMime(), artifactExt())
+        .catch(function (err) {
+          if (window.GBToasts) {
+            GBToasts.show("Download failed", err.message || "Could not download the artifact", "error");
+          }
+        });
+      return;
+    }
+    // `download()` reads the markup, picks SVG or PNG and toasts a failure.
+    window.GBArtifactExport.download(format, body, name);
+  }
+
+  function artifactExt() {
+    return kind === "markdown" ? "md" : kind === "html" ? "html" : lang || "txt";
+  }
+
+  function artifactMime() {
+    return kind === "markdown" ? "text/markdown"
+      : kind === "html" ? "text/html"
+      : "text/plain";
+  }
+
+  var downloadSvgBtn = panel.querySelector(".gb-artifact-download-svg");
+  if (downloadSvgBtn) {
+    downloadSvgBtn.addEventListener("click", function () { artifactDownload("svg"); });
+  }
+  var downloadPngBtn = panel.querySelector(".gb-artifact-download-png");
+  if (downloadPngBtn) {
+    downloadPngBtn.addEventListener("click", function () { artifactDownload("png"); });
+  }
+  var downloadTextBtn = panel.querySelector(".gb-artifact-download");
+  if (downloadTextBtn) {
+    downloadTextBtn.addEventListener("click", function () { artifactDownload("text"); });
+  }
+
   var openCanvasBtn = panel.querySelector(".gb-artifact-open-canvas");
   if (openCanvasBtn) {
     openCanvasBtn.addEventListener("click", function () {
@@ -234,7 +285,12 @@ function openArtifactPanel(content, sourceEl) {
     });
   }
   panel.querySelector(".gb-artifact-save").addEventListener("click", function () {
-    var ext = kind === "markdown" ? "md" : kind === "html" ? "html" : lang || "txt";
+    // A bare <svg> answer carries no fence language, so `lang` is empty: the
+    // drawing must still be saved as .svg, not as .txt (#2144).
+    var ext = kind === "markdown" ? "md"
+      : kind === "html" ? "html"
+      : isSvg ? "svg"
+      : lang || "txt";
     var fileName = window.GBArtifacts.slug(title) + "." + ext;
     var folderInput = panel.querySelector(".gb-artifact-folder");
     var folder = folderInput ? folderInput.value.trim().replace(/^\/+|\/+$/g, "") : "";

@@ -11,6 +11,8 @@ use axum::extract::{Query, State};
 use axum::response::{Html, IntoResponse};
 use diesel::RunQueryDsl;
 
+use crate::ops_metrics::{percentile_from_histogram, BUCKET_COUNT};
+
 use crate::analytics_types::{format_number, html_escape};
 use crate::handlers_ops_traffic::{window_minutes, OpsWindowQuery};
 use crate::DbPool;

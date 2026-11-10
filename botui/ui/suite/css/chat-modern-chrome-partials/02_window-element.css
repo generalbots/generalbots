@@ -212,6 +212,9 @@
 }
 .gb-live-artifact.expanded .gb-live-artifact-svg { height: 70vh; }
 .gb-live-artifact-send[hidden] { display: none; }
+/* #2144 — SVG/PNG download chips: hidden for HTML artifacts, which have no
+   serialisable drawing. */
+.gb-live-artifact-download[hidden] { display: none; }
 .gb-live-artifact.expanded {
     position: sticky;
     top: 0;

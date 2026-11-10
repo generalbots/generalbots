@@ -21,6 +21,10 @@
 <script src="/suite/canvas/modules/01_canvas_state_events.js"></script>
 <script src="/suite/canvas/modules/02_canvas_render.js"></script>
 <script src="/suite/canvas/modules/03_canvas_tools.js"></script>
+<!-- #2144 — shared drawing exporter: the export path serialises the background
+     layer (a DOM layer, not canvas pixels) and rasterises SVG without a
+     library. -->
+<script src="/suite/js/artifact-download.js?v=1"></script>
 <script src="/suite/canvas/modules/04_canvas_export_api.js"></script>
 
 <!-- =============================================================================

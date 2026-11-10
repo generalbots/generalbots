@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(diesel::QueryableByName)]
 pub(super) struct StageRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    stage: Option<String>,
+    pub(super) stage: Option<String>,
 }
 /// Stage → win probability, mirroring `botcontacts::models::stage_probability`
 /// so chat and the suite agree on the weights behind the forecast.
@@ -24,23 +24,23 @@ pub(super) fn stage_probability(stage: &str) -> i32 {
 #[derive(diesel::QueryableByName)]
 pub(super) struct ContactIdRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    contact_id: Uuid,
+    pub(super) contact_id: Uuid,
 }
 
 #[derive(diesel::QueryableByName)]
 pub(super) struct ForecastDealRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    stage: Option<String>,
+    pub(super) stage: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Float8>)]
-    value: Option<f64>,
+    pub(super) value: Option<f64>,
 }
 
 #[derive(diesel::QueryableByName)]
 pub(super) struct StageRollupRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    stage: Option<String>,
+    pub(super) stage: Option<String>,
     #[diesel(sql_type = diesel::sql_types::BigInt)]
-    total: i64,
+    pub(super) total: i64,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Float8>)]
-    value: Option<f64>,
+    pub(super) value: Option<f64>,
 }

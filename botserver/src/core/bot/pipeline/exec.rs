@@ -305,31 +305,8 @@ pub async fn process_message_internal(
         }
     }));
 
-    // #1670 — structured answers travel with the user turn. Record them so a
-    // field is never asked twice, and make the model treat them as the
-    // authoritative value for this conversation.
-    if let Some(values) = parsed
-        .get("question_answers")
-        .and_then(|value| value.as_object())
-    {
-        super::surface_tools::record_answers(&session_id.to_string(), values);
-        let rendered = serde_json::to_string(values).unwrap_or_default();
-        messages.push(serde_json::json!({
-            "role": "system",
-            "content": format!(
-                "The user answered the structured question with {rendered}. These values are authoritative; do not ask for the same fields again."
-            )
-        }));
-    }
-    if let Some(plan) = parsed.get("plan_approval") {
-        let rendered = serde_json::to_string(plan).unwrap_or_default();
-        messages.push(serde_json::json!({
-            "role": "system",
-            "content": format!(
-                "The user approved the plan with {rendered}. Execute it; do not propose it again."
-            )
-        }));
-    }
+    // #1670 — structured answers and approved plans shape this turn's prompt.
+    super::turn_context::apply_structured_answers(&parsed, session_id, &mut messages);
 
     // #1549/#1637: the tier now selects a real model in
     // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
@@ -395,28 +372,7 @@ pub async fn process_message_internal(
     // #1644 — results of approved browser/terminal actions are fed back into
     // the conversation before the model answers, so the next reply can cite
     // the page title (or say the action was denied/failed).
-    let completed =
-        crate::core::computer_use::take_completed_for_prompt(&session_id.to_string(), user_id)
-            .await;
-    if !completed.is_empty() {
-        let mut block =
-            String::from("Results of computer actions the user approved in this conversation:\n");
-        for action in &completed {
-            let name = action
-                .action
-                .get("action")
-                .and_then(|value| value.as_str())
-                .unwrap_or(&action.kind);
-            block.push_str(&format!(
-                "- {name}: {}\n",
-                serde_json::to_string(&action.result).unwrap_or_default()
-            ));
-        }
-        block.push_str(
-            "Answer from these results; quote the page title/URL when the user asked about a page. If a result says denied or error, say so plainly.",
-        );
-        messages.push(serde_json::json!({"role": "system", "content": block}));
-    }
+    super::turn_context::apply_completed_actions(session_id, user_id, &mut messages).await;
 
     // #1545/#1547: grounding context goes LAST, immediately before the model
     // call, so it is the freshest instruction in the prompt.
@@ -485,6 +441,10 @@ pub async fn process_message_internal(
         });
         let _ = sink.send_raw_json(&frame).await;
     }
+
+    // #2143 gap D — publish this turn's artifacts; a Drive outage never fails it.
+    #[cfg(all(feature = "agent-vm", feature = "drive"))]
+    super::output_publish::publish_and_attach(identity).await;
 
     Ok(())
 }

@@ -4,6 +4,7 @@ pub mod ai;
 pub mod cell_ops;
 pub mod cell_structure;
 pub mod comments;
+pub mod create;
 pub mod crud;
 pub mod grid_ops;
 pub mod paste_html;

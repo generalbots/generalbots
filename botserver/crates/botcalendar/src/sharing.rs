@@ -47,14 +47,9 @@ pub async fn share_calendar(
         Ok::<_, StatusCode>(())
     })
     .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "calendar import failed".to_string(),
-        )
-    })?;
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    result.map_err(|status| (status, "calendar import failed".to_string()))?;
+    result?;
     Ok(Json(share))
 }
 

@@ -323,3 +323,7 @@ error-product-not-found = Product not found.
 error-service-not-found = Service not found.
 error-service-invalid-value = The service value is invalid.
 error-service-price-required = This service has no price; provide a value.
+
+# Service-tax value validation (#2094)
+error-invalid-value = The supplied value could not be parsed.
+error-value-required = A value is required for this service.

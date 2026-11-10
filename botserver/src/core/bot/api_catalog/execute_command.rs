@@ -419,7 +419,7 @@ pub async fn execute_command(
             // loopback path instead of answering with a deep link.
             if let Some(binding) = crate::apps::commands::verb_endpoint(name) {
                 let mapped = binding.map_params(obj);
-                return crate::core::bot::api_exec::exec_endpoint(
+                let result = crate::core::bot::api_exec::exec_endpoint(
                     state,
                     user_id,
                     Some(bot_uuid),
@@ -427,20 +427,20 @@ pub async fn execute_command(
                     binding.path,
                     &mapped,
                 )
-                .await;
+                .await?;
+                // The endpoint answered with the artifact it created or
+                // updated; the deep link is resolved from that id (#2143).
+                return Ok(crate::apps::commands::with_navigation(name, obj, result));
             }
             // Navigation commands resolve to a deep link, else a clear error.
             if let Some(cmd) = command_by_name(name) {
-                if let Some(link) = cmd.deep_link {
-                    Ok(
-                        json!({ "navigate": true, "app": cmd.app, "label": cmd.label, "deep_link": link }),
-                    )
-                } else {
-                    Err(format!(
-                        "command '{name}' is not executable from chat; open the {app} app instead",
-                        app = if cmd.app.is_empty() { "suite" } else { cmd.app }
-                    ))
+                if cmd.deep_link.is_some() {
+                    return crate::apps::commands::navigation_result(cmd, obj);
                 }
+                Err(format!(
+                    "command '{name}' is not executable from chat; open the {app} app instead",
+                    app = if cmd.app.is_empty() { "suite" } else { cmd.app }
+                ))
             } else {
                 Err(format!("unknown command '{name}'"))
             }

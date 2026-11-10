@@ -223,9 +223,11 @@
     // the assistant as an api.exec command (works on web + other channels); else
     // ask the assistant in chat.
     if (r.deepLink) {
-      var placeholders = (r.deepLink.match(/\{([^}]+)\}/g) || []).map(function (p) {
-        return p.slice(1, -1);
-      });
+      // `{key}` needs a value from the user; `{key?}` is an optional record
+      // reference the backend fills from the command result (#2143 gap C).
+      var placeholders = (r.deepLink.match(/\{([^}]+)\}/g) || [])
+        .map(function (p) { return p.slice(1, -1).trim(); })
+        .filter(function (p) { return p.charAt(p.length - 1) !== "?"; });
       if (!placeholders.length) {
         window.openDeepLink(r.appId, {});
         return;

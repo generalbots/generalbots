@@ -14,8 +14,10 @@ pub struct AppCommand {
     /// Named parameters `(name, description)` — shown on demand via api.find.
     pub params: &'static [(&'static str, &'static str)],
     /// Optional deep-link template the command resolves to, e.g.
-    /// `app://crm?person_id={person_id}`. `{<key>}` placeholders are replaced by
-    /// the caller from resolved result values.
+    /// `app://crm?person_id={person_id}`. `{<key>}` placeholders are filled from
+    /// the command params and result by `build_deep_link`; `{<key>}` is
+    /// required (an unresolved one fails the navigation instead of opening an
+    /// empty app) and `{<key>?}` is dropped when no value is available.
     pub deep_link: Option<&'static str>,
     /// When true only admin-role users may execute this command.
     pub admin_only: bool,

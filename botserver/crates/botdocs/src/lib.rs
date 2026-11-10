@@ -56,7 +56,7 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         .route("/api/docs/autosave", axum::routing::post(handle_autosave))
         .route("/api/docs/history", axum::routing::post(handlers_api::history::handle_history))
         .route("/api/docs/delete", axum::routing::post(handle_delete_document))
-        .route("/api/docs/new", get(handle_new_document))
+        .route("/api/docs/new", get(handle_new_document).post(handle_create_document))
         .route("/api/docs/ai", axum::routing::post(handle_docs_ai))
         .route("/api/docs/:id", get(handle_docs_get_by_id))
         .route("/api/docs/template/blank", get(handle_template_blank))

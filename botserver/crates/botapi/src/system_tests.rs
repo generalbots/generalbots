@@ -27,8 +27,9 @@ fn meminfo_tolerates_spacing_variants() {
 #[test]
 fn meminfo_rejects_a_different_key() {
     assert_eq!(parse_meminfo_kb("MemTotal:       1024 kB", "MemFree"), None);
-    // Prefix matching is exact: "Mem" must not swallow "MemTotal".
-    assert_eq!(parse_meminfo_kb("MemTotal: 1024 kB", "Mem"), Some(1024));
+    // Prefix stripping is literal: "Mem" leaves "Total: 1024 kB", which is not a
+    // number, so the line is rejected rather than mis-parsed.
+    assert_eq!(parse_meminfo_kb("MemTotal: 1024 kB", "Mem"), None);
     assert_eq!(parse_meminfo_kb("SwapTotal: 1024 kB", "MemTotal"), None);
 }
 

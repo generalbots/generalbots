@@ -21,9 +21,9 @@ pub use presenter::{
     handle_update_presenter,
 };
 pub use presentations::{
-    handle_delete_presentation, handle_get_presentation_by_id, handle_list_presentations,
-    handle_load_presentation, handle_new_presentation, handle_save_presentation,
-    handle_search_presentations,
+    handle_create_presentation, handle_delete_presentation, handle_get_presentation_by_id,
+    handle_list_presentations, handle_load_presentation, handle_new_presentation,
+    handle_save_presentation, handle_search_presentations,
 };
 pub use slides::{
     handle_add_element, handle_add_slide, handle_apply_theme,

@@ -294,6 +294,10 @@ pub struct DocsSaveRequest {
     #[serde(default)]
     pub title: String,
     pub content: String,
+    /// `append` adds `content` to the stored body instead of replacing it
+    /// (used by the chat `docs.update` verb); anything else replaces.
+    #[serde(default)]
+    pub mode: Option<String>,
     #[serde(default)]
     pub drive_source: Option<DriveSource>,
 }

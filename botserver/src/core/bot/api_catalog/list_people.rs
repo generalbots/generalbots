@@ -239,16 +239,16 @@ pub(super) fn calculate_anonymous_service_tax(
     let service_value = value
         .map(Decimal::from_str)
         .transpose()
-        .map_err(|e| {
+        .map_err(|_| {
             (
                 axum::http::StatusCode::BAD_REQUEST,
-                format!("Invalid value: {e}"),
+                "error-invalid-value",
             )
         })?
         .ok_or_else(|| {
             (
                 axum::http::StatusCode::BAD_REQUEST,
-                "Provide a 'value' for the service".to_string(),
+                "error-value-required",
             )
         })?;
     let loaded = bottax::storage::load_rates_from_billing(conn, branch_id);

@@ -18,22 +18,20 @@
         const name = (document.getElementById("canvas-name") || {}).value || "canvas";
 
         if (format === "png") {
-            const out = document.createElement("canvas");
-            out.width = C.canvas.width * scale;
-            out.height = C.canvas.height * scale;
-            const outCtx = out.getContext("2d");
-            if (bg) {
-                outCtx.fillStyle = C.canvasBg;
-                outCtx.fillRect(0, 0, out.width, out.height);
+            // #2144 — the PNG is rasterised from the composed SVG (background
+            // layer + elements) instead of the bitmap, which never contained
+            // the layer. It also drops the grid and honours "Include
+            // Background" literally (unchecked = transparent), matching the
+            // SVG export. The bitmap path stays as the fallback.
+            const exporter = window.GBArtifactExport;
+            if (exporter && typeof exporter.rasterise === "function") {
+                exporter.rasterise(C.composeSvg(bg), { scale: scale })
+                    .then(function (out) { return exporter.toBlob(out, "image/png"); })
+                    .then(function (blob) { return exporter.saveBlob(blob, name + ".png"); })
+                    .catch(function () { C.pngFromBitmap(name, scale, bg); });
+            } else {
+                C.pngFromBitmap(name, scale, bg);
             }
-            outCtx.save();
-            outCtx.scale(scale, scale);
-            outCtx.drawImage(C.canvas, 0, 0);
-            outCtx.restore();
-            const link = document.createElement("a");
-            link.download = name + ".png";
-            link.href = out.toDataURL("image/png");
-            link.click();
         } else if (format === "json") {
             const blob = new Blob([JSON.stringify({ elements: C.elements, zoom: C.zoom, panX: C.panX, panY: C.panY })], {
                 type: "application/json",
@@ -50,6 +48,27 @@
         C.closeExportModal();
     }
 
+    // The bitmap export: what C.canvas holds (fill + grid + elements). It does
+    // not contain the DOM background layer, so it is only the fallback path.
+    C.pngFromBitmap = function pngFromBitmap(name, scale, bg) {
+        const out = document.createElement("canvas");
+        out.width = C.canvas.width * scale;
+        out.height = C.canvas.height * scale;
+        const outCtx = out.getContext("2d");
+        if (bg) {
+            outCtx.fillStyle = C.canvasBg;
+            outCtx.fillRect(0, 0, out.width, out.height);
+        }
+        outCtx.save();
+        outCtx.scale(scale, scale);
+        outCtx.drawImage(C.canvas, 0, 0);
+        outCtx.restore();
+        const link = document.createElement("a");
+        link.download = name + ".png";
+        link.href = out.toDataURL("image/png");
+        link.click();
+    }
+
     C.visibleElements = function visibleElements() {
         return C.elements.filter(function (el) {
             var layer = C.layers.filter(function (l) { return l.id === el.layer; })[0];
@@ -57,11 +76,35 @@
         });
     }
 
-    C.exportSvg = function exportSvg(name, bg) {
+    // #2144 — the background layer (#canvas-bg-svg) is a DOM layer *under* the
+    // bitmap, not part of C.canvas: an export built from C.elements alone
+    // silently dropped a drawing imported from chat ("Open in Canvas"). The
+    // layer is serialised into the composed document, stretched to the canvas
+    // box exactly like the CSS layer (width/height 100%).
+    C.backgroundLayerSvg = function backgroundLayerSvg() {
+        const host = document.getElementById("canvas-bg-svg");
+        if (!host) return "";
+        const layer = host.querySelector("svg");
+        const markup = layer ? layer.outerHTML : String(host.innerHTML || "").trim();
+        if (!markup) return "";
+        const exporter = window.GBArtifactExport;
+        if (exporter && typeof exporter.serialize === "function") {
+            return exporter.serialize(markup, {
+                width: "100%",
+                height: "100%",
+                background: null,
+            });
+        }
+        return markup;
+    }
+
+    C.composeSvg = function composeSvg(bg) {
         const w = C.canvas.width, h = C.canvas.height;
         let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h +
             '" viewBox="0 0 ' + w + " " + h + '">';
         if (bg) svg += '<rect width="100%" height="100%" fill="' + (C.canvasBg || "#ffffff") + '"/>';
+        const layer = C.backgroundLayerSvg();
+        if (layer) svg += layer;
         C.visibleElements().forEach(function (el) {
             const stroke = el.stroke || C.strokeColor;
             const fill = el.fill && el.fill !== "transparent" ? el.fill : "none";
@@ -94,7 +137,11 @@
                 svg += '<polyline points="' + pts + '" stroke="' + stroke + '" fill="none" stroke-width="' + sw + '"/>';
             }
         });
-        svg += "</svg>";
+        return svg + "</svg>";
+    }
+
+    C.exportSvg = function exportSvg(name, bg) {
+        const svg = C.composeSvg(bg);
         const blob = new Blob([svg], { type: "image/svg+xml" });
         const link = document.createElement("a");
         link.download = name + ".svg";
@@ -102,7 +149,21 @@
         link.click();
     }
 
+    // #2144 — the PDF embeds the same composed picture as SVG/PNG. Before this
+    // it embedded the bitmap, which never held the background layer, so a
+    // drawing imported from chat produced a blank PDF page.
     C.exportPdf = function exportPdf(name, bg) {
+        const exporter = window.GBArtifactExport;
+        if (exporter && typeof exporter.rasterise === "function") {
+            exporter.rasterise(C.composeSvg(bg), { scale: 1 })
+                .then(function (out) { C.writePdf(name, out); })
+                .catch(function () { C.writePdf(name, C.bitmapCanvas(bg)); });
+            return;
+        }
+        C.writePdf(name, C.bitmapCanvas(bg));
+    }
+
+    C.bitmapCanvas = function bitmapCanvas(bg) {
         const w = C.canvas.width, h = C.canvas.height;
         const out = document.createElement("canvas");
         out.width = w;
@@ -110,7 +171,12 @@
         const outCtx = out.getContext("2d");
         if (bg) { outCtx.fillStyle = C.canvasBg; outCtx.fillRect(0, 0, w, h); }
         outCtx.drawImage(C.canvas, 0, 0);
-        const jpegUrl = out.toDataURL("image/jpeg", 0.92);
+        return out;
+    }
+
+    C.writePdf = function writePdf(name, source) {
+        const w = source.width, h = source.height;
+        const jpegUrl = source.toDataURL("image/jpeg", 0.92);
         const bin = atob(jpegUrl.split(",")[1]);
         const jpeg = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) jpeg[i] = bin.charCodeAt(i);

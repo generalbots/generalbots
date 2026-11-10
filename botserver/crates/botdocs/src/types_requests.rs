@@ -10,6 +10,16 @@ pub struct TemplateResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateDocumentRequest {
+    /// Document title; blank keeps the default "Untitled Document".
+    #[serde(default)]
+    pub title: Option<String>,
+    /// Markdown/HTML body of the new document.
+    #[serde(default)]
+    pub content: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddCommentRequest {
     pub doc_id: String,
     pub content: String,

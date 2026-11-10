@@ -42,7 +42,8 @@ impl RedirectPolicy {
     /// Allowlist derived from the deployment's own base URL, so an absolute
     /// redirect back to this very origin is accepted.
     pub fn from_base_url(base_url: &str) -> Self {
-        Self::new(host_of(base_url).into_iter().collect())
+        let hosts: Vec<String> = host_of(base_url).into_iter().collect();
+        Self::new(hosts)
     }
 
     /// Adds the hosts listed in `OAUTH_REDIRECT_ALLOWED_HOSTS`.

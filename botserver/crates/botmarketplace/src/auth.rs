@@ -201,9 +201,11 @@ mod tests {
     }
 
     /// A pool that never connects: the RBAC lookup is only reached by tokens
-    /// without role claims, and it must fail closed.
+    /// without role claims, and it must fail closed. `min_idle(0)` keeps the
+    /// reaper from opening a libpq connection in the background.
     fn offline_pool() -> DbPool {
         diesel::r2d2::Pool::builder()
+            .min_idle(Some(0))
             .connection_timeout(Duration::from_millis(1))
             .build_unchecked(diesel::r2d2::ConnectionManager::new(
                 "postgres://offline:offline@127.0.0.1:1/offline",
