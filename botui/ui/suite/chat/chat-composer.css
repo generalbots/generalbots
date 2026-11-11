@@ -351,25 +351,92 @@ textarea#messageInput {
 }
 
 /* #2238 unified chat controls */
-.chat-controls-toggle { position: relative; }
+.chat-controls-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .chat-controls-badge {
-  position: absolute; top: -2px; right: -2px;
-  min-width: 14px; height: 14px; padding: 0 3px;
-  border-radius: 7px; font-size: 10px; line-height: 14px;
-  background: var(--accent, #3b82f6); color: #fff; text-align: center;
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  text-align: center;
   pointer-events: none;
+  box-shadow: 0 0 0 2px var(--surface, #1a1a24);
 }
 .chat-controls-panel {
-  position: absolute; right: 8px; bottom: 56px;
-  width: 280px; max-width: calc(100vw - 24px);
-  background: var(--surface, #1a1a24); color: var(--text, #eee);
-  border: 1px solid var(--border, #333); border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 10px; z-index: 50;
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 8px);
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: color-mix(in srgb, var(--surface, #1a1a24) 96%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--text, #eee);
+  border: 1px solid var(--border, #333);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  padding: 12px;
+  z-index: 60;
 }
-.chat-controls-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
-.chat-controls-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
-.chat-controls-row input[type="checkbox"] { margin: 0; }
-.chat-controls-row small { display: block; color: var(--text-secondary, #888); font-size: 11px; margin-left: auto; text-align: right; }
-.chat-controls-col { flex-direction: column; align-items: stretch; }
-.chat-controls-col small { margin-left: 0; text-align: left; }
-.chat-controls-col select { margin-top: 4px; width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border, #333); background: var(--bg, #111); color: inherit; font-size: 12px; }
+.chat-controls-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+  color: var(--text, #eee);
+}
+.chat-controls-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: start;
+  font-size: 13px;
+  margin: 8px 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+.chat-controls-row:hover {
+  background: var(--win-caption-hover, rgba(255,255,255,0.06));
+}
+.chat-controls-row input[type="checkbox"] {
+  margin: 2px 0 0 0;
+  accent-color: var(--accent, #3b82f6);
+}
+.chat-controls-row > span {
+  font-weight: 500;
+}
+.chat-controls-row > small {
+  grid-column: 2;
+  color: var(--text-secondary, #888);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.chat-controls-col {
+  grid-template-columns: 1fr;
+}
+.chat-controls-col > small,
+.chat-controls-col > select {
+  grid-column: 1;
+}
+.chat-controls-col select {
+  margin-top: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #333);
+  background: var(--bg, #111);
+  color: inherit;
+  font-size: 12px;
+}

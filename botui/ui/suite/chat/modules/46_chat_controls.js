@@ -48,7 +48,16 @@
   function read() {
     try {
       var raw = localStorage.getItem(storageKey());
-      if (!raw) return Object.assign({}, DEFAULTS);
+      if (!raw) {
+        // default: follow existing web search toggle state if available
+        var webDefault = DEFAULTS.web;
+        try {
+          if (window.ChatWebSearch && typeof window.ChatWebSearch.isEnabled === "function") {
+            webDefault = !!window.ChatWebSearch.isEnabled();
+          }
+        } catch (e2) {}
+        return Object.assign({}, DEFAULTS, { web: webDefault });
+      }
       var parsed = JSON.parse(raw);
       return {
         web: typeof parsed.web === "boolean" ? parsed.web : DEFAULTS.web,
