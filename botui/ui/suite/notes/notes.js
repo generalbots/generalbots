@@ -62,9 +62,12 @@
   }
 
   function add(text) {
+    // #2225 — callers include a bare click listener and chat/automation hooks;
+    // only a string is note text (a click Event must never become the body).
+    const body = typeof text === "string" ? text : "";
     const list = read();
     list.unshift({
-      text: (text == null ? "" : String(text)),
+      text: body,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       ts: Date.now(),
     });

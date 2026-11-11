@@ -30,7 +30,7 @@ or experimental and carries no SLA.
 
 | Status | Apps | Meaning |
 |---|---|---|
-| Supported | 14 — `chat`, `drive`, `clock-widget`, `jukebox`, `sheet`, `player`, `calculator`, `notes`, `photos`, `timer`, `weather`, `integrations`, `about`, `settings` | In `apps=` of a tier; covered by the matrix SLA |
+| Supported | 14 — `chat`, `drive`, `browser`, `clock-widget`, `jukebox`, `player`, `calculator`, `notes`, `photos`, `timer`, `weather`, `integrations`, `about`, `settings` | In `apps=` of a tier; covered by the matrix SLA |
 | Preview | 52 — every other registry app | Ships, excluded from the SLA, withheld until Preview mode is on |
 | Hidden | `research` | Compiled and routed, never advertised (#1626) |
 | Deprecated | `clock` (superseded by `clock-widget`) | Announced for removal; never in `apps=` |

@@ -45,7 +45,7 @@ from product_matrix import (
 
 # The product profile requested in #1811. Both shipped files use this list.
 EXPECTED_ALWAYS = {
-    "chat", "drive", "clock-widget", "jukebox", "sheet", "player",
+    "chat", "drive", "browser", "clock-widget", "jukebox", "player",
     "calculator", "notes", "photos", "timer", "weather", "integrations",
 }
 

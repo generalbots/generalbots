@@ -25,6 +25,19 @@ function proceedWithChatInit() {
   }
   var storageKey = "gb_chat_" + botName;
   var requestedSession = readRequestedSession();
+  // #2222 — the sidebar's "New conversation" fallback (chat not mounted) parks
+  // a `gb:new-conversation` flag and reloads. Consume it here: without a
+  // one-shot drop of the remembered session the reload just reopened the
+  // previous conversation, so the button appeared to do nothing. An explicit
+  // deep link (?session_id=) always wins over the flag.
+  if (!requestedSession) {
+    try {
+      if (sessionStorage.getItem("gb:new-conversation") === "1") {
+        sessionStorage.removeItem("gb:new-conversation");
+        localStorage.removeItem("gb.chat.session." + botName);
+      }
+    } catch (e) { /* storage unavailable — keep the stored session */ }
+  }
   // #1668 — reload returns to the same conversation so the run cards and
   // surfaces can be restored from the event log instead of starting over.
   if (!requestedSession) {

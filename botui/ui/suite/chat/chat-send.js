@@ -35,8 +35,13 @@ function armChatPending(text) {
 }
 
 function clientCapabilities() {
-  return {
-    surfaces: ["text", "ui_plan"],
+  var controls = (window.GBChatControls && typeof window.GBChatControls.getState === "function")
+    ? window.GBChatControls.getState()
+    : { web: true, mediaType: "auto", agent: true, appAutomation: true };
+  var surfaces = ["text"];
+  if (controls.appAutomation !== false) surfaces.push("ui_plan");
+  var caps = {
+    surfaces: surfaces,
     input: "text,file,audio,camera",
     locale: (function () {
       try { return localStorage.getItem("gb-locale") || navigator.language || "en"; }
@@ -44,7 +49,10 @@ function clientCapabilities() {
     })(),
     preview_mode: !!(window.GBPreviewMode && window.GBPreviewMode.isOn()),
     max_live_apps: 2,
+    ui_automation: controls.appAutomation !== false,
   };
+  if (controls.mediaType && controls.mediaType !== "auto") caps.media_type = controls.mediaType;
+  return caps;
 }
 window.gbClientCapabilities = clientCapabilities;
 
@@ -131,6 +139,10 @@ function sendMessage(messageContent, extra) {
     ? activeSwitcherIds()
     : Array.from(ChatState.activeSwitchers || []);
 
+  var controls = (window.GBChatControls && typeof window.GBChatControls.getState === "function")
+    ? window.GBChatControls.getState()
+    : { web: true, mediaType: "auto", agent: true, appAutomation: true };
+
   var isAnonymous = !!(window.__BOT_IS_PUBLIC__ && !(window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()));
 
   var payload = {
@@ -151,9 +163,11 @@ function sendMessage(messageContent, extra) {
     })(),
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
     client_capabilities: clientCapabilities(),
-    // #1593 — explicit per-conversation web-search switch. When false the
-    // server skips the search pipeline entirely; default is on.
-    web_search: window.ChatWebSearch ? window.ChatWebSearch.isEnabled() : true,
+    // #1593/#2238 — explicit per-conversation switches.
+    web_search: (typeof controls.web === "boolean") ? controls.web : (window.ChatWebSearch ? window.ChatWebSearch.isEnabled() : true),
+    agent_enabled: controls.agent !== false,
+    ui_automation: controls.appAutomation !== false,
+    media_type: controls.mediaType || "auto",
     // #1642 — the prompt reads chat_preferences server-side; the old
     // `user_memory` payload was ignored by the server and is gone.
     mentions: selectedMentions.map(function (mention) {

@@ -258,6 +258,35 @@ pub async fn process_message_internal(
         route.reason
     );
 
+    // #2238 — unified chat controls: agent/VM, app automation (UI hints),
+    // web search and desired media type are explicit per-turn flags.
+    let agent_enabled = parsed
+        .get("agent_enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let ui_automation_enabled = parsed
+        .get("ui_automation")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let media_type = parsed
+        .get("media_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("auto")
+        .to_string();
+    let client_caps_value = {
+        let mut caps = parsed
+            .get("client_capabilities")
+            .cloned()
+            .unwrap_or_else(|| serde_json::json!({}));
+        if let Some(obj) = caps.as_object_mut() {
+            obj.insert("ui_automation".to_string(), serde_json::json!(ui_automation_enabled));
+            if media_type != "auto" {
+                obj.insert("media_type".to_string(), serde_json::json!(media_type.clone()));
+            }
+        }
+        caps
+    };
+
     let channel = sink.channel_type();
     let system_prompt = super::system_prompt::with_structured_tools(
         super::system_prompt::build(
@@ -268,10 +297,18 @@ pub async fn process_message_internal(
             bot_name,
             channel,
             &active_switchers,
-            parsed.get("client_capabilities"),
+            Some(&client_caps_value),
         ),
         channel,
     );
+    // #2238 — bias the answer toward the requested artifact/media type.
+    let system_prompt = if media_type != "auto" {
+        format!(
+            "{system_prompt}\n\n---\nRequested output type: {media_type}. Prefer producing this artifact/format when feasible; if not possible, explain briefly and provide the closest alternative."
+        )
+    } else {
+        system_prompt
+    };
     // #1975 — selective Canvas/SVG subsystem prompt for drawing turns.
     let canvas_block = super::system_prompt::canvas_drawing_block(&user_text);
     let system_prompt = if canvas_block.is_empty() {
@@ -337,7 +374,8 @@ pub async fn process_message_internal(
     // #1835 — news/informational turns belong to web grounding, not to the
     // agent VM's code-execution surface: skip the VM contract for them so the
     // model does not route the request into vm_exec (which never shows refs).
-    if !super::turn_hooks::is_informational_request(&user_text) {
+    // #2238 — explicit Agent toggle: skip VM provisioning/inject when off.
+    if agent_enabled && !super::turn_hooks::is_informational_request(&user_text) {
         super::agent_vm_context::inject(identity, &mut messages).await;
     }
 
@@ -379,17 +417,17 @@ pub async fn process_message_internal(
     #[cfg(feature = "drive")]
     super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
 
-    // #1632 item 3 — the composer's Web switch is the decision. When it is on
-    // the turn is searched as written; when it is off nothing is searched and
-    // the model can still call the `web.search` command itself. No routing
-    // completion asks whether the turn "needs" the web.
+    // #1632 item 3 / #2238 — the composer's Web switch is the decision.
+    // When explicitly off, do not search (even for informational requests).
+    // When on (or unspecified legacy), search as before.
     #[cfg(any(feature = "research", feature = "web-search"))]
     {
-        let web_search_enabled = parsed
-            .get("web_search")
-            .and_then(|value| value.as_bool())
-            .unwrap_or(false)
-            || super::turn_hooks::is_informational_request(&user_text);
+        let web_flag = parsed.get("web_search").and_then(|value| value.as_bool());
+        let web_search_enabled = match web_flag {
+            Some(false) => false,
+            Some(true) => true,
+            None => super::turn_hooks::is_informational_request(&user_text),
+        };
         if web_search_enabled {
             let citations =
                 super::web_context::search_and_inject(identity, &user_text, &mut messages).await;

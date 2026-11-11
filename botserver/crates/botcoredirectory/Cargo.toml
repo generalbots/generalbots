@@ -25,6 +25,7 @@ r2d2 = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v5"] }
 tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }

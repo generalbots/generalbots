@@ -34,12 +34,25 @@ fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
             continue;
         };
         let file_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
-        let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
-        if !file_email.is_empty()
-            && file_email.eq_ignore_ascii_case(email)
-            && !file_password.is_empty()
-            && file_password == password
-        {
+        if file_email.is_empty() || !file_email.eq_ignore_ascii_case(email) {
+            continue;
+        }
+        // #2231 — new installs persist a salted SHA-256 digest, never the
+        // password itself. Legacy files with a plaintext `password` keep
+        // working until the desktop wizard scrubs them after the first login.
+        let file_salt = json.get("password_salt").and_then(|v| v.as_str()).unwrap_or("");
+        let file_hash = json.get("password_hash").and_then(|v| v.as_str()).unwrap_or("");
+        let matched = if !file_salt.is_empty() && !file_hash.is_empty() {
+            use sha2::{Digest, Sha256};
+            let mut hasher = Sha256::new();
+            hasher.update(file_salt.as_bytes());
+            hasher.update(password.as_bytes());
+            format!("{:x}", hasher.finalize()) == file_hash
+        } else {
+            let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
+            !file_password.is_empty() && file_password == password
+        };
+        if matched {
             let user_id = json
                 .get("user_id")
                 .and_then(|v| v.as_str())

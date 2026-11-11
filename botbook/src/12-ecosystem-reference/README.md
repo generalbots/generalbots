@@ -76,10 +76,11 @@ name=Acme Bot Platform
 **Type:** Comma-separated list  
 **Default:** All apps enabled
 
-Specifies which apps are visible in the suite without turning Preview mode on. Since 7.0 (#2097) the split is declared in the app registry (`launcher_visibility` in `botserver/src/apps/registry/`), and `apps=` mirrors it; the shipped configuration lists:
+Specifies which apps are visible in the suite without turning Preview mode on. Since 7.0 (#2097) the split is declared in the app registry (`launcher_visibility` in `botserver/src/apps/registry/`), and `apps=` mirrors it; the shipped configuration lists (Sheets is preview-only since
+7.0, Browser is always visible):
 
 ```ini
-apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations
+apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations
 ```
 
 Applications not listed here are not removed — the registry marks them preview-only. To promote an app out of Preview mode, mark it `always_visible` in the registry and add its id to `apps`; the `product_apps_line_matches_the_registry_flag` guard test fails if the two disagree.
@@ -87,7 +88,7 @@ Applications not listed here are not removed — the registry marks them preview
 **Example — promoting the advanced apps:**
 
 ```ini
-apps=chat,drive,clock-widget,jukebox,sheet,player,calculator,notes,photos,timer,weather,integrations,mail,calendar
+apps=chat,drive,browser,clock-widget,jukebox,player,calculator,notes,photos,timer,weather,integrations,mail,calendar
 ```
 
 ### preview_apps

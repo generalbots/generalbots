@@ -72,3 +72,78 @@ pub fn app_for_filename(name: &str) -> &'static str {
         _ => "preview",
     }
 }
+
+/// Ceiling on the bytes read back for a content delta (128 KiB) and on the
+/// blocks emitted from them, so a huge markdown artifact cannot flood the bus.
+const MAX_CONTENT_BYTES: usize = 128 * 1024;
+const MAX_CONTENT_BLOCKS: usize = 400;
+
+/// True when the artifact has a renderer that takes block ops straight from
+/// text (`paper` renders markdown/plain text as blocks). Binary office formats
+/// need a document parser and stay finalize-only for now.
+pub fn is_text_artifact(name: &str) -> bool {
+    matches!(
+        name.rsplit('.').next().unwrap_or("").to_lowercase().as_str(),
+        "md" | "markdown" | "txt"
+    )
+}
+
+/// Builds `clear` + one `append_block` per paragraph for a text artifact.
+///
+/// #2235 F1 — the transport (session bus → WS → `GBDocDelta`) and the paper
+/// renderer existed without a producer building anything but `finalize`, so
+/// the app window opened empty. This is the first real op producer; an empty
+/// or unparsable artifact yields no ops and the caller falls back to finalize.
+pub fn text_block_ops(bytes: &[u8]) -> Vec<Value> {
+    let slice = &bytes[..bytes.len().min(MAX_CONTENT_BYTES)];
+    let text = String::from_utf8_lossy(slice);
+    if text.trim().is_empty() {
+        return Vec::new();
+    }
+    let mut ops = vec![serde_json::json!({"op":"clear"})];
+    for (index, block) in text
+        .split("\n\n")
+        .map(str::trim)
+        .filter(|block| !block.is_empty())
+        .take(MAX_CONTENT_BLOCKS)
+        .enumerate()
+    {
+        ops.push(serde_json::json!({
+            "op": "append_block",
+            "id": format!("gbd-{index}"),
+            "type": "paragraph",
+            "text": block,
+        }));
+    }
+    if ops.len() == 1 {
+        return Vec::new();
+    }
+    ops
+}
+
+#[cfg(test)]
+mod tests {
+    use super::text_block_ops;
+
+    #[test]
+    fn text_artifact_becomes_block_ops() {
+        let ops = text_block_ops(b"First paragraph.\n\nSecond paragraph.");
+        assert_eq!(ops.len(), 3, "clear + one append_block per paragraph");
+        assert_eq!(ops[0]["op"], "clear");
+        assert_eq!(ops[1]["op"], "append_block");
+        assert_eq!(ops[1]["text"], "First paragraph.");
+        assert_eq!(ops[2]["text"], "Second paragraph.");
+    }
+
+    #[test]
+    fn empty_artifact_emits_finalize_only() {
+        assert!(text_block_ops(b"   \n\n\t").is_empty());
+    }
+
+    #[test]
+    fn text_ops_are_capped() {
+        let body = "para\n\n".repeat(1_000);
+        let ops = text_block_ops(body.as_bytes());
+        assert_eq!(ops.len(), 401, "clear + the 400-block ceiling");
+    }
+}

@@ -243,7 +243,9 @@ function dialChatSocket(seq) {
       // #2179 — live document deltas streamed over the session WS.
       if (data.event === "gb-doc-delta") {
         try {
-          window.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data }));
+          // #2179 — delta renderers and the window manager listen on
+          // `document`; dispatching on `window` skipped both.
+          document.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data }));
         } catch (e) { /* CustomEvent unavailable */ }
         return;
       }

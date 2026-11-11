@@ -2,7 +2,11 @@
 /* #2172/#2175 — gb-doc-delta for paper (block model). */
 (function () {
   function apply(payload) {
-    var root = document.querySelector("#paper-editor, .paper-editor, [contenteditable=true]");
+    // The document body is #editor-content; `[contenteditable=true]` alone
+    // matched #paper-title first, so every block landed in the title.
+    var root = document.getElementById("editor-content") ||
+      document.querySelector(".editor-content") ||
+      document.querySelector("#paper-editor, .paper-editor");
     if (!root) return;
     (payload.ops || []).forEach(function (op) {
       if (op.op === "append_block" || op.op === "update_block") {

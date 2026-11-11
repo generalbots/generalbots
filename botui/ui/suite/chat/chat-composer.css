@@ -349,3 +349,27 @@ textarea#messageInput {
     background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
     border-color: color-mix(in srgb, var(--accent, #2563eb) 24%, transparent);
 }
+
+/* #2238 unified chat controls */
+.chat-controls-toggle { position: relative; }
+.chat-controls-badge {
+  position: absolute; top: -2px; right: -2px;
+  min-width: 14px; height: 14px; padding: 0 3px;
+  border-radius: 7px; font-size: 10px; line-height: 14px;
+  background: var(--accent, #3b82f6); color: #fff; text-align: center;
+  pointer-events: none;
+}
+.chat-controls-panel {
+  position: absolute; right: 8px; bottom: 56px;
+  width: 280px; max-width: calc(100vw - 24px);
+  background: var(--surface, #1a1a24); color: var(--text, #eee);
+  border: 1px solid var(--border, #333); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 10px; z-index: 50;
+}
+.chat-controls-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.chat-controls-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+.chat-controls-row input[type="checkbox"] { margin: 0; }
+.chat-controls-row small { display: block; color: var(--text-secondary, #888); font-size: 11px; margin-left: auto; text-align: right; }
+.chat-controls-col { flex-direction: column; align-items: stretch; }
+.chat-controls-col small { margin-left: 0; text-align: left; }
+.chat-controls-col select { margin-top: 4px; width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border, #333); background: var(--bg, #111); color: inherit; font-size: 12px; }

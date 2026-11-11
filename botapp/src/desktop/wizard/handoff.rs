@@ -25,6 +25,27 @@ fn resolve_user_id(user_id: &str, email: &str) -> String {
     }
 }
 
+/// Derives the non-reversible credentials record persisted for the local
+/// administrator. The plaintext password is never written to disk (#2231):
+/// only a per-file salt and the SHA-256 digest of `salt || password` are.
+fn password_record(password: &str, email: &str) -> (String, String) {
+    use sha2::{Digest, Sha256};
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let mut salt_hasher = Sha256::new();
+    salt_hasher.update(email.trim().as_bytes());
+    salt_hasher.update(nanos.to_le_bytes());
+    salt_hasher.update(std::process::id().to_le_bytes());
+    let salt = format!("{:x}", salt_hasher.finalize());
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(password.as_bytes());
+    let hash = format!("{:x}", hasher.finalize());
+    (salt, hash)
+}
+
 /// Writes the administrator account from the wizard draft. The accounts step
 /// runs before Finish, so it saves the same file early and signs in with it.
 pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), String> {
@@ -34,9 +55,11 @@ pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), St
     let dir = stack_path().join("conf").join("directory");
     std::fs::create_dir_all(&dir).map_err(|e| format!("create directory config: {e}"))?;
     let user_id = resolve_user_id(&admin.user_id, &admin.email);
+    let (salt, hash) = password_record(&admin.password, &admin.email);
     let payload = serde_json::json!({
         "email": admin.email.trim(),
-        "password": admin.password,
+        "password_salt": salt,
+        "password_hash": hash,
         "user_id": user_id,
     });
     let raw = serde_json::to_string_pretty(&payload)

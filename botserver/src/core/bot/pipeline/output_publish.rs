@@ -348,6 +348,34 @@ pub async fn publish_turn_output(
 /// task open; a timeout leaves the ledger untouched and the next turn retries.
 const PUBLISH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 
+/// #2235 F1 — publishes the content ops of a text artifact before `finalize`.
+///
+/// The bytes are read back from the conversation's `output/` folder (the same
+/// file the publisher just uploaded); a read failure is not fatal, the turn
+/// still finalizes so the Drive link is never delayed by a delta.
+async fn emit_text_content(
+    state: &Arc<AppState>,
+    session_id: Uuid,
+    user_id: Uuid,
+    name: &str,
+    app: &str,
+) {
+    let relative = format!("output/{name}");
+    let bytes = match agent_vm_hook::read_session_file(user_id, session_id, &relative).await {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            botlog::safe_warn!("doc delta: cannot read {relative} for {session_id}: {error}");
+            return;
+        }
+    };
+    let ops = doc_delta::text_block_ops(&bytes);
+    if ops.is_empty() {
+        return;
+    }
+    let envelope = doc_delta::DocDeltaEnvelope::new(name, app, 1, ops);
+    doc_delta::emit(state, session_id, &envelope).await;
+}
+
 /// Publishes the turn's artifacts and attaches their links to the chat.
 ///
 /// `vmfile:` is a chat link, so only the web channel receives the message;
@@ -380,9 +408,15 @@ pub async fn publish_and_attach(identity: &SessionIdentity<'_>) {
     botlog::safe_info!("output publish: {count} file(s) for {session_id}");
     // #2172 — signal finalize so a live-streaming app can reconcile to the
     // canonical Drive file instead of reloading a conversion.
+    // #2235 F1 — before finalizing, a text artifact also publishes the content
+    // ops its renderer understands (paper), so the app window shows the
+    // document instead of opening empty on a bare finalize.
     for item in &report.published {
         let app = doc_delta::app_for_filename(&item.name);
-        let env = doc_delta::DocDeltaEnvelope::finalize(item.name.clone(), app, 0);
+        if doc_delta::is_text_artifact(&item.name) {
+            emit_text_content(state, session_id, user_id, &item.name, app).await;
+        }
+        let env = doc_delta::DocDeltaEnvelope::finalize(item.name.clone(), app, 2);
         doc_delta::emit(state, session_id, &env).await;
     }
     if sink.channel_type() != "web" {

@@ -32,6 +32,15 @@ where
 /// contract. Includes the app catalog so the model only references apps
 /// that actually exist in this build.
 pub fn ui_automation_instructions(client_caps: Option<&serde_json::Value>) -> String {
+    // #2238 — explicit toggle: when app automation is off, omit UI hints
+    // entirely so the model answers in prose/commands instead of plans.
+    let ui_automation_on = client_caps
+        .and_then(|caps| caps.get("ui_automation"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(true);
+    if !ui_automation_on {
+        return String::new();
+    }
     let preview_on = client_caps
         .and_then(|caps| caps.get("preview_mode"))
         .and_then(serde_json::Value::as_bool)
