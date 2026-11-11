@@ -45,12 +45,19 @@ pub async fn emit(
     session_id: uuid::Uuid,
     envelope: &DocDeltaEnvelope,
 ) {
-    // #2172: route through any registered session WS sender/bus. The concrete
-    // wiring depends on the active sink; we attempt raw JSON delivery where
-    // supported and otherwise rely on the finalize path.
+    // #2179: publish the envelope to the session bus so every subscribed
+    // socket (and the side-by-side app window) receives the live ops.
     if let Ok(json) = serde_json::to_value(envelope) {
-        let _ = (state, session_id, json); // placeholder for bus integration
-        log::debug!("gb-doc-delta queued app={} file={} rev={}", envelope.app, envelope.file, envelope.rev);
+        let thread_id = crate::core::bot::runs::bus::thread_id(session_id);
+        let delivered = crate::core::bot::runs::bus::bus().publish(&thread_id, json);
+        log::debug!(
+            "gb-doc-delta published app={} file={} rev={} delivered={}",
+            envelope.app,
+            envelope.file,
+            envelope.rev,
+            delivered
+        );
+        let _ = state;
     }
 }
 

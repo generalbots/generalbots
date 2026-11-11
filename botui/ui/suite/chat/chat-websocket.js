@@ -240,6 +240,14 @@ function dialChatSocket(seq) {
         return;
       }
       // #2098 — the server accepted our cancel; the turn is over.
+      // #2179 — live document deltas streamed over the session WS.
+      if (data.event === "gb-doc-delta") {
+        try {
+          window.dispatchEvent(new CustomEvent("gb-doc-delta", { detail: data }));
+        } catch (e) { /* CustomEvent unavailable */ }
+        return;
+      }
+
       if (data.type === "run_cancelled") {
         if (window.GBTurn) GBTurn.forceHide();
         return;
