@@ -159,6 +159,9 @@ function processMessage(data) {
       if (lastBot && typeof enforceNoVmFileLinks === "function") {
         enforceNoVmFileLinks(lastBot);
       }
+      if (lastBot && window.ChatCodeUX && typeof ChatCodeUX.collapseLong === "function") {
+        ChatCodeUX.collapseLong(lastBot);
+      }
     } catch (e) { /* hydration is best-effort */ }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";

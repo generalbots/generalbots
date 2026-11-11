@@ -451,6 +451,43 @@
     overflow: auto;
 }
 
+/* Safety net: a single bot turn must never grow taller than the window, even
+ * when its content is plain text (not fenced code). Such turns get a "Show
+ * all" toggle via ChatCodeUX.collapseLong. */
+#messages .message-content.bot-message,
+.chat-pane-messages .message-content.bot-message {
+    max-height: 600px;
+    overflow-y: auto;
+}
+.gb-long-collapsed .message-content.bot-message,
+.message-content.bot-message.gb-long-collapsed {
+    max-height: 400px;
+    overflow-y: auto;
+    position: relative;
+}
+.gb-long-collapsed .message-content.bot-message::after,
+.message-content.bot-message.gb-long-collapsed::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 48px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0), var(--surface, #111827));
+    pointer-events: none;
+}
+.gb-long-toggle {
+    display: block;
+    margin: 6px auto 0;
+    padding: 4px 12px;
+    border: 1px solid var(--surface-border, #334155);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 12px;
+    cursor: pointer;
+}
+
 /* Long listings start collapsed so the answer stays readable (#chat code flood). */
 .gb-code-collapsed .gb-code-body {
     max-height: 190px;

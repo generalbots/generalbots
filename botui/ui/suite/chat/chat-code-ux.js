@@ -180,6 +180,27 @@
         }
     }
 
+    // A single bot turn can still flood the window when its content is plain
+    // text (not fenced code) — e.g. a tool that dumps a long listing. Collapse
+    // such turns behind a "Show all" toggle so the answer stays readable.
+    function collapseLong(container) {
+        if (!container) return;
+        var content = container.querySelector(".message-content");
+        if (!content) return;
+        if (content.classList.contains("gb-long-handled")) return;
+        if (content.scrollHeight <= 480) return;
+        content.classList.add("gb-long-handled", "gb-long-collapsed");
+        var toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "gb-long-toggle";
+        toggle.textContent = "Show all";
+        toggle.addEventListener("click", function () {
+            var collapsed = content.classList.toggle("gb-long-collapsed");
+            this.textContent = collapsed ? "Show all" : "Collapse";
+        });
+        container.appendChild(toggle);
+    }
+
     /* Tool progress cards */
 
     function toolStatusIcon(status) {
@@ -261,6 +282,7 @@
 
     window.ChatCodeUX = {
         enhance: enhance,
+        collapseLong: collapseLong,
         highlight: highlight,
         renderDiff: renderDiff,
         isDiff: isDiff,

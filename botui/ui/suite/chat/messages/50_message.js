@@ -228,6 +228,7 @@ function addMessage(sender, content, msgId, reasoning, timestamp) {
   }
   if (sender === "bot" && window.ChatCodeUX) {
     ChatCodeUX.enhance(div);
+    if (typeof ChatCodeUX.collapseLong === "function") ChatCodeUX.collapseLong(div);
     var toolCards = ChatCodeUX.extractToolCards(content);
     toolCards.forEach(function (tool) {
       if (tool.status) ChatCodeUX.appendCard(tool);
