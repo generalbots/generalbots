@@ -28,6 +28,7 @@ var GBTurn = (function () {
   var turns = {};
   var turnSeq = 0;
   var lastEnded = null;
+  var lastStartedAt = 0;
   // Turns that ended but still show a "Done"/"Stopped" element for a moment.
   var lingering = [];
 
@@ -89,6 +90,7 @@ var GBTurn = (function () {
     turn.container = ind() ? ind().resolveContainer({ tabId: tabId, pane: opts.pane }) : null;
     // A new turn owns its pane: forget the previous turn's "Done" element.
     lingering = lingering.filter(function (entry) { return entry.container !== turn.container; });
+    lastStartedAt = turn.startedAt;
     turns[tabId] = turn;
     paint(turn, label("status-sending", "Sending…"));
     if (ind()) {
@@ -130,8 +132,11 @@ var GBTurn = (function () {
       var ended = lastEnded && lastEnded.tabId === tabOf(opts) &&
         Date.now() - lastEnded.at < DONE_LINGER_MS;
       if (ended) return false;
+      var recentStart = (lastEnded && lastEnded.tabId === tabOf(opts) &&
+        Date.now() - lastEnded.at < 10000) ? lastStartedAt : 0;
       start("", opts);
       turn = active(opts);
+      if (turn && recentStart) turn.startedAt = recentStart;
     }
     if (!turn) return false;
     note(turn);

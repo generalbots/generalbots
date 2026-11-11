@@ -35,7 +35,7 @@
       .map(function (n, i) {
         return (
           '<div class="note-card" style="background:' + n.color + '" data-i="' + i + '">' +
-          '<textarea data-i="' + i + '" data-gb-field="text" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
+          '<textarea data-i="' + i + '" data-gb-field="text title body" placeholder="Write…">' + escapeHtml(n.text) + "</textarea>" +
           '<div class="note-card-footer">' +
           '<span class="note-time">' + new Date(n.ts).toLocaleString() + "</span>" +
           '<button class="note-del" data-del="' + i + '" title="Delete">✕</button>' +
