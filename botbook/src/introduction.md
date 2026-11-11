@@ -302,7 +302,7 @@ The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to c
 General Bots is open source (MIT) developed by GeneralBots.org and contributors worldwide.
 
 - **GitHub**: https://github.com/generalbots/generalbots
-- **Version**: 7.0.0
+- **Version**: 7.0.37
 - **Status**: Production Ready
 
 Ready to build your bot? Turn to [Chapter 01](./01-getting-started/README.md) and let's go!
