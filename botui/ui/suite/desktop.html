@@ -37,7 +37,7 @@
 <script src="/suite/js/widget-renderer.js?v=2"></script> <script src="/suite/js/widget-registry.js?v=2"></script>
 <script src="/suite/js/desktop-shortcuts.js?v=2"></script> <script src="/suite/js/screensavers.js?v=2"></script>
 <script src="/suite/js/pinned-launcher.js?v=3"></script> <script src="/suite/js/sidebar-enhance.js?v=5"></script>
-<script src="/suite/js/sidebar-sections.js?v=5"></script> <script src="/suite/js/sidebar-history.js?v=4"></script>
+<script src="/suite/js/sidebar-sections.js?v=5"></script> <script src="/suite/js/sidebar-history.js?v=4"></script> <script src="/suite/js/sidebar-feedback.js?v=1"></script>
 <script src="/suite/js/snap-assist.js?v=1"></script> <script src="/suite/js/virtual-desktops.js?v=1"></script>
 <script src="/suite/js/mission-control.js?v=1"></script> <script src="/suite/js/alt-tab.js?v=1"></script>
 <script src="/suite/js/taskbar-previews.js?v=1"></script> <script src="/suite/js/gb-toasts.js?v=1"></script> <script src="/suite/js/gb-modal.js?v=1"></script>
@@ -67,7 +67,11 @@
 <button class="chat-sidebar-new-chat" id="sidebarNewChatBtn"> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 <span data-i18n="chat-new-conversation">New conversation</span> </button>
 <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav> <div class="chat-sidebar-section-label" data-i18n="sidebar-conversations">Conversations</div>
-<div class="chat-sidebar-conversations" id="chatConversations"></div> <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
+<div class="chat-sidebar-conversations" id="chatConversations"></div> <div class="gb-sidebar-feedback" id="sidebarFeedbackBox" aria-label="Feedback">
+  <label class="gb-sidebar-feedback-label" for="sidebarFeedbackText">Feedback</label>
+  <textarea id="sidebarFeedbackText" class="gb-sidebar-feedback-text" rows="3" placeholder="Suggestion or bug report..."></textarea>
+  <button type="button" id="sidebarFeedbackBtn" class="gb-sidebar-feedback-btn" disabled>Create issue</button>
+</div> <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
 <div class="chat-sidebar-user" id="sidebarUser"></div> </div>
 <div class="chat-sidebar-collapsed-icons"> <div class="chat-sidebar-collapsed-icon" title="Chat" data-i18n-title="sidebar-collapsed-chat" onclick="window.openDeepLink('chat', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> </div>
@@ -76,7 +80,9 @@
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> </div>
 <div class="chat-sidebar-collapsed-icon" title="Settings" data-i18n-title="sidebar-collapsed-settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> </div>
-<div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account" data-i18n-title="sidebar-collapsed-account"></div> </div>
+<div class="chat-sidebar-collapsed-icon" id="sidebarFeedbackCollapsed" title="Feedback" aria-label="Feedback">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+</div> <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account" data-i18n-title="sidebar-collapsed-account"></div> </div>
 </aside> <!-- Main Wrapper -->
 <div class="main-wrapper"> <!-- Top Navigation Tabs - Removed (already in Vibe) -->
 <!-- Workspace container where WindowManager operates. This is the page's

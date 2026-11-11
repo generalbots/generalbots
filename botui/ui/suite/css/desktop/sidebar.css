@@ -403,3 +403,50 @@ body.public-mode .chat-sidebar { /* always visible */ }
 body.fullscreen .chat-sidebar {
   display: none !important;
 }
+
+/* ── Sidebar feedback box (#2237) ── */
+.gb-sidebar-feedback {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border, #333);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gb-sidebar-feedback-label {
+  font-size: 11px;
+  color: var(--text-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gb-sidebar-feedback-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 3.6em;
+  max-height: 10em;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #333);
+  background: var(--surface, #1a1a24);
+  color: var(--text, #eee);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.gb-sidebar-feedback-btn {
+  align-self: flex-end;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #333);
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  cursor: pointer;
+}
+.gb-sidebar-feedback-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.chat-sidebar.collapsed .gb-sidebar-feedback {
+  display: none;
+}
