@@ -99,6 +99,14 @@ pub(super) fn routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/tasks/**", "PATCH", ""),
         RoutePermission::new("/api/tasks/**", "DELETE", ""),
 
+        // HTMX app fragments. /suite/docs/fragments/*, /suite/slides/fragments/*
+        // and friends are rendered by botserver behind the botui proxy, but no
+        // /suite prefix existed in the catalogue — default-deny answered
+        // "No matching route permission found" and the Docs app could not even
+        // list its own documents (#2159).
+        RoutePermission::new("/suite/**", "GET", ""),
+        RoutePermission::new("/suite/**", "POST", ""),
+
         // Docs / Paper
         RoutePermission::new("/api/docs/**", "GET", ""),
         RoutePermission::new("/api/docs/**", "POST", ""),

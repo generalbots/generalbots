@@ -87,8 +87,14 @@ function docsInit() {
     openPageLayoutModal: openPageLayoutModal,
     applyPageLayout: applyPageLayout,
     insertHeaderFooterZone: insertHeaderFooterZone,
-    updatePageCount: updatePageCount
+    updatePageCount: updatePageCount,
+    renderPageGuides: renderPageGuides
   };
+  // #2159 — draw the A4 page separations as soon as the editor exists and
+  // keep them in sync while the document grows.
+  watchPageGuides();
+  var activeDoc = typeof getActiveArticle === "function" ? getActiveArticle() : null;
+  if (activeDoc) renderPageGuides(activeDoc);
   loadDriveFileIntoEditor();
   // Re-targeting an already-open docs window (Drive "Open" a second file)
   // never re-runs DOMContentLoaded — the shell dispatches gb:deep-link.

@@ -115,6 +115,8 @@
         return false;
     }
 
+    var COLLAPSE_AFTER_LINES = 14;
+
     function enhance(container) {
         if (!container) return;
         var pres = container.querySelectorAll("pre");
@@ -122,7 +124,14 @@
             var pre = pres[i];
             if (pre.classList.contains("gb-enhanced")) continue;
             var code = pre.querySelector("code");
-            if (!code) continue;
+            if (!code) {
+                // Bare <pre> blocks (tool output, plainer renderers) were skipped,
+                // so the longest listings were the ones that never collapsed.
+                code = document.createElement("code");
+                code.textContent = pre.textContent || "";
+                pre.textContent = "";
+                pre.appendChild(code);
+            }
             var text = code.textContent || "";
             if (!text.trim()) continue;
             pre.classList.add("gb-enhanced");
@@ -132,13 +141,31 @@
             if (!lang && /^diff\s|^diff --git/.test(text)) lang = "diff";
             var diffMode = lang === "diff" || isDiff(text);
             var body = diffMode ? renderDiff(text) : highlight(text, lang);
+            // A long listing used to fill the whole window and push the answer
+            // itself off screen, so long blocks start collapsed with an explicit
+            // "show all" (and the copy button stays available either way).
+            var lines = text.split("\n").length;
+            // One enormous line wraps into dozens of visual rows, so length
+            // counts as much as the line count when deciding to collapse.
+            var collapsible = lines > COLLAPSE_AFTER_LINES || text.length > 900;
             pre.innerHTML =
                 '<div class="gb-code-head">' +
                 '<span class="gb-code-lang">' + escapeHtml(lang || "code") + "</span>" +
-                '<span class="gb-code-count">' + text.split("\n").length + " lines</span>" +
+                '<span class="gb-code-count">' + lines + " lines</span>" +
+                (collapsible
+                    ? '<button type="button" class="gb-code-toggle">Show all</button>'
+                    : "") +
                 '<button type="button" class="gb-code-copy">Copy</button>' +
                 "</div>" +
                 '<code class="gb-code-body">' + body + "</code>";
+            if (collapsible) {
+                pre.classList.add("gb-code-collapsed");
+                var toggle = pre.querySelector(".gb-code-toggle");
+                toggle.addEventListener("click", function () {
+                    var collapsed = pre.classList.toggle("gb-code-collapsed");
+                    this.textContent = collapsed ? "Show all" : "Collapse";
+                });
+            }
             var copy = pre.querySelector(".gb-code-copy");
             copy.addEventListener("click", function () {
                 var src = this.parentElement.nextElementSibling.textContent;

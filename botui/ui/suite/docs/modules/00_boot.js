@@ -38,8 +38,20 @@
     if (window.htmx && typeof htmx.process === "function") htmx.process(host);
   }
 
+  // The fragment routes (/suite/docs/fragments/*) are proxied to botserver,
+  // which rejects a token-less call with 401/403 — so the docs app could never
+  // list or open a document. Same header the other docs calls already send.
+  function docsAuthHeaders(extra) {
+    var headers = Object.assign({}, extra || {});
+    var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
+    if (token) headers.Authorization = "Bearer " + token;
+    return headers;
+  }
+
   function json(url, options) {
-    return fetch(url, options).then(function (response) {
+    var opts = Object.assign({}, options || {});
+    opts.headers = docsAuthHeaders(opts.headers);
+    return fetch(url, opts).then(function (response) {
       if (!response.ok) throw new Error(url + " -> " + response.status);
       return response.json();
     });
@@ -50,7 +62,7 @@
     if (!host) return Promise.resolve();
     return fetch("/suite/docs/fragments/view", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: docsAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         id: doc.id,
         title: doc.title,
@@ -89,7 +101,7 @@
     }
     return fetch("/suite/docs/fragments/doc-list", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: docsAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(items)
     })
       .then(function (response) {

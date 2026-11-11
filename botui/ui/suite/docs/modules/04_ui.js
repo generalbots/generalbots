@@ -48,19 +48,74 @@ function openPageLayoutModal() {
     "</div></div>"
   ].join("");
 }
+/* Visible page separation: a continuous white sheet gives no clue where a
+ * printed page ends, so dashed guides plus a page number are drawn at every
+ * page height while the document grows (#2159). */
+function renderPageGuides(article) {
+  if (!article) return;
+  var host = article.parentElement;
+  if (!host) return;
+  var pageH = parseInt(article.dataset.pageH || "1123", 10);
+  if (!pageH || pageH < 200) pageH = 1123;
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+  var guide = host.querySelector(".docs-page-guide");
+  if (!guide) {
+    guide = document.createElement("div");
+    guide.className = "docs-page-guide";
+    guide.contentEditable = "false";
+    guide.setAttribute("aria-hidden", "true");
+    guide.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:2;";
+    host.appendChild(guide);
+  }
+  var hostRect = host.getBoundingClientRect();
+  var rect = article.getBoundingClientRect();
+  var left = rect.left - hostRect.left + (host.scrollLeft || 0);
+  var top = rect.top - hostRect.top + (host.scrollTop || 0);
+  var pages = Math.max(1, Math.ceil((article.scrollHeight || rect.height) / pageH));
+  var html = "";
+  for (var i = 1; i < pages; i++) {
+    var y = Math.round(top + i * pageH);
+    html += '<div class="docs-page-gap" style="position:absolute;left:' + Math.round(left) + 'px;width:' + Math.round(rect.width) + 'px;top:' + y + 'px;border-top:1px dashed #94a3b8;"></div>';
+    html += '<span class="docs-page-num" style="position:absolute;left:' + Math.round(left + rect.width - 54) + 'px;top:' + (y + 4) + 'px;font-size:11px;color:#64748b;background:#f8fafc;padding:0 6px;border-radius:8px;border:1px solid #e2e8f0;">Page ' + (i + 1) + "</span>";
+  }
+  guide.innerHTML = html;
+}
+window.renderPageGuides = renderPageGuides;
+
+function watchPageGuides() {
+  if (window.__docsPageGuideBound) return;
+  window.__docsPageGuideBound = true;
+  var timer = null;
+  var schedule = function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      var article = typeof getActiveArticle === "function" ? getActiveArticle() : null;
+      if (article) renderPageGuides(article);
+    }, 150);
+  };
+  document.addEventListener("input", schedule, true);
+  window.addEventListener("resize", schedule);
+}
+
 function applyPageLayout() {
   var size = document.getElementById("pl-size");
   var orient = document.getElementById("pl-orient");
   var margins = document.getElementById("pl-margins");
   var article = getActiveArticle();
   if (!article) return;
-  var w = 816, h = 1056;
+  // A4 is 210x297mm = 794x1123 px at 96dpi; Letter is 8.5x11in = 816x1056 px.
+  // Both used to resolve to 816x1056, so "A4" drew a Letter page.
+  var w = 794, h = 1123;
   if (size && size.value === "letter") { w = 816; h = 1056; }
   if (orient && orient.value === "landscape") { var t = w; w = h; h = t; }
   var m = margins ? parseInt(margins.value, 10) || 96 : 96;
   article.style.width = w + "px";
   article.style.minHeight = h + "px";
   article.style.padding = m + "px";
+  // Inline styles survive the innerHTML save, so size/orientation/margins are
+  // persisted with the document; the page height drives the visible guides.
+  article.dataset.pageH = String(h);
+  renderPageGuides(article);
   var host = document.getElementById("docs-modal-container");
   if (host) host.innerHTML = "";
   scheduleSave(article.dataset.docId, article.innerHTML);
