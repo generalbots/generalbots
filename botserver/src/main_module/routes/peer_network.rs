@@ -126,7 +126,7 @@ pub async fn disable(headers: HeaderMap, user: Option<Extension<AuthenticatedUse
 }
 
 #[derive(Deserialize)]
-struct PeerPayloadQuery {
+pub struct PeerPayloadQuery {
     recipient: Option<uuid::Uuid>,
 }
 

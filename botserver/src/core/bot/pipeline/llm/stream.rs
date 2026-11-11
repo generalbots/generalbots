@@ -218,7 +218,8 @@ async fn stream_llm_response_inner(
                         "LLM empty response after {} retries, sending fallback",
                         LLM_RETRY_MAX
                     );
-                    let err_msg = llm_empty_message();
+                    let locale = botcore::i18n::locale_for_user_pool(&state.conn, user_id);
+                    let err_msg = llm_empty_message(&locale);
                     let err_resp = botlib::models::BotResponse::new(
                         &bot_uuid_s,
                         &session_id_s,

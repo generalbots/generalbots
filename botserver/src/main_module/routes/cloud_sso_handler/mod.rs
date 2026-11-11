@@ -15,4 +15,3 @@ mod session;
 pub use handlers::{
     handle_cloud_sso, handle_suite_sso, handle_unified_login, SsoRequest, SsoResponse, SuiteSsoQuery,
 };
-pub(crate) use session::create_suite_session;

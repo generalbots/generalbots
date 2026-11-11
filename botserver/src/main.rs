@@ -190,7 +190,6 @@ pub use llm::dynamic_provider::DynamicLLMProvider;
 #[cfg(feature = "tasks")]
 pub use tasks::TaskEngine;
 
-use dotenvy::dotenv;
 use log::{error, info, trace, warn};
 
 use std::sync::Arc;

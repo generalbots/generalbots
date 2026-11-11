@@ -116,6 +116,9 @@ mod is_api_call_trigger;
 mod list_people;
 #[cfg(feature = "sources")]
 mod skills;
+// The installed-skill listing is the fallback used only when the source-backed
+// `skills.list`/`skills.find` verbs are not compiled in (#2153 warnings).
+#[cfg(not(feature = "sources"))]
 mod skills_list;
 
 use archive_drive_files::*;
@@ -125,4 +128,5 @@ pub use execute_command::*;
 use find_api_entries::*;
 pub use is_api_call_trigger::*;
 use list_people::*;
+#[cfg(not(feature = "sources"))]
 use skills_list::*;

@@ -6,8 +6,6 @@
 //! to keep that dispatcher under the 450-line limit.
 
 use super::*;
-use axum::extract::{Json, Path, State};
-use axum::http::HeaderMap;
 
 /// True when `name` is one of the database verbs this module executes.
 pub(super) fn handles(name: &str) -> bool {
@@ -159,6 +157,7 @@ pub(super) async fn execute(
                     axum::extract::Json(row),
                 )
                 .await
+                .map(|_| ())
                 .map_err(database_error)?;
                 inserted += 1;
             }

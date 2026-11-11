@@ -105,7 +105,11 @@ pub async fn execute_command(
         "api.find" => Ok(
             json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) }),
         ),
+        // Without the `sources` build the source-backed arms above are not
+        // compiled, so the installed-skill listing is the reachable one.
+        #[cfg(not(feature = "sources"))]
         "skills.list" => Ok(installed_skills(state, bot_uuid, None)),
+        #[cfg(not(feature = "sources"))]
         "skills.find" => Ok(installed_skills(state, bot_uuid, str_of("query"))),
         "integrations.catalog.search" => {
             let providers = crate::apps::integration_catalog::llm_search(

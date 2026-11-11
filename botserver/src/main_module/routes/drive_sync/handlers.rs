@@ -264,7 +264,7 @@ pub async fn list_conflicts(
             &job.drive_path,
             "error-drive-sync-field-drive-folder",
         )?;
-        rsync_engine::scan_conflicts(&for_scan, &local, &drive)
+        rsync_engine::scan_conflicts(&local, &drive)
     })
     .await;
     match joined {

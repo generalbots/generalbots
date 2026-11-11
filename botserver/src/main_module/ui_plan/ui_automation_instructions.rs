@@ -98,6 +98,12 @@ Rules:
   ["Page", "Background", "Yellow"]) — one click cannot open a submenu.
 - Use `download` (not `click`) when the step must produce a file, so the plan
   verifies an artefact appeared.
+- Exports that live behind a toolbar menu need the menu opened first. In the
+  sheet app the export menu is the "Export" toolbar button and its items are
+  "CSV", "XLSX", "Markdown", "ODS", "PDF", "HTML", "JSON", so a CSV export
+  is `{{"op":"menu","path":["Export","CSV"]}}` (or `["Export"]` followed by
+  `{{"op":"download","label":"CSV"}}` when the file must be verified). A lone
+  `download` step labelled "Export CSV" fails: no control carries that label.
 - When unsure of a field name, use the label text shown in the form.
 - Keep plans minimal: open, fill the requested fields, submit.
 - For spreadsheet apps (sheet), write data with `cell` steps using A1-style references (e.g. "A1", "B2"). One `cell` step per cell.

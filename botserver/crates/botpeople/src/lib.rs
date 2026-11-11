@@ -36,7 +36,9 @@ pub use list_people::*;
 pub use get_team::*;
 pub use list_time_off::*;
 pub use errors::*;
-pub use request_scope::*;
+// The scoped helpers are crate-internal: re-exporting them publicly promised
+// an API the items are not visible enough to keep.
+pub(crate) use request_scope::*;
 
 #[cfg(test)]
 mod scope_tests;

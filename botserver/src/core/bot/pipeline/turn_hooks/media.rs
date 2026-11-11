@@ -3,7 +3,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use base64::Engine;
 use serde_json::Value;
 use uuid::Uuid;
 

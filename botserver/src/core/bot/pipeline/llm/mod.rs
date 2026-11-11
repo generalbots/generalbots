@@ -61,9 +61,12 @@ fn is_web_channel(sink: &dyn ChannelSink) -> bool {
 const LLM_RETRY_MAX: usize = 3;
 const LLM_RETRY_DELAY: u64 = 3;
 
-fn llm_empty_message() -> String {
-    let locale = botcore::i18n::Locale::new("pt-BR").unwrap_or_default();
-    let msg = botcore::i18n::t(&locale, "error-llm-empty-response");
+/// The notice a user sees when every streaming attempt comes back empty.
+///
+/// The language follows the user, not the build: a hardcoded `pt-BR` told an
+/// English conversation "Desculpe, não consegui processar…" (#2153).
+fn llm_empty_message(locale: &botcore::i18n::Locale) -> String {
+    let msg = botcore::i18n::t(locale, "error-llm-empty-response");
     if msg.starts_with('[') && msg.ends_with(']') {
         "Sorry, I could not process your message right now. Please try again in a few seconds."
             .to_string()

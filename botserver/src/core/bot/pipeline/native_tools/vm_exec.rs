@@ -11,6 +11,11 @@ use super::vm_budget::{
 };
 use super::vm_trace::trace_event;
 
+/// #2152 — the one-shot syntax repair shares the turn's provider. Past this
+/// budget the run reports the original error instead of leaving the chat on
+/// "fixing it automatically…" with no terminal state.
+const REPAIR_TIMEOUT_SECS: u64 = 45;
+
 pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let parsed: serde_json::Value = match super::super::native_args::parse_args(args) {
         Ok(value) => value,
@@ -154,7 +159,6 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let mut last_step = "workspace";
     if let Some(progress) = progress.as_ref() {
         if !packages.is_empty() {
-            last_step = "install packages";
             progress
                 .start(
                     PHASE_TOOL,
@@ -324,6 +328,7 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             super::persist(state, session_id, user_id, message).await;
         }
         Ok(Some((ok, stdout, stderr))) => {
+            let mut repair_failed = false;
             if !ok && super::program_repair::looks_like_syntax_error(&stderr) {
                 send(
                     identity,
@@ -332,9 +337,25 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 .await;
                 // One repair pass: long generated programs occasionally carry a
                 // broken string/indent and the user should not have to retype
-                // the request.
-                if let Some(fixed) = repair_program(state, bot_uuid, language, code, &stderr).await
-                {
+                // the request. #2152 — the repair call talks to the same provider
+                // as the turn, so it must be bounded: an overloaded provider kept
+                // the chat on "fixing it automatically…" for minutes with no way
+                // out. Past the budget the error is reported instead.
+                let repaired = tokio::time::timeout(
+                    std::time::Duration::from_secs(REPAIR_TIMEOUT_SECS),
+                    repair_program(state, bot_uuid, language, code, &stderr),
+                )
+                .await;
+                let fixed = match repaired {
+                    Ok(found) => found,
+                    Err(_) => {
+                        botlog::safe_warn!(
+                            "program repair gave up after {REPAIR_TIMEOUT_SECS}s: session={session_id}"
+                        );
+                        None
+                    }
+                };
+                if let Some(fixed) = fixed {
                     let retry = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
                         user_id, session_id, language, &fixed, timeout_ms, &packages,
                     )
@@ -360,6 +381,9 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                         return;
                     }
                 }
+                // Reaching here means the repair produced nothing usable (no
+                // provider, timeout, or a retry that failed again).
+                repair_failed = true;
             }
             if let Some(progress) = progress.as_ref() {
                 progress
@@ -373,7 +397,14 @@ pub(super) async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             }
             // #2046 — the trace table replaces the raw markers.
             let stdout = super::vm_trace::strip_trace_lines(&stdout);
-            let message = render_result(user_id, session_id, ok, &stdout, &stderr).await;
+            let rendered = render_result(user_id, session_id, ok, &stdout, &stderr).await;
+            let message = if repair_failed {
+                format!(
+                    "The automatic fix did not work, so here is the original error.\n\n{rendered}"
+                )
+            } else {
+                rendered
+            };
             send(identity, &message).await;
             super::persist(state, session_id, user_id, &message).await;
             if let Some(progress) = progress.as_ref() {

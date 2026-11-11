@@ -55,7 +55,6 @@ pub async fn pending(
     Query(query): Query<PendingQuery>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
-    let locale = botcore::i18n::locale_from_headers(&headers);
     let kind = query.kind.as_deref().unwrap_or("browser");
     let actions = computer_use::pending_for(query.session_id.trim(), user_id, kind).await;
     Ok(Json(json!({

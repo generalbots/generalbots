@@ -76,7 +76,6 @@ fn pending_paths(from: &FsPath, to: &FsPath) -> Result<Vec<String>, String> {
 /// A path that both directions would change is a conflict: syncing either way
 /// silently would drop the other side's work.
 pub(super) fn scan_conflicts(
-    locale: &botcore::i18n::Locale,
     local: &FsPath,
     drive: &FsPath,
 ) -> Result<Vec<SyncConflict>, String> {
@@ -122,7 +121,7 @@ pub(super) fn perform(locale: &botcore::i18n::Locale, job: &mut SyncJob) -> Resu
     job.last_status = "syncing".to_string();
     job.last_error = None;
 
-    job.conflicts = scan_conflicts(locale, &local, &drive)?;
+    job.conflicts = scan_conflicts(&local, &drive)?;
     if !job.conflicts.is_empty() {
         job.last_status = "conflict".to_string();
         job.last_run = Some(now());

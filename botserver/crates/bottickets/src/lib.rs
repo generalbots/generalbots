@@ -285,7 +285,9 @@ pub use change_status::*;
 pub use list_categories::*;
 pub use list_activities::*;
 pub use ai_suggest_for_ticket::*;
-pub use request_scope::*;
+// The scoped helpers are crate-internal: re-exporting them publicly promised
+// an API the items are not visible enough to keep.
+pub(crate) use request_scope::*;
 
 #[cfg(test)]
 mod scope_tests;
